@@ -32,6 +32,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # tauri-driver dependencies
     libssl-dev \
     pkg-config \
+    # Required for linuxdeploy/AppImage bundling
+    file \
+    patchelf \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Go 1.24 (Debian's golang-go is too old)
