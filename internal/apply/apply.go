@@ -22,8 +22,8 @@ type Result struct {
 }
 
 type Options struct {
-	DryRun   bool
-	ShowDiff bool
+	DryRun     bool
+	ShowDiff   bool
 	OnProgress func(Progress)
 }
 
