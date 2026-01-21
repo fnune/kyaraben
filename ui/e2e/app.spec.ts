@@ -7,6 +7,9 @@ let page: Page
 
 test.beforeAll(async () => {
   const appPath = path.join(__dirname, '..')
+  console.log('[test] App path:', appPath)
+  console.log('[test] DISPLAY:', process.env.DISPLAY)
+
   electronApp = await electron.launch({
     args: [appPath],
     env: {
@@ -14,13 +17,20 @@ test.beforeAll(async () => {
       NODE_ENV: 'test',
     },
   })
+  console.log('[test] Electron launched successfully')
+
   page = await electronApp.firstWindow()
+  console.log('[test] Got first window')
+
   // Wait for the app to be ready
   await page.waitForSelector('h1')
+  console.log('[test] Page ready')
 })
 
 test.afterAll(async () => {
-  await electronApp.close()
+  if (electronApp) {
+    await electronApp.close()
+  }
 })
 
 test.describe('Kyaraben App', () => {

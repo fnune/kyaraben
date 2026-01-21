@@ -10,6 +10,7 @@ FROM docker.io/library/node:22-bookworm
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # Display for headless testing
     xvfb \
+    x11-utils \
     # Electron dependencies
     libasound2 \
     libatk-bridge2.0-0 \
@@ -27,6 +28,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxrandr2 \
     libxshmfence1 \
     libglu1-mesa \
+    libx11-xcb1 \
+    libxcb-dri3-0 \
+    libxtst6 \
     # Build tools
     ca-certificates \
     curl \
