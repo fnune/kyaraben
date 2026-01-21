@@ -11,7 +11,11 @@ test.beforeAll(async () => {
   console.log('[test] DISPLAY:', process.env.DISPLAY)
 
   electronApp = await electron.launch({
-    args: [appPath],
+    args: [
+      appPath,
+      '--no-sandbox', // Required for running in Docker/CI
+      '--disable-gpu',
+    ],
     env: {
       ...process.env,
       NODE_ENV: 'test',
