@@ -5,6 +5,8 @@ import (
 
 	"github.com/fnune/kyaraben/internal/apply"
 	"github.com/fnune/kyaraben/internal/emulators"
+	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/nix"
 )
 
 type ApplyCmd struct {
@@ -18,9 +20,29 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		return err
 	}
 
-	userStorePath, err := cfg.ExpandUserStore()
+	userStore, err := ctx.NewUserStore(cfg)
 	if err != nil {
-		return fmt.Errorf("expanding user store: %w", err)
+		return err
+	}
+
+	registry := ctx.NewRegistry()
+	nixClient, err := ctx.NewNixClient()
+	if err != nil {
+		return fmt.Errorf("creating nix client: %w", err)
+	}
+	flakeGenerator := nix.NewFlakeGenerator()
+	configWriter := emulators.NewConfigWriter()
+	manifestPath, err := model.DefaultManifestPath()
+	if err != nil {
+		return err
+	}
+
+	applier := &apply.Applier{
+		NixClient:      nixClient,
+		FlakeGenerator: flakeGenerator,
+		ConfigWriter:   configWriter,
+		Registry:       registry,
+		ManifestPath:   manifestPath,
 	}
 
 	fmt.Println("Applying kyaraben configuration...")
@@ -45,13 +67,16 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 
 	if cmd.DryRun || cmd.ShowDiff {
 		dryOpts := apply.Options{DryRun: true}
-		dryResult, err := apply.Apply(cfg, dryOpts)
+		dryResult, err := applier.Apply(cfg, userStore, dryOpts)
 		if err != nil {
 			return err
 		}
 
 		fmt.Println("Config changes:")
-		hasChanges := false
+		fmt.Println()
+
+		var totalAdds, totalModifies, totalRemoves int
+		var filesCreated, filesModified, filesUnchanged int
 
 		for _, patch := range dryResult.Patches {
 			diff, err := emulators.ComputeDiff(patch)
@@ -60,14 +85,29 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 				continue
 			}
 
-			if diff.HasChanges() {
-				hasChanges = true
-				fmt.Print(diff.Format())
+			fmt.Print(diff.Format())
+
+			adds, modifies, removes := diff.Stats()
+			totalAdds += adds
+			totalModifies += modifies
+			totalRemoves += removes
+
+			if diff.IsNewFile {
+				filesCreated++
+			} else if diff.HasChanges() {
+				filesModified++
+			} else {
+				filesUnchanged++
 			}
 		}
 
-		if !hasChanges {
-			fmt.Println("  No config changes needed.")
+		// Summary
+		fmt.Println()
+		fmt.Printf("  Summary: %d file(s) to create, %d to modify, %d unchanged\n",
+			filesCreated, filesModified, filesUnchanged)
+		if totalAdds > 0 || totalModifies > 0 || totalRemoves > 0 {
+			fmt.Printf("  Changes: %d additions, %d modifications, %d removals\n",
+				totalAdds, totalModifies, totalRemoves)
 		}
 		fmt.Println()
 
@@ -77,7 +117,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		}
 	}
 
-	result, err := apply.Apply(cfg, opts)
+	result, err := applier.Apply(cfg, userStore, opts)
 	if err != nil {
 		return err
 	}
@@ -92,7 +132,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 
 	fmt.Println("Done!")
 	fmt.Println()
-	fmt.Printf("Your emulation directory is ready at: %s\n", userStorePath)
+	fmt.Printf("Your emulation directory is ready at: %s\n", userStore.Root)
 	fmt.Println("Place your ROMs in the appropriate subdirectories.")
 
 	return nil

@@ -9,22 +9,20 @@ import (
 	"github.com/fnune/kyaraben/internal/model"
 )
 
-// ConfigDiff represents the difference between current and proposed config.
 type ConfigDiff struct {
-	Path    string
-	Changes []ConfigChange
+	Path      string
+	IsNewFile bool
+	Changes   []ConfigChange
 }
 
-// ConfigChange represents a single change in a config file.
 type ConfigChange struct {
 	Type     ChangeType
-	Section  string // For INI files
+	Section  string
 	Key      string
 	OldValue string
 	NewValue string
 }
 
-// ChangeType indicates what kind of change this is.
 type ChangeType int
 
 const (
@@ -33,17 +31,28 @@ const (
 	ChangeRemove
 )
 
-// ComputeDiff computes the difference between current config and proposed patch.
+const (
+	colorReset  = "\033[0m"
+	colorRed    = "\033[31m"
+	colorGreen  = "\033[32m"
+	colorYellow = "\033[33m"
+	colorCyan   = "\033[36m"
+	colorBold   = "\033[1m"
+	colorDim    = "\033[2m"
+)
+
 func ComputeDiff(patch model.ConfigPatch) (*ConfigDiff, error) {
 	diff := &ConfigDiff{
-		Path:    patch.Config.Path,
-		Changes: make([]ConfigChange, 0),
+		Path:      patch.Config.Path,
+		IsNewFile: true,
+		Changes:   make([]ConfigChange, 0),
 	}
 
 	// Read current config
 	current := make(map[string]map[string]string) // section -> key -> value
 
 	if _, err := os.Stat(patch.Config.Path); err == nil {
+		diff.IsNewFile = false
 		var err error
 		current, err = readConfig(patch.Config.Path, patch.Config.Format)
 		if err != nil {
@@ -96,43 +105,118 @@ func ComputeDiff(patch model.ConfigPatch) (*ConfigDiff, error) {
 	return diff, nil
 }
 
-// HasChanges returns true if there are any changes.
 func (d *ConfigDiff) HasChanges() bool {
 	return len(d.Changes) > 0
 }
 
-// Format returns a human-readable string representation of the diff.
+func (d *ConfigDiff) Stats() (adds, modifies, removes int) {
+	for _, c := range d.Changes {
+		switch c.Type {
+		case ChangeAdd:
+			adds++
+		case ChangeModify:
+			modifies++
+		case ChangeRemove:
+			removes++
+		}
+	}
+	return
+}
+
 func (d *ConfigDiff) Format() string {
-	if !d.HasChanges() {
-		return fmt.Sprintf("  %s: no changes", d.Path)
+	return d.FormatWithColor(true)
+}
+
+func (d *ConfigDiff) FormatWithColor(useColor bool) string {
+	// Color helpers
+	green := func(s string) string {
+		if useColor {
+			return colorGreen + s + colorReset
+		}
+		return s
+	}
+	yellow := func(s string) string {
+		if useColor {
+			return colorYellow + s + colorReset
+		}
+		return s
+	}
+	red := func(s string) string {
+		if useColor {
+			return colorRed + s + colorReset
+		}
+		return s
+	}
+	cyan := func(s string) string {
+		if useColor {
+			return colorCyan + s + colorReset
+		}
+		return s
+	}
+	bold := func(s string) string {
+		if useColor {
+			return colorBold + s + colorReset
+		}
+		return s
+	}
+	dim := func(s string) string {
+		if useColor {
+			return colorDim + s + colorReset
+		}
+		return s
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("  %s\n", d.Path))
 
+	// File header with status
+	if d.IsNewFile {
+		sb.WriteString(fmt.Sprintf("  %s %s\n", green("CREATE"), bold(d.Path)))
+	} else if !d.HasChanges() {
+		sb.WriteString(fmt.Sprintf("  %s %s\n", dim("UNCHANGED"), d.Path))
+		return sb.String()
+	} else {
+		sb.WriteString(fmt.Sprintf("  %s %s\n", yellow("MODIFY"), bold(d.Path)))
+	}
+
+	// Group changes by section for better readability
+	sectionChanges := make(map[string][]ConfigChange)
+	sectionOrder := make([]string, 0)
 	for _, change := range d.Changes {
-		prefix := ""
-		switch change.Type {
-		case ChangeAdd:
-			prefix = "+"
-		case ChangeModify:
-			prefix = "~"
-		case ChangeRemove:
-			prefix = "-"
+		if _, exists := sectionChanges[change.Section]; !exists {
+			sectionOrder = append(sectionOrder, change.Section)
+		}
+		sectionChanges[change.Section] = append(sectionChanges[change.Section], change)
+	}
+
+	for _, section := range sectionOrder {
+		changes := sectionChanges[section]
+
+		// Section header (for INI files)
+		if section != "" {
+			sb.WriteString(fmt.Sprintf("    %s\n", cyan(fmt.Sprintf("[%s]", section))))
 		}
 
-		key := change.Key
-		if change.Section != "" {
-			key = fmt.Sprintf("[%s] %s", change.Section, change.Key)
-		}
+		for _, change := range changes {
+			indent := "    "
+			if section != "" {
+				indent = "      "
+			}
 
-		switch change.Type {
-		case ChangeAdd:
-			sb.WriteString(fmt.Sprintf("    %s %s = %s\n", prefix, key, change.NewValue))
-		case ChangeModify:
-			sb.WriteString(fmt.Sprintf("    %s %s: %s -> %s\n", prefix, key, change.OldValue, change.NewValue))
-		case ChangeRemove:
-			sb.WriteString(fmt.Sprintf("    %s %s = %s\n", prefix, key, change.OldValue))
+			switch change.Type {
+			case ChangeAdd:
+				sb.WriteString(fmt.Sprintf("%s%s %s = %s\n",
+					indent, green("+"), change.Key, green(change.NewValue)))
+			case ChangeModify:
+				sb.WriteString(fmt.Sprintf("%s%s %s\n",
+					indent, yellow("~"), change.Key))
+				sb.WriteString(fmt.Sprintf("%s    %s %s\n",
+					indent, red("-"), dim(change.OldValue)))
+				sb.WriteString(fmt.Sprintf("%s    %s %s\n",
+					indent, green("+"), change.NewValue))
+			case ChangeRemove:
+				sb.WriteString(fmt.Sprintf("%s%s %s = %s\n",
+					indent, red("-"), change.Key, red(change.OldValue)))
+			}
 		}
 	}
 
