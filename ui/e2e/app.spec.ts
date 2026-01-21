@@ -15,7 +15,7 @@ describe('Kyaraben App', () => {
         const text = await systemList.getText()
         return !text.includes('Loading...')
       },
-      { timeout: 10000, timeoutMsg: 'Systems did not load' }
+      { timeout: 10000, timeoutMsg: 'Systems did not load' },
     )
 
     // Should show TIC-80 (always available, no BIOS needed)
@@ -31,7 +31,7 @@ describe('Kyaraben App', () => {
         const text = await systemList.getText()
         return !text.includes('Loading...')
       },
-      { timeout: 10000 }
+      { timeout: 10000 },
     )
 
     // Find TIC-80 checkbox
@@ -136,7 +136,7 @@ describe('Kyaraben Apply (requires Nix)', () => {
         const text = await log.getText()
         return text.includes('Done!') || text.includes('Error')
       },
-      { timeout: 300000, timeoutMsg: 'Apply did not complete in 5 minutes' }
+      { timeout: 300000, timeoutMsg: 'Apply did not complete in 5 minutes' },
     )
 
     const logText = await log.getText()

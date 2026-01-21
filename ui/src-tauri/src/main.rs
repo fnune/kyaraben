@@ -3,7 +3,10 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::process::Stdio;
+use tauri::Manager;
+use tauri_plugin_shell::ShellExt;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
 use tokio::sync::Mutex;
@@ -13,6 +16,7 @@ static DAEMON: once_cell::sync::Lazy<Mutex<Option<DaemonHandle>>> =
     once_cell::sync::Lazy::new(|| Mutex::new(None));
 
 struct DaemonHandle {
+    #[allow(dead_code)]
     child: Child,
     stdin: tokio::process::ChildStdin,
     stdout: BufReader<tokio::process::ChildStdout>,
@@ -83,14 +87,44 @@ struct ProvisionResult {
     found_path: String,
 }
 
-async fn ensure_daemon() -> Result<(), String> {
+#[derive(Debug, Serialize, Deserialize)]
+struct InstallStatus {
+    installed: bool,
+    #[serde(rename = "appPath")]
+    app_path: Option<String>,
+    #[serde(rename = "desktopPath")]
+    desktop_path: Option<String>,
+}
+
+fn get_install_paths() -> (PathBuf, PathBuf) {
+    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+    let bin_dir = home.join(".local/bin");
+    let apps_dir = home.join(".local/share/applications");
+
+    let app_path = bin_dir.join("kyaraben.AppImage");
+    let desktop_path = apps_dir.join("kyaraben.desktop");
+
+    (app_path, desktop_path)
+}
+
+fn find_sidecar_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    // Use Tauri's sidecar resolution
+    let sidecar = app
+        .shell()
+        .sidecar("binaries/kyaraben")
+        .map_err(|e| format!("Failed to resolve sidecar: {}", e))?;
+
+    // Get the program path from the sidecar command
+    Ok(sidecar.get_program().into())
+}
+
+async fn ensure_daemon(app: &tauri::AppHandle) -> Result<(), String> {
     let mut daemon = DAEMON.lock().await;
     if daemon.is_some() {
         return Ok(());
     }
 
-    // Find kyaraben binary - look in common locations
-    let binary = find_kyaraben_binary()?;
+    let binary = find_sidecar_path(app)?;
 
     let mut child = Command::new(&binary)
         .arg("daemon")
@@ -129,31 +163,8 @@ async fn ensure_daemon() -> Result<(), String> {
     Ok(())
 }
 
-fn find_kyaraben_binary() -> Result<String, String> {
-    // Check common locations
-    let locations = vec![
-        // Same directory as the UI app
-        std::env::current_exe()
-            .ok()
-            .and_then(|p| p.parent().map(|p| p.join("kyaraben")))
-            .map(|p| p.to_string_lossy().to_string()),
-        // In PATH
-        Some("kyaraben".to_string()),
-        // Development location
-        Some("../kyaraben".to_string()),
-    ];
-
-    for loc in locations.into_iter().flatten() {
-        if std::path::Path::new(&loc).exists() || which::which(&loc).is_ok() {
-            return Ok(loc);
-        }
-    }
-
-    Err("Could not find kyaraben binary".to_string())
-}
-
-async fn send_command(cmd: DaemonCommand) -> Result<DaemonEvent, String> {
-    ensure_daemon().await?;
+async fn send_command(app: &tauri::AppHandle, cmd: DaemonCommand) -> Result<DaemonEvent, String> {
+    ensure_daemon(app).await?;
 
     let mut daemon = DAEMON.lock().await;
     let daemon_ref = daemon.as_mut().ok_or("Daemon not running")?;
@@ -187,7 +198,11 @@ async fn send_command(cmd: DaemonCommand) -> Result<DaemonEvent, String> {
         serde_json::from_str(&line).map_err(|e| format!("Invalid response: {}", e))?;
 
     if event.event_type == "error" {
-        let error_msg = event.data.get("error").and_then(|v| v.as_str()).unwrap_or("Unknown error");
+        let error_msg = event
+            .data
+            .get("error")
+            .and_then(|v| v.as_str())
+            .unwrap_or("Unknown error");
         return Err(error_msg.to_string());
     }
 
@@ -195,71 +210,89 @@ async fn send_command(cmd: DaemonCommand) -> Result<DaemonEvent, String> {
 }
 
 #[tauri::command]
-async fn get_systems() -> Result<Vec<System>, String> {
-    let event = send_command(DaemonCommand {
-        cmd_type: "get_systems".to_string(),
-        data: None,
-    })
+async fn get_systems(app: tauri::AppHandle) -> Result<Vec<System>, String> {
+    let event = send_command(
+        &app,
+        DaemonCommand {
+            cmd_type: "get_systems".to_string(),
+            data: None,
+        },
+    )
     .await?;
 
     serde_json::from_value(event.data).map_err(|e| format!("Failed to parse systems: {}", e))
 }
 
 #[tauri::command]
-async fn get_config() -> Result<Config, String> {
-    let event = send_command(DaemonCommand {
-        cmd_type: "get_config".to_string(),
-        data: None,
-    })
+async fn get_config(app: tauri::AppHandle) -> Result<Config, String> {
+    let event = send_command(
+        &app,
+        DaemonCommand {
+            cmd_type: "get_config".to_string(),
+            data: None,
+        },
+    )
     .await?;
 
     serde_json::from_value(event.data).map_err(|e| format!("Failed to parse config: {}", e))
 }
 
 #[tauri::command]
-async fn set_config(user_store: String, systems: HashMap<String, String>) -> Result<(), String> {
+async fn set_config(
+    app: tauri::AppHandle,
+    user_store: String,
+    systems: HashMap<String, String>,
+) -> Result<(), String> {
     let data = serde_json::json!({
         "userStore": user_store,
         "systems": systems,
     });
 
-    send_command(DaemonCommand {
-        cmd_type: "set_config".to_string(),
-        data: Some(data),
-    })
+    send_command(
+        &app,
+        DaemonCommand {
+            cmd_type: "set_config".to_string(),
+            data: Some(data),
+        },
+    )
     .await?;
 
     Ok(())
 }
 
 #[tauri::command]
-async fn status() -> Result<Status, String> {
-    let event = send_command(DaemonCommand {
-        cmd_type: "status".to_string(),
-        data: None,
-    })
+async fn status(app: tauri::AppHandle) -> Result<Status, String> {
+    let event = send_command(
+        &app,
+        DaemonCommand {
+            cmd_type: "status".to_string(),
+            data: None,
+        },
+    )
     .await?;
 
     serde_json::from_value(event.data).map_err(|e| format!("Failed to parse status: {}", e))
 }
 
 #[tauri::command]
-async fn doctor() -> Result<HashMap<String, Vec<ProvisionResult>>, String> {
-    let event = send_command(DaemonCommand {
-        cmd_type: "doctor".to_string(),
-        data: None,
-    })
+async fn doctor(app: tauri::AppHandle) -> Result<HashMap<String, Vec<ProvisionResult>>, String> {
+    let event = send_command(
+        &app,
+        DaemonCommand {
+            cmd_type: "doctor".to_string(),
+            data: None,
+        },
+    )
     .await?;
 
     serde_json::from_value(event.data).map_err(|e| format!("Failed to parse doctor: {}", e))
 }
 
 #[tauri::command]
-async fn apply() -> Result<Vec<String>, String> {
+async fn apply(app: tauri::AppHandle) -> Result<Vec<String>, String> {
     let mut messages = Vec::new();
 
-    // Send apply command and collect progress events
-    ensure_daemon().await?;
+    ensure_daemon(&app).await?;
 
     let mut daemon = DAEMON.lock().await;
     let daemon_ref = daemon.as_mut().ok_or("Daemon not running")?;
@@ -270,16 +303,33 @@ async fn apply() -> Result<Vec<String>, String> {
     };
     let json = serde_json::to_string(&cmd).map_err(|e| format!("Failed to serialize: {}", e))?;
 
-    daemon_ref.stdin.write_all(json.as_bytes()).await.map_err(|e| format!("Failed to write: {}", e))?;
-    daemon_ref.stdin.write_all(b"\n").await.map_err(|e| format!("Failed to write: {}", e))?;
-    daemon_ref.stdin.flush().await.map_err(|e| format!("Failed to flush: {}", e))?;
+    daemon_ref
+        .stdin
+        .write_all(json.as_bytes())
+        .await
+        .map_err(|e| format!("Failed to write: {}", e))?;
+    daemon_ref
+        .stdin
+        .write_all(b"\n")
+        .await
+        .map_err(|e| format!("Failed to write: {}", e))?;
+    daemon_ref
+        .stdin
+        .flush()
+        .await
+        .map_err(|e| format!("Failed to flush: {}", e))?;
 
     // Read events until we get a result or error
     loop {
         let mut line = String::new();
-        daemon_ref.stdout.read_line(&mut line).await.map_err(|e| format!("Failed to read: {}", e))?;
+        daemon_ref
+            .stdout
+            .read_line(&mut line)
+            .await
+            .map_err(|e| format!("Failed to read: {}", e))?;
 
-        let event: DaemonEvent = serde_json::from_str(&line).map_err(|e| format!("Invalid event: {}", e))?;
+        let event: DaemonEvent =
+            serde_json::from_str(&line).map_err(|e| format!("Invalid event: {}", e))?;
 
         match event.event_type.as_str() {
             "progress" => {
@@ -292,7 +342,11 @@ async fn apply() -> Result<Vec<String>, String> {
                 break;
             }
             "error" => {
-                let error_msg = event.data.get("error").and_then(|v| v.as_str()).unwrap_or("Unknown error");
+                let error_msg = event
+                    .data
+                    .get("error")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("Unknown error");
                 return Err(error_msg.to_string());
             }
             _ => {}
@@ -302,8 +356,97 @@ async fn apply() -> Result<Vec<String>, String> {
     Ok(messages)
 }
 
+#[tauri::command]
+async fn get_install_status() -> Result<InstallStatus, String> {
+    let (app_path, desktop_path) = get_install_paths();
+
+    let installed = app_path.exists() && desktop_path.exists();
+
+    Ok(InstallStatus {
+        installed,
+        app_path: if app_path.exists() {
+            Some(app_path.to_string_lossy().to_string())
+        } else {
+            None
+        },
+        desktop_path: if desktop_path.exists() {
+            Some(desktop_path.to_string_lossy().to_string())
+        } else {
+            None
+        },
+    })
+}
+
+#[tauri::command]
+async fn install_app() -> Result<(), String> {
+    let (app_path, desktop_path) = get_install_paths();
+
+    // Create directories
+    if let Some(parent) = app_path.parent() {
+        tokio::fs::create_dir_all(parent)
+            .await
+            .map_err(|e| format!("Failed to create bin directory: {}", e))?;
+    }
+    if let Some(parent) = desktop_path.parent() {
+        tokio::fs::create_dir_all(parent)
+            .await
+            .map_err(|e| format!("Failed to create applications directory: {}", e))?;
+    }
+
+    // Get current executable path
+    let current_exe =
+        std::env::current_exe().map_err(|e| format!("Failed to get current executable: {}", e))?;
+
+    // Copy AppImage to ~/.local/bin/
+    tokio::fs::copy(&current_exe, &app_path)
+        .await
+        .map_err(|e| format!("Failed to copy AppImage: {}", e))?;
+
+    // Make it executable
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let perms = std::fs::Permissions::from_mode(0o755);
+        tokio::fs::set_permissions(&app_path, perms)
+            .await
+            .map_err(|e| format!("Failed to set permissions: {}", e))?;
+    }
+
+    // Create .desktop file
+    let desktop_content = format!(
+        r#"[Desktop Entry]
+Name=Kyaraben
+Comment=Declarative emulation manager
+Exec={}
+Icon=applications-games
+Terminal=false
+Type=Application
+Categories=Game;Emulator;
+"#,
+        app_path.to_string_lossy()
+    );
+
+    tokio::fs::write(&desktop_path, desktop_content)
+        .await
+        .map_err(|e| format!("Failed to create desktop file: {}", e))?;
+
+    Ok(())
+}
+
+#[tauri::command]
+async fn uninstall_app() -> Result<(), String> {
+    let (app_path, desktop_path) = get_install_paths();
+
+    // Remove files (ignore errors if they don't exist)
+    let _ = tokio::fs::remove_file(&app_path).await;
+    let _ = tokio::fs::remove_file(&desktop_path).await;
+
+    Ok(())
+}
+
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             get_systems,
             get_config,
@@ -311,6 +454,9 @@ fn main() {
             status,
             doctor,
             apply,
+            get_install_status,
+            install_app,
+            uninstall_app,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
