@@ -1,0 +1,235 @@
+# Kyaraben domain model
+
+Living document describing the core domain entities and their relationships.
+
+## Diagram
+
+```mermaid
+erDiagram
+    System ||--o{ Emulator : "can be emulated by"
+    Emulator ||--o{ Provision : "may need"
+    Emulator ||--o{ State : "produces"
+    Emulator ||--|| EmulatorConfig : "configured via"
+    KyarabenConfig ||--o{ System : "enables"
+    KyarabenConfig ||--o| Synchronizer : "uses"
+    KyarabenConfig ||--|| UserStore : "points to"
+    Synchronizer ||--|| UserStore : "syncs"
+    Synchronizer }o--o{ State : "considers"
+    Manifest ||--o{ EmulatorConfig : "manages"
+    Manifest ||--o{ Emulator : "tracks installed"
+    KyarabenState ||--|| Manifest : "contains"
+    KyarabenState ||--|| KyarabenConfig : "contains"
+    UserStore ||--o{ State : "holds"
+
+    System {
+        id id
+    }
+
+    Emulator {
+        id id
+        PackageSource source
+    }
+
+    Provision {
+        id id
+        ProvisionKind kind
+        CheckMethod check
+    }
+
+    State {
+        StateKind kind
+        Path location
+        SyncStrategy sync
+    }
+
+    EmulatorConfig {
+        Path path
+        ConfigFormat format
+    }
+
+    KyarabenConfig {
+        Path userStore
+    }
+
+    Synchronizer {
+        SyncBackend backend
+    }
+
+    KyarabenState {
+        Path root
+    }
+
+    UserStore {
+        Path root
+    }
+
+    Manifest {
+        int version
+    }
+```
+
+## Entities
+
+### System
+
+A gaming platform that can be emulated.
+
+Examples: `snes`, `psx`, `gamecube`, `switch`
+
+A system is an abstract concept. It doesn't know about file formats or requirements directly - those are owned by emulators.
+
+### Emulator
+
+An implementation that runs a system's games.
+
+Examples: `retroarch:bsnes`, `duckstation`, `dolphin`, `eden`
+
+RetroArch + core is just an emulator identifier; cores are an implementation detail, not a separate domain concept.
+
+An emulator:
+
+- Has a package source (nixpkgs, GitHub release)
+- Knows which files it can run
+- May need provisions (BIOS, keys, etc.)
+- Produces state (saves, cache, etc.)
+- Is configured via config files in specific formats
+
+### Provision
+
+Something the user provides to an emulator to enable or enhance functionality.
+
+Belongs to Emulator, not System. Different emulators for the same system may have different provision needs. Kyaraben can recognize when a provision satisfies multiple emulators for the same system.
+
+Each provision:
+
+- Can be checked: is it satisfied?
+- Has instructions for the user
+- Describes what it enables
+
+Kind (not fully enumerated yet):
+
+- `bios` - system BIOS
+- `keys` - decryption keys
+- Possibly others: firmware, patches - distinctions TBD
+
+### State
+
+Data an emulator produces during operation.
+
+Owned by Emulator. Lives in UserStore.
+
+Kind:
+
+- `saves` - game progress (memory cards, battery saves)
+- `savestates` - emulator snapshots
+- `screenshots` - captured images
+- `cache` - shader cache, regenerable data
+- `persistent` - emulator-managed storage
+
+Sync strategy:
+
+- `bidirectional` - sync both ways
+- `send-only` - push only
+- `ignore` - don't sync
+
+### EmulatorConfig
+
+A configuration file for an emulator.
+
+- Has a path
+- Has a format (INI, CFG, TOML, XML)
+- Kyaraben generates and manages these via three-way merge
+
+### KyarabenConfig
+
+Kyaraben's own configuration.
+
+Default location: `~/.config/kyaraben/config.toml`
+
+- Declares which systems are enabled
+- Specifies which emulator to use per system (explicit, no implicit defaults)
+- Points to UserStore location
+- Configures Synchronizer (if enabled)
+
+### Synchronizer
+
+Handles syncing state across devices.
+
+- Knows about UserStore
+- Respects State sync strategies (bidirectional, send-only, ignore)
+- Backend is pluggable (Syncthing initially, others possible)
+
+Configured via KyarabenConfig. Optional - not all users want sync.
+
+### KyarabenState
+
+Where kyaraben keeps its internal state.
+
+Follows XDG conventions:
+
+- Config: `~/.config/kyaraben/`
+- Data: `~/.local/share/kyaraben/` (Nix store, installed emulators)
+- State: `~/.local/state/kyaraben/` (manifest, runtime state)
+
+Separate from UserStore. This is kyaraben's concern, not the user's.
+
+### UserStore
+
+Where the user's emulation data lives.
+
+Default: `~/Emulation`
+
+Contains:
+
+- ROMs (user-provided)
+- BIOS/provisions (user-provided)
+- Saves, savestates, screenshots (emulator-produced)
+
+This is what the user sees and interacts with. This is what gets synced.
+
+### Manifest
+
+Tracks what kyaraben has done.
+
+Lives in KyarabenState.
+
+- Managed emulator configs (with base snapshots for diffing)
+- Installed emulators (with versions)
+- Enables observability
+
+## Relationships
+
+- A **System** can be emulated by many **Emulators**
+- An **Emulator** targets one or more **Systems**
+- An **Emulator** may need **Provisions**
+- An **Emulator** produces **State**
+- An **Emulator** is configured via **EmulatorConfig**
+- **KyarabenConfig** enables **Systems**, specifies emulators, points to **UserStore**, configures **Synchronizer**
+- **KyarabenState** contains **KyarabenConfig** and **Manifest**
+- **UserStore** holds **State** and user-provided files
+- **Manifest** manages **EmulatorConfigs** (with base snapshots) and tracks installed **Emulators** (with versions)
+- **Synchronizer** syncs **UserStore**, respects **State** sync strategies
+
+## Storage model
+
+Two distinct storage areas:
+
+```
+KyarabenState (XDG)
+├── ~/.config/kyaraben/          # KyarabenConfig
+├── ~/.local/share/kyaraben/     # Nix store, emulator binaries
+└── ~/.local/state/kyaraben/     # Manifest, runtime state
+
+UserStore (explicit, e.g. ~/Emulation)
+├── roms/
+├── bios/
+├── saves/
+├── states/
+└── screenshots/
+```
+
+## Open questions
+
+1. Provision kinds: what's the full taxonomy? Is firmware distinct from BIOS? How do patches fit?
+2. How does kyaraben map emulator-native state paths to the unified UserStore layout?
+3. Should UserStore structure be configurable or opinionated?
