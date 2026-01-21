@@ -64,8 +64,8 @@ func TestRegistryGetEmulatorsForSystem(t *testing.T) {
 	reg := NewRegistry()
 
 	tests := []struct {
-		system   model.SystemID
-		wantIDs  []model.EmulatorID
+		system  model.SystemID
+		wantIDs []model.EmulatorID
 	}{
 		{model.SystemSNES, []model.EmulatorID{model.EmulatorRetroArchBsnes}},
 		{model.SystemPSX, []model.EmulatorID{model.EmulatorDuckStation}},

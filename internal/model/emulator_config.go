@@ -6,7 +6,7 @@ type ConfigFormat string
 const (
 	ConfigFormatINI  ConfigFormat = "ini"
 	ConfigFormatTOML ConfigFormat = "toml"
-	ConfigFormatCFG  ConfigFormat = "cfg"  // RetroArch-style key=value
+	ConfigFormatCFG  ConfigFormat = "cfg" // RetroArch-style key=value
 	ConfigFormatXML  ConfigFormat = "xml"
 	ConfigFormatJSON ConfigFormat = "json"
 )

@@ -75,9 +75,9 @@ func TestUserStorePaths(t *testing.T) {
 	store := NewUserStore("/home/user/Emulation")
 
 	tests := []struct {
-		name   string
-		fn     func() string
-		want   string
+		name string
+		fn   func() string
+		want string
 	}{
 		{"RomsDir", store.RomsDir, "/home/user/Emulation/roms"},
 		{"BiosDir", store.BiosDir, "/home/user/Emulation/bios"},
