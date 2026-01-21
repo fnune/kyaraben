@@ -149,8 +149,9 @@ async function sendCommand(cmd: DaemonCommand): Promise<DaemonEvent> {
   }
 
   const currentDaemon = daemon
+  const stdin = daemon.process.stdin
   const json = `${JSON.stringify(cmd)}\n`
-  currentDaemon.process.stdin.write(json)
+  stdin.write(json)
 
   return new Promise((resolve, reject) => {
     const id = currentDaemon.requestId++
@@ -185,9 +186,10 @@ async function applyCommand(): Promise<string[]> {
   }
 
   const currentDaemon = daemon
+  const stdin = daemon.process.stdin
   const messages: string[] = []
   const json = `${JSON.stringify({ type: 'apply' })}\n`
-  currentDaemon.process.stdin.write(json)
+  stdin.write(json)
 
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(
