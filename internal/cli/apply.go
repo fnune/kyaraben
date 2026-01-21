@@ -12,7 +12,8 @@ import (
 
 // ApplyCmd applies the kyaraben configuration.
 type ApplyCmd struct {
-	DryRun bool `help:"Show what would be done without making changes."`
+	DryRun   bool `help:"Show what would be done without making changes."`
+	ShowDiff bool `help:"Show config changes before applying." default:"true" negatable:""`
 }
 
 // Run executes the apply command.
@@ -40,26 +41,65 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	fmt.Println("Applying kyaraben configuration...")
 	fmt.Println()
 
-	// Step 1: Create UserStore directory structure
-	fmt.Println("Creating directory structure...")
-	if !cmd.DryRun {
-		if err := userStore.Initialize(); err != nil {
-			return fmt.Errorf("initializing user store: %w", err)
+	// Collect emulators and generate patches first (for diff display)
+	emulatorsToInstall := make([]model.EmulatorID, 0, len(cfg.Systems))
+	allPatches := make([]model.ConfigPatch, 0)
+
+	for sys, sysConf := range cfg.Systems {
+		emulatorsToInstall = append(emulatorsToInstall, sysConf.Emulator)
+
+		gen := emulators.GetConfigGenerator(sysConf.Emulator)
+		if gen == nil {
+			continue
+		}
+
+		patches, err := gen.Generate(userStore, []model.SystemID{sys})
+		if err != nil {
+			return fmt.Errorf("generating config for %s: %w", sysConf.Emulator, err)
+		}
+		allPatches = append(allPatches, patches...)
+	}
+
+	// Show diff if requested or in dry-run mode
+	if cmd.ShowDiff || cmd.DryRun {
+		hasChanges := false
+		fmt.Println("Config changes:")
+
+		for _, patch := range allPatches {
+			diff, err := emulators.ComputeDiff(patch)
+			if err != nil {
+				fmt.Printf("  Warning: could not compute diff for %s: %v\n", patch.Config.Path, err)
+				continue
+			}
+
+			if diff.HasChanges() {
+				hasChanges = true
+				fmt.Print(diff.Format())
+			}
+		}
+
+		if !hasChanges {
+			fmt.Println("  No config changes needed.")
+		}
+		fmt.Println()
+
+		if cmd.DryRun {
+			fmt.Println("Dry run - no changes applied.")
+			return nil
 		}
 	}
 
-	// Collect emulators to install
-	emulatorsToInstall := make([]model.EmulatorID, 0, len(cfg.Systems))
-	for sys, sysConf := range cfg.Systems {
-		// Initialize system directories
-		if !cmd.DryRun {
-			if err := userStore.InitializeSystem(sys); err != nil {
-				return fmt.Errorf("initializing system %s: %w", sys, err)
-			}
+	// Step 1: Create UserStore directory structure
+	fmt.Println("Creating directory structure...")
+	if err := userStore.Initialize(); err != nil {
+		return fmt.Errorf("initializing user store: %w", err)
+	}
+
+	for sys := range cfg.Systems {
+		if err := userStore.InitializeSystem(sys); err != nil {
+			return fmt.Errorf("initializing system %s: %w", sys, err)
 		}
 		fmt.Printf("  Created directories for %s\n", sys)
-
-		emulatorsToInstall = append(emulatorsToInstall, sysConf.Emulator)
 	}
 	fmt.Println()
 
@@ -67,14 +107,12 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	fmt.Println("Generating Nix flake...")
 	flakeGen := nix.NewFlakeGenerator()
 
-	if !cmd.DryRun {
-		if err := nixClient.EnsureFlakeDir(); err != nil {
-			return fmt.Errorf("creating flake directory: %w", err)
-		}
+	if err := nixClient.EnsureFlakeDir(); err != nil {
+		return fmt.Errorf("creating flake directory: %w", err)
+	}
 
-		if err := flakeGen.Generate(nixClient.FlakePath, emulatorsToInstall); err != nil {
-			return fmt.Errorf("generating flake: %w", err)
-		}
+	if err := flakeGen.Generate(nixClient.FlakePath, emulatorsToInstall); err != nil {
+		return fmt.Errorf("generating flake: %w", err)
 	}
 	fmt.Printf("  Flake written to %s\n", nixClient.FlakePath)
 	fmt.Println()
@@ -84,72 +122,59 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	buildCtx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
 
-	var storePath string
-	if !cmd.DryRun {
-		flakeRef := flakeGen.DefaultFlakeRef(nixClient.FlakePath)
-		storePath, err = nixClient.Build(buildCtx, flakeRef)
-		if err != nil {
-			return fmt.Errorf("building emulators: %w", err)
-		}
-		fmt.Printf("  Built: %s\n", storePath)
-	} else {
-		fmt.Println("  (dry run - skipping build)")
+	flakeRef := flakeGen.DefaultFlakeRef(nixClient.FlakePath)
+	storePath, err := nixClient.Build(buildCtx, flakeRef)
+	if err != nil {
+		return fmt.Errorf("building emulators: %w", err)
 	}
+	fmt.Printf("  Built: %s\n", storePath)
 	fmt.Println()
 
-	// Step 4: Generate emulator configs
-	fmt.Println("Generating emulator configurations...")
+	// Step 4: Apply emulator configs
+	fmt.Println("Applying emulator configurations...")
 	configWriter := emulators.NewConfigWriter()
 
-	for sys, sysConf := range cfg.Systems {
-		gen := emulators.GetConfigGenerator(sysConf.Emulator)
-		if gen == nil {
-			fmt.Printf("  Warning: no config generator for %s\n", sysConf.Emulator)
-			continue
+	for _, patch := range allPatches {
+		if err := configWriter.Apply(patch); err != nil {
+			return fmt.Errorf("applying config %s: %w", patch.Config.Path, err)
 		}
-
-		patches, err := gen.Generate(userStore, []model.SystemID{sys})
-		if err != nil {
-			return fmt.Errorf("generating config for %s: %w", sysConf.Emulator, err)
-		}
-
-		for _, patch := range patches {
-			if !cmd.DryRun {
-				if err := configWriter.Apply(patch); err != nil {
-					return fmt.Errorf("applying config %s: %w", patch.Config.Path, err)
-				}
-			}
-			fmt.Printf("  Configured: %s\n", patch.Config.Path)
-		}
+		fmt.Printf("  Applied: %s\n", patch.Config.Path)
 	}
 	fmt.Println()
 
 	// Step 5: Update manifest
-	if !cmd.DryRun {
-		manifestPath, err := model.DefaultManifestPath()
-		if err != nil {
-			return fmt.Errorf("getting manifest path: %w", err)
-		}
+	manifestPath, err := model.DefaultManifestPath()
+	if err != nil {
+		return fmt.Errorf("getting manifest path: %w", err)
+	}
 
-		manifest, err := model.LoadManifest(manifestPath)
-		if err != nil {
-			return fmt.Errorf("loading manifest: %w", err)
-		}
+	manifest, err := model.LoadManifest(manifestPath)
+	if err != nil {
+		return fmt.Errorf("loading manifest: %w", err)
+	}
 
-		manifest.LastApplied = time.Now()
+	manifest.LastApplied = time.Now()
 
-		for _, emuID := range emulatorsToInstall {
-			manifest.AddEmulator(model.InstalledEmulator{
-				ID:        emuID,
-				Version:   "latest", // TODO: get actual version from nix
-				StorePath: storePath,
-				Installed: time.Now(),
-			})
-		}
+	for _, emuID := range emulatorsToInstall {
+		manifest.AddEmulator(model.InstalledEmulator{
+			ID:        emuID,
+			Version:   "latest",
+			StorePath: storePath,
+			Installed: time.Now(),
+		})
+	}
 
-		if err := manifest.Save(manifestPath); err != nil {
-			return fmt.Errorf("saving manifest: %w", err)
-		}
+	// Track managed configs
+	for _, patch := range allPatches {
+		manifest.AddManagedConfig(model.ManagedConfig{
+			Path:         patch.Config.Path,
+			LastModified: time.Now(),
+			EmulatorID:   patch.Config.EmulatorID,
+		})
+	}
+
+	if err := manifest.Save(manifestPath); err != nil {
+		return fmt.Errorf("saving manifest: %w", err)
 	}
 
 	fmt.Println("Done!")
