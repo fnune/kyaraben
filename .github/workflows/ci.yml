@@ -19,6 +19,9 @@ jobs:
       - name: Build
         run: go build ./...
 
+      - name: Build CLI binary for E2E tests
+        run: go build -o ./kyaraben ./cmd/kyaraben
+
       - name: Test
         run: go test ./...
 
@@ -33,7 +36,7 @@ jobs:
 
       - uses: golangci/golangci-lint-action@v6
         with:
-          version: latest
+          version: v2.0.2
 
   ui-lint:
     runs-on: ubuntu-latest
