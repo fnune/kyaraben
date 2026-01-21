@@ -10,17 +10,13 @@ import (
 	"github.com/fnune/kyaraben/internal/model"
 )
 
-// ConfigWriter applies config patches to emulator config files.
 type ConfigWriter struct{}
 
-// NewConfigWriter creates a new config writer.
 func NewConfigWriter() *ConfigWriter {
 	return &ConfigWriter{}
 }
 
-// Apply writes a config patch to its target file.
-// For MVP, this does a simple merge: existing values are preserved unless
-// kyaraben sets them.
+// Existing values are preserved unless kyaraben sets them.
 func (w *ConfigWriter) Apply(patch model.ConfigPatch) error {
 	switch patch.Config.Format {
 	case model.ConfigFormatCFG:
@@ -32,7 +28,6 @@ func (w *ConfigWriter) Apply(patch model.ConfigPatch) error {
 	}
 }
 
-// applyCFG handles RetroArch-style key = "value" configs.
 func (w *ConfigWriter) applyCFG(patch model.ConfigPatch) error {
 	path := patch.Config.Path
 
