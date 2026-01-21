@@ -11,6 +11,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # Display for headless testing
     xvfb \
     x11-utils \
+    # D-Bus (needed by Electron in containers)
+    dbus \
+    dbus-x11 \
     # Electron dependencies
     libasound2 \
     libatk-bridge2.0-0 \
@@ -31,6 +34,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libx11-xcb1 \
     libxcb-dri3-0 \
     libxtst6 \
+    libxss1 \
     # Build tools
     ca-certificates \
     curl \
