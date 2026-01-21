@@ -1,13 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Source Nix environment
-. ~/.nix-profile/etc/profile.d/nix.sh
-
 echo "=== Kyaraben Nix E2E Tests ==="
 echo ""
-echo "Nix version: $(nix --version)"
 echo "Kyaraben location: $(which kyaraben)"
+echo "Note: Nix is bundled as nix-portable within kyaraben"
 echo ""
 
 echo "1. Initialize with TIC-80..."
