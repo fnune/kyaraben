@@ -140,13 +140,6 @@ describe('Kyaraben Apply (requires Nix)', () => {
     )
 
     const logText = await log.getText()
-
-    // Skip assertion if nix-portable isn't available (CI environment)
-    if (logText.includes('nix is not available') || logText.includes('nix-portable')) {
-      console.log('Skipping nix test: nix-portable not available in this environment')
-      return
-    }
-
     expect(logText).toContain('Done!')
   })
 })
