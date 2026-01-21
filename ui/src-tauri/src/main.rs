@@ -93,17 +93,20 @@ struct InstallStatus {
     app_path: Option<String>,
     #[serde(rename = "desktopPath")]
     desktop_path: Option<String>,
+    #[serde(rename = "cliPath")]
+    cli_path: Option<String>,
 }
 
-fn get_install_paths() -> (PathBuf, PathBuf) {
+fn get_install_paths() -> (PathBuf, PathBuf, PathBuf) {
     let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
     let bin_dir = home.join(".local/bin");
     let apps_dir = home.join(".local/share/applications");
 
     let app_path = bin_dir.join("kyaraben.AppImage");
     let desktop_path = apps_dir.join("kyaraben.desktop");
+    let cli_path = bin_dir.join("kyaraben");
 
-    (app_path, desktop_path)
+    (app_path, desktop_path, cli_path)
 }
 
 fn get_sidecar_name() -> &'static str {
@@ -459,7 +462,7 @@ async fn apply(app: tauri::AppHandle) -> Result<Vec<String>, String> {
 
 #[tauri::command]
 async fn get_install_status() -> Result<InstallStatus, String> {
-    let (app_path, desktop_path) = get_install_paths();
+    let (app_path, desktop_path, cli_path) = get_install_paths();
 
     let installed = app_path.exists() && desktop_path.exists();
 
@@ -475,12 +478,17 @@ async fn get_install_status() -> Result<InstallStatus, String> {
         } else {
             None
         },
+        cli_path: if cli_path.exists() {
+            Some(cli_path.to_string_lossy().to_string())
+        } else {
+            None
+        },
     })
 }
 
 #[tauri::command]
-async fn install_app() -> Result<(), String> {
-    let (app_path, desktop_path) = get_install_paths();
+async fn install_app(app: tauri::AppHandle) -> Result<(), String> {
+    let (app_path, desktop_path, cli_path) = get_install_paths();
 
     // Create directories
     if let Some(parent) = app_path.parent() {
@@ -513,6 +521,22 @@ async fn install_app() -> Result<(), String> {
             .map_err(|e| format!("Failed to set permissions: {}", e))?;
     }
 
+    // Copy CLI binary to ~/.local/bin/kyaraben
+    if let Ok(sidecar_path) = find_sidecar_path(&app) {
+        tokio::fs::copy(&sidecar_path, &cli_path)
+            .await
+            .map_err(|e| format!("Failed to copy CLI binary: {}", e))?;
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let perms = std::fs::Permissions::from_mode(0o755);
+            tokio::fs::set_permissions(&cli_path, perms)
+                .await
+                .map_err(|e| format!("Failed to set CLI permissions: {}", e))?;
+        }
+    }
+
     // Create .desktop file
     let desktop_content = format!(
         r#"[Desktop Entry]
@@ -536,11 +560,12 @@ Categories=Game;Emulator;
 
 #[tauri::command]
 async fn uninstall_app() -> Result<(), String> {
-    let (app_path, desktop_path) = get_install_paths();
+    let (app_path, desktop_path, cli_path) = get_install_paths();
 
     // Remove files (ignore errors if they don't exist)
     let _ = tokio::fs::remove_file(&app_path).await;
     let _ = tokio::fs::remove_file(&desktop_path).await;
+    let _ = tokio::fs::remove_file(&cli_path).await;
 
     Ok(())
 }
