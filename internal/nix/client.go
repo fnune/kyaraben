@@ -29,7 +29,10 @@ func NewClient() (*Client, error) {
 
 	// Try to find nix-portable, but don't fail if not found.
 	// This allows dry-run and other non-Nix operations to work.
-	nixPortable, _ := findNixPortable()
+	nixPortable, findErr := findNixPortable()
+	if findErr != nil {
+		fmt.Fprintf(os.Stderr, "[kyaraben-go] Warning: %v\n", findErr)
+	}
 
 	return &Client{
 		NixPortableBinary:   nixPortable,
