@@ -51,7 +51,10 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		}
 
 		fmt.Println("Config changes:")
-		hasChanges := false
+		fmt.Println()
+
+		var totalAdds, totalModifies, totalRemoves int
+		var filesCreated, filesModified, filesUnchanged int
 
 		for _, patch := range dryResult.Patches {
 			diff, err := emulators.ComputeDiff(patch)
@@ -60,14 +63,29 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 				continue
 			}
 
-			if diff.HasChanges() {
-				hasChanges = true
-				fmt.Print(diff.Format())
+			fmt.Print(diff.Format())
+
+			adds, modifies, removes := diff.Stats()
+			totalAdds += adds
+			totalModifies += modifies
+			totalRemoves += removes
+
+			if diff.IsNewFile {
+				filesCreated++
+			} else if diff.HasChanges() {
+				filesModified++
+			} else {
+				filesUnchanged++
 			}
 		}
 
-		if !hasChanges {
-			fmt.Println("  No config changes needed.")
+		// Summary
+		fmt.Println()
+		fmt.Printf("  Summary: %d file(s) to create, %d to modify, %d unchanged\n",
+			filesCreated, filesModified, filesUnchanged)
+		if totalAdds > 0 || totalModifies > 0 || totalRemoves > 0 {
+			fmt.Printf("  Changes: %d additions, %d modifications, %d removals\n",
+				totalAdds, totalModifies, totalRemoves)
 		}
 		fmt.Println()
 
