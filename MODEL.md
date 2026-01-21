@@ -94,6 +94,8 @@ An emulator:
 - Produces state (saves, cache, etc.)
 - Is configured via config files in specific formats
 
+Versioning: each emulator has a semver version, tracked in `Manifest` when installed. Non-breaking updates happen within the same emulator ID. If an emulator has a breaking change (config format, state locations), it becomes a new emulator ID (e.g., `duckstation` vs `duckstation-legacy-1x`). This keeps config generation simple - each emulator ID represents a stable contract - while still supporting version tracking for updates and observability.
+
 ### Provision
 
 Something the user provides to an emulator to enable or enhance functionality.

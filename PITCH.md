@@ -210,26 +210,26 @@ Each system has a default emulator chosen for best out-of-the-box experience.
 
 Philosophy: RetroArch cores when they're good enough. Standalones where RetroArch falls short.
 
-| System                  | Default                      | Notes                                        |
-| ----------------------- | ---------------------------- | -------------------------------------------- |
-| NES                     | RetroArch (Mesen)            |                                              |
-| SNES                    | RetroArch (bsnes)            |                                              |
-| Nintendo 64             | RetroArch (Mupen64Plus-Next) |                                              |
+| System                  | Default                      | Notes                                                  |
+| ----------------------- | ---------------------------- | ------------------------------------------------------ |
+| NES                     | RetroArch (Mesen)            |                                                        |
+| SNES                    | RetroArch (bsnes)            |                                                        |
+| Nintendo 64             | RetroArch (Mupen64Plus-Next) |                                                        |
 | GameCube/Wii            | Dolphin                      | Standalone likely better than core, needs verification |
-| Switch                  | Eden                         | Fetched from GitHub releases, user-initiated |
-| Game Boy / Color        | RetroArch (Gambatte)         |                                              |
-| GBA                     | RetroArch (mGBA)             |                                              |
-| DS                      | RetroArch (melonDS)          |                                              |
-| 3DS                     | Azahar                       |                                              |
-| PlayStation             | DuckStation                  |                                              |
-| PlayStation 2           | PCSX2                        | No viable RetroArch core                     |
-| PlayStation 3           | RPCS3                        | No RetroArch core exists                     |
-| PSP                     | RetroArch (PPSSPP)           |                                              |
-| PS Vita                 | Vita3K                       |                                              |
-| Master System / Genesis | RetroArch (Genesis Plus GX)  |                                              |
-| Saturn                  | RetroArch (Beetle Saturn)    |                                              |
-| Dreamcast               | RetroArch (Flycast)          |                                              |
-| Arcade                  | RetroArch (FBNeo)            |                                              |
+| Switch                  | Eden                         | Fetched from GitHub releases, user-initiated           |
+| Game Boy / Color        | RetroArch (Gambatte)         |                                                        |
+| GBA                     | RetroArch (mGBA)             |                                                        |
+| DS                      | RetroArch (melonDS)          |                                                        |
+| 3DS                     | Azahar                       |                                                        |
+| PlayStation             | DuckStation                  |                                                        |
+| PlayStation 2           | PCSX2                        | No viable RetroArch core                               |
+| PlayStation 3           | RPCS3                        | No RetroArch core exists                               |
+| PSP                     | RetroArch (PPSSPP)           |                                                        |
+| PS Vita                 | Vita3K                       |                                                        |
+| Master System / Genesis | RetroArch (Genesis Plus GX)  |                                                        |
+| Saturn                  | RetroArch (Beetle Saturn)    |                                                        |
+| Dreamcast               | RetroArch (Flycast)          |                                                        |
+| Arcade                  | RetroArch (FBNeo)            |                                                        |
 
 Notes on specific emulators:
 
