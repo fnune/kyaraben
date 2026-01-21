@@ -27,25 +27,22 @@ type Options struct {
 	OnProgress func(Progress)
 }
 
-func Apply(cfg *model.KyarabenConfig, opts Options) (*Result, error) {
+type Applier struct {
+	NixClient      *nix.Client
+	FlakeGenerator *nix.FlakeGenerator
+	ConfigWriter   *emulators.ConfigWriter
+	Registry       *emulators.Registry
+	ManifestPath   string
+}
+
+func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, opts Options) (*Result, error) {
 	if opts.OnProgress == nil {
 		opts.OnProgress = func(Progress) {}
 	}
 
 	opts.OnProgress(Progress{Step: "start", Message: "Starting apply..."})
 
-	userStorePath, err := cfg.ExpandUserStore()
-	if err != nil {
-		return nil, fmt.Errorf("expanding user store path: %w", err)
-	}
-	userStore := store.NewUserStore(userStorePath)
-
-	nixClient, err := nix.NewClient()
-	if err != nil {
-		return nil, fmt.Errorf("creating nix client: %w", err)
-	}
-
-	if !opts.DryRun && !nixClient.IsAvailable() {
+	if !opts.DryRun && !a.NixClient.IsAvailable() {
 		return nil, fmt.Errorf("nix is not available")
 	}
 
@@ -55,7 +52,7 @@ func Apply(cfg *model.KyarabenConfig, opts Options) (*Result, error) {
 	for sys, sysConf := range cfg.Systems {
 		emulatorsToInstall = append(emulatorsToInstall, sysConf.Emulator)
 
-		gen := emulators.GetConfigGenerator(sysConf.Emulator)
+		gen := a.Registry.GetConfigGenerator(sysConf.Emulator)
 		if gen == nil {
 			continue
 		}
@@ -85,12 +82,11 @@ func Apply(cfg *model.KyarabenConfig, opts Options) (*Result, error) {
 
 	opts.OnProgress(Progress{Step: "flake", Message: "Generating Nix flake..."})
 
-	if err := nixClient.EnsureFlakeDir(); err != nil {
+	if err := a.NixClient.EnsureFlakeDir(); err != nil {
 		return nil, fmt.Errorf("creating flake directory: %w", err)
 	}
 
-	flakeGen := nix.NewFlakeGenerator()
-	if err := flakeGen.Generate(nixClient.FlakePath, emulatorsToInstall); err != nil {
+	if err := a.FlakeGenerator.Generate(a.NixClient.FlakePath, emulatorsToInstall); err != nil {
 		return nil, fmt.Errorf("generating flake: %w", err)
 	}
 
@@ -99,29 +95,23 @@ func Apply(cfg *model.KyarabenConfig, opts Options) (*Result, error) {
 	buildCtx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
 
-	flakeRef := flakeGen.DefaultFlakeRef(nixClient.FlakePath)
-	storePath, err := nixClient.Build(buildCtx, flakeRef)
+	flakeRef := a.FlakeGenerator.DefaultFlakeRef(a.NixClient.FlakePath)
+	storePath, err := a.NixClient.Build(buildCtx, flakeRef)
 	if err != nil {
 		return nil, fmt.Errorf("building emulators: %w", err)
 	}
 
 	opts.OnProgress(Progress{Step: "configs", Message: "Applying emulator configurations..."})
 
-	configWriter := emulators.NewConfigWriter()
 	for _, patch := range allPatches {
-		if err := configWriter.Apply(patch); err != nil {
+		if err := a.ConfigWriter.Apply(patch); err != nil {
 			return nil, fmt.Errorf("applying config %s: %w", patch.Config.Path, err)
 		}
 	}
 
 	opts.OnProgress(Progress{Step: "manifest", Message: "Updating manifest..."})
 
-	manifestPath, err := model.DefaultManifestPath()
-	if err != nil {
-		return nil, fmt.Errorf("getting manifest path: %w", err)
-	}
-
-	manifest, err := model.LoadManifest(manifestPath)
+	manifest, err := model.LoadManifest(a.ManifestPath)
 	if err != nil {
 		return nil, fmt.Errorf("loading manifest: %w", err)
 	}
@@ -145,7 +135,7 @@ func Apply(cfg *model.KyarabenConfig, opts Options) (*Result, error) {
 		})
 	}
 
-	if err := manifest.Save(manifestPath); err != nil {
+	if err := manifest.Save(a.ManifestPath); err != nil {
 		return nil, fmt.Errorf("saving manifest: %w", err)
 	}
 

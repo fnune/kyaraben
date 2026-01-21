@@ -17,11 +17,15 @@ func (cmd *DoctorCmd) Run(ctx *Context) error {
 	}
 
 	registry := ctx.NewRegistry()
+	userStore, err := ctx.NewUserStore(cfg)
+	if err != nil {
+		return err
+	}
 
 	fmt.Println("Checking provisions...")
 	fmt.Println()
 
-	result, err := doctor.Run(cfg, registry)
+	result, err := doctor.Run(cfg, registry, userStore)
 	if err != nil {
 		return err
 	}

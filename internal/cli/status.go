@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/status"
 )
 
@@ -24,8 +25,16 @@ func (cmd *StatusCmd) Run(ctx *Context) error {
 	}
 
 	registry := ctx.NewRegistry()
+	userStore, err := ctx.NewUserStore(cfg)
+	if err != nil {
+		return err
+	}
+	manifestPath, err := model.DefaultManifestPath()
+	if err != nil {
+		return err
+	}
 
-	result, err := status.Get(cfg, configPath, registry)
+	result, err := status.Get(cfg, configPath, registry, userStore, manifestPath)
 	if err != nil {
 		return err
 	}
