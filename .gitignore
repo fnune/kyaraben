@@ -1,0 +1,21 @@
+# Binary
+/kyaraben
+
+# Test artifacts
+*.test
+coverage.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Nix
+result
+result-*
+.direnv/
