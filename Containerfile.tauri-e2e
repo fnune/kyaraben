@@ -60,28 +60,8 @@ RUN cd ui && npm ci
 # Build Tauri app
 RUN cd ui && npm run tauri build
 
-# Create test runner script
-RUN cat > /home/testuser/run-tauri-e2e.sh << 'SCRIPT'
-#!/usr/bin/env bash
-set -euo pipefail
-
-. ~/.nix-profile/etc/profile.d/nix.sh
-
-echo "=== Kyaraben Tauri E2E Tests ==="
-echo ""
-echo "Starting Xvfb..."
-Xvfb :99 -screen 0 1280x720x24 &
-export DISPLAY=:99
-sleep 2
-
-echo "Running WebdriverIO tests..."
-cd /home/testuser/kyaraben/ui
-npm run test:e2e
-
-echo ""
-echo "=== Tauri E2E tests complete! ==="
-SCRIPT
-
-RUN chmod +x /home/testuser/run-tauri-e2e.sh
+# Copy and set up test runner script
+RUN cp scripts/run-tauri-e2e.sh /home/testuser/run-tauri-e2e.sh && \
+    chmod +x /home/testuser/run-tauri-e2e.sh
 
 CMD ["/home/testuser/run-tauri-e2e.sh"]
