@@ -72,7 +72,7 @@ ENV KYARABEN_LOG=/home/testuser/.local/state/kyaraben/kyaraben.log
 # APPDIR is set so the app can find its bundled resources (sidecar, nix-portable)
 # Clear nix-portable internal state to avoid permission issues with cached data
 CMD ["sh", "-c", "\
-  set -e && \
+  set -ex && \
   echo '=== Setting up directories ===' && \
   mkdir -p /home/testuser/.local/state/kyaraben /home/testuser/.local/share/kyaraben && \
   rm -rf /home/testuser/.local/share/kyaraben/nix-portable/.nix-portable && \
@@ -84,7 +84,18 @@ CMD ["sh", "-c", "\
   cd /home/testuser/kyaraben/ui/release && \
   $APPIMAGE --appimage-extract && \
   echo '=== Extraction complete ===' && \
+  echo '=== Contents of squashfs-root: ===' && \
   ls -la squashfs-root/ && \
+  echo '=== Looking for executable: ===' && \
+  ls -la squashfs-root/kyaraben* 2>/dev/null || echo 'No kyaraben* found in squashfs-root/' && \
+  if [ -f squashfs-root/kyaraben-ui ]; then \
+    echo 'FOUND: squashfs-root/kyaraben-ui exists'; \
+  elif [ -f squashfs-root/kyaraben ]; then \
+    echo 'FOUND: squashfs-root/kyaraben exists (not kyaraben-ui!)'; \
+  else \
+    echo 'ERROR: No kyaraben executable found! Listing all files:' && \
+    find squashfs-root -maxdepth 1 -type f -executable; \
+  fi && \
   echo '=== Starting Xvfb ===' && \
   Xvfb :99 -ac -screen 0 1280x1024x24 >/dev/null 2>&1 & \
   sleep 2 && \
