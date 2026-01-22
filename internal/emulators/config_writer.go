@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/fnune/kyaraben/internal/model"
@@ -70,8 +71,14 @@ func (w *ConfigWriter) applyCFG(patch model.ConfigPatch) error {
 	_, _ = fmt.Fprintln(f, "# Manual changes will be preserved on next apply")
 	_, _ = fmt.Fprintln(f)
 
-	for key, value := range existing {
-		_, _ = fmt.Fprintf(f, "%s = %s\n", key, value)
+	keys := make([]string, 0, len(existing))
+	for key := range existing {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	for _, key := range keys {
+		_, _ = fmt.Fprintf(f, "%s = %s\n", key, existing[key])
 	}
 
 	return nil
@@ -130,12 +137,26 @@ func (w *ConfigWriter) applyINI(patch model.ConfigPatch) error {
 	_, _ = fmt.Fprintln(f, "; Manual changes will be preserved on next apply")
 	_, _ = fmt.Fprintln(f)
 
-	for section, values := range sections {
+	sectionNames := make([]string, 0, len(sections))
+	for section := range sections {
+		sectionNames = append(sectionNames, section)
+	}
+	sort.Strings(sectionNames)
+
+	for _, section := range sectionNames {
+		values := sections[section]
 		if section != "" {
 			_, _ = fmt.Fprintf(f, "[%s]\n", section)
 		}
-		for key, value := range values {
-			_, _ = fmt.Fprintf(f, "%s = %s\n", key, value)
+
+		keys := make([]string, 0, len(values))
+		for key := range values {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+
+		for _, key := range keys {
+			_, _ = fmt.Fprintf(f, "%s = %s\n", key, values[key])
 		}
 		_, _ = fmt.Fprintln(f)
 	}

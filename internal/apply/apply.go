@@ -11,6 +11,8 @@ import (
 	"github.com/fnune/kyaraben/internal/store"
 )
 
+const nixBuildTimeout = 30 * time.Minute
+
 type Progress struct {
 	Step    string
 	Message string
@@ -28,7 +30,7 @@ type Options struct {
 }
 
 type Applier struct {
-	NixClient      *nix.Client
+	NixClient      nix.NixClient
 	FlakeGenerator *nix.FlakeGenerator
 	ConfigWriter   *emulators.ConfigWriter
 	Registry       *emulators.Registry
@@ -43,7 +45,7 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 	opts.OnProgress(Progress{Step: "start", Message: "Starting apply..."})
 
 	if !opts.DryRun && !a.NixClient.IsAvailable() {
-		return nil, fmt.Errorf("nix is not available (nix-portable binary: %q)", a.NixClient.NixPortableBinary)
+		return nil, fmt.Errorf("nix is not available (nix-portable not found)")
 	}
 
 	emulatorsToInstall := make([]model.EmulatorID, 0, len(cfg.Systems))
@@ -86,16 +88,16 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 		return nil, fmt.Errorf("creating flake directory: %w", err)
 	}
 
-	if err := a.FlakeGenerator.Generate(a.NixClient.FlakePath, emulatorsToInstall); err != nil {
+	if err := a.FlakeGenerator.Generate(a.NixClient.GetFlakePath(), emulatorsToInstall); err != nil {
 		return nil, fmt.Errorf("generating flake: %w", err)
 	}
 
 	opts.OnProgress(Progress{Step: "build", Message: "Building emulators..."})
 
-	buildCtx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
+	buildCtx, cancel := context.WithTimeout(context.Background(), nixBuildTimeout)
 	defer cancel()
 
-	flakeRef := a.FlakeGenerator.DefaultFlakeRef(a.NixClient.FlakePath)
+	flakeRef := a.FlakeGenerator.DefaultFlakeRef(a.NixClient.GetFlakePath())
 	storePath, err := a.NixClient.Build(buildCtx, flakeRef)
 	if err != nil {
 		return nil, fmt.Errorf("building emulators: %w", err)
