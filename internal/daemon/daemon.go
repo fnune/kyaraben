@@ -284,10 +284,13 @@ func (d *Daemon) handleGetSystems() []Event {
 func (d *Daemon) handleGetConfig() []Event {
 	cfg, err := d.loadConfig()
 	if err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		cfg, err = model.NewDefaultConfig()
+		if err != nil {
+			return []Event{{
+				Type: EventError,
+				Data: map[string]string{"error": err.Error()},
+			}}
+		}
 	}
 
 	systems := make(map[string]string)
