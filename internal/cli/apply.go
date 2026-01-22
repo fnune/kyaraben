@@ -10,9 +10,8 @@ import (
 )
 
 type ApplyCmd struct {
-	DryRun     bool `help:"Show what would be done without making changes."`
-	ShowDiff   bool `help:"Show config changes before applying." default:"true" negatable:""`
-	ConfigOnly bool `help:"Only apply configs, skip Nix build (for home-manager integration)."`
+	DryRun   bool `help:"Show what would be done without making changes."`
+	ShowDiff bool `help:"Show config changes before applying." default:"true" negatable:""`
 }
 
 func (cmd *ApplyCmd) Run(ctx *Context) error {
@@ -50,9 +49,8 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	fmt.Println()
 
 	opts := apply.Options{
-		DryRun:     cmd.DryRun,
-		ShowDiff:   cmd.ShowDiff,
-		ConfigOnly: cmd.ConfigOnly,
+		DryRun:   cmd.DryRun,
+		ShowDiff: cmd.ShowDiff,
 		OnProgress: func(p apply.Progress) {
 			switch p.Step {
 			case "directories":
@@ -124,10 +122,8 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		return err
 	}
 
-	if result.StorePath != "" {
-		fmt.Printf("  Built: %s\n", result.StorePath)
-		fmt.Println()
-	}
+	fmt.Printf("  Built: %s\n", result.StorePath)
+	fmt.Println()
 
 	for _, patch := range result.Patches {
 		fmt.Printf("  Applied: %s\n", patch.Config.Path)
@@ -137,9 +133,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	fmt.Println("Done!")
 	fmt.Println()
 	fmt.Printf("Your emulation directory is ready at: %s\n", userStore.Root)
-	if !cmd.ConfigOnly {
-		fmt.Println("Place your ROMs in the appropriate subdirectories.")
-	}
+	fmt.Println("Place your ROMs in the appropriate subdirectories.")
 
 	return nil
 }
