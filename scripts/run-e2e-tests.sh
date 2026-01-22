@@ -1,47 +1,35 @@
 #!/bin/bash
 # E2E test runner script for Docker container
-# This extracts the AppImage and runs Playwright tests
+# Extracts the AppImage and runs Playwright tests
 
-set -ex
+set -e
 
-echo '=== Setting up directories ==='
+# Setup
 mkdir -p /root/.local/state/kyaraben /root/.local/share/kyaraben
 rm -rf /root/.local/share/kyaraben/nix-portable/.nix-portable
 
-echo '=== Checking release directory ==='
-ls -la /app/ui/release/
-
-APPIMAGE=$(ls /app/ui/release/*.AppImage | head -1)
-echo "=== Found AppImage: $APPIMAGE ==="
-
+# Extract AppImage (FUSE not available in Docker)
 cd /app/ui/release
+APPIMAGE=$(ls *.AppImage | head -1)
+echo "Extracting $APPIMAGE..."
+"$APPIMAGE" --appimage-extract >/dev/null
 
-echo '=== Running extraction ==='
-"$APPIMAGE" --appimage-extract
-echo '=== Extraction exit code:' $? '==='
-
-echo '=== Checking if squashfs-root exists ==='
-if [ -d squashfs-root ]; then
-    echo 'squashfs-root directory EXISTS'
-    ls -la squashfs-root/ | head -20
-else
-    echo 'ERROR: squashfs-root directory DOES NOT EXIST'
-    echo 'Current directory contents:'
-    ls -la
+# Verify extraction
+if [ ! -f squashfs-root/kyaraben-ui ]; then
+    echo "ERROR: Extraction failed - kyaraben-ui not found"
+    ls -la squashfs-root/ 2>/dev/null || echo "squashfs-root does not exist"
     exit 1
 fi
 
-echo '=== Looking for kyaraben executable ==='
-ls -la squashfs-root/kyaraben* 2>&1 || true
-
-echo '=== Starting Xvfb ==='
+# Start virtual display
 Xvfb :99 -ac -screen 0 1280x1024x24 >/dev/null 2>&1 &
 sleep 2
 
-: > /root/.local/state/kyaraben/kyaraben.log
-tail -f /root/.local/state/kyaraben/kyaraben.log &
+# Tail app log in background
+tail -f /root/.local/state/kyaraben/kyaraben.log 2>/dev/null &
 
-echo '=== Running tests ==='
+# Run tests
+echo "Running Playwright tests..."
 env KYARABEN_APPIMAGE=/app/ui/release/squashfs-root/kyaraben-ui \
     APPDIR=/app/ui/release/squashfs-root \
     DISPLAY=:99 \
