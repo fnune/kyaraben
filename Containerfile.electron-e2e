@@ -76,10 +76,13 @@ CMD ["sh", "-c", "\
   echo \"Extracting AppImage: $APPIMAGE\" && \
   cd /home/testuser/kyaraben/ui/release && $APPIMAGE --appimage-extract && \
   ls -la squashfs-root/ && \
-  EXTRACTED_APP=/home/testuser/kyaraben/ui/release/squashfs-root/kyaraben && \
-  echo \"Testing extracted app: $EXTRACTED_APP\" && \
-  Xvfb :99 -ac -screen 0 1280x1024x24 >/dev/null 2>&1 & sleep 2 && \
+  Xvfb :99 -ac -screen 0 1280x1024x24 >/dev/null 2>&1 & \
+  sleep 2 && \
   touch /home/testuser/.local/state/kyaraben/kyaraben.log && \
   tail -f /home/testuser/.local/state/kyaraben/kyaraben.log & \
-  KYARABEN_APPIMAGE=$EXTRACTED_APP APPDIR=/home/testuser/kyaraben/ui/release/squashfs-root DISPLAY=:99 npm run test:e2e --prefix /home/testuser/kyaraben/ui \
+  echo \"Testing: squashfs-root/kyaraben-ui\" && \
+  env KYARABEN_APPIMAGE=/home/testuser/kyaraben/ui/release/squashfs-root/kyaraben-ui \
+      APPDIR=/home/testuser/kyaraben/ui/release/squashfs-root \
+      DISPLAY=:99 \
+      npm run test:e2e --prefix /home/testuser/kyaraben/ui \
 "]
