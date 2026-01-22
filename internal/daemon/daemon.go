@@ -9,22 +9,23 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/nix"
+	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/status"
 	"github.com/fnune/kyaraben/internal/store"
 )
 
 type Daemon struct {
 	configPath     string
-	registry       *emulators.Registry
+	reg            *registry.Registry
 	nixClient      nix.NixClient
 	flakeGenerator *nix.FlakeGenerator
 	configWriter   *emulators.ConfigWriter
 }
 
-func New(configPath string, registry *emulators.Registry, nixClient nix.NixClient, flakeGenerator *nix.FlakeGenerator, configWriter *emulators.ConfigWriter) *Daemon {
+func New(configPath string, reg *registry.Registry, nixClient nix.NixClient, flakeGenerator *nix.FlakeGenerator, configWriter *emulators.ConfigWriter) *Daemon {
 	return &Daemon{
 		configPath:     configPath,
-		registry:       registry,
+		reg:            reg,
 		nixClient:      nixClient,
 		flakeGenerator: flakeGenerator,
 		configWriter:   configWriter,
@@ -109,7 +110,7 @@ func (d *Daemon) handleStatus() []Event {
 		}}
 	}
 
-	result, err := status.Get(cfg, configPath, d.registry, userStore, manifestPath)
+	result, err := status.Get(cfg, configPath, d.reg, userStore, manifestPath)
 	if err != nil {
 		return []Event{{
 			Type: EventError,
@@ -164,7 +165,7 @@ func (d *Daemon) handleDoctor() []Event {
 
 	userStore := store.NewUserStore(userStorePath)
 
-	result, err := doctor.Run(cfg, d.registry, userStore)
+	result, err := doctor.Run(cfg, d.reg, userStore)
 	if err != nil {
 		return []Event{{
 			Type: EventError,
@@ -224,7 +225,7 @@ func (d *Daemon) handleApply(_ map[string]interface{}, emit func(Event)) []Event
 		NixClient:      d.nixClient,
 		FlakeGenerator: d.flakeGenerator,
 		ConfigWriter:   d.configWriter,
-		Registry:       d.registry,
+		Registry:       d.reg,
 		ManifestPath:   manifestPath,
 	}
 
@@ -263,11 +264,11 @@ func (d *Daemon) handleApply(_ map[string]interface{}, emit func(Event)) []Event
 }
 
 func (d *Daemon) handleGetSystems() []Event {
-	systems := d.registry.AllSystems()
+	systems := d.reg.AllSystems()
 
 	result := make([]map[string]interface{}, 0, len(systems))
 	for _, sys := range systems {
-		emulators := d.registry.GetEmulatorsForSystem(sys.ID)
+		emulators := d.reg.GetEmulatorsForSystem(sys.ID)
 		emuList := make([]map[string]string, 0, len(emulators))
 		for _, emu := range emulators {
 			emuList = append(emuList, map[string]string{
