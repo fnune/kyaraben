@@ -43,11 +43,11 @@ func (r *Registry) registerSystems() {
 
 func (r *Registry) registerEmulators() {
 	r.emulators[model.EmulatorRetroArchBsnes] = model.Emulator{
-		ID:      model.EmulatorRetroArchBsnes,
-		Name:    "RetroArch (bsnes)",
-		Systems: []model.SystemID{model.SystemSNES},
-		Source:  model.PackageSourceNixpkgs,
-		NixAttr: "retroarch-bsnes",
+		ID:         model.EmulatorRetroArchBsnes,
+		Name:       "RetroArch (bsnes)",
+		Systems:    []model.SystemID{model.SystemSNES},
+		Source:     model.PackageSourceNixpkgs,
+		NixAttr:    "retroarch-bsnes",
 		Provisions: []model.Provision{
 			// SNES has no required provisions
 		},
@@ -104,11 +104,11 @@ func (r *Registry) registerEmulators() {
 	}
 
 	r.emulators[model.EmulatorTIC80] = model.Emulator{
-		ID:      model.EmulatorTIC80,
-		Name:    "TIC-80",
-		Systems: []model.SystemID{model.SystemTIC80},
-		Source:  model.PackageSourceNixpkgs,
-		NixAttr: "tic-80",
+		ID:         model.EmulatorTIC80,
+		Name:       "TIC-80",
+		Systems:    []model.SystemID{model.SystemTIC80},
+		Source:     model.PackageSourceNixpkgs,
+		NixAttr:    "tic-80",
 		Provisions: []model.Provision{
 			// TIC-80 has no provisions - perfect for testing
 		},

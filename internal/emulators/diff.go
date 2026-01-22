@@ -147,7 +147,7 @@ func readConfig(path string, format model.ConfigFormat) (map[string]map[string]s
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	scanner := bufio.NewScanner(f)
 	currentSection := ""

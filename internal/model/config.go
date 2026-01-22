@@ -63,11 +63,16 @@ func SaveConfig(cfg *KyarabenConfig, path string) error {
 	if err != nil {
 		return fmt.Errorf("creating config file: %w", err)
 	}
-	defer f.Close()
 
 	encoder := toml.NewEncoder(f)
-	if err := encoder.Encode(cfg); err != nil {
-		return fmt.Errorf("encoding config: %w", err)
+	encodeErr := encoder.Encode(cfg)
+	closeErr := f.Close()
+
+	if encodeErr != nil {
+		return fmt.Errorf("encoding config: %w", encodeErr)
+	}
+	if closeErr != nil {
+		return fmt.Errorf("closing config file: %w", closeErr)
 	}
 	return nil
 }

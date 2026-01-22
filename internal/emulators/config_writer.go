@@ -56,7 +56,7 @@ func (w *ConfigWriter) applyCFG(patch model.ConfigPatch) error {
 				existing[key] = value
 			}
 		}
-		data.Close()
+		_ = data.Close()
 	}
 
 	// Apply patches
@@ -69,30 +69,26 @@ func (w *ConfigWriter) applyCFG(patch model.ConfigPatch) error {
 	if err != nil {
 		return fmt.Errorf("creating config file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
-	// Write kyaraben header
-	fmt.Fprintln(f, "# Configuration managed by kyaraben")
-	fmt.Fprintln(f, "# Manual changes will be preserved on next apply")
-	fmt.Fprintln(f)
+	_, _ = fmt.Fprintln(f, "# Configuration managed by kyaraben")
+	_, _ = fmt.Fprintln(f, "# Manual changes will be preserved on next apply")
+	_, _ = fmt.Fprintln(f)
 
 	for key, value := range existing {
-		fmt.Fprintf(f, "%s = %s\n", key, value)
+		_, _ = fmt.Fprintf(f, "%s = %s\n", key, value)
 	}
 
 	return nil
 }
 
-// applyINI handles INI-style configs with [sections].
 func (w *ConfigWriter) applyINI(patch model.ConfigPatch) error {
 	path := patch.Config.Path
 
-	// Ensure directory exists
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return fmt.Errorf("creating config directory: %w", err)
 	}
 
-	// Read existing config if it exists
 	sections := make(map[string]map[string]string)
 	currentSection := ""
 
@@ -119,10 +115,9 @@ func (w *ConfigWriter) applyINI(patch model.ConfigPatch) error {
 				sections[currentSection][key] = value
 			}
 		}
-		data.Close()
+		_ = data.Close()
 	}
 
-	// Apply patches
 	for _, entry := range patch.Entries {
 		if sections[entry.Section] == nil {
 			sections[entry.Section] = make(map[string]string)
@@ -130,27 +125,24 @@ func (w *ConfigWriter) applyINI(patch model.ConfigPatch) error {
 		sections[entry.Section][entry.Key] = entry.Value
 	}
 
-	// Write config
 	f, err := os.Create(path)
 	if err != nil {
 		return fmt.Errorf("creating config file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
-	// Write kyaraben header
-	fmt.Fprintln(f, "; Configuration managed by kyaraben")
-	fmt.Fprintln(f, "; Manual changes will be preserved on next apply")
-	fmt.Fprintln(f)
+	_, _ = fmt.Fprintln(f, "; Configuration managed by kyaraben")
+	_, _ = fmt.Fprintln(f, "; Manual changes will be preserved on next apply")
+	_, _ = fmt.Fprintln(f)
 
-	// Write sections
 	for section, values := range sections {
 		if section != "" {
-			fmt.Fprintf(f, "[%s]\n", section)
+			_, _ = fmt.Fprintf(f, "[%s]\n", section)
 		}
 		for key, value := range values {
-			fmt.Fprintf(f, "%s = %s\n", key, value)
+			_, _ = fmt.Fprintf(f, "%s = %s\n", key, value)
 		}
-		fmt.Fprintln(f)
+		_, _ = fmt.Fprintln(f)
 	}
 
 	return nil
