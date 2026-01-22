@@ -53,6 +53,31 @@ domain concepts to distinguish them from ordinary English words.
 Keep the domain model clean. Implementation details such as serialization
 formats or database schemas should not leak into the model.
 
+## Adding systems and emulators
+
+Systems and emulators are defined in separate packages that implement
+interfaces from `internal/model/definitions.go`. This keeps each definition
+self-contained and provides compile-time safety for missing methods.
+
+To add a new system (e.g., N64):
+
+1. Add the `SystemID` constant to `internal/model/system.go`
+2. Create `internal/systems/n64/n64.go` implementing `model.SystemDefinition`
+3. Add the system to `internal/registry/all.go`
+
+To add a new emulator (e.g., mupen64plus):
+
+1. Add the `EmulatorID` constant to `internal/model/emulator.go`
+2. Create `internal/emulators/mupen64plus/mupen64plus.go` implementing
+   `model.EmulatorDefinition` (includes both the emulator metadata and the
+   config generator)
+3. Add the emulator to `internal/registry/all.go`
+
+The `TestAllDefinitions` test in `internal/registry/registry_test.go` validates
+that all definitions have required fields and that cross-references are valid
+(default emulators exist and support their systems, emulators reference
+existing systems).
+
 ## Dependency management
 
 Pass dependencies explicitly. There should be no hidden instantiation deep in
