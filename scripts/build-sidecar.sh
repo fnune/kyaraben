@@ -7,7 +7,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-BINARIES_DIR="$PROJECT_ROOT/ui/src-tauri/binaries"
+BINARIES_DIR="$PROJECT_ROOT/ui/binaries"
 
 get_target_triple() {
     local arch=$(uname -m)

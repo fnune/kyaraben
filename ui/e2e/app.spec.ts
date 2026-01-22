@@ -1,4 +1,3 @@
-import * as path from 'node:path'
 import { type ElectronApplication, type Page, _electron as electron } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 
@@ -6,12 +5,17 @@ let electronApp: ElectronApplication
 let page: Page
 
 test.beforeAll(async () => {
-  const mainPath = path.join(__dirname, '..', 'dist-electron', 'main.js')
+  const appImagePath = process.env.KYARABEN_APPIMAGE
+  if (!appImagePath) {
+    throw new Error(
+      'KYARABEN_APPIMAGE environment variable must be set to the path of the Electron executable',
+    )
+  }
 
-  // --no-sandbox required for Chromium in Docker: https://playwright.dev/docs/ci#docker
+  console.log(`Testing: ${appImagePath}`)
   electronApp = await electron.launch({
-    args: [mainPath, '--no-sandbox'],
-    cwd: path.join(__dirname, '..'),
+    executablePath: appImagePath,
+    args: ['--no-sandbox'],
   })
 
   page = await electronApp.firstWindow()
@@ -109,8 +113,9 @@ test.describe('Kyaraben Apply (requires Nix)', () => {
     const outputSection = page.locator('#output-section')
     await expect(outputSection).toBeVisible()
 
+    // Nix builds can take 10+ minutes on first run (no cache)
     const log = page.locator('#log')
-    await expect(log).toContainText(/Done!|Error/, { timeout: 120000 })
+    await expect(log).toContainText(/Done!|Error/, { timeout: 600000 })
 
     const logText = await log.textContent()
     expect(logText).toContain('Done!')

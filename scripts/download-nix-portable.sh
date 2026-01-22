@@ -8,8 +8,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # nix-portable releases: https://github.com/DavHau/nix-portable/releases
-# Using latest release URL format
-NIX_PORTABLE_URL="https://github.com/DavHau/nix-portable/releases/latest/download/nix-portable-$(uname -m)"
+# Pin version for reproducibility. Update manually when needed.
+NIX_PORTABLE_VERSION="v012"
+NIX_PORTABLE_URL="https://github.com/DavHau/nix-portable/releases/download/${NIX_PORTABLE_VERSION}/nix-portable-$(uname -m)"
 
 get_target_triple() {
     local arch=$(uname -m)
@@ -42,12 +43,12 @@ if [ -z "$TARGET_TRIPLE" ]; then
 fi
 
 # Output location - same as sidecar binaries
-OUTPUT_DIR="${1:-$PROJECT_ROOT/ui/src-tauri/binaries}"
+OUTPUT_DIR="${1:-$PROJECT_ROOT/ui/binaries}"
 OUTPUT_NAME="nix-portable-$TARGET_TRIPLE"
 
 mkdir -p "$OUTPUT_DIR"
 
-echo "Downloading nix-portable (latest) for $(uname -m)..."
+echo "Downloading nix-portable ${NIX_PORTABLE_VERSION} for $(uname -m)..."
 curl -fsSL "$NIX_PORTABLE_URL" -o "$OUTPUT_DIR/$OUTPUT_NAME"
 chmod +x "$OUTPUT_DIR/$OUTPUT_NAME"
 

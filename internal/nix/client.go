@@ -12,8 +12,11 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/fnune/kyaraben/internal/logging"
 	"github.com/fnune/kyaraben/internal/paths"
 )
+
+var log = logging.New("nix")
 
 type Client struct {
 	NixPortableBinary   string
@@ -22,7 +25,12 @@ type Client struct {
 }
 
 func NewClient() (*Client, error) {
-	kyarabenDir, err := paths.KyarabenDataDir()
+	dataDir, err := paths.KyarabenDataDir()
+	if err != nil {
+		return nil, err
+	}
+
+	stateDir, err := paths.KyarabenStateDir()
 	if err != nil {
 		return nil, err
 	}
@@ -31,13 +39,13 @@ func NewClient() (*Client, error) {
 	// This allows dry-run and other non-Nix operations to work.
 	nixPortable, findErr := findNixPortable()
 	if findErr != nil {
-		fmt.Fprintf(os.Stderr, "[kyaraben-go] Warning: %v\n", findErr)
+		log.Debug("nix-portable not found: %v", findErr)
 	}
 
 	return &Client{
 		NixPortableBinary:   nixPortable,
-		NixPortableLocation: filepath.Join(kyarabenDir, "nix-portable"),
-		FlakePath:           filepath.Join(kyarabenDir, "flake"),
+		NixPortableLocation: filepath.Join(dataDir, "nix-portable"),
+		FlakePath:           filepath.Join(stateDir, "flake"),
 	}, nil
 }
 
@@ -52,13 +60,13 @@ func findNixPortable() (string, error) {
 	}
 	execDir := filepath.Dir(execPath)
 
-	fmt.Fprintf(os.Stderr, "[kyaraben-go] Looking for nix-portable: %s\n", binaryName)
-	fmt.Fprintf(os.Stderr, "[kyaraben-go] Executable dir: %s\n", execDir)
+	log.Debug("Looking for nix-portable: %s", binaryName)
+	log.Debug("Executable dir: %s", execDir)
 
 	// Search locations in order of preference:
 	// 1. Same directory as executable (AppImage/installed)
-	// 2. ../binaries/ relative to executable (development with sidecar structure)
-	// 3. ui/src-tauri/binaries/ from project root (development)
+	// 2. ../binaries/ relative to executable (development)
+	// 3. ui/binaries/ from project root (development)
 	searchPaths := []string{
 		filepath.Join(execDir, binaryName),
 		filepath.Join(execDir, "..", "binaries", binaryName),
@@ -67,19 +75,19 @@ func findNixPortable() (string, error) {
 	// For development, also check relative to working directory
 	if cwd, err := os.Getwd(); err == nil {
 		searchPaths = append(searchPaths,
-			filepath.Join(cwd, "ui", "src-tauri", "binaries", binaryName),
+			filepath.Join(cwd, "ui", "binaries", binaryName),
 		)
 	}
 
 	for _, path := range searchPaths {
-		fmt.Fprintf(os.Stderr, "[kyaraben-go] Checking: %s\n", path)
+		log.Debug("Checking: %s", path)
 		if _, err := os.Stat(path); err == nil {
-			fmt.Fprintf(os.Stderr, "[kyaraben-go] Found nix-portable at: %s\n", path)
+			log.Debug("Found nix-portable at: %s", path)
 			return path, nil
 		}
 	}
 
-	fmt.Fprintf(os.Stderr, "[kyaraben-go] nix-portable NOT FOUND\n")
+	log.Debug("nix-portable NOT FOUND")
 	return "", fmt.Errorf("nix-portable binary not found (searched for %s)", binaryName)
 }
 
@@ -116,10 +124,9 @@ func (c *Client) IsAvailable() bool {
 	return err == nil
 }
 
-// nix-portable has nix-command and flakes enabled by default
 func (c *Client) runNix(ctx context.Context, args []string) (*exec.Cmd, error) {
 	if !c.IsAvailable() {
-		fmt.Fprintf(os.Stderr, "[kyaraben-go] nix-portable not available at: %s\n", c.NixPortableBinary)
+		log.Error("nix-portable not available at: %s", c.NixPortableBinary)
 		return nil, fmt.Errorf("nix-portable is not available (bundled binary not found)")
 	}
 
@@ -130,14 +137,14 @@ func (c *Client) runNix(ctx context.Context, args []string) (*exec.Cmd, error) {
 	// Set NP_LOCATION to control where nix-portable stores its data
 	cmd.Env = append(os.Environ(), "NP_LOCATION="+c.NixPortableLocation)
 
-	fmt.Fprintf(os.Stderr, "[kyaraben-go] Running: %s %v\n", c.NixPortableBinary, fullArgs)
-	fmt.Fprintf(os.Stderr, "[kyaraben-go] NP_LOCATION=%s\n", c.NixPortableLocation)
+	log.Debug("Running: %s %v", c.NixPortableBinary, fullArgs)
+	log.Debug("NP_LOCATION=%s", c.NixPortableLocation)
 
 	return cmd, nil
 }
 
 func (c *Client) Build(ctx context.Context, flakeRef string) (string, error) {
-	fmt.Fprintf(os.Stderr, "[kyaraben-go] Starting nix build for: %s\n", flakeRef)
+	log.Info("Starting nix build for: %s", flakeRef)
 
 	args := []string{
 		"build",
@@ -145,6 +152,12 @@ func (c *Client) Build(ctx context.Context, flakeRef string) (string, error) {
 		"--no-link",
 		"--print-out-paths",
 		"-L", // Print build logs to see what's happening during build phase
+	}
+
+	// Disable Nix sandbox when running under proot (e.g., nix-portable in containers)
+	// proot's syscall interception conflicts with Nix's sandbox
+	if os.Getenv("KYARABEN_NIX_NO_SANDBOX") == "1" {
+		args = append(args, "--option", "sandbox", "false")
 	}
 
 	cmd, err := c.runNix(ctx, args)
@@ -156,20 +169,20 @@ func (c *Client) Build(ctx context.Context, flakeRef string) (string, error) {
 	// Stream stderr to console while also capturing it for error reporting
 	cmd.Stderr = io.MultiWriter(&stderr, os.Stderr)
 
-	fmt.Fprintf(os.Stderr, "[kyaraben-go] Executing nix build (this may take a while on first run)...\n")
+	log.Info("Executing nix build (this may take a while on first run)...")
 	if err := cmd.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "[kyaraben-go] nix build FAILED: %v\n", err)
+		log.Error("nix build FAILED: %v", err)
 		return "", fmt.Errorf("nix build failed: %w\nstderr: %s", err, stderr.String())
 	}
 
 	// Parse output - it's the store path
 	storePath := strings.TrimSpace(stdout.String())
 	if storePath == "" {
-		fmt.Fprintf(os.Stderr, "[kyaraben-go] nix build produced no output\n")
+		log.Error("nix build produced no output")
 		return "", fmt.Errorf("nix build produced no output")
 	}
 
-	fmt.Fprintf(os.Stderr, "[kyaraben-go] nix build SUCCESS: %s\n", storePath)
+	log.Info("nix build SUCCESS: %s", storePath)
 	return storePath, nil
 }
 

@@ -16,12 +16,12 @@ import (
 type Daemon struct {
 	configPath     string
 	registry       *emulators.Registry
-	nixClient      *nix.Client
+	nixClient      nix.NixClient
 	flakeGenerator *nix.FlakeGenerator
 	configWriter   *emulators.ConfigWriter
 }
 
-func New(configPath string, registry *emulators.Registry, nixClient *nix.Client, flakeGenerator *nix.FlakeGenerator, configWriter *emulators.ConfigWriter) *Daemon {
+func New(configPath string, registry *emulators.Registry, nixClient nix.NixClient, flakeGenerator *nix.FlakeGenerator, configWriter *emulators.ConfigWriter) *Daemon {
 	return &Daemon{
 		configPath:     configPath,
 		registry:       registry,
@@ -31,14 +31,22 @@ func New(configPath string, registry *emulators.Registry, nixClient *nix.Client,
 	}
 }
 
+// Handle processes a command and returns all events at once.
+// For streaming events during long operations, use HandleWithEmit.
 func (d *Daemon) Handle(cmd Command) []Event {
+	return d.HandleWithEmit(cmd, nil)
+}
+
+// HandleWithEmit processes a command. If emit is provided, progress events
+// are sent immediately via emit rather than being batched.
+func (d *Daemon) HandleWithEmit(cmd Command, emit func(Event)) []Event {
 	switch cmd.Type {
 	case CmdStatus:
 		return d.handleStatus()
 	case CmdDoctor:
 		return d.handleDoctor()
 	case CmdApply:
-		return d.handleApply(cmd.Data)
+		return d.handleApply(cmd.Data, emit)
 	case CmdGetSystems:
 		return d.handleGetSystems()
 	case CmdGetConfig:
@@ -185,9 +193,7 @@ func (d *Daemon) handleDoctor() []Event {
 	}}
 }
 
-func (d *Daemon) handleApply(_ map[string]interface{}) []Event {
-	events := []Event{}
-
+func (d *Daemon) handleApply(_ map[string]interface{}, emit func(Event)) []Event {
 	cfg, err := d.loadConfig()
 	if err != nil {
 		return []Event{{
@@ -224,33 +230,36 @@ func (d *Daemon) handleApply(_ map[string]interface{}) []Event {
 
 	opts := apply.Options{
 		OnProgress: func(p apply.Progress) {
-			events = append(events, Event{
+			event := Event{
 				Type: EventProgress,
 				Data: map[string]interface{}{
 					"step":    p.Step,
 					"message": p.Message,
 				},
-			})
+			}
+			// Stream immediately if emit is provided, otherwise events are lost
+			// (we don't batch progress events anymore)
+			if emit != nil {
+				emit(event)
+			}
 		},
 	}
 
 	result, err := applier.Apply(cfg, userStore, opts)
 	if err != nil {
-		return append(events, Event{
+		return []Event{{
 			Type: EventError,
 			Data: map[string]string{"error": err.Error()},
-		})
+		}}
 	}
 
-	events = append(events, Event{
+	return []Event{{
 		Type: EventResult,
 		Data: map[string]interface{}{
 			"success":   true,
 			"storePath": result.StorePath,
 		},
-	})
-
-	return events
+	}}
 }
 
 func (d *Daemon) handleGetSystems() []Event {
