@@ -31,13 +31,13 @@ func TestRetroArchConfigGenerate(t *testing.T) {
 	}
 
 	expectedKeys := map[string]bool{
-		"system_directory":       false,
-		"savefile_directory":     false,
-		"savestate_directory":    false,
-		"screenshot_directory":   false,
-		"rgui_browser_directory": false,
-		"sort_savefiles_enable":  false,
-		"sort_savestates_enable": false,
+		"system_directory":        false,
+		"savefile_directory":      false,
+		"savestate_directory":     false,
+		"screenshot_directory":    false,
+		"rgui_browser_directory":  false,
+		"sort_savefiles_enable":   false,
+		"sort_savestates_enable":  false,
 		"sort_screenshots_enable": false,
 	}
 

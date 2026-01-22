@@ -96,18 +96,20 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Cache kyaraben data directory
+      - name: Cache kyaraben directories
         uses: actions/cache@v4
         with:
-          path: kyaraben-data-cache
-          key: kyaraben-data-${{ runner.os }}-${{ hashFiles('internal/nix/flake.go') }}
+          path: |
+            kyaraben-data-cache
+            kyaraben-state-cache
+          key: kyaraben-cache-${{ runner.os }}-${{ hashFiles('internal/nix/flake.go') }}
           restore-keys: |
-            kyaraben-data-${{ runner.os }}-
+            kyaraben-cache-${{ runner.os }}-
 
-      - name: Prepare cache directory
+      - name: Prepare cache directories
         run: |
-          mkdir -p kyaraben-data-cache
-          chmod 777 kyaraben-data-cache
+          mkdir -p kyaraben-data-cache kyaraben-state-cache
+          chmod 777 kyaraben-data-cache kyaraben-state-cache
 
       - name: Build E2E test container
         uses: docker/build-push-action@v6
@@ -123,4 +125,5 @@ jobs:
         run: |
           docker run --rm --ipc=host \
             -v "$(pwd)/kyaraben-data-cache:/home/testuser/.local/share/kyaraben" \
+            -v "$(pwd)/kyaraben-state-cache:/home/testuser/.local/state/kyaraben" \
             kyaraben-electron-e2e:latest
