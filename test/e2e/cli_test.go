@@ -232,6 +232,33 @@ func projectRoot(t *testing.T) string {
 	}
 }
 
+func TestCLIUninstall(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.toml")
+	userStore := filepath.Join(tmpDir, "Emulation")
+
+	// Initialize
+	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "tic80")
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("init failed: %v\nOutput: %s", err, output)
+	}
+
+	// Run uninstall with --force (skip prompt)
+	cmd = kyarabenCmd(t, "-c", configPath, "uninstall", "-f")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("uninstall failed: %v\nOutput: %s", err, output)
+	}
+
+	outputStr := string(output)
+	if !strings.Contains(outputStr, "This will remove") {
+		t.Errorf("Output doesn't show what will be removed: %s", outputStr)
+	}
+	if !strings.Contains(outputStr, "This will NOT remove") {
+		t.Errorf("Output doesn't show what will be preserved: %s", outputStr)
+	}
+}
+
 func captureOutput(cmd *exec.Cmd) (string, string, error) {
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
