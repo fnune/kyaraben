@@ -89,15 +89,15 @@ jobs:
 
   electron-e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Cache kyaraben directories
-        uses: actions/cache@v4
+      - name: Restore kyaraben cache
+        uses: actions/cache/restore@v4
         with:
           path: |
             kyaraben-data-cache
@@ -127,3 +127,12 @@ jobs:
             -v "$(pwd)/kyaraben-data-cache:/home/testuser/.local/share/kyaraben" \
             -v "$(pwd)/kyaraben-state-cache:/home/testuser/.local/state/kyaraben" \
             kyaraben-electron-e2e:latest
+
+      - name: Save kyaraben cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: |
+            kyaraben-data-cache
+            kyaraben-state-cache
+          key: kyaraben-cache-${{ runner.os }}-${{ hashFiles('internal/nix/flake.go') }}
