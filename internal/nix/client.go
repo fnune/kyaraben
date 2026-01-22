@@ -152,6 +152,7 @@ func (c *Client) Build(ctx context.Context, flakeRef string) (string, error) {
 		"--no-link",
 		"--print-out-paths",
 		"-L", // Print build logs to see what's happening during build phase
+		"--option", "sandbox", "false", // Disable Nix sandbox - conflicts with proot in nix-portable
 	}
 
 	cmd, err := c.runNix(ctx, args)
