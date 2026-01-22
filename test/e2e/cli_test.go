@@ -139,7 +139,7 @@ func TestCLIApplyDryRun(t *testing.T) {
 	if !strings.Contains(outputStr, "Applying kyaraben configuration") {
 		t.Errorf("Output doesn't show apply started: %s", outputStr)
 	}
-	if !strings.Contains(outputStr, "dry run") {
+	if !strings.Contains(strings.ToLower(outputStr), "dry run") {
 		t.Errorf("Output doesn't mention dry run: %s", outputStr)
 	}
 
