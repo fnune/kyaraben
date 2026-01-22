@@ -1,4 +1,3 @@
-import * as path from 'node:path'
 import { type ElectronApplication, type Page, _electron as electron } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 
@@ -7,23 +6,17 @@ let page: Page
 
 test.beforeAll(async () => {
   const appImagePath = process.env.KYARABEN_APPIMAGE
-
-  if (appImagePath) {
-    // Test the actual AppImage - this is what users will run
-    console.log(`Testing AppImage: ${appImagePath}`)
-    electronApp = await electron.launch({
-      executablePath: appImagePath,
-      args: ['--no-sandbox'],
-    })
-  } else {
-    // Dev mode - test the built main.js directly
-    const mainPath = path.join(__dirname, '..', 'dist-electron', 'main.js')
-    console.log(`Testing dev build: ${mainPath}`)
-    electronApp = await electron.launch({
-      args: [mainPath, '--no-sandbox'],
-      cwd: path.join(__dirname, '..'),
-    })
+  if (!appImagePath) {
+    throw new Error(
+      'KYARABEN_APPIMAGE environment variable must be set to the path of the Electron executable',
+    )
   }
+
+  console.log(`Testing: ${appImagePath}`)
+  electronApp = await electron.launch({
+    executablePath: appImagePath,
+    args: ['--no-sandbox'],
+  })
 
   page = await electronApp.firstWindow()
   await page.waitForSelector('h1')
