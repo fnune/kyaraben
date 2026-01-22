@@ -1,0 +1,38 @@
+# Kyaraben development container with Go and Nix
+# Build: podman build -t kyaraben-dev -f Containerfile.dev .
+# Run:   podman run -it --rm -v "$(pwd):/workspace:Z" kyaraben-dev
+
+FROM docker.io/library/debian:bookworm
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    xz-utils \
+    git \
+    sudo \
+    make \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create dev user
+RUN useradd -m -s /bin/bash dev && \
+    echo "dev ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+USER dev
+WORKDIR /home/dev
+
+# Install Nix (single-user mode)
+RUN curl -L https://nixos.org/nix/install | sh -s -- --no-daemon
+
+# Enable flakes
+RUN mkdir -p ~/.config/nix && \
+    echo "experimental-features = nix-command flakes" > ~/.config/nix/nix.conf
+
+# Install Go via Nix
+RUN . ~/.nix-profile/etc/profile.d/nix.sh && \
+    nix profile install nixpkgs#go nixpkgs#golangci-lint nixpkgs#just
+
+# Set up shell
+RUN echo '. ~/.nix-profile/etc/profile.d/nix.sh' >> ~/.bashrc
+
+WORKDIR /workspace
+CMD ["/bin/bash"]
