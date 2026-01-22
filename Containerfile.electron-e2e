@@ -34,6 +34,11 @@ RUN cd ui && npm ci
 # Build frontend and Electron
 RUN cd ui && npm run build && npm run build:electron
 
-# Show hidden test system, start Xvfb without auth (-ac), then run tests
+# Show hidden test system for e2e tests
 ENV KYARABEN_SHOW_HIDDEN=1
-CMD ["sh", "-c", "Xvfb :99 -ac -screen 0 1280x1024x24 & sleep 2 && DISPLAY=:99 npm run test:e2e --prefix /home/testuser/kyaraben/ui"]
+
+# Log file location for tailing during tests
+ENV KYARABEN_LOG=/home/testuser/.local/state/kyaraben/kyaraben.log
+
+# Start Xvfb (suppress warnings), tail log file for progress visibility, run tests
+CMD ["sh", "-c", "Xvfb :99 -ac -screen 0 1280x1024x24 >/dev/null 2>&1 & sleep 2 && touch $KYARABEN_LOG && tail -f $KYARABEN_LOG & DISPLAY=:99 npm run test:e2e --prefix /home/testuser/kyaraben/ui"]
