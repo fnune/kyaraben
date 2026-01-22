@@ -97,21 +97,10 @@ test.describe('Kyaraben App', () => {
 })
 
 test.describe('Kyaraben Apply (requires Nix)', () => {
-  test('can apply configuration with TIC-80', async () => {
-    const tic80Checkbox = page.locator('input[value="tic80"]')
-    if (!(await tic80Checkbox.isChecked())) {
-      await tic80Checkbox.click()
-    }
-
-    // Deselect systems that require BIOS
-    const psxCheckbox = page.locator('input[value="psx"]')
-    if (await psxCheckbox.isChecked()) {
-      await psxCheckbox.click()
-    }
-
-    const snesCheckbox = page.locator('input[value="snes"]')
-    if (await snesCheckbox.isChecked()) {
-      await snesCheckbox.click()
+  test('can apply configuration with e2e-test system', async () => {
+    const e2eCheckbox = page.locator('input[value="e2e-test"]')
+    if (!(await e2eCheckbox.isChecked())) {
+      await e2eCheckbox.click()
     }
 
     const applyBtn = page.locator('#btn-apply')
@@ -121,7 +110,7 @@ test.describe('Kyaraben Apply (requires Nix)', () => {
     await expect(outputSection).toBeVisible()
 
     const log = page.locator('#log')
-    await expect(log).toContainText(/Done!|Error/, { timeout: 840000 })
+    await expect(log).toContainText(/Done!|Error/, { timeout: 120000 })
 
     const logText = await log.textContent()
     expect(logText).toContain('Done!')
