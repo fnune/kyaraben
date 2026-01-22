@@ -10,8 +10,9 @@ import (
 )
 
 type ApplyCmd struct {
-	DryRun   bool `help:"Show what would be done without making changes."`
-	ShowDiff bool `help:"Show config changes before applying." default:"true" negatable:""`
+	DryRun     bool `help:"Show what would be done without making changes."`
+	ShowDiff   bool `help:"Show config changes before applying." default:"true" negatable:""`
+	ConfigOnly bool `help:"Only apply configs, skip Nix build (for home-manager integration)."`
 }
 
 func (cmd *ApplyCmd) Run(ctx *Context) error {
@@ -30,7 +31,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	if err != nil {
 		return fmt.Errorf("creating nix client: %w", err)
 	}
-	flakeGenerator := nix.NewFlakeGenerator()
+	flakeGenerator := nix.NewFlakeGenerator(registry)
 	configWriter := emulators.NewConfigWriter()
 	manifestPath, err := model.DefaultManifestPath()
 	if err != nil {
@@ -49,8 +50,9 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	fmt.Println()
 
 	opts := apply.Options{
-		DryRun:   cmd.DryRun,
-		ShowDiff: cmd.ShowDiff,
+		DryRun:     cmd.DryRun,
+		ShowDiff:   cmd.ShowDiff,
+		ConfigOnly: cmd.ConfigOnly,
 		OnProgress: func(p apply.Progress) {
 			switch p.Step {
 			case "directories":
@@ -122,8 +124,10 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		return err
 	}
 
-	fmt.Printf("  Built: %s\n", result.StorePath)
-	fmt.Println()
+	if result.StorePath != "" {
+		fmt.Printf("  Built: %s\n", result.StorePath)
+		fmt.Println()
+	}
 
 	for _, patch := range result.Patches {
 		fmt.Printf("  Applied: %s\n", patch.Config.Path)
@@ -133,7 +137,9 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	fmt.Println("Done!")
 	fmt.Println()
 	fmt.Printf("Your emulation directory is ready at: %s\n", userStore.Root)
-	fmt.Println("Place your ROMs in the appropriate subdirectories.")
+	if !cmd.ConfigOnly {
+		fmt.Println("Place your ROMs in the appropriate subdirectories.")
+	}
 
 	return nil
 }

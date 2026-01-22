@@ -2,6 +2,8 @@ package emulators
 
 import (
 	"bufio"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -17,24 +19,39 @@ func NewConfigWriter() *ConfigWriter {
 	return &ConfigWriter{}
 }
 
+// ApplyResult contains the result of applying a config patch.
+type ApplyResult struct {
+	BaselineHash string
+}
+
+// Apply writes the config and returns the hash of the written content.
 // Existing values are preserved unless kyaraben sets them.
-func (w *ConfigWriter) Apply(patch model.ConfigPatch) error {
+func (w *ConfigWriter) Apply(patch model.ConfigPatch) (ApplyResult, error) {
 	switch patch.Config.Format {
 	case model.ConfigFormatCFG:
 		return w.applyCFG(patch)
 	case model.ConfigFormatINI:
 		return w.applyINI(patch)
 	default:
-		return fmt.Errorf("unsupported config format: %s", patch.Config.Format)
+		return ApplyResult{}, fmt.Errorf("unsupported config format: %s", patch.Config.Format)
 	}
 }
 
-func (w *ConfigWriter) applyCFG(patch model.ConfigPatch) error {
+func hashFile(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	hash := sha256.Sum256(data)
+	return hex.EncodeToString(hash[:]), nil
+}
+
+func (w *ConfigWriter) applyCFG(patch model.ConfigPatch) (ApplyResult, error) {
 	path := patch.Config.Path
 
 	// Ensure directory exists
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-		return fmt.Errorf("creating config directory: %w", err)
+		return ApplyResult{}, fmt.Errorf("creating config directory: %w", err)
 	}
 
 	// Read existing config if it exists
@@ -63,7 +80,7 @@ func (w *ConfigWriter) applyCFG(patch model.ConfigPatch) error {
 	// Write config
 	f, err := os.Create(path)
 	if err != nil {
-		return fmt.Errorf("creating config file: %w", err)
+		return ApplyResult{}, fmt.Errorf("creating config file: %w", err)
 	}
 	defer func() { _ = f.Close() }()
 
@@ -81,14 +98,20 @@ func (w *ConfigWriter) applyCFG(patch model.ConfigPatch) error {
 		_, _ = fmt.Fprintf(f, "%s = %s\n", key, existing[key])
 	}
 
-	return nil
+	// Compute hash of written file
+	hash, err := hashFile(path)
+	if err != nil {
+		return ApplyResult{}, fmt.Errorf("hashing config file: %w", err)
+	}
+
+	return ApplyResult{BaselineHash: hash}, nil
 }
 
-func (w *ConfigWriter) applyINI(patch model.ConfigPatch) error {
+func (w *ConfigWriter) applyINI(patch model.ConfigPatch) (ApplyResult, error) {
 	path := patch.Config.Path
 
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-		return fmt.Errorf("creating config directory: %w", err)
+		return ApplyResult{}, fmt.Errorf("creating config directory: %w", err)
 	}
 
 	sections := make(map[string]map[string]string)
@@ -129,7 +152,7 @@ func (w *ConfigWriter) applyINI(patch model.ConfigPatch) error {
 
 	f, err := os.Create(path)
 	if err != nil {
-		return fmt.Errorf("creating config file: %w", err)
+		return ApplyResult{}, fmt.Errorf("creating config file: %w", err)
 	}
 	defer func() { _ = f.Close() }()
 
@@ -161,5 +184,11 @@ func (w *ConfigWriter) applyINI(patch model.ConfigPatch) error {
 		_, _ = fmt.Fprintln(f)
 	}
 
-	return nil
+	// Compute hash of written file
+	hash, err := hashFile(path)
+	if err != nil {
+		return ApplyResult{}, fmt.Errorf("hashing config file: %w", err)
+	}
+
+	return ApplyResult{BaselineHash: hash}, nil
 }
