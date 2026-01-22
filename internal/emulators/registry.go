@@ -119,13 +119,13 @@ func (r *Registry) registerEmulators() {
 		ConfigPaths: []string{},
 	}
 	r.emulators[model.EmulatorE2ETest] = model.Emulator{
-		ID:         model.EmulatorE2ETest,
-		Name:       "E2E Test",
-		Systems:    []model.SystemID{model.SystemE2ETest},
-		Source:     model.PackageSourceNixpkgs,
-		NixAttr:    "hello",
-		Provisions: []model.Provision{},
-		StateKinds: []model.StateKind{},
+		ID:          model.EmulatorE2ETest,
+		Name:        "E2E Test",
+		Systems:     []model.SystemID{model.SystemE2ETest},
+		Source:      model.PackageSourceNixpkgs,
+		NixAttr:     "hello",
+		Provisions:  []model.Provision{},
+		StateKinds:  []model.StateKind{},
 		ConfigPaths: []string{},
 	}
 }
