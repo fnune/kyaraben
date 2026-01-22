@@ -101,7 +101,7 @@ jobs:
       - name: Extract AppImage from container
         run: |
           mkdir -p output
-          docker run --rm -v "$(pwd)/output:/output" kyaraben-electron-e2e:latest \
+          docker run --rm --user root -v "$(pwd)/output:/output" kyaraben-electron-e2e:latest \
             sh -c 'cp /home/testuser/kyaraben/ui/release/*.AppImage /output/'
           ls -la output/
 
