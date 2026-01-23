@@ -56,7 +56,7 @@ var configTarget = model.ConfigTarget{
 
 type Config struct{}
 
-func (c *Config) Generate(store model.StoreReader, systems []model.SystemID) ([]model.ConfigPatch, error) {
+func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{

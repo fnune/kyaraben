@@ -41,7 +41,7 @@ func expandPath(path string) (string, error) {
 }
 
 func (s *UserStore) Directories() []string {
-	return []string{"roms", "bios", "saves", "states", "screenshots"}
+	return []string{"roms", "bios", "saves", "states", "screenshots", "opaque"}
 }
 
 func (s *UserStore) RomsDir() string        { return filepath.Join(s.resolved, "roms") }
@@ -49,6 +49,7 @@ func (s *UserStore) BiosDir() string        { return filepath.Join(s.resolved, "
 func (s *UserStore) SavesDir() string       { return filepath.Join(s.resolved, "saves") }
 func (s *UserStore) StatesDir() string      { return filepath.Join(s.resolved, "states") }
 func (s *UserStore) ScreenshotsDir() string { return filepath.Join(s.resolved, "screenshots") }
+func (s *UserStore) OpaqueDir() string      { return filepath.Join(s.resolved, "opaque") }
 
 func (s *UserStore) SystemRomsDir(sys model.SystemID) string {
 	return filepath.Join(s.RomsDir(), string(sys))
@@ -64,6 +65,9 @@ func (s *UserStore) EmulatorStatesDir(emu model.EmulatorID) string {
 }
 func (s *UserStore) SystemScreenshotsDir(sys model.SystemID) string {
 	return filepath.Join(s.ScreenshotsDir(), string(sys))
+}
+func (s *UserStore) EmulatorOpaqueDir(emu model.EmulatorID) string {
+	return filepath.Join(s.OpaqueDir(), string(emu))
 }
 
 func (s *UserStore) Initialize() error {

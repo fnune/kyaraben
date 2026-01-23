@@ -23,6 +23,6 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 
 type Config struct{}
 
-func (c *Config) Generate(store model.StoreReader, systems []model.SystemID) ([]model.ConfigPatch, error) {
+func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
 	return nil, nil
 }

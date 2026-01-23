@@ -237,9 +237,14 @@ func TestPackageInfoFromRef(t *testing.T) {
 			wantExpr: "pkgs.retroarch.override {}",
 		},
 		{
-			name:    "github package",
-			ref:     model.GitHubRef("owner", "repo", "asset"),
-			wantErr: true,
+			name: "github appimage",
+			ref: model.GitHubAppImageRef(
+				"eden", "owner", "repo", "v1.0",
+				map[string]string{"x86_64": "asset-x64.AppImage", "aarch64": "asset-arm64.AppImage"},
+				map[string]string{"x86_64": "abc123", "aarch64": "def456"},
+			),
+			wantName: "eden",
+			// wantExpr is complex for AppImages, just check it doesn't error
 		},
 	}
 
@@ -258,7 +263,8 @@ func TestPackageInfoFromRef(t *testing.T) {
 			if info.Name != tt.wantName {
 				t.Errorf("Name = %s, want %s", info.Name, tt.wantName)
 			}
-			if info.Expr != tt.wantExpr {
+			// Only check Expr if wantExpr is set (AppImages have complex expressions)
+			if tt.wantExpr != "" && info.Expr != tt.wantExpr {
 				t.Errorf("Expr = %s, want %s", info.Expr, tt.wantExpr)
 			}
 		})
