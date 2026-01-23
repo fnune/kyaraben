@@ -45,13 +45,13 @@ ui-lint:
 ui-lint-fix:
     cd ui && npm run lint:fix
 
-# UI: run Playwright tests
-ui-test:
-    cd ui && npm test
+# UI: build Tauri app (release)
+ui-tauri-build:
+    cd ui && npm run tauri build
 
-# UI: run Playwright tests with UI
-ui-test-ui:
-    cd ui && npm run test:ui
+# UI: run E2E tests (requires built Tauri app + tauri-driver)
+ui-test-e2e:
+    cd ui && npm run test:e2e
 
 # Build dev container
 container-build:
