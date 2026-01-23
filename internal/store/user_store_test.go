@@ -59,12 +59,11 @@ func TestUserStoreInitializeSystem(t *testing.T) {
 		t.Fatalf("InitializeSystem failed: %v", err)
 	}
 
-	// Verify system directories exist
+	// Verify system directories exist (states are per-emulator, not per-system)
 	expectedDirs := []string{
 		filepath.Join(tmpDir, "roms", "snes"),
 		filepath.Join(tmpDir, "bios", "snes"),
 		filepath.Join(tmpDir, "saves", "snes"),
-		filepath.Join(tmpDir, "states", "snes"),
 		filepath.Join(tmpDir, "screenshots", "snes"),
 	}
 
@@ -117,7 +116,6 @@ func TestUserStoreSystemPaths(t *testing.T) {
 		{"SystemRomsDir", model.SystemSNES, store.SystemRomsDir, "/home/user/Emulation/roms/snes"},
 		{"SystemBiosDir", model.SystemPSX, store.SystemBiosDir, "/home/user/Emulation/bios/psx"},
 		{"SystemSavesDir", model.SystemTIC80, store.SystemSavesDir, "/home/user/Emulation/saves/tic80"},
-		{"SystemStatesDir", model.SystemSNES, store.SystemStatesDir, "/home/user/Emulation/states/snes"},
 		{"SystemScreenshotsDir", model.SystemPSX, store.SystemScreenshotsDir, "/home/user/Emulation/screenshots/psx"},
 	}
 
@@ -128,6 +126,16 @@ func TestUserStoreSystemPaths(t *testing.T) {
 				t.Errorf("got %s, want %s", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestUserStoreEmulatorPaths(t *testing.T) {
+	store := mustNewUserStore(t, "/home/user/Emulation")
+
+	got := store.EmulatorStatesDir(model.EmulatorRetroArchBsnes)
+	want := "/home/user/Emulation/states/retroarch:bsnes"
+	if got != want {
+		t.Errorf("EmulatorStatesDir got %s, want %s", got, want)
 	}
 }
 

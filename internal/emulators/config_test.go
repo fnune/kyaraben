@@ -32,8 +32,8 @@ func (f *fakeStoreReader) SystemSavesDir(sys model.SystemID) string {
 	return filepath.Join(f.root, "saves", string(sys))
 }
 
-func (f *fakeStoreReader) SystemStatesDir(sys model.SystemID) string {
-	return filepath.Join(f.root, "states", string(sys))
+func (f *fakeStoreReader) EmulatorStatesDir(emu model.EmulatorID) string {
+	return filepath.Join(f.root, "states", string(emu))
 }
 
 func (f *fakeStoreReader) SystemScreenshotsDir(sys model.SystemID) string {
