@@ -109,10 +109,9 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		var filesCreated, filesModified, filesUnchanged int
 
 		for _, patch := range dryResult.Patches {
-			path, _ := patch.Target.Resolve()
-			baseline, _ := manifest.GetManagedConfig(path)
+			baseline, found := manifest.GetManagedConfig(patch.Target)
 			var baselinePtr *model.ManagedConfig
-			if baseline.Path != "" {
+			if found {
 				baselinePtr = &baseline
 			}
 

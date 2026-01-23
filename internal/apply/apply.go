@@ -71,8 +71,7 @@ func (a *Applier) Preflight(cfg *model.KyarabenConfig, userStore *store.UserStor
 		}
 
 		if exists {
-			// Check if this file is already managed by kyaraben
-			if _, managed := manifest.GetManagedConfig(path); !managed {
+			if _, managed := manifest.GetManagedConfig(patch.Target); !managed {
 				filesToBackup = append(filesToBackup, path)
 			}
 		}
@@ -170,12 +169,12 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 	for i, patch := range allPatches {
 		createBackup := false
 		if opts.CreateBackups {
-			path, exists, err := a.ConfigWriter.NeedsBackup(patch)
+			_, exists, err := a.ConfigWriter.NeedsBackup(patch)
 			if err != nil {
 				return nil, fmt.Errorf("checking config file: %w", err)
 			}
 			if exists {
-				if _, managed := manifest.GetManagedConfig(path); !managed {
+				if _, managed := manifest.GetManagedConfig(patch.Target); !managed {
 					createBackup = true
 				}
 			}
@@ -217,7 +216,7 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 		}
 
 		manifest.AddManagedConfig(model.ManagedConfig{
-			Path:         configResults[i].Path,
+			Target:       patch.Target,
 			BaselineHash: configResults[i].BaselineHash,
 			LastModified: time.Now(),
 			ManagedKeys:  managedKeys,
