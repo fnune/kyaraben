@@ -1,13 +1,12 @@
 package daemon
 
 import (
-	"context"
 	"fmt"
 	"time"
 
+	"github.com/fnune/kyaraben/internal/apply"
 	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/model"
-	"github.com/fnune/kyaraben/internal/nix"
 	"github.com/fnune/kyaraben/internal/store"
 )
 
@@ -141,64 +140,30 @@ func (d *Daemon) handleDoctor() []Event {
 	}}
 }
 
-func (d *Daemon) handleApply(data map[string]interface{}) []Event {
+func (d *Daemon) handleApply(_ map[string]interface{}) []Event {
 	events := []Event{}
-
-	// Progress: starting
-	events = append(events, Event{
-		Type: EventProgress,
-		Data: map[string]interface{}{
-			"step":    "start",
-			"message": "Starting apply...",
-		},
-	})
 
 	cfg, err := d.loadConfig()
 	if err != nil {
-		return append(events, Event{
+		return []Event{{
 			Type: EventError,
 			Data: map[string]string{"error": err.Error()},
-		})
+		}}
 	}
 
-	userStorePath, _ := cfg.ExpandUserStore()
-	userStore := store.NewUserStore(userStorePath)
-
-	// Initialize directories
-	events = append(events, Event{
-		Type: EventProgress,
-		Data: map[string]interface{}{
-			"step":    "directories",
-			"message": "Creating directory structure...",
-		},
-	})
-
-	if err := userStore.Initialize(); err != nil {
-		return append(events, Event{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		})
-	}
-
-	for sys := range cfg.Systems {
-		if err := userStore.InitializeSystem(sys); err != nil {
-			return append(events, Event{
-				Type: EventError,
-				Data: map[string]string{"error": err.Error()},
+	opts := apply.Options{
+		OnProgress: func(p apply.Progress) {
+			events = append(events, Event{
+				Type: EventProgress,
+				Data: map[string]interface{}{
+					"step":    p.Step,
+					"message": p.Message,
+				},
 			})
-		}
+		},
 	}
 
-	// Generate flake
-	events = append(events, Event{
-		Type: EventProgress,
-		Data: map[string]interface{}{
-			"step":    "flake",
-			"message": "Generating Nix flake...",
-		},
-	})
-
-	nixClient, err := nix.NewClient()
+	result, err := apply.Apply(cfg, opts)
 	if err != nil {
 		return append(events, Event{
 			Type: EventError,
@@ -206,108 +171,11 @@ func (d *Daemon) handleApply(data map[string]interface{}) []Event {
 		})
 	}
 
-	emulatorsToInstall := make([]model.EmulatorID, 0, len(cfg.Systems))
-	for _, sysConf := range cfg.Systems {
-		emulatorsToInstall = append(emulatorsToInstall, sysConf.Emulator)
-	}
-
-	flakeGen := nix.NewFlakeGenerator()
-	if err := nixClient.EnsureFlakeDir(); err != nil {
-		return append(events, Event{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		})
-	}
-
-	if err := flakeGen.Generate(nixClient.FlakePath, emulatorsToInstall); err != nil {
-		return append(events, Event{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		})
-	}
-
-	// Build emulators
-	events = append(events, Event{
-		Type: EventProgress,
-		Data: map[string]interface{}{
-			"step":    "build",
-			"message": "Building emulators...",
-		},
-	})
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
-	defer cancel()
-
-	flakeRef := flakeGen.DefaultFlakeRef(nixClient.FlakePath)
-	storePath, err := nixClient.Build(ctx, flakeRef)
-	if err != nil {
-		return append(events, Event{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		})
-	}
-
-	// Generate configs
-	events = append(events, Event{
-		Type: EventProgress,
-		Data: map[string]interface{}{
-			"step":    "configs",
-			"message": "Generating emulator configurations...",
-		},
-	})
-
-	configWriter := emulators.NewConfigWriter()
-	for sys, sysConf := range cfg.Systems {
-		gen := emulators.GetConfigGenerator(sysConf.Emulator)
-		if gen == nil {
-			continue
-		}
-
-		patches, err := gen.Generate(userStore, []model.SystemID{sys})
-		if err != nil {
-			return append(events, Event{
-				Type: EventError,
-				Data: map[string]string{"error": err.Error()},
-			})
-		}
-
-		for _, patch := range patches {
-			if err := configWriter.Apply(patch); err != nil {
-				return append(events, Event{
-					Type: EventError,
-					Data: map[string]string{"error": err.Error()},
-				})
-			}
-		}
-	}
-
-	// Update manifest
-	manifestPath, _ := model.DefaultManifestPath()
-	manifest, _ := model.LoadManifest(manifestPath)
-	manifest.LastApplied = time.Now()
-
-	for _, emuID := range emulatorsToInstall {
-		manifest.AddEmulator(model.InstalledEmulator{
-			ID:        emuID,
-			Version:   "latest",
-			StorePath: storePath,
-			Installed: time.Now(),
-		})
-	}
-
-	if err := manifest.Save(manifestPath); err != nil {
-		return append(events, Event{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		})
-	}
-
-	// Done
 	events = append(events, Event{
 		Type: EventResult,
 		Data: map[string]interface{}{
 			"success":   true,
-			"storePath": storePath,
+			"storePath": result.StorePath,
 		},
 	})
 
