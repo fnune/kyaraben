@@ -37,7 +37,7 @@ func Get(cfg *model.KyarabenConfig, configPath string, reg *registry.Registry, u
 
 	result := &Result{
 		ConfigPath:           configPath,
-		UserStorePath:        userStore.Root,
+		UserStorePath:        userStore.Root(),
 		UserStoreInitialized: userStore.IsInitialized(),
 		LastApplied:          manifest.LastApplied,
 	}

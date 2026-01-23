@@ -1,11 +1,6 @@
 package retroarchbsnes
 
-import (
-	"os"
-	"path/filepath"
-
-	"github.com/fnune/kyaraben/internal/model"
-)
+import "github.com/fnune/kyaraben/internal/model"
 
 type Definition struct{}
 
@@ -24,9 +19,6 @@ func (Definition) Emulator() model.Emulator {
 			model.StateSavestates,
 			model.StateScreenshots,
 		},
-		ConfigPaths: []string{
-			"~/.config/retroarch/retroarch.cfg",
-		},
 	}
 }
 
@@ -34,23 +26,15 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 	return &Config{}
 }
 
-type Config struct{}
-
-func (c *Config) ConfigPaths() []string {
-	configDir, _ := os.UserConfigDir()
-	return []string{
-		filepath.Join(configDir, "retroarch", "retroarch.cfg"),
-	}
+var configTarget = model.ConfigTarget{
+	RelPath: "retroarch/retroarch.cfg",
+	Format:  model.ConfigFormatCFG,
+	BaseDir: model.ConfigBaseDirUserConfig,
 }
 
+type Config struct{}
+
 func (c *Config) Generate(store model.StoreReader, systems []model.SystemID) ([]model.ConfigPatch, error) {
-	configDir, err := os.UserConfigDir()
-	if err != nil {
-		return nil, err
-	}
-
-	configPath := filepath.Join(configDir, "retroarch", "retroarch.cfg")
-
 	var primarySystem model.SystemID
 	for _, sys := range systems {
 		if sys == model.SystemSNES {
@@ -59,27 +43,19 @@ func (c *Config) Generate(store model.StoreReader, systems []model.SystemID) ([]
 		}
 	}
 
-	entries := []model.ConfigEntry{
-		{Key: "system_directory", Value: quote(store.BiosDir())},
-		{Key: "savefile_directory", Value: quote(store.SystemSavesDir(primarySystem))},
-		{Key: "savestate_directory", Value: quote(store.SystemStatesDir(primarySystem))},
-		{Key: "screenshot_directory", Value: quote(store.SystemScreenshotsDir(primarySystem))},
-		{Key: "rgui_browser_directory", Value: quote(store.SystemRomsDir(primarySystem))},
-		{Key: "sort_savefiles_enable", Value: "false"},
-		{Key: "sort_savestates_enable", Value: "false"},
-		{Key: "sort_screenshots_enable", Value: "false"},
-	}
-
-	patch := model.ConfigPatch{
-		Config: model.EmulatorConfig{
-			Path:       configPath,
-			Format:     model.ConfigFormatCFG,
-			EmulatorID: model.EmulatorRetroArchBsnes,
+	return []model.ConfigPatch{{
+		Target: configTarget,
+		Entries: []model.ConfigEntry{
+			{Path: []string{"system_directory"}, Value: quote(store.BiosDir())},
+			{Path: []string{"savefile_directory"}, Value: quote(store.SystemSavesDir(primarySystem))},
+			{Path: []string{"savestate_directory"}, Value: quote(store.SystemStatesDir(primarySystem))},
+			{Path: []string{"screenshot_directory"}, Value: quote(store.SystemScreenshotsDir(primarySystem))},
+			{Path: []string{"rgui_browser_directory"}, Value: quote(store.SystemRomsDir(primarySystem))},
+			{Path: []string{"sort_savefiles_enable"}, Value: "false"},
+			{Path: []string{"sort_savestates_enable"}, Value: "false"},
+			{Path: []string{"sort_screenshots_enable"}, Value: "false"},
 		},
-		Entries: entries,
-	}
-
-	return []model.ConfigPatch{patch}, nil
+	}}, nil
 }
 
 func quote(s string) string {
