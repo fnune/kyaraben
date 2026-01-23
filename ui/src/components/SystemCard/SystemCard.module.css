@@ -1,0 +1,82 @@
+.card {
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--card-bg, #fff);
+  transition: border-color 0.15s;
+}
+
+.card:has(.checkbox:checked) {
+  border-color: var(--primary-color, #3b82f6);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.checkbox {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.emulator {
+  font-size: 13px;
+  color: var(--text-muted, #6b7280);
+}
+
+.provisions {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color, #e5e7eb);
+}
+
+.warning {
+  display: inline-block;
+  font-size: 12px;
+  color: var(--warning-color, #d97706);
+  margin-bottom: 4px;
+}
+
+.badgeList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.badgeOk {
+  background: var(--success-bg, #dcfce7);
+  color: var(--success-text, #166534);
+}
+
+.badgeMissing {
+  background: var(--error-bg, #fee2e2);
+  color: var(--error-text, #991b1b);
+}
+
+.badgeOptional {
+  background: var(--warning-bg, #fef3c7);
+  color: var(--warning-text, #92400e);
+}

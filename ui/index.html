@@ -4,97 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kyaraben</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-  <style>
-    :root {
-      --pico-font-size: 16px;
-    }
-    main {
-      padding: 1rem;
-    }
-    .system-list {
-      list-style: none;
-      padding: 0;
-    }
-    .system-list li {
-      margin-bottom: 0.5rem;
-    }
-    .status-badge {
-      font-size: 0.8em;
-      padding: 0.2em 0.5em;
-      border-radius: 4px;
-    }
-    .status-ok { background: #2ecc71; color: white; }
-    .status-missing { background: #e74c3c; color: white; }
-    .status-warn { background: #f39c12; color: white; }
-    #log {
-      font-family: monospace;
-      font-size: 0.9em;
-      background: var(--pico-card-background-color);
-      padding: 1rem;
-      border-radius: var(--pico-border-radius);
-      max-height: 200px;
-      overflow-y: auto;
-    }
-    .hidden { display: none; }
-  </style>
 </head>
 <body>
-  <main class="container">
-    <h1>Kyaraben</h1>
-
-    <section id="install-section" class="hidden">
-      <article>
-        <p id="install-prompt">
-          <strong>Install Kyaraben</strong> to your applications menu for easy access.
-        </p>
-        <div role="group">
-          <button id="btn-install">Install</button>
-          <button id="btn-dismiss-install" class="secondary outline">Not now</button>
-        </div>
-        <p id="install-status" class="hidden"></p>
-        <button id="btn-uninstall" class="secondary outline hidden">Uninstall</button>
-      </article>
-    </section>
-
-    <section id="welcome-section">
-      <p>Declarative emulation manager. Select systems to emulate, then apply.</p>
-
-      <details>
-        <summary>Settings</summary>
-        <label>
-          Emulation folder
-          <input type="text" id="user-store" value="~/Emulation">
-        </label>
-      </details>
-    </section>
-
-    <section id="systems-section">
-      <h2>Systems</h2>
-      <ul class="system-list" id="system-list">
-        <li>Loading...</li>
-      </ul>
-    </section>
-
-    <section id="actions-section">
-      <div role="group">
-        <button id="btn-apply">Apply</button>
-        <button id="btn-doctor" class="secondary">Check provisions</button>
-        <button id="btn-status" class="secondary">Status</button>
-      </div>
-    </section>
-
-    <section id="output-section" class="hidden">
-      <h2>Output</h2>
-      <pre id="log"></pre>
-    </section>
-
-    <section id="provisions-section" class="hidden">
-      <h2>Provisions</h2>
-      <div id="provisions-list"></div>
-    </section>
-  </main>
-
-  <script type="module" src="/src/main.js"></script>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>
