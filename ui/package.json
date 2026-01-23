@@ -9,10 +9,13 @@
     "tauri": "tauri",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "format": "biome format --write ."
+    "format": "biome format --write .",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui"
   },
   "devDependencies": {
     "@biomejs/biome": "^1",
+    "@playwright/test": "^1",
     "@tauri-apps/cli": "^2",
     "vite": "^5"
   },
