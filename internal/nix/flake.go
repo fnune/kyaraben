@@ -92,7 +92,6 @@ func (fg *FlakeGenerator) Generate(dir string, emulators []model.EmulatorID) err
 	if err != nil {
 		return fmt.Errorf("creating flake.nix: %w", err)
 	}
-	defer f.Close()
 
 	data := struct {
 		Packages []PackageInfo
@@ -100,8 +99,14 @@ func (fg *FlakeGenerator) Generate(dir string, emulators []model.EmulatorID) err
 		Packages: packages,
 	}
 
-	if err := tmpl.Execute(f, data); err != nil {
-		return fmt.Errorf("executing template: %w", err)
+	execErr := tmpl.Execute(f, data)
+	closeErr := f.Close()
+
+	if execErr != nil {
+		return fmt.Errorf("executing template: %w", execErr)
+	}
+	if closeErr != nil {
+		return fmt.Errorf("closing flake.nix: %w", closeErr)
 	}
 
 	return nil

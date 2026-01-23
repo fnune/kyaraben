@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"bytes"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -71,8 +70,7 @@ func TestCLIDoctor(t *testing.T) {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
 
-	// Create the user store directories (normally done by apply)
-	os.MkdirAll(filepath.Join(userStore, "bios", "psx"), 0755)
+	_ = os.MkdirAll(filepath.Join(userStore, "bios", "psx"), 0755)
 
 	// Run doctor command - should report missing BIOS
 	cmd = kyarabenCmd(t, "-c", configPath, "doctor")
@@ -101,8 +99,7 @@ func TestCLIDoctorTIC80(t *testing.T) {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
 
-	// Create the user store directories
-	os.MkdirAll(filepath.Join(userStore, "bios", "tic80"), 0755)
+	_ = os.MkdirAll(filepath.Join(userStore, "bios", "tic80"), 0755)
 
 	// Run doctor command - should pass (no provisions needed)
 	cmd = kyarabenCmd(t, "-c", configPath, "doctor")
@@ -257,12 +254,4 @@ func TestCLIUninstall(t *testing.T) {
 	if !strings.Contains(outputStr, "This will NOT remove") {
 		t.Errorf("Output doesn't show what will be preserved: %s", outputStr)
 	}
-}
-
-func captureOutput(cmd *exec.Cmd) (string, string, error) {
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-	return stdout.String(), stderr.String(), err
 }

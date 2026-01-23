@@ -9,6 +9,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/fnune/kyaraben/internal/paths"
 )
 
 // Client provides an interface to the Nix CLI.
@@ -25,27 +27,16 @@ type Client struct {
 
 // NewClient creates a new Nix client with default settings.
 func NewClient() (*Client, error) {
-	dataDir, err := userDataDir()
+	kyarabenDir, err := paths.KyarabenDataDir()
 	if err != nil {
 		return nil, err
 	}
 
 	return &Client{
 		NixBinary: "nix",
-		StorePath: filepath.Join(dataDir, "kyaraben", "store"),
-		FlakePath: filepath.Join(dataDir, "kyaraben", "flake"),
+		StorePath: filepath.Join(kyarabenDir, "store"),
+		FlakePath: filepath.Join(kyarabenDir, "flake"),
 	}, nil
-}
-
-func userDataDir() (string, error) {
-	if dir := os.Getenv("XDG_DATA_HOME"); dir != "" {
-		return dir, nil
-	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("getting home directory: %w", err)
-	}
-	return filepath.Join(home, ".local", "share"), nil
 }
 
 // IsAvailable checks if the nix binary is available.

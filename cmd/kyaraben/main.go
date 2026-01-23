@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/alecthomas/kong"
 	"github.com/fnune/kyaraben/internal/cli"
+	"github.com/fnune/kyaraben/internal/logging"
 )
 
 var CLI struct {
@@ -17,6 +18,9 @@ var CLI struct {
 }
 
 func main() {
+	_ = logging.Init()
+	defer logging.Close()
+
 	ctx := kong.Parse(&CLI,
 		kong.Name("kyaraben"),
 		kong.Description("Declarative emulation manager"),
@@ -27,6 +31,7 @@ func main() {
 		ConfigPath: CLI.Config,
 	})
 	if err != nil {
+		logging.Error("command failed: %v", err)
 		ctx.FatalIfErrorf(err)
 	}
 }

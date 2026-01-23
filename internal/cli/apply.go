@@ -10,13 +10,11 @@ import (
 	"github.com/fnune/kyaraben/internal/nix"
 )
 
-// ApplyCmd applies the kyaraben configuration.
 type ApplyCmd struct {
 	DryRun   bool `help:"Show what would be done without making changes."`
 	ShowDiff bool `help:"Show config changes before applying." default:"true" negatable:""`
 }
 
-// Run executes the apply command.
 func (cmd *ApplyCmd) Run(ctx *Context) error {
 	cfg, err := ctx.LoadConfig()
 	if err != nil {
@@ -33,7 +31,6 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		return err
 	}
 
-	// Check if nix is available (skip in dry-run mode)
 	if !cmd.DryRun && !nixClient.IsAvailable() {
 		return fmt.Errorf("nix is not available. Please install nix or run from the development shell")
 	}
@@ -41,7 +38,6 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	fmt.Println("Applying kyaraben configuration...")
 	fmt.Println()
 
-	// Collect emulators and generate patches first (for diff display)
 	emulatorsToInstall := make([]model.EmulatorID, 0, len(cfg.Systems))
 	allPatches := make([]model.ConfigPatch, 0)
 
@@ -60,7 +56,6 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		allPatches = append(allPatches, patches...)
 	}
 
-	// Show diff if requested or in dry-run mode
 	if cmd.ShowDiff || cmd.DryRun {
 		hasChanges := false
 		fmt.Println("Config changes:")
@@ -89,7 +84,6 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		}
 	}
 
-	// Step 1: Create UserStore directory structure
 	fmt.Println("Creating directory structure...")
 	if err := userStore.Initialize(); err != nil {
 		return fmt.Errorf("initializing user store: %w", err)
@@ -103,7 +97,6 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	}
 	fmt.Println()
 
-	// Step 2: Generate and build flake
 	fmt.Println("Generating Nix flake...")
 	flakeGen := nix.NewFlakeGenerator()
 
@@ -117,7 +110,6 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	fmt.Printf("  Flake written to %s\n", nixClient.FlakePath)
 	fmt.Println()
 
-	// Step 3: Build emulators
 	fmt.Println("Building emulators (this may take a while on first run)...")
 	buildCtx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
@@ -130,7 +122,6 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	fmt.Printf("  Built: %s\n", storePath)
 	fmt.Println()
 
-	// Step 4: Apply emulator configs
 	fmt.Println("Applying emulator configurations...")
 	configWriter := emulators.NewConfigWriter()
 
@@ -142,7 +133,6 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	}
 	fmt.Println()
 
-	// Step 5: Update manifest
 	manifestPath, err := model.DefaultManifestPath()
 	if err != nil {
 		return fmt.Errorf("getting manifest path: %w", err)
@@ -164,7 +154,6 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		})
 	}
 
-	// Track managed configs
 	for _, patch := range allPatches {
 		manifest.AddManagedConfig(model.ManagedConfig{
 			Path:         patch.Config.Path,

@@ -35,7 +35,7 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 
 		var cmd daemon.Command
 		if err := json.Unmarshal(line, &cmd); err != nil {
-			encoder.Encode(daemon.Event{
+			_ = encoder.Encode(daemon.Event{
 				Type: daemon.EventError,
 				Data: map[string]string{"error": fmt.Sprintf("invalid command: %v", err)},
 			})
