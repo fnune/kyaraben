@@ -59,8 +59,8 @@ func (s *UserStore) SystemBiosDir(sys model.SystemID) string {
 func (s *UserStore) SystemSavesDir(sys model.SystemID) string {
 	return filepath.Join(s.SavesDir(), string(sys))
 }
-func (s *UserStore) SystemStatesDir(sys model.SystemID) string {
-	return filepath.Join(s.StatesDir(), string(sys))
+func (s *UserStore) EmulatorStatesDir(emu model.EmulatorID) string {
+	return filepath.Join(s.StatesDir(), string(emu))
 }
 func (s *UserStore) SystemScreenshotsDir(sys model.SystemID) string {
 	return filepath.Join(s.ScreenshotsDir(), string(sys))
@@ -81,7 +81,6 @@ func (s *UserStore) InitializeSystem(sys model.SystemID) error {
 		s.SystemRomsDir(sys),
 		s.SystemBiosDir(sys),
 		s.SystemSavesDir(sys),
-		s.SystemStatesDir(sys),
 		s.SystemScreenshotsDir(sys),
 	}
 
@@ -89,6 +88,14 @@ func (s *UserStore) InitializeSystem(sys model.SystemID) error {
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			return fmt.Errorf("creating %s: %w", dir, err)
 		}
+	}
+	return nil
+}
+
+func (s *UserStore) InitializeEmulator(emu model.EmulatorID) error {
+	dir := s.EmulatorStatesDir(emu)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("creating %s: %w", dir, err)
 	}
 	return nil
 }

@@ -62,7 +62,7 @@ func (c *Config) Generate(store model.StoreReader, systems []model.SystemID) ([]
 		Entries: []model.ConfigEntry{
 			{Path: []string{"BIOS", "SearchDirectory"}, Value: store.SystemBiosDir(model.SystemPSX)},
 			{Path: []string{"MemoryCards", "Directory"}, Value: store.SystemSavesDir(model.SystemPSX)},
-			{Path: []string{"Folders", "SaveStates"}, Value: store.SystemStatesDir(model.SystemPSX)},
+			{Path: []string{"Folders", "SaveStates"}, Value: store.EmulatorStatesDir(model.EmulatorDuckStation)},
 			{Path: []string{"Folders", "Screenshots"}, Value: store.SystemScreenshotsDir(model.SystemPSX)},
 			{Path: []string{"GameList", "RecursivePaths"}, Value: store.SystemRomsDir(model.SystemPSX)},
 		},
