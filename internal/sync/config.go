@@ -1,0 +1,294 @@
+package sync
+
+import (
+	"encoding/xml"
+	"fmt"
+	"os"
+	"path/filepath"
+
+	"github.com/fnune/kyaraben/internal/model"
+)
+
+type FolderType string
+
+const (
+	FolderTypeSendReceive FolderType = "sendreceive"
+	FolderTypeSendOnly    FolderType = "sendonly"
+	FolderTypeReceiveOnly FolderType = "receiveonly"
+)
+
+type SyncthingXMLConfig struct {
+	XMLName xml.Name          `xml:"configuration"`
+	Version int               `xml:"version,attr"`
+	Folders []XMLFolder       `xml:"folder"`
+	Devices []XMLDevice       `xml:"device"`
+	GUI     XMLGUI            `xml:"gui"`
+	Options XMLOptions        `xml:"options"`
+}
+
+type XMLFolder struct {
+	ID              string          `xml:"id,attr"`
+	Label           string          `xml:"label,attr"`
+	Path            string          `xml:"path,attr"`
+	Type            FolderType      `xml:"type,attr"`
+	Devices         []XMLFolderDevice `xml:"device"`
+	FSWatcherEnabled bool           `xml:"fsWatcherEnabled"`
+	IgnorePerms     bool            `xml:"ignorePerms"`
+	Versioning      XMLVersioning   `xml:"versioning"`
+}
+
+type XMLFolderDevice struct {
+	ID string `xml:"id,attr"`
+}
+
+type XMLDevice struct {
+	ID          string `xml:"id,attr"`
+	Name        string `xml:"name,attr"`
+	Compression string `xml:"compression,attr"`
+	Introducer  bool   `xml:"introducer,attr"`
+	AutoAcceptFolders bool `xml:"autoAcceptFolders,attr"`
+}
+
+type XMLGUI struct {
+	Enabled  bool   `xml:"enabled,attr"`
+	Address  string `xml:"address"`
+	APIKey   string `xml:"apikey"`
+	Theme    string `xml:"theme"`
+}
+
+type XMLOptions struct {
+	ListenAddresses     []string `xml:"listenAddress"`
+	GlobalAnnounceEnabled bool   `xml:"globalAnnounceEnabled"`
+	LocalAnnounceEnabled  bool   `xml:"localAnnounceEnabled"`
+	LocalAnnouncePort    int     `xml:"localAnnouncePort"`
+	RelaysEnabled        bool    `xml:"relaysEnabled"`
+	URAccepted           int     `xml:"urAccepted"`
+	AutoUpgradeEnabled   bool    `xml:"autoUpgradeIntervalH"`
+}
+
+type XMLVersioning struct {
+	Type   string          `xml:"type,attr"`
+	Params []XMLVersioningParam `xml:"param"`
+}
+
+type XMLVersioningParam struct {
+	Key string `xml:"key,attr"`
+	Val string `xml:"val,attr"`
+}
+
+type ConfigGenerator struct {
+	syncConfig model.SyncConfig
+	userStore  string
+	deviceID   string
+	apiKey     string
+	allSystems []model.SystemID
+}
+
+func NewConfigGenerator(syncConfig model.SyncConfig, userStore string, allSystems []model.SystemID) *ConfigGenerator {
+	return &ConfigGenerator{
+		syncConfig: syncConfig,
+		userStore:  userStore,
+		allSystems: allSystems,
+	}
+}
+
+func (g *ConfigGenerator) SetDeviceID(id string) {
+	g.deviceID = id
+}
+
+func (g *ConfigGenerator) SetAPIKey(key string) {
+	g.apiKey = key
+}
+
+func (g *ConfigGenerator) Generate() (*SyncthingXMLConfig, error) {
+	folders, err := g.generateFolders()
+	if err != nil {
+		return nil, fmt.Errorf("generating folders: %w", err)
+	}
+
+	devices := g.generateDevices()
+
+	config := &SyncthingXMLConfig{
+		Version: 37,
+		Folders: folders,
+		Devices: devices,
+		GUI: XMLGUI{
+			Enabled: true,
+			Address: fmt.Sprintf("127.0.0.1:%d", g.syncConfig.Syncthing.GUIPort),
+			APIKey:  g.apiKey,
+			Theme:   "default",
+		},
+		Options: XMLOptions{
+			ListenAddresses: []string{
+				fmt.Sprintf("tcp://0.0.0.0:%d", g.syncConfig.Syncthing.ListenPort),
+				fmt.Sprintf("quic://0.0.0.0:%d", g.syncConfig.Syncthing.ListenPort),
+			},
+			GlobalAnnounceEnabled: true,
+			LocalAnnounceEnabled:  true,
+			LocalAnnouncePort:     g.syncConfig.Syncthing.DiscoveryPort,
+			RelaysEnabled:         g.syncConfig.Syncthing.RelayEnabled,
+			URAccepted:            -1,
+			AutoUpgradeEnabled:    false,
+		},
+	}
+
+	return config, nil
+}
+
+func (g *ConfigGenerator) generateFolders() ([]XMLFolder, error) {
+	var folders []XMLFolder
+
+	isPrimary := g.syncConfig.Mode == model.SyncModePrimary
+
+	folderTypes := map[string]struct {
+		subdirs      []string
+		primaryType  FolderType
+		secondaryType FolderType
+		versioning   bool
+	}{
+		"roms":        {subdirs: g.systemSubdirs(), primaryType: FolderTypeSendOnly, secondaryType: FolderTypeReceiveOnly, versioning: false},
+		"bios":        {subdirs: g.systemSubdirs(), primaryType: FolderTypeSendOnly, secondaryType: FolderTypeReceiveOnly, versioning: false},
+		"saves":       {subdirs: g.systemSubdirs(), primaryType: FolderTypeSendReceive, secondaryType: FolderTypeSendReceive, versioning: true},
+		"states":      {subdirs: g.systemSubdirs(), primaryType: FolderTypeSendReceive, secondaryType: FolderTypeSendReceive, versioning: true},
+		"screenshots": {subdirs: nil, primaryType: FolderTypeSendReceive, secondaryType: FolderTypeSendReceive, versioning: false},
+		"opaque":      {subdirs: nil, primaryType: FolderTypeSendReceive, secondaryType: FolderTypeSendReceive, versioning: true},
+	}
+
+	deviceRefs := g.folderDeviceRefs()
+
+	for category, spec := range folderTypes {
+		folderType := spec.primaryType
+		if !isPrimary {
+			folderType = spec.secondaryType
+		}
+
+		if spec.subdirs != nil {
+			for _, subdir := range spec.subdirs {
+				folderID := fmt.Sprintf("kyaraben-%s-%s", category, subdir)
+				path := filepath.Join(g.userStore, category, subdir)
+
+				folder := XMLFolder{
+					ID:               folderID,
+					Label:            folderID,
+					Path:             path,
+					Type:             folderType,
+					Devices:          deviceRefs,
+					FSWatcherEnabled: true,
+					IgnorePerms:      true,
+				}
+
+				if spec.versioning {
+					folder.Versioning = g.versioningConfig()
+				}
+
+				folders = append(folders, folder)
+			}
+		} else {
+			folderID := fmt.Sprintf("kyaraben-%s", category)
+			path := filepath.Join(g.userStore, category)
+
+			folder := XMLFolder{
+				ID:               folderID,
+				Label:            folderID,
+				Path:             path,
+				Type:             folderType,
+				Devices:          deviceRefs,
+				FSWatcherEnabled: true,
+				IgnorePerms:      true,
+			}
+
+			if spec.versioning {
+				folder.Versioning = g.versioningConfig()
+			}
+
+			folders = append(folders, folder)
+		}
+	}
+
+	return folders, nil
+}
+
+func (g *ConfigGenerator) systemSubdirs() []string {
+	subdirs := make([]string, len(g.allSystems))
+	for i, sys := range g.allSystems {
+		subdirs[i] = string(sys)
+	}
+	return subdirs
+}
+
+func (g *ConfigGenerator) generateDevices() []XMLDevice {
+	var devices []XMLDevice
+
+	if g.deviceID != "" {
+		devices = append(devices, XMLDevice{
+			ID:          g.deviceID,
+			Name:        "this-device",
+			Compression: "metadata",
+		})
+	}
+
+	isPrimary := g.syncConfig.Mode == model.SyncModePrimary
+
+	for _, dev := range g.syncConfig.Devices {
+		devices = append(devices, XMLDevice{
+			ID:                dev.ID,
+			Name:              dev.Name,
+			Compression:       "metadata",
+			AutoAcceptFolders: isPrimary,
+		})
+	}
+
+	return devices
+}
+
+func (g *ConfigGenerator) folderDeviceRefs() []XMLFolderDevice {
+	var refs []XMLFolderDevice
+
+	if g.deviceID != "" {
+		refs = append(refs, XMLFolderDevice{ID: g.deviceID})
+	}
+
+	for _, dev := range g.syncConfig.Devices {
+		refs = append(refs, XMLFolderDevice{ID: dev.ID})
+	}
+
+	return refs
+}
+
+func (g *ConfigGenerator) versioningConfig() XMLVersioning {
+	return XMLVersioning{
+		Type: "staggered",
+		Params: []XMLVersioningParam{
+			{Key: "cleanInterval", Val: "3600"},
+			{Key: "maxAge", Val: "2592000"},
+		},
+	}
+}
+
+func (g *ConfigGenerator) WriteConfig(configDir string) error {
+	config, err := g.Generate()
+	if err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(configDir, 0700); err != nil {
+		return fmt.Errorf("creating config dir: %w", err)
+	}
+
+	configPath := filepath.Join(configDir, "config.xml")
+
+	data, err := xml.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshaling config: %w", err)
+	}
+
+	xmlHeader := []byte(xml.Header)
+	data = append(xmlHeader, data...)
+
+	if err := os.WriteFile(configPath, data, 0600); err != nil {
+		return fmt.Errorf("writing config: %w", err)
+	}
+
+	log.Info("Wrote syncthing config to %s", configPath)
+	return nil
+}

@@ -11,6 +11,7 @@ import (
 // KyarabenConfig represents the user's kyaraben configuration.
 type KyarabenConfig struct {
 	Global  GlobalConfig            `toml:"global"`
+	Sync    SyncConfig              `toml:"sync"`
 	Systems map[SystemID]SystemConf `toml:"systems"`
 }
 
@@ -109,6 +110,7 @@ func NewDefaultConfig() (*KyarabenConfig, error) {
 		Global: GlobalConfig{
 			UserStore: userStore,
 		},
+		Sync:    DefaultSyncConfig(),
 		Systems: make(map[SystemID]SystemConf),
 	}, nil
 }
