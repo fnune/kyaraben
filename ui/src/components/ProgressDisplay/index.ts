@@ -1,2 +1,2 @@
-export { ProgressDisplay } from "./ProgressDisplay";
-export type { ProgressDisplayProps } from "./ProgressDisplay";
+export { ProgressDisplay } from './ProgressDisplay'
+export type { ProgressDisplayProps } from './ProgressDisplay'

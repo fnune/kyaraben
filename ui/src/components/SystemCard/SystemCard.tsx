@@ -1,26 +1,35 @@
-import type { EmulatorID, ProvisionResult, System, SystemID } from "../../types";
-import { SystemIcon } from "../SystemIcon";
-import styles from "./SystemCard.module.css";
+import { SystemIcon } from '@/components/SystemIcon'
+import type { EmulatorID, ProvisionResult, System, SystemID } from '@/types'
+import type { ChangeEvent } from 'react'
 
 export interface SystemCardProps {
-  readonly system: System;
-  readonly selectedEmulator: EmulatorID | null;
-  readonly provisions: readonly ProvisionResult[];
-  readonly enabled: boolean;
-  readonly onToggle: (systemId: SystemID, enabled: boolean) => void;
+  readonly system: System
+  readonly selectedEmulator: EmulatorID | null
+  readonly provisions: readonly ProvisionResult[]
+  readonly enabled: boolean
+  readonly onToggle: (systemId: SystemID, enabled: boolean) => void
 }
 
 function ProvisionBadge({ provision }: { readonly provision: ProvisionResult }) {
-  const isOk = provision.status === "found";
-  const isOptional = !provision.required;
-  const statusClass = isOk ? styles.badgeOk : isOptional ? styles.badgeOptional : styles.badgeMissing;
-  const statusText = isOk ? "OK" : isOptional ? "optional" : "missing";
+  const isOk = provision.status === 'found'
+  const isOptional = !provision.required
+
+  const badgeClasses = isOk
+    ? 'bg-green-100 text-green-800'
+    : isOptional
+      ? 'bg-yellow-100 text-yellow-800'
+      : 'bg-red-100 text-red-800'
+
+  const statusText = isOk ? 'OK' : isOptional ? 'optional' : 'missing'
 
   return (
-    <span className={`${styles.badge} ${statusClass}`} title={provision.description}>
+    <span
+      className={`${badgeClasses} px-2 py-0.5 rounded text-xs font-medium`}
+      title={provision.description}
+    >
       {provision.filename} ({statusText})
     </span>
-  );
+  )
 }
 
 export function SystemCard({
@@ -30,36 +39,36 @@ export function SystemCard({
   enabled,
   onToggle,
 }: SystemCardProps) {
-  const emulator = system.emulators.find((e) => e.id === selectedEmulator) ?? system.emulators[0];
-  const hasRequiredMissing = provisions.some((p) => p.required && p.status !== "found");
-  const hasProvisions = provisions.length > 0;
+  const emulator = system.emulators.find((e) => e.id === selectedEmulator) ?? system.emulators[0]
+  const hasRequiredMissing = provisions.some((p) => p.required && p.status !== 'found')
+  const hasProvisions = provisions.length > 0
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onToggle(system.id, e.target.checked);
-  };
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    onToggle(system.id, e.target.checked)
+  }
 
   return (
-    <article className={styles.card}>
-      <label className={styles.header}>
+    <article className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
+      <label className="flex items-center gap-3 cursor-pointer">
         <input
           type="checkbox"
           checked={enabled}
           onChange={handleChange}
-          className={styles.checkbox}
+          className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
         />
         <SystemIcon systemId={system.id} size="medium" />
-        <div className={styles.info}>
-          <h3 className={styles.name}>{system.name}</h3>
-          {emulator && <span className={styles.emulator}>{emulator.name}</span>}
+        <div className="flex flex-col">
+          <h3 className="font-semibold text-gray-900">{system.name}</h3>
+          {emulator && <span className="text-sm text-gray-500">{emulator.name}</span>}
         </div>
       </label>
 
       {hasProvisions && (
-        <div className={styles.provisions}>
+        <div className="mt-3 pl-8">
           {hasRequiredMissing && (
-            <span className={styles.warning}>Requires files</span>
+            <span className="text-amber-600 text-sm font-medium block mb-2">Requires files</span>
           )}
-          <div className={styles.badgeList}>
+          <div className="flex flex-wrap gap-1">
             {provisions.map((p) => (
               <ProvisionBadge key={p.filename} provision={p} />
             ))}
@@ -67,5 +76,5 @@ export function SystemCard({
         </div>
       )}
     </article>
-  );
+  )
 }

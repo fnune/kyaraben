@@ -1,8 +1,20 @@
 {
   "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
   "files": {
-    "ignore": ["src-tauri/target/**", "dist/**"]
+    "ignore": ["src-tauri/target/**", "dist/**", "dist-electron/**"]
   },
+  "overrides": [
+    {
+      "include": ["*.config.ts", "*.config.js"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off"
+          }
+        }
+      }
+    }
+  ],
   "organizeImports": {
     "enabled": true
   },
@@ -46,6 +58,7 @@
         "useYield": "error"
       },
       "style": {
+        "noDefaultExport": "error",
         "noVar": "error",
         "useConst": "error"
       },
