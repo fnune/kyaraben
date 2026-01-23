@@ -5,9 +5,10 @@ import (
 	"time"
 
 	"github.com/fnune/kyaraben/internal/apply"
+	"github.com/fnune/kyaraben/internal/doctor"
 	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/model"
-	"github.com/fnune/kyaraben/internal/store"
+	"github.com/fnune/kyaraben/internal/status"
 )
 
 // Daemon handles JSON protocol commands from the UI.
@@ -68,31 +69,39 @@ func (d *Daemon) handleStatus() []Event {
 		}}
 	}
 
-	manifestPath, _ := model.DefaultManifestPath()
-	manifest, _ := model.LoadManifest(manifestPath)
-
-	userStorePath, _ := cfg.ExpandUserStore()
-
-	systems := make([]string, 0, len(cfg.Systems))
-	for sys := range cfg.Systems {
-		systems = append(systems, string(sys))
+	configPath := d.configPath
+	if configPath == "" {
+		configPath, _ = model.DefaultConfigPath()
 	}
 
-	installedEmulators := make([]map[string]string, 0, len(manifest.InstalledEmulators))
-	for _, emu := range manifest.InstalledEmulators {
-		installedEmulators = append(installedEmulators, map[string]string{
+	result, err := status.Get(cfg, configPath, d.registry)
+	if err != nil {
+		return []Event{{
+			Type: EventError,
+			Data: map[string]string{"error": err.Error()},
+		}}
+	}
+
+	systems := make([]string, len(result.EnabledSystems))
+	for i, sys := range result.EnabledSystems {
+		systems[i] = string(sys.ID)
+	}
+
+	installedEmulators := make([]map[string]string, len(result.InstalledEmulators))
+	for i, emu := range result.InstalledEmulators {
+		installedEmulators[i] = map[string]string{
 			"id":      string(emu.ID),
 			"version": emu.Version,
-		})
+		}
 	}
 
 	return []Event{{
 		Type: EventResult,
 		Data: map[string]interface{}{
-			"userStore":          userStorePath,
+			"userStore":          result.UserStorePath,
 			"enabledSystems":     systems,
 			"installedEmulators": installedEmulators,
-			"lastApplied":        manifest.LastApplied.Format(time.RFC3339),
+			"lastApplied":        result.LastApplied.Format(time.RFC3339),
 		},
 	}}
 }
@@ -106,37 +115,32 @@ func (d *Daemon) handleDoctor() []Event {
 		}}
 	}
 
-	userStorePath, _ := cfg.ExpandUserStore()
-	userStore := store.NewUserStore(userStorePath)
-	checker := store.NewProvisionChecker(userStore)
+	result, err := doctor.Run(cfg, d.registry)
+	if err != nil {
+		return []Event{{
+			Type: EventError,
+			Data: map[string]string{"error": err.Error()},
+		}}
+	}
 
-	results := make(map[string][]map[string]interface{})
-
-	for sys, sysConf := range cfg.Systems {
-		emu, err := d.registry.GetEmulator(sysConf.Emulator)
-		if err != nil {
-			continue
+	systems := make(map[string][]map[string]interface{})
+	for _, sys := range result.Systems {
+		provisions := make([]map[string]interface{}, len(sys.Provisions))
+		for i, prov := range sys.Provisions {
+			provisions[i] = map[string]interface{}{
+				"filename":    prov.Filename,
+				"description": prov.Description,
+				"required":    prov.Required,
+				"status":      string(prov.Status),
+				"foundPath":   prov.FoundPath,
+			}
 		}
-
-		provResults := checker.Check(emu, sys)
-		systemResults := make([]map[string]interface{}, 0, len(provResults))
-
-		for _, r := range provResults {
-			systemResults = append(systemResults, map[string]interface{}{
-				"filename":    r.Provision.Filename,
-				"description": r.Provision.Description,
-				"required":    r.Provision.Required,
-				"status":      string(r.Status),
-				"foundPath":   r.FoundPath,
-			})
-		}
-
-		results[string(sys)] = systemResults
+		systems[string(sys.SystemID)] = provisions
 	}
 
 	return []Event{{
 		Type: EventResult,
-		Data: results,
+		Data: systems,
 	}}
 }
 
