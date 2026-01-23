@@ -2,6 +2,7 @@ package store
 
 import (
 	"crypto/md5"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -69,7 +70,23 @@ func (pc *ProvisionChecker) checkProvision(prov model.Provision, biosDir string)
 
 	result.FoundPath = filePath
 
-	// Verify hash if we have one
+	// Verify hash if we have one (prefer SHA256 over MD5)
+	if prov.SHA256Hash != "" {
+		hash, err := sha256File(filePath)
+		if err != nil {
+			result.Status = model.ProvisionInvalid
+			return result
+		}
+
+		result.ActualHash = hash
+		if strings.EqualFold(hash, prov.SHA256Hash) {
+			result.Status = model.ProvisionFound
+		} else {
+			result.Status = model.ProvisionInvalid
+		}
+		return result
+	}
+
 	if prov.MD5Hash != "" {
 		hash, err := md5File(filePath)
 		if err != nil {
@@ -118,6 +135,21 @@ func md5File(path string) (string, error) {
 	defer func() { _ = f.Close() }()
 
 	h := md5.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", fmt.Errorf("hashing file: %w", err)
+	}
+
+	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
+func sha256File(path string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", fmt.Errorf("opening file: %w", err)
+	}
+	defer func() { _ = f.Close() }()
+
+	h := sha256.New()
 	if _, err := io.Copy(h, f); err != nil {
 		return "", fmt.Errorf("hashing file: %w", err)
 	}
