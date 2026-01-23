@@ -1,6 +1,6 @@
-import type { ProgressStep } from '@/types/ui'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+import type { ProgressStep } from '@/types/ui'
 import { ProgressDisplay } from './ProgressDisplay'
 
 describe('ProgressDisplay', () => {

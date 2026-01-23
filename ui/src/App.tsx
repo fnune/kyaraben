@@ -1,10 +1,10 @@
+import { useCallback, useEffect, useState } from 'react'
 import { ProgressDisplay } from '@/components/ProgressDisplay/ProgressDisplay'
 import { Settings } from '@/components/Settings/Settings'
 import { SystemGrid } from '@/components/SystemGrid/SystemGrid'
 import { useDaemon } from '@/hooks/useDaemon'
 import type { DoctorResponse, EmulatorID, System, SystemID } from '@/types/daemon'
 import type { ApplyStatus, ProgressStep } from '@/types/ui'
-import { useCallback, useEffect, useState } from 'react'
 
 const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
   start: 'Starting',

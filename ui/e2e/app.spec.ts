@@ -1,5 +1,10 @@
-import { type ElectronApplication, type Page, _electron as electron } from '@playwright/test'
-import { expect, test } from '@playwright/test'
+import {
+  type ElectronApplication,
+  _electron as electron,
+  expect,
+  type Page,
+  test,
+} from '@playwright/test'
 
 let electronApp: ElectronApplication
 let page: Page
