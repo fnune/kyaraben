@@ -81,7 +81,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		for _, patch := range dryResult.Patches {
 			diff, err := emulators.ComputeDiff(patch)
 			if err != nil {
-				fmt.Printf("  Warning: could not compute diff for %s: %v\n", patch.Config.Path, err)
+				fmt.Printf("  Warning: could not compute diff: %v\n", err)
 				continue
 			}
 
@@ -126,7 +126,8 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	fmt.Println()
 
 	for _, patch := range result.Patches {
-		fmt.Printf("  Applied: %s\n", patch.Config.Path)
+		path, _ := patch.Target.Resolve()
+		fmt.Printf("  Applied: %s\n", path)
 	}
 	fmt.Println()
 

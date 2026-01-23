@@ -1,11 +1,6 @@
 package duckstation
 
-import (
-	"os"
-	"path/filepath"
-
-	"github.com/fnune/kyaraben/internal/model"
-)
+import "github.com/fnune/kyaraben/internal/model"
 
 type Definition struct{}
 
@@ -46,9 +41,6 @@ func (Definition) Emulator() model.Emulator {
 			model.StateSavestates,
 			model.StateScreenshots,
 		},
-		ConfigPaths: []string{
-			"~/.config/duckstation/settings.ini",
-		},
 	}
 }
 
@@ -56,39 +48,23 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 	return &Config{}
 }
 
-type Config struct{}
-
-func (c *Config) ConfigPaths() []string {
-	configDir, _ := os.UserConfigDir()
-	return []string{
-		filepath.Join(configDir, "duckstation", "settings.ini"),
-	}
+var configTarget = model.ConfigTarget{
+	RelPath: "duckstation/settings.ini",
+	Format:  model.ConfigFormatINI,
+	BaseDir: model.ConfigBaseDirUserConfig,
 }
 
+type Config struct{}
+
 func (c *Config) Generate(store model.StoreReader, systems []model.SystemID) ([]model.ConfigPatch, error) {
-	configDir, err := os.UserConfigDir()
-	if err != nil {
-		return nil, err
-	}
-
-	configPath := filepath.Join(configDir, "duckstation", "settings.ini")
-
-	entries := []model.ConfigEntry{
-		{Section: "BIOS", Key: "SearchDirectory", Value: store.SystemBiosDir(model.SystemPSX)},
-		{Section: "MemoryCards", Key: "Directory", Value: store.SystemSavesDir(model.SystemPSX)},
-		{Section: "Folders", Key: "SaveStates", Value: store.SystemStatesDir(model.SystemPSX)},
-		{Section: "Folders", Key: "Screenshots", Value: store.SystemScreenshotsDir(model.SystemPSX)},
-		{Section: "GameList", Key: "RecursivePaths", Value: store.SystemRomsDir(model.SystemPSX)},
-	}
-
-	patch := model.ConfigPatch{
-		Config: model.EmulatorConfig{
-			Path:       configPath,
-			Format:     model.ConfigFormatINI,
-			EmulatorID: model.EmulatorDuckStation,
+	return []model.ConfigPatch{{
+		Target: configTarget,
+		Entries: []model.ConfigEntry{
+			{Section: "BIOS", Key: "SearchDirectory", Value: store.SystemBiosDir(model.SystemPSX)},
+			{Section: "MemoryCards", Key: "Directory", Value: store.SystemSavesDir(model.SystemPSX)},
+			{Section: "Folders", Key: "SaveStates", Value: store.SystemStatesDir(model.SystemPSX)},
+			{Section: "Folders", Key: "Screenshots", Value: store.SystemScreenshotsDir(model.SystemPSX)},
+			{Section: "GameList", Key: "RecursivePaths", Value: store.SystemRomsDir(model.SystemPSX)},
 		},
-		Entries: entries,
-	}
-
-	return []model.ConfigPatch{patch}, nil
+	}}, nil
 }

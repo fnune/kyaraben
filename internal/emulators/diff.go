@@ -42,25 +42,27 @@ const (
 )
 
 func ComputeDiff(patch model.ConfigPatch) (*ConfigDiff, error) {
+	path, err := patch.Target.Resolve()
+	if err != nil {
+		return nil, fmt.Errorf("resolving config path: %w", err)
+	}
+
 	diff := &ConfigDiff{
-		Path:      patch.Config.Path,
+		Path:      path,
 		IsNewFile: true,
 		Changes:   make([]ConfigChange, 0),
 	}
 
-	// Read current config
-	current := make(map[string]map[string]string) // section -> key -> value
+	current := make(map[string]map[string]string)
 
-	if _, err := os.Stat(patch.Config.Path); err == nil {
+	if _, err := os.Stat(path); err == nil {
 		diff.IsNewFile = false
-		var err error
-		current, err = readConfig(patch.Config.Path, patch.Config.Format)
+		current, err = readConfig(path, patch.Target.Format)
 		if err != nil {
 			return nil, fmt.Errorf("reading current config: %w", err)
 		}
 	}
 
-	// Compare with proposed changes
 	for _, entry := range patch.Entries {
 		section := entry.Section
 		key := entry.Key
@@ -68,7 +70,6 @@ func ComputeDiff(patch model.ConfigPatch) (*ConfigDiff, error) {
 
 		sectionMap, sectionExists := current[section]
 		if !sectionExists {
-			// New section and key
 			diff.Changes = append(diff.Changes, ConfigChange{
 				Type:     ChangeAdd,
 				Section:  section,
@@ -80,7 +81,6 @@ func ComputeDiff(patch model.ConfigPatch) (*ConfigDiff, error) {
 
 		oldValue, keyExists := sectionMap[key]
 		if !keyExists {
-			// New key in existing section
 			diff.Changes = append(diff.Changes, ConfigChange{
 				Type:     ChangeAdd,
 				Section:  section,
@@ -90,7 +90,6 @@ func ComputeDiff(patch model.ConfigPatch) (*ConfigDiff, error) {
 			continue
 		}
 
-		// Key exists - check if value changed
 		if oldValue != newValue {
 			diff.Changes = append(diff.Changes, ConfigChange{
 				Type:     ChangeModify,
@@ -128,7 +127,6 @@ func (d *ConfigDiff) Format() string {
 }
 
 func (d *ConfigDiff) FormatWithColor(useColor bool) string {
-	// Color helpers
 	green := func(s string) string {
 		if useColor {
 			return colorGreen + s + colorReset
@@ -168,7 +166,6 @@ func (d *ConfigDiff) FormatWithColor(useColor bool) string {
 
 	var sb strings.Builder
 
-	// File header with status
 	if d.IsNewFile {
 		sb.WriteString(fmt.Sprintf("  %s %s\n", green("CREATE"), bold(d.Path)))
 	} else if !d.HasChanges() {
@@ -178,7 +175,6 @@ func (d *ConfigDiff) FormatWithColor(useColor bool) string {
 		sb.WriteString(fmt.Sprintf("  %s %s\n", yellow("MODIFY"), bold(d.Path)))
 	}
 
-	// Group changes by section for better readability
 	sectionChanges := make(map[string][]ConfigChange)
 	sectionOrder := make([]string, 0)
 	for _, change := range d.Changes {
@@ -191,7 +187,6 @@ func (d *ConfigDiff) FormatWithColor(useColor bool) string {
 	for _, section := range sectionOrder {
 		changes := sectionChanges[section]
 
-		// Section header (for INI files)
 		if section != "" {
 			sb.WriteString(fmt.Sprintf("    %s\n", cyan(fmt.Sprintf("[%s]", section))))
 		}
@@ -225,7 +220,7 @@ func (d *ConfigDiff) FormatWithColor(useColor bool) string {
 
 func readConfig(path string, format model.ConfigFormat) (map[string]map[string]string, error) {
 	result := make(map[string]map[string]string)
-	result[""] = make(map[string]string) // Default section for flat configs
+	result[""] = make(map[string]string)
 
 	f, err := os.Open(path)
 	if err != nil {
@@ -239,12 +234,10 @@ func readConfig(path string, format model.ConfigFormat) (map[string]map[string]s
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 
-		// Skip empty lines and comments
 		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, ";") {
 			continue
 		}
 
-		// Check for section header (INI format)
 		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
 			currentSection = line[1 : len(line)-1]
 			if result[currentSection] == nil {
@@ -253,7 +246,6 @@ func readConfig(path string, format model.ConfigFormat) (map[string]map[string]s
 			continue
 		}
 
-		// Parse key=value
 		idx := strings.Index(line, "=")
 		if idx == -1 {
 			continue
