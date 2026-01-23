@@ -5,7 +5,7 @@
   },
   "overrides": [
     {
-      "includes": ["**/*.config.ts", "**/*.config.js"],
+      "includes": ["**/*.config.ts", "**/*.config.js", "**/*.config.mjs"],
       "linter": {
         "rules": {
           "style": {
