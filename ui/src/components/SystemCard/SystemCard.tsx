@@ -1,5 +1,5 @@
-import { SystemIcon } from '@/components/SystemIcon'
-import type { EmulatorID, ProvisionResult, System, SystemID } from '@/types'
+import { SystemIcon } from '@/components/SystemIcon/SystemIcon'
+import type { EmulatorID, ProvisionResult, System, SystemID } from '@/types/daemon'
 import type { ChangeEvent } from 'react'
 
 export interface SystemCardProps {

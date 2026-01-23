@@ -6,7 +6,7 @@ import type {
   SetConfigRequest,
   StatusResponse,
   System,
-} from '@/types'
+} from '@/types/daemon'
 import { useCallback, useState } from 'react'
 
 type DaemonError = {

@@ -1,5 +1,5 @@
-import { SystemCard } from '@/components/SystemCard'
-import type { DoctorResponse, EmulatorID, System, SystemID } from '@/types'
+import { SystemCard } from '@/components/SystemCard/SystemCard'
+import type { DoctorResponse, EmulatorID, System, SystemID } from '@/types/daemon'
 import { MANUFACTURER_ORDER, type Manufacturer, SYSTEM_MANUFACTURERS } from '@/types/ui'
 
 export interface SystemGridProps {
