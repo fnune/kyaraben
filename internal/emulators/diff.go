@@ -2,6 +2,8 @@ package emulators
 
 import (
 	"bufio"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"strings"
@@ -10,17 +12,46 @@ import (
 )
 
 type ConfigDiff struct {
-	Path      string
-	IsNewFile bool
-	Changes   []ConfigChange
+	Path         string
+	IsNewFile    bool
+	UserModified bool
+	Changes      []ConfigChange
+	UserChanges  []UserChange
+}
+
+type UserChange struct {
+	Path          []string
+	BaselineValue string
+	CurrentValue  string
 }
 
 type ConfigChange struct {
 	Type     ChangeType
-	Section  string
-	Key      string
+	Path     []string
 	OldValue string
 	NewValue string
+}
+
+func (c ConfigChange) Key() string {
+	if len(c.Path) == 0 {
+		return ""
+	}
+	return c.Path[len(c.Path)-1]
+}
+
+func (c ConfigChange) Parent() []string {
+	if len(c.Path) <= 1 {
+		return nil
+	}
+	return c.Path[:len(c.Path)-1]
+}
+
+func (c ConfigChange) Section() string {
+	parent := c.Parent()
+	if len(parent) == 0 {
+		return ""
+	}
+	return strings.Join(parent, ".")
 }
 
 type ChangeType int
@@ -40,6 +71,57 @@ const (
 	colorBold   = "\033[1m"
 	colorDim    = "\033[2m"
 )
+
+func ComputeDiffWithBaseline(patch model.ConfigPatch, baseline *model.ManagedConfig) (*ConfigDiff, error) {
+	diff, err := ComputeDiff(patch)
+	if err != nil {
+		return nil, err
+	}
+
+	if baseline == nil || diff.IsNewFile {
+		return diff, nil
+	}
+
+	currentHash, err := hashConfigFile(diff.Path)
+	if err != nil {
+		return diff, nil
+	}
+
+	if currentHash != baseline.BaselineHash {
+		diff.UserModified = true
+
+		current, err := readConfig(diff.Path, patch.Target.Format)
+		if err != nil {
+			return diff, nil
+		}
+
+		for _, mk := range baseline.ManagedKeys {
+			section := iniSection(mk.Path[:len(mk.Path)-1])
+			key := mk.Path[len(mk.Path)-1]
+
+			if sectionMap, ok := current[section]; ok {
+				if currentVal, ok := sectionMap[key]; ok && currentVal != mk.Value {
+					diff.UserChanges = append(diff.UserChanges, UserChange{
+						Path:          mk.Path,
+						BaselineValue: mk.Value,
+						CurrentValue:  currentVal,
+					})
+				}
+			}
+		}
+	}
+
+	return diff, nil
+}
+
+func hashConfigFile(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	hash := sha256.Sum256(data)
+	return hex.EncodeToString(hash[:]), nil
+}
 
 func ComputeDiff(patch model.ConfigPatch) (*ConfigDiff, error) {
 	path, err := patch.Target.Resolve()
@@ -64,17 +146,15 @@ func ComputeDiff(patch model.ConfigPatch) (*ConfigDiff, error) {
 	}
 
 	for _, entry := range patch.Entries {
-		section := entry.Section
-		key := entry.Key
-		newValue := entry.Value
+		section := iniSection(entry.Parent())
+		key := entry.Key()
 
 		sectionMap, sectionExists := current[section]
 		if !sectionExists {
 			diff.Changes = append(diff.Changes, ConfigChange{
 				Type:     ChangeAdd,
-				Section:  section,
-				Key:      key,
-				NewValue: newValue,
+				Path:     entry.Path,
+				NewValue: entry.Value,
 			})
 			continue
 		}
@@ -83,20 +163,18 @@ func ComputeDiff(patch model.ConfigPatch) (*ConfigDiff, error) {
 		if !keyExists {
 			diff.Changes = append(diff.Changes, ConfigChange{
 				Type:     ChangeAdd,
-				Section:  section,
-				Key:      key,
-				NewValue: newValue,
+				Path:     entry.Path,
+				NewValue: entry.Value,
 			})
 			continue
 		}
 
-		if oldValue != newValue {
+		if oldValue != entry.Value {
 			diff.Changes = append(diff.Changes, ConfigChange{
 				Type:     ChangeModify,
-				Section:  section,
-				Key:      key,
+				Path:     entry.Path,
 				OldValue: oldValue,
-				NewValue: newValue,
+				NewValue: entry.Value,
 			})
 		}
 	}
@@ -170,18 +248,35 @@ func (d *ConfigDiff) FormatWithColor(useColor bool) string {
 		sb.WriteString(fmt.Sprintf("  %s %s\n", green("CREATE"), bold(d.Path)))
 	} else if !d.HasChanges() {
 		sb.WriteString(fmt.Sprintf("  %s %s\n", dim("UNCHANGED"), d.Path))
+		if d.UserModified && len(d.UserChanges) > 0 {
+			sb.WriteString(fmt.Sprintf("    %s\n", yellow("⚠ You modified keys managed by kyaraben:")))
+			for _, uc := range d.UserChanges {
+				key := uc.Path[len(uc.Path)-1]
+				sb.WriteString(fmt.Sprintf("      %s: %s → %s\n", key, dim(uc.BaselineValue), yellow(uc.CurrentValue)))
+			}
+		}
 		return sb.String()
 	} else {
 		sb.WriteString(fmt.Sprintf("  %s %s\n", yellow("MODIFY"), bold(d.Path)))
 	}
 
+	if d.UserModified && len(d.UserChanges) > 0 {
+		sb.WriteString(fmt.Sprintf("    %s\n", yellow("⚠ You modified keys managed by kyaraben (will be overwritten):")))
+		for _, uc := range d.UserChanges {
+			key := uc.Path[len(uc.Path)-1]
+			sb.WriteString(fmt.Sprintf("      %s: %s → %s\n", key, dim(uc.BaselineValue), yellow(uc.CurrentValue)))
+		}
+		sb.WriteString("\n")
+	}
+
 	sectionChanges := make(map[string][]ConfigChange)
 	sectionOrder := make([]string, 0)
 	for _, change := range d.Changes {
-		if _, exists := sectionChanges[change.Section]; !exists {
-			sectionOrder = append(sectionOrder, change.Section)
+		section := change.Section()
+		if _, exists := sectionChanges[section]; !exists {
+			sectionOrder = append(sectionOrder, section)
 		}
-		sectionChanges[change.Section] = append(sectionChanges[change.Section], change)
+		sectionChanges[section] = append(sectionChanges[section], change)
 	}
 
 	for _, section := range sectionOrder {
@@ -200,17 +295,17 @@ func (d *ConfigDiff) FormatWithColor(useColor bool) string {
 			switch change.Type {
 			case ChangeAdd:
 				sb.WriteString(fmt.Sprintf("%s%s %s = %s\n",
-					indent, green("+"), change.Key, green(change.NewValue)))
+					indent, green("+"), change.Key(), green(change.NewValue)))
 			case ChangeModify:
 				sb.WriteString(fmt.Sprintf("%s%s %s\n",
-					indent, yellow("~"), change.Key))
+					indent, yellow("~"), change.Key()))
 				sb.WriteString(fmt.Sprintf("%s    %s %s\n",
 					indent, red("-"), dim(change.OldValue)))
 				sb.WriteString(fmt.Sprintf("%s    %s %s\n",
 					indent, green("+"), change.NewValue))
 			case ChangeRemove:
 				sb.WriteString(fmt.Sprintf("%s%s %s = %s\n",
-					indent, red("-"), change.Key, red(change.OldValue)))
+					indent, red("-"), change.Key(), red(change.OldValue)))
 			}
 		}
 	}

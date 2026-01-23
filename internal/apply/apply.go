@@ -133,11 +133,17 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 		})
 	}
 
-	for i := range allPatches {
+	for i, patch := range allPatches {
+		managedKeys := make([]model.ManagedKey, len(patch.Entries))
+		for j, entry := range patch.Entries {
+			managedKeys[j] = model.ManagedKey(entry)
+		}
+
 		manifest.AddManagedConfig(model.ManagedConfig{
 			Path:         configResults[i].Path,
 			BaselineHash: configResults[i].BaselineHash,
 			LastModified: time.Now(),
+			ManagedKeys:  managedKeys,
 		})
 	}
 
