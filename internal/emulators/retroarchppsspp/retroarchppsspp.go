@@ -1,4 +1,4 @@
-package retroarchbsnes
+package retroarchppsspp
 
 import (
 	"github.com/fnune/kyaraben/internal/emulators/retroarch"
@@ -9,13 +9,15 @@ type Definition struct{}
 
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
-		ID:      model.EmulatorRetroArchBsnes,
-		Name:    "RetroArch (bsnes)",
-		Systems: []model.SystemID{model.SystemSNES},
+		ID:      model.EmulatorRetroArchPPSSPP,
+		Name:    "RetroArch (PPSSPP)",
+		Systems: []model.SystemID{model.SystemPSP},
 		Package: model.NixpkgsOverlayRef(
-			"retroarch-bsnes",
-			`pkgs.retroarch.override { cores = with pkgs.libretro; [ bsnes ]; }`,
+			"retroarch-ppsspp",
+			`pkgs.retroarch.override { cores = with pkgs.libretro; [ ppsspp ]; }`,
 		),
+		// PPSSPP is an HLE emulator - no BIOS required.
+		// See: https://docs.libretro.com/library/ppsspp/
 		Provisions: []model.Provision{},
 		StateKinds: []model.StateKind{
 			model.StateSaves,
@@ -38,16 +40,16 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 	}, nil
 }
 
-const coreName = "bsnes_libretro"
+const coreName = "ppsspp_libretro"
 
 func coreOverrideConfig(store model.StoreReader) model.ConfigPatch {
 	return model.ConfigPatch{
 		Target: retroarch.CoreOverrideTarget(coreName),
 		Entries: []model.ConfigEntry{
-			{Path: []string{"savefile_directory"}, Value: store.SystemSavesDir(model.SystemSNES)},
-			{Path: []string{"savestate_directory"}, Value: store.EmulatorStatesDir(model.EmulatorRetroArchBsnes)},
-			{Path: []string{"screenshot_directory"}, Value: store.SystemScreenshotsDir(model.SystemSNES)},
-			{Path: []string{"rgui_browser_directory"}, Value: store.SystemRomsDir(model.SystemSNES)},
+			{Path: []string{"savefile_directory"}, Value: store.SystemSavesDir(model.SystemPSP)},
+			{Path: []string{"savestate_directory"}, Value: store.EmulatorStatesDir(model.EmulatorRetroArchPPSSPP)},
+			{Path: []string{"screenshot_directory"}, Value: store.SystemScreenshotsDir(model.SystemPSP)},
+			{Path: []string{"rgui_browser_directory"}, Value: store.SystemRomsDir(model.SystemPSP)},
 		},
 	}
 }

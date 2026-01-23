@@ -7,10 +7,11 @@ type StoreReader interface {
 	EmulatorStatesDir(EmulatorID) string
 	SystemScreenshotsDir(SystemID) string
 	SystemRomsDir(SystemID) string
+	EmulatorOpaqueDir(EmulatorID) string
 }
 
 type ConfigGenerator interface {
-	Generate(store StoreReader, systems []SystemID) ([]ConfigPatch, error)
+	Generate(store StoreReader) ([]ConfigPatch, error)
 }
 
 type SystemDefinition interface {

@@ -139,7 +139,8 @@ func (w *ConfigWriter) applyCFG(path string, entries []model.ConfigEntry) (Apply
 	}
 
 	for _, entry := range entries {
-		existing[entry.Key()] = entry.Value
+		// CFG format requires quoted values (RetroArch style)
+		existing[entry.Key()] = `"` + entry.Value + `"`
 	}
 
 	f, err := os.Create(path)

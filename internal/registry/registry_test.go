@@ -5,10 +5,11 @@ import (
 
 	"github.com/fnune/kyaraben/internal/emulators/duckstation"
 	"github.com/fnune/kyaraben/internal/emulators/e2etestemu"
-	"github.com/fnune/kyaraben/internal/emulators/ppsspp"
+	"github.com/fnune/kyaraben/internal/emulators/eden"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbsnes"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmelonds"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmgba"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchppsspp"
 	"github.com/fnune/kyaraben/internal/emulators/tic80emu"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/systems/e2etest"
@@ -17,6 +18,7 @@ import (
 	"github.com/fnune/kyaraben/internal/systems/psp"
 	"github.com/fnune/kyaraben/internal/systems/psx"
 	"github.com/fnune/kyaraben/internal/systems/snes"
+	switchsys "github.com/fnune/kyaraben/internal/systems/switch"
 	"github.com/fnune/kyaraben/internal/systems/tic80"
 )
 
@@ -28,6 +30,7 @@ func TestAllDefinitions(t *testing.T) {
 		gba.Definition{},
 		nds.Definition{},
 		psp.Definition{},
+		switchsys.Definition{},
 		e2etest.Definition{},
 	}
 
@@ -35,9 +38,10 @@ func TestAllDefinitions(t *testing.T) {
 		retroarchbsnes.Definition{},
 		retroarchmgba.Definition{},
 		retroarchmelonds.Definition{},
+		retroarchppsspp.Definition{},
 		duckstation.Definition{},
 		tic80emu.Definition{},
-		ppsspp.Definition{},
+		eden.Definition{},
 		e2etestemu.Definition{},
 	}
 
@@ -109,6 +113,7 @@ func TestRegistryGetSystem(t *testing.T) {
 		{model.SystemGBA, false},
 		{model.SystemNDS, false},
 		{model.SystemPSP, false},
+		{model.SystemSwitch, false},
 		{model.SystemID("unknown"), true},
 	}
 
@@ -136,9 +141,10 @@ func TestRegistryGetEmulator(t *testing.T) {
 		{model.EmulatorRetroArchBsnes, false},
 		{model.EmulatorRetroArchMGBA, false},
 		{model.EmulatorRetroArchMelonDS, false},
+		{model.EmulatorRetroArchPPSSPP, false},
 		{model.EmulatorDuckStation, false},
 		{model.EmulatorTIC80, false},
-		{model.EmulatorPPSSPP, false},
+		{model.EmulatorEden, false},
 		{model.EmulatorID("unknown"), true},
 	}
 
@@ -168,7 +174,8 @@ func TestRegistryGetEmulatorsForSystem(t *testing.T) {
 		{model.SystemTIC80, []model.EmulatorID{model.EmulatorTIC80}},
 		{model.SystemGBA, []model.EmulatorID{model.EmulatorRetroArchMGBA}},
 		{model.SystemNDS, []model.EmulatorID{model.EmulatorRetroArchMelonDS}},
-		{model.SystemPSP, []model.EmulatorID{model.EmulatorPPSSPP}},
+		{model.SystemPSP, []model.EmulatorID{model.EmulatorRetroArchPPSSPP}},
+		{model.SystemSwitch, []model.EmulatorID{model.EmulatorEden}},
 	}
 
 	for _, tt := range tests {
@@ -202,7 +209,8 @@ func TestRegistryGetDefaultEmulator(t *testing.T) {
 		{model.SystemTIC80, model.EmulatorTIC80, false},
 		{model.SystemGBA, model.EmulatorRetroArchMGBA, false},
 		{model.SystemNDS, model.EmulatorRetroArchMelonDS, false},
-		{model.SystemPSP, model.EmulatorPPSSPP, false},
+		{model.SystemPSP, model.EmulatorRetroArchPPSSPP, false},
+		{model.SystemSwitch, model.EmulatorEden, false},
 		{model.SystemID("unknown"), "", true},
 	}
 
@@ -238,8 +246,8 @@ func TestAllSystems(t *testing.T) {
 	reg := NewDefault()
 
 	systems := reg.AllSystems()
-	if len(systems) < 6 {
-		t.Errorf("Expected at least 6 systems, got %d", len(systems))
+	if len(systems) < 7 {
+		t.Errorf("Expected at least 7 systems, got %d", len(systems))
 	}
 
 	expected := []model.SystemID{
@@ -249,6 +257,7 @@ func TestAllSystems(t *testing.T) {
 		model.SystemGBA,
 		model.SystemNDS,
 		model.SystemPSP,
+		model.SystemSwitch,
 	}
 
 	found := make(map[model.SystemID]bool)
@@ -273,9 +282,10 @@ func TestGetConfigGenerator(t *testing.T) {
 		{model.EmulatorRetroArchBsnes, true},
 		{model.EmulatorRetroArchMGBA, true},
 		{model.EmulatorRetroArchMelonDS, true},
+		{model.EmulatorRetroArchPPSSPP, true},
 		{model.EmulatorDuckStation, true},
 		{model.EmulatorTIC80, true},
-		{model.EmulatorPPSSPP, true},
+		{model.EmulatorEden, true},
 		{model.EmulatorID("unknown"), false},
 	}
 

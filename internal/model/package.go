@@ -16,14 +16,17 @@ func (p NixpkgsPackage) Source() PackageSource {
 	return PackageSourceNixpkgs
 }
 
-// GitHubPackage references a GitHub release asset.
-type GitHubPackage struct {
-	Owner string // e.g., "stenzek"
-	Repo  string // e.g., "duckstation"
-	Asset string // e.g., "DuckStation-x64.AppImage"
+// GitHubAppImage references a GitHub release AppImage asset.
+type GitHubAppImage struct {
+	Name    string            // Package name for nix (e.g., "eden")
+	Owner   string            // e.g., "eden-emulator"
+	Repo    string            // e.g., "Releases"
+	Version string            // e.g., "v0.0.4"
+	Assets  map[string]string // arch -> asset filename (e.g., "x86_64" -> "Eden-Linux-v0.0.4-amd64-clang-pgo.AppImage")
+	Hashes  map[string]string // arch -> sha256 hash
 }
 
-func (p GitHubPackage) Source() PackageSource {
+func (p GitHubAppImage) Source() PackageSource {
 	return PackageSourceGitHub
 }
 
@@ -37,7 +40,14 @@ func NixpkgsOverlayRef(attr, overlay string) PackageRef {
 	return NixpkgsPackage{Attr: attr, Overlay: overlay}
 }
 
-// GitHubRef creates a PackageRef for a GitHub release.
-func GitHubRef(owner, repo, asset string) PackageRef {
-	return GitHubPackage{Owner: owner, Repo: repo, Asset: asset}
+// GitHubAppImageRef creates a PackageRef for a GitHub release AppImage.
+func GitHubAppImageRef(name, owner, repo, version string, assets, hashes map[string]string) PackageRef {
+	return GitHubAppImage{
+		Name:    name,
+		Owner:   owner,
+		Repo:    repo,
+		Version: version,
+		Assets:  assets,
+		Hashes:  hashes,
+	}
 }
