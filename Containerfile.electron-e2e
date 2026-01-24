@@ -11,8 +11,12 @@ USER root
 RUN curl -fsSL https://go.dev/dl/go1.24.0.linux-amd64.tar.gz | tar -C /usr/local -xzf -
 ENV PATH="/usr/local/go/bin:${PATH}"
 
-# Create non-root user for testing
-RUN useradd -m -s /bin/bash testuser
+# Create non-root user for testing with XDG directories
+RUN useradd -m -s /bin/bash testuser && \
+    mkdir -p /home/testuser/.local/share/kyaraben \
+             /home/testuser/.local/state/kyaraben \
+             /home/testuser/.config/kyaraben && \
+    chown -R testuser:testuser /home/testuser/.local /home/testuser/.config
 USER testuser
 WORKDIR /home/testuser
 
