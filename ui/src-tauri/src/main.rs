@@ -106,52 +106,91 @@ fn get_install_paths() -> (PathBuf, PathBuf) {
     (app_path, desktop_path)
 }
 
-fn find_sidecar_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    // Get the resource directory where sidecars are placed
-    let resource_dir = app
-        .path()
-        .resource_dir()
-        .map_err(|e| format!("Failed to get resource dir: {}", e))?;
-
-    // Construct the sidecar path with target triple
+fn get_sidecar_name() -> &'static str {
     #[cfg(target_os = "linux")]
-    let sidecar_name = if cfg!(target_arch = "x86_64") {
-        "kyaraben-x86_64-unknown-linux-gnu"
-    } else if cfg!(target_arch = "aarch64") {
-        "kyaraben-aarch64-unknown-linux-gnu"
-    } else {
-        "kyaraben"
-    };
-
-    #[cfg(target_os = "macos")]
-    let sidecar_name = if cfg!(target_arch = "x86_64") {
-        "kyaraben-x86_64-apple-darwin"
-    } else if cfg!(target_arch = "aarch64") {
-        "kyaraben-aarch64-apple-darwin"
-    } else {
-        "kyaraben"
-    };
-
-    #[cfg(target_os = "windows")]
-    let sidecar_name = "kyaraben-x86_64-pc-windows-msvc.exe";
-
-    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
-    let sidecar_name = "kyaraben";
-
-    let sidecar_path = resource_dir.join("binaries").join(sidecar_name);
-
-    if sidecar_path.exists() {
-        Ok(sidecar_path)
-    } else {
-        // Fallback: try without target triple (dev mode)
-        let fallback = resource_dir.join("binaries").join("kyaraben");
-        if fallback.exists() {
-            Ok(fallback)
+    {
+        if cfg!(target_arch = "x86_64") {
+            "kyaraben-x86_64-unknown-linux-gnu"
+        } else if cfg!(target_arch = "aarch64") {
+            "kyaraben-aarch64-unknown-linux-gnu"
         } else {
-            // Last resort: check if kyaraben is in PATH
-            Ok(PathBuf::from("kyaraben"))
+            "kyaraben"
         }
     }
+    #[cfg(target_os = "macos")]
+    {
+        if cfg!(target_arch = "x86_64") {
+            "kyaraben-x86_64-apple-darwin"
+        } else if cfg!(target_arch = "aarch64") {
+            "kyaraben-aarch64-apple-darwin"
+        } else {
+            "kyaraben"
+        }
+    }
+    #[cfg(target_os = "windows")]
+    {
+        "kyaraben-x86_64-pc-windows-msvc.exe"
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
+    {
+        "kyaraben"
+    }
+}
+
+fn find_sidecar_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let sidecar_name = get_sidecar_name();
+
+    // Try multiple locations in order of preference:
+    // 1. Next to the current executable (works for AppImage and installed apps)
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let sidecar_path = exe_dir.join(sidecar_name);
+            if sidecar_path.exists() {
+                return Ok(sidecar_path);
+            }
+            // Also try without target triple
+            let sidecar_path = exe_dir.join("kyaraben");
+            if sidecar_path.exists() {
+                return Ok(sidecar_path);
+            }
+        }
+    }
+
+    // 2. In the resource directory (Tauri bundled resources)
+    if let Ok(resource_dir) = app.path().resource_dir() {
+        let sidecar_path = resource_dir.join("binaries").join(sidecar_name);
+        if sidecar_path.exists() {
+            return Ok(sidecar_path);
+        }
+        // Try without target triple
+        let sidecar_path = resource_dir.join("binaries").join("kyaraben");
+        if sidecar_path.exists() {
+            return Ok(sidecar_path);
+        }
+        // Try directly in resource dir (some bundle formats)
+        let sidecar_path = resource_dir.join(sidecar_name);
+        if sidecar_path.exists() {
+            return Ok(sidecar_path);
+        }
+    }
+
+    // 3. Check APPDIR for AppImage (set by AppImage runtime)
+    if let Ok(appdir) = std::env::var("APPDIR") {
+        let appdir_path = PathBuf::from(appdir);
+        // AppImage typically places binaries in usr/bin
+        let sidecar_path = appdir_path.join("usr").join("bin").join(sidecar_name);
+        if sidecar_path.exists() {
+            return Ok(sidecar_path);
+        }
+        // Or directly in APPDIR
+        let sidecar_path = appdir_path.join(sidecar_name);
+        if sidecar_path.exists() {
+            return Ok(sidecar_path);
+        }
+    }
+
+    // 4. Fallback: assume kyaraben is in PATH
+    Ok(PathBuf::from("kyaraben"))
 }
 
 async fn ensure_daemon(app: &tauri::AppHandle) -> Result<(), String> {
