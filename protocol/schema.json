@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/fnune/kyaraben/protocol/schema.json",
+  "title": "Kyaraben Protocol",
+  "description": "JSON protocol for communication between kyaraben daemon and UI",
+  "definitions": {
+    "CommandType": {
+      "type": "string",
+      "enum": ["status", "doctor", "apply", "get_systems", "get_config", "set_config"]
+    },
+    "EventType": {
+      "type": "string",
+      "enum": ["ready", "result", "progress", "error"]
+    },
+    "Command": {
+      "type": "object",
+      "properties": {
+        "type": { "$ref": "#/definitions/CommandType" },
+        "data": { "type": "object" }
+      },
+      "required": ["type"]
+    },
+    "Event": {
+      "type": "object",
+      "properties": {
+        "type": { "$ref": "#/definitions/EventType" },
+        "data": {}
+      },
+      "required": ["type"]
+    },
+    "System": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "emulators": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/EmulatorRef" }
+        }
+      },
+      "required": ["id", "name"]
+    },
+    "EmulatorRef": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "ProvisionStatus": {
+      "type": "string",
+      "enum": ["found", "missing", "invalid", "optional"]
+    },
+    "ProvisionResult": {
+      "type": "object",
+      "properties": {
+        "filename": { "type": "string" },
+        "description": { "type": "string" },
+        "required": { "type": "boolean" },
+        "status": { "$ref": "#/definitions/ProvisionStatus" },
+        "foundPath": { "type": "string" }
+      },
+      "required": ["filename", "required", "status"]
+    },
+    "StatusResponse": {
+      "type": "object",
+      "properties": {
+        "userStore": { "type": "string" },
+        "enabledSystems": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "installedEmulators": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "version": { "type": "string" }
+            }
+          }
+        },
+        "lastApplied": { "type": "string", "format": "date-time" }
+      }
+    },
+    "DoctorResponse": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "$ref": "#/definitions/ProvisionResult" }
+      }
+    },
+    "ConfigResponse": {
+      "type": "object",
+      "properties": {
+        "userStore": { "type": "string" },
+        "systems": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "ProgressEvent": {
+      "type": "object",
+      "properties": {
+        "step": { "type": "string" },
+        "message": { "type": "string" }
+      },
+      "required": ["step", "message"]
+    },
+    "ErrorEvent": {
+      "type": "object",
+      "properties": {
+        "error": { "type": "string" }
+      },
+      "required": ["error"]
+    }
+  }
+}
