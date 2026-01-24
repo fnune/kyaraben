@@ -29,9 +29,13 @@ clean:
 ui-install:
     cd ui && npm ci
 
-# UI: run dev server
+# UI: run dev server (frontend only)
 ui-dev:
     cd ui && npm run dev
+
+# UI: run Tauri dev (full app with sidecar)
+ui-tauri-dev: sidecar
+    cd ui && npm run tauri dev
 
 # UI: build for production
 ui-build:
@@ -45,8 +49,12 @@ ui-lint:
 ui-lint-fix:
     cd ui && npm run lint:fix
 
+# Build Go CLI as Tauri sidecar
+sidecar:
+    ./scripts/build-sidecar.sh
+
 # UI: build Tauri app (release)
-ui-tauri-build:
+ui-tauri-build: sidecar
     cd ui && npm run tauri build
 
 # UI: run E2E tests (requires built Tauri app + tauri-driver)
