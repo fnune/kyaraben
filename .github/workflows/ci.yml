@@ -96,6 +96,19 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Cache nix-portable store
+        uses: actions/cache@v4
+        with:
+          path: nix-portable-cache
+          key: nix-portable-${{ runner.os }}-${{ hashFiles('internal/nix/flake.go') }}
+          restore-keys: |
+            nix-portable-${{ runner.os }}-
+
+      - name: Prepare cache directory
+        run: |
+          mkdir -p nix-portable-cache
+          chmod 777 nix-portable-cache
+
       - name: Build E2E test container
         uses: docker/build-push-action@v6
         with:
@@ -107,4 +120,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=electron-e2e
 
       - name: Run E2E tests in container
-        run: docker run --rm --ipc=host kyaraben-electron-e2e:latest
+        run: |
+          docker run --rm --ipc=host \
+            -v "$(pwd)/nix-portable-cache:/home/testuser/.local/share/kyaraben/nix-portable" \
+            kyaraben-electron-e2e:latest
