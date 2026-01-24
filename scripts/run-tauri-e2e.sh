@@ -5,6 +5,19 @@ set -euo pipefail
 
 echo "=== Kyaraben Tauri E2E Tests ==="
 echo ""
+
+# Copy external binaries to target/release for E2E testing
+# When running the raw binary (not AppImage), external binaries must be alongside the executable
+echo "Setting up external binaries for E2E tests..."
+BINARIES_DIR="/home/testuser/kyaraben/ui/src-tauri/binaries"
+TARGET_DIR="/home/testuser/kyaraben/ui/src-tauri/target/release"
+for binary in "$BINARIES_DIR"/*; do
+    if [ -f "$binary" ]; then
+        filename=$(basename "$binary")
+        cp -v "$binary" "$TARGET_DIR/$filename"
+    fi
+done
+
 echo "Starting Xvfb..."
 Xvfb :99 -screen 0 1280x720x24 &
 export DISPLAY=:99
