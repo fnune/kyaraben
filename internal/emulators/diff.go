@@ -9,23 +9,20 @@ import (
 	"github.com/fnune/kyaraben/internal/model"
 )
 
-// ConfigDiff represents the difference between current and proposed config.
 type ConfigDiff struct {
 	Path      string
 	IsNewFile bool
 	Changes   []ConfigChange
 }
 
-// ConfigChange represents a single change in a config file.
 type ConfigChange struct {
 	Type     ChangeType
-	Section  string // For INI files
+	Section  string
 	Key      string
 	OldValue string
 	NewValue string
 }
 
-// ChangeType indicates what kind of change this is.
 type ChangeType int
 
 const (
@@ -34,7 +31,6 @@ const (
 	ChangeRemove
 )
 
-// ANSI color codes
 const (
 	colorReset  = "\033[0m"
 	colorRed    = "\033[31m"
@@ -45,7 +41,6 @@ const (
 	colorDim    = "\033[2m"
 )
 
-// ComputeDiff computes the difference between current config and proposed patch.
 func ComputeDiff(patch model.ConfigPatch) (*ConfigDiff, error) {
 	diff := &ConfigDiff{
 		Path:      patch.Config.Path,
@@ -110,12 +105,10 @@ func ComputeDiff(patch model.ConfigPatch) (*ConfigDiff, error) {
 	return diff, nil
 }
 
-// HasChanges returns true if there are any changes.
 func (d *ConfigDiff) HasChanges() bool {
 	return len(d.Changes) > 0
 }
 
-// Stats returns counts of each change type.
 func (d *ConfigDiff) Stats() (adds, modifies, removes int) {
 	for _, c := range d.Changes {
 		switch c.Type {
@@ -130,12 +123,10 @@ func (d *ConfigDiff) Stats() (adds, modifies, removes int) {
 	return
 }
 
-// Format returns a human-readable string representation of the diff.
 func (d *ConfigDiff) Format() string {
 	return d.FormatWithColor(true)
 }
 
-// FormatWithColor returns a formatted diff, optionally with ANSI colors.
 func (d *ConfigDiff) FormatWithColor(useColor bool) string {
 	// Color helpers
 	green := func(s string) string {
