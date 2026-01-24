@@ -56,7 +56,7 @@ jobs:
       - name: Lint
         run: npm run lint
 
-  tauri-build:
+  electron-build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -68,16 +68,16 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Containerfile.tauri-build
-          tags: kyaraben-tauri-build:latest
+          file: Containerfile.electron-build
+          tags: kyaraben-electron-build:latest
           load: true
-          cache-from: type=gha,scope=tauri-build
-          cache-to: type=gha,mode=max,scope=tauri-build
+          cache-from: type=gha,scope=electron-build
+          cache-to: type=gha,mode=max,scope=electron-build
 
       - name: Extract AppImage from container
         run: |
           mkdir -p output
-          docker run --rm -v "$(pwd)/output:/output" kyaraben-tauri-build:latest
+          docker run --rm -v "$(pwd)/output:/output" kyaraben-electron-build:latest
           ls -la output/
 
       - name: Upload AppImage artifact
@@ -87,7 +87,7 @@ jobs:
           path: output/*.AppImage
           if-no-files-found: error
 
-  tauri-e2e:
+  electron-e2e:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -99,11 +99,11 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Containerfile.tauri-e2e
-          tags: kyaraben-tauri-e2e:latest
+          file: Containerfile.electron-e2e
+          tags: kyaraben-electron-e2e:latest
           load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=electron-e2e
+          cache-to: type=gha,mode=max,scope=electron-e2e
 
       - name: Run E2E tests in container
-        run: docker run --rm kyaraben-tauri-e2e:latest
+        run: docker run --rm kyaraben-electron-e2e:latest
