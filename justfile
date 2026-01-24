@@ -45,6 +45,14 @@ ui-lint:
 ui-lint-fix:
     cd ui && npm run lint:fix
 
+# UI: run Playwright tests
+ui-test:
+    cd ui && npm test
+
+# UI: run Playwright tests with UI
+ui-test-ui:
+    cd ui && npm run test:ui
+
 # Build dev container
 container-build:
     podman build -t kyaraben-dev -f Containerfile.dev .
