@@ -7,22 +7,23 @@ import (
 
 	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/store"
 )
 
 func TestRun(t *testing.T) {
 	tmpDir := t.TempDir()
-	userStore := filepath.Join(tmpDir, "Emulation")
+	userStorePath := filepath.Join(tmpDir, "Emulation")
 
-	if err := os.MkdirAll(filepath.Join(userStore, "bios", "psx"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(userStorePath, "bios", "psx"), 0755); err != nil {
 		t.Fatalf("Failed to create bios dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(userStore, "bios", "tic80"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(userStorePath, "bios", "tic80"), 0755); err != nil {
 		t.Fatalf("Failed to create bios dir: %v", err)
 	}
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: userStore,
+			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
 			model.SystemPSX:   {Emulator: model.EmulatorDuckStation},
@@ -31,8 +32,9 @@ func TestRun(t *testing.T) {
 	}
 
 	registry := emulators.NewRegistry()
+	userStore := store.NewUserStore(userStorePath)
 
-	result, err := Run(cfg, registry)
+	result, err := Run(cfg, registry, userStore)
 	if err != nil {
 		t.Fatalf("Run failed: %v", err)
 	}
@@ -53,15 +55,15 @@ func TestRun(t *testing.T) {
 
 func TestRunNoProvisions(t *testing.T) {
 	tmpDir := t.TempDir()
-	userStore := filepath.Join(tmpDir, "Emulation")
+	userStorePath := filepath.Join(tmpDir, "Emulation")
 
-	if err := os.MkdirAll(filepath.Join(userStore, "bios", "tic80"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(userStorePath, "bios", "tic80"), 0755); err != nil {
 		t.Fatalf("Failed to create bios dir: %v", err)
 	}
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: userStore,
+			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
 			model.SystemTIC80: {Emulator: model.EmulatorTIC80},
@@ -69,8 +71,9 @@ func TestRunNoProvisions(t *testing.T) {
 	}
 
 	registry := emulators.NewRegistry()
+	userStore := store.NewUserStore(userStorePath)
 
-	result, err := Run(cfg, registry)
+	result, err := Run(cfg, registry, userStore)
 	if err != nil {
 		t.Fatalf("Run failed: %v", err)
 	}
@@ -100,9 +103,9 @@ func TestRunNoProvisions(t *testing.T) {
 
 func TestRunWithBiosFile(t *testing.T) {
 	tmpDir := t.TempDir()
-	userStore := filepath.Join(tmpDir, "Emulation")
+	userStorePath := filepath.Join(tmpDir, "Emulation")
 
-	biosDir := filepath.Join(userStore, "bios", "psx")
+	biosDir := filepath.Join(userStorePath, "bios", "psx")
 	if err := os.MkdirAll(biosDir, 0755); err != nil {
 		t.Fatalf("Failed to create bios dir: %v", err)
 	}
@@ -115,7 +118,7 @@ func TestRunWithBiosFile(t *testing.T) {
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: userStore,
+			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
 			model.SystemPSX: {Emulator: model.EmulatorDuckStation},
@@ -123,8 +126,9 @@ func TestRunWithBiosFile(t *testing.T) {
 	}
 
 	registry := emulators.NewRegistry()
+	userStore := store.NewUserStore(userStorePath)
 
-	result, err := Run(cfg, registry)
+	result, err := Run(cfg, registry, userStore)
 	if err != nil {
 		t.Fatalf("Run failed: %v", err)
 	}
@@ -156,15 +160,15 @@ func TestRunWithBiosFile(t *testing.T) {
 
 func TestRunSystemResult(t *testing.T) {
 	tmpDir := t.TempDir()
-	userStore := filepath.Join(tmpDir, "Emulation")
+	userStorePath := filepath.Join(tmpDir, "Emulation")
 
-	if err := os.MkdirAll(filepath.Join(userStore, "bios", "psx"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(userStorePath, "bios", "psx"), 0755); err != nil {
 		t.Fatalf("Failed to create bios dir: %v", err)
 	}
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: userStore,
+			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
 			model.SystemPSX: {Emulator: model.EmulatorDuckStation},
@@ -172,8 +176,9 @@ func TestRunSystemResult(t *testing.T) {
 	}
 
 	registry := emulators.NewRegistry()
+	userStore := store.NewUserStore(userStorePath)
 
-	result, err := Run(cfg, registry)
+	result, err := Run(cfg, registry, userStore)
 	if err != nil {
 		t.Fatalf("Run failed: %v", err)
 	}
@@ -190,7 +195,7 @@ func TestRunSystemResult(t *testing.T) {
 		t.Errorf("EmulatorName: got %s, want DuckStation", sys.EmulatorName)
 	}
 
-	expectedBiosDir := filepath.Join(userStore, "bios", "psx")
+	expectedBiosDir := filepath.Join(userStorePath, "bios", "psx")
 	if sys.BiosDir != expectedBiosDir {
 		t.Errorf("BiosDir: got %s, want %s", sys.BiosDir, expectedBiosDir)
 	}
