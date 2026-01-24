@@ -37,6 +37,14 @@ ls -la /home/testuser/kyaraben/ui/dist-electron/ || echo "dist-electron missing"
 ls -la /home/testuser/kyaraben/ui/dist/ || echo "dist missing"
 
 echo ""
+echo "Starting D-Bus..."
+mkdir -p /run/dbus
+dbus-daemon --system --fork 2>/dev/null || echo "D-Bus system daemon already running or not available"
+export DBUS_SESSION_BUS_ADDRESS="unix:path=/tmp/dbus-session-$$"
+dbus-daemon --session --address="$DBUS_SESSION_BUS_ADDRESS" --fork 2>/dev/null || echo "D-Bus session daemon failed"
+export NO_AT_BRIDGE=1
+
+echo ""
 echo "Starting Xvfb..."
 Xvfb :99 -screen 0 1280x720x24 &
 XVFB_PID=$!
@@ -45,6 +53,7 @@ sleep 2
 
 # Verify display is working
 echo "DISPLAY=$DISPLAY"
+echo "DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS"
 xdpyinfo -display :99 >/dev/null 2>&1 && echo "Xvfb is running" || echo "WARNING: xdpyinfo failed"
 
 echo ""
