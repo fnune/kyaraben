@@ -5,7 +5,13 @@ import { SyncSettings } from '@/components/SyncSettings/SyncSettings'
 import { SyncStatusBar } from '@/components/SyncStatusBar/SyncStatusBar'
 import { SystemGrid } from '@/components/SystemGrid/SystemGrid'
 import { useDaemon } from '@/hooks/useDaemon'
-import type { DoctorResponse, EmulatorID, SyncStatusResponse, System, SystemID } from '@/types/daemon'
+import type {
+  DoctorResponse,
+  EmulatorID,
+  SyncStatusResponse,
+  System,
+  SystemID,
+} from '@/types/daemon'
 import type { ApplyStatus, ProgressStep } from '@/types/ui'
 
 const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
