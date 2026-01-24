@@ -54,6 +54,9 @@ ENV APPIMAGE_EXTRACT_AND_RUN=1
 ENV NO_STRIP=true
 RUN cd ui && npm run tauri build
 
+# Fix AppImage environment issues (wayland libs, GTK_PATH, GTK_MODULES)
+RUN ./scripts/fix-appimage.sh /build/ui/src-tauri/target/release/bundle/appimage/*.AppImage
+
 # Output directory for the built AppImage
 RUN mkdir -p /output
 
