@@ -27,7 +27,8 @@ export const config: Options.Testrunner = {
   framework: 'mocha',
   mochaOpts: {
     ui: 'bdd',
-    timeout: 60000,
+    // Nix builds can take several minutes, especially first run downloading from cache.nixos.org
+    timeout: 900000, // 15 minutes
   },
 
   // Start tauri-driver before tests
