@@ -33,19 +33,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN curl -fsSL https://go.dev/dl/go1.24.0.linux-amd64.tar.gz | tar -C /usr/local -xzf -
 ENV PATH="/usr/local/go/bin:${PATH}"
 
-# Install tauri-driver
-RUN cargo install tauri-driver
-
-# Create test user for Nix
+# Create test user early so we can install tauri-driver as non-root
 RUN useradd -m -s /bin/bash testuser && \
     echo "testuser ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 USER testuser
 WORKDIR /home/testuser
 
-# Set user-writable cargo home (root's cargo registry has wrong permissions)
+# Set up cargo for testuser
 ENV CARGO_HOME="/home/testuser/.cargo"
 ENV PATH="/home/testuser/.cargo/bin:${PATH}"
+
+# Install tauri-driver as testuser (avoids permission issues)
+RUN cargo install tauri-driver
 
 # Install Nix
 RUN curl -L https://nixos.org/nix/install | sh -s -- --no-daemon
