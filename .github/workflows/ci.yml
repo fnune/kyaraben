@@ -106,4 +106,4 @@ jobs:
           cache-to: type=gha,mode=max,scope=electron-e2e
 
       - name: Run E2E tests in container
-        run: docker run --rm kyaraben-electron-e2e:latest
+        run: docker run --rm --ipc=host kyaraben-electron-e2e:latest

@@ -1,50 +1,17 @@
 # Kyaraben Electron E2E test container
-# Tests the full UI -> Electron -> Go daemon -> nix-portable flow
+# Uses official Playwright image which has Xvfb and browser deps pre-configured
 #
 # Build: podman build -t kyaraben-electron-e2e -f Containerfile.electron-e2e .
-# Run:   podman run -it --rm kyaraben-electron-e2e
+# Run:   podman run --ipc=host --rm kyaraben-electron-e2e
 
-FROM docker.io/library/node:22-bookworm
+FROM mcr.microsoft.com/playwright:v1.49.1-noble
 
-# Install system dependencies for Electron
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    # Display for headless testing
-    xvfb \
-    x11-utils \
-    # D-Bus (needed by Electron in containers)
-    dbus \
-    dbus-x11 \
-    # Electron dependencies
-    libasound2 \
-    libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libcups2 \
-    libdrm2 \
-    libgbm1 \
-    libgtk-3-0 \
-    libnspr4 \
-    libnss3 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxkbcommon0 \
-    libxrandr2 \
-    libxshmfence1 \
-    libglu1-mesa \
-    libx11-xcb1 \
-    libxcb-dri3-0 \
-    libxtst6 \
-    libxss1 \
-    # Build tools
-    ca-certificates \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Go 1.24
+# Install Go (Playwright image is based on Ubuntu, includes Node.js)
+USER root
 RUN curl -fsSL https://go.dev/dl/go1.24.0.linux-amd64.tar.gz | tar -C /usr/local -xzf -
 ENV PATH="/usr/local/go/bin:${PATH}"
 
-# Create test user
+# Create non-root user for testing
 RUN useradd -m -s /bin/bash testuser
 USER testuser
 WORKDIR /home/testuser
@@ -56,15 +23,12 @@ WORKDIR /home/testuser/kyaraben
 # Build Go sidecar (includes nix-portable download)
 RUN ./scripts/build-sidecar.sh
 
-# Install Node dependencies (skip Playwright browser download - we use Electron directly)
+# Install Node dependencies (skip Playwright browser download - we use Electron)
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 RUN cd ui && npm ci
 
 # Build frontend and Electron
 RUN cd ui && npm run build && npm run build:electron
 
-# Copy and set up test runner script
-RUN cp scripts/run-electron-e2e.sh /home/testuser/run-electron-e2e.sh && \
-    chmod +x /home/testuser/run-electron-e2e.sh
-
-CMD ["/home/testuser/run-electron-e2e.sh"]
+# Run tests with xvfb-run (built into Playwright image)
+CMD ["xvfb-run", "--auto-servernum", "--", "npm", "run", "test:e2e", "--prefix", "/home/testuser/kyaraben/ui"]
