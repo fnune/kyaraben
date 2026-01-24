@@ -3,3 +3,4 @@ dist/
 dist-electron/
 src-tauri/binaries/
 release/
+test-results/
