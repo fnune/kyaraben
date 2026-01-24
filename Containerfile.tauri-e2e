@@ -43,6 +43,10 @@ RUN useradd -m -s /bin/bash testuser && \
 USER testuser
 WORKDIR /home/testuser
 
+# Set user-writable cargo home (root's cargo registry has wrong permissions)
+ENV CARGO_HOME="/home/testuser/.cargo"
+ENV PATH="/home/testuser/.cargo/bin:${PATH}"
+
 # Install Nix
 RUN curl -L https://nixos.org/nix/install | sh -s -- --no-daemon
 RUN mkdir -p ~/.config/nix && \
