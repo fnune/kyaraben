@@ -45,6 +45,7 @@ export function App() {
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null)
   const [showSyncSettings, setShowSyncSettings] = useState(false)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: init runs once on mount, daemon methods are stable
   useEffect(() => {
     async function init() {
       const [systemsResult, configResult] = await Promise.all([
@@ -80,7 +81,7 @@ export function App() {
     }
 
     init()
-  }, [daemon])
+  }, [])
 
   const handleToggle = useCallback(
     (systemId: SystemID, enabled: boolean) => {

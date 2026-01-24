@@ -17,7 +17,6 @@ type Client struct {
 	config     model.SyncConfig
 	apiKey     string
 	httpClient *http.Client
-	process    *Process
 }
 
 func NewClient(config model.SyncConfig) *Client {
@@ -55,7 +54,7 @@ func (c *Client) GetDeviceID(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("getting system status: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("unexpected status: %d", resp.StatusCode)
@@ -83,7 +82,7 @@ func (c *Client) GetConnections(ctx context.Context) (map[string]ConnectionInfo,
 	if err != nil {
 		return nil, fmt.Errorf("getting connections: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
@@ -115,7 +114,7 @@ func (c *Client) GetFolderStatus(ctx context.Context, folderID string) (*FolderS
 	if err != nil {
 		return nil, fmt.Errorf("getting folder status: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
@@ -134,7 +133,7 @@ func (c *Client) IsRunning(ctx context.Context) bool {
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	return resp.StatusCode == http.StatusOK
 }
 
