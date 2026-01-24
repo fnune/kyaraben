@@ -2,7 +2,7 @@
 # Build: podman build -t kyaraben-test -f Containerfile .
 # Run:   podman run -it --rm kyaraben-test
 
-FROM docker.io/library/golang:1.23-bookworm AS builder
+FROM docker.io/library/golang:1.24-bookworm AS builder
 
 WORKDIR /app
 
