@@ -6,20 +6,25 @@ let electronApp: ElectronApplication
 let page: Page
 
 test.beforeAll(async () => {
-  const appPath = path.join(__dirname, '..')
-  console.log('[test] App path:', appPath)
+  // Point directly to the compiled main.js instead of directory
+  const mainPath = path.join(__dirname, '..', 'dist-electron', 'main.js')
+  console.log('[test] Main path:', mainPath)
   console.log('[test] DISPLAY:', process.env.DISPLAY)
 
   electronApp = await electron.launch({
     args: [
-      appPath,
+      mainPath,
       '--no-sandbox', // Required for running in Docker/CI
       '--disable-gpu',
+      '--disable-dev-shm-usage', // Helps with Docker memory issues
     ],
+    cwd: path.join(__dirname, '..'), // Set working directory to ui/
     env: {
       ...process.env,
       NODE_ENV: 'test',
+      ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
     },
+    timeout: 30000, // 30 second timeout for launch
   })
   console.log('[test] Electron launched successfully')
 
