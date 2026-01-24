@@ -12,17 +12,14 @@ import (
 	"github.com/fnune/kyaraben/internal/model"
 )
 
-// ProvisionChecker verifies that required provisions are present.
 type ProvisionChecker struct {
 	userStore *UserStore
 }
 
-// NewProvisionChecker creates a new provision checker.
 func NewProvisionChecker(userStore *UserStore) *ProvisionChecker {
 	return &ProvisionChecker{userStore: userStore}
 }
 
-// Check verifies all provisions for an emulator.
 func (pc *ProvisionChecker) Check(emu model.Emulator, sys model.SystemID) []model.ProvisionResult {
 	results := make([]model.ProvisionResult, 0, len(emu.Provisions))
 
@@ -94,7 +91,6 @@ func (pc *ProvisionChecker) checkProvision(prov model.Provision, biosDir string)
 	return result
 }
 
-// CheckAll verifies provisions for multiple emulators.
 func (pc *ProvisionChecker) CheckAll(emulators map[model.SystemID]model.Emulator) map[model.EmulatorID][]model.ProvisionResult {
 	results := make(map[model.EmulatorID][]model.ProvisionResult)
 
@@ -105,7 +101,6 @@ func (pc *ProvisionChecker) CheckAll(emulators map[model.SystemID]model.Emulator
 	return results
 }
 
-// HasMissingRequired returns true if any required provision is missing.
 func HasMissingRequired(results []model.ProvisionResult) bool {
 	for _, r := range results {
 		if r.Provision.Required && r.Status == model.ProvisionMissing {
