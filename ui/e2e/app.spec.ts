@@ -101,8 +101,6 @@ describe('Kyaraben App', () => {
 
 describe('Kyaraben Apply (requires Nix)', () => {
   it('can apply configuration with TIC-80', async function () {
-    // Allow 6 minutes for this test (nix-portable first run can be slow)
-    this.timeout(360000)
     // This test requires Nix to be available
     // It tests the full stack: UI -> Tauri -> Go daemon -> Nix
 
