@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Build the Go CLI as a Tauri sidecar binary
-# Tauri requires sidecars to be named with target triple suffix
+# Build the Go CLI as an Electron sidecar binary
+# Sidecars are named with target triple suffix for platform detection
 # Also downloads nix-portable for bundling
 
 set -euo pipefail
