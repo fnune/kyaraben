@@ -144,6 +144,7 @@ func (c *Client) Build(ctx context.Context, flakeRef string) (string, error) {
 		flakeRef,
 		"--no-link",
 		"--print-out-paths",
+		"-L", // Print build logs to see what's happening during build phase
 	}
 
 	cmd, err := c.runNix(ctx, args)

@@ -12,6 +12,7 @@ let tauriDriver: ChildProcess | null = null
 
 export const config: Options.Testrunner = {
   runner: 'local',
+  logLevel: 'warn',
   tsConfigPath: './tsconfig.json',
   specs: ['./e2e/**/*.spec.ts'],
   maxInstances: 1,
