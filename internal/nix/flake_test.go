@@ -1,6 +1,7 @@
 package nix
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,9 +10,49 @@ import (
 	"github.com/fnune/kyaraben/internal/model"
 )
 
+// mockEmulatorLookup implements EmulatorLookup for testing.
+type mockEmulatorLookup struct {
+	emulators map[model.EmulatorID]model.Emulator
+}
+
+func newMockLookup() *mockEmulatorLookup {
+	return &mockEmulatorLookup{
+		emulators: map[model.EmulatorID]model.Emulator{
+			model.EmulatorDuckStation: {
+				ID:      model.EmulatorDuckStation,
+				Name:    "DuckStation",
+				Package: model.NixpkgsRef("duckstation"),
+			},
+			model.EmulatorRetroArchBsnes: {
+				ID:      model.EmulatorRetroArchBsnes,
+				Name:    "RetroArch (bsnes)",
+				Package: model.NixpkgsOverlayRef("retroarch-bsnes", `pkgs.retroarch.override { cores = with pkgs.libretro; [ bsnes ]; }`),
+			},
+			model.EmulatorTIC80: {
+				ID:      model.EmulatorTIC80,
+				Name:    "TIC-80",
+				Package: model.NixpkgsRef("tic-80"),
+			},
+			model.EmulatorE2ETest: {
+				ID:      model.EmulatorE2ETest,
+				Name:    "E2E Test",
+				Package: model.NixpkgsRef("hello"),
+			},
+		},
+	}
+}
+
+func (m *mockEmulatorLookup) GetEmulator(id model.EmulatorID) (model.Emulator, error) {
+	emu, ok := m.emulators[id]
+	if !ok {
+		return model.Emulator{}, fmt.Errorf("unknown emulator: %s", id)
+	}
+	return emu, nil
+}
+
 func TestFlakeGeneratorGenerate(t *testing.T) {
 	tmpDir := t.TempDir()
-	fg := NewFlakeGenerator()
+	fg := NewFlakeGenerator(newMockLookup())
 
 	err := fg.Generate(tmpDir, []model.EmulatorID{model.EmulatorDuckStation})
 	if err != nil {
@@ -42,7 +83,7 @@ func TestFlakeGeneratorGenerate(t *testing.T) {
 
 func TestFlakeGeneratorGenerateMultiple(t *testing.T) {
 	tmpDir := t.TempDir()
-	fg := NewFlakeGenerator()
+	fg := NewFlakeGenerator(newMockLookup())
 
 	emulators := []model.EmulatorID{
 		model.EmulatorRetroArchBsnes,
@@ -75,7 +116,7 @@ func TestFlakeGeneratorGenerateMultiple(t *testing.T) {
 
 func TestFlakeGeneratorGenerateUnknownEmulator(t *testing.T) {
 	tmpDir := t.TempDir()
-	fg := NewFlakeGenerator()
+	fg := NewFlakeGenerator(newMockLookup())
 
 	err := fg.Generate(tmpDir, []model.EmulatorID{"unknown-emulator"})
 	if err == nil {
@@ -88,7 +129,7 @@ func TestFlakeGeneratorGenerateUnknownEmulator(t *testing.T) {
 }
 
 func TestFlakeGeneratorFlakeRef(t *testing.T) {
-	fg := NewFlakeGenerator()
+	fg := NewFlakeGenerator(newMockLookup())
 
 	tests := []struct {
 		emuID    model.EmulatorID
@@ -100,7 +141,11 @@ func TestFlakeGeneratorFlakeRef(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		ref := fg.FlakeRef("/tmp/flake", test.emuID)
+		ref, err := fg.FlakeRef("/tmp/flake", test.emuID)
+		if err != nil {
+			t.Errorf("FlakeRef(%s) returned error: %v", test.emuID, err)
+			continue
+		}
 		if !strings.HasSuffix(ref, "#"+test.expected) {
 			t.Errorf("FlakeRef(%s) = %s, expected suffix #%s", test.emuID, ref, test.expected)
 		}
@@ -108,7 +153,7 @@ func TestFlakeGeneratorFlakeRef(t *testing.T) {
 }
 
 func TestFlakeGeneratorDefaultFlakeRef(t *testing.T) {
-	fg := NewFlakeGenerator()
+	fg := NewFlakeGenerator(newMockLookup())
 
 	ref := fg.DefaultFlakeRef("/tmp/flake")
 	absPath, _ := filepath.Abs("/tmp/flake")
@@ -121,7 +166,7 @@ func TestFlakeGeneratorDefaultFlakeRef(t *testing.T) {
 func TestFlakeGeneratorCreatesDirectory(t *testing.T) {
 	tmpDir := t.TempDir()
 	nestedDir := filepath.Join(tmpDir, "nested", "flake", "dir")
-	fg := NewFlakeGenerator()
+	fg := NewFlakeGenerator(newMockLookup())
 
 	err := fg.Generate(nestedDir, []model.EmulatorID{model.EmulatorE2ETest})
 	if err != nil {
@@ -135,7 +180,7 @@ func TestFlakeGeneratorCreatesDirectory(t *testing.T) {
 
 func TestFlakeGeneratorRetroArchOverride(t *testing.T) {
 	tmpDir := t.TempDir()
-	fg := NewFlakeGenerator()
+	fg := NewFlakeGenerator(newMockLookup())
 
 	err := fg.Generate(tmpDir, []model.EmulatorID{model.EmulatorRetroArchBsnes})
 	if err != nil {
@@ -159,26 +204,63 @@ func TestFlakeGeneratorRetroArchOverride(t *testing.T) {
 }
 
 func TestNewFlakeGenerator(t *testing.T) {
-	fg := NewFlakeGenerator()
+	lookup := newMockLookup()
+	fg := NewFlakeGenerator(lookup)
 
 	if fg == nil {
 		t.Fatal("NewFlakeGenerator returned nil")
 	}
 
-	if fg.emulatorAttrs == nil {
-		t.Fatal("emulatorAttrs should be initialized")
+	if fg.emulators == nil {
+		t.Fatal("emulators should be initialized")
+	}
+}
+
+func TestPackageInfoFromRef(t *testing.T) {
+	tests := []struct {
+		name     string
+		ref      model.PackageRef
+		wantName string
+		wantExpr string
+		wantErr  bool
+	}{
+		{
+			name:     "simple nixpkgs",
+			ref:      model.NixpkgsRef("duckstation"),
+			wantName: "duckstation",
+			wantExpr: "pkgs.duckstation",
+		},
+		{
+			name:     "nixpkgs with overlay",
+			ref:      model.NixpkgsOverlayRef("retroarch-bsnes", "pkgs.retroarch.override {}"),
+			wantName: "retroarch-bsnes",
+			wantExpr: "pkgs.retroarch.override {}",
+		},
+		{
+			name:    "github package",
+			ref:     model.GitHubRef("owner", "repo", "asset"),
+			wantErr: true,
+		},
 	}
 
-	expectedAttrs := []model.EmulatorID{
-		model.EmulatorRetroArchBsnes,
-		model.EmulatorDuckStation,
-		model.EmulatorTIC80,
-		model.EmulatorE2ETest,
-	}
-
-	for _, emuID := range expectedAttrs {
-		if _, ok := fg.emulatorAttrs[emuID]; !ok {
-			t.Errorf("emulatorAttrs missing entry for %s", emuID)
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			info, err := packageInfoFromRef(tt.ref)
+			if tt.wantErr {
+				if err == nil {
+					t.Error("expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if info.Name != tt.wantName {
+				t.Errorf("Name = %s, want %s", info.Name, tt.wantName)
+			}
+			if info.Expr != tt.wantExpr {
+				t.Errorf("Expr = %s, want %s", info.Expr, tt.wantExpr)
+			}
+		})
 	}
 }

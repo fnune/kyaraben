@@ -42,7 +42,7 @@ if [ -z "$TARGET_TRIPLE" ]; then
 fi
 
 # Output location - same as sidecar binaries
-OUTPUT_DIR="${1:-$PROJECT_ROOT/ui/src-tauri/binaries}"
+OUTPUT_DIR="${1:-$PROJECT_ROOT/ui/binaries}"
 OUTPUT_NAME="nix-portable-$TARGET_TRIPLE"
 
 mkdir -p "$OUTPUT_DIR"
