@@ -1,5 +1,5 @@
 node_modules/
 dist/
-src-tauri/target/
+dist-electron/
 src-tauri/binaries/
-src-tauri/gen/
+release/
