@@ -1,0 +1,34 @@
+# Kyaraben Electron E2E test container
+# Uses official Playwright image which has Xvfb and browser deps pre-configured
+#
+# Build: podman build -t kyaraben-electron-e2e -f Containerfile.electron-e2e .
+# Run:   podman run --ipc=host --rm kyaraben-electron-e2e
+
+FROM mcr.microsoft.com/playwright:v1.49.1-noble
+
+# Install Go (Playwright image is based on Ubuntu, includes Node.js)
+USER root
+RUN curl -fsSL https://go.dev/dl/go1.24.0.linux-amd64.tar.gz | tar -C /usr/local -xzf -
+ENV PATH="/usr/local/go/bin:${PATH}"
+
+# Create non-root user for testing
+RUN useradd -m -s /bin/bash testuser
+USER testuser
+WORKDIR /home/testuser
+
+# Copy project
+COPY --chown=testuser:testuser . /home/testuser/kyaraben
+WORKDIR /home/testuser/kyaraben
+
+# Build Go sidecar (includes nix-portable download)
+RUN ./scripts/build-sidecar.sh
+
+# Install Node dependencies (skip Playwright browser download - we use Electron)
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+RUN cd ui && npm ci
+
+# Build frontend and Electron
+RUN cd ui && npm run build && npm run build:electron
+
+# Start Xvfb without auth (-ac), then run tests
+CMD ["sh", "-c", "Xvfb :99 -ac -screen 0 1280x1024x24 & sleep 2 && DISPLAY=:99 npm run test:e2e --prefix /home/testuser/kyaraben/ui"]

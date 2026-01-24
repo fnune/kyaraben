@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -28,7 +29,10 @@ func NewClient() (*Client, error) {
 
 	// Try to find nix-portable, but don't fail if not found.
 	// This allows dry-run and other non-Nix operations to work.
-	nixPortable, _ := findNixPortable()
+	nixPortable, findErr := findNixPortable()
+	if findErr != nil {
+		fmt.Fprintf(os.Stderr, "[kyaraben-go] Warning: %v\n", findErr)
+	}
 
 	return &Client{
 		NixPortableBinary:   nixPortable,
@@ -140,6 +144,7 @@ func (c *Client) Build(ctx context.Context, flakeRef string) (string, error) {
 		flakeRef,
 		"--no-link",
 		"--print-out-paths",
+		"-L", // Print build logs to see what's happening during build phase
 	}
 
 	cmd, err := c.runNix(ctx, args)
@@ -148,12 +153,12 @@ func (c *Client) Build(ctx context.Context, flakeRef string) (string, error) {
 	}
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
+	// Stream stderr to console while also capturing it for error reporting
+	cmd.Stderr = io.MultiWriter(&stderr, os.Stderr)
 
 	fmt.Fprintf(os.Stderr, "[kyaraben-go] Executing nix build (this may take a while on first run)...\n")
 	if err := cmd.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "[kyaraben-go] nix build FAILED: %v\n", err)
-		fmt.Fprintf(os.Stderr, "[kyaraben-go] stderr: %s\n", stderr.String())
 		return "", fmt.Errorf("nix build failed: %w\nstderr: %s", err, stderr.String())
 	}
 

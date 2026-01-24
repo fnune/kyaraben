@@ -1,4 +1,5 @@
-import { invoke } from '@tauri-apps/api/core'
+// Invoke function - uses Electron IPC
+const invoke = (channel, ...args) => window.electron.invoke(channel, ...args)
 
 // State
 let systems = []

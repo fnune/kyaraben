@@ -5,10 +5,12 @@ export default defineConfig({
   server: {
     strictPort: true,
   },
-  envPrefix: ['VITE_', 'TAURI_'],
+  envPrefix: ['VITE_'],
   build: {
-    target: ['es2021', 'chrome100', 'safari13'],
-    minify: !process.env.TAURI_DEBUG ? 'esbuild' : false,
-    sourcemap: !!process.env.TAURI_DEBUG,
+    target: ['es2022', 'chrome100'],
+    minify: process.env.NODE_ENV === 'production' ? 'esbuild' : false,
+    sourcemap: process.env.NODE_ENV !== 'production',
   },
+  // Electron will serve from file:// protocol
+  base: './',
 })
