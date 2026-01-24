@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/alecthomas/kong"
+
 	"github.com/fnune/kyaraben/internal/cli"
 	"github.com/fnune/kyaraben/internal/logging"
 )
