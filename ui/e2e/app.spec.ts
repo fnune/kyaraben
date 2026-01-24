@@ -8,8 +8,9 @@ let page: Page
 test.beforeAll(async () => {
   const mainPath = path.join(__dirname, '..', 'dist-electron', 'main.js')
 
+  // --no-sandbox required for Chromium in Docker: https://playwright.dev/docs/ci#docker
   electronApp = await electron.launch({
-    args: [mainPath],
+    args: [mainPath, '--no-sandbox'],
     cwd: path.join(__dirname, '..'),
   })
 
