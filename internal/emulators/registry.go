@@ -2,6 +2,7 @@ package emulators
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/fnune/kyaraben/internal/model"
 )
@@ -36,6 +37,12 @@ func (r *Registry) registerSystems() {
 		ID:          model.SystemTIC80,
 		Name:        "TIC-80",
 		Description: "Fantasy console for making and playing tiny games",
+	}
+	r.systems[model.SystemE2ETest] = model.System{
+		ID:          model.SystemE2ETest,
+		Name:        "E2E Test",
+		Description: "Hidden system for CI testing (uses hello from nixpkgs)",
+		Hidden:      true,
 	}
 }
 
@@ -111,6 +118,16 @@ func (r *Registry) registerEmulators() {
 		},
 		ConfigPaths: []string{},
 	}
+	r.emulators[model.EmulatorE2ETest] = model.Emulator{
+		ID:         model.EmulatorE2ETest,
+		Name:       "E2E Test",
+		Systems:    []model.SystemID{model.SystemE2ETest},
+		Source:     model.PackageSourceNixpkgs,
+		NixAttr:    "hello",
+		Provisions: []model.Provision{},
+		StateKinds: []model.StateKind{},
+		ConfigPaths: []string{},
+	}
 }
 
 func (r *Registry) GetSystem(id model.SystemID) (model.System, error) {
@@ -141,9 +158,10 @@ func (r *Registry) GetEmulatorsForSystem(sys model.SystemID) []model.Emulator {
 
 func (r *Registry) GetDefaultEmulator(sys model.SystemID) (model.Emulator, error) {
 	defaults := map[model.SystemID]model.EmulatorID{
-		model.SystemSNES:  model.EmulatorRetroArchBsnes,
-		model.SystemPSX:   model.EmulatorDuckStation,
-		model.SystemTIC80: model.EmulatorTIC80,
+		model.SystemSNES:    model.EmulatorRetroArchBsnes,
+		model.SystemPSX:     model.EmulatorDuckStation,
+		model.SystemTIC80:   model.EmulatorTIC80,
+		model.SystemE2ETest: model.EmulatorE2ETest,
 	}
 
 	emuID, ok := defaults[sys]
@@ -154,9 +172,12 @@ func (r *Registry) GetDefaultEmulator(sys model.SystemID) (model.Emulator, error
 }
 
 func (r *Registry) AllSystems() []model.System {
+	showHidden := os.Getenv("KYARABEN_SHOW_HIDDEN") == "1"
 	result := make([]model.System, 0, len(r.systems))
 	for _, sys := range r.systems {
-		result = append(result, sys)
+		if !sys.Hidden || showHidden {
+			result = append(result, sys)
+		}
 	}
 	return result
 }

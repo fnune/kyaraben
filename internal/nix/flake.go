@@ -20,6 +20,7 @@ func NewFlakeGenerator() *FlakeGenerator {
 			model.EmulatorRetroArchBsnes: "retroarch-bsnes",
 			model.EmulatorDuckStation:    "duckstation",
 			model.EmulatorTIC80:          "tic-80",
+			model.EmulatorE2ETest:        "hello",
 		},
 	}
 }
@@ -128,6 +129,12 @@ func (fg *FlakeGenerator) packageForEmulator(emuID model.EmulatorID) (PackageInf
 		return PackageInfo{
 			Name: "tic-80",
 			Expr: "pkgs.tic-80",
+		}, nil
+
+	case model.EmulatorE2ETest:
+		return PackageInfo{
+			Name: "hello",
+			Expr: "pkgs.hello",
 		}, nil
 
 	default:
