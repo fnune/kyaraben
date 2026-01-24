@@ -8,11 +8,11 @@ const (
 )
 
 type SyncConfig struct {
-	Enabled   bool              `toml:"enabled"`
-	Mode      SyncMode          `toml:"mode"`
-	Syncthing SyncthingConfig   `toml:"syncthing"`
-	Devices   []SyncDevice      `toml:"devices"`
-	Ignore    SyncIgnoreConfig  `toml:"ignore"`
+	Enabled   bool             `toml:"enabled"`
+	Mode      SyncMode         `toml:"mode"`
+	Syncthing SyncthingConfig  `toml:"syncthing"`
+	Devices   []SyncDevice     `toml:"devices"`
+	Ignore    SyncIgnoreConfig `toml:"ignore"`
 }
 
 type SyncthingConfig struct {

@@ -98,16 +98,16 @@ func (c *Client) GetConnections(ctx context.Context) (map[string]ConnectionInfo,
 }
 
 type FolderStatus struct {
-	State        string `json:"state"`
-	GlobalFiles  int    `json:"globalFiles"`
-	GlobalBytes  int64  `json:"globalBytes"`
-	LocalFiles   int    `json:"localFiles"`
-	LocalBytes   int64  `json:"localBytes"`
-	NeedFiles    int    `json:"needFiles"`
-	NeedBytes    int64  `json:"needBytes"`
-	PullErrors   int    `json:"pullErrors"`
-	InSyncFiles  int    `json:"inSyncFiles"`
-	InSyncBytes  int64  `json:"inSyncBytes"`
+	State       string `json:"state"`
+	GlobalFiles int    `json:"globalFiles"`
+	GlobalBytes int64  `json:"globalBytes"`
+	LocalFiles  int    `json:"localFiles"`
+	LocalBytes  int64  `json:"localBytes"`
+	NeedFiles   int    `json:"needFiles"`
+	NeedBytes   int64  `json:"needBytes"`
+	PullErrors  int    `json:"pullErrors"`
+	InSyncFiles int    `json:"inSyncFiles"`
+	InSyncBytes int64  `json:"inSyncBytes"`
 }
 
 func (c *Client) GetFolderStatus(ctx context.Context, folderID string) (*FolderStatus, error) {

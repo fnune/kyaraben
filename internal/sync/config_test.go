@@ -34,9 +34,9 @@ func TestConfigGenerator_GenerateFolders_Primary(t *testing.T) {
 	}
 
 	tests := []struct {
-		folderID     string
-		wantType     FolderType
-		wantPath     string
+		folderID string
+		wantType FolderType
+		wantPath string
 	}{
 		{"kyaraben-roms-snes", FolderTypeSendOnly, "/home/user/Emulation/roms/snes"},
 		{"kyaraben-roms-psx", FolderTypeSendOnly, "/home/user/Emulation/roms/psx"},
