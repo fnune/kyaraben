@@ -100,7 +100,7 @@ describe('Kyaraben App', () => {
 })
 
 describe('Kyaraben Apply (requires Nix)', () => {
-  it('can apply configuration with TIC-80', async function () {
+  it('can apply configuration with TIC-80', async () => {
     // This test requires Nix to be available
     // It tests the full stack: UI -> Tauri -> Go daemon -> Nix
 

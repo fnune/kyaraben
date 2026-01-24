@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -148,12 +149,12 @@ func (c *Client) Build(ctx context.Context, flakeRef string) (string, error) {
 	}
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
+	// Stream stderr to console while also capturing it for error reporting
+	cmd.Stderr = io.MultiWriter(&stderr, os.Stderr)
 
 	fmt.Fprintf(os.Stderr, "[kyaraben-go] Executing nix build (this may take a while on first run)...\n")
 	if err := cmd.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "[kyaraben-go] nix build FAILED: %v\n", err)
-		fmt.Fprintf(os.Stderr, "[kyaraben-go] stderr: %s\n", stderr.String())
 		return "", fmt.Errorf("nix build failed: %w\nstderr: %s", err, stderr.String())
 	}
 
