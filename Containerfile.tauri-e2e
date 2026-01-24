@@ -4,7 +4,7 @@
 # Build: podman build -t kyaraben-tauri-e2e -f Containerfile.tauri-e2e .
 # Run:   podman run -it --rm kyaraben-tauri-e2e
 
-FROM docker.io/library/rust:1.83-bookworm
+FROM docker.io/library/rust:bookworm
 
 # Install system dependencies for Tauri, GTK, and Nix
 RUN apt-get update && apt-get install -y --no-install-recommends \
