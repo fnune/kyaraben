@@ -46,10 +46,7 @@
             # General tools
             git
             jq
-
-            # Emulators for testing
-            retroarch
-            duckstation
+            podman
           ];
 
           shellHook = ''

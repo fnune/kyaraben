@@ -56,54 +56,40 @@ jobs:
       - name: Lint
         run: npm run lint
 
-  tauri-build:
+  electron-build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-go@v5
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build AppImage in container
+        uses: docker/build-push-action@v6
         with:
-          go-version: "1.24"
+          context: .
+          file: Containerfile.electron-build
+          tags: kyaraben-electron-build:latest
+          load: true
+          cache-from: type=gha,scope=electron-build
+          cache-to: type=gha,mode=max,scope=electron-build
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: ui/src-tauri
-
-      - name: Install Tauri dependencies
+      - name: Extract AppImage from container
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libgtk-3-dev \
-            libayatana-appindicator3-dev \
-            librsvg2-dev
-
-      - name: Build Go sidecar
-        run: ./scripts/build-sidecar.sh
-
-      - name: Install UI dependencies
-        run: cd ui && npm ci
-
-      - name: Build Tauri app
-        run: cd ui && npm run tauri build
+          mkdir -p output
+          docker run --rm -v "$(pwd)/output:/output" kyaraben-electron-build:latest
+          ls -la output/
 
       - name: Upload AppImage artifact
         uses: actions/upload-artifact@v4
         with:
           name: kyaraben-appimage
-          path: ui/src-tauri/target/release/bundle/appimage/*.AppImage
+          path: output/*.AppImage
           if-no-files-found: error
 
-  tauri-e2e:
+  electron-e2e:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -114,11 +100,11 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Containerfile.tauri-e2e
-          tags: kyaraben-tauri-e2e:latest
+          file: Containerfile.electron-e2e
+          tags: kyaraben-electron-e2e:latest
           load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=electron-e2e
+          cache-to: type=gha,mode=max,scope=electron-e2e
 
       - name: Run E2E tests in container
-        run: docker run --rm kyaraben-tauri-e2e:latest
+        run: docker run --rm --ipc=host kyaraben-electron-e2e:latest

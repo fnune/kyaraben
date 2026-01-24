@@ -1,145 +1,129 @@
-import { expect } from '@wdio/globals'
+import * as path from 'node:path'
+import { type ElectronApplication, type Page, _electron as electron } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
-describe('Kyaraben App', () => {
-  it('displays the main title', async () => {
-    const title = await $('h1')
+let electronApp: ElectronApplication
+let page: Page
+
+test.beforeAll(async () => {
+  const mainPath = path.join(__dirname, '..', 'dist-electron', 'main.js')
+
+  // --no-sandbox required for Chromium in Docker: https://playwright.dev/docs/ci#docker
+  electronApp = await electron.launch({
+    args: [mainPath, '--no-sandbox'],
+    cwd: path.join(__dirname, '..'),
+  })
+
+  page = await electronApp.firstWindow()
+  await page.waitForSelector('h1')
+})
+
+test.afterAll(async () => {
+  if (electronApp) {
+    await electronApp.close()
+  }
+})
+
+test.describe('Kyaraben App', () => {
+  test('displays the main title', async () => {
+    const title = page.locator('h1')
     await expect(title).toHaveText('Kyaraben')
   })
 
-  it('loads and displays available systems', async () => {
-    const systemList = await $('#system-list')
-
-    // Wait for systems to load (no longer shows "Loading...")
-    await browser.waitUntil(
-      async () => {
-        const text = await systemList.getText()
-        return !text.includes('Loading...')
-      },
-      { timeout: 10000, timeoutMsg: 'Systems did not load' },
-    )
-
-    // Should show TIC-80 (always available, no BIOS needed)
-    const text = await systemList.getText()
-    expect(text).toContain('TIC-80')
+  test('loads and displays available systems', async () => {
+    const systemList = page.locator('#system-list')
+    await expect(systemList).not.toContainText('Loading...', { timeout: 10000 })
+    await expect(systemList).toContainText('TIC-80')
   })
 
-  it('can toggle system selection', async () => {
-    // Wait for systems to load
-    const systemList = await $('#system-list')
-    await browser.waitUntil(
-      async () => {
-        const text = await systemList.getText()
-        return !text.includes('Loading...')
-      },
-      { timeout: 10000 },
-    )
+  test('can toggle system selection', async () => {
+    const systemList = page.locator('#system-list')
+    await expect(systemList).not.toContainText('Loading...', { timeout: 10000 })
 
-    // Find TIC-80 checkbox
-    const tic80Checkbox = await $('input[value="tic80"]')
-
-    // Toggle it
-    const wasChecked = await tic80Checkbox.isSelected()
+    const tic80Checkbox = page.locator('input[value="tic80"]')
+    const wasChecked = await tic80Checkbox.isChecked()
     await tic80Checkbox.click()
-    const isChecked = await tic80Checkbox.isSelected()
+    const isChecked = await tic80Checkbox.isChecked()
 
     expect(isChecked).toBe(!wasChecked)
   })
 
-  it('shows status when clicking Status button', async () => {
-    const statusBtn = await $('#btn-status')
+  test('shows status when clicking Status button', async () => {
+    const statusBtn = page.locator('#btn-status')
     await statusBtn.click()
 
-    // Output section should become visible
-    const outputSection = await $('#output-section')
-    await expect(outputSection).toBeDisplayed()
+    const outputSection = page.locator('#output-section')
+    await expect(outputSection).toBeVisible()
 
-    // Log should contain status info
-    const log = await $('#log')
-    const logText = await log.getText()
-    expect(logText).toContain('Emulation folder')
+    const log = page.locator('#log')
+    await expect(log).toContainText('Emulation folder')
   })
 
-  it('shows provisions when clicking Check provisions button', async () => {
-    const doctorBtn = await $('#btn-doctor')
+  test('shows provisions when clicking Check provisions button', async () => {
+    const doctorBtn = page.locator('#btn-doctor')
     await doctorBtn.click()
 
-    // Provisions section should become visible
-    const provisionsSection = await $('#provisions-section')
-    await expect(provisionsSection).toBeDisplayed()
+    const provisionsSection = page.locator('#provisions-section')
+    await expect(provisionsSection).toBeVisible()
   })
 
-  it('can expand settings', async () => {
-    const details = await $('details')
-    const summary = await details.$('summary')
+  test('can expand settings', async () => {
+    const details = page.locator('details')
+    const summary = details.locator('summary')
     await summary.click()
 
-    const userStoreInput = await $('#user-store')
-    await expect(userStoreInput).toBeDisplayed()
+    const userStoreInput = page.locator('#user-store')
+    await expect(userStoreInput).toBeVisible()
 
-    // Default value should be set
-    const value = await userStoreInput.getValue()
+    const value = await userStoreInput.inputValue()
     expect(value).toContain('Emulation')
   })
 
-  it('can change user store path', async () => {
-    // Expand settings if not already
-    const details = await $('details')
+  test('can change user store path', async () => {
+    const details = page.locator('details')
     const isOpen = await details.getAttribute('open')
-    if (!isOpen) {
-      const summary = await details.$('summary')
+    if (isOpen === null) {
+      const summary = details.locator('summary')
       await summary.click()
     }
 
-    const userStoreInput = await $('#user-store')
-    await userStoreInput.clearValue()
-    await userStoreInput.setValue('~/TestEmulation')
+    const userStoreInput = page.locator('#user-store')
+    await userStoreInput.clear()
+    await userStoreInput.fill('~/TestEmulation')
 
-    const value = await userStoreInput.getValue()
+    const value = await userStoreInput.inputValue()
     expect(value).toBe('~/TestEmulation')
   })
 })
 
-describe('Kyaraben Apply (requires Nix)', () => {
-  it('can apply configuration with TIC-80', async function () {
-    // This test requires Nix to be available
-    // It tests the full stack: UI -> Tauri -> Go daemon -> Nix
-
-    // Select TIC-80 (no BIOS required)
-    const tic80Checkbox = await $('input[value="tic80"]')
-    if (!(await tic80Checkbox.isSelected())) {
+test.describe('Kyaraben Apply (requires Nix)', () => {
+  test('can apply configuration with TIC-80', async () => {
+    const tic80Checkbox = page.locator('input[value="tic80"]')
+    if (!(await tic80Checkbox.isChecked())) {
       await tic80Checkbox.click()
     }
 
-    // Deselect any systems that require BIOS
-    const psxCheckbox = await $('input[value="psx"]')
-    if (await psxCheckbox.isSelected()) {
+    // Deselect systems that require BIOS
+    const psxCheckbox = page.locator('input[value="psx"]')
+    if (await psxCheckbox.isChecked()) {
       await psxCheckbox.click()
     }
 
-    const snesCheckbox = await $('input[value="snes"]')
-    if (await snesCheckbox.isSelected()) {
+    const snesCheckbox = page.locator('input[value="snes"]')
+    if (await snesCheckbox.isChecked()) {
       await snesCheckbox.click()
     }
 
-    // Click Apply
-    const applyBtn = await $('#btn-apply')
+    const applyBtn = page.locator('#btn-apply')
     await applyBtn.click()
 
-    // Wait for output section
-    const outputSection = await $('#output-section')
-    await expect(outputSection).toBeDisplayed()
+    const outputSection = page.locator('#output-section')
+    await expect(outputSection).toBeVisible()
 
-    // Wait for completion (this can take a while with Nix)
-    const log = await $('#log')
-    await browser.waitUntil(
-      async () => {
-        const text = await log.getText()
-        return text.includes('Done!') || text.includes('Error')
-      },
-      { timeout: 300000, timeoutMsg: 'Apply did not complete in 5 minutes' },
-    )
+    const log = page.locator('#log')
+    await expect(log).toContainText(/Done!|Error/, { timeout: 840000 })
 
-    const logText = await log.getText()
+    const logText = await log.textContent()
     expect(logText).toContain('Done!')
   })
 })

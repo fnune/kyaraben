@@ -43,7 +43,7 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 	opts.OnProgress(Progress{Step: "start", Message: "Starting apply..."})
 
 	if !opts.DryRun && !a.NixClient.IsAvailable() {
-		return nil, fmt.Errorf("nix is not available")
+		return nil, fmt.Errorf("nix is not available (nix-portable binary: %q)", a.NixClient.NixPortableBinary)
 	}
 
 	emulatorsToInstall := make([]model.EmulatorID, 0, len(cfg.Systems))
