@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Build the Go CLI as a Tauri sidecar binary
 # Tauri requires sidecars to be named with target triple suffix
+# Also downloads nix-portable for bundling
 
 set -euo pipefail
 
@@ -50,3 +51,6 @@ cd "$PROJECT_ROOT"
 go build -o "$BINARIES_DIR/$OUTPUT_NAME" ./cmd/kyaraben
 
 echo "Built: $BINARIES_DIR/$OUTPUT_NAME"
+
+# Download nix-portable for bundling (Linux only)
+"$SCRIPT_DIR/download-nix-portable.sh" "$BINARIES_DIR"

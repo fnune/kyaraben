@@ -7,14 +7,22 @@ import (
 	"os"
 
 	"github.com/fnune/kyaraben/internal/daemon"
+	"github.com/fnune/kyaraben/internal/emulators"
+	"github.com/fnune/kyaraben/internal/nix"
 )
 
-// DaemonCmd runs kyaraben in daemon mode.
 type DaemonCmd struct{}
 
-// Run executes the daemon command.
 func (cmd *DaemonCmd) Run(ctx *Context) error {
-	d := daemon.New(ctx.ConfigPath)
+	registry := ctx.NewRegistry()
+	nixClient, err := ctx.NewNixClient()
+	if err != nil {
+		return fmt.Errorf("creating nix client: %w", err)
+	}
+	flakeGenerator := nix.NewFlakeGenerator()
+	configWriter := emulators.NewConfigWriter()
+
+	d := daemon.New(ctx.ConfigPath, registry, nixClient, flakeGenerator, configWriter)
 
 	scanner := bufio.NewScanner(os.Stdin)
 	encoder := json.NewEncoder(os.Stdout)

@@ -9,12 +9,10 @@ import (
 	"github.com/fnune/kyaraben/internal/store"
 )
 
-// Context holds shared state for CLI commands.
 type Context struct {
 	ConfigPath string
 }
 
-// LoadConfig loads the kyaraben configuration.
 func (c *Context) LoadConfig() (*model.KyarabenConfig, error) {
 	path := c.ConfigPath
 	if path == "" {
@@ -32,7 +30,6 @@ func (c *Context) LoadConfig() (*model.KyarabenConfig, error) {
 	return cfg, nil
 }
 
-// GetConfigPath returns the config path, resolving the default if needed.
 func (c *Context) GetConfigPath() (string, error) {
 	if c.ConfigPath != "" {
 		return c.ConfigPath, nil
@@ -40,17 +37,9 @@ func (c *Context) GetConfigPath() (string, error) {
 	return model.DefaultConfigPath()
 }
 
-// NewRegistry creates a new emulator registry.
-func (c *Context) NewRegistry() *emulators.Registry {
-	return emulators.NewRegistry()
-}
+func (c *Context) NewRegistry() *emulators.Registry   { return emulators.NewRegistry() }
+func (c *Context) NewNixClient() (*nix.Client, error) { return nix.NewClient() }
 
-// NewNixClient creates a new Nix client.
-func (c *Context) NewNixClient() (*nix.Client, error) {
-	return nix.NewClient()
-}
-
-// NewUserStore creates a UserStore from the config.
 func (c *Context) NewUserStore(cfg *model.KyarabenConfig) (*store.UserStore, error) {
 	path, err := cfg.ExpandUserStore()
 	if err != nil {

@@ -30,13 +30,7 @@ type Result struct {
 	OptionalMissing int
 }
 
-func Run(cfg *model.KyarabenConfig, registry *emulators.Registry) (*Result, error) {
-	userStorePath, err := cfg.ExpandUserStore()
-	if err != nil {
-		return nil, err
-	}
-
-	userStore := store.NewUserStore(userStorePath)
+func Run(cfg *model.KyarabenConfig, registry *emulators.Registry, userStore *store.UserStore) (*Result, error) {
 	checker := store.NewProvisionChecker(userStore)
 
 	result := &Result{}

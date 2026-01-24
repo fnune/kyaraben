@@ -25,8 +25,12 @@ const btnUninstall = document.getElementById('btn-uninstall')
 
 // Initialize
 async function init() {
+  log('Initializing kyaraben...')
+
   try {
+    log('Connecting to daemon...')
     systems = await invoke('get_systems')
+    log(`Found ${systems.length} systems`)
     renderSystems()
 
     const config = await invoke('get_config')
@@ -41,9 +45,20 @@ async function init() {
     }
 
     await checkInstallStatus()
+    log('Ready!')
   } catch (err) {
     log(`Error initializing: ${err}`)
+    showError(`Failed to start: ${err}`)
   }
+}
+
+function showError(message) {
+  // Make errors visible in the UI prominently
+  const errorDiv = document.createElement('div')
+  errorDiv.style.cssText =
+    'background: #fee; border: 2px solid #c00; color: #900; padding: 1em; margin: 1em; border-radius: 4px; font-weight: bold;'
+  errorDiv.textContent = message
+  document.body.insertBefore(errorDiv, document.body.firstChild)
 }
 
 async function checkInstallStatus() {

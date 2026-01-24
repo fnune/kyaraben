@@ -6,13 +6,11 @@ import (
 	"github.com/fnune/kyaraben/internal/model"
 )
 
-// Registry provides access to known systems and emulators.
 type Registry struct {
 	systems   map[model.SystemID]model.System
 	emulators map[model.EmulatorID]model.Emulator
 }
 
-// NewRegistry creates a registry with all known systems and emulators.
 func NewRegistry() *Registry {
 	r := &Registry{
 		systems:   make(map[model.SystemID]model.System),
@@ -48,9 +46,7 @@ func (r *Registry) registerEmulators() {
 		Systems:    []model.SystemID{model.SystemSNES},
 		Source:     model.PackageSourceNixpkgs,
 		NixAttr:    "retroarch-bsnes",
-		Provisions: []model.Provision{
-			// SNES has no required provisions
-		},
+		Provisions: []model.Provision{},
 		StateKinds: []model.StateKind{
 			model.StateSaves,
 			model.StateSavestates,
@@ -109,9 +105,7 @@ func (r *Registry) registerEmulators() {
 		Systems:    []model.SystemID{model.SystemTIC80},
 		Source:     model.PackageSourceNixpkgs,
 		NixAttr:    "tic-80",
-		Provisions: []model.Provision{
-			// TIC-80 has no provisions - perfect for testing
-		},
+		Provisions: []model.Provision{},
 		StateKinds: []model.StateKind{
 			model.StateSaves,
 		},
@@ -119,7 +113,6 @@ func (r *Registry) registerEmulators() {
 	}
 }
 
-// GetSystem returns a system by ID.
 func (r *Registry) GetSystem(id model.SystemID) (model.System, error) {
 	sys, ok := r.systems[id]
 	if !ok {
@@ -128,7 +121,6 @@ func (r *Registry) GetSystem(id model.SystemID) (model.System, error) {
 	return sys, nil
 }
 
-// GetEmulator returns an emulator by ID.
 func (r *Registry) GetEmulator(id model.EmulatorID) (model.Emulator, error) {
 	emu, ok := r.emulators[id]
 	if !ok {
@@ -137,7 +129,6 @@ func (r *Registry) GetEmulator(id model.EmulatorID) (model.Emulator, error) {
 	return emu, nil
 }
 
-// GetEmulatorsForSystem returns all emulators that support a system.
 func (r *Registry) GetEmulatorsForSystem(sys model.SystemID) []model.Emulator {
 	var result []model.Emulator
 	for _, emu := range r.emulators {
@@ -148,7 +139,6 @@ func (r *Registry) GetEmulatorsForSystem(sys model.SystemID) []model.Emulator {
 	return result
 }
 
-// GetDefaultEmulator returns the default emulator for a system.
 func (r *Registry) GetDefaultEmulator(sys model.SystemID) (model.Emulator, error) {
 	defaults := map[model.SystemID]model.EmulatorID{
 		model.SystemSNES:  model.EmulatorRetroArchBsnes,
@@ -163,7 +153,6 @@ func (r *Registry) GetDefaultEmulator(sys model.SystemID) (model.Emulator, error
 	return r.GetEmulator(emuID)
 }
 
-// AllSystems returns all known systems.
 func (r *Registry) AllSystems() []model.System {
 	result := make([]model.System, 0, len(r.systems))
 	for _, sys := range r.systems {
@@ -172,11 +161,14 @@ func (r *Registry) AllSystems() []model.System {
 	return result
 }
 
-// AllEmulators returns all known emulators.
 func (r *Registry) AllEmulators() []model.Emulator {
 	result := make([]model.Emulator, 0, len(r.emulators))
 	for _, emu := range r.emulators {
 		result = append(result, emu)
 	}
 	return result
+}
+
+func (r *Registry) GetConfigGenerator(emuID model.EmulatorID) ConfigGenerator {
+	return GetConfigGenerator(emuID)
 }
