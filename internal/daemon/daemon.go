@@ -68,10 +68,14 @@ func (d *Daemon) loadConfig() (*model.KyarabenConfig, error) {
 func (d *Daemon) handleStatus() []Event {
 	cfg, err := d.loadConfig()
 	if err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		// Use default config if none exists
+		cfg, err = model.NewDefaultConfig()
+		if err != nil {
+			return []Event{{
+				Type: EventError,
+				Data: map[string]string{"error": err.Error()},
+			}}
+		}
 	}
 
 	configPath := d.configPath
@@ -132,10 +136,14 @@ func (d *Daemon) handleStatus() []Event {
 func (d *Daemon) handleDoctor() []Event {
 	cfg, err := d.loadConfig()
 	if err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		// Use default config if none exists
+		cfg, err = model.NewDefaultConfig()
+		if err != nil {
+			return []Event{{
+				Type: EventError,
+				Data: map[string]string{"error": err.Error()},
+			}}
+		}
 	}
 
 	userStorePath, err := cfg.ExpandUserStore()
