@@ -14,22 +14,12 @@ import (
 	"github.com/fnune/kyaraben/internal/paths"
 )
 
-// Client provides an interface to the Nix CLI.
 type Client struct {
-	// NixPortableBinary is the path to the nix-portable binary.
-	NixPortableBinary string
-
-	// NixPortableLocation is the directory where nix-portable stores its data.
-	// This is passed via NP_LOCATION environment variable.
-	NixPortableLocation string
-
-	// FlakePath is where to write/read the generated flake.
-	FlakePath string
+	NixPortableBinary   string
+	NixPortableLocation string // passed via NP_LOCATION env var
+	FlakePath           string
 }
 
-// NewClient creates a new Nix client with default settings.
-// It attempts to find the bundled nix-portable binary. If not found,
-// the client is still created but IsAvailable() will return false.
 func NewClient() (*Client, error) {
 	kyarabenDir, err := paths.KyarabenDataDir()
 	if err != nil {
@@ -47,8 +37,6 @@ func NewClient() (*Client, error) {
 	}, nil
 }
 
-// findNixPortable locates the bundled nix-portable binary.
-// It searches relative to the current executable.
 func findNixPortable() (string, error) {
 	targetTriple := getTargetTriple()
 	binaryName := "nix-portable-" + targetTriple
@@ -85,7 +73,6 @@ func findNixPortable() (string, error) {
 	return "", fmt.Errorf("nix-portable binary not found (searched for %s)", binaryName)
 }
 
-// getTargetTriple returns the Rust target triple for the current platform.
 func getTargetTriple() string {
 	arch := runtime.GOARCH
 	os := runtime.GOOS
@@ -114,15 +101,12 @@ func getTargetTriple() string {
 	}
 }
 
-// IsAvailable checks if the nix-portable binary is available.
 func (c *Client) IsAvailable() bool {
 	_, err := os.Stat(c.NixPortableBinary)
 	return err == nil
 }
 
-// runNix executes a nix command through nix-portable.
-// Note: nix-portable has nix-command and flakes enabled by default,
-// so we don't need --extra-experimental-features flags.
+// nix-portable has nix-command and flakes enabled by default
 func (c *Client) runNix(ctx context.Context, args []string) (*exec.Cmd, error) {
 	if !c.IsAvailable() {
 		return nil, fmt.Errorf("nix-portable is not available (bundled binary not found)")
@@ -138,7 +122,6 @@ func (c *Client) runNix(ctx context.Context, args []string) (*exec.Cmd, error) {
 	return cmd, nil
 }
 
-// Build builds a flake output and returns the store path.
 func (c *Client) Build(ctx context.Context, flakeRef string) (string, error) {
 	args := []string{
 		"build",
@@ -168,7 +151,6 @@ func (c *Client) Build(ctx context.Context, flakeRef string) (string, error) {
 	return storePath, nil
 }
 
-// BuildMultiple builds multiple flake outputs.
 func (c *Client) BuildMultiple(ctx context.Context, flakeRefs []string) (map[string]string, error) {
 	results := make(map[string]string)
 
@@ -183,7 +165,6 @@ func (c *Client) BuildMultiple(ctx context.Context, flakeRefs []string) (map[str
 	return results, nil
 }
 
-// Eval evaluates a Nix expression and returns the result as JSON.
 func (c *Client) Eval(ctx context.Context, expr string) (json.RawMessage, error) {
 	args := []string{
 		"eval",
@@ -206,7 +187,6 @@ func (c *Client) Eval(ctx context.Context, expr string) (json.RawMessage, error)
 	return json.RawMessage(stdout.Bytes()), nil
 }
 
-// FlakeUpdate updates flake inputs.
 func (c *Client) FlakeUpdate(ctx context.Context, flakePath string) error {
 	args := []string{
 		"flake",
@@ -228,7 +208,6 @@ func (c *Client) FlakeUpdate(ctx context.Context, flakePath string) error {
 	return nil
 }
 
-// GetVersion returns the version of the nix binary.
 func (c *Client) GetVersion(ctx context.Context) (string, error) {
 	cmd, err := c.runNix(ctx, []string{"--version"})
 	if err != nil {
@@ -244,7 +223,6 @@ func (c *Client) GetVersion(ctx context.Context) (string, error) {
 	return strings.TrimSpace(stdout.String()), nil
 }
 
-// EnsureFlakeDir ensures the flake directory exists.
 func (c *Client) EnsureFlakeDir() error {
 	return os.MkdirAll(c.FlakePath, 0755)
 }

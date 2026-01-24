@@ -10,12 +10,10 @@ import (
 	"github.com/fnune/kyaraben/internal/model"
 )
 
-// FlakeGenerator generates Nix flakes from kyaraben configuration.
 type FlakeGenerator struct {
 	emulatorAttrs map[model.EmulatorID]string
 }
 
-// NewFlakeGenerator creates a new flake generator.
 func NewFlakeGenerator() *FlakeGenerator {
 	return &FlakeGenerator{
 		emulatorAttrs: map[model.EmulatorID]string{
@@ -60,7 +58,6 @@ const flakeTemplate = `{
 }
 `
 
-// PackageInfo holds information about a package to include in the flake.
 type PackageInfo struct {
 	Name string
 	Expr string
