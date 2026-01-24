@@ -1,29 +1,29 @@
 # Kyaraben Tauri E2E test container
-# Tests the full UI -> Tauri -> Go daemon -> Nix flow
+# Tests the full UI -> Tauri -> Go daemon -> nix-portable flow
 #
 # Build: podman build -t kyaraben-tauri-e2e -f Containerfile.tauri-e2e .
 # Run:   podman run -it --rm kyaraben-tauri-e2e
 
 FROM docker.io/library/rust:bookworm
 
-# Install system dependencies for Tauri, GTK, and Nix
+# Install system dependencies for Tauri and GTK
+# Note: Nix is bundled as nix-portable, no system Nix needed
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # Tauri dependencies
     libwebkit2gtk-4.1-dev \
     libgtk-3-dev \
     libayatana-appindicator3-dev \
     librsvg2-dev \
+    # WebDriver for E2E testing
+    webkit2gtk-driver \
     # Display for headless testing
     xvfb \
     # Node.js
     nodejs \
     npm \
-    # Nix dependencies
+    # Build tools
     ca-certificates \
     curl \
-    xz-utils \
-    sudo \
-    git \
     # tauri-driver dependencies
     libssl-dev \
     pkg-config \
@@ -47,18 +47,12 @@ ENV PATH="/home/testuser/.cargo/bin:${PATH}"
 # Install tauri-driver as testuser (avoids permission issues)
 RUN cargo install tauri-driver
 
-# Install Nix
-RUN curl -L https://nixos.org/nix/install | sh -s -- --no-daemon
-RUN mkdir -p ~/.config/nix && \
-    echo "experimental-features = nix-command flakes" > ~/.config/nix/nix.conf
-
 # Copy project
 COPY --chown=testuser:testuser . /home/testuser/kyaraben
 WORKDIR /home/testuser/kyaraben
 
-# Build Go sidecar
-RUN . ~/.nix-profile/etc/profile.d/nix.sh && \
-    ./scripts/build-sidecar.sh
+# Build Go sidecar (includes nix-portable download)
+RUN ./scripts/build-sidecar.sh
 
 # Install Node dependencies
 RUN cd ui && npm ci

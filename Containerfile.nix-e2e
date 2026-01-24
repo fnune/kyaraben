@@ -1,10 +1,10 @@
 # Kyaraben Nix E2E test container
-# This container installs Nix and runs real builds to validate the full flow.
+# This container runs real builds to validate the full flow using nix-portable.
 #
 # Build: podman build -t kyaraben-nix-e2e -f Containerfile.nix-e2e .
 # Run:   podman run -it --rm kyaraben-nix-e2e
 #
-# Note: This takes longer to build as it downloads Nix and builds emulators.
+# Note: This takes longer to build as it builds emulators via nix-portable.
 
 FROM docker.io/library/golang:1.24-bookworm AS builder
 
@@ -12,37 +12,30 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
+
+# Download nix-portable for bundling
+RUN ./scripts/download-nix-portable.sh /app/binaries
+
 RUN go build -o /kyaraben ./cmd/kyaraben
 RUN go test ./... -v
 
-# Runtime image with Nix
-FROM docker.io/library/debian:bookworm
+# Runtime image (no system Nix needed - using nix-portable)
+FROM docker.io/library/debian:bookworm-slim
 
-# Install dependencies for Nix
+# Install minimal dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
-    curl \
-    xz-utils \
-    sudo \
-    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Create a non-root user (Nix prefers this)
-RUN useradd -m -s /bin/bash testuser && \
-    echo "testuser ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+# Create a non-root user
+RUN useradd -m -s /bin/bash testuser
 
 USER testuser
 WORKDIR /home/testuser
 
-# Install Nix (single-user mode for simplicity in container)
-RUN curl -L https://nixos.org/nix/install | sh -s -- --no-daemon
-
-# Enable flakes
-RUN mkdir -p ~/.config/nix && \
-    echo "experimental-features = nix-command flakes" > ~/.config/nix/nix.conf
-
-# Copy the built kyaraben binary
+# Copy the built kyaraben binary and nix-portable
 COPY --from=builder --chown=testuser:testuser /kyaraben /usr/local/bin/kyaraben
+COPY --from=builder --chown=testuser:testuser /app/binaries/nix-portable-* /usr/local/bin/
 
 # Copy and set up test runner script
 COPY --chown=testuser:testuser scripts/run-nix-e2e.sh /home/testuser/run-e2e.sh
