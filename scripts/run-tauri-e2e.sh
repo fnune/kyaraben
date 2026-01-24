@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-. ~/.nix-profile/etc/profile.d/nix.sh
+# Note: Nix is bundled as nix-portable within kyaraben, no system Nix needed
 
 echo "=== Kyaraben Tauri E2E Tests ==="
 echo ""
