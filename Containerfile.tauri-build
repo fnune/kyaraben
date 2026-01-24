@@ -21,9 +21,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # Build tools
     ca-certificates \
     curl \
+    # Required for linuxdeploy/AppImage bundling
     file \
-    # Required for AppImage
-    libfuse2 \
+    patchelf \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Go 1.24
