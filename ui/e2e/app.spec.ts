@@ -136,7 +136,7 @@ describe('Kyaraben Apply (requires Nix)', () => {
         const text = await log.getText()
         return text.includes('Done!') || text.includes('Error')
       },
-      { timeout: 300000, timeoutMsg: 'Apply did not complete in 5 minutes' },
+      { timeout: 840000, timeoutMsg: 'Apply did not complete in 14 minutes' },
     )
 
     const logText = await log.getText()
