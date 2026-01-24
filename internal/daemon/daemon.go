@@ -8,24 +8,29 @@ import (
 	"github.com/fnune/kyaraben/internal/doctor"
 	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/nix"
 	"github.com/fnune/kyaraben/internal/status"
+	"github.com/fnune/kyaraben/internal/store"
 )
 
-// Daemon handles JSON protocol commands from the UI.
 type Daemon struct {
-	configPath string
-	registry   *emulators.Registry
+	configPath     string
+	registry       *emulators.Registry
+	nixClient      *nix.Client
+	flakeGenerator *nix.FlakeGenerator
+	configWriter   *emulators.ConfigWriter
 }
 
-// New creates a new daemon instance.
-func New(configPath string) *Daemon {
+func New(configPath string, registry *emulators.Registry, nixClient *nix.Client, flakeGenerator *nix.FlakeGenerator, configWriter *emulators.ConfigWriter) *Daemon {
 	return &Daemon{
-		configPath: configPath,
-		registry:   emulators.NewRegistry(),
+		configPath:     configPath,
+		registry:       registry,
+		nixClient:      nixClient,
+		flakeGenerator: flakeGenerator,
+		configWriter:   configWriter,
 	}
 }
 
-// Handle processes a command and returns events.
 func (d *Daemon) Handle(cmd Command) []Event {
 	switch cmd.Type {
 	case CmdStatus:
@@ -63,10 +68,14 @@ func (d *Daemon) loadConfig() (*model.KyarabenConfig, error) {
 func (d *Daemon) handleStatus() []Event {
 	cfg, err := d.loadConfig()
 	if err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		// Use default config if none exists
+		cfg, err = model.NewDefaultConfig()
+		if err != nil {
+			return []Event{{
+				Type: EventError,
+				Data: map[string]string{"error": err.Error()},
+			}}
+		}
 	}
 
 	configPath := d.configPath
@@ -74,7 +83,25 @@ func (d *Daemon) handleStatus() []Event {
 		configPath, _ = model.DefaultConfigPath()
 	}
 
-	result, err := status.Get(cfg, configPath, d.registry)
+	userStorePath, err := cfg.ExpandUserStore()
+	if err != nil {
+		return []Event{{
+			Type: EventError,
+			Data: map[string]string{"error": err.Error()},
+		}}
+	}
+
+	userStore := store.NewUserStore(userStorePath)
+
+	manifestPath, err := model.DefaultManifestPath()
+	if err != nil {
+		return []Event{{
+			Type: EventError,
+			Data: map[string]string{"error": err.Error()},
+		}}
+	}
+
+	result, err := status.Get(cfg, configPath, d.registry, userStore, manifestPath)
 	if err != nil {
 		return []Event{{
 			Type: EventError,
@@ -109,13 +136,27 @@ func (d *Daemon) handleStatus() []Event {
 func (d *Daemon) handleDoctor() []Event {
 	cfg, err := d.loadConfig()
 	if err != nil {
+		// Use default config if none exists
+		cfg, err = model.NewDefaultConfig()
+		if err != nil {
+			return []Event{{
+				Type: EventError,
+				Data: map[string]string{"error": err.Error()},
+			}}
+		}
+	}
+
+	userStorePath, err := cfg.ExpandUserStore()
+	if err != nil {
 		return []Event{{
 			Type: EventError,
 			Data: map[string]string{"error": err.Error()},
 		}}
 	}
 
-	result, err := doctor.Run(cfg, d.registry)
+	userStore := store.NewUserStore(userStorePath)
+
+	result, err := doctor.Run(cfg, d.registry, userStore)
 	if err != nil {
 		return []Event{{
 			Type: EventError,
@@ -155,6 +196,32 @@ func (d *Daemon) handleApply(_ map[string]interface{}) []Event {
 		}}
 	}
 
+	userStorePath, err := cfg.ExpandUserStore()
+	if err != nil {
+		return []Event{{
+			Type: EventError,
+			Data: map[string]string{"error": err.Error()},
+		}}
+	}
+
+	userStore := store.NewUserStore(userStorePath)
+
+	manifestPath, err := model.DefaultManifestPath()
+	if err != nil {
+		return []Event{{
+			Type: EventError,
+			Data: map[string]string{"error": err.Error()},
+		}}
+	}
+
+	applier := &apply.Applier{
+		NixClient:      d.nixClient,
+		FlakeGenerator: d.flakeGenerator,
+		ConfigWriter:   d.configWriter,
+		Registry:       d.registry,
+		ManifestPath:   manifestPath,
+	}
+
 	opts := apply.Options{
 		OnProgress: func(p apply.Progress) {
 			events = append(events, Event{
@@ -167,7 +234,7 @@ func (d *Daemon) handleApply(_ map[string]interface{}) []Event {
 		},
 	}
 
-	result, err := apply.Apply(cfg, opts)
+	result, err := applier.Apply(cfg, userStore, opts)
 	if err != nil {
 		return append(events, Event{
 			Type: EventError,

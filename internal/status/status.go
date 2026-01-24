@@ -29,19 +29,7 @@ type Result struct {
 	MissingRequiredCount int
 }
 
-func Get(cfg *model.KyarabenConfig, configPath string, registry *emulators.Registry) (*Result, error) {
-	userStorePath, err := cfg.ExpandUserStore()
-	if err != nil {
-		return nil, err
-	}
-
-	userStore := store.NewUserStore(userStorePath)
-
-	manifestPath, err := model.DefaultManifestPath()
-	if err != nil {
-		return nil, err
-	}
-
+func Get(cfg *model.KyarabenConfig, configPath string, registry *emulators.Registry, userStore *store.UserStore, manifestPath string) (*Result, error) {
 	manifest, err := model.LoadManifest(manifestPath)
 	if err != nil {
 		return nil, err
@@ -49,7 +37,7 @@ func Get(cfg *model.KyarabenConfig, configPath string, registry *emulators.Regis
 
 	result := &Result{
 		ConfigPath:           configPath,
-		UserStorePath:        userStorePath,
+		UserStorePath:        userStore.Root,
 		UserStoreInitialized: userStore.IsInitialized(),
 		LastApplied:          manifest.LastApplied,
 	}
