@@ -6,7 +6,6 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Stdio;
 use tauri::Manager;
-use tauri_plugin_shell::ShellExt;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
 use tokio::sync::Mutex;
@@ -108,14 +107,51 @@ fn get_install_paths() -> (PathBuf, PathBuf) {
 }
 
 fn find_sidecar_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    // Use Tauri's sidecar resolution
-    let sidecar = app
-        .shell()
-        .sidecar("binaries/kyaraben")
-        .map_err(|e| format!("Failed to resolve sidecar: {}", e))?;
+    // Get the resource directory where sidecars are placed
+    let resource_dir = app
+        .path()
+        .resource_dir()
+        .map_err(|e| format!("Failed to get resource dir: {}", e))?;
 
-    // Get the program path from the sidecar command
-    Ok(sidecar.get_program().into())
+    // Construct the sidecar path with target triple
+    #[cfg(target_os = "linux")]
+    let sidecar_name = if cfg!(target_arch = "x86_64") {
+        "kyaraben-x86_64-unknown-linux-gnu"
+    } else if cfg!(target_arch = "aarch64") {
+        "kyaraben-aarch64-unknown-linux-gnu"
+    } else {
+        "kyaraben"
+    };
+
+    #[cfg(target_os = "macos")]
+    let sidecar_name = if cfg!(target_arch = "x86_64") {
+        "kyaraben-x86_64-apple-darwin"
+    } else if cfg!(target_arch = "aarch64") {
+        "kyaraben-aarch64-apple-darwin"
+    } else {
+        "kyaraben"
+    };
+
+    #[cfg(target_os = "windows")]
+    let sidecar_name = "kyaraben-x86_64-pc-windows-msvc.exe";
+
+    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
+    let sidecar_name = "kyaraben";
+
+    let sidecar_path = resource_dir.join("binaries").join(sidecar_name);
+
+    if sidecar_path.exists() {
+        Ok(sidecar_path)
+    } else {
+        // Fallback: try without target triple (dev mode)
+        let fallback = resource_dir.join("binaries").join("kyaraben");
+        if fallback.exists() {
+            Ok(fallback)
+        } else {
+            // Last resort: check if kyaraben is in PATH
+            Ok(PathBuf::from("kyaraben"))
+        }
+    }
 }
 
 async fn ensure_daemon(app: &tauri::AppHandle) -> Result<(), String> {
@@ -446,7 +482,6 @@ async fn uninstall_app() -> Result<(), String> {
 
 fn main() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             get_systems,
             get_config,
