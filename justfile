@@ -69,13 +69,21 @@ container-build:
 container-run:
     podman run -it --rm -v "$(pwd):/workspace:Z" kyaraben-dev
 
-# Build E2E container (with Nix)
+# Build CLI E2E container (with Nix)
 container-e2e-build:
     podman build -t kyaraben-nix-e2e -f Containerfile.nix-e2e .
 
-# Run E2E tests in container
+# Run CLI E2E tests in container
 container-e2e:
     podman run -it --rm kyaraben-nix-e2e
+
+# Build Tauri E2E container (full UI tests)
+container-tauri-e2e-build:
+    podman build -t kyaraben-tauri-e2e -f Containerfile.tauri-e2e .
+
+# Run Tauri E2E tests in container
+container-tauri-e2e:
+    podman run -it --rm kyaraben-tauri-e2e
 
 # All checks (lint + test)
 check: lint test ui-lint

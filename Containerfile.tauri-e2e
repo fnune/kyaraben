@@ -1,0 +1,87 @@
+# Kyaraben Tauri E2E test container
+# Tests the full UI -> Tauri -> Go daemon -> Nix flow
+#
+# Build: podman build -t kyaraben-tauri-e2e -f Containerfile.tauri-e2e .
+# Run:   podman run -it --rm kyaraben-tauri-e2e
+
+FROM docker.io/library/rust:1.83-bookworm
+
+# Install system dependencies for Tauri, GTK, and Nix
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Tauri dependencies
+    libwebkit2gtk-4.1-dev \
+    libgtk-3-dev \
+    libayatana-appindicator3-dev \
+    librsvg2-dev \
+    # Display for headless testing
+    xvfb \
+    # Node.js
+    nodejs \
+    npm \
+    # Go
+    golang-go \
+    # Nix dependencies
+    ca-certificates \
+    curl \
+    xz-utils \
+    sudo \
+    git \
+    # tauri-driver dependencies
+    libssl-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install tauri-driver
+RUN cargo install tauri-driver
+
+# Create test user for Nix
+RUN useradd -m -s /bin/bash testuser && \
+    echo "testuser ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+USER testuser
+WORKDIR /home/testuser
+
+# Install Nix
+RUN curl -L https://nixos.org/nix/install | sh -s -- --no-daemon
+RUN mkdir -p ~/.config/nix && \
+    echo "experimental-features = nix-command flakes" > ~/.config/nix/nix.conf
+
+# Copy project
+COPY --chown=testuser:testuser . /home/testuser/kyaraben
+WORKDIR /home/testuser/kyaraben
+
+# Build Go sidecar
+RUN . ~/.nix-profile/etc/profile.d/nix.sh && \
+    ./scripts/build-sidecar.sh
+
+# Install Node dependencies
+RUN cd ui && npm ci
+
+# Build Tauri app
+RUN cd ui && npm run tauri build
+
+# Create test runner script
+RUN cat > /home/testuser/run-tauri-e2e.sh << 'SCRIPT'
+#!/usr/bin/env bash
+set -euo pipefail
+
+. ~/.nix-profile/etc/profile.d/nix.sh
+
+echo "=== Kyaraben Tauri E2E Tests ==="
+echo ""
+echo "Starting Xvfb..."
+Xvfb :99 -screen 0 1280x720x24 &
+export DISPLAY=:99
+sleep 2
+
+echo "Running WebdriverIO tests..."
+cd /home/testuser/kyaraben/ui
+npm run test:e2e
+
+echo ""
+echo "=== Tauri E2E tests complete! ==="
+SCRIPT
+
+RUN chmod +x /home/testuser/run-tauri-e2e.sh
+
+CMD ["/home/testuser/run-tauri-e2e.sh"]
