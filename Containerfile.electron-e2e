@@ -6,11 +6,11 @@
 
 FROM docker.io/library/node:22-bookworm
 
-# Install system dependencies for Electron and Playwright
+# Install system dependencies for Electron
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # Display for headless testing
     xvfb \
-    # Playwright dependencies for Electron
+    # Electron dependencies
     libasound2 \
     libatk-bridge2.0-0 \
     libatk1.0-0 \
@@ -25,6 +25,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxfixes3 \
     libxkbcommon0 \
     libxrandr2 \
+    libxshmfence1 \
+    libglu1-mesa \
     # Build tools
     ca-certificates \
     curl \
@@ -46,9 +48,9 @@ WORKDIR /home/testuser/kyaraben
 # Build Go sidecar (includes nix-portable download)
 RUN ./scripts/build-sidecar.sh
 
-# Install Node dependencies and Playwright
+# Install Node dependencies (skip Playwright browser download - we use Electron directly)
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 RUN cd ui && npm ci
-RUN cd ui && npx playwright install
 
 # Build frontend and Electron
 RUN cd ui && npm run build && npm run build:electron
