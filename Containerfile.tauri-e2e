@@ -68,7 +68,9 @@ RUN cd ui && npm ci
 # Build Tauri app
 # APPIMAGE_EXTRACT_AND_RUN is needed because linuxdeploy is an AppImage
 # and FUSE is not available in Docker containers
+# NO_STRIP avoids issues with linuxdeploy failing on stripped binaries
 ENV APPIMAGE_EXTRACT_AND_RUN=1
+ENV NO_STRIP=true
 RUN cd ui && npm run tauri build
 
 # Copy and set up test runner script
