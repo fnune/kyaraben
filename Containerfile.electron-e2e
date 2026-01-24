@@ -30,5 +30,5 @@ RUN cd ui && npm ci
 # Build frontend and Electron
 RUN cd ui && npm run build && npm run build:electron
 
-# Run tests with xvfb-run (built into Playwright image)
-CMD ["xvfb-run", "--auto-servernum", "--", "npm", "run", "test:e2e", "--prefix", "/home/testuser/kyaraben/ui"]
+# Start Xvfb without auth (-ac), then run tests
+CMD ["sh", "-c", "Xvfb :99 -ac -screen 0 1280x1024x24 & sleep 2 && DISPLAY=:99 npm run test:e2e --prefix /home/testuser/kyaraben/ui"]
