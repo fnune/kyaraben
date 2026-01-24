@@ -48,9 +48,11 @@ function findSidecarPath(): string {
   searchPaths.push(path.join(process.resourcesPath, sidecarName))
   searchPaths.push(path.join(process.resourcesPath, 'binaries', sidecarName))
 
-  // 3. Development: check relative to app directory
+  // 3. Development/testing: check relative to app directory
+  // app.getAppPath() returns dist-electron/ when running main.js directly
   const appPath = app.getAppPath()
   searchPaths.push(path.join(appPath, 'src-tauri', 'binaries', sidecarName))
+  searchPaths.push(path.join(appPath, '..', 'src-tauri', 'binaries', sidecarName)) // dist-electron/../src-tauri/binaries
   searchPaths.push(path.join(appPath, '..', 'binaries', sidecarName))
 
   // 4. Check APPDIR for AppImage
