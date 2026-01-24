@@ -37,8 +37,8 @@ func (c *Context) GetConfigPath() (string, error) {
 	return model.DefaultConfigPath()
 }
 
-func (c *Context) NewRegistry() *emulators.Registry       { return emulators.NewRegistry() }
-func (c *Context) NewNixClient() (*nix.Client, error)     { return nix.NewClient() }
+func (c *Context) NewRegistry() *emulators.Registry   { return emulators.NewRegistry() }
+func (c *Context) NewNixClient() (*nix.Client, error) { return nix.NewClient() }
 
 func (c *Context) NewUserStore(cfg *model.KyarabenConfig) (*store.UserStore, error) {
 	path, err := cfg.ExpandUserStore()

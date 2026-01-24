@@ -20,17 +20,27 @@ func (s *UserStore) Directories() []string {
 	return []string{"roms", "bios", "saves", "states", "screenshots"}
 }
 
-func (s *UserStore) RomsDir() string         { return filepath.Join(s.Root, "roms") }
-func (s *UserStore) BiosDir() string         { return filepath.Join(s.Root, "bios") }
-func (s *UserStore) SavesDir() string        { return filepath.Join(s.Root, "saves") }
-func (s *UserStore) StatesDir() string       { return filepath.Join(s.Root, "states") }
-func (s *UserStore) ScreenshotsDir() string  { return filepath.Join(s.Root, "screenshots") }
+func (s *UserStore) RomsDir() string        { return filepath.Join(s.Root, "roms") }
+func (s *UserStore) BiosDir() string        { return filepath.Join(s.Root, "bios") }
+func (s *UserStore) SavesDir() string       { return filepath.Join(s.Root, "saves") }
+func (s *UserStore) StatesDir() string      { return filepath.Join(s.Root, "states") }
+func (s *UserStore) ScreenshotsDir() string { return filepath.Join(s.Root, "screenshots") }
 
-func (s *UserStore) SystemRomsDir(sys model.SystemID) string        { return filepath.Join(s.RomsDir(), string(sys)) }
-func (s *UserStore) SystemBiosDir(sys model.SystemID) string        { return filepath.Join(s.BiosDir(), string(sys)) }
-func (s *UserStore) SystemSavesDir(sys model.SystemID) string       { return filepath.Join(s.SavesDir(), string(sys)) }
-func (s *UserStore) SystemStatesDir(sys model.SystemID) string      { return filepath.Join(s.StatesDir(), string(sys)) }
-func (s *UserStore) SystemScreenshotsDir(sys model.SystemID) string { return filepath.Join(s.ScreenshotsDir(), string(sys)) }
+func (s *UserStore) SystemRomsDir(sys model.SystemID) string {
+	return filepath.Join(s.RomsDir(), string(sys))
+}
+func (s *UserStore) SystemBiosDir(sys model.SystemID) string {
+	return filepath.Join(s.BiosDir(), string(sys))
+}
+func (s *UserStore) SystemSavesDir(sys model.SystemID) string {
+	return filepath.Join(s.SavesDir(), string(sys))
+}
+func (s *UserStore) SystemStatesDir(sys model.SystemID) string {
+	return filepath.Join(s.StatesDir(), string(sys))
+}
+func (s *UserStore) SystemScreenshotsDir(sys model.SystemID) string {
+	return filepath.Join(s.ScreenshotsDir(), string(sys))
+}
 
 func (s *UserStore) Initialize() error {
 	for _, dir := range s.Directories() {
