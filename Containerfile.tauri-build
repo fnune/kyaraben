@@ -1,0 +1,55 @@
+# Kyaraben Tauri build container
+# Builds the AppImage with modern library versions
+#
+# Build: podman build -t kyaraben-tauri-build -f Containerfile.tauri-build .
+# Run:   podman run -v ./output:/output kyaraben-tauri-build
+#
+# Uses Debian Trixie (13) for newer library versions:
+# - wayland 1.22+ (required by modern Mesa)
+# - GTK 3.24.43+
+# - GLib 2.82+
+
+FROM docker.io/library/rust:slim-trixie
+
+# Install system dependencies for Tauri and GTK
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Tauri dependencies
+    libwebkit2gtk-4.1-dev \
+    libgtk-3-dev \
+    libayatana-appindicator3-dev \
+    librsvg2-dev \
+    # Build tools
+    ca-certificates \
+    curl \
+    file \
+    # Required for AppImage
+    libfuse2 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Go 1.24
+RUN curl -fsSL https://go.dev/dl/go1.24.0.linux-amd64.tar.gz | tar -C /usr/local -xzf -
+ENV PATH="/usr/local/go/bin:${PATH}"
+
+# Install Node.js 22 via NodeSource
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Copy project
+COPY . /build
+
+# Build Go sidecar (includes nix-portable download)
+RUN ./scripts/build-sidecar.sh
+
+# Install Node dependencies
+RUN cd ui && npm ci
+
+# Build Tauri app
+RUN cd ui && npm run tauri build
+
+# Output directory for the built AppImage
+RUN mkdir -p /output
+
+CMD ["sh", "-c", "cp /build/ui/src-tauri/target/release/bundle/appimage/*.AppImage /output/ && echo 'AppImage copied to /output/'"]

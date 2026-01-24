@@ -3,8 +3,13 @@
 #
 # Build: podman build -t kyaraben-tauri-e2e -f Containerfile.tauri-e2e .
 # Run:   podman run -it --rm kyaraben-tauri-e2e
+#
+# Uses Debian Trixie (13) for newer library versions:
+# - wayland 1.22+ (required by modern Mesa)
+# - GTK 3.24.43+
+# - GLib 2.82+
 
-FROM docker.io/library/rust:bookworm
+FROM docker.io/library/rust:slim-trixie
 
 # Install system dependencies for Tauri and GTK
 # Note: Nix is bundled as nix-portable, no system Nix needed
