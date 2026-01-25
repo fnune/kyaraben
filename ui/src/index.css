@@ -1,36 +1,3 @@
-:root {
-  --text-color: #1f2937;
-  --text-muted: #6b7280;
-  --border-color: #e5e7eb;
-  --border-hover: #9ca3af;
-  --card-bg: #ffffff;
-  --settings-bg: #f9fafb;
-  --input-bg: #ffffff;
-  --hover-bg: #f9fafb;
-  --step-bg: #f9fafb;
-  --primary-color: #3b82f6;
-  --primary-hover: #2563eb;
-  --primary-bg: #eff6ff;
-  --success-color: #16a34a;
-  --success-bg: #dcfce7;
-  --success-text: #166534;
-  --warning-color: #d97706;
-  --warning-bg: #fef3c7;
-  --warning-text: #92400e;
-  --error-color: #dc2626;
-  --error-bg: #fee2e2;
-  --error-text: #991b1b;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: #ffffff;
-  color: var(--text-color);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

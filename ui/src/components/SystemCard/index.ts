@@ -1,2 +1,2 @@
-export { SystemCard } from "./SystemCard";
-export type { SystemCardProps } from "./SystemCard";
+export { SystemCard } from './SystemCard'
+export type { SystemCardProps } from './SystemCard'
