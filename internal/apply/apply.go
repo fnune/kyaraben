@@ -144,7 +144,8 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 		return nil, fmt.Errorf("creating flake directory: %w", err)
 	}
 
-	if err := a.FlakeGenerator.Generate(a.NixClient.GetFlakePath(), emulatorsToInstall); err != nil {
+	genPath, err := a.FlakeGenerator.Generate(a.NixClient.GetFlakePath(), emulatorsToInstall)
+	if err != nil {
 		return nil, fmt.Errorf("generating flake: %w", err)
 	}
 
@@ -153,7 +154,7 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 	buildCtx, cancel := context.WithTimeout(context.Background(), nixBuildTimeout)
 	defer cancel()
 
-	flakeRef := a.FlakeGenerator.DefaultFlakeRef(a.NixClient.GetFlakePath())
+	flakeRef := a.FlakeGenerator.DefaultFlakeRef(string(genPath))
 	storePath, err := a.NixClient.Build(buildCtx, flakeRef)
 	if err != nil {
 		return nil, fmt.Errorf("building emulators: %w", err)
