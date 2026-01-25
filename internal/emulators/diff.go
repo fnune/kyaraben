@@ -2,6 +2,8 @@ package emulators
 
 import (
 	"bufio"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"strings"
@@ -10,17 +12,46 @@ import (
 )
 
 type ConfigDiff struct {
-	Path      string
-	IsNewFile bool
-	Changes   []ConfigChange
+	Path         string
+	IsNewFile    bool
+	UserModified bool
+	Changes      []ConfigChange
+	UserChanges  []UserChange
+}
+
+type UserChange struct {
+	Path          []string
+	BaselineValue string
+	CurrentValue  string
 }
 
 type ConfigChange struct {
 	Type     ChangeType
-	Section  string
-	Key      string
+	Path     []string
 	OldValue string
 	NewValue string
+}
+
+func (c ConfigChange) Key() string {
+	if len(c.Path) == 0 {
+		return ""
+	}
+	return c.Path[len(c.Path)-1]
+}
+
+func (c ConfigChange) Parent() []string {
+	if len(c.Path) <= 1 {
+		return nil
+	}
+	return c.Path[:len(c.Path)-1]
+}
+
+func (c ConfigChange) Section() string {
+	parent := c.Parent()
+	if len(parent) == 0 {
+		return ""
+	}
+	return strings.Join(parent, ".")
 }
 
 type ChangeType int
@@ -41,63 +72,109 @@ const (
 	colorDim    = "\033[2m"
 )
 
+func ComputeDiffWithBaseline(patch model.ConfigPatch, baseline *model.ManagedConfig) (*ConfigDiff, error) {
+	diff, err := ComputeDiff(patch)
+	if err != nil {
+		return nil, err
+	}
+
+	if baseline == nil || diff.IsNewFile {
+		return diff, nil
+	}
+
+	currentHash, err := hashConfigFile(diff.Path)
+	if err != nil {
+		return diff, nil
+	}
+
+	if currentHash != baseline.BaselineHash {
+		diff.UserModified = true
+
+		current, err := readConfig(diff.Path, patch.Target.Format)
+		if err != nil {
+			return diff, nil
+		}
+
+		for _, mk := range baseline.ManagedKeys {
+			section := iniSection(mk.Path[:len(mk.Path)-1])
+			key := mk.Path[len(mk.Path)-1]
+
+			if sectionMap, ok := current[section]; ok {
+				if currentVal, ok := sectionMap[key]; ok && currentVal != mk.Value {
+					diff.UserChanges = append(diff.UserChanges, UserChange{
+						Path:          mk.Path,
+						BaselineValue: mk.Value,
+						CurrentValue:  currentVal,
+					})
+				}
+			}
+		}
+	}
+
+	return diff, nil
+}
+
+func hashConfigFile(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	hash := sha256.Sum256(data)
+	return hex.EncodeToString(hash[:]), nil
+}
+
 func ComputeDiff(patch model.ConfigPatch) (*ConfigDiff, error) {
+	path, err := patch.Target.Resolve()
+	if err != nil {
+		return nil, fmt.Errorf("resolving config path: %w", err)
+	}
+
 	diff := &ConfigDiff{
-		Path:      patch.Config.Path,
+		Path:      path,
 		IsNewFile: true,
 		Changes:   make([]ConfigChange, 0),
 	}
 
-	// Read current config
-	current := make(map[string]map[string]string) // section -> key -> value
+	current := make(map[string]map[string]string)
 
-	if _, err := os.Stat(patch.Config.Path); err == nil {
+	if _, err := os.Stat(path); err == nil {
 		diff.IsNewFile = false
-		var err error
-		current, err = readConfig(patch.Config.Path, patch.Config.Format)
+		current, err = readConfig(path, patch.Target.Format)
 		if err != nil {
 			return nil, fmt.Errorf("reading current config: %w", err)
 		}
 	}
 
-	// Compare with proposed changes
 	for _, entry := range patch.Entries {
-		section := entry.Section
-		key := entry.Key
-		newValue := entry.Value
+		section := iniSection(entry.Parent())
+		key := entry.Key()
 
 		sectionMap, sectionExists := current[section]
 		if !sectionExists {
-			// New section and key
 			diff.Changes = append(diff.Changes, ConfigChange{
 				Type:     ChangeAdd,
-				Section:  section,
-				Key:      key,
-				NewValue: newValue,
+				Path:     entry.Path,
+				NewValue: entry.Value,
 			})
 			continue
 		}
 
 		oldValue, keyExists := sectionMap[key]
 		if !keyExists {
-			// New key in existing section
 			diff.Changes = append(diff.Changes, ConfigChange{
 				Type:     ChangeAdd,
-				Section:  section,
-				Key:      key,
-				NewValue: newValue,
+				Path:     entry.Path,
+				NewValue: entry.Value,
 			})
 			continue
 		}
 
-		// Key exists - check if value changed
-		if oldValue != newValue {
+		if oldValue != entry.Value {
 			diff.Changes = append(diff.Changes, ConfigChange{
 				Type:     ChangeModify,
-				Section:  section,
-				Key:      key,
+				Path:     entry.Path,
 				OldValue: oldValue,
-				NewValue: newValue,
+				NewValue: entry.Value,
 			})
 		}
 	}
@@ -128,7 +205,6 @@ func (d *ConfigDiff) Format() string {
 }
 
 func (d *ConfigDiff) FormatWithColor(useColor bool) string {
-	// Color helpers
 	green := func(s string) string {
 		if useColor {
 			return colorGreen + s + colorReset
@@ -168,30 +244,44 @@ func (d *ConfigDiff) FormatWithColor(useColor bool) string {
 
 	var sb strings.Builder
 
-	// File header with status
 	if d.IsNewFile {
 		sb.WriteString(fmt.Sprintf("  %s %s\n", green("CREATE"), bold(d.Path)))
 	} else if !d.HasChanges() {
 		sb.WriteString(fmt.Sprintf("  %s %s\n", dim("UNCHANGED"), d.Path))
+		if d.UserModified && len(d.UserChanges) > 0 {
+			sb.WriteString(fmt.Sprintf("    %s\n", yellow("⚠ You modified keys managed by kyaraben:")))
+			for _, uc := range d.UserChanges {
+				key := uc.Path[len(uc.Path)-1]
+				sb.WriteString(fmt.Sprintf("      %s: %s → %s\n", key, dim(uc.BaselineValue), yellow(uc.CurrentValue)))
+			}
+		}
 		return sb.String()
 	} else {
 		sb.WriteString(fmt.Sprintf("  %s %s\n", yellow("MODIFY"), bold(d.Path)))
 	}
 
-	// Group changes by section for better readability
+	if d.UserModified && len(d.UserChanges) > 0 {
+		sb.WriteString(fmt.Sprintf("    %s\n", yellow("⚠ You modified keys managed by kyaraben (will be overwritten):")))
+		for _, uc := range d.UserChanges {
+			key := uc.Path[len(uc.Path)-1]
+			sb.WriteString(fmt.Sprintf("      %s: %s → %s\n", key, dim(uc.BaselineValue), yellow(uc.CurrentValue)))
+		}
+		sb.WriteString("\n")
+	}
+
 	sectionChanges := make(map[string][]ConfigChange)
 	sectionOrder := make([]string, 0)
 	for _, change := range d.Changes {
-		if _, exists := sectionChanges[change.Section]; !exists {
-			sectionOrder = append(sectionOrder, change.Section)
+		section := change.Section()
+		if _, exists := sectionChanges[section]; !exists {
+			sectionOrder = append(sectionOrder, section)
 		}
-		sectionChanges[change.Section] = append(sectionChanges[change.Section], change)
+		sectionChanges[section] = append(sectionChanges[section], change)
 	}
 
 	for _, section := range sectionOrder {
 		changes := sectionChanges[section]
 
-		// Section header (for INI files)
 		if section != "" {
 			sb.WriteString(fmt.Sprintf("    %s\n", cyan(fmt.Sprintf("[%s]", section))))
 		}
@@ -205,17 +295,17 @@ func (d *ConfigDiff) FormatWithColor(useColor bool) string {
 			switch change.Type {
 			case ChangeAdd:
 				sb.WriteString(fmt.Sprintf("%s%s %s = %s\n",
-					indent, green("+"), change.Key, green(change.NewValue)))
+					indent, green("+"), change.Key(), green(change.NewValue)))
 			case ChangeModify:
 				sb.WriteString(fmt.Sprintf("%s%s %s\n",
-					indent, yellow("~"), change.Key))
+					indent, yellow("~"), change.Key()))
 				sb.WriteString(fmt.Sprintf("%s    %s %s\n",
 					indent, red("-"), dim(change.OldValue)))
 				sb.WriteString(fmt.Sprintf("%s    %s %s\n",
 					indent, green("+"), change.NewValue))
 			case ChangeRemove:
 				sb.WriteString(fmt.Sprintf("%s%s %s = %s\n",
-					indent, red("-"), change.Key, red(change.OldValue)))
+					indent, red("-"), change.Key(), red(change.OldValue)))
 			}
 		}
 	}
@@ -225,7 +315,7 @@ func (d *ConfigDiff) FormatWithColor(useColor bool) string {
 
 func readConfig(path string, format model.ConfigFormat) (map[string]map[string]string, error) {
 	result := make(map[string]map[string]string)
-	result[""] = make(map[string]string) // Default section for flat configs
+	result[""] = make(map[string]string)
 
 	f, err := os.Open(path)
 	if err != nil {
@@ -239,12 +329,10 @@ func readConfig(path string, format model.ConfigFormat) (map[string]map[string]s
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 
-		// Skip empty lines and comments
 		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, ";") {
 			continue
 		}
 
-		// Check for section header (INI format)
 		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
 			currentSection = line[1 : len(line)-1]
 			if result[currentSection] == nil {
@@ -253,7 +341,6 @@ func readConfig(path string, format model.ConfigFormat) (map[string]map[string]s
 			continue
 		}
 
-		// Parse key=value
 		idx := strings.Index(line, "=")
 		if idx == -1 {
 			continue

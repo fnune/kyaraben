@@ -8,9 +8,18 @@ import (
 	"github.com/fnune/kyaraben/internal/model"
 )
 
+func mustNewUserStore(t *testing.T, path string) *UserStore {
+	t.Helper()
+	s, err := NewUserStore(path)
+	if err != nil {
+		t.Fatalf("NewUserStore(%q) failed: %v", path, err)
+	}
+	return s
+}
+
 func TestUserStoreInitialize(t *testing.T) {
 	tmpDir := t.TempDir()
-	store := NewUserStore(tmpDir)
+	store := mustNewUserStore(t, tmpDir)
 
 	// Initialize should create all directories
 	if err := store.Initialize(); err != nil {
@@ -38,7 +47,7 @@ func TestUserStoreInitialize(t *testing.T) {
 
 func TestUserStoreInitializeSystem(t *testing.T) {
 	tmpDir := t.TempDir()
-	store := NewUserStore(tmpDir)
+	store := mustNewUserStore(t, tmpDir)
 
 	// Initialize base structure first
 	if err := store.Initialize(); err != nil {
@@ -72,7 +81,7 @@ func TestUserStoreInitializeSystem(t *testing.T) {
 }
 
 func TestUserStorePaths(t *testing.T) {
-	store := NewUserStore("/home/user/Emulation")
+	store := mustNewUserStore(t, "/home/user/Emulation")
 
 	tests := []struct {
 		name string
@@ -97,7 +106,7 @@ func TestUserStorePaths(t *testing.T) {
 }
 
 func TestUserStoreSystemPaths(t *testing.T) {
-	store := NewUserStore("/home/user/Emulation")
+	store := mustNewUserStore(t, "/home/user/Emulation")
 
 	tests := []struct {
 		name   string
@@ -125,24 +134,21 @@ func TestUserStoreSystemPaths(t *testing.T) {
 func TestUserStoreExists(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	// Non-existent directory
-	store := NewUserStore(filepath.Join(tmpDir, "nonexistent"))
+	store := mustNewUserStore(t, filepath.Join(tmpDir, "nonexistent"))
 	if store.Exists() {
 		t.Error("Exists returned true for non-existent directory")
 	}
 
-	// Existing directory
-	store = NewUserStore(tmpDir)
+	store = mustNewUserStore(t, tmpDir)
 	if !store.Exists() {
 		t.Error("Exists returned false for existing directory")
 	}
 
-	// File (not directory)
 	filePath := filepath.Join(tmpDir, "file")
 	if err := os.WriteFile(filePath, []byte("test"), 0644); err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
-	store = NewUserStore(filePath)
+	store = mustNewUserStore(t, filePath)
 	if store.Exists() {
 		t.Error("Exists returned true for file (not directory)")
 	}

@@ -11,7 +11,6 @@ type StoreReader interface {
 
 type ConfigGenerator interface {
 	Generate(store StoreReader, systems []SystemID) ([]ConfigPatch, error)
-	ConfigPaths() []string
 }
 
 type SystemDefinition interface {

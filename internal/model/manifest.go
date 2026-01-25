@@ -26,12 +26,16 @@ type InstalledEmulator struct {
 	Installed time.Time  `json:"installed"`
 }
 
-// ManagedConfig tracks a config file managed by kyaraben.
+type ManagedKey struct {
+	Path  []string `json:"path"`
+	Value string   `json:"value"`
+}
+
 type ManagedConfig struct {
-	Path         string     `json:"path"`          // Path to the config file
-	BaselineHash string     `json:"baseline_hash"` // Hash of baseline (what we last wrote)
-	LastModified time.Time  `json:"last_modified"`
-	EmulatorID   EmulatorID `json:"emulator_id"`
+	Target       ConfigTarget `json:"target"`
+	BaselineHash string       `json:"baseline_hash"`
+	LastModified time.Time    `json:"last_modified"`
+	ManagedKeys  []ManagedKey `json:"managed_keys"`
 }
 
 // NewManifest creates a new empty manifest.
@@ -113,11 +117,9 @@ func (m *Manifest) AddEmulator(emu InstalledEmulator) {
 	m.InstalledEmulators[emu.ID] = emu
 }
 
-// AddManagedConfig records a managed config file.
 func (m *Manifest) AddManagedConfig(cfg ManagedConfig) {
-	// Update existing or append
 	for i, existing := range m.ManagedConfigs {
-		if existing.Path == cfg.Path {
+		if existing.Target == cfg.Target {
 			m.ManagedConfigs[i] = cfg
 			return
 		}
@@ -129,4 +131,13 @@ func (m *Manifest) AddManagedConfig(cfg ManagedConfig) {
 func (m *Manifest) GetEmulator(id EmulatorID) (InstalledEmulator, bool) {
 	emu, ok := m.InstalledEmulators[id]
 	return emu, ok
+}
+
+func (m *Manifest) GetManagedConfig(target ConfigTarget) (ManagedConfig, bool) {
+	for _, cfg := range m.ManagedConfigs {
+		if cfg.Target == target {
+			return cfg, true
+		}
+	}
+	return ManagedConfig{}, false
 }
