@@ -20,7 +20,20 @@ test.beforeAll(async () => {
   console.log(`Testing: ${appImagePath}`)
   electronApp = await electron.launch({
     executablePath: appImagePath,
-    args: ['--no-sandbox'],
+    args: [
+      '--no-sandbox',
+      '--disable-gpu',
+      '--disable-dev-shm-usage',
+      '--disable-software-rasterizer',
+    ],
+  })
+
+  // Log main process console output for debugging
+  electronApp.process().stdout?.on('data', (data) => {
+    console.log(`[main] ${data.toString().trim()}`)
+  })
+  electronApp.process().stderr?.on('data', (data) => {
+    console.error(`[main] ${data.toString().trim()}`)
   })
 
   page = await electronApp.firstWindow()
