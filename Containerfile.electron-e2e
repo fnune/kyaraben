@@ -72,11 +72,13 @@ ENV KYARABEN_LOG=/home/testuser/.local/state/kyaraben/kyaraben.log
 # APPDIR is set so the app can find its bundled resources (sidecar, nix-portable)
 # Clear nix-portable internal state to avoid permission issues with cached data
 CMD ["sh", "-c", "\
+  set -ex && \
   mkdir -p /home/testuser/.local/state/kyaraben /home/testuser/.local/share/kyaraben && \
   rm -rf /home/testuser/.local/share/kyaraben/nix-portable/.nix-portable && \
+  ls -la /home/testuser/kyaraben/ui/release/ && \
   APPIMAGE=$(ls /home/testuser/kyaraben/ui/release/*.AppImage | head -1) && \
-  echo \"Extracting AppImage: $APPIMAGE\" && \
   cd /home/testuser/kyaraben/ui/release && $APPIMAGE --appimage-extract && \
+  ls -la squashfs-root/ && \
   Xvfb :99 -ac -screen 0 1280x1024x24 >/dev/null 2>&1 & \
   sleep 2 && \
   : > /home/testuser/.local/state/kyaraben/kyaraben.log && \
