@@ -177,7 +177,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 
 	fmt.Println("Done!")
 	fmt.Println()
-	fmt.Printf("Your emulation directory is ready at: %s\n", userStore.Root)
+	fmt.Printf("Your emulation directory is ready at: %s\n", userStore.Root())
 	fmt.Println("Place your ROMs in the appropriate subdirectories.")
 
 	return nil

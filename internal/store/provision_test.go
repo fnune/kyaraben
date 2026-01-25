@@ -10,7 +10,7 @@ import (
 
 func TestProvisionCheckerCheck(t *testing.T) {
 	tmpDir := t.TempDir()
-	store := NewUserStore(tmpDir)
+	store := mustNewUserStore(t, tmpDir)
 
 	// Initialize the store
 	if err := store.Initialize(); err != nil {
@@ -66,7 +66,7 @@ func TestProvisionCheckerCheck(t *testing.T) {
 
 func TestProvisionCheckerWithFile(t *testing.T) {
 	tmpDir := t.TempDir()
-	store := NewUserStore(tmpDir)
+	store := mustNewUserStore(t, tmpDir)
 
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
@@ -96,7 +96,7 @@ func TestProvisionCheckerWithFile(t *testing.T) {
 
 func TestProvisionCheckerHashVerification(t *testing.T) {
 	tmpDir := t.TempDir()
-	store := NewUserStore(tmpDir)
+	store := mustNewUserStore(t, tmpDir)
 
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
@@ -145,7 +145,7 @@ func TestProvisionCheckerHashVerification(t *testing.T) {
 
 func TestProvisionCheckerCaseInsensitive(t *testing.T) {
 	tmpDir := t.TempDir()
-	store := NewUserStore(tmpDir)
+	store := mustNewUserStore(t, tmpDir)
 
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)

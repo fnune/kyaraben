@@ -92,15 +92,13 @@ func (d *Daemon) handleStatus() []Event {
 		configPath, _ = model.DefaultConfigPath()
 	}
 
-	userStorePath, err := cfg.ExpandUserStore()
+	userStore, err := store.NewUserStore(cfg.Global.UserStore)
 	if err != nil {
 		return []Event{{
 			Type: EventError,
 			Data: map[string]string{"error": err.Error()},
 		}}
 	}
-
-	userStore := store.NewUserStore(userStorePath)
 
 	manifestPath, err := model.DefaultManifestPath()
 	if err != nil {
@@ -155,15 +153,13 @@ func (d *Daemon) handleDoctor() []Event {
 		}
 	}
 
-	userStorePath, err := cfg.ExpandUserStore()
+	userStore, err := store.NewUserStore(cfg.Global.UserStore)
 	if err != nil {
 		return []Event{{
 			Type: EventError,
 			Data: map[string]string{"error": err.Error()},
 		}}
 	}
-
-	userStore := store.NewUserStore(userStorePath)
 
 	result, err := doctor.Run(cfg, d.reg, userStore)
 	if err != nil {
@@ -203,15 +199,13 @@ func (d *Daemon) handleApply(_ map[string]interface{}, emit func(Event)) []Event
 		}}
 	}
 
-	userStorePath, err := cfg.ExpandUserStore()
+	userStore, err := store.NewUserStore(cfg.Global.UserStore)
 	if err != nil {
 		return []Event{{
 			Type: EventError,
 			Data: map[string]string{"error": err.Error()},
 		}}
 	}
-
-	userStore := store.NewUserStore(userStorePath)
 
 	manifestPath, err := model.DefaultManifestPath()
 	if err != nil {
