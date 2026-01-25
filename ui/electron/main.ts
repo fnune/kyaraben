@@ -3,6 +3,9 @@ import * as path from 'node:path'
 import * as readline from 'node:readline'
 import { BrowserWindow, app, ipcMain } from 'electron'
 
+// Protocol types for daemon communication.
+// Source of truth: internal/daemon/types.go
+// Keep these in sync when modifying the protocol.
 interface DaemonCommand {
   type: string
   data?: unknown
@@ -51,8 +54,6 @@ function findSidecarPath(): string {
   // 3. Development/testing: check relative to app directory
   // app.getAppPath() returns dist-electron/ when running main.js directly
   const appPath = app.getAppPath()
-  searchPaths.push(path.join(appPath, 'src-tauri', 'binaries', sidecarName))
-  searchPaths.push(path.join(appPath, '..', 'src-tauri', 'binaries', sidecarName)) // dist-electron/../src-tauri/binaries
   searchPaths.push(path.join(appPath, '..', 'binaries', sidecarName))
 
   // 4. Check APPDIR for AppImage

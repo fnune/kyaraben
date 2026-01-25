@@ -63,8 +63,5 @@
           duckstation = pkgs.duckstation;
         };
       }
-    ) // {
-      # Home-manager module
-      homeManagerModules.default = import ./nix/hm-module.nix;
-    };
+    );
 }

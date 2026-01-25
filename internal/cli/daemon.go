@@ -19,7 +19,7 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 	if err != nil {
 		return fmt.Errorf("creating nix client: %w", err)
 	}
-	flakeGenerator := nix.NewFlakeGenerator()
+	flakeGenerator := nix.NewFlakeGenerator(registry)
 	configWriter := emulators.NewConfigWriter()
 
 	d := daemon.New(ctx.ConfigPath, registry, nixClient, flakeGenerator, configWriter)
@@ -50,7 +50,12 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 			continue
 		}
 
-		events := d.Handle(cmd)
+		// Emit function streams events immediately to stdout
+		emit := func(event daemon.Event) {
+			_ = encoder.Encode(event)
+		}
+
+		events := d.HandleWithEmit(cmd, emit)
 		for _, event := range events {
 			if err := encoder.Encode(event); err != nil {
 				return fmt.Errorf("sending event: %w", err)

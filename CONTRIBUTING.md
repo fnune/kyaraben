@@ -10,9 +10,11 @@ straightforward tooling. The UI is TypeScript. Both languages offer static
 typing, which we rely on heavily.
 
 When defining protocols or data interchange formats, strict typing is
-essential. JSON schemas serve as the source of truth, with types generated for
-both Go and TypeScript. This ensures the contract between components is
-explicit and enforced at compile time.
+essential. Go types in `internal/daemon/types.go` serve as the source of truth
+for the daemon protocol. TypeScript types should be generated from Go types to
+ensure the contract between components is explicit and enforced at compile
+time. JSON schemas may be generated from Go for documentation or runtime
+validation.
 
 ## Testing
 
@@ -60,6 +62,61 @@ typically main.go, and dependencies are threaded down through constructors.
 Define dependencies as interfaces where substitution is needed, following the
 Dependency Inversion principle. This makes testing straightforward: swap real
 implementations for fakes at construction time.
+
+## Logging
+
+The Go daemon writes to `~/.local/state/kyaraben/kyaraben.log`. Use the logging
+package (`internal/logging`) for all Go log output. The daemon owns this log
+file; other processes should not write to it directly to avoid race conditions.
+
+Create a component-scoped logger at package level:
+
+```go
+var log = logging.New("nix")
+
+func DoSomething() {
+    log.Info("starting operation")
+    log.Debug("details: %v", details)
+    log.Error("operation failed: %v", err)
+}
+```
+
+The component name appears in log entries: `[INFO] [nix] starting operation`.
+This makes it clear which part of the system produced each log entry.
+
+Use appropriate log levels:
+
+- `Debug`: detailed information useful for debugging, not needed in normal
+  operation
+- `Info`: significant events in normal operation (starting builds, completing
+  operations)
+- `Error`: error conditions that should be investigated
+
+Keep log messages concise and actionable. Include relevant context (file paths,
+operation names, error details) but avoid verbose output that makes logs hard
+to read.
+
+The UI (Electron) writes to two destinations:
+
+1. Through the daemon via a `log` protocol command, which the daemon writes to
+   the unified log file. This provides a single log file with all system
+   activity for holistic debugging.
+2. Directly to its own file at `~/.local/state/kyaraben/kyaraben-ui.log`. This
+   captures UI-specific logs including protocol-level details (what was sent,
+   what was received) for debugging UI issues in isolation.
+
+This dual-sink approach enables:
+
+- Holistic debugging: review `kyaraben.log` to see all daemon activity plus
+  UI-originating events in chronological order
+- UI-specific debugging: review `kyaraben-ui.log` to see UI operations,
+  protocol messages, and UI-side errors in isolation
+
+Log files:
+
+- `~/.local/state/kyaraben/kyaraben.log`: unified log (daemon writes, UI
+  writes through daemon)
+- `~/.local/state/kyaraben/kyaraben-ui.log`: UI-only log (UI writes directly)
 
 ## Code style
 

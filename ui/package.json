@@ -19,13 +19,14 @@
   "build": {
     "appId": "com.kyaraben.app",
     "productName": "Kyaraben",
+    "artifactName": "${productName}-${version}-${arch}.${ext}",
     "directories": {
       "output": "release"
     },
     "files": ["dist/**/*", "dist-electron/**/*"],
     "extraResources": [
       {
-        "from": "src-tauri/binaries/",
+        "from": "binaries/",
         "to": "binaries/",
         "filter": ["kyaraben-*", "nix-portable-*"]
       }
