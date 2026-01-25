@@ -91,13 +91,6 @@ jobs:
           cache-from: type=gha,scope=electron-e2e
           cache-to: type=gha,mode=max,scope=electron-e2e
 
-      - name: Run E2E tests against AppImage
-        run: |
-          docker run --rm --init --ipc=host \
-            -v "$(pwd)/kyaraben-data-cache:/root/.local/share/kyaraben" \
-            -v "$(pwd)/kyaraben-state-cache:/root/.local/state/kyaraben" \
-            kyaraben-electron-e2e:latest
-
       - name: Extract AppImage from container
         run: |
           mkdir -p output
@@ -111,6 +104,13 @@ jobs:
           name: kyaraben-appimage
           path: output/*.AppImage
           if-no-files-found: error
+
+      - name: Run E2E tests against AppImage
+        run: |
+          docker run --rm --init --ipc=host \
+            -v "$(pwd)/kyaraben-data-cache:/root/.local/share/kyaraben" \
+            -v "$(pwd)/kyaraben-state-cache:/root/.local/state/kyaraben" \
+            kyaraben-electron-e2e:latest
 
       - name: Fix cache permissions
         if: always()
