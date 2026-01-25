@@ -128,6 +128,11 @@ jobs:
             -v "$(pwd)/kyaraben-state-cache:/home/testuser/.local/state/kyaraben" \
             kyaraben-electron-e2e:latest
 
+      - name: Fix cache permissions
+        if: always()
+        run: |
+          sudo chmod -R a+rX kyaraben-data-cache kyaraben-state-cache
+
       - name: Save kyaraben cache
         uses: actions/cache/save@v4
         if: always()
