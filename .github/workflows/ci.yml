@@ -96,18 +96,18 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Cache nix-portable store
+      - name: Cache kyaraben data directory
         uses: actions/cache@v4
         with:
-          path: nix-portable-cache
-          key: nix-portable-${{ runner.os }}-${{ hashFiles('internal/nix/flake.go') }}
+          path: kyaraben-data-cache
+          key: kyaraben-data-${{ runner.os }}-${{ hashFiles('internal/nix/flake.go') }}
           restore-keys: |
-            nix-portable-${{ runner.os }}-
+            kyaraben-data-${{ runner.os }}-
 
       - name: Prepare cache directory
         run: |
-          mkdir -p nix-portable-cache
-          chmod 777 nix-portable-cache
+          mkdir -p kyaraben-data-cache
+          chmod 777 kyaraben-data-cache
 
       - name: Build E2E test container
         uses: docker/build-push-action@v6
@@ -122,5 +122,5 @@ jobs:
       - name: Run E2E tests in container
         run: |
           docker run --rm --ipc=host \
-            -v "$(pwd)/nix-portable-cache:/home/testuser/.local/share/kyaraben/nix-portable" \
+            -v "$(pwd)/kyaraben-data-cache:/home/testuser/.local/share/kyaraben" \
             kyaraben-electron-e2e:latest
