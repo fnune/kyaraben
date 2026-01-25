@@ -78,7 +78,8 @@ jobs:
       - name: Prepare cache directories
         run: |
           mkdir -p kyaraben-data-cache kyaraben-state-cache
-          chmod 777 kyaraben-data-cache kyaraben-state-cache
+          # Fix permissions on any existing cached files (may be owned by container user)
+          sudo chmod -R 777 kyaraben-data-cache kyaraben-state-cache
 
       - name: Build and test container
         uses: docker/build-push-action@v6
