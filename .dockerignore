@@ -1,0 +1,41 @@
+# Git
+.git
+.gitignore
+
+# CI cache directories (restored before docker build, can be huge)
+kyaraben-data-cache
+kyaraben-state-cache
+
+# Node modules (installed inside container)
+node_modules
+ui/node_modules
+
+# Build outputs (built inside container)
+ui/dist
+ui/dist-electron
+ui/release
+ui/binaries
+
+# Go build outputs
+*.exe
+kyaraben
+
+# IDE and editor
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+*.log
+test-results
+playwright-report
+
+# Documentation (not needed for build)
+*.md
+!ui/package.json
