@@ -19,6 +19,7 @@
   "build": {
     "appId": "com.kyaraben.app",
     "productName": "Kyaraben",
+    "artifactName": "${productName}-${version}-${arch}.${ext}",
     "directories": {
       "output": "release"
     },
