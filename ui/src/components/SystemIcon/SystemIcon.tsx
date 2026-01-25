@@ -1,4 +1,4 @@
-import type { SystemID } from '@/types'
+import type { SystemID } from '@/types/daemon'
 import { type Manufacturer, SYSTEM_MANUFACTURERS } from '@/types/ui'
 
 export interface SystemIconProps {
