@@ -20,12 +20,12 @@ WORKDIR /home/builduser/kyaraben
 
 # Copy Go dependency files and download modules (cached unless go.mod/go.sum change)
 COPY --chown=builduser:builduser go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/home/builduser/go/pkg/mod go mod download
 
 # Copy Node dependency files and install (cached unless package*.json change)
 COPY --chown=builduser:builduser ui/package.json ui/package-lock.json ./ui/
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
-RUN cd ui && npm ci
+RUN --mount=type=cache,target=/home/builduser/.npm cd ui && npm ci
 
 # Copy the rest of the project
 COPY --chown=builduser:builduser . .
@@ -34,7 +34,9 @@ COPY --chown=builduser:builduser . .
 RUN ./scripts/build-sidecar.sh
 
 # Build frontend, Electron, and AppImage
-RUN cd ui && npm run build && npm run build:electron && npm run electron:build -- --linux AppImage
+RUN --mount=type=cache,target=/home/builduser/.cache/electron \
+    --mount=type=cache,target=/home/builduser/.cache/electron-builder \
+    cd ui && npm run build && npm run build:electron && npm run electron:build -- --linux AppImage
 
 # Final stage - minimal image for testing
 FROM mcr.microsoft.com/playwright:v1.49.1-noble
