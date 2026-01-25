@@ -184,7 +184,9 @@ func isValidDeviceID(id string) bool {
 		return false
 	}
 	for _, c := range id {
-		if !((c >= 'A' && c <= 'Z') || (c >= '2' && c <= '7')) {
+		isUpperAlpha := c >= 'A' && c <= 'Z'
+		isBase32Digit := c >= '2' && c <= '7'
+		if !isUpperAlpha && !isBase32Digit {
 			return false
 		}
 	}
