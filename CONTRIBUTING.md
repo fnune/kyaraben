@@ -31,6 +31,11 @@ Unit tests cover pure logic. Integration tests use fakes for external
 dependencies like the Nix client. End-to-end tests invoke the real system,
 including actual Nix builds. E2E tests are slower but validate the full flow.
 
+For UI E2E tests, follow the Playwright best practices at
+https://playwright.dev/docs/best-practices. Prefer user-facing selectors like
+`getByRole`, `getByLabel`, and `getByText` over CSS selectors or test IDs. Test
+what users see and interact with, not implementation details.
+
 ## Simplicity
 
 Start with the simplest solution that works. Do not build abstractions until
