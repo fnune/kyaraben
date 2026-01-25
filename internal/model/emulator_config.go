@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type ConfigFormat string
@@ -63,9 +64,26 @@ func (ct ConfigTarget) Resolve() (string, error) {
 }
 
 type ConfigEntry struct {
-	Section string
-	Key     string
-	Value   string
+	Path  []string
+	Value string
+}
+
+func (e ConfigEntry) Key() string {
+	if len(e.Path) == 0 {
+		return ""
+	}
+	return e.Path[len(e.Path)-1]
+}
+
+func (e ConfigEntry) Parent() []string {
+	if len(e.Path) <= 1 {
+		return nil
+	}
+	return e.Path[:len(e.Path)-1]
+}
+
+func (e ConfigEntry) FullPath() string {
+	return strings.Join(e.Path, ".")
 }
 
 type ConfigPatch struct {
