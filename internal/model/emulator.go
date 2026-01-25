@@ -19,15 +19,13 @@ const (
 	PackageSourceGitHub  PackageSource = "github"
 )
 
-// Emulator represents an implementation that runs a system's games.
 type Emulator struct {
-	ID          EmulatorID
-	Name        string
-	Systems     []SystemID
-	Package     PackageRef
-	Provisions  []Provision
-	StateKinds  []StateKind
-	ConfigPaths []string // Paths to config files this emulator uses
+	ID         EmulatorID
+	Name       string
+	Systems    []SystemID
+	Package    PackageRef
+	Provisions []Provision
+	StateKinds []StateKind
 }
 
 // SupportsSystem checks if this emulator can run games for the given system.
