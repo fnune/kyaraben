@@ -22,12 +22,66 @@ type Progress struct {
 type Result struct {
 	StorePath string
 	Patches   []model.ConfigPatch
+	Backups   []BackupInfo
+}
+
+type BackupInfo struct {
+	OriginalPath string
+	BackupPath   string
 }
 
 type Options struct {
-	DryRun     bool
-	ShowDiff   bool
-	OnProgress func(Progress)
+	DryRun        bool
+	ShowDiff      bool
+	CreateBackups bool
+	OnProgress    func(Progress)
+}
+
+type PreflightResult struct {
+	Patches       []model.ConfigPatch
+	FilesToBackup []string
+}
+
+func (a *Applier) Preflight(cfg *model.KyarabenConfig, userStore *store.UserStore) (*PreflightResult, error) {
+	allPatches := make([]model.ConfigPatch, 0)
+
+	for sys, sysConf := range cfg.Systems {
+		gen := a.Registry.GetConfigGenerator(sysConf.Emulator)
+		if gen == nil {
+			continue
+		}
+
+		patches, err := gen.Generate(userStore, []model.SystemID{sys})
+		if err != nil {
+			return nil, fmt.Errorf("generating config for %s: %w", sysConf.Emulator, err)
+		}
+		allPatches = append(allPatches, patches...)
+	}
+
+	manifest, err := model.LoadManifest(a.ManifestPath)
+	if err != nil {
+		return nil, fmt.Errorf("loading manifest: %w", err)
+	}
+
+	var filesToBackup []string
+	for _, patch := range allPatches {
+		path, exists, err := a.ConfigWriter.NeedsBackup(patch)
+		if err != nil {
+			return nil, fmt.Errorf("checking config file: %w", err)
+		}
+
+		if exists {
+			// Check if this file is already managed by kyaraben
+			if _, managed := manifest.GetManagedConfig(path); !managed {
+				filesToBackup = append(filesToBackup, path)
+			}
+		}
+	}
+
+	return &PreflightResult{
+		Patches:       allPatches,
+		FilesToBackup: filesToBackup,
+	}, nil
 }
 
 type Applier struct {
@@ -106,21 +160,44 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 
 	opts.OnProgress(Progress{Step: "configs", Message: "Applying emulator configurations..."})
 
-	configResults := make([]emulators.ApplyResult, len(allPatches))
-	for i, patch := range allPatches {
-		result, err := a.ConfigWriter.Apply(patch)
-		if err != nil {
-			return nil, fmt.Errorf("applying config: %w", err)
-		}
-		configResults[i] = result
-	}
-
-	opts.OnProgress(Progress{Step: "manifest", Message: "Updating manifest..."})
-
 	manifest, err := model.LoadManifest(a.ManifestPath)
 	if err != nil {
 		return nil, fmt.Errorf("loading manifest: %w", err)
 	}
+
+	configResults := make([]emulators.ApplyResult, len(allPatches))
+	var backups []BackupInfo
+	for i, patch := range allPatches {
+		createBackup := false
+		if opts.CreateBackups {
+			path, exists, err := a.ConfigWriter.NeedsBackup(patch)
+			if err != nil {
+				return nil, fmt.Errorf("checking config file: %w", err)
+			}
+			if exists {
+				if _, managed := manifest.GetManagedConfig(path); !managed {
+					createBackup = true
+				}
+			}
+		}
+
+		result, err := a.ConfigWriter.ApplyWithOptions(patch, emulators.ApplyOptions{
+			CreateBackup: createBackup,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("applying config: %w", err)
+		}
+		configResults[i] = result
+
+		if result.BackupPath != "" {
+			backups = append(backups, BackupInfo{
+				OriginalPath: result.Path,
+				BackupPath:   result.BackupPath,
+			})
+		}
+	}
+
+	opts.OnProgress(Progress{Step: "manifest", Message: "Updating manifest..."})
 
 	manifest.LastApplied = time.Now()
 
@@ -154,6 +231,7 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 	return &Result{
 		StorePath: storePath,
 		Patches:   allPatches,
+		Backups:   backups,
 	}, nil
 }
 

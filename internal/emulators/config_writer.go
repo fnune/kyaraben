@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/fnune/kyaraben/internal/model"
 )
@@ -22,22 +23,81 @@ func NewConfigWriter() *ConfigWriter {
 type ApplyResult struct {
 	Path         string
 	BaselineHash string
+	BackupPath   string
+}
+
+type ApplyOptions struct {
+	CreateBackup bool
+}
+
+func (w *ConfigWriter) NeedsBackup(patch model.ConfigPatch) (string, bool, error) {
+	path, err := patch.Target.Resolve()
+	if err != nil {
+		return "", false, fmt.Errorf("resolving config path: %w", err)
+	}
+
+	_, err = os.Stat(path)
+	if os.IsNotExist(err) {
+		return path, false, nil
+	}
+	if err != nil {
+		return path, false, err
+	}
+	return path, true, nil
+}
+
+func (w *ConfigWriter) createBackup(path string) (string, error) {
+	timestamp := time.Now().Format("20060102-150405")
+	backupPath := fmt.Sprintf("%s.%s.bak", path, timestamp)
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("reading file for backup: %w", err)
+	}
+
+	if err := os.WriteFile(backupPath, data, 0644); err != nil {
+		return "", fmt.Errorf("writing backup file: %w", err)
+	}
+
+	return backupPath, nil
 }
 
 func (w *ConfigWriter) Apply(patch model.ConfigPatch) (ApplyResult, error) {
+	return w.ApplyWithOptions(patch, ApplyOptions{})
+}
+
+func (w *ConfigWriter) ApplyWithOptions(patch model.ConfigPatch, opts ApplyOptions) (ApplyResult, error) {
 	path, err := patch.Target.Resolve()
 	if err != nil {
 		return ApplyResult{}, fmt.Errorf("resolving config path: %w", err)
 	}
 
+	var backupPath string
+	if opts.CreateBackup {
+		if _, err := os.Stat(path); err == nil {
+			backupPath, err = w.createBackup(path)
+			if err != nil {
+				return ApplyResult{}, fmt.Errorf("creating backup: %w", err)
+			}
+		}
+	}
+
+	var result ApplyResult
 	switch patch.Target.Format {
 	case model.ConfigFormatCFG:
-		return w.applyCFG(path, patch.Entries)
+		result, err = w.applyCFG(path, patch.Entries)
 	case model.ConfigFormatINI:
-		return w.applyINI(path, patch.Entries)
+		result, err = w.applyINI(path, patch.Entries)
 	default:
 		return ApplyResult{}, fmt.Errorf("unsupported config format: %s", patch.Target.Format)
 	}
+
+	if err != nil {
+		return result, err
+	}
+
+	result.BackupPath = backupPath
+	return result, nil
 }
 
 func iniSection(path []string) string {

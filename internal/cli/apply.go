@@ -1,7 +1,10 @@
 package cli
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/fnune/kyaraben/internal/apply"
 	"github.com/fnune/kyaraben/internal/emulators"
@@ -48,9 +51,31 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	fmt.Println("Applying kyaraben configuration...")
 	fmt.Println()
 
+	preflight, err := applier.Preflight(cfg, userStore)
+	if err != nil {
+		return fmt.Errorf("preflight check: %w", err)
+	}
+
+	createBackups := false
+	if len(preflight.FilesToBackup) > 0 {
+		fmt.Println("The following existing config files will be modified:")
+		for _, path := range preflight.FilesToBackup {
+			fmt.Printf("  %s\n", path)
+		}
+		fmt.Println()
+		fmt.Print("Create backups before modifying? [Y/n] ")
+
+		reader := bufio.NewReader(os.Stdin)
+		response, _ := reader.ReadString('\n')
+		response = strings.TrimSpace(strings.ToLower(response))
+		createBackups = response == "" || response == "y" || response == "yes"
+		fmt.Println()
+	}
+
 	opts := apply.Options{
-		DryRun:   cmd.DryRun,
-		ShowDiff: cmd.ShowDiff,
+		DryRun:        cmd.DryRun,
+		ShowDiff:      cmd.ShowDiff,
+		CreateBackups: createBackups,
 		OnProgress: func(p apply.Progress) {
 			switch p.Step {
 			case "directories":
@@ -142,6 +167,14 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		fmt.Printf("  Applied: %s\n", path)
 	}
 	fmt.Println()
+
+	if len(result.Backups) > 0 {
+		fmt.Println("Backups created:")
+		for _, backup := range result.Backups {
+			fmt.Printf("  %s\n", backup.BackupPath)
+		}
+		fmt.Println()
+	}
 
 	fmt.Println("Done!")
 	fmt.Println()
