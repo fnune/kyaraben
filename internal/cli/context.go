@@ -3,9 +3,9 @@ package cli
 import (
 	"fmt"
 
-	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/nix"
+	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/store"
 )
 
@@ -37,7 +37,7 @@ func (c *Context) GetConfigPath() (string, error) {
 	return model.DefaultConfigPath()
 }
 
-func (c *Context) NewRegistry() *emulators.Registry   { return emulators.NewRegistry() }
+func (c *Context) NewRegistry() *registry.Registry   { return registry.NewDefault() }
 func (c *Context) NewNixClient() (*nix.Client, error) { return nix.NewClient() }
 
 func (c *Context) NewUserStore(cfg *model.KyarabenConfig) (*store.UserStore, error) {

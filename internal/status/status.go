@@ -3,8 +3,8 @@ package status
 import (
 	"time"
 
-	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/store"
 )
 
@@ -29,7 +29,7 @@ type Result struct {
 	MissingRequiredCount int
 }
 
-func Get(cfg *model.KyarabenConfig, configPath string, registry *emulators.Registry, userStore *store.UserStore, manifestPath string) (*Result, error) {
+func Get(cfg *model.KyarabenConfig, configPath string, reg *registry.Registry, userStore *store.UserStore, manifestPath string) (*Result, error) {
 	manifest, err := model.LoadManifest(manifestPath)
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func Get(cfg *model.KyarabenConfig, configPath string, registry *emulators.Regis
 
 	for _, sysID := range cfg.EnabledSystems() {
 		info := SystemInfo{ID: sysID, Name: string(sysID)}
-		if sys, err := registry.GetSystem(sysID); err == nil {
+		if sys, err := reg.GetSystem(sysID); err == nil {
 			info.Name = sys.Name
 		}
 		result.EnabledSystems = append(result.EnabledSystems, info)
@@ -56,7 +56,7 @@ func Get(cfg *model.KyarabenConfig, configPath string, registry *emulators.Regis
 			Name:    string(emu.ID),
 			Version: emu.Version,
 		}
-		if e, err := registry.GetEmulator(emu.ID); err == nil {
+		if e, err := reg.GetEmulator(emu.ID); err == nil {
 			info.Name = e.Name
 		}
 		result.InstalledEmulators = append(result.InstalledEmulators, info)
@@ -64,7 +64,7 @@ func Get(cfg *model.KyarabenConfig, configPath string, registry *emulators.Regis
 
 	checker := store.NewProvisionChecker(userStore)
 	for sys, sysConf := range cfg.Systems {
-		emu, err := registry.GetEmulator(sysConf.Emulator)
+		emu, err := reg.GetEmulator(sysConf.Emulator)
 		if err != nil {
 			continue
 		}

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/store"
 )
 
@@ -27,7 +27,7 @@ func TestGet(t *testing.T) {
 		},
 	}
 
-	registry := emulators.NewRegistry()
+	registry := registry.NewDefault()
 	userStore := store.NewUserStore(userStorePath)
 
 	result, err := Get(cfg, configPath, registry, userStore, manifestPath)
@@ -78,7 +78,7 @@ func TestGetWithInitializedStore(t *testing.T) {
 		},
 	}
 
-	registry := emulators.NewRegistry()
+	registry := registry.NewDefault()
 	userStore := store.NewUserStore(userStorePath)
 
 	result, err := Get(cfg, configPath, registry, userStore, manifestPath)
@@ -104,7 +104,7 @@ func TestGetSystemNames(t *testing.T) {
 		},
 	}
 
-	registry := emulators.NewRegistry()
+	registry := registry.NewDefault()
 	userStore := store.NewUserStore(tmpDir)
 
 	result, err := Get(cfg, tmpDir, registry, userStore, manifestPath)
@@ -144,7 +144,7 @@ func TestGetMissingRequiredCount(t *testing.T) {
 		},
 	}
 
-	registry := emulators.NewRegistry()
+	registry := registry.NewDefault()
 	userStore := store.NewUserStore(userStorePath)
 
 	result, err := Get(cfg, tmpDir, registry, userStore, manifestPath)
@@ -188,7 +188,7 @@ func TestGetWithManifest(t *testing.T) {
 		},
 	}
 
-	registry := emulators.NewRegistry()
+	registry := registry.NewDefault()
 	userStore := store.NewUserStore(tmpDir)
 
 	result, err := Get(cfg, tmpDir, registry, userStore, manifestPath)

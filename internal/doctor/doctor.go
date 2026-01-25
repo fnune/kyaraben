@@ -1,8 +1,8 @@
 package doctor
 
 import (
-	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/store"
 )
 
@@ -30,13 +30,13 @@ type Result struct {
 	OptionalMissing int
 }
 
-func Run(cfg *model.KyarabenConfig, registry *emulators.Registry, userStore *store.UserStore) (*Result, error) {
+func Run(cfg *model.KyarabenConfig, reg *registry.Registry, userStore *store.UserStore) (*Result, error) {
 	checker := store.NewProvisionChecker(userStore)
 
 	result := &Result{}
 
 	for sys, sysConf := range cfg.Systems {
-		emu, err := registry.GetEmulator(sysConf.Emulator)
+		emu, err := reg.GetEmulator(sysConf.Emulator)
 		if err != nil {
 			continue
 		}
