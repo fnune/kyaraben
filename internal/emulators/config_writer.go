@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/fnune/kyaraben/internal/model"
 )
@@ -19,22 +20,91 @@ func NewConfigWriter() *ConfigWriter {
 	return &ConfigWriter{}
 }
 
-// ApplyResult contains the result of applying a config patch.
 type ApplyResult struct {
+	Path         string
 	BaselineHash string
+	BackupPath   string
 }
 
-// Apply writes the config and returns the hash of the written content.
-// Existing values are preserved unless kyaraben sets them.
-func (w *ConfigWriter) Apply(patch model.ConfigPatch) (ApplyResult, error) {
-	switch patch.Config.Format {
-	case model.ConfigFormatCFG:
-		return w.applyCFG(patch)
-	case model.ConfigFormatINI:
-		return w.applyINI(patch)
-	default:
-		return ApplyResult{}, fmt.Errorf("unsupported config format: %s", patch.Config.Format)
+type ApplyOptions struct {
+	CreateBackup bool
+}
+
+func (w *ConfigWriter) NeedsBackup(patch model.ConfigPatch) (string, bool, error) {
+	path, err := patch.Target.Resolve()
+	if err != nil {
+		return "", false, fmt.Errorf("resolving config path: %w", err)
 	}
+
+	_, err = os.Stat(path)
+	if os.IsNotExist(err) {
+		return path, false, nil
+	}
+	if err != nil {
+		return path, false, err
+	}
+	return path, true, nil
+}
+
+func (w *ConfigWriter) createBackup(path string) (string, error) {
+	timestamp := time.Now().Format("20060102-150405")
+	backupPath := fmt.Sprintf("%s.%s.bak", path, timestamp)
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("reading file for backup: %w", err)
+	}
+
+	if err := os.WriteFile(backupPath, data, 0644); err != nil {
+		return "", fmt.Errorf("writing backup file: %w", err)
+	}
+
+	return backupPath, nil
+}
+
+func (w *ConfigWriter) Apply(patch model.ConfigPatch) (ApplyResult, error) {
+	return w.ApplyWithOptions(patch, ApplyOptions{})
+}
+
+func (w *ConfigWriter) ApplyWithOptions(patch model.ConfigPatch, opts ApplyOptions) (ApplyResult, error) {
+	path, err := patch.Target.Resolve()
+	if err != nil {
+		return ApplyResult{}, fmt.Errorf("resolving config path: %w", err)
+	}
+
+	var backupPath string
+	if opts.CreateBackup {
+		if _, err := os.Stat(path); err == nil {
+			backupPath, err = w.createBackup(path)
+			if err != nil {
+				return ApplyResult{}, fmt.Errorf("creating backup: %w", err)
+			}
+		}
+	}
+
+	var result ApplyResult
+	switch patch.Target.Format {
+	case model.ConfigFormatCFG:
+		result, err = w.applyCFG(path, patch.Entries)
+	case model.ConfigFormatINI:
+		result, err = w.applyINI(path, patch.Entries)
+	default:
+		return ApplyResult{}, fmt.Errorf("unsupported config format: %s", patch.Target.Format)
+	}
+
+	if err != nil {
+		return result, err
+	}
+
+	result.BackupPath = backupPath
+	return result, nil
+}
+
+func iniSection(path []string) string {
+	if len(path) == 0 {
+		return ""
+	}
+	return strings.Join(path, ".")
 }
 
 func hashFile(path string) (string, error) {
@@ -46,15 +116,11 @@ func hashFile(path string) (string, error) {
 	return hex.EncodeToString(hash[:]), nil
 }
 
-func (w *ConfigWriter) applyCFG(patch model.ConfigPatch) (ApplyResult, error) {
-	path := patch.Config.Path
-
-	// Ensure directory exists
+func (w *ConfigWriter) applyCFG(path string, entries []model.ConfigEntry) (ApplyResult, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return ApplyResult{}, fmt.Errorf("creating config directory: %w", err)
 	}
 
-	// Read existing config if it exists
 	existing := make(map[string]string)
 	if data, err := os.Open(path); err == nil {
 		scanner := bufio.NewScanner(data)
@@ -72,12 +138,10 @@ func (w *ConfigWriter) applyCFG(patch model.ConfigPatch) (ApplyResult, error) {
 		_ = data.Close()
 	}
 
-	// Apply patches
-	for _, entry := range patch.Entries {
-		existing[entry.Key] = entry.Value
+	for _, entry := range entries {
+		existing[entry.Key()] = entry.Value
 	}
 
-	// Write config
 	f, err := os.Create(path)
 	if err != nil {
 		return ApplyResult{}, fmt.Errorf("creating config file: %w", err)
@@ -98,18 +162,15 @@ func (w *ConfigWriter) applyCFG(patch model.ConfigPatch) (ApplyResult, error) {
 		_, _ = fmt.Fprintf(f, "%s = %s\n", key, existing[key])
 	}
 
-	// Compute hash of written file
 	hash, err := hashFile(path)
 	if err != nil {
 		return ApplyResult{}, fmt.Errorf("hashing config file: %w", err)
 	}
 
-	return ApplyResult{BaselineHash: hash}, nil
+	return ApplyResult{Path: path, BaselineHash: hash}, nil
 }
 
-func (w *ConfigWriter) applyINI(patch model.ConfigPatch) (ApplyResult, error) {
-	path := patch.Config.Path
-
+func (w *ConfigWriter) applyINI(path string, entries []model.ConfigEntry) (ApplyResult, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return ApplyResult{}, fmt.Errorf("creating config directory: %w", err)
 	}
@@ -143,11 +204,12 @@ func (w *ConfigWriter) applyINI(patch model.ConfigPatch) (ApplyResult, error) {
 		_ = data.Close()
 	}
 
-	for _, entry := range patch.Entries {
-		if sections[entry.Section] == nil {
-			sections[entry.Section] = make(map[string]string)
+	for _, entry := range entries {
+		section := iniSection(entry.Parent())
+		if sections[section] == nil {
+			sections[section] = make(map[string]string)
 		}
-		sections[entry.Section][entry.Key] = entry.Value
+		sections[section][entry.Key()] = entry.Value
 	}
 
 	f, err := os.Create(path)
@@ -184,11 +246,10 @@ func (w *ConfigWriter) applyINI(patch model.ConfigPatch) (ApplyResult, error) {
 		_, _ = fmt.Fprintln(f)
 	}
 
-	// Compute hash of written file
 	hash, err := hashFile(path)
 	if err != nil {
 		return ApplyResult{}, fmt.Errorf("hashing config file: %w", err)
 	}
 
-	return ApplyResult{BaselineHash: hash}, nil
+	return ApplyResult{Path: path, BaselineHash: hash}, nil
 }

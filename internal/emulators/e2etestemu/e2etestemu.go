@@ -6,13 +6,12 @@ type Definition struct{}
 
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
-		ID:          model.EmulatorE2ETest,
-		Name:        "E2E Test",
-		Systems:     []model.SystemID{model.SystemE2ETest},
-		Package:     model.NixpkgsRef("hello"),
-		Provisions:  []model.Provision{},
-		StateKinds:  []model.StateKind{},
-		ConfigPaths: []string{},
+		ID:         model.EmulatorE2ETest,
+		Name:       "E2E Test",
+		Systems:    []model.SystemID{model.SystemE2ETest},
+		Package:    model.NixpkgsRef("hello"),
+		Provisions: []model.Provision{},
+		StateKinds: []model.StateKind{},
 	}
 }
 
@@ -22,10 +21,6 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 
 type Config struct{}
 
-func (c *Config) ConfigPaths() []string {
-	return []string{}
-}
-
 func (c *Config) Generate(store model.StoreReader, systems []model.SystemID) ([]model.ConfigPatch, error) {
-	return []model.ConfigPatch{}, nil
+	return nil, nil
 }

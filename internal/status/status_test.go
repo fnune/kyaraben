@@ -11,6 +11,15 @@ import (
 	"github.com/fnune/kyaraben/internal/store"
 )
 
+func mustNewUserStore(t *testing.T, path string) *store.UserStore {
+	t.Helper()
+	s, err := store.NewUserStore(path)
+	if err != nil {
+		t.Fatalf("NewUserStore(%q) failed: %v", path, err)
+	}
+	return s
+}
+
 func TestGet(t *testing.T) {
 	tmpDir := t.TempDir()
 	userStorePath := filepath.Join(tmpDir, "Emulation")
@@ -28,7 +37,7 @@ func TestGet(t *testing.T) {
 	}
 
 	registry := registry.NewDefault()
-	userStore := store.NewUserStore(userStorePath)
+	userStore := mustNewUserStore(t, userStorePath)
 
 	result, err := Get(cfg, configPath, registry, userStore, manifestPath)
 	if err != nil {
@@ -79,7 +88,7 @@ func TestGetWithInitializedStore(t *testing.T) {
 	}
 
 	registry := registry.NewDefault()
-	userStore := store.NewUserStore(userStorePath)
+	userStore := mustNewUserStore(t, userStorePath)
 
 	result, err := Get(cfg, configPath, registry, userStore, manifestPath)
 	if err != nil {
@@ -105,7 +114,7 @@ func TestGetSystemNames(t *testing.T) {
 	}
 
 	registry := registry.NewDefault()
-	userStore := store.NewUserStore(tmpDir)
+	userStore := mustNewUserStore(t, tmpDir)
 
 	result, err := Get(cfg, tmpDir, registry, userStore, manifestPath)
 	if err != nil {
@@ -145,7 +154,7 @@ func TestGetMissingRequiredCount(t *testing.T) {
 	}
 
 	registry := registry.NewDefault()
-	userStore := store.NewUserStore(userStorePath)
+	userStore := mustNewUserStore(t, userStorePath)
 
 	result, err := Get(cfg, tmpDir, registry, userStore, manifestPath)
 	if err != nil {
@@ -189,7 +198,7 @@ func TestGetWithManifest(t *testing.T) {
 	}
 
 	registry := registry.NewDefault()
-	userStore := store.NewUserStore(tmpDir)
+	userStore := mustNewUserStore(t, tmpDir)
 
 	result, err := Get(cfg, tmpDir, registry, userStore, manifestPath)
 	if err != nil {

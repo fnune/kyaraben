@@ -58,8 +58,9 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 		fmt.Println()
 		fmt.Println("  Managed config files:")
 		for _, cfg := range manifest.ManagedConfigs {
-			if fileExists(cfg.Path) {
-				fmt.Printf("    %s\n", cfg.Path)
+			path, err := cfg.Target.Resolve()
+			if err == nil && fileExists(path) {
+				fmt.Printf("    %s\n", path)
 			}
 		}
 	}
@@ -87,11 +88,15 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 	fmt.Println("Removing kyaraben files...")
 
 	for _, cfg := range manifest.ManagedConfigs {
-		if fileExists(cfg.Path) {
-			if err := os.Remove(cfg.Path); err != nil {
-				fmt.Printf("  Warning: could not remove %s: %v\n", cfg.Path, err)
+		path, err := cfg.Target.Resolve()
+		if err != nil {
+			continue
+		}
+		if fileExists(path) {
+			if err := os.Remove(path); err != nil {
+				fmt.Printf("  Warning: could not remove %s: %v\n", path, err)
 			} else {
-				fmt.Printf("  Removed: %s\n", cfg.Path)
+				fmt.Printf("  Removed: %s\n", path)
 			}
 		}
 	}

@@ -14,7 +14,6 @@ func (Definition) Emulator() model.Emulator {
 		StateKinds: []model.StateKind{
 			model.StateSaves,
 		},
-		ConfigPaths: []string{},
 	}
 }
 
@@ -24,10 +23,6 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 
 type Config struct{}
 
-func (c *Config) ConfigPaths() []string {
-	return []string{}
-}
-
 func (c *Config) Generate(store model.StoreReader, systems []model.SystemID) ([]model.ConfigPatch, error) {
-	return []model.ConfigPatch{}, nil
+	return nil, nil
 }
