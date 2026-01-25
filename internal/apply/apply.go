@@ -8,6 +8,7 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/nix"
+	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/store"
 )
 
@@ -33,7 +34,7 @@ type Applier struct {
 	NixClient      nix.NixClient
 	FlakeGenerator *nix.FlakeGenerator
 	ConfigWriter   *emulators.ConfigWriter
-	Registry       *emulators.Registry
+	Registry       *registry.Registry
 	ManifestPath   string
 }
 

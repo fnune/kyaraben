@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/store"
 )
 
@@ -31,7 +31,7 @@ func TestRun(t *testing.T) {
 		},
 	}
 
-	registry := emulators.NewRegistry()
+	registry := registry.NewDefault()
 	userStore := store.NewUserStore(userStorePath)
 
 	result, err := Run(cfg, registry, userStore)
@@ -70,7 +70,7 @@ func TestRunNoProvisions(t *testing.T) {
 		},
 	}
 
-	registry := emulators.NewRegistry()
+	registry := registry.NewDefault()
 	userStore := store.NewUserStore(userStorePath)
 
 	result, err := Run(cfg, registry, userStore)
@@ -125,7 +125,7 @@ func TestRunWithBiosFile(t *testing.T) {
 		},
 	}
 
-	registry := emulators.NewRegistry()
+	registry := registry.NewDefault()
 	userStore := store.NewUserStore(userStorePath)
 
 	result, err := Run(cfg, registry, userStore)
@@ -175,7 +175,7 @@ func TestRunSystemResult(t *testing.T) {
 		},
 	}
 
-	registry := emulators.NewRegistry()
+	registry := registry.NewDefault()
 	userStore := store.NewUserStore(userStorePath)
 
 	result, err := Run(cfg, registry, userStore)

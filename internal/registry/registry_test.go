@@ -1,13 +1,74 @@
-package emulators
+package registry
 
 import (
 	"testing"
 
+	"github.com/fnune/kyaraben/internal/emulators/duckstation"
+	"github.com/fnune/kyaraben/internal/emulators/e2etestemu"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchbsnes"
+	"github.com/fnune/kyaraben/internal/emulators/tic80emu"
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/systems/e2etest"
+	"github.com/fnune/kyaraben/internal/systems/psx"
+	"github.com/fnune/kyaraben/internal/systems/snes"
+	"github.com/fnune/kyaraben/internal/systems/tic80"
 )
 
+func TestRegistryCrossReferences(t *testing.T) {
+	systemDefs := []model.SystemDefinition{
+		snes.Definition{},
+		psx.Definition{},
+		tic80.Definition{},
+		e2etest.Definition{},
+	}
+
+	emulatorDefs := []model.EmulatorDefinition{
+		retroarchbsnes.Definition{},
+		duckstation.Definition{},
+		tic80emu.Definition{},
+		e2etestemu.Definition{},
+	}
+
+	systems := make(map[model.SystemID]model.System)
+	emulators := make(map[model.EmulatorID]model.Emulator)
+
+	for _, def := range emulatorDefs {
+		emu := def.Emulator()
+		emulators[emu.ID] = emu
+	}
+
+	for _, def := range systemDefs {
+		sys := def.System()
+		systems[sys.ID] = sys
+	}
+
+	for _, def := range systemDefs {
+		sys := def.System()
+		defaultEmuID := def.DefaultEmulatorID()
+
+		emu, ok := emulators[defaultEmuID]
+		if !ok {
+			t.Errorf("system %q: default emulator %q not registered", sys.ID, defaultEmuID)
+			continue
+		}
+
+		if !emu.SupportsSystem(sys.ID) {
+			t.Errorf("system %q: default emulator %q does not support it", sys.ID, defaultEmuID)
+		}
+	}
+
+	for _, def := range emulatorDefs {
+		emu := def.Emulator()
+		for _, sysID := range emu.Systems {
+			if _, ok := systems[sysID]; !ok {
+				t.Errorf("emulator %q: references unknown system %q", emu.ID, sysID)
+			}
+		}
+	}
+}
+
 func TestRegistryGetSystem(t *testing.T) {
-	reg := NewRegistry()
+	reg := NewDefault()
 
 	tests := []struct {
 		id      model.SystemID
@@ -34,7 +95,7 @@ func TestRegistryGetSystem(t *testing.T) {
 }
 
 func TestRegistryGetEmulator(t *testing.T) {
-	reg := NewRegistry()
+	reg := NewDefault()
 
 	tests := []struct {
 		id      model.EmulatorID
@@ -61,7 +122,7 @@ func TestRegistryGetEmulator(t *testing.T) {
 }
 
 func TestRegistryGetEmulatorsForSystem(t *testing.T) {
-	reg := NewRegistry()
+	reg := NewDefault()
 
 	tests := []struct {
 		system  model.SystemID
@@ -91,7 +152,7 @@ func TestRegistryGetEmulatorsForSystem(t *testing.T) {
 }
 
 func TestRegistryGetDefaultEmulator(t *testing.T) {
-	reg := NewRegistry()
+	reg := NewDefault()
 
 	tests := []struct {
 		system  model.SystemID
@@ -119,7 +180,7 @@ func TestRegistryGetDefaultEmulator(t *testing.T) {
 }
 
 func TestEmulatorSupportsSystem(t *testing.T) {
-	reg := NewRegistry()
+	reg := NewDefault()
 
 	emu, _ := reg.GetEmulator(model.EmulatorRetroArchBsnes)
 
@@ -133,14 +194,13 @@ func TestEmulatorSupportsSystem(t *testing.T) {
 }
 
 func TestAllSystems(t *testing.T) {
-	reg := NewRegistry()
+	reg := NewDefault()
 
 	systems := reg.AllSystems()
 	if len(systems) < 3 {
 		t.Errorf("Expected at least 3 systems, got %d", len(systems))
 	}
 
-	// Check for known systems
 	foundSNES := false
 	foundPSX := false
 	foundTIC80 := false
@@ -164,5 +224,31 @@ func TestAllSystems(t *testing.T) {
 	}
 	if !foundTIC80 {
 		t.Error("TIC80 not found in AllSystems")
+	}
+}
+
+func TestGetConfigGenerator(t *testing.T) {
+	reg := NewDefault()
+
+	tests := []struct {
+		emuID    model.EmulatorID
+		expected bool
+	}{
+		{model.EmulatorRetroArchBsnes, true},
+		{model.EmulatorDuckStation, true},
+		{model.EmulatorTIC80, true},
+		{model.EmulatorID("unknown"), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.emuID), func(t *testing.T) {
+			gen := reg.GetConfigGenerator(tt.emuID)
+			if tt.expected && gen == nil {
+				t.Errorf("expected generator for %s, got nil", tt.emuID)
+			}
+			if !tt.expected && gen != nil {
+				t.Errorf("expected nil for %s, got generator", tt.emuID)
+			}
+		})
 	}
 }
