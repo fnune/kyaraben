@@ -33,7 +33,6 @@ fi
 
 echo '=== Looking for kyaraben executable ==='
 ls -la squashfs-root/kyaraben* 2>&1 || true
-file squashfs-root/kyaraben* 2>&1 || true
 
 echo '=== Starting Xvfb ==='
 Xvfb :99 -ac -screen 0 1280x1024x24 >/dev/null 2>&1 &
