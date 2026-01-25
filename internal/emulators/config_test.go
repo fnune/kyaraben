@@ -7,7 +7,11 @@ import (
 	"testing"
 
 	"github.com/fnune/kyaraben/internal/emulators/duckstation"
+	"github.com/fnune/kyaraben/internal/emulators/ppsspp"
+	"github.com/fnune/kyaraben/internal/emulators/retroarch"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbsnes"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchmelonds"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchmgba"
 	"github.com/fnune/kyaraben/internal/emulators/tic80emu"
 	"github.com/fnune/kyaraben/internal/model"
 )
@@ -25,19 +29,19 @@ func (f *fakeStoreReader) SystemBiosDir(sys model.SystemID) string {
 }
 
 func (f *fakeStoreReader) SystemSavesDir(sys model.SystemID) string {
-	return filepath.Join(f.root, string(sys), "saves")
+	return filepath.Join(f.root, "saves", string(sys))
 }
 
-func (f *fakeStoreReader) SystemStatesDir(sys model.SystemID) string {
-	return filepath.Join(f.root, string(sys), "states")
+func (f *fakeStoreReader) EmulatorStatesDir(emu model.EmulatorID) string {
+	return filepath.Join(f.root, "states", string(emu))
 }
 
 func (f *fakeStoreReader) SystemScreenshotsDir(sys model.SystemID) string {
-	return filepath.Join(f.root, string(sys), "screenshots")
+	return filepath.Join(f.root, "screenshots", string(sys))
 }
 
 func (f *fakeStoreReader) SystemRomsDir(sys model.SystemID) string {
-	return filepath.Join(f.root, string(sys), "roms")
+	return filepath.Join(f.root, "roms", string(sys))
 }
 
 func TestDuckStationGenerate(t *testing.T) {
@@ -99,47 +103,91 @@ func TestDuckStationGenerate(t *testing.T) {
 	}
 }
 
-func TestRetroArchBsnesGenerate(t *testing.T) {
+func TestRetroArchCoresGenerate(t *testing.T) {
 	store := &fakeStoreReader{root: "/emulation"}
-	gen := retroarchbsnes.Definition{}.ConfigGenerator()
 
-	patches, err := gen.Generate(store, []model.SystemID{model.SystemSNES})
-	if err != nil {
-		t.Fatalf("Generate() error = %v", err)
+	tests := []struct {
+		name       string
+		gen        model.ConfigGenerator
+		system     model.SystemID
+		coreName   string
+		wantRomDir string
+	}{
+		{
+			name:       "bsnes",
+			gen:        retroarchbsnes.Definition{}.ConfigGenerator(),
+			system:     model.SystemSNES,
+			coreName:   "bsnes_libretro",
+			wantRomDir: "/emulation/roms/snes",
+		},
+		{
+			name:       "mgba",
+			gen:        retroarchmgba.Definition{}.ConfigGenerator(),
+			system:     model.SystemGBA,
+			coreName:   "mgba_libretro",
+			wantRomDir: "/emulation/roms/gba",
+		},
+		{
+			name:       "melonds",
+			gen:        retroarchmelonds.Definition{}.ConfigGenerator(),
+			system:     model.SystemNDS,
+			coreName:   "melonds_libretro",
+			wantRomDir: "/emulation/roms/nds",
+		},
 	}
 
-	if len(patches) != 1 {
-		t.Fatalf("expected 1 patch, got %d", len(patches))
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			patches, err := tt.gen.Generate(store, []model.SystemID{tt.system})
+			if err != nil {
+				t.Fatalf("Generate() error = %v", err)
+			}
 
-	patch := patches[0]
+			if len(patches) != 2 {
+				t.Fatalf("expected 2 patches (shared + override), got %d", len(patches))
+			}
 
-	if patch.Target.Format != model.ConfigFormatCFG {
-		t.Errorf("expected CFG format, got %s", patch.Target.Format)
-	}
+			// First patch: shared retroarch.cfg (only system_directory)
+			shared := patches[0]
+			if shared.Target.RelPath != "retroarch/retroarch.cfg" {
+				t.Errorf("expected shared config path, got %s", shared.Target.RelPath)
+			}
+			sharedKeys := collectKeys(shared.Entries)
+			if !sharedKeys["system_directory"] {
+				t.Error("shared config missing system_directory")
+			}
 
-	if patch.Target.BaseDir != model.ConfigBaseDirUserConfig {
-		t.Errorf("expected UserConfig base dir, got %s", patch.Target.BaseDir)
-	}
+			// Second patch: per-core override with all paths
+			override := patches[1]
+			expectedOverridePath := retroarch.CoreOverrideTarget(tt.coreName).RelPath
+			if override.Target.RelPath != expectedOverridePath {
+				t.Errorf("expected override path %q, got %q", expectedOverridePath, override.Target.RelPath)
+			}
 
-	expectedKeys := []string{
-		"system_directory",
-		"savefile_directory",
-		"savestate_directory",
-		"screenshot_directory",
-		"rgui_browser_directory",
-	}
+			// Check all path settings are in override
+			overrideKeys := collectKeys(override.Entries)
+			for _, key := range []string{"savefile_directory", "savestate_directory", "screenshot_directory", "rgui_browser_directory"} {
+				if !overrideKeys[key] {
+					t.Errorf("override missing key %q", key)
+				}
+			}
 
-	foundKeys := make(map[string]bool)
-	for _, entry := range patch.Entries {
-		foundKeys[entry.Key()] = true
+			// Verify ROM browser points to correct system
+			for _, entry := range override.Entries {
+				if entry.Key() == "rgui_browser_directory" && !strings.Contains(entry.Value, tt.wantRomDir) {
+					t.Errorf("rgui_browser_directory %q doesn't contain %s", entry.Value, tt.wantRomDir)
+				}
+			}
+		})
 	}
+}
 
-	for _, key := range expectedKeys {
-		if !foundKeys[key] {
-			t.Errorf("expected key %q not found in entries", key)
-		}
+func collectKeys(entries []model.ConfigEntry) map[string]bool {
+	keys := make(map[string]bool)
+	for _, e := range entries {
+		keys[e.Key()] = true
 	}
+	return keys
 }
 
 func TestTIC80Generate(t *testing.T) {
@@ -153,6 +201,41 @@ func TestTIC80Generate(t *testing.T) {
 
 	if len(patches) != 0 {
 		t.Errorf("expected nil or empty patches for TIC-80, got %d", len(patches))
+	}
+}
+
+func TestPPSSPPGenerate(t *testing.T) {
+	store := &fakeStoreReader{root: "/emulation"}
+	gen := ppsspp.Definition{}.ConfigGenerator()
+
+	patches, err := gen.Generate(store, []model.SystemID{model.SystemPSP})
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	if len(patches) != 1 {
+		t.Fatalf("expected 1 patch, got %d", len(patches))
+	}
+
+	patch := patches[0]
+
+	if patch.Target.Format != model.ConfigFormatINI {
+		t.Errorf("expected INI format, got %s", patch.Target.Format)
+	}
+
+	if !strings.Contains(patch.Target.RelPath, "ppsspp") {
+		t.Errorf("expected RelPath to contain 'ppsspp', got %s", patch.Target.RelPath)
+	}
+
+	// Check CurrentDirectory entry points to PSP ROMs
+	foundRomDir := false
+	for _, entry := range patch.Entries {
+		if entry.Key() == "CurrentDirectory" && strings.Contains(entry.Value, "/emulation/roms/psp") {
+			foundRomDir = true
+		}
+	}
+	if !foundRomDir {
+		t.Error("PPSSPP config missing CurrentDirectory pointing to PSP ROMs")
 	}
 }
 
