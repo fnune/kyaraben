@@ -10,6 +10,15 @@ import (
 	"github.com/fnune/kyaraben/internal/store"
 )
 
+func mustNewUserStore(t *testing.T, path string) *store.UserStore {
+	t.Helper()
+	s, err := store.NewUserStore(path)
+	if err != nil {
+		t.Fatalf("NewUserStore(%q) failed: %v", path, err)
+	}
+	return s
+}
+
 func TestRun(t *testing.T) {
 	tmpDir := t.TempDir()
 	userStorePath := filepath.Join(tmpDir, "Emulation")
@@ -32,7 +41,7 @@ func TestRun(t *testing.T) {
 	}
 
 	registry := registry.NewDefault()
-	userStore := store.NewUserStore(userStorePath)
+	userStore := mustNewUserStore(t, userStorePath)
 
 	result, err := Run(cfg, registry, userStore)
 	if err != nil {
@@ -71,7 +80,7 @@ func TestRunNoProvisions(t *testing.T) {
 	}
 
 	registry := registry.NewDefault()
-	userStore := store.NewUserStore(userStorePath)
+	userStore := mustNewUserStore(t, userStorePath)
 
 	result, err := Run(cfg, registry, userStore)
 	if err != nil {
@@ -126,7 +135,7 @@ func TestRunWithBiosFile(t *testing.T) {
 	}
 
 	registry := registry.NewDefault()
-	userStore := store.NewUserStore(userStorePath)
+	userStore := mustNewUserStore(t, userStorePath)
 
 	result, err := Run(cfg, registry, userStore)
 	if err != nil {
@@ -176,7 +185,7 @@ func TestRunSystemResult(t *testing.T) {
 	}
 
 	registry := registry.NewDefault()
-	userStore := store.NewUserStore(userStorePath)
+	userStore := mustNewUserStore(t, userStorePath)
 
 	result, err := Run(cfg, registry, userStore)
 	if err != nil {
