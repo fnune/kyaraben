@@ -18,18 +18,22 @@ RUN useradd -m -s /bin/bash testuser && \
              /home/testuser/.config/kyaraben && \
     chown -R testuser:testuser /home/testuser/.local /home/testuser/.config
 USER testuser
-WORKDIR /home/testuser
-
-# Copy project
-COPY --chown=testuser:testuser . /home/testuser/kyaraben
 WORKDIR /home/testuser/kyaraben
 
-# Build Go sidecar (includes nix-portable download)
-RUN ./scripts/build-sidecar.sh
+# Copy Go dependency files and download modules (cached unless go.mod/go.sum change)
+COPY --chown=testuser:testuser go.mod go.sum ./
+RUN go mod download
 
-# Install Node dependencies (skip Playwright browser download - we use Electron)
+# Copy Node dependency files and install (cached unless package*.json change)
+COPY --chown=testuser:testuser ui/package.json ui/package-lock.json ./ui/
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 RUN cd ui && npm ci
+
+# Copy the rest of the project
+COPY --chown=testuser:testuser . .
+
+# Build Go sidecar (modules already cached, just compile)
+RUN ./scripts/build-sidecar.sh
 
 # Build frontend and Electron
 RUN cd ui && npm run build && npm run build:electron

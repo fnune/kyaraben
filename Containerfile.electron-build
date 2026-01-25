@@ -21,14 +21,19 @@ ENV PATH="/usr/local/go/bin:${PATH}"
 
 WORKDIR /build
 
-# Copy project
-COPY . /build
+# Copy Go dependency files and download modules (cached unless go.mod/go.sum change)
+COPY go.mod go.sum ./
+RUN go mod download
 
-# Build Go sidecar (includes nix-portable download)
-RUN ./scripts/build-sidecar.sh
-
-# Install Node dependencies
+# Copy Node dependency files and install (cached unless package*.json change)
+COPY ui/package.json ui/package-lock.json ./ui/
 RUN cd ui && npm ci
+
+# Copy the rest of the project
+COPY . .
+
+# Build Go sidecar (modules already cached, just compile)
+RUN ./scripts/build-sidecar.sh
 
 # Build frontend and Electron
 RUN cd ui && npm run build && npm run build:electron
