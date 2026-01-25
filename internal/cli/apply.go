@@ -72,6 +72,11 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 			return err
 		}
 
+		manifest, err := model.LoadManifest(manifestPath)
+		if err != nil {
+			return fmt.Errorf("loading manifest: %w", err)
+		}
+
 		fmt.Println("Config changes:")
 		fmt.Println()
 
@@ -79,7 +84,14 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		var filesCreated, filesModified, filesUnchanged int
 
 		for _, patch := range dryResult.Patches {
-			diff, err := emulators.ComputeDiff(patch)
+			path, _ := patch.Target.Resolve()
+			baseline, _ := manifest.GetManagedConfig(path)
+			var baselinePtr *model.ManagedConfig
+			if baseline.Path != "" {
+				baselinePtr = &baseline
+			}
+
+			diff, err := emulators.ComputeDiffWithBaseline(patch, baselinePtr)
 			if err != nil {
 				fmt.Printf("  Warning: could not compute diff: %v\n", err)
 				continue

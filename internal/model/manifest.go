@@ -26,10 +26,16 @@ type InstalledEmulator struct {
 	Installed time.Time  `json:"installed"`
 }
 
+type ManagedKey struct {
+	Path  []string `json:"path"`
+	Value string   `json:"value"`
+}
+
 type ManagedConfig struct {
-	Path         string    `json:"path"`
-	BaselineHash string    `json:"baseline_hash"`
-	LastModified time.Time `json:"last_modified"`
+	Path         string       `json:"path"`
+	BaselineHash string       `json:"baseline_hash"`
+	LastModified time.Time    `json:"last_modified"`
+	ManagedKeys  []ManagedKey `json:"managed_keys"`
 }
 
 // NewManifest creates a new empty manifest.
@@ -127,4 +133,14 @@ func (m *Manifest) AddManagedConfig(cfg ManagedConfig) {
 func (m *Manifest) GetEmulator(id EmulatorID) (InstalledEmulator, bool) {
 	emu, ok := m.InstalledEmulators[id]
 	return emu, ok
+}
+
+// GetManagedConfig returns a managed config by path.
+func (m *Manifest) GetManagedConfig(path string) (ManagedConfig, bool) {
+	for _, cfg := range m.ManagedConfigs {
+		if cfg.Path == path {
+			return cfg, true
+		}
+	}
+	return ManagedConfig{}, false
 }

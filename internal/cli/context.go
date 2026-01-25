@@ -37,7 +37,7 @@ func (c *Context) GetConfigPath() (string, error) {
 	return model.DefaultConfigPath()
 }
 
-func (c *Context) NewRegistry() *registry.Registry   { return registry.NewDefault() }
+func (c *Context) NewRegistry() *registry.Registry    { return registry.NewDefault() }
 func (c *Context) NewNixClient() (*nix.Client, error) { return nix.NewClient() }
 
 func (c *Context) NewUserStore(cfg *model.KyarabenConfig) (*store.UserStore, error) {

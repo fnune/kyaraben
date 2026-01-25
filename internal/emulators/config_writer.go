@@ -40,6 +40,13 @@ func (w *ConfigWriter) Apply(patch model.ConfigPatch) (ApplyResult, error) {
 	}
 }
 
+func iniSection(path []string) string {
+	if len(path) == 0 {
+		return ""
+	}
+	return strings.Join(path, ".")
+}
+
 func hashFile(path string) (string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -72,7 +79,7 @@ func (w *ConfigWriter) applyCFG(path string, entries []model.ConfigEntry) (Apply
 	}
 
 	for _, entry := range entries {
-		existing[entry.Key] = entry.Value
+		existing[entry.Key()] = entry.Value
 	}
 
 	f, err := os.Create(path)
@@ -138,10 +145,11 @@ func (w *ConfigWriter) applyINI(path string, entries []model.ConfigEntry) (Apply
 	}
 
 	for _, entry := range entries {
-		if sections[entry.Section] == nil {
-			sections[entry.Section] = make(map[string]string)
+		section := iniSection(entry.Parent())
+		if sections[section] == nil {
+			sections[section] = make(map[string]string)
 		}
-		sections[entry.Section][entry.Key] = entry.Value
+		sections[section][entry.Key()] = entry.Value
 	}
 
 	f, err := os.Create(path)

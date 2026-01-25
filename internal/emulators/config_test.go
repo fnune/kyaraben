@@ -87,8 +87,8 @@ func TestDuckStationGenerate(t *testing.T) {
 	}
 
 	for _, entry := range patch.Entries {
-		if _, ok := expectedKeys[entry.Key]; ok {
-			expectedKeys[entry.Key] = true
+		if _, ok := expectedKeys[entry.Key()]; ok {
+			expectedKeys[entry.Key()] = true
 		}
 	}
 
@@ -132,7 +132,7 @@ func TestRetroArchBsnesGenerate(t *testing.T) {
 
 	foundKeys := make(map[string]bool)
 	for _, entry := range patch.Entries {
-		foundKeys[entry.Key] = true
+		foundKeys[entry.Key()] = true
 	}
 
 	for _, key := range expectedKeys {
@@ -151,7 +151,7 @@ func TestTIC80Generate(t *testing.T) {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	if patches != nil && len(patches) != 0 {
+	if len(patches) != 0 {
 		t.Errorf("expected nil or empty patches for TIC-80, got %d", len(patches))
 	}
 }

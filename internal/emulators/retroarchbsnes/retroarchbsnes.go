@@ -46,14 +46,14 @@ func (c *Config) Generate(store model.StoreReader, systems []model.SystemID) ([]
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
-			{Key: "system_directory", Value: quote(store.BiosDir())},
-			{Key: "savefile_directory", Value: quote(store.SystemSavesDir(primarySystem))},
-			{Key: "savestate_directory", Value: quote(store.SystemStatesDir(primarySystem))},
-			{Key: "screenshot_directory", Value: quote(store.SystemScreenshotsDir(primarySystem))},
-			{Key: "rgui_browser_directory", Value: quote(store.SystemRomsDir(primarySystem))},
-			{Key: "sort_savefiles_enable", Value: "false"},
-			{Key: "sort_savestates_enable", Value: "false"},
-			{Key: "sort_screenshots_enable", Value: "false"},
+			{Path: []string{"system_directory"}, Value: quote(store.BiosDir())},
+			{Path: []string{"savefile_directory"}, Value: quote(store.SystemSavesDir(primarySystem))},
+			{Path: []string{"savestate_directory"}, Value: quote(store.SystemStatesDir(primarySystem))},
+			{Path: []string{"screenshot_directory"}, Value: quote(store.SystemScreenshotsDir(primarySystem))},
+			{Path: []string{"rgui_browser_directory"}, Value: quote(store.SystemRomsDir(primarySystem))},
+			{Path: []string{"sort_savefiles_enable"}, Value: "false"},
+			{Path: []string{"sort_savestates_enable"}, Value: "false"},
+			{Path: []string{"sort_screenshots_enable"}, Value: "false"},
 		},
 	}}, nil
 }
