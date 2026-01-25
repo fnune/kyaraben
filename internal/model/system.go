@@ -7,6 +7,9 @@ const (
 	SystemSNES    SystemID = "snes"
 	SystemPSX     SystemID = "psx"
 	SystemTIC80   SystemID = "tic80"
+	SystemGBA     SystemID = "gba"
+	SystemNDS     SystemID = "nds"
+	SystemPSP     SystemID = "psp"
 	SystemE2ETest SystemID = "e2e-test"
 )
 
