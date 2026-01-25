@@ -1,0 +1,80 @@
+.container {
+  margin-top: 16px;
+}
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--step-bg, #f9fafb);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.step.in_progress {
+  background: var(--primary-bg, #eff6ff);
+}
+
+.step.completed {
+  opacity: 0.7;
+}
+
+.step.error {
+  background: var(--error-bg, #fee2e2);
+}
+
+.iconCompleted {
+  color: var(--success-color, #16a34a);
+  font-weight: bold;
+}
+
+.iconProgress {
+  color: var(--primary-color, #3b82f6);
+  animation: pulse 1s infinite;
+}
+
+.iconError {
+  color: var(--error-color, #dc2626);
+  font-weight: bold;
+}
+
+.iconPending {
+  color: var(--text-muted, #9ca3af);
+}
+
+.label {
+  flex: 1;
+}
+
+.message {
+  font-size: 12px;
+  color: var(--text-muted, #6b7280);
+}
+
+.error {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--error-bg, #fee2e2);
+  color: var(--error-text, #991b1b);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
