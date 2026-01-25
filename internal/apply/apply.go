@@ -110,7 +110,7 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 	for i, patch := range allPatches {
 		result, err := a.ConfigWriter.Apply(patch)
 		if err != nil {
-			return nil, fmt.Errorf("applying config %s: %w", patch.Config.Path, err)
+			return nil, fmt.Errorf("applying config: %w", err)
 		}
 		configResults[i] = result
 	}
@@ -133,12 +133,11 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 		})
 	}
 
-	for i, patch := range allPatches {
+	for i := range allPatches {
 		manifest.AddManagedConfig(model.ManagedConfig{
-			Path:         patch.Config.Path,
+			Path:         configResults[i].Path,
 			BaselineHash: configResults[i].BaselineHash,
 			LastModified: time.Now(),
-			EmulatorID:   patch.Config.EmulatorID,
 		})
 	}
 
@@ -157,7 +156,7 @@ func ComputeDiffs(patches []model.ConfigPatch) ([]*emulators.ConfigDiff, error) 
 	for _, patch := range patches {
 		diff, err := emulators.ComputeDiff(patch)
 		if err != nil {
-			return nil, fmt.Errorf("computing diff for %s: %w", patch.Config.Path, err)
+			return nil, fmt.Errorf("computing diff: %w", err)
 		}
 		diffs = append(diffs, diff)
 	}

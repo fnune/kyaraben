@@ -26,12 +26,10 @@ type InstalledEmulator struct {
 	Installed time.Time  `json:"installed"`
 }
 
-// ManagedConfig tracks a config file managed by kyaraben.
 type ManagedConfig struct {
-	Path         string     `json:"path"`          // Path to the config file
-	BaselineHash string     `json:"baseline_hash"` // Hash of baseline (what we last wrote)
-	LastModified time.Time  `json:"last_modified"`
-	EmulatorID   EmulatorID `json:"emulator_id"`
+	Path         string    `json:"path"`
+	BaselineHash string    `json:"baseline_hash"`
+	LastModified time.Time `json:"last_modified"`
 }
 
 // NewManifest creates a new empty manifest.
