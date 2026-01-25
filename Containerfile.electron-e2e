@@ -37,6 +37,9 @@ RUN cd ui && npm run build && npm run build:electron
 # Show hidden test system for e2e tests
 ENV KYARABEN_SHOW_HIDDEN=1
 
+# Disable Nix sandbox - proot (nix-portable) can't nest with Nix's sandbox
+ENV KYARABEN_NIX_NO_SANDBOX=1
+
 # Log file location for tailing during tests
 ENV KYARABEN_LOG=/home/testuser/.local/state/kyaraben/kyaraben.log
 
