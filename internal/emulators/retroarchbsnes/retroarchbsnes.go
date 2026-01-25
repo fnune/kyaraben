@@ -45,7 +45,7 @@ func coreOverrideConfig(store model.StoreReader) model.ConfigPatch {
 		Target: retroarch.CoreOverrideTarget(coreName),
 		Entries: []model.ConfigEntry{
 			{Path: []string{"savefile_directory"}, Value: quote(store.SystemSavesDir(model.SystemSNES))},
-			{Path: []string{"savestate_directory"}, Value: quote(store.SystemStatesDir(model.SystemSNES))},
+			{Path: []string{"savestate_directory"}, Value: quote(store.EmulatorStatesDir(model.EmulatorRetroArchBsnes))},
 			{Path: []string{"screenshot_directory"}, Value: quote(store.SystemScreenshotsDir(model.SystemSNES))},
 			{Path: []string{"rgui_browser_directory"}, Value: quote(store.SystemRomsDir(model.SystemSNES))},
 		},
