@@ -39,4 +39,11 @@ WORKDIR /home/sandbox
 # Create directory for persistent state (Emulation is mounted from host)
 RUN mkdir -p /home/sandbox/.local/share/kyaraben
 
-CMD ["/bin/bash", "-c", "test -f ~/kyaraben || echo -e '#!/bin/bash\\ndbus-launch /app/kyaraben-ui --no-sandbox --ozone-platform=wayland --disable-gpu \"$@\"' > ~/kyaraben && chmod +x ~/kyaraben; ~/kyaraben &>/tmp/kyaraben.log & echo 'App started (logs: /tmp/kyaraben.log). Run ~/kyaraben to restart.' && exec bash"]
+# Set up shell profile with kyaraben paths
+RUN echo '' >> ~/.bashrc && \
+    echo '# Kyaraben launcher integration' >> ~/.bashrc && \
+    echo 'export PATH="$HOME/.local/share/kyaraben/current/bin:$PATH"' >> ~/.bashrc && \
+    echo 'export XDG_DATA_DIRS="$HOME/.local/share/kyaraben/current/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"' >> ~/.bashrc && \
+    echo 'alias kyaraben="/app/resources/kyaraben"' >> ~/.bashrc
+
+CMD ["/bin/bash", "-c", "test -f ~/kyaraben-ui || echo -e '#!/bin/bash\\ndbus-launch /app/kyaraben-ui --no-sandbox --ozone-platform=wayland --disable-gpu \"$@\"' > ~/kyaraben-ui && chmod +x ~/kyaraben-ui; ~/kyaraben-ui &>/tmp/kyaraben.log & echo 'App started (logs: /tmp/kyaraben.log). Run ~/kyaraben-ui to restart.' && exec bash"]

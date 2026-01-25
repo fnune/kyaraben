@@ -41,6 +41,11 @@ func (Definition) Emulator() model.Emulator {
 			model.StateSavestates,
 			model.StateScreenshots,
 		},
+		Launcher: model.LauncherInfo{
+			Binary:      "duckstation-qt",
+			GenericName: "PlayStation Emulator",
+			Categories:  []string{"Game", "Emulator"},
+		},
 	}
 }
 

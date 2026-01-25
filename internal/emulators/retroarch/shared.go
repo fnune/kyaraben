@@ -6,6 +6,13 @@ package retroarch
 
 import "github.com/fnune/kyaraben/internal/model"
 
+var SharedLauncher = model.LauncherInfo{
+	Binary:      "retroarch",
+	DisplayName: "RetroArch",
+	GenericName: "Multi-system Emulator",
+	Categories:  []string{"Game", "Emulator"},
+}
+
 var MainConfigTarget = model.ConfigTarget{
 	RelPath: "retroarch/retroarch.cfg",
 	Format:  model.ConfigFormatCFG,

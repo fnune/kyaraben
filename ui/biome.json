@@ -1,7 +1,14 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.3.11/schema.json",
   "files": {
-    "includes": ["**", "!**/src-tauri/target", "!**/dist", "!**/dist-electron", "!**/test-results"]
+    "includes": [
+      "**",
+      "!**/src-tauri/target",
+      "!**/dist",
+      "!**/dist-electron",
+      "!**/test-results",
+      "!**/release"
+    ]
   },
   "overrides": [
     {

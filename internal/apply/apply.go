@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/fnune/kyaraben/internal/emulators"
+	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/nix"
 	"github.com/fnune/kyaraben/internal/registry"
@@ -84,11 +85,12 @@ func (a *Applier) Preflight(cfg *model.KyarabenConfig, userStore *store.UserStor
 }
 
 type Applier struct {
-	NixClient      nix.NixClient
-	FlakeGenerator *nix.FlakeGenerator
-	ConfigWriter   *emulators.ConfigWriter
-	Registry       *registry.Registry
-	ManifestPath   string
+	NixClient       nix.NixClient
+	FlakeGenerator  *nix.FlakeGenerator
+	ConfigWriter    *emulators.ConfigWriter
+	Registry        *registry.Registry
+	ManifestPath    string
+	LauncherManager *launcher.Manager
 }
 
 func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, opts Options) (*Result, error) {
@@ -155,6 +157,14 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 	storePath, err := a.NixClient.Build(buildCtx, flakeRef)
 	if err != nil {
 		return nil, fmt.Errorf("building emulators: %w", err)
+	}
+
+	opts.OnProgress(Progress{Step: "launchers", Message: "Setting up launchers..."})
+
+	if a.LauncherManager != nil {
+		if err := a.LauncherManager.Link(storePath); err != nil {
+			return nil, fmt.Errorf("linking profile: %w", err)
+		}
 	}
 
 	opts.OnProgress(Progress{Step: "configs", Message: "Applying emulator configurations..."})

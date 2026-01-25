@@ -41,8 +41,8 @@ func TestFlakeGeneratorGenerateAllEmulators(t *testing.T) {
 	if !strings.Contains(contentStr, "nixpkgs.url") {
 		t.Error("flake.nix should contain nixpkgs input")
 	}
-	if !strings.Contains(contentStr, "kyaraben-emulators") {
-		t.Error("flake.nix should contain combined environment")
+	if !strings.Contains(contentStr, "kyaraben-profile") {
+		t.Error("flake.nix should contain profile derivation")
 	}
 }
 
