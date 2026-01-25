@@ -24,8 +24,7 @@ type Emulator struct {
 	ID          EmulatorID
 	Name        string
 	Systems     []SystemID
-	Source      PackageSource
-	NixAttr     string // Attribute path in nixpkgs or flake
+	Package     PackageRef
 	Provisions  []Provision
 	StateKinds  []StateKind
 	ConfigPaths []string // Paths to config files this emulator uses

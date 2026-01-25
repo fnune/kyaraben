@@ -48,11 +48,13 @@ func (r *Registry) registerSystems() {
 
 func (r *Registry) registerEmulators() {
 	r.emulators[model.EmulatorRetroArchBsnes] = model.Emulator{
-		ID:         model.EmulatorRetroArchBsnes,
-		Name:       "RetroArch (bsnes)",
-		Systems:    []model.SystemID{model.SystemSNES},
-		Source:     model.PackageSourceNixpkgs,
-		NixAttr:    "retroarch-bsnes",
+		ID:      model.EmulatorRetroArchBsnes,
+		Name:    "RetroArch (bsnes)",
+		Systems: []model.SystemID{model.SystemSNES},
+		Package: model.NixpkgsOverlayRef(
+			"retroarch-bsnes",
+			`pkgs.retroarch.override { cores = with pkgs.libretro; [ bsnes ]; }`,
+		),
 		Provisions: []model.Provision{},
 		StateKinds: []model.StateKind{
 			model.StateSaves,
@@ -68,8 +70,7 @@ func (r *Registry) registerEmulators() {
 		ID:      model.EmulatorDuckStation,
 		Name:    "DuckStation",
 		Systems: []model.SystemID{model.SystemPSX},
-		Source:  model.PackageSourceNixpkgs,
-		NixAttr: "duckstation",
+		Package: model.NixpkgsRef("duckstation"),
 		Provisions: []model.Provision{
 			{
 				ID:          "psx-bios-usa",
@@ -110,8 +111,7 @@ func (r *Registry) registerEmulators() {
 		ID:         model.EmulatorTIC80,
 		Name:       "TIC-80",
 		Systems:    []model.SystemID{model.SystemTIC80},
-		Source:     model.PackageSourceNixpkgs,
-		NixAttr:    "tic-80",
+		Package:    model.NixpkgsRef("tic-80"),
 		Provisions: []model.Provision{},
 		StateKinds: []model.StateKind{
 			model.StateSaves,
@@ -122,8 +122,7 @@ func (r *Registry) registerEmulators() {
 		ID:          model.EmulatorE2ETest,
 		Name:        "E2E Test",
 		Systems:     []model.SystemID{model.SystemE2ETest},
-		Source:      model.PackageSourceNixpkgs,
-		NixAttr:     "hello",
+		Package:     model.NixpkgsRef("hello"),
 		Provisions:  []model.Provision{},
 		StateKinds:  []model.StateKind{},
 		ConfigPaths: []string{},

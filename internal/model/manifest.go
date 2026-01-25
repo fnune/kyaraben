@@ -69,7 +69,9 @@ func LoadManifest(path string) (*Manifest, error) {
 	return &m, nil
 }
 
-// Save writes the manifest to a file.
+// Save writes the manifest to a file atomically.
+// It writes to a temporary file first, then renames to the target path.
+// This prevents corruption if the process crashes during write.
 func (m *Manifest) Save(path string) error {
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -81,9 +83,28 @@ func (m *Manifest) Save(path string) error {
 		return fmt.Errorf("encoding manifest: %w", err)
 	}
 
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	tempFile, err := os.CreateTemp(dir, "manifest-*.json.tmp")
+	if err != nil {
+		return fmt.Errorf("creating temp file: %w", err)
+	}
+	tempPath := tempFile.Name()
+
+	if _, err := tempFile.Write(data); err != nil {
+		_ = tempFile.Close()
+		_ = os.Remove(tempPath)
 		return fmt.Errorf("writing manifest: %w", err)
 	}
+
+	if err := tempFile.Close(); err != nil {
+		_ = os.Remove(tempPath)
+		return fmt.Errorf("closing temp file: %w", err)
+	}
+
+	if err := os.Rename(tempPath, path); err != nil {
+		_ = os.Remove(tempPath)
+		return fmt.Errorf("renaming manifest: %w", err)
+	}
+
 	return nil
 }
 

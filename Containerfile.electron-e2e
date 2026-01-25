@@ -1,35 +1,98 @@
 # Kyaraben Electron E2E test container
-# Uses official Playwright image which has Xvfb and browser deps pre-configured
+# Builds the AppImage and runs Playwright tests against it
 #
 # Build: podman build -t kyaraben-electron-e2e -f Containerfile.electron-e2e .
 # Run:   podman run --ipc=host --rm kyaraben-electron-e2e
 
-FROM mcr.microsoft.com/playwright:v1.49.1-noble
+FROM mcr.microsoft.com/playwright:v1.49.1-noble AS builder
 
-# Install Go (Playwright image is based on Ubuntu, includes Node.js)
+# Install Go and rpm (needed for electron-builder)
 USER root
-RUN curl -fsSL https://go.dev/dl/go1.24.0.linux-amd64.tar.gz | tar -C /usr/local -xzf -
+RUN apt-get update && apt-get install -y --no-install-recommends rpm \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -fsSL https://go.dev/dl/go1.24.0.linux-amd64.tar.gz | tar -C /usr/local -xzf -
 ENV PATH="/usr/local/go/bin:${PATH}"
 
-# Create non-root user for testing
-RUN useradd -m -s /bin/bash testuser
-USER testuser
-WORKDIR /home/testuser
+# Create build user
+RUN useradd -m -s /bin/bash builduser
+USER builduser
+WORKDIR /home/builduser/kyaraben
 
-# Copy project
-COPY --chown=testuser:testuser . /home/testuser/kyaraben
-WORKDIR /home/testuser/kyaraben
+# Copy Go dependency files and download modules (cached unless go.mod/go.sum change)
+COPY --chown=builduser:builduser go.mod go.sum ./
+RUN go mod download
 
-# Build Go sidecar (includes nix-portable download)
-RUN ./scripts/build-sidecar.sh
-
-# Install Node dependencies (skip Playwright browser download - we use Electron)
+# Copy Node dependency files and install (cached unless package*.json change)
+COPY --chown=builduser:builduser ui/package.json ui/package-lock.json ./ui/
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 RUN cd ui && npm ci
 
-# Build frontend and Electron
-RUN cd ui && npm run build && npm run build:electron
+# Copy the rest of the project
+COPY --chown=builduser:builduser . .
 
-# Show hidden test system, start Xvfb without auth (-ac), then run tests
+# Build Go sidecar
+RUN ./scripts/build-sidecar.sh
+
+# Build frontend, Electron, and AppImage
+RUN cd ui && npm run build && npm run build:electron && npm run electron:build -- --linux AppImage
+
+# Final stage - minimal image for testing
+FROM mcr.microsoft.com/playwright:v1.49.1-noble
+
+USER root
+
+# Create test user with XDG directories
+RUN useradd -m -s /bin/bash testuser && \
+    mkdir -p /home/testuser/.local/share/kyaraben \
+             /home/testuser/.local/state/kyaraben \
+             /home/testuser/.config/kyaraben && \
+    chown -R testuser:testuser /home/testuser/.local /home/testuser/.config
+
+USER testuser
+WORKDIR /home/testuser/kyaraben
+
+# Copy only what's needed for testing from builder
+COPY --from=builder --chown=testuser:testuser /home/builduser/kyaraben/ui/release/*.AppImage ./ui/release/
+COPY --from=builder --chown=testuser:testuser /home/builduser/kyaraben/ui/node_modules ./ui/node_modules/
+COPY --from=builder --chown=testuser:testuser /home/builduser/kyaraben/ui/package.json ./ui/
+COPY --from=builder --chown=testuser:testuser /home/builduser/kyaraben/ui/playwright.config.ts ./ui/
+COPY --from=builder --chown=testuser:testuser /home/builduser/kyaraben/ui/e2e ./ui/e2e/
+
+# Show hidden test system for e2e tests
 ENV KYARABEN_SHOW_HIDDEN=1
-CMD ["sh", "-c", "Xvfb :99 -ac -screen 0 1280x1024x24 & sleep 2 && DISPLAY=:99 npm run test:e2e --prefix /home/testuser/kyaraben/ui"]
+
+# Disable Nix sandbox - proot (nix-portable) can't nest with Nix's sandbox
+ENV KYARABEN_NIX_NO_SANDBOX=1
+
+# Log file location for tailing during tests
+ENV KYARABEN_LOG=/home/testuser/.local/state/kyaraben/kyaraben.log
+
+# Extract AppImage (FUSE not available in Docker), start Xvfb, run tests
+# KYARABEN_APPIMAGE points to the extracted executable
+# APPDIR is set so the app can find its bundled resources (sidecar, nix-portable)
+# Clear nix-portable internal state to avoid permission issues with cached data
+CMD ["sh", "-c", "\
+  set -e && \
+  echo '=== Setting up directories ===' && \
+  mkdir -p /home/testuser/.local/state/kyaraben /home/testuser/.local/share/kyaraben && \
+  rm -rf /home/testuser/.local/share/kyaraben/nix-portable/.nix-portable && \
+  echo '=== Checking release directory ===' && \
+  ls -la /home/testuser/kyaraben/ui/release/ && \
+  APPIMAGE=$(ls /home/testuser/kyaraben/ui/release/*.AppImage 2>/dev/null | head -1) && \
+  if [ -z \"$APPIMAGE\" ]; then echo 'ERROR: No AppImage found!'; exit 1; fi && \
+  echo \"=== Extracting: $APPIMAGE ===\" && \
+  cd /home/testuser/kyaraben/ui/release && \
+  $APPIMAGE --appimage-extract && \
+  echo '=== Extraction complete ===' && \
+  ls -la squashfs-root/ && \
+  echo '=== Starting Xvfb ===' && \
+  Xvfb :99 -ac -screen 0 1280x1024x24 >/dev/null 2>&1 & \
+  sleep 2 && \
+  : > /home/testuser/.local/state/kyaraben/kyaraben.log && \
+  tail -f /home/testuser/.local/state/kyaraben/kyaraben.log & \
+  echo '=== Running tests ===' && \
+  env KYARABEN_APPIMAGE=/home/testuser/kyaraben/ui/release/squashfs-root/kyaraben-ui \
+      APPDIR=/home/testuser/kyaraben/ui/release/squashfs-root \
+      DISPLAY=:99 \
+      npm run test:e2e --prefix /home/testuser/kyaraben/ui \
+"]
