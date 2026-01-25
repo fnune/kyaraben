@@ -16,12 +16,12 @@ import (
 type Daemon struct {
 	configPath     string
 	registry       *emulators.Registry
-	nixClient      *nix.Client
+	nixClient      nix.NixClient
 	flakeGenerator *nix.FlakeGenerator
 	configWriter   *emulators.ConfigWriter
 }
 
-func New(configPath string, registry *emulators.Registry, nixClient *nix.Client, flakeGenerator *nix.FlakeGenerator, configWriter *emulators.ConfigWriter) *Daemon {
+func New(configPath string, registry *emulators.Registry, nixClient nix.NixClient, flakeGenerator *nix.FlakeGenerator, configWriter *emulators.ConfigWriter) *Daemon {
 	return &Daemon{
 		configPath:     configPath,
 		registry:       registry,

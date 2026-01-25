@@ -23,7 +23,7 @@ jobs:
         run: go build -o ./kyaraben ./cmd/kyaraben
 
       - name: Test
-        run: go test ./...
+        run: go test -race ./...
 
   go-lint:
     runs-on: ubuntu-latest

@@ -54,21 +54,54 @@ func LogPath() (string, error) {
 	return filepath.Join(stateDir, "kyaraben.log"), nil
 }
 
-// Info logs an informational message.
+// Logger provides component-scoped logging.
+// Create one per package or component using New().
+type Logger struct {
+	component string
+}
+
+// New creates a logger for a specific component.
+// The component name appears in log entries to identify the source.
+func New(component string) *Logger {
+	return &Logger{component: component}
+}
+
+func (l *Logger) Info(format string, args ...interface{}) {
+	if logger != nil {
+		logger.Printf("[INFO] [%s] "+format, append([]interface{}{l.component}, args...)...)
+	}
+}
+
+func (l *Logger) Error(format string, args ...interface{}) {
+	if logger != nil {
+		logger.Printf("[ERROR] [%s] "+format, append([]interface{}{l.component}, args...)...)
+	}
+}
+
+func (l *Logger) Debug(format string, args ...interface{}) {
+	if logger != nil {
+		logger.Printf("[DEBUG] [%s] "+format, append([]interface{}{l.component}, args...)...)
+	}
+}
+
+// Info logs an informational message without component context.
+// Prefer using a Logger instance from New() for better traceability.
 func Info(format string, args ...interface{}) {
 	if logger != nil {
 		logger.Printf("[INFO] "+format, args...)
 	}
 }
 
-// Error logs an error message.
+// Error logs an error message without component context.
+// Prefer using a Logger instance from New() for better traceability.
 func Error(format string, args ...interface{}) {
 	if logger != nil {
 		logger.Printf("[ERROR] "+format, args...)
 	}
 }
 
-// Debug logs a debug message.
+// Debug logs a debug message without component context.
+// Prefer using a Logger instance from New() for better traceability.
 func Debug(format string, args ...interface{}) {
 	if logger != nil {
 		logger.Printf("[DEBUG] "+format, args...)
