@@ -266,3 +266,4 @@ UserStore (explicit, e.g. ~/Emulation)
 1. Provision kinds: what's the full taxonomy? Is firmware distinct from BIOS? How do patches fit?
 2. How does kyaraben map emulator-native state paths to the unified UserStore layout?
 3. Should UserStore structure be configurable or opinionated?
+4. Emulator version tracking: currently always "latest". Real versions require parsing Nix derivation metadata. Worth it?
