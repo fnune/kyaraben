@@ -109,8 +109,9 @@ test.describe('Kyaraben Apply (requires Nix)', () => {
     const outputSection = page.locator('#output-section')
     await expect(outputSection).toBeVisible()
 
+    // Nix builds can take 10+ minutes on first run (no cache)
     const log = page.locator('#log')
-    await expect(log).toContainText(/Done!|Error/, { timeout: 120000 })
+    await expect(log).toContainText(/Done!|Error/, { timeout: 600000 })
 
     const logText = await log.textContent()
     expect(logText).toContain('Done!')
