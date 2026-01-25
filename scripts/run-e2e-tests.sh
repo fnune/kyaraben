@@ -5,16 +5,16 @@
 set -ex
 
 echo '=== Setting up directories ==='
-mkdir -p /home/testuser/.local/state/kyaraben /home/testuser/.local/share/kyaraben
-rm -rf /home/testuser/.local/share/kyaraben/nix-portable/.nix-portable
+mkdir -p /home/kyaraben/.local/state/kyaraben /home/kyaraben/.local/share/kyaraben
+rm -rf /home/kyaraben/.local/share/kyaraben/nix-portable/.nix-portable
 
 echo '=== Checking release directory ==='
-ls -la /home/testuser/kyaraben/ui/release/
+ls -la /home/kyaraben/app/ui/release/
 
-APPIMAGE=$(ls /home/testuser/kyaraben/ui/release/*.AppImage | head -1)
+APPIMAGE=$(ls /home/kyaraben/app/ui/release/*.AppImage | head -1)
 echo "=== Found AppImage: $APPIMAGE ==="
 
-cd /home/testuser/kyaraben/ui/release
+cd /home/kyaraben/app/ui/release
 
 echo '=== Running extraction ==='
 "$APPIMAGE" --appimage-extract
@@ -38,11 +38,11 @@ echo '=== Starting Xvfb ==='
 Xvfb :99 -ac -screen 0 1280x1024x24 >/dev/null 2>&1 &
 sleep 2
 
-: > /home/testuser/.local/state/kyaraben/kyaraben.log
-tail -f /home/testuser/.local/state/kyaraben/kyaraben.log &
+: > /home/kyaraben/.local/state/kyaraben/kyaraben.log
+tail -f /home/kyaraben/.local/state/kyaraben/kyaraben.log &
 
 echo '=== Running tests ==='
-env KYARABEN_APPIMAGE=/home/testuser/kyaraben/ui/release/squashfs-root/kyaraben-ui \
-    APPDIR=/home/testuser/kyaraben/ui/release/squashfs-root \
+env KYARABEN_APPIMAGE=/home/kyaraben/app/ui/release/squashfs-root/kyaraben-ui \
+    APPDIR=/home/kyaraben/app/ui/release/squashfs-root \
     DISPLAY=:99 \
-    npm run test:e2e --prefix /home/testuser/kyaraben/ui
+    npm run test:e2e --prefix /home/kyaraben/app/ui

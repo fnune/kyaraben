@@ -94,15 +94,15 @@ jobs:
       - name: Run E2E tests against AppImage
         run: |
           docker run --rm --ipc=host \
-            -v "$(pwd)/kyaraben-data-cache:/home/testuser/.local/share/kyaraben" \
-            -v "$(pwd)/kyaraben-state-cache:/home/testuser/.local/state/kyaraben" \
+            -v "$(pwd)/kyaraben-data-cache:/home/kyaraben/.local/share/kyaraben" \
+            -v "$(pwd)/kyaraben-state-cache:/home/kyaraben/.local/state/kyaraben" \
             kyaraben-electron-e2e:latest
 
       - name: Extract AppImage from container
         run: |
-          mkdir -p output
-          docker run --rm --user root -v "$(pwd)/output:/output" kyaraben-electron-e2e:latest \
-            sh -c 'cp /home/testuser/kyaraben/ui/release/*.AppImage /output/'
+          mkdir -p -m 777 output
+          docker run --rm -v "$(pwd)/output:/output" kyaraben-electron-e2e:latest \
+            sh -c 'cp /home/kyaraben/app/ui/release/*.AppImage /output/'
           ls -la output/
 
       - name: Upload AppImage artifact
