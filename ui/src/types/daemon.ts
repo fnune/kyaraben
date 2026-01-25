@@ -81,3 +81,46 @@ export type CommandType =
   | 'get_install_status'
   | 'install_app'
   | 'uninstall_app'
+  | 'sync_status'
+  | 'sync_add_device'
+  | 'sync_remove_device'
+
+export type SyncMode = 'primary' | 'secondary'
+export type SyncState = 'disabled' | 'synced' | 'syncing' | 'disconnected' | 'conflict' | 'error'
+
+export interface SyncDevice {
+  readonly id: string
+  readonly name: string
+  readonly connected: boolean
+}
+
+export interface SyncStatusResponse {
+  readonly enabled: boolean
+  readonly mode?: SyncMode
+  readonly running?: boolean
+  readonly deviceId?: string
+  readonly guiURL?: string
+  readonly state?: SyncState
+  readonly devices?: readonly SyncDevice[]
+}
+
+export interface SyncAddDeviceRequest {
+  readonly deviceId: string
+  readonly name?: string
+}
+
+export interface SyncAddDeviceResponse {
+  readonly success: boolean
+  readonly deviceId: string
+  readonly name: string
+}
+
+export interface SyncRemoveDeviceRequest {
+  readonly deviceId: string
+}
+
+export interface SyncRemoveDeviceResponse {
+  readonly success: boolean
+  readonly deviceId: string
+  readonly name: string
+}

@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ProgressDisplay } from '@/components/ProgressDisplay/ProgressDisplay'
 import { Settings } from '@/components/Settings/Settings'
+import { SyncSettings } from '@/components/SyncSettings/SyncSettings'
+import { SyncStatusBar } from '@/components/SyncStatusBar/SyncStatusBar'
 import { SystemGrid } from '@/components/SystemGrid/SystemGrid'
 import { useDaemon } from '@/hooks/useDaemon'
-import type { DoctorResponse, EmulatorID, System, SystemID } from '@/types/daemon'
+import type { DoctorResponse, EmulatorID, SyncStatusResponse, System, SystemID } from '@/types/daemon'
 import type { ApplyStatus, ProgressStep } from '@/types/ui'
 
 const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
@@ -34,6 +36,8 @@ export function App() {
   const [applyStatus, setApplyStatus] = useState<ApplyStatus>('idle')
   const [progressSteps, setProgressSteps] = useState<readonly ProgressStep[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null)
+  const [showSyncSettings, setShowSyncSettings] = useState(false)
 
   useEffect(() => {
     async function init() {
@@ -55,9 +59,17 @@ export function App() {
         setSelections(newSelections)
       }
 
-      const doctorResult = await daemon.runDoctor()
+      const [doctorResult, syncResult] = await Promise.all([
+        daemon.runDoctor(),
+        daemon.getSyncStatus(),
+      ])
+
       if (doctorResult.ok) {
         setProvisions(doctorResult.data)
+      }
+
+      if (syncResult.ok) {
+        setSyncStatus(syncResult.data)
       }
     }
 
@@ -135,10 +147,38 @@ export function App() {
     }
   }, [daemon])
 
+  const handleAddDevice = useCallback(
+    async (deviceId: string, name: string) => {
+      const result = await daemon.addSyncDevice({ deviceId, name })
+      if (result.ok) {
+        const syncResult = await daemon.getSyncStatus()
+        if (syncResult.ok) {
+          setSyncStatus(syncResult.data)
+        }
+      }
+    },
+    [daemon],
+  )
+
+  const handleRemoveDevice = useCallback(
+    async (deviceId: string) => {
+      const result = await daemon.removeSyncDevice({ deviceId })
+      if (result.ok) {
+        const syncResult = await daemon.getSyncStatus()
+        if (syncResult.ok) {
+          setSyncStatus(syncResult.data)
+        }
+      }
+    },
+    [daemon],
+  )
+
   const isApplying = applyStatus === 'applying'
 
   return (
     <div className="min-h-screen bg-white">
+      <SyncStatusBar status={syncStatus} onOpenSettings={() => setShowSyncSettings(true)} />
+
       <header className="border-b border-gray-200 py-6 px-8">
         <h1 className="text-2xl font-bold text-gray-900">Kyaraben</h1>
         <p className="text-gray-500">Declarative emulation manager</p>
@@ -175,6 +215,15 @@ export function App() {
 
         <ProgressDisplay steps={progressSteps} error={error ?? ''} />
       </main>
+
+      {showSyncSettings && (
+        <SyncSettings
+          status={syncStatus}
+          onAddDevice={handleAddDevice}
+          onRemoveDevice={handleRemoveDevice}
+          onClose={() => setShowSyncSettings(false)}
+        />
+      )}
     </div>
   )
 }
