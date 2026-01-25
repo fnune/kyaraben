@@ -14,7 +14,7 @@ import (
 	"github.com/fnune/kyaraben/internal/systems/tic80"
 )
 
-func TestRegistryCrossReferences(t *testing.T) {
+func TestAllDefinitions(t *testing.T) {
 	systemDefs := []model.SystemDefinition{
 		snes.Definition{},
 		psx.Definition{},
@@ -32,14 +32,31 @@ func TestRegistryCrossReferences(t *testing.T) {
 	systems := make(map[model.SystemID]model.System)
 	emulators := make(map[model.EmulatorID]model.Emulator)
 
-	for _, def := range emulatorDefs {
-		emu := def.Emulator()
-		emulators[emu.ID] = emu
-	}
-
 	for _, def := range systemDefs {
 		sys := def.System()
 		systems[sys.ID] = sys
+
+		if sys.Name == "" {
+			t.Errorf("system %q: Name is empty", sys.ID)
+		}
+		if sys.Description == "" {
+			t.Errorf("system %q: Description is empty", sys.ID)
+		}
+	}
+
+	for _, def := range emulatorDefs {
+		emu := def.Emulator()
+		emulators[emu.ID] = emu
+
+		if emu.Name == "" {
+			t.Errorf("emulator %q: Name is empty", emu.ID)
+		}
+		if len(emu.Systems) == 0 {
+			t.Errorf("emulator %q: Systems is empty", emu.ID)
+		}
+		if def.ConfigGenerator() == nil {
+			t.Errorf("emulator %q: ConfigGenerator is nil", emu.ID)
+		}
 	}
 
 	for _, def := range systemDefs {
