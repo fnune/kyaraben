@@ -20,7 +20,7 @@ function StepIcon({ status }: { readonly status: ProgressStepStatus }) {
 
 export function ProgressDisplay({ steps, error }: ProgressDisplayProps) {
   if (steps.length === 0 && !error) {
-    return <></>
+    return null
   }
 
   return (

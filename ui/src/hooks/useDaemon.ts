@@ -1,3 +1,4 @@
+import { useCallback, useState } from 'react'
 import type {
   CommandType,
   ConfigResponse,
@@ -7,7 +8,6 @@ import type {
   StatusResponse,
   System,
 } from '@/types/daemon'
-import { useCallback, useState } from 'react'
 
 type DaemonError = {
   readonly message: string

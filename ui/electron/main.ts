@@ -1,7 +1,7 @@
 import { type ChildProcess, spawn } from 'node:child_process'
 import * as path from 'node:path'
 import * as readline from 'node:readline'
-import { BrowserWindow, app, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 
 // Protocol types for daemon communication.
 // Source of truth: internal/daemon/types.go

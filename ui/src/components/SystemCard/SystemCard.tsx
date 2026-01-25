@@ -1,6 +1,6 @@
+import type { ChangeEvent } from 'react'
 import { SystemIcon } from '@/components/SystemIcon/SystemIcon'
 import type { EmulatorID, ProvisionResult, System, SystemID } from '@/types/daemon'
-import type { ChangeEvent } from 'react'
 
 export interface SystemCardProps {
   readonly system: System

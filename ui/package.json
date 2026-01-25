@@ -26,29 +26,41 @@
     "directories": {
       "output": "release"
     },
-    "files": ["dist/**/*", "dist-electron/**/*"],
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*"
+    ],
     "extraResources": [
       {
         "from": "binaries/",
         "to": "binaries/",
-        "filter": ["kyaraben-*", "nix-portable-*"]
+        "filter": [
+          "kyaraben-*",
+          "nix-portable-*"
+        ]
       }
     ],
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "category": "Game",
       "maintainer": "Kyaraben Developers"
     },
     "mac": {
-      "target": ["dmg"],
+      "target": [
+        "dmg"
+      ],
       "category": "public.app-category.games"
     },
     "win": {
-      "target": ["nsis"]
+      "target": [
+        "nsis"
+      ]
     }
   },
   "devDependencies": {
-    "@biomejs/biome": "^1",
+    "@biomejs/biome": "^2.3.11",
     "@playwright/test": "^1",
     "@testing-library/dom": "^10",
     "@testing-library/jest-dom": "^6",
