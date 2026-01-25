@@ -256,14 +256,18 @@ KyarabenState (XDG)
 UserStore (explicit, e.g. ~/Emulation)
 ├── roms/
 ├── bios/
-├── saves/
-├── states/
-└── screenshots/
+├── saves/           # Structured by system (for emulators with path config)
+├── states/          # Structured by emulator
+├── screenshots/
+└── opaque/          # Emulators that manage their own directory structure
+    └── <emulator>/
 ```
+
+**Opaque emulator directories:** Some emulators (e.g., Eden for Switch) have internal directory structures that don't map to kyaraben's saves/states model. For these, we place the emulator's entire data directory at `UserStore/opaque/<emulator>/`. The emulator manages the internal structure; kyaraben syncs it as a unit. See FILESYSTEM.md for details.
 
 ## Open questions
 
 1. Provision kinds: what's the full taxonomy? Is firmware distinct from BIOS? How do patches fit?
-2. How does kyaraben map emulator-native state paths to the unified UserStore layout?
+2. ~~How does kyaraben map emulator-native state paths to the unified UserStore layout?~~ Resolved: configure emulator paths directly; use opaque directories for emulators that resist this.
 3. Should UserStore structure be configurable or opinionated?
 4. Emulator version tracking: currently always "latest". Real versions require parsing Nix derivation metadata. Worth it?

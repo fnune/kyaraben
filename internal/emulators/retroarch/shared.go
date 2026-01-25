@@ -19,7 +19,7 @@ func SharedConfig(store model.StoreReader) model.ConfigPatch {
 	return model.ConfigPatch{
 		Target: MainConfigTarget,
 		Entries: []model.ConfigEntry{
-			{Path: []string{"system_directory"}, Value: quote(store.BiosDir())},
+			{Path: []string{"system_directory"}, Value: store.BiosDir()},
 		},
 	}
 }
@@ -33,8 +33,4 @@ func CoreOverrideTarget(coreName string) model.ConfigTarget {
 		Format:  model.ConfigFormatCFG,
 		BaseDir: model.ConfigBaseDirUserConfig,
 	}
-}
-
-func quote(s string) string {
-	return `"` + s + `"`
 }
