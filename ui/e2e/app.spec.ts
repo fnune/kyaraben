@@ -6,13 +6,24 @@ let electronApp: ElectronApplication
 let page: Page
 
 test.beforeAll(async () => {
-  const mainPath = path.join(__dirname, '..', 'dist-electron', 'main.js')
+  const appImagePath = process.env.KYARABEN_APPIMAGE
 
-  // --no-sandbox required for Chromium in Docker: https://playwright.dev/docs/ci#docker
-  electronApp = await electron.launch({
-    args: [mainPath, '--no-sandbox'],
-    cwd: path.join(__dirname, '..'),
-  })
+  if (appImagePath) {
+    // Test the actual AppImage - this is what users will run
+    console.log(`Testing AppImage: ${appImagePath}`)
+    electronApp = await electron.launch({
+      executablePath: appImagePath,
+      args: ['--no-sandbox'],
+    })
+  } else {
+    // Dev mode - test the built main.js directly
+    const mainPath = path.join(__dirname, '..', 'dist-electron', 'main.js')
+    console.log(`Testing dev build: ${mainPath}`)
+    electronApp = await electron.launch({
+      args: [mainPath, '--no-sandbox'],
+      cwd: path.join(__dirname, '..'),
+    })
+  }
 
   page = await electronApp.firstWindow()
   await page.waitForSelector('h1')
