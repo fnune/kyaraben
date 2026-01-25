@@ -152,7 +152,12 @@ func (c *Client) Build(ctx context.Context, flakeRef string) (string, error) {
 		"--no-link",
 		"--print-out-paths",
 		"-L", // Print build logs to see what's happening during build phase
-		"--option", "sandbox", "false", // Disable Nix sandbox - conflicts with proot in nix-portable
+	}
+
+	// Disable Nix sandbox when running under proot (e.g., nix-portable in containers)
+	// proot's syscall interception conflicts with Nix's sandbox
+	if os.Getenv("KYARABEN_NIX_NO_SANDBOX") == "1" {
+		args = append(args, "--option", "sandbox", "false")
 	}
 
 	cmd, err := c.runNix(ctx, args)
