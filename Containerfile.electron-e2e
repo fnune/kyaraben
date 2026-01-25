@@ -7,56 +7,50 @@
 FROM mcr.microsoft.com/playwright:v1.49.1-noble AS builder
 
 # Install Go and rpm (needed for electron-builder)
-USER root
 RUN apt-get update && apt-get install -y --no-install-recommends rpm \
     && rm -rf /var/lib/apt/lists/* \
     && curl -fsSL https://go.dev/dl/go1.24.0.linux-amd64.tar.gz | tar -C /usr/local -xzf -
 ENV PATH="/usr/local/go/bin:${PATH}"
 
-# Use pwuser (uid 1000) which already exists in the Playwright image
-USER pwuser
-WORKDIR /home/pwuser/app
+WORKDIR /app
 
 # Copy Go dependency files and download modules (cached unless go.mod/go.sum change)
-COPY --chown=pwuser:pwuser go.mod go.sum ./
-RUN --mount=type=cache,target=/home/pwuser/go/pkg/mod,uid=1000,gid=1000 go mod download
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/root/go/pkg/mod go mod download
 
 # Copy Node dependency files and install (cached unless package*.json change)
-COPY --chown=pwuser:pwuser ui/package.json ui/package-lock.json ./ui/
+COPY ui/package.json ui/package-lock.json ./ui/
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
-RUN --mount=type=cache,target=/home/pwuser/.npm,uid=1000,gid=1000 cd ui && npm ci
+RUN --mount=type=cache,target=/root/.npm cd ui && npm ci
 
 # Copy the rest of the project
-COPY --chown=pwuser:pwuser . .
+COPY . .
 
 # Build Go sidecar
 RUN ./scripts/build-sidecar.sh
 
 # Build frontend, Electron, and AppImage
-RUN --mount=type=cache,target=/home/pwuser/.cache/electron,uid=1000,gid=1000 \
-    --mount=type=cache,target=/home/pwuser/.cache/electron-builder,uid=1000,gid=1000 \
+RUN --mount=type=cache,target=/root/.cache/electron \
+    --mount=type=cache,target=/root/.cache/electron-builder \
     cd ui && npm run build && npm run build:electron && npm run electron:build -- --linux AppImage
 
 # Final stage - minimal image for testing
 FROM mcr.microsoft.com/playwright:v1.49.1-noble
 
-# Set up XDG directories for pwuser (uid 1000, already exists)
-USER root
-RUN mkdir -p /home/pwuser/.local/share/kyaraben \
-             /home/pwuser/.local/state/kyaraben \
-             /home/pwuser/.config/kyaraben && \
-    chown -R pwuser:pwuser /home/pwuser/.local /home/pwuser/.config
+# Set up XDG directories
+RUN mkdir -p /root/.local/share/kyaraben \
+             /root/.local/state/kyaraben \
+             /root/.config/kyaraben
 
-USER pwuser
-WORKDIR /home/pwuser/app
+WORKDIR /app
 
 # Copy only what's needed for testing from builder
-COPY --from=builder --chown=pwuser:pwuser /home/pwuser/app/ui/release/*.AppImage ./ui/release/
-COPY --from=builder --chown=pwuser:pwuser /home/pwuser/app/ui/node_modules ./ui/node_modules/
-COPY --from=builder --chown=pwuser:pwuser /home/pwuser/app/ui/package.json ./ui/
-COPY --from=builder --chown=pwuser:pwuser /home/pwuser/app/ui/playwright.config.ts ./ui/
-COPY --from=builder --chown=pwuser:pwuser /home/pwuser/app/ui/e2e ./ui/e2e/
-COPY --from=builder --chown=pwuser:pwuser /home/pwuser/app/scripts/run-e2e-tests.sh ./scripts/
+COPY --from=builder /app/ui/release/*.AppImage ./ui/release/
+COPY --from=builder /app/ui/node_modules ./ui/node_modules/
+COPY --from=builder /app/ui/package.json ./ui/
+COPY --from=builder /app/ui/playwright.config.ts ./ui/
+COPY --from=builder /app/ui/e2e ./ui/e2e/
+COPY --from=builder /app/scripts/run-e2e-tests.sh ./scripts/
 
 # Show hidden test system for e2e tests
 ENV KYARABEN_SHOW_HIDDEN=1
@@ -65,10 +59,7 @@ ENV KYARABEN_SHOW_HIDDEN=1
 ENV KYARABEN_NIX_NO_SANDBOX=1
 
 # Log file location for tailing during tests
-ENV KYARABEN_LOG=/home/pwuser/.local/state/kyaraben/kyaraben.log
+ENV KYARABEN_LOG=/root/.local/state/kyaraben/kyaraben.log
 
 # Run the e2e test script
-# - Extracts AppImage (FUSE not available in Docker)
-# - Starts Xvfb for headless display
-# - Runs Playwright tests
-CMD ["bash", "/home/pwuser/app/scripts/run-e2e-tests.sh"]
+CMD ["bash", "/app/scripts/run-e2e-tests.sh"]
