@@ -12,7 +12,7 @@ rm -rf /root/.local/share/kyaraben/nix-portable/.nix-portable
 cd /app/ui/release
 APPIMAGE=$(ls *.AppImage | head -1)
 echo "Extracting $APPIMAGE..."
-"$APPIMAGE" --appimage-extract >/dev/null
+./"$APPIMAGE" --appimage-extract >/dev/null
 
 # Verify extraction
 if [ ! -f squashfs-root/kyaraben-ui ]; then
