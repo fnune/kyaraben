@@ -1,6 +1,10 @@
 package eden
 
-import "github.com/fnune/kyaraben/internal/model"
+import (
+	"path/filepath"
+
+	"github.com/fnune/kyaraben/internal/model"
+)
 
 type Definition struct{}
 
@@ -59,7 +63,8 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 }
 
 // Eden uses an opaque data directory structure.
-// Config is at ~/.config/eden/qt-config.ini (or similar)
+// Config is at ~/.config/eden/qt-config.ini
+// Data directories (nand, sdmc) are configured to live in ~/Emulation/opaque/eden/
 // See FILESYSTEM.md for the opaque directory pattern.
 var configTarget = model.ConfigTarget{
 	RelPath: "eden/qt-config.ini",
@@ -71,17 +76,29 @@ type Config struct{}
 
 func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
 	// Eden uses an opaque data directory at ~/Emulation/opaque/eden/
-	// We configure Eden to use this as its NAND/user directory.
-	// The ROMs directory is set separately.
+	// Within this, we configure nand/ and sdmc/ subdirectories.
+	opaqueDir := store.EmulatorOpaqueDir(model.EmulatorEden)
+	nandDir := filepath.Join(opaqueDir, "nand")
+	sdmcDir := filepath.Join(opaqueDir, "sdmc")
+
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
-			// Set the game directory for ROM browsing
-			{Path: []string{"UI", "Paths\\gamedirs\\1\\path"}, Value: store.SystemRomsDir(model.SystemSwitch)},
-			// Set NAND directory to opaque location
-			{Path: []string{"Data%20Storage", "nand_directory"}, Value: store.EmulatorOpaqueDir(model.EmulatorEden)},
-			// Screenshots go to the structured location
+			// Data storage paths - NAND and SDMC in opaque directory
+			{Path: []string{"Data%20Storage", "nand_directory"}, Value: nandDir},
+			{Path: []string{"Data%20Storage", `nand_directory\default`}, Value: "false"},
+			{Path: []string{"Data%20Storage", "sdmc_directory"}, Value: sdmcDir},
+			{Path: []string{"Data%20Storage", `sdmc_directory\default`}, Value: "false"},
+
+			// UI paths
 			{Path: []string{"UI", "Screenshots\\screenshot_path"}, Value: store.SystemScreenshotsDir(model.SystemSwitch)},
+
+			// Game directories - point to ROMs folder
+			// Note: Eden uses a complex gamedirs format, this sets the first entry
+			{Path: []string{"UI", "Paths\\gamedirs\\size"}, Value: "1"},
+			{Path: []string{"UI", "Paths\\gamedirs\\1\\deep_scan"}, Value: "false"},
+			{Path: []string{"UI", "Paths\\gamedirs\\1\\expanded"}, Value: "true"},
+			{Path: []string{"UI", "Paths\\gamedirs\\1\\path"}, Value: store.SystemRomsDir(model.SystemSwitch)},
 		},
 	}}, nil
 }
