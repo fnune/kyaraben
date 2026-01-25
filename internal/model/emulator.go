@@ -5,10 +5,13 @@ package model
 type EmulatorID string
 
 const (
-	EmulatorRetroArchBsnes EmulatorID = "retroarch:bsnes"
-	EmulatorDuckStation    EmulatorID = "duckstation"
-	EmulatorTIC80          EmulatorID = "tic80"
-	EmulatorE2ETest        EmulatorID = "e2e-test"
+	EmulatorRetroArchBsnes   EmulatorID = "retroarch:bsnes"
+	EmulatorRetroArchMGBA    EmulatorID = "retroarch:mgba"
+	EmulatorRetroArchMelonDS EmulatorID = "retroarch:melonds"
+	EmulatorDuckStation      EmulatorID = "duckstation"
+	EmulatorTIC80            EmulatorID = "tic80"
+	EmulatorPPSSPP           EmulatorID = "ppsspp"
+	EmulatorE2ETest          EmulatorID = "e2e-test"
 )
 
 // PackageSource indicates where an emulator package comes from.

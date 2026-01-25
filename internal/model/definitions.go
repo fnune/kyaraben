@@ -4,7 +4,7 @@ type StoreReader interface {
 	BiosDir() string
 	SystemBiosDir(SystemID) string
 	SystemSavesDir(SystemID) string
-	SystemStatesDir(SystemID) string
+	EmulatorStatesDir(EmulatorID) string
 	SystemScreenshotsDir(SystemID) string
 	SystemRomsDir(SystemID) string
 }

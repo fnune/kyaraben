@@ -1,6 +1,9 @@
 package retroarchbsnes
 
-import "github.com/fnune/kyaraben/internal/model"
+import (
+	"github.com/fnune/kyaraben/internal/emulators/retroarch"
+	"github.com/fnune/kyaraben/internal/model"
+)
 
 type Definition struct{}
 
@@ -26,36 +29,27 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 	return &Config{}
 }
 
-var configTarget = model.ConfigTarget{
-	RelPath: "retroarch/retroarch.cfg",
-	Format:  model.ConfigFormatCFG,
-	BaseDir: model.ConfigBaseDirUserConfig,
-}
-
 type Config struct{}
 
 func (c *Config) Generate(store model.StoreReader, systems []model.SystemID) ([]model.ConfigPatch, error) {
-	var primarySystem model.SystemID
-	for _, sys := range systems {
-		if sys == model.SystemSNES {
-			primarySystem = sys
-			break
-		}
-	}
+	return []model.ConfigPatch{
+		retroarch.SharedConfig(store),
+		coreOverrideConfig(store),
+	}, nil
+}
 
-	return []model.ConfigPatch{{
-		Target: configTarget,
+const coreName = "bsnes_libretro"
+
+func coreOverrideConfig(store model.StoreReader) model.ConfigPatch {
+	return model.ConfigPatch{
+		Target: retroarch.CoreOverrideTarget(coreName),
 		Entries: []model.ConfigEntry{
-			{Path: []string{"system_directory"}, Value: quote(store.BiosDir())},
-			{Path: []string{"savefile_directory"}, Value: quote(store.SystemSavesDir(primarySystem))},
-			{Path: []string{"savestate_directory"}, Value: quote(store.SystemStatesDir(primarySystem))},
-			{Path: []string{"screenshot_directory"}, Value: quote(store.SystemScreenshotsDir(primarySystem))},
-			{Path: []string{"rgui_browser_directory"}, Value: quote(store.SystemRomsDir(primarySystem))},
-			{Path: []string{"sort_savefiles_enable"}, Value: "false"},
-			{Path: []string{"sort_savestates_enable"}, Value: "false"},
-			{Path: []string{"sort_screenshots_enable"}, Value: "false"},
+			{Path: []string{"savefile_directory"}, Value: quote(store.SystemSavesDir(model.SystemSNES))},
+			{Path: []string{"savestate_directory"}, Value: quote(store.EmulatorStatesDir(model.EmulatorRetroArchBsnes))},
+			{Path: []string{"screenshot_directory"}, Value: quote(store.SystemScreenshotsDir(model.SystemSNES))},
+			{Path: []string{"rgui_browser_directory"}, Value: quote(store.SystemRomsDir(model.SystemSNES))},
 		},
-	}}, nil
+	}
 }
 
 func quote(s string) string {

@@ -1,0 +1,40 @@
+// Package retroarch provides shared configuration for RetroArch cores.
+// All RetroArch cores use the same retroarch.cfg for base settings.
+// Per-core overrides handle system-specific paths like ROM browsers.
+// See: https://docs.libretro.com/guides/change-directories/
+package retroarch
+
+import "github.com/fnune/kyaraben/internal/model"
+
+var MainConfigTarget = model.ConfigTarget{
+	RelPath: "retroarch/retroarch.cfg",
+	Format:  model.ConfigFormatCFG,
+	BaseDir: model.ConfigBaseDirUserConfig,
+}
+
+// SharedConfig generates the base RetroArch configuration shared by all cores.
+// Only contains system_directory for BIOS files. Path settings are in per-core overrides.
+// See: https://docs.libretro.com/guides/change-directories/
+func SharedConfig(store model.StoreReader) model.ConfigPatch {
+	return model.ConfigPatch{
+		Target: MainConfigTarget,
+		Entries: []model.ConfigEntry{
+			{Path: []string{"system_directory"}, Value: quote(store.BiosDir())},
+		},
+	}
+}
+
+// CoreOverrideTarget returns the config target for a core's override file.
+// Override files let each core have its own ROM browser directory.
+// See: https://docs.libretro.com/guides/overrides/
+func CoreOverrideTarget(coreName string) model.ConfigTarget {
+	return model.ConfigTarget{
+		RelPath: "retroarch/config/" + coreName + "/" + coreName + ".cfg",
+		Format:  model.ConfigFormatCFG,
+		BaseDir: model.ConfigBaseDirUserConfig,
+	}
+}
+
+func quote(s string) string {
+	return `"` + s + `"`
+}
