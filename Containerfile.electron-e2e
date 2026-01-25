@@ -4,7 +4,7 @@
 # Build: podman build -t kyaraben-electron-e2e -f Containerfile.electron-e2e .
 # Run:   podman run --ipc=host --rm kyaraben-electron-e2e
 
-FROM mcr.microsoft.com/playwright:v1.49.1-noble
+FROM mcr.microsoft.com/playwright:v1.49.1-noble AS builder
 
 # Install Go and rpm (needed for electron-builder)
 USER root
@@ -13,32 +13,50 @@ RUN apt-get update && apt-get install -y --no-install-recommends rpm \
     && curl -fsSL https://go.dev/dl/go1.24.0.linux-amd64.tar.gz | tar -C /usr/local -xzf -
 ENV PATH="/usr/local/go/bin:${PATH}"
 
-# Create non-root user for testing with XDG directories
+# Create build user
+RUN useradd -m -s /bin/bash builduser
+USER builduser
+WORKDIR /home/builduser/kyaraben
+
+# Copy Go dependency files and download modules (cached unless go.mod/go.sum change)
+COPY --chown=builduser:builduser go.mod go.sum ./
+RUN go mod download
+
+# Copy Node dependency files and install (cached unless package*.json change)
+COPY --chown=builduser:builduser ui/package.json ui/package-lock.json ./ui/
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+RUN cd ui && npm ci
+
+# Copy the rest of the project
+COPY --chown=builduser:builduser . .
+
+# Build Go sidecar
+RUN ./scripts/build-sidecar.sh
+
+# Build frontend, Electron, and AppImage
+RUN cd ui && npm run build && npm run build:electron && npm run electron:build -- --linux AppImage
+
+# Final stage - minimal image for testing
+FROM mcr.microsoft.com/playwright:v1.49.1-noble
+
+USER root
+
+# Create test user with XDG directories
 RUN useradd -m -s /bin/bash testuser && \
     mkdir -p /home/testuser/.local/share/kyaraben \
              /home/testuser/.local/state/kyaraben \
              /home/testuser/.config/kyaraben && \
     chown -R testuser:testuser /home/testuser/.local /home/testuser/.config
+
 USER testuser
 WORKDIR /home/testuser/kyaraben
 
-# Copy Go dependency files and download modules (cached unless go.mod/go.sum change)
-COPY --chown=testuser:testuser go.mod go.sum ./
-RUN go mod download
-
-# Copy Node dependency files and install (cached unless package*.json change)
-COPY --chown=testuser:testuser ui/package.json ui/package-lock.json ./ui/
-ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
-RUN cd ui && npm ci
-
-# Copy the rest of the project
-COPY --chown=testuser:testuser . .
-
-# Build Go sidecar (modules already cached, just compile)
-RUN ./scripts/build-sidecar.sh
-
-# Build frontend, Electron, and AppImage
-RUN cd ui && npm run build && npm run build:electron && npm run electron:build -- --linux AppImage
+# Copy only what's needed for testing from builder
+COPY --from=builder --chown=testuser:testuser /home/builduser/kyaraben/ui/release/*.AppImage ./ui/release/
+COPY --from=builder --chown=testuser:testuser /home/builduser/kyaraben/ui/node_modules ./ui/node_modules/
+COPY --from=builder --chown=testuser:testuser /home/builduser/kyaraben/ui/package.json ./ui/
+COPY --from=builder --chown=testuser:testuser /home/builduser/kyaraben/ui/playwright.config.ts ./ui/
+COPY --from=builder --chown=testuser:testuser /home/builduser/kyaraben/ui/e2e ./ui/e2e/
 
 # Show hidden test system for e2e tests
 ENV KYARABEN_SHOW_HIDDEN=1
