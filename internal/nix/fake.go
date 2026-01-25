@@ -110,5 +110,9 @@ func (f *FakeClient) GetFlakePath() string {
 	return f.FlakePathValue
 }
 
+func (f *FakeClient) FlakeCheck(ctx context.Context, flakePath string) error {
+	return nil
+}
+
 // Ensure FakeClient implements NixClient.
 var _ NixClient = (*FakeClient)(nil)
