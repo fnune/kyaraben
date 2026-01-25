@@ -7,13 +7,13 @@ import (
 )
 
 type FakeClient struct {
-	Running       bool
-	DeviceID      string
-	DeviceIDError error
-	Connections   map[string]ConnectionInfo
+	Running        bool
+	DeviceID       string
+	DeviceIDError  error
+	Connections    map[string]ConnectionInfo
 	FolderStatuses map[string]*FolderStatus
-	StatusResult  *Status
-	StatusError   error
+	StatusResult   *Status
+	StatusError    error
 }
 
 func NewFakeClient() *FakeClient {
