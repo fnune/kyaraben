@@ -19,7 +19,7 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 	if err != nil {
 		return fmt.Errorf("creating nix client: %w", err)
 	}
-	flakeGenerator := nix.NewFlakeGenerator()
+	flakeGenerator := nix.NewFlakeGenerator(registry)
 	configWriter := emulators.NewConfigWriter()
 
 	d := daemon.New(ctx.ConfigPath, registry, nixClient, flakeGenerator, configWriter)

@@ -4,24 +4,23 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"text/template"
 
 	"github.com/fnune/kyaraben/internal/model"
 )
 
-type FlakeGenerator struct {
-	emulatorAttrs map[model.EmulatorID]string
+// EmulatorLookup provides access to emulator definitions.
+type EmulatorLookup interface {
+	GetEmulator(id model.EmulatorID) (model.Emulator, error)
 }
 
-func NewFlakeGenerator() *FlakeGenerator {
+type FlakeGenerator struct {
+	emulators EmulatorLookup
+}
+
+func NewFlakeGenerator(emulators EmulatorLookup) *FlakeGenerator {
 	return &FlakeGenerator{
-		emulatorAttrs: map[model.EmulatorID]string{
-			model.EmulatorRetroArchBsnes: "retroarch-bsnes",
-			model.EmulatorDuckStation:    "duckstation",
-			model.EmulatorTIC80:          "tic-80",
-			model.EmulatorE2ETest:        "hello",
-		},
+		emulators: emulators,
 	}
 }
 
@@ -65,14 +64,14 @@ type PackageInfo struct {
 }
 
 // Generate creates a flake.nix file in the given directory.
-func (fg *FlakeGenerator) Generate(dir string, emulators []model.EmulatorID) error {
+func (fg *FlakeGenerator) Generate(dir string, emulatorIDs []model.EmulatorID) error {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("creating flake directory: %w", err)
 	}
 
-	packages := make([]PackageInfo, 0, len(emulators))
+	packages := make([]PackageInfo, 0, len(emulatorIDs))
 
-	for _, emuID := range emulators {
+	for _, emuID := range emulatorIDs {
 		pkg, err := fg.packageForEmulator(emuID)
 		if err != nil {
 			return err
@@ -111,46 +110,50 @@ func (fg *FlakeGenerator) Generate(dir string, emulators []model.EmulatorID) err
 }
 
 func (fg *FlakeGenerator) packageForEmulator(emuID model.EmulatorID) (PackageInfo, error) {
-	// Handle special cases
-	switch emuID {
-	case model.EmulatorRetroArchBsnes:
+	emu, err := fg.emulators.GetEmulator(emuID)
+	if err != nil {
+		return PackageInfo{}, fmt.Errorf("unknown emulator: %s", emuID)
+	}
+
+	return packageInfoFromRef(emu.Package)
+}
+
+// packageInfoFromRef converts a PackageRef to nix package info.
+// Returns an error for non-Nix package sources since they can't be included in a flake.
+func packageInfoFromRef(ref model.PackageRef) (PackageInfo, error) {
+	switch p := ref.(type) {
+	case model.NixpkgsPackage:
+		expr := "pkgs." + p.Attr
+		if p.Overlay != "" {
+			expr = p.Overlay
+		}
 		return PackageInfo{
-			Name: "retroarch-bsnes",
-			Expr: `pkgs.retroarch.override { cores = with pkgs.libretro; [ bsnes ]; }`,
+			Name: p.Attr,
+			Expr: expr,
 		}, nil
 
-	case model.EmulatorDuckStation:
-		return PackageInfo{
-			Name: "duckstation",
-			Expr: "pkgs.duckstation",
-		}, nil
-
-	case model.EmulatorTIC80:
-		return PackageInfo{
-			Name: "tic-80",
-			Expr: "pkgs.tic-80",
-		}, nil
-
-	case model.EmulatorE2ETest:
-		return PackageInfo{
-			Name: "hello",
-			Expr: "pkgs.hello",
-		}, nil
+	case model.GitHubPackage:
+		return PackageInfo{}, fmt.Errorf("GitHub packages cannot be included in nix flake: %s/%s", p.Owner, p.Repo)
 
 	default:
-		return PackageInfo{}, fmt.Errorf("unknown emulator: %s", emuID)
+		return PackageInfo{}, fmt.Errorf("unsupported package source: %T", ref)
 	}
 }
 
 // FlakeRef returns the flake reference for building an emulator.
-func (fg *FlakeGenerator) FlakeRef(flakeDir string, emuID model.EmulatorID) string {
-	attr := fg.emulatorAttrs[emuID]
-	if attr == "" {
-		attr = string(emuID)
+func (fg *FlakeGenerator) FlakeRef(flakeDir string, emuID model.EmulatorID) (string, error) {
+	emu, err := fg.emulators.GetEmulator(emuID)
+	if err != nil {
+		return "", fmt.Errorf("unknown emulator: %s", emuID)
 	}
-	// Normalize the path for nix
+
+	pkg, err := packageInfoFromRef(emu.Package)
+	if err != nil {
+		return "", err
+	}
+
 	absPath, _ := filepath.Abs(flakeDir)
-	return fmt.Sprintf("%s#%s", absPath, strings.ReplaceAll(attr, ":", "-"))
+	return fmt.Sprintf("%s#%s", absPath, pkg.Name), nil
 }
 
 // DefaultFlakeRef returns the flake reference for the combined environment.

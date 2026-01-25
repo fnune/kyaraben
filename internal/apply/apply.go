@@ -26,6 +26,7 @@ type Result struct {
 type Options struct {
 	DryRun     bool
 	ShowDiff   bool
+	ConfigOnly bool // Skip Nix build, only apply configs (for home-manager)
 	OnProgress func(Progress)
 }
 
@@ -44,7 +45,8 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 
 	opts.OnProgress(Progress{Step: "start", Message: "Starting apply..."})
 
-	if !opts.DryRun && !a.NixClient.IsAvailable() {
+	// Nix is only required for non-dry-run, non-config-only mode
+	if !opts.DryRun && !opts.ConfigOnly && !a.NixClient.IsAvailable() {
 		return nil, fmt.Errorf("nix is not available (nix-portable not found)")
 	}
 
@@ -82,33 +84,42 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 		}
 	}
 
-	opts.OnProgress(Progress{Step: "flake", Message: "Generating Nix flake..."})
+	var storePath string
 
-	if err := a.NixClient.EnsureFlakeDir(); err != nil {
-		return nil, fmt.Errorf("creating flake directory: %w", err)
-	}
+	// Skip flake generation and build in config-only mode
+	if !opts.ConfigOnly {
+		opts.OnProgress(Progress{Step: "flake", Message: "Generating Nix flake..."})
 
-	if err := a.FlakeGenerator.Generate(a.NixClient.GetFlakePath(), emulatorsToInstall); err != nil {
-		return nil, fmt.Errorf("generating flake: %w", err)
-	}
+		if err := a.NixClient.EnsureFlakeDir(); err != nil {
+			return nil, fmt.Errorf("creating flake directory: %w", err)
+		}
 
-	opts.OnProgress(Progress{Step: "build", Message: "Building emulators..."})
+		if err := a.FlakeGenerator.Generate(a.NixClient.GetFlakePath(), emulatorsToInstall); err != nil {
+			return nil, fmt.Errorf("generating flake: %w", err)
+		}
 
-	buildCtx, cancel := context.WithTimeout(context.Background(), nixBuildTimeout)
-	defer cancel()
+		opts.OnProgress(Progress{Step: "build", Message: "Building emulators..."})
 
-	flakeRef := a.FlakeGenerator.DefaultFlakeRef(a.NixClient.GetFlakePath())
-	storePath, err := a.NixClient.Build(buildCtx, flakeRef)
-	if err != nil {
-		return nil, fmt.Errorf("building emulators: %w", err)
+		buildCtx, cancel := context.WithTimeout(context.Background(), nixBuildTimeout)
+		defer cancel()
+
+		flakeRef := a.FlakeGenerator.DefaultFlakeRef(a.NixClient.GetFlakePath())
+		var err error
+		storePath, err = a.NixClient.Build(buildCtx, flakeRef)
+		if err != nil {
+			return nil, fmt.Errorf("building emulators: %w", err)
+		}
 	}
 
 	opts.OnProgress(Progress{Step: "configs", Message: "Applying emulator configurations..."})
 
-	for _, patch := range allPatches {
-		if err := a.ConfigWriter.Apply(patch); err != nil {
+	configResults := make([]emulators.ApplyResult, len(allPatches))
+	for i, patch := range allPatches {
+		result, err := a.ConfigWriter.Apply(patch)
+		if err != nil {
 			return nil, fmt.Errorf("applying config %s: %w", patch.Config.Path, err)
 		}
+		configResults[i] = result
 	}
 
 	opts.OnProgress(Progress{Step: "manifest", Message: "Updating manifest..."})
@@ -120,18 +131,22 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 
 	manifest.LastApplied = time.Now()
 
-	for _, emuID := range emulatorsToInstall {
-		manifest.AddEmulator(model.InstalledEmulator{
-			ID:        emuID,
-			Version:   "latest",
-			StorePath: storePath,
-			Installed: time.Now(),
-		})
+	// Only record emulator installations when we actually built them
+	if !opts.ConfigOnly {
+		for _, emuID := range emulatorsToInstall {
+			manifest.AddEmulator(model.InstalledEmulator{
+				ID:        emuID,
+				Version:   "latest",
+				StorePath: storePath,
+				Installed: time.Now(),
+			})
+		}
 	}
 
-	for _, patch := range allPatches {
+	for i, patch := range allPatches {
 		manifest.AddManagedConfig(model.ManagedConfig{
 			Path:         patch.Config.Path,
+			BaselineHash: configResults[i].BaselineHash,
 			LastModified: time.Now(),
 			EmulatorID:   patch.Config.EmulatorID,
 		})

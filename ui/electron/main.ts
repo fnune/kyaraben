@@ -3,6 +3,9 @@ import * as path from 'node:path'
 import * as readline from 'node:readline'
 import { BrowserWindow, app, ipcMain } from 'electron'
 
+// Protocol types for daemon communication.
+// Source of truth: internal/daemon/types.go
+// Keep these in sync when modifying the protocol.
 interface DaemonCommand {
   type: string
   data?: unknown
