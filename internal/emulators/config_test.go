@@ -7,11 +7,11 @@ import (
 	"testing"
 
 	"github.com/fnune/kyaraben/internal/emulators/duckstation"
-	"github.com/fnune/kyaraben/internal/emulators/ppsspp"
 	"github.com/fnune/kyaraben/internal/emulators/retroarch"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbsnes"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmelonds"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmgba"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchppsspp"
 	"github.com/fnune/kyaraben/internal/emulators/tic80emu"
 	"github.com/fnune/kyaraben/internal/model"
 )
@@ -44,11 +44,15 @@ func (f *fakeStoreReader) SystemRomsDir(sys model.SystemID) string {
 	return filepath.Join(f.root, "roms", string(sys))
 }
 
+func (f *fakeStoreReader) EmulatorOpaqueDir(emu model.EmulatorID) string {
+	return filepath.Join(f.root, "opaque", string(emu))
+}
+
 func TestDuckStationGenerate(t *testing.T) {
 	store := &fakeStoreReader{root: "/emulation"}
 	gen := duckstation.Definition{}.ConfigGenerator()
 
-	patches, err := gen.Generate(store, []model.SystemID{model.SystemPSX})
+	patches, err := gen.Generate(store)
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
@@ -138,7 +142,7 @@ func TestRetroArchCoresGenerate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			patches, err := tt.gen.Generate(store, []model.SystemID{tt.system})
+			patches, err := tt.gen.Generate(store)
 			if err != nil {
 				t.Fatalf("Generate() error = %v", err)
 			}
@@ -194,7 +198,7 @@ func TestTIC80Generate(t *testing.T) {
 	store := &fakeStoreReader{root: "/emulation"}
 	gen := tic80emu.Definition{}.ConfigGenerator()
 
-	patches, err := gen.Generate(store, []model.SystemID{model.SystemTIC80})
+	patches, err := gen.Generate(store)
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
@@ -204,38 +208,37 @@ func TestTIC80Generate(t *testing.T) {
 	}
 }
 
-func TestPPSSPPGenerate(t *testing.T) {
+func TestRetroArchPPSSPPGenerate(t *testing.T) {
 	store := &fakeStoreReader{root: "/emulation"}
-	gen := ppsspp.Definition{}.ConfigGenerator()
+	gen := retroarchppsspp.Definition{}.ConfigGenerator()
 
-	patches, err := gen.Generate(store, []model.SystemID{model.SystemPSP})
+	patches, err := gen.Generate(store)
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	if len(patches) != 1 {
-		t.Fatalf("expected 1 patch, got %d", len(patches))
+	if len(patches) != 2 {
+		t.Fatalf("expected 2 patches (shared + override), got %d", len(patches))
 	}
 
-	patch := patches[0]
-
-	if patch.Target.Format != model.ConfigFormatINI {
-		t.Errorf("expected INI format, got %s", patch.Target.Format)
+	// First patch: shared retroarch.cfg
+	shared := patches[0]
+	if shared.Target.RelPath != "retroarch/retroarch.cfg" {
+		t.Errorf("expected shared config path, got %s", shared.Target.RelPath)
 	}
 
-	if !strings.Contains(patch.Target.RelPath, "ppsspp") {
-		t.Errorf("expected RelPath to contain 'ppsspp', got %s", patch.Target.RelPath)
+	// Second patch: per-core override
+	override := patches[1]
+	expectedOverridePath := retroarch.CoreOverrideTarget("ppsspp_libretro").RelPath
+	if override.Target.RelPath != expectedOverridePath {
+		t.Errorf("expected override path %q, got %q", expectedOverridePath, override.Target.RelPath)
 	}
 
-	// Check CurrentDirectory entry points to PSP ROMs
-	foundRomDir := false
-	for _, entry := range patch.Entries {
-		if entry.Key() == "CurrentDirectory" && strings.Contains(entry.Value, "/emulation/roms/psp") {
-			foundRomDir = true
+	// Check ROM browser points to PSP ROMs
+	for _, entry := range override.Entries {
+		if entry.Key() == "rgui_browser_directory" && !strings.Contains(entry.Value, "/emulation/roms/psp") {
+			t.Errorf("rgui_browser_directory %q doesn't contain /emulation/roms/psp", entry.Value)
 		}
-	}
-	if !foundRomDir {
-		t.Error("PPSSPP config missing CurrentDirectory pointing to PSP ROMs")
 	}
 }
 
@@ -243,7 +246,7 @@ func TestGeneratedEntriesContainStorePaths(t *testing.T) {
 	store := &fakeStoreReader{root: "/test/emulation"}
 	gen := duckstation.Definition{}.ConfigGenerator()
 
-	patches, err := gen.Generate(store, []model.SystemID{model.SystemPSX})
+	patches, err := gen.Generate(store)
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}

@@ -45,13 +45,13 @@ type PreflightResult struct {
 func (a *Applier) Preflight(cfg *model.KyarabenConfig, userStore *store.UserStore) (*PreflightResult, error) {
 	allPatches := make([]model.ConfigPatch, 0)
 
-	for sys, sysConf := range cfg.Systems {
+	for _, sysConf := range cfg.Systems {
 		gen := a.Registry.GetConfigGenerator(sysConf.Emulator)
 		if gen == nil {
 			continue
 		}
 
-		patches, err := gen.Generate(userStore, []model.SystemID{sys})
+		patches, err := gen.Generate(userStore)
 		if err != nil {
 			return nil, fmt.Errorf("generating config for %s: %w", sysConf.Emulator, err)
 		}
@@ -105,7 +105,7 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 	emulatorsToInstall := make([]model.EmulatorID, 0, len(cfg.Systems))
 	allPatches := make([]model.ConfigPatch, 0)
 
-	for sys, sysConf := range cfg.Systems {
+	for _, sysConf := range cfg.Systems {
 		emulatorsToInstall = append(emulatorsToInstall, sysConf.Emulator)
 
 		gen := a.Registry.GetConfigGenerator(sysConf.Emulator)
@@ -113,7 +113,7 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 			continue
 		}
 
-		patches, err := gen.Generate(userStore, []model.SystemID{sys})
+		patches, err := gen.Generate(userStore)
 		if err != nil {
 			return nil, fmt.Errorf("generating config for %s: %w", sysConf.Emulator, err)
 		}
