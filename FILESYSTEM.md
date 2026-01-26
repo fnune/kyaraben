@@ -138,11 +138,48 @@ No FUSE, no symlinks, no fallbacks. This keeps the architecture simple. Path con
 
 **Important constraint:** kyaraben manages emulator configuration completely. Using kyaraben's sync features without its configuration management is not supported. We need full control over emulator paths to ensure state lands in `UserStore` where the `Synchronizer` expects it.
 
+## Opaque emulator directories
+
+Some emulators have their own opinionated internal directory structure that resists granular path configuration. Examples:
+
+- **Eden** (Switch): Uses a complex internal structure for NAND, keys, firmware, shader cache
+- **Standalone PPSSPP**: Uses a "memstick" directory mimicking the PSP's memory stick structure
+
+For these emulators, instead of trying to map individual paths (saves → `~/Emulation/saves/switch`), we configure the emulator's entire data directory to live within `UserStore` under an `opaque/` directory:
+
+```
+~/Emulation/
+├── saves/           # kyaraben-structured (for emulators with granular path config)
+├── states/          # kyaraben-structured
+├── opaque/          # emulators that manage their own directory structure
+│   └── eden/        # Eden manages this directory internally
+│       └── (internal structure owned by emulator)
+└── ...
+```
+
+The pattern:
+1. The `opaque/` directory contains emulators that manage their own internal structure
+2. Kyaraben syncs the entire `opaque/<emulator>/` directory without understanding its internals
+3. The emulator is configured to use `opaque/<emulator>/` as its data root
+
+This is a middle ground between full path control and no sync support. We lose the unified structure but gain sync capability for emulators that otherwise wouldn't fit the model.
+
+**When to use opaque directories:**
+- Emulator doesn't support individual path configuration for saves/states/etc.
+- Emulator's internal structure is complex or mimics original hardware
+- The emulator can at least configure its overall data directory location
+
+**Trade-offs:**
+- Sync includes everything (shader cache, etc.) not just saves - may need per-emulator sync config
+- User's `UserStore` layout is less uniform
+- Users need to look inside the emulator directory to find their saves
+
 ## Open questions
 
 1. Are there emulators where path configuration is insufficient?
 2. How do Syncthing users currently handle emulator saves across devices?
 3. Does FUSE work reliably inside AppImage?
+4. For opaque directories, should we support per-emulator sync configuration to exclude regenerable data like shader cache?
 
 ## Testing needed
 

@@ -42,7 +42,7 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 
 type Config struct{}
 
-func (c *Config) Generate(store model.StoreReader, systems []model.SystemID) ([]model.ConfigPatch, error) {
+func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
 	return []model.ConfigPatch{
 		retroarch.SharedConfig(store),
 		coreOverrideConfig(store),
@@ -55,14 +55,10 @@ func coreOverrideConfig(store model.StoreReader) model.ConfigPatch {
 	return model.ConfigPatch{
 		Target: retroarch.CoreOverrideTarget(coreName),
 		Entries: []model.ConfigEntry{
-			{Path: []string{"savefile_directory"}, Value: quote(store.SystemSavesDir(model.SystemGBA))},
-			{Path: []string{"savestate_directory"}, Value: quote(store.EmulatorStatesDir(model.EmulatorRetroArchMGBA))},
-			{Path: []string{"screenshot_directory"}, Value: quote(store.SystemScreenshotsDir(model.SystemGBA))},
-			{Path: []string{"rgui_browser_directory"}, Value: quote(store.SystemRomsDir(model.SystemGBA))},
+			{Path: []string{"savefile_directory"}, Value: store.SystemSavesDir(model.SystemGBA)},
+			{Path: []string{"savestate_directory"}, Value: store.EmulatorStatesDir(model.EmulatorRetroArchMGBA)},
+			{Path: []string{"screenshot_directory"}, Value: store.SystemScreenshotsDir(model.SystemGBA)},
+			{Path: []string{"rgui_browser_directory"}, Value: store.SystemRomsDir(model.SystemGBA)},
 		},
 	}
-}
-
-func quote(s string) string {
-	return `"` + s + `"`
 }

@@ -10,6 +10,7 @@ const (
 	SystemGBA     SystemID = "gba"
 	SystemNDS     SystemID = "nds"
 	SystemPSP     SystemID = "psp"
+	SystemSwitch  SystemID = "switch"
 	SystemE2ETest SystemID = "e2e-test"
 )
 
