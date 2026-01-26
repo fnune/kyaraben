@@ -16,20 +16,13 @@ import type { ApplyStatus, ProgressStep } from '@/types/ui'
 
 const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
   start: 'Starting',
-  build_flake: 'Building Nix flake',
-  build_nix: 'Building with Nix',
-  write_configs: 'Writing emulator configs',
-  save_manifest: 'Saving manifest',
+  directories: 'Creating directories',
+  flake: 'Generating Nix flake',
+  build: 'Building emulators',
+  launchers: 'Setting up launchers',
+  configs: 'Applying configurations',
+  manifest: 'Updating manifest',
   done: 'Complete',
-}
-
-function parseProgressStep(step: string, message: string): ProgressStep {
-  return {
-    id: step,
-    label: PROGRESS_STEP_LABELS[step] ?? step,
-    status: 'completed',
-    message: message,
-  }
 }
 
 export function App() {
@@ -123,27 +116,46 @@ export function App() {
       return
     }
 
-    const applyResult = await daemon.apply()
-
-    if (!applyResult.ok) {
-      setError(applyResult.error.message)
-      setApplyStatus('error')
-      return
+    // Subscribe to progress events
+    const progressHandler = (data: { step: string; message: string }) => {
+      setProgressSteps((prev) => {
+        const existing = prev.find((s) => s.id === data.step)
+        if (existing) {
+          return prev.map((s) =>
+            s.id === data.step ? { ...s, message: data.message, status: 'completed' as const } : s,
+          )
+        }
+        return [
+          ...prev,
+          {
+            id: data.step,
+            label: PROGRESS_STEP_LABELS[data.step] ?? data.step,
+            status: 'completed' as const,
+            message: data.message,
+          },
+        ]
+      })
     }
 
-    const steps = applyResult.data.map((msg, i) => {
-      const parts = msg.split(': ')
-      const step = parts[0] ?? `step_${i}`
-      const message = parts.slice(1).join(': ') || msg
-      return parseProgressStep(step, message)
-    })
+    window.electron.on('apply:progress', progressHandler)
 
-    setProgressSteps(steps)
-    setApplyStatus('success')
+    try {
+      const applyResult = await daemon.apply()
 
-    const doctorResult = await daemon.runDoctor()
-    if (doctorResult.ok) {
-      setProvisions(doctorResult.data)
+      if (!applyResult.ok) {
+        setError(applyResult.error.message)
+        setApplyStatus('error')
+        return
+      }
+
+      setApplyStatus('success')
+
+      const doctorResult = await daemon.runDoctor()
+      if (doctorResult.ok) {
+        setProvisions(doctorResult.data)
+      }
+    } finally {
+      window.electron.off('apply:progress', progressHandler)
     }
   }, [daemon, selections, userStore])
 
