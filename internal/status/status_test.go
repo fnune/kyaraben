@@ -72,7 +72,7 @@ func TestGetWithInitializedStore(t *testing.T) {
 	manifestPath := filepath.Join(tmpDir, "manifest.json")
 
 	// Create all required directories for IsInitialized to return true
-	for _, dir := range []string{"roms", "bios", "saves", "states", "screenshots"} {
+	for _, dir := range []string{"roms", "bios", "saves", "states", "screenshots", "opaque"} {
 		if err := os.MkdirAll(filepath.Join(userStorePath, dir), 0755); err != nil {
 			t.Fatalf("Failed to create %s dir: %v", dir, err)
 		}

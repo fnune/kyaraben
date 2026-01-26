@@ -36,6 +36,9 @@ const flakeTemplate = `{
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+        arch = if system == "x86_64-linux" then "x86_64"
+               else if system == "aarch64-linux" then "aarch64"
+               else throw "Unsupported system: ${system}";
       in
       {
         packages = {
@@ -119,7 +122,6 @@ func (fg *FlakeGenerator) packageForEmulator(emuID model.EmulatorID) (PackageInf
 }
 
 // packageInfoFromRef converts a PackageRef to nix package info.
-// Returns an error for non-Nix package sources since they can't be included in a flake.
 func packageInfoFromRef(ref model.PackageRef) (PackageInfo, error) {
 	switch p := ref.(type) {
 	case model.NixpkgsPackage:
@@ -132,11 +134,43 @@ func packageInfoFromRef(ref model.PackageRef) (PackageInfo, error) {
 			Expr: expr,
 		}, nil
 
-	case model.GitHubPackage:
-		return PackageInfo{}, fmt.Errorf("GitHub packages cannot be included in nix flake: %s/%s", p.Owner, p.Repo)
+	case model.GitHubAppImage:
+		return packageInfoFromGitHubAppImage(p), nil
 
 	default:
 		return PackageInfo{}, fmt.Errorf("unsupported package source: %T", ref)
+	}
+}
+
+// packageInfoFromGitHubAppImage generates nix expression for a GitHub AppImage.
+func packageInfoFromGitHubAppImage(p model.GitHubAppImage) PackageInfo {
+	// Build a nix expression that selects the correct asset based on system architecture
+	expr := fmt.Sprintf(`let
+          assets = {
+            x86_64 = {
+              url = "https://github.com/%s/%s/releases/download/%s/%s";
+              sha256 = "%s";
+            };
+            aarch64 = {
+              url = "https://github.com/%s/%s/releases/download/%s/%s";
+              sha256 = "%s";
+            };
+          };
+          src = pkgs.fetchurl {
+            url = assets.${arch}.url;
+            sha256 = assets.${arch}.sha256;
+          };
+        in pkgs.appimageTools.wrapType2 {
+          name = "%s";
+          src = src;
+        }`,
+		p.Owner, p.Repo, p.Version, p.Assets["x86_64"], p.Hashes["x86_64"],
+		p.Owner, p.Repo, p.Version, p.Assets["aarch64"], p.Hashes["aarch64"],
+		p.Name,
+	)
+	return PackageInfo{
+		Name: p.Name,
+		Expr: expr,
 	}
 }
 
