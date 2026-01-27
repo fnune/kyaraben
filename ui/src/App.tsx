@@ -117,7 +117,8 @@ export function App() {
     }
 
     // Subscribe to progress events
-    const progressHandler = (data: { step: string; message: string }) => {
+    const progressHandler = (...args: unknown[]) => {
+      const data = args[0] as { step: string; message: string }
       setProgressSteps((prev) => {
         const existing = prev.find((s) => s.id === data.step)
         if (existing) {
