@@ -1,6 +1,6 @@
-import type { System } from '@/types/daemon'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import type { System } from '@/types/daemon'
 import { SystemGrid } from './SystemGrid'
 
 const mockSystems: System[] = [
