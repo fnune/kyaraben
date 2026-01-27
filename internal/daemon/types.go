@@ -10,12 +10,15 @@ package daemon
 type CommandType string
 
 const (
-	CmdStatus     CommandType = "status"
-	CmdDoctor     CommandType = "doctor"
-	CmdApply      CommandType = "apply"
-	CmdGetSystems CommandType = "get_systems"
-	CmdGetConfig  CommandType = "get_config"
-	CmdSetConfig  CommandType = "set_config"
+	CmdStatus           CommandType = "status"
+	CmdDoctor           CommandType = "doctor"
+	CmdApply            CommandType = "apply"
+	CmdGetSystems       CommandType = "get_systems"
+	CmdGetConfig        CommandType = "get_config"
+	CmdSetConfig        CommandType = "set_config"
+	CmdSyncStatus       CommandType = "sync_status"
+	CmdSyncAddDevice    CommandType = "sync_add_device"
+	CmdSyncRemoveDevice CommandType = "sync_remove_device"
 )
 
 // Command represents a command from the UI.

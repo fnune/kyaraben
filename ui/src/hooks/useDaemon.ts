@@ -6,6 +6,11 @@ import type {
   InstallStatus,
   SetConfigRequest,
   StatusResponse,
+  SyncAddDeviceRequest,
+  SyncAddDeviceResponse,
+  SyncRemoveDeviceRequest,
+  SyncRemoveDeviceResponse,
+  SyncStatusResponse,
   System,
 } from '@/types/daemon'
 
@@ -17,7 +22,7 @@ type DaemonResult<T> =
   | { readonly ok: true; readonly data: T }
   | { readonly ok: false; readonly error: DaemonError }
 
-async function invoke<T>(command: CommandType, data?: SetConfigRequest): Promise<DaemonResult<T>> {
+async function invoke<T>(command: CommandType, data?: unknown): Promise<DaemonResult<T>> {
   try {
     const result = (await window.electron.invoke(command, data)) as T
     return { ok: true, data: result }
@@ -39,6 +44,13 @@ export interface UseDaemonReturn {
   readonly getInstallStatus: () => Promise<DaemonResult<InstallStatus>>
   readonly installApp: () => Promise<DaemonResult<void>>
   readonly uninstallApp: () => Promise<DaemonResult<void>>
+  readonly getSyncStatus: () => Promise<DaemonResult<SyncStatusResponse>>
+  readonly addSyncDevice: (
+    req: SyncAddDeviceRequest,
+  ) => Promise<DaemonResult<SyncAddDeviceResponse>>
+  readonly removeSyncDevice: (
+    req: SyncRemoveDeviceRequest,
+  ) => Promise<DaemonResult<SyncRemoveDeviceResponse>>
 }
 
 export function useDaemon(): UseDaemonReturn {
@@ -108,6 +120,23 @@ export function useDaemon(): UseDaemonReturn {
     [withLoading],
   )
 
+  const getSyncStatus = useCallback(
+    () => withLoading(() => invoke<SyncStatusResponse>('sync_status')),
+    [withLoading],
+  )
+
+  const addSyncDevice = useCallback(
+    (req: SyncAddDeviceRequest) =>
+      withLoading(() => invoke<SyncAddDeviceResponse>('sync_add_device', req)),
+    [withLoading],
+  )
+
+  const removeSyncDevice = useCallback(
+    (req: SyncRemoveDeviceRequest) =>
+      withLoading(() => invoke<SyncRemoveDeviceResponse>('sync_remove_device', req)),
+    [withLoading],
+  )
+
   return {
     loading,
     error,
@@ -120,5 +149,8 @@ export function useDaemon(): UseDaemonReturn {
     getInstallStatus,
     installApp,
     uninstallApp,
+    getSyncStatus,
+    addSyncDevice,
+    removeSyncDevice,
   }
 }

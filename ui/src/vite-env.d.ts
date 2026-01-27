@@ -1,24 +1,27 @@
 /// <reference types="vite/client" />
 
-declare global {
-  type CommandType =
-    | 'status'
-    | 'doctor'
-    | 'apply'
-    | 'get_systems'
-    | 'get_config'
-    | 'set_config'
-    | 'get_install_status'
-    | 'install_app'
-    | 'uninstall_app'
+type CommandType =
+  | 'status'
+  | 'doctor'
+  | 'apply'
+  | 'get_systems'
+  | 'get_config'
+  | 'set_config'
+  | 'get_install_status'
+  | 'install_app'
+  | 'uninstall_app'
+  | 'sync_status'
+  | 'sync_add_device'
+  | 'sync_remove_device'
 
-  interface ElectronAPI {
-    invoke<T>(command: CommandType, data?: unknown): Promise<T>
-  }
+type EventChannel = 'apply:progress'
 
-  interface Window {
-    electron: ElectronAPI
-  }
+interface ElectronAPI {
+  invoke<T>(command: CommandType, data?: unknown): Promise<T>
+  on(channel: EventChannel, callback: (...args: unknown[]) => void): void
+  off(channel: EventChannel, callback: (...args: unknown[]) => void): void
 }
 
-export {}
+interface Window {
+  electron: ElectronAPI
+}

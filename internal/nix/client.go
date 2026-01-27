@@ -130,6 +130,10 @@ func (c *Client) runNix(ctx context.Context, args []string) (*exec.Cmd, error) {
 		return nil, fmt.Errorf("nix-portable is not available (bundled binary not found)")
 	}
 
+	if err := c.EnsureNixPortableDir(); err != nil {
+		return nil, fmt.Errorf("creating nix-portable data directory: %w", err)
+	}
+
 	// nix-portable wraps nix, so we call: nix-portable nix <args>
 	fullArgs := append([]string{"nix"}, args...)
 	cmd := exec.CommandContext(ctx, c.NixPortableBinary, fullArgs...)
@@ -143,6 +147,10 @@ func (c *Client) runNix(ctx context.Context, args []string) (*exec.Cmd, error) {
 	return cmd, nil
 }
 
+func (c *Client) EnsureNixPortableDir() error {
+	return os.MkdirAll(c.NixPortableLocation, 0755)
+}
+
 func (c *Client) Build(ctx context.Context, flakeRef string) (string, error) {
 	log.Info("Starting nix build for: %s", flakeRef)
 
@@ -151,11 +159,9 @@ func (c *Client) Build(ctx context.Context, flakeRef string) (string, error) {
 		flakeRef,
 		"--no-link",
 		"--print-out-paths",
-		"-L", // Print build logs to see what's happening during build phase
+		"-L",
 	}
 
-	// Disable Nix sandbox when running under proot (e.g., nix-portable in containers)
-	// proot's syscall interception conflicts with Nix's sandbox
 	if os.Getenv("KYARABEN_NIX_NO_SANDBOX") == "1" {
 		args = append(args, "--option", "sandbox", "false")
 	}
@@ -166,7 +172,6 @@ func (c *Client) Build(ctx context.Context, flakeRef string) (string, error) {
 	}
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
-	// Stream stderr to console while also capturing it for error reporting
 	cmd.Stderr = io.MultiWriter(&stderr, os.Stderr)
 
 	log.Info("Executing nix build (this may take a while on first run)...")
@@ -175,7 +180,6 @@ func (c *Client) Build(ctx context.Context, flakeRef string) (string, error) {
 		return "", fmt.Errorf("nix build failed: %w\nstderr: %s", err, stderr.String())
 	}
 
-	// Parse output - it's the store path
 	storePath := strings.TrimSpace(stdout.String())
 	if storePath == "" {
 		log.Error("nix build produced no output")
@@ -184,6 +188,44 @@ func (c *Client) Build(ctx context.Context, flakeRef string) (string, error) {
 
 	log.Info("nix build SUCCESS: %s", storePath)
 	return storePath, nil
+}
+
+// BuildWithLink builds a flake and creates a symlink to the result.
+// The symlink is created by nix itself, which ensures it works correctly
+// with nix-portable's virtualized store.
+func (c *Client) BuildWithLink(ctx context.Context, flakeRef string, outLink string) error {
+	log.Info("Starting nix build for: %s (link: %s)", flakeRef, outLink)
+
+	if err := os.MkdirAll(filepath.Dir(outLink), 0755); err != nil {
+		return fmt.Errorf("creating output directory: %w", err)
+	}
+
+	args := []string{
+		"build",
+		flakeRef,
+		"--out-link", outLink,
+		"-L",
+	}
+
+	if os.Getenv("KYARABEN_NIX_NO_SANDBOX") == "1" {
+		args = append(args, "--option", "sandbox", "false")
+	}
+
+	cmd, err := c.runNix(ctx, args)
+	if err != nil {
+		return err
+	}
+	var stderr bytes.Buffer
+	cmd.Stderr = io.MultiWriter(&stderr, os.Stderr)
+
+	log.Info("Executing nix build (this may take a while on first run)...")
+	if err := cmd.Run(); err != nil {
+		log.Error("nix build FAILED: %v", err)
+		return fmt.Errorf("nix build failed: %w\nstderr: %s", err, stderr.String())
+	}
+
+	log.Info("nix build SUCCESS: created link at %s", outLink)
+	return nil
 }
 
 func (c *Client) BuildMultiple(ctx context.Context, flakeRefs []string) (map[string]string, error) {
@@ -260,4 +302,39 @@ func (c *Client) GetVersion(ctx context.Context) (string, error) {
 
 func (c *Client) EnsureFlakeDir() error {
 	return os.MkdirAll(c.FlakePath, 0755)
+}
+
+// RealStorePath translates a virtualized /nix/store path to the real
+// nix-portable store path. This is needed because nix-portable virtualizes
+// /nix/store, but the actual files are in $NP_LOCATION/.nix-portable/nix/store/.
+func (c *Client) RealStorePath(virtualPath string) string {
+	const nixStorePrefix = "/nix/store/"
+	if !strings.HasPrefix(virtualPath, nixStorePrefix) {
+		return virtualPath
+	}
+	hashAndName := strings.TrimPrefix(virtualPath, nixStorePrefix)
+	return filepath.Join(c.NixPortableLocation, ".nix-portable", "nix", "store", hashAndName)
+}
+
+func (c *Client) FlakeCheck(ctx context.Context, flakePath string) error {
+	// Use 'nix flake show' which evaluates the flake structure without building
+	args := []string{
+		"flake",
+		"show",
+		"--json",
+		flakePath,
+	}
+
+	cmd, err := c.runNix(ctx, args)
+	if err != nil {
+		return err
+	}
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("nix flake show failed: %w\nstderr: %s", err, stderr.String())
+	}
+
+	return nil
 }

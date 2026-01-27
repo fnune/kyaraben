@@ -8,6 +8,7 @@ import (
 
 	"github.com/fnune/kyaraben/internal/daemon"
 	"github.com/fnune/kyaraben/internal/emulators"
+	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/nix"
 )
 
@@ -21,8 +22,9 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 	}
 	flakeGenerator := nix.NewFlakeGenerator(registry)
 	configWriter := emulators.NewConfigWriter()
+	launcherManager := launcher.NewManager()
 
-	d := daemon.New(ctx.ConfigPath, registry, nixClient, flakeGenerator, configWriter)
+	d := daemon.New(ctx.ConfigPath, registry, nixClient, flakeGenerator, configWriter, launcherManager)
 
 	scanner := bufio.NewScanner(os.Stdin)
 	encoder := json.NewEncoder(os.Stdout)

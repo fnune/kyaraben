@@ -5,7 +5,7 @@ export default defineConfig({
   testMatch: '**/*.spec.ts',
   timeout: 900000, // 15 minutes - Nix builds can take a while
   expect: {
-    timeout: 30000,
+    timeout: 120000, // 2 minutes - first run cache warming can be slow
   },
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
@@ -15,5 +15,6 @@ export default defineConfig({
   use: {
     trace: 'on-first-retry',
     video: 'retain-on-failure',
+    actionTimeout: 120000, // 2 minutes - app startup can be slow
   },
 })

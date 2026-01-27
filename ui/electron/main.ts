@@ -83,6 +83,7 @@ async function ensureDaemon(): Promise<void> {
 
   const child = spawn(sidecarPath, ['daemon'], {
     stdio: ['pipe', 'pipe', 'inherit'],
+    env: process.env,
   })
 
   if (!child.stdout) {
@@ -180,7 +181,7 @@ async function sendCommand(cmd: DaemonCommand): Promise<DaemonEvent> {
   })
 }
 
-// Apply is special because it returns multiple progress events
+// Apply is special because it streams multiple progress events
 async function applyCommand(): Promise<string[]> {
   await ensureDaemon()
 
@@ -200,12 +201,22 @@ async function applyCommand(): Promise<string[]> {
         reject(new Error('Apply timeout'))
       },
       15 * 60 * 1000,
-    ) // 15 minute timeout
+    )
 
     const handleEvent = (event: DaemonEvent) => {
       if (event.type === 'progress') {
-        const msg = (event.data as { message?: string })?.message
+        const data = event.data as { step?: string; message?: string }
+        const msg = data?.message
         if (msg) messages.push(msg)
+
+        // Stream progress to renderer
+        if (mainWindow) {
+          mainWindow.webContents.send('apply:progress', {
+            step: data?.step ?? 'unknown',
+            message: msg ?? '',
+          })
+        }
+
         // Continue listening for more events
         const id = currentDaemon.requestId++
         currentDaemon.pending.set(id, { resolve: handleEvent, reject })
@@ -335,6 +346,21 @@ Categories=Game;Emulator;
     await fs.unlink(appPath).catch(() => undefined)
     await fs.unlink(desktopPath).catch(() => undefined)
     await fs.unlink(cliPath).catch(() => undefined)
+  })
+
+  ipcMain.handle('sync_status', async () => {
+    const event = await sendCommand({ type: 'sync_status' })
+    return event.data
+  })
+
+  ipcMain.handle('sync_add_device', async (_, data: { deviceId: string; name?: string }) => {
+    const event = await sendCommand({ type: 'sync_add_device', data })
+    return event.data
+  })
+
+  ipcMain.handle('sync_remove_device', async (_, data: { deviceId: string }) => {
+    const event = await sendCommand({ type: 'sync_remove_device', data })
+    return event.data
   })
 }
 

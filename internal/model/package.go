@@ -17,6 +17,7 @@ func (p NixpkgsPackage) Source() PackageSource {
 }
 
 // GitHubAppImage references a GitHub release AppImage asset.
+// Deprecated: Use VersionedAppImage instead, which reads from versions.toml
 type GitHubAppImage struct {
 	Name    string            // Package name for nix (e.g., "eden")
 	Owner   string            // e.g., "eden-emulator"
@@ -30,6 +31,15 @@ func (p GitHubAppImage) Source() PackageSource {
 	return PackageSourceGitHub
 }
 
+// VersionedAppImage references an AppImage whose version info is in versions.toml
+type VersionedAppImage struct {
+	Name string // Key in versions.toml (e.g., "eden")
+}
+
+func (p VersionedAppImage) Source() PackageSource {
+	return PackageSourceVersioned
+}
+
 // NixpkgsRef creates a PackageRef for a simple nixpkgs package.
 func NixpkgsRef(attr string) PackageRef {
 	return NixpkgsPackage{Attr: attr}
@@ -41,6 +51,7 @@ func NixpkgsOverlayRef(attr, overlay string) PackageRef {
 }
 
 // GitHubAppImageRef creates a PackageRef for a GitHub release AppImage.
+// Deprecated: Use VersionedAppImageRef instead
 func GitHubAppImageRef(name, owner, repo, version string, assets, hashes map[string]string) PackageRef {
 	return GitHubAppImage{
 		Name:    name,
@@ -50,4 +61,9 @@ func GitHubAppImageRef(name, owner, repo, version string, assets, hashes map[str
 		Assets:  assets,
 		Hashes:  hashes,
 	}
+}
+
+// VersionedAppImageRef creates a PackageRef that reads version info from versions.toml
+func VersionedAppImageRef(name string) PackageRef {
+	return VersionedAppImage{Name: name}
 }

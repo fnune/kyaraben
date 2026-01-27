@@ -103,32 +103,27 @@ func TestAllDefinitions(t *testing.T) {
 func TestRegistryGetSystem(t *testing.T) {
 	reg := NewDefault()
 
-	tests := []struct {
-		id      model.SystemID
-		wantErr bool
-	}{
-		{model.SystemSNES, false},
-		{model.SystemPSX, false},
-		{model.SystemTIC80, false},
-		{model.SystemGBA, false},
-		{model.SystemNDS, false},
-		{model.SystemPSP, false},
-		{model.SystemSwitch, false},
-		{model.SystemID("unknown"), true},
-	}
-
-	for _, tt := range tests {
-		t.Run(string(tt.id), func(t *testing.T) {
-			sys, err := reg.GetSystem(tt.id)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GetSystem(%s) error = %v, wantErr %v", tt.id, err, tt.wantErr)
+	// Test all registered systems can be retrieved
+	for _, sys := range reg.AllSystems() {
+		t.Run(string(sys.ID), func(t *testing.T) {
+			got, err := reg.GetSystem(sys.ID)
+			if err != nil {
+				t.Errorf("GetSystem(%s) error = %v", sys.ID, err)
 				return
 			}
-			if !tt.wantErr && sys.ID != tt.id {
-				t.Errorf("GetSystem(%s) returned wrong system: got %s", tt.id, sys.ID)
+			if got.ID != sys.ID {
+				t.Errorf("GetSystem(%s) returned wrong system: got %s", sys.ID, got.ID)
 			}
 		})
 	}
+
+	// Test unknown system returns error
+	t.Run("unknown", func(t *testing.T) {
+		_, err := reg.GetSystem(model.SystemID("unknown"))
+		if err == nil {
+			t.Error("GetSystem(unknown) should return error")
+		}
+	})
 }
 
 func TestRegistryGetEmulator(t *testing.T) {

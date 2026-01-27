@@ -255,3 +255,49 @@ func TestCLIUninstall(t *testing.T) {
 		t.Errorf("Output doesn't show what will be preserved: %s", outputStr)
 	}
 }
+
+func TestCLISyncStatusDisabled(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.toml")
+	userStore := filepath.Join(tmpDir, "Emulation")
+
+	// Initialize without sync enabled
+	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "tic80")
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("init failed: %v\nOutput: %s", err, output)
+	}
+
+	// Run sync status - should show disabled
+	cmd = kyarabenCmd(t, "-c", configPath, "sync", "status")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("sync status failed: %v\nOutput: %s", err, output)
+	}
+
+	outputStr := string(output)
+	if !strings.Contains(outputStr, "disabled") {
+		t.Errorf("Output should indicate sync is disabled: %s", outputStr)
+	}
+	if !strings.Contains(outputStr, "Enable sync") {
+		t.Errorf("Output should show how to enable sync: %s", outputStr)
+	}
+}
+
+func TestCLISyncHelp(t *testing.T) {
+	cmd := kyarabenCmd(t, "sync", "--help")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("sync help failed: %v\nOutput: %s", err, output)
+	}
+
+	outputStr := string(output)
+	if !strings.Contains(outputStr, "status") {
+		t.Errorf("Sync help doesn't mention status: %s", outputStr)
+	}
+	if !strings.Contains(outputStr, "add-device") {
+		t.Errorf("Sync help doesn't mention add-device: %s", outputStr)
+	}
+	if !strings.Contains(outputStr, "remove-device") {
+		t.Errorf("Sync help doesn't mention remove-device: %s", outputStr)
+	}
+}

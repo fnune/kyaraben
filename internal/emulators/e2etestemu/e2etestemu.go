@@ -12,6 +12,11 @@ func (Definition) Emulator() model.Emulator {
 		Package:    model.NixpkgsRef("hello"),
 		Provisions: []model.Provision{},
 		StateKinds: []model.StateKind{},
+		Launcher: model.LauncherInfo{
+			Binary:      "hello",
+			GenericName: "Test Application",
+			Categories:  []string{"Utility"},
+		},
 	}
 }
 

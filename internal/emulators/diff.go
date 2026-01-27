@@ -149,12 +149,17 @@ func ComputeDiff(patch model.ConfigPatch) (*ConfigDiff, error) {
 		section := iniSection(entry.Parent())
 		key := entry.Key()
 
+		newValue := entry.Value
+		if patch.Target.Format == model.ConfigFormatCFG {
+			newValue = `"` + entry.Value + `"`
+		}
+
 		sectionMap, sectionExists := current[section]
 		if !sectionExists {
 			diff.Changes = append(diff.Changes, ConfigChange{
 				Type:     ChangeAdd,
 				Path:     entry.Path,
-				NewValue: entry.Value,
+				NewValue: newValue,
 			})
 			continue
 		}
@@ -164,17 +169,17 @@ func ComputeDiff(patch model.ConfigPatch) (*ConfigDiff, error) {
 			diff.Changes = append(diff.Changes, ConfigChange{
 				Type:     ChangeAdd,
 				Path:     entry.Path,
-				NewValue: entry.Value,
+				NewValue: newValue,
 			})
 			continue
 		}
 
-		if oldValue != entry.Value {
+		if oldValue != newValue {
 			diff.Changes = append(diff.Changes, ConfigChange{
 				Type:     ChangeModify,
 				Path:     entry.Path,
 				OldValue: oldValue,
-				NewValue: entry.Value,
+				NewValue: newValue,
 			})
 		}
 	}

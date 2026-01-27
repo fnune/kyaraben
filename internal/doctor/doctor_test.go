@@ -159,6 +159,7 @@ func TestRunWithBiosFile(t *testing.T) {
 
 	if foundProv == nil {
 		t.Fatal("scph5501.bin provision not found in results")
+		return
 	}
 
 	// File exists but hash is wrong, so should be Invalid
