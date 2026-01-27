@@ -1,2 +1,2 @@
-export { SystemIcon } from "./SystemIcon";
-export type { SystemIconProps } from "./SystemIcon";
+export { SystemIcon } from './SystemIcon'
+export type { SystemIconProps } from './SystemIcon'

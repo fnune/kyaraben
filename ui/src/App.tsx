@@ -1,151 +1,150 @@
-import { useCallback, useEffect, useState } from "react";
-import { ProgressDisplay, Settings, SystemGrid } from "./components";
-import { useDaemon } from "./hooks";
-import type {
-  DoctorResponse,
-  EmulatorID,
-  System,
-  SystemID,
-} from "./types";
-import type { ApplyStatus, ProgressStep } from "./types/ui";
-import styles from "./App.module.css";
+import { ProgressDisplay } from '@/components/ProgressDisplay'
+import { Settings } from '@/components/Settings'
+import { SystemGrid } from '@/components/SystemGrid'
+import { useDaemon } from '@/hooks'
+import type { DoctorResponse, EmulatorID, System, SystemID } from '@/types'
+import type { ApplyStatus, ProgressStep } from '@/types/ui'
+import { useCallback, useEffect, useState } from 'react'
 
 const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
-  start: "Starting",
-  build_flake: "Building Nix flake",
-  build_nix: "Building with Nix",
-  write_configs: "Writing emulator configs",
-  save_manifest: "Saving manifest",
-  done: "Complete",
-};
+  start: 'Starting',
+  build_flake: 'Building Nix flake',
+  build_nix: 'Building with Nix',
+  write_configs: 'Writing emulator configs',
+  save_manifest: 'Saving manifest',
+  done: 'Complete',
+}
 
 function parseProgressStep(step: string, message: string): ProgressStep {
   return {
     id: step,
     label: PROGRESS_STEP_LABELS[step] ?? step,
-    status: "completed",
+    status: 'completed',
     message: message,
-  };
+  }
 }
 
 export function App() {
-  const daemon = useDaemon();
+  const daemon = useDaemon()
 
-  const [systems, setSystems] = useState<readonly System[]>([]);
-  const [selections, setSelections] = useState<Map<SystemID, EmulatorID>>(new Map());
-  const [provisions, setProvisions] = useState<DoctorResponse>({});
-  const [userStore, setUserStore] = useState("~/Emulation");
-  const [applyStatus, setApplyStatus] = useState<ApplyStatus>("idle");
-  const [progressSteps, setProgressSteps] = useState<readonly ProgressStep[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [systems, setSystems] = useState<readonly System[]>([])
+  const [selections, setSelections] = useState<Map<SystemID, EmulatorID>>(new Map())
+  const [provisions, setProvisions] = useState<DoctorResponse>({})
+  const [userStore, setUserStore] = useState('~/Emulation')
+  const [applyStatus, setApplyStatus] = useState<ApplyStatus>('idle')
+  const [progressSteps, setProgressSteps] = useState<readonly ProgressStep[]>([])
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     async function init() {
       const [systemsResult, configResult] = await Promise.all([
         daemon.getSystems(),
         daemon.getConfig(),
-      ]);
+      ])
 
       if (systemsResult.ok) {
-        setSystems(systemsResult.data);
+        setSystems(systemsResult.data)
       }
 
       if (configResult.ok) {
-        setUserStore(configResult.data.userStore);
-        const newSelections = new Map<SystemID, EmulatorID>();
+        setUserStore(configResult.data.userStore)
+        const newSelections = new Map<SystemID, EmulatorID>()
         for (const [sysId, emuId] of Object.entries(configResult.data.systems)) {
-          newSelections.set(sysId as SystemID, emuId as EmulatorID);
+          newSelections.set(sysId as SystemID, emuId as EmulatorID)
         }
-        setSelections(newSelections);
+        setSelections(newSelections)
       }
 
-      const doctorResult = await daemon.runDoctor();
+      const doctorResult = await daemon.runDoctor()
       if (doctorResult.ok) {
-        setProvisions(doctorResult.data);
+        setProvisions(doctorResult.data)
       }
     }
 
-    init();
-  }, [daemon]);
+    init()
+  }, [daemon])
 
-  const handleToggle = useCallback((systemId: SystemID, enabled: boolean) => {
-    setSelections((prev) => {
-      const next = new Map(prev);
-      if (enabled) {
-        const system = systems.find((s) => s.id === systemId);
-        const defaultEmulator = system?.emulators[0];
-        if (defaultEmulator) {
-          next.set(systemId, defaultEmulator.id);
+  const handleToggle = useCallback(
+    (systemId: SystemID, enabled: boolean) => {
+      setSelections((prev) => {
+        const next = new Map(prev)
+        if (enabled) {
+          const system = systems.find((s) => s.id === systemId)
+          const defaultEmulator = system?.emulators[0]
+          if (defaultEmulator) {
+            next.set(systemId, defaultEmulator.id)
+          }
+        } else {
+          next.delete(systemId)
         }
-      } else {
-        next.delete(systemId);
-      }
-      return next;
-    });
-  }, [systems]);
+        return next
+      })
+    },
+    [systems],
+  )
 
   const handleApply = useCallback(async () => {
-    setApplyStatus("applying");
-    setProgressSteps([]);
-    setError(null);
+    setApplyStatus('applying')
+    setProgressSteps([])
+    setError(null)
 
-    const systemsConfig: Partial<Record<SystemID, EmulatorID>> = {};
+    const systemsConfig: Partial<Record<SystemID, EmulatorID>> = {}
     for (const [sysId, emuId] of selections) {
-      systemsConfig[sysId] = emuId;
+      systemsConfig[sysId] = emuId
     }
 
     const configResult = await daemon.setConfig({
       userStore,
       systems: systemsConfig,
-    });
+    })
 
     if (!configResult.ok) {
-      setError(configResult.error.message);
-      setApplyStatus("error");
-      return;
+      setError(configResult.error.message)
+      setApplyStatus('error')
+      return
     }
 
-    const applyResult = await daemon.apply();
+    const applyResult = await daemon.apply()
 
     if (!applyResult.ok) {
-      setError(applyResult.error.message);
-      setApplyStatus("error");
-      return;
+      setError(applyResult.error.message)
+      setApplyStatus('error')
+      return
     }
 
     const steps = applyResult.data.map((msg, i) => {
-      const parts = msg.split(": ");
-      const step = parts[0] ?? `step_${i}`;
-      const message = parts.slice(1).join(": ") || msg;
-      return parseProgressStep(step, message);
-    });
+      const parts = msg.split(': ')
+      const step = parts[0] ?? `step_${i}`
+      const message = parts.slice(1).join(': ') || msg
+      return parseProgressStep(step, message)
+    })
 
-    setProgressSteps(steps);
-    setApplyStatus("success");
+    setProgressSteps(steps)
+    setApplyStatus('success')
 
-    const doctorResult = await daemon.runDoctor();
+    const doctorResult = await daemon.runDoctor()
     if (doctorResult.ok) {
-      setProvisions(doctorResult.data);
+      setProvisions(doctorResult.data)
     }
-  }, [daemon, selections, userStore]);
+  }, [daemon, selections, userStore])
 
   const handleCheckProvisions = useCallback(async () => {
-    const result = await daemon.runDoctor();
+    const result = await daemon.runDoctor()
     if (result.ok) {
-      setProvisions(result.data);
+      setProvisions(result.data)
     }
-  }, [daemon]);
+  }, [daemon])
 
-  const isApplying = applyStatus === "applying";
+  const isApplying = applyStatus === 'applying'
 
   return (
-    <div className={styles.app}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>Kyaraben</h1>
-        <p className={styles.subtitle}>Declarative emulation manager</p>
+    <div className="min-h-screen bg-white">
+      <header className="border-b border-gray-200 py-6 px-8">
+        <h1 className="text-2xl font-bold text-gray-900">Kyaraben</h1>
+        <p className="text-gray-500">Declarative emulation manager</p>
       </header>
 
-      <main className={styles.main}>
+      <main className="max-w-5xl mx-auto px-8 py-6">
         <Settings userStore={userStore} onUserStoreChange={setUserStore} />
 
         <SystemGrid
@@ -155,25 +154,27 @@ export function App() {
           onToggle={handleToggle}
         />
 
-        <div className={styles.actions}>
+        <div className="mt-6 flex gap-3">
           <button
+            type="button"
             onClick={handleApply}
             disabled={isApplying || selections.size === 0}
-            className={styles.primaryButton}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isApplying ? "Applying..." : "Apply"}
+            {isApplying ? 'Applying...' : 'Apply'}
           </button>
           <button
+            type="button"
             onClick={handleCheckProvisions}
             disabled={isApplying}
-            className={styles.secondaryButton}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Check provisions
           </button>
         </div>
 
-        <ProgressDisplay steps={progressSteps} error={error ?? ""} />
+        <ProgressDisplay steps={progressSteps} error={error ?? ''} />
       </main>
     </div>
-  );
+  )
 }
