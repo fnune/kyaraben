@@ -304,6 +304,18 @@ func (c *Client) EnsureFlakeDir() error {
 	return os.MkdirAll(c.FlakePath, 0755)
 }
 
+// RealStorePath translates a virtualized /nix/store path to the real
+// nix-portable store path. This is needed because nix-portable virtualizes
+// /nix/store, but the actual files are in $NP_LOCATION/.nix-portable/nix/store/.
+func (c *Client) RealStorePath(virtualPath string) string {
+	const nixStorePrefix = "/nix/store/"
+	if !strings.HasPrefix(virtualPath, nixStorePrefix) {
+		return virtualPath
+	}
+	hashAndName := strings.TrimPrefix(virtualPath, nixStorePrefix)
+	return filepath.Join(c.NixPortableLocation, ".nix-portable", "nix", "store", hashAndName)
+}
+
 func (c *Client) FlakeCheck(ctx context.Context, flakePath string) error {
 	// Use 'nix flake show' which evaluates the flake structure without building
 	args := []string{

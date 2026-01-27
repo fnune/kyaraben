@@ -12,8 +12,9 @@ import (
 var versionsData string
 
 type Versions struct {
-	Nixpkgs NixpkgsVersion  `toml:"nixpkgs"`
-	Eden    AppImageVersion `toml:"eden"`
+	Nixpkgs     NixpkgsVersion  `toml:"nixpkgs"`
+	Eden        AppImageVersion `toml:"eden"`
+	DuckStation AppImageVersion `toml:"duckstation"`
 }
 
 type NixpkgsVersion struct {
@@ -34,15 +35,14 @@ type TargetBuild struct {
 }
 
 // DefaultTargetForArch returns the default target name for a given architecture.
+// It returns the first target that matches the arch, or empty string if none found.
 func (a *AppImageVersion) DefaultTargetForArch(arch string) string {
-	switch arch {
-	case "x86_64":
-		return "amd64"
-	case "aarch64":
-		return "aarch64"
-	default:
-		return ""
+	for name, t := range a.Targets {
+		if t.Arch == arch {
+			return name
+		}
 	}
+	return ""
 }
 
 // URL returns the download URL for a given target.

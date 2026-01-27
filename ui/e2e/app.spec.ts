@@ -87,6 +87,7 @@ test.describe('Kyaraben App', () => {
 })
 
 test.describe('Kyaraben Apply (requires Nix)', () => {
+  test.skip(!!process.env.CI, 'Skipped on CI - Nix builds are too slow')
   test('can apply configuration with e2e-test system', async () => {
     // Find and enable the e2e-test system
     const e2eCard = page.getByRole('article').filter({ hasText: 'e2e-test' })
