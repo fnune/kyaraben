@@ -1,4 +1,4 @@
-import type { System } from '@/types'
+import type { System } from '@/types/daemon'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { SystemGrid } from './SystemGrid'
