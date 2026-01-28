@@ -25,11 +25,6 @@ type Client struct {
 }
 
 func NewClient() (*Client, error) {
-	dataDir, err := paths.KyarabenDataDir()
-	if err != nil {
-		return nil, err
-	}
-
 	stateDir, err := paths.KyarabenStateDir()
 	if err != nil {
 		return nil, err
@@ -42,10 +37,11 @@ func NewClient() (*Client, error) {
 		log.Debug("nix-portable not found: %v", findErr)
 	}
 
+	buildDir := filepath.Join(stateDir, "build")
 	return &Client{
 		NixPortableBinary:   nixPortable,
-		NixPortableLocation: filepath.Join(dataDir, "nix-portable"),
-		FlakePath:           filepath.Join(stateDir, "flake"),
+		NixPortableLocation: filepath.Join(buildDir, "nix"),
+		FlakePath:           filepath.Join(buildDir, "flake"),
 	}, nil
 }
 
@@ -319,6 +315,11 @@ func (c *Client) RealStorePath(virtualPath string) string {
 // GetNixPortableBinary returns the path to the nix-portable binary.
 func (c *Client) GetNixPortableBinary() string {
 	return c.NixPortableBinary
+}
+
+// GetNixPortableLocation returns the NP_LOCATION directory for nix-portable.
+func (c *Client) GetNixPortableLocation() string {
+	return c.NixPortableLocation
 }
 
 func (c *Client) FlakeCheck(ctx context.Context, flakePath string) error {

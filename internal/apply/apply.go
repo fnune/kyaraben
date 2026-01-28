@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/fnune/kyaraben/internal/emulators"
@@ -203,8 +204,14 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 		opts.OnProgress(Progress{Step: "wrappers", Message: "Generating launcher scripts..."})
 
 		a.LauncherManager.SetNixPortableBinary(a.NixClient.GetNixPortableBinary())
+		a.LauncherManager.SetNixPortableLocation(a.NixClient.GetNixPortableLocation())
 		if err := a.LauncherManager.GenerateWrappers(); err != nil {
 			return nil, fmt.Errorf("generating launcher wrappers: %w", err)
+		}
+
+		desktopEntries := a.buildDesktopEntries(emulatorsToInstall)
+		if err := a.LauncherManager.GenerateDesktopFiles(desktopEntries); err != nil {
+			return nil, fmt.Errorf("generating desktop files: %w", err)
 		}
 	}
 
@@ -295,4 +302,41 @@ func ComputeDiffs(patches []model.ConfigPatch) ([]*emulators.ConfigDiff, error) 
 		diffs = append(diffs, diff)
 	}
 	return diffs, nil
+}
+
+func (a *Applier) buildDesktopEntries(emulatorIDs []model.EmulatorID) []launcher.DesktopEntry {
+	seenBinaries := make(map[string]bool)
+	var entries []launcher.DesktopEntry
+
+	for _, emuID := range emulatorIDs {
+		emu, err := a.Registry.GetEmulator(emuID)
+		if err != nil || emu.Launcher.Binary == "" {
+			continue
+		}
+
+		if seenBinaries[emu.Launcher.Binary] {
+			continue
+		}
+		seenBinaries[emu.Launcher.Binary] = true
+
+		displayName := emu.Launcher.DisplayName
+		if displayName == "" {
+			displayName = emu.Name
+		}
+
+		if emu.Package.Source() == model.PackageSourceNixpkgs {
+			entries = append(entries, launcher.NixStoreDesktop{
+				BinaryName: emu.Launcher.Binary,
+			})
+		} else {
+			entries = append(entries, launcher.GeneratedDesktop{
+				BinaryName:    emu.Launcher.Binary,
+				Name:          displayName,
+				GenericName:   emu.Launcher.GenericName,
+				CategoriesStr: strings.Join(emu.Launcher.Categories, ";"),
+			})
+		}
+	}
+
+	return entries
 }

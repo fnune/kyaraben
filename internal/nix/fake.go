@@ -127,5 +127,9 @@ func (f *FakeClient) GetNixPortableBinary() string {
 	return "/fake/nix-portable"
 }
 
+func (f *FakeClient) GetNixPortableLocation() string {
+	return "/fake/nix-portable-location"
+}
+
 // Ensure FakeClient implements NixClient.
 var _ NixClient = (*FakeClient)(nil)
