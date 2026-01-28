@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"text/template"
 	"time"
 
@@ -68,14 +67,7 @@ type PackageInfo struct {
 }
 
 type LauncherTemplateInfo struct {
-	Package        string // Nix package name
-	Binary         string // Binary name
-	Name           string // Display name
-	GenericName    string // For .desktop GenericName
-	CategoriesStr  string // Semicolon-separated categories
-	HasDesktopFile bool   // Whether package has .desktop file
-	IconURL        string // URL to fetch icon (for AppImages)
-	IconSHA256     string // SHA256 of icon
+	Package string
 }
 
 // GenerationPath returns the path where flake.nix was generated.
@@ -111,31 +103,8 @@ func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorI
 
 		if emu.Launcher.Binary != "" && !seenBinaries[emu.Launcher.Binary] {
 			seenBinaries[emu.Launcher.Binary] = true
-
-			displayName := emu.Launcher.DisplayName
-			if displayName == "" {
-				displayName = emu.Name
-			}
-
-			hasDesktop := emu.Package.Source() == model.PackageSourceNixpkgs
-
-			var iconURL, iconSHA256 string
-			if p, ok := emu.Package.(model.VersionedAppImage); ok {
-				if appimage := getAppImageVersion(p.Name); appimage != nil {
-					iconURL = appimage.IconURL
-					iconSHA256 = appimage.IconSHA256
-				}
-			}
-
 			launchers = append(launchers, LauncherTemplateInfo{
-				Package:        pkg.Name,
-				Binary:         emu.Launcher.Binary,
-				Name:           displayName,
-				GenericName:    emu.Launcher.GenericName,
-				CategoriesStr:  strings.Join(emu.Launcher.Categories, ";"),
-				HasDesktopFile: hasDesktop,
-				IconURL:        iconURL,
-				IconSHA256:     iconSHA256,
+				Package: pkg.Name,
 			})
 		}
 	}
