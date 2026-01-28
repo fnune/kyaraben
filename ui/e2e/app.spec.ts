@@ -24,7 +24,7 @@ test.beforeAll(async () => {
   })
 
   page = await electronApp.firstWindow()
-  await page.waitForSelector('h1')
+  await page.getByRole('heading', { level: 1 }).waitFor()
 })
 
 test.afterAll(async () => {
@@ -35,94 +35,74 @@ test.afterAll(async () => {
 
 test.describe('Kyaraben App', () => {
   test('displays the main title', async () => {
-    const title = page.locator('h1')
-    await expect(title).toHaveText('Kyaraben')
+    await expect(page.getByRole('heading', { level: 1, name: 'Kyaraben' })).toBeVisible()
+  })
+
+  test('displays the tagline', async () => {
+    await expect(page.getByText('Declarative emulation manager')).toBeVisible()
   })
 
   test('loads and displays available systems', async () => {
-    const systemList = page.locator('#system-list')
-    await expect(systemList).not.toContainText('Loading...', { timeout: 10000 })
-    await expect(systemList).toContainText('TIC-80')
+    // Wait for systems to load - TIC-80 should appear
+    await expect(page.getByRole('heading', { name: 'TIC-80' })).toBeVisible({ timeout: 10000 })
   })
 
   test('can toggle system selection', async () => {
-    const systemList = page.locator('#system-list')
-    await expect(systemList).not.toContainText('Loading...', { timeout: 10000 })
+    // Find the TIC-80 system card and its checkbox
+    const tic80Card = page.getByRole('article').filter({ hasText: 'TIC-80' })
+    const checkbox = tic80Card.getByRole('checkbox')
 
-    const tic80Checkbox = page.locator('input[value="tic80"]')
-    const wasChecked = await tic80Checkbox.isChecked()
-    await tic80Checkbox.click()
-    const isChecked = await tic80Checkbox.isChecked()
+    const wasChecked = await checkbox.isChecked()
+    await checkbox.click()
+    const isChecked = await checkbox.isChecked()
 
     expect(isChecked).toBe(!wasChecked)
   })
 
-  test('shows status when clicking Status button', async () => {
-    const statusBtn = page.locator('#btn-status')
-    await statusBtn.click()
-
-    const outputSection = page.locator('#output-section')
-    await expect(outputSection).toBeVisible()
-
-    const log = page.locator('#log')
-    await expect(log).toContainText('Emulation folder')
+  test('shows emulation folder setting', async () => {
+    await expect(page.getByText('Emulation folder')).toBeVisible()
+    const input = page.getByLabel('Emulation folder')
+    await expect(input).toBeVisible()
+    await expect(input).toHaveValue(/Emulation/)
   })
 
-  test('shows provisions when clicking Check provisions button', async () => {
-    const doctorBtn = page.locator('#btn-doctor')
-    await doctorBtn.click()
-
-    const provisionsSection = page.locator('#provisions-section')
-    await expect(provisionsSection).toBeVisible()
+  test('can change emulation folder path', async () => {
+    const input = page.getByLabel('Emulation folder')
+    await input.clear()
+    await input.fill('~/TestEmulation')
+    await expect(input).toHaveValue('~/TestEmulation')
   })
 
-  test('can expand settings', async () => {
-    const details = page.locator('details')
-    const summary = details.locator('summary')
-    await summary.click()
-
-    const userStoreInput = page.locator('#user-store')
-    await expect(userStoreInput).toBeVisible()
-
-    const value = await userStoreInput.inputValue()
-    expect(value).toContain('Emulation')
+  test('displays manufacturer groupings', async () => {
+    // Systems should be grouped by manufacturer
+    await expect(page.getByRole('heading', { level: 2, name: 'Other' })).toBeVisible({
+      timeout: 10000,
+    })
   })
 
-  test('can change user store path', async () => {
-    const details = page.locator('details')
-    const isOpen = await details.getAttribute('open')
-    if (isOpen === null) {
-      const summary = details.locator('summary')
-      await summary.click()
-    }
-
-    const userStoreInput = page.locator('#user-store')
-    await userStoreInput.clear()
-    await userStoreInput.fill('~/TestEmulation')
-
-    const value = await userStoreInput.inputValue()
-    expect(value).toBe('~/TestEmulation')
+  test('shows Apply and Check provisions buttons', async () => {
+    await expect(page.getByRole('button', { name: 'Apply' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Check provisions' })).toBeVisible()
   })
 })
 
 test.describe('Kyaraben Apply (requires Nix)', () => {
   test('can apply configuration with e2e-test system', async () => {
-    const e2eCheckbox = page.locator('input[value="e2e-test"]')
-    if (!(await e2eCheckbox.isChecked())) {
-      await e2eCheckbox.click()
+    // Find and enable the e2e-test system
+    const e2eCard = page.getByRole('article').filter({ hasText: 'e2e-test' })
+    const checkbox = e2eCard.getByRole('checkbox')
+
+    if (!(await checkbox.isChecked())) {
+      await checkbox.click()
     }
 
-    const applyBtn = page.locator('#btn-apply')
-    await applyBtn.click()
+    // Click Apply
+    await page.getByRole('button', { name: 'Apply' }).click()
 
-    const outputSection = page.locator('#output-section')
-    await expect(outputSection).toBeVisible()
+    // Wait for completion (Nix builds can take 10+ minutes on first run)
+    await expect(page.getByText(/Complete|Error/)).toBeVisible({ timeout: 600000 })
 
-    // Nix builds can take 10+ minutes on first run (no cache)
-    const log = page.locator('#log')
-    await expect(log).toContainText(/Done!|Error/, { timeout: 600000 })
-
-    const logText = await log.textContent()
-    expect(logText).toContain('Done!')
+    // Verify success
+    await expect(page.getByText('Complete')).toBeVisible()
   })
 })
