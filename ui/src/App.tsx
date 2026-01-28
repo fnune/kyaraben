@@ -125,13 +125,26 @@ export function App() {
         const existing = prev.find((s) => s.id === data.step)
         const isNewStep = !existing
 
-        return (isNewStep ? [...prev, { id: data.step, label: PROGRESS_STEP_LABELS[data.step] ?? data.step, status: 'in_progress' as const }] : prev).map((s) => {
+        return (
+          isNewStep
+            ? [
+                ...prev,
+                {
+                  id: data.step,
+                  label: PROGRESS_STEP_LABELS[data.step] ?? data.step,
+                  status: 'in_progress' as const,
+                },
+              ]
+            : prev
+        ).map((s) => {
           if (s.id === data.step) {
             return {
               ...s,
               status: 'in_progress' as const,
               ...(data.message && { message: data.message }),
-              ...(data.output && { outputLines: [...(s.outputLines ?? []), data.output].slice(-MAX_OUTPUT_LINES) }),
+              ...(data.output && {
+                outputLines: [...(s.outputLines ?? []), data.output].slice(-MAX_OUTPUT_LINES),
+              }),
             }
           }
           // Mark previous steps as completed when a new step arrives
@@ -175,13 +188,6 @@ export function App() {
       window.electron.off('apply:progress', progressHandler)
     }
   }, [daemon, selections, userStore])
-
-  const handleCheckProvisions = useCallback(async () => {
-    const result = await daemon.runDoctor()
-    if (result.ok) {
-      setProvisions(result.data)
-    }
-  }, [daemon])
 
   const handleAddDevice = useCallback(
     async (deviceId: string, name: string) => {
@@ -252,7 +258,7 @@ export function App() {
               onToggle={handleToggle}
             />
 
-            <div className="mt-6 flex gap-3">
+            <div className="mt-6">
               <button
                 type="button"
                 onClick={handleApply}
@@ -260,13 +266,6 @@ export function App() {
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Apply
-              </button>
-              <button
-                type="button"
-                onClick={handleCheckProvisions}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-              >
-                Check provisions
               </button>
             </div>
           </>
