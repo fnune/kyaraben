@@ -59,6 +59,7 @@ export type DoctorResponse = Readonly<Partial<Record<SystemID, readonly Provisio
 export interface ProgressEvent {
   readonly step: string
   readonly message: string
+  readonly output?: string
 }
 
 export interface ApplyResult {

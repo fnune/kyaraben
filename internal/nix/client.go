@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/fnune/kyaraben/internal/logging"
 	"github.com/fnune/kyaraben/internal/paths"
@@ -22,6 +23,45 @@ type Client struct {
 	NixPortableBinary   string
 	NixPortableLocation string // passed via NP_LOCATION env var
 	FlakePath           string
+	outputCallback      func(line string)
+}
+
+func (c *Client) SetOutputCallback(fn func(line string)) {
+	c.outputCallback = fn
+}
+
+type lineCallbackWriter struct {
+	callback    func(string)
+	replaceFrom string
+	replaceTo   string
+	buf         bytes.Buffer
+	mu          sync.Mutex
+}
+
+func (w *lineCallbackWriter) Write(p []byte) (n int, err error) {
+	if w.callback == nil {
+		return len(p), nil
+	}
+
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	w.buf.Write(p)
+
+	for {
+		line, err := w.buf.ReadString('\n')
+		if err != nil {
+			w.buf.WriteString(line)
+			break
+		}
+		line = strings.TrimRight(line, "\n\r")
+		if w.replaceFrom != "" && w.replaceTo != "" {
+			line = strings.ReplaceAll(line, w.replaceFrom, w.replaceTo)
+		}
+		w.callback(line)
+	}
+
+	return len(p), nil
 }
 
 func NewClient() (*Client, error) {
@@ -211,8 +251,17 @@ func (c *Client) BuildWithLink(ctx context.Context, flakeRef string, outLink str
 	if err != nil {
 		return err
 	}
+
 	var stderr bytes.Buffer
-	cmd.Stderr = io.MultiWriter(&stderr, os.Stderr)
+	writers := []io.Writer{&stderr, os.Stderr}
+	if c.outputCallback != nil {
+		writers = append(writers, &lineCallbackWriter{
+			callback:    c.outputCallback,
+			replaceFrom: "/nix/store/",
+			replaceTo:   "~/.local/state/kyaraben/",
+		})
+	}
+	cmd.Stderr = io.MultiWriter(writers...)
 
 	log.Info("Executing nix build (this may take a while on first run)...")
 	if err := cmd.Run(); err != nil {

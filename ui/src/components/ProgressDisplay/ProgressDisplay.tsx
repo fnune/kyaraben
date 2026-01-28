@@ -28,10 +28,19 @@ export function ProgressDisplay({ steps, error }: ProgressDisplayProps) {
       {steps.length > 0 && (
         <ol className="space-y-2">
           {steps.map((step) => (
-            <li key={step.id} className="flex items-center gap-2">
-              <StepIcon status={step.status} />
-              <span className="font-medium text-gray-700">{step.label}</span>
-              {step.message && <span className="text-sm text-gray-500">{step.message}</span>}
+            <li key={step.id}>
+              <div className="flex items-center gap-2">
+                <StepIcon status={step.status} />
+                <span className="font-medium text-gray-700">{step.label}</span>
+                {step.message && <span className="text-sm text-gray-500">{step.message}</span>}
+              </div>
+              {step.outputLines && step.outputLines.length > 0 && (
+                <div className="mt-1 ml-6 overflow-hidden">
+                  <pre className="p-2 text-xs font-mono bg-gray-800 text-gray-200 rounded max-h-32 overflow-y-auto whitespace-pre overflow-x-hidden">
+                    {step.outputLines.join('\n')}
+                  </pre>
+                </div>
+              )}
             </li>
           ))}
         </ol>

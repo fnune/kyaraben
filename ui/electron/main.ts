@@ -205,7 +205,7 @@ async function applyCommand(): Promise<string[]> {
 
     const handleEvent = (event: DaemonEvent) => {
       if (event.type === 'progress') {
-        const data = event.data as { step?: string; message?: string }
+        const data = event.data as { step?: string; message?: string; output?: string }
         const msg = data?.message
         if (msg) messages.push(msg)
 
@@ -215,6 +215,7 @@ async function applyCommand(): Promise<string[]> {
             mainWindow.webContents.send('apply:progress', {
               step: data?.step ?? 'unknown',
               message: msg ?? '',
+              output: data?.output,
             })
           } catch (sendErr) {
             console.error('[kyaraben] Failed to send progress:', sendErr)
