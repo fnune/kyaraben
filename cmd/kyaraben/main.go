@@ -14,6 +14,7 @@ var CLI struct {
 	Init      cli.InitCmd      `cmd:"" help:"Initialize a new kyaraben configuration."`
 	Uninstall cli.UninstallCmd `cmd:"" help:"Remove kyaraben-managed files."`
 	Daemon    cli.DaemonCmd    `cmd:"" help:"Run in daemon mode for UI communication."`
+	Sync      cli.SyncCmd      `cmd:"" help:"Manage sync settings and status."`
 
 	Config string `short:"c" help:"Path to config file." type:"path"`
 }
