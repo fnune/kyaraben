@@ -230,6 +230,10 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 		if err := a.LauncherManager.GenerateDesktopFiles(desktopEntries); err != nil {
 			return nil, fmt.Errorf("generating desktop files: %w", err)
 		}
+
+		if err := a.LauncherManager.GenerateEnvironmentConfig(); err != nil {
+			return nil, fmt.Errorf("generating environment config: %w", err)
+		}
 	}
 
 	opts.OnProgress(Progress{Step: "configs", Message: "Applying emulator configurations..."})
