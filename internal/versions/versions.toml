@@ -39,3 +39,15 @@ sha256 = "sha256-/fmHmyseqXVJ26OdhQUuZYrDWxnu0jKJvkaOGpGtoOc="
 [duckstation.targets.arm64]
 arch = "aarch64"
 sha256 = "sha256-WzUXY082lu4gcmss/rPNzzgBzQppyTxIWZruUR5uaLE="
+
+[nix-portable] # https://github.com/DavHau/nix-portable/releases
+version = "v012"
+url_template = "https://github.com/DavHau/nix-portable/releases/download/{version}/nix-portable-{arch}"
+
+[nix-portable.targets.x86_64]
+arch = "x86_64"
+sha256 = "sha256-tAnFWQTJCaw+raP7EjMxn4aomd0boxo93TMNBkFBxyg="
+
+[nix-portable.targets.aarch64]
+arch = "aarch64"
+sha256 = "sha256-r0HY3v25+hfuNhIg7gWgx1jT5iMThKP5aaMU+RM3ROo="
