@@ -46,6 +46,7 @@
             # General tools
             git
             jq
+            just
             podman
           ];
 
