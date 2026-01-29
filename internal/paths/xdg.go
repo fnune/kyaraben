@@ -47,6 +47,18 @@ func ConfigDir() (string, error) {
 	return os.UserConfigDir()
 }
 
+// DataDir returns XDG_DATA_HOME or ~/.local/share
+func DataDir() (string, error) {
+	if dir := os.Getenv("XDG_DATA_HOME"); dir != "" {
+		return dir, nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".local", "share"), nil
+}
+
 // KyarabenStateDir returns the kyaraben state directory
 func KyarabenStateDir() (string, error) {
 	base, err := StateDir()

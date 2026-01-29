@@ -80,14 +80,12 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		CreateBackups: createBackups,
 		OnProgress: func(p apply.Progress) {
 			switch p.Step {
-			case "directories":
-				fmt.Println("Creating directory structure...")
-			case "flake":
-				fmt.Println("Generating Nix flake...")
 			case "build":
-				fmt.Println("Building emulators (this may take a while on first run)...")
-			case "configs":
-				fmt.Println("Applying emulator configurations...")
+				fmt.Println("Installing emulators (this may take a while on first run)...")
+			case "desktop":
+				fmt.Println("Adding to application menu...")
+			case "config":
+				fmt.Println("Configuring emulators...")
 			}
 		},
 	}
