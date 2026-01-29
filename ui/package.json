@@ -6,12 +6,14 @@
   "scripts": {
     "dev": "vite",
     "dev:electron": "npm run build:electron && electron .",
-    "build": "vite build",
+    "build": "tsc -b && vite build",
     "build:electron": "tsc -p electron/tsconfig.json",
     "preview": "vite preview",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:e2e": "playwright test",
     "electron:build": "npm run build && npm run build:electron && electron-builder",
     "postinstall": "electron-builder install-app-deps"
@@ -23,35 +25,62 @@
     "directories": {
       "output": "release"
     },
-    "files": ["dist/**/*", "dist-electron/**/*"],
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*"
+    ],
     "extraResources": [
       {
         "from": "binaries/",
         "to": "binaries/",
-        "filter": ["kyaraben-*", "nix-portable-*"]
+        "filter": [
+          "kyaraben-*",
+          "nix-portable-*"
+        ]
       }
     ],
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "category": "Game",
       "maintainer": "Kyaraben Developers"
     },
     "mac": {
-      "target": ["dmg"],
+      "target": [
+        "dmg"
+      ],
       "category": "public.app-category.games"
     },
     "win": {
-      "target": ["nsis"]
+      "target": [
+        "nsis"
+      ]
     }
   },
   "devDependencies": {
-    "@biomejs/biome": "^1",
+    "@biomejs/biome": "^2.3.11",
     "@playwright/test": "^1",
+    "@testing-library/dom": "^10",
+    "@testing-library/jest-dom": "^6",
+    "@testing-library/react": "^16",
+    "@testing-library/user-event": "^14",
     "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4",
+    "autoprefixer": "^10",
     "electron": "^40",
     "electron-builder": "^25",
+    "jsdom": "^26",
+    "postcss": "^8",
+    "tailwindcss": "^3",
     "typescript": "^5",
-    "vite": "^5"
+    "vite": "^5",
+    "vitest": "^3"
   },
-  "dependencies": {}
+  "dependencies": {
+    "react": "^19",
+    "react-dom": "^19"
+  }
 }
