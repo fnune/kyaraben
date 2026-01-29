@@ -29,11 +29,7 @@ func (cmd *InitCmd) Run(ctx *Context) error {
 	registry := ctx.NewRegistry()
 
 	// Create config
-	cfg, err := model.NewDefaultConfig()
-	if err != nil {
-		return err
-	}
-
+	cfg := model.NewDefaultConfig()
 	cfg.Global.UserStore = cmd.UserStore
 
 	// Add systems
