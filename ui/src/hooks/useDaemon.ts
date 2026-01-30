@@ -45,8 +45,12 @@ export interface UseDaemonReturn {
   readonly installApp: () => Promise<DaemonResult<void>>
   readonly uninstallApp: () => Promise<DaemonResult<void>>
   readonly getSyncStatus: () => Promise<DaemonResult<SyncStatusResponse>>
-  readonly addSyncDevice: (req: SyncAddDeviceRequest) => Promise<DaemonResult<SyncAddDeviceResponse>>
-  readonly removeSyncDevice: (req: SyncRemoveDeviceRequest) => Promise<DaemonResult<SyncRemoveDeviceResponse>>
+  readonly addSyncDevice: (
+    req: SyncAddDeviceRequest,
+  ) => Promise<DaemonResult<SyncAddDeviceResponse>>
+  readonly removeSyncDevice: (
+    req: SyncRemoveDeviceRequest,
+  ) => Promise<DaemonResult<SyncRemoveDeviceResponse>>
 }
 
 export function useDaemon(): UseDaemonReturn {
