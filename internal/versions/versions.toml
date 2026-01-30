@@ -1,0 +1,29 @@
+# Kyaraben version pinning
+# To compute hashes: nix-prefetch-url <url> && nix hash convert --to sri --hash-algo sha256 <hash>
+
+[nixpkgs]
+commit = "bfc1b8a4574108ceef22f02bafcf6611380c100d" # https://github.com/NixOS/nixpkgs/commits/nixos-unstable
+
+[eden] # https://github.com/eden-emulator/Releases/releases
+version = "v0.1.0"
+url_template = "https://github.com/eden-emulator/Releases/releases/download/{version}/Eden-Linux-{version}-{target}-clang-pgo.AppImage"
+
+[eden.targets.amd64] # generic x86_64 (default)
+arch = "x86_64"
+sha256 = "sha256-+1lBCtlau8ttdy2olhNvlir/bn/sSpUz+6Ofo+GZ0dg="
+
+[eden.targets.legacy] # pre-Ryzen / Haswell
+arch = "x86_64"
+sha256 = "sha256-kgzfHSinWcwTJk+HZwz5FvNNOzUG3iExcQYb2qxfnN4="
+
+[eden.targets.steamdeck] # Zen 2, SteamOS patches
+arch = "x86_64"
+sha256 = "sha256-n8xlLPoRxxHwlICf2QYU7iLVxq2EnRwG1de7gLwdOOY="
+
+[eden.targets.rog-ally] # Zen 4
+arch = "x86_64"
+sha256 = "sha256-UsGMjjJTdB4hzeSyIrN6aAgrckExgcxKVrdZz5mkhqo="
+
+[eden.targets.aarch64] # ARM64
+arch = "aarch64"
+sha256 = "sha256-KDYSvNknaApwDQXflb/Y1zhjWKhZsBOSfYRQPRCJI0M="

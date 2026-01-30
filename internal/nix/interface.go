@@ -31,6 +31,9 @@ type NixClient interface {
 
 	// GetFlakePath returns the path to the flake directory.
 	GetFlakePath() string
+
+	// FlakeCheck validates a flake without building it.
+	FlakeCheck(ctx context.Context, flakePath string) error
 }
 
 // GetFlakePath returns the flake path for the Client.

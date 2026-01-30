@@ -269,3 +269,26 @@ func (c *Client) GetVersion(ctx context.Context) (string, error) {
 func (c *Client) EnsureFlakeDir() error {
 	return os.MkdirAll(c.FlakePath, 0755)
 }
+
+func (c *Client) FlakeCheck(ctx context.Context, flakePath string) error {
+	// Use 'nix flake show' which evaluates the flake structure without building
+	args := []string{
+		"flake",
+		"show",
+		"--json",
+		flakePath,
+	}
+
+	cmd, err := c.runNix(ctx, args)
+	if err != nil {
+		return err
+	}
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("nix flake show failed: %w\nstderr: %s", err, stderr.String())
+	}
+
+	return nil
+}

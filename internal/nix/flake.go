@@ -6,7 +6,9 @@ import (
 	"path/filepath"
 	"text/template"
 
+	"github.com/fnune/kyaraben/internal/hardware"
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/versions"
 )
 
 // EmulatorLookup provides access to emulator definitions.
@@ -28,7 +30,7 @@ const flakeTemplate = `{
   description = "Kyaraben-managed emulator environment";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/{{ .NixpkgsCommit }}";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -72,6 +74,8 @@ func (fg *FlakeGenerator) Generate(dir string, emulatorIDs []model.EmulatorID) e
 		return fmt.Errorf("creating flake directory: %w", err)
 	}
 
+	v := versions.MustGet()
+
 	packages := make([]PackageInfo, 0, len(emulatorIDs))
 
 	for _, emuID := range emulatorIDs {
@@ -94,9 +98,11 @@ func (fg *FlakeGenerator) Generate(dir string, emulatorIDs []model.EmulatorID) e
 	}
 
 	data := struct {
-		Packages []PackageInfo
+		NixpkgsCommit string
+		Packages      []PackageInfo
 	}{
-		Packages: packages,
+		NixpkgsCommit: v.Nixpkgs.Commit,
+		Packages:      packages,
 	}
 
 	execErr := tmpl.Execute(f, data)
@@ -137,12 +143,16 @@ func packageInfoFromRef(ref model.PackageRef) (PackageInfo, error) {
 	case model.GitHubAppImage:
 		return packageInfoFromGitHubAppImage(p), nil
 
+	case model.VersionedAppImage:
+		return packageInfoFromVersionedAppImage(p)
+
 	default:
 		return PackageInfo{}, fmt.Errorf("unsupported package source: %T", ref)
 	}
 }
 
 // packageInfoFromGitHubAppImage generates nix expression for a GitHub AppImage.
+// Deprecated: Use packageInfoFromVersionedAppImage instead
 func packageInfoFromGitHubAppImage(p model.GitHubAppImage) PackageInfo {
 	// Build a nix expression that selects the correct asset based on system architecture
 	expr := fmt.Sprintf(`let
@@ -161,17 +171,75 @@ func packageInfoFromGitHubAppImage(p model.GitHubAppImage) PackageInfo {
             sha256 = assets.${arch}.sha256;
           };
         in pkgs.appimageTools.wrapType2 {
-          name = "%s";
+          pname = "%s";
+          version = "%s";
           src = src;
         }`,
 		p.Owner, p.Repo, p.Version, p.Assets["x86_64"], p.Hashes["x86_64"],
 		p.Owner, p.Repo, p.Version, p.Assets["aarch64"], p.Hashes["aarch64"],
-		p.Name,
+		p.Name, p.Version,
 	)
 	return PackageInfo{
 		Name: p.Name,
 		Expr: expr,
 	}
+}
+
+// packageInfoFromVersionedAppImage generates nix expression for an AppImage from versions.toml
+func packageInfoFromVersionedAppImage(p model.VersionedAppImage) (PackageInfo, error) {
+	v := versions.MustGet()
+
+	var appimage *versions.AppImageVersion
+	switch p.Name {
+	case "eden":
+		appimage = &v.Eden
+	default:
+		return PackageInfo{}, fmt.Errorf("unknown versioned appimage: %s", p.Name)
+	}
+
+	// Auto-detect hardware target for best performance
+	detected := hardware.DetectTarget()
+	x86Target := detected.Name
+	if detected.Arch != "x86_64" {
+		x86Target = appimage.DefaultTargetForArch("x86_64")
+	}
+	armTarget := "aarch64"
+
+	x86Build := appimage.Target(x86Target)
+	armBuild := appimage.Target(armTarget)
+	if x86Build == nil || armBuild == nil {
+		return PackageInfo{}, fmt.Errorf("missing target builds for %s", p.Name)
+	}
+
+	expr := fmt.Sprintf(`let
+          assets = {
+            x86_64 = {
+              url = "%s";
+              sha256 = "%s";
+            };
+            aarch64 = {
+              url = "%s";
+              sha256 = "%s";
+            };
+          };
+          src = pkgs.fetchurl {
+            url = assets.${arch}.url;
+            sha256 = assets.${arch}.sha256;
+          };
+        in pkgs.appimageTools.wrapType2 {
+          pname = "%s";
+          version = "%s";
+          src = src;
+        }`,
+		appimage.URL(x86Target), x86Build.SHA256,
+		appimage.URL(armTarget), armBuild.SHA256,
+		p.Name, appimage.Version,
+	)
+
+	return PackageInfo{
+		Name: p.Name,
+		Expr: expr,
+	}, nil
 }
 
 // FlakeRef returns the flake reference for building an emulator.
