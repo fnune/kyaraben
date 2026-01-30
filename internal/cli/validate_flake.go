@@ -31,7 +31,7 @@ func (cmd *ValidateFlakeCmd) Run(ctx *Context) error {
 	if err != nil {
 		return fmt.Errorf("creating temp dir: %w", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	allEmulators := registry.AllEmulators()
 	emulatorIDs := make([]model.EmulatorID, len(allEmulators))
