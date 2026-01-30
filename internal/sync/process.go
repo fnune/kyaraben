@@ -88,8 +88,8 @@ func (p *Process) Start(ctx context.Context) error {
 
 	p.cmd = exec.CommandContext(ctx, p.binaryPath, args...)
 	p.cmd.Env = append(os.Environ(),
-		fmt.Sprintf("STNODEFAULTFOLDER=1"),
-		fmt.Sprintf("STNOUPGRADE=1"),
+		"STNODEFAULTFOLDER=1",
+		"STNOUPGRADE=1",
 	)
 
 	log.Info("Starting syncthing: %s %v", p.binaryPath, args)
@@ -99,7 +99,7 @@ func (p *Process) Start(ctx context.Context) error {
 	}
 
 	if err := p.waitForReady(ctx); err != nil {
-		p.Stop()
+		_ = p.Stop()
 		return fmt.Errorf("waiting for syncthing: %w", err)
 	}
 
