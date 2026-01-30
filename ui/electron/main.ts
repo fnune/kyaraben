@@ -336,6 +336,21 @@ Categories=Game;Emulator;
     await fs.unlink(desktopPath).catch(() => undefined)
     await fs.unlink(cliPath).catch(() => undefined)
   })
+
+  ipcMain.handle('sync_status', async () => {
+    const event = await sendCommand({ type: 'sync_status' })
+    return event.data
+  })
+
+  ipcMain.handle('sync_add_device', async (_, data: { deviceId: string; name?: string }) => {
+    const event = await sendCommand({ type: 'sync_add_device', data })
+    return event.data
+  })
+
+  ipcMain.handle('sync_remove_device', async (_, data: { deviceId: string }) => {
+    const event = await sendCommand({ type: 'sync_remove_device', data })
+    return event.data
+  })
 }
 
 // Window creation

@@ -18,23 +18,23 @@ const (
 )
 
 type SyncthingXMLConfig struct {
-	XMLName xml.Name          `xml:"configuration"`
-	Version int               `xml:"version,attr"`
-	Folders []XMLFolder       `xml:"folder"`
-	Devices []XMLDevice       `xml:"device"`
-	GUI     XMLGUI            `xml:"gui"`
-	Options XMLOptions        `xml:"options"`
+	XMLName xml.Name    `xml:"configuration"`
+	Version int         `xml:"version,attr"`
+	Folders []XMLFolder `xml:"folder"`
+	Devices []XMLDevice `xml:"device"`
+	GUI     XMLGUI      `xml:"gui"`
+	Options XMLOptions  `xml:"options"`
 }
 
 type XMLFolder struct {
-	ID              string          `xml:"id,attr"`
-	Label           string          `xml:"label,attr"`
-	Path            string          `xml:"path,attr"`
-	Type            FolderType      `xml:"type,attr"`
-	Devices         []XMLFolderDevice `xml:"device"`
-	FSWatcherEnabled bool           `xml:"fsWatcherEnabled"`
-	IgnorePerms     bool            `xml:"ignorePerms"`
-	Versioning      XMLVersioning   `xml:"versioning"`
+	ID               string            `xml:"id,attr"`
+	Label            string            `xml:"label,attr"`
+	Path             string            `xml:"path,attr"`
+	Type             FolderType        `xml:"type,attr"`
+	Devices          []XMLFolderDevice `xml:"device"`
+	FSWatcherEnabled bool              `xml:"fsWatcherEnabled"`
+	IgnorePerms      bool              `xml:"ignorePerms"`
+	Versioning       XMLVersioning     `xml:"versioning"`
 }
 
 type XMLFolderDevice struct {
@@ -42,32 +42,32 @@ type XMLFolderDevice struct {
 }
 
 type XMLDevice struct {
-	ID          string `xml:"id,attr"`
-	Name        string `xml:"name,attr"`
-	Compression string `xml:"compression,attr"`
-	Introducer  bool   `xml:"introducer,attr"`
-	AutoAcceptFolders bool `xml:"autoAcceptFolders,attr"`
+	ID                string `xml:"id,attr"`
+	Name              string `xml:"name,attr"`
+	Compression       string `xml:"compression,attr"`
+	Introducer        bool   `xml:"introducer,attr"`
+	AutoAcceptFolders bool   `xml:"autoAcceptFolders,attr"`
 }
 
 type XMLGUI struct {
-	Enabled  bool   `xml:"enabled,attr"`
-	Address  string `xml:"address"`
-	APIKey   string `xml:"apikey"`
-	Theme    string `xml:"theme"`
+	Enabled bool   `xml:"enabled,attr"`
+	Address string `xml:"address"`
+	APIKey  string `xml:"apikey"`
+	Theme   string `xml:"theme"`
 }
 
 type XMLOptions struct {
-	ListenAddresses     []string `xml:"listenAddress"`
-	GlobalAnnounceEnabled bool   `xml:"globalAnnounceEnabled"`
-	LocalAnnounceEnabled  bool   `xml:"localAnnounceEnabled"`
-	LocalAnnouncePort    int     `xml:"localAnnouncePort"`
-	RelaysEnabled        bool    `xml:"relaysEnabled"`
-	URAccepted           int     `xml:"urAccepted"`
-	AutoUpgradeEnabled   bool    `xml:"autoUpgradeIntervalH"`
+	ListenAddresses       []string `xml:"listenAddress"`
+	GlobalAnnounceEnabled bool     `xml:"globalAnnounceEnabled"`
+	LocalAnnounceEnabled  bool     `xml:"localAnnounceEnabled"`
+	LocalAnnouncePort     int      `xml:"localAnnouncePort"`
+	RelaysEnabled         bool     `xml:"relaysEnabled"`
+	URAccepted            int      `xml:"urAccepted"`
+	AutoUpgradeEnabled    bool     `xml:"autoUpgradeIntervalH"`
 }
 
 type XMLVersioning struct {
-	Type   string          `xml:"type,attr"`
+	Type   string               `xml:"type,attr"`
 	Params []XMLVersioningParam `xml:"param"`
 }
 
@@ -141,10 +141,10 @@ func (g *ConfigGenerator) generateFolders() ([]XMLFolder, error) {
 	isPrimary := g.syncConfig.Mode == model.SyncModePrimary
 
 	folderTypes := map[string]struct {
-		subdirs      []string
-		primaryType  FolderType
+		subdirs       []string
+		primaryType   FolderType
 		secondaryType FolderType
-		versioning   bool
+		versioning    bool
 	}{
 		"roms":        {subdirs: g.systemSubdirs(), primaryType: FolderTypeSendOnly, secondaryType: FolderTypeReceiveOnly, versioning: false},
 		"bios":        {subdirs: g.systemSubdirs(), primaryType: FolderTypeSendOnly, secondaryType: FolderTypeReceiveOnly, versioning: false},
