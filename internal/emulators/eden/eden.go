@@ -39,6 +39,11 @@ func (Definition) Emulator() model.Emulator {
 			model.StateScreenshots,
 			model.StatePersistent, // NAND, shader cache, etc.
 		},
+		Launcher: model.LauncherInfo{
+			Binary:      "eden",
+			GenericName: "Nintendo Switch Emulator",
+			Categories:  []string{"Game", "Emulator"},
+		},
 	}
 }
 

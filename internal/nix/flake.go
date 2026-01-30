@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	"github.com/fnune/kyaraben/internal/hardware"
@@ -48,15 +49,54 @@ const flakeTemplate = `{
           {{ .Name }} = {{ .Expr }};
 {{- end }}
 
-          # Combined environment with all emulators
-          default = pkgs.symlinkJoin {
-            name = "kyaraben-emulators";
-            paths = [
-{{- range .Packages }}
-              self.packages.${system}.{{ .Name }}
+          # Profile with bin/ and share/applications/ structure
+          default = pkgs.runCommand "kyaraben-profile" {} ''
+            mkdir -p $out/bin $out/share/applications $out/share/icons/hicolor/scalable/apps
+
+            # Link binaries
+{{- range .Launchers }}
+            ln -s ${self.packages.${system}.{{ .Package }}}/bin/{{ .Binary }} $out/bin/{{ .Binary }}
 {{- end }}
-            ];
-          };
+
+            # Link icons from packages that have them
+{{- range .Launchers }}
+{{- if .HasDesktopFile }}
+            if [ -d "${self.packages.${system}.{{ .Package }}}/share/icons" ]; then
+              cp -rs ${self.packages.${system}.{{ .Package }}}/share/icons/* $out/share/icons/ 2>/dev/null || true
+            fi
+{{- end }}
+{{- end }}
+
+            # Install icons for AppImages
+{{- range .Launchers }}
+{{- if and (not .HasDesktopFile) .IconURL }}
+            cp ${pkgs.fetchurl { url = "{{ .IconURL }}"; sha256 = "{{ .IconSHA256 }}"; }} $out/share/icons/hicolor/scalable/apps/{{ .Binary }}.svg
+{{- end }}
+{{- end }}
+
+            # Link or generate .desktop files
+{{- range .Launchers }}
+{{- if .HasDesktopFile }}
+            for desktop in ${self.packages.${system}.{{ .Package }}}/share/applications/*.desktop; do
+              if [ -f "$desktop" ]; then
+                ln -s "$desktop" $out/share/applications/
+              fi
+            done
+{{- else }}
+            cat > $out/share/applications/{{ .Binary }}.desktop << 'DESKTOP'
+[Desktop Entry]
+Type=Application
+Name={{ .Name }}
+GenericName={{ .GenericName }}
+Exec=$out/bin/{{ .Binary }}
+Icon={{ .Binary }}
+Terminal=false
+Categories={{ .CategoriesStr }};
+DESKTOP
+            sed -i "s|\$out|$out|g" $out/share/applications/{{ .Binary }}.desktop
+{{- end }}
+{{- end }}
+          '';
         };
       }
     );
@@ -68,6 +108,17 @@ type PackageInfo struct {
 	Expr string
 }
 
+type LauncherTemplateInfo struct {
+	Package        string // Nix package name
+	Binary         string // Binary name
+	Name           string // Display name
+	GenericName    string // For .desktop GenericName
+	CategoriesStr  string // Semicolon-separated categories
+	HasDesktopFile bool   // Whether package has .desktop file
+	IconURL        string // URL to fetch icon (for AppImages)
+	IconSHA256     string // SHA256 of icon
+}
+
 // Generate creates a flake.nix file in the given directory.
 func (fg *FlakeGenerator) Generate(dir string, emulatorIDs []model.EmulatorID) error {
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -77,13 +128,50 @@ func (fg *FlakeGenerator) Generate(dir string, emulatorIDs []model.EmulatorID) e
 	v := versions.MustGet()
 
 	packages := make([]PackageInfo, 0, len(emulatorIDs))
+	seenBinaries := make(map[string]bool)
+	launchers := make([]LauncherTemplateInfo, 0, len(emulatorIDs))
 
 	for _, emuID := range emulatorIDs {
-		pkg, err := fg.packageForEmulator(emuID)
+		emu, err := fg.emulators.GetEmulator(emuID)
+		if err != nil {
+			return fmt.Errorf("unknown emulator: %s", emuID)
+		}
+
+		pkg, err := packageInfoFromRef(emu.Package)
 		if err != nil {
 			return err
 		}
 		packages = append(packages, pkg)
+
+		if emu.Launcher.Binary != "" && !seenBinaries[emu.Launcher.Binary] {
+			seenBinaries[emu.Launcher.Binary] = true
+
+			displayName := emu.Launcher.DisplayName
+			if displayName == "" {
+				displayName = emu.Name
+			}
+
+			hasDesktop := emu.Package.Source() == model.PackageSourceNixpkgs
+
+			var iconURL, iconSHA256 string
+			if p, ok := emu.Package.(model.VersionedAppImage); ok {
+				if appimage := getAppImageVersion(p.Name); appimage != nil {
+					iconURL = appimage.IconURL
+					iconSHA256 = appimage.IconSHA256
+				}
+			}
+
+			launchers = append(launchers, LauncherTemplateInfo{
+				Package:        pkg.Name,
+				Binary:         emu.Launcher.Binary,
+				Name:           displayName,
+				GenericName:    emu.Launcher.GenericName,
+				CategoriesStr:  strings.Join(emu.Launcher.Categories, ";"),
+				HasDesktopFile: hasDesktop,
+				IconURL:        iconURL,
+				IconSHA256:     iconSHA256,
+			})
+		}
 	}
 
 	tmpl, err := template.New("flake").Parse(flakeTemplate)
@@ -100,9 +188,11 @@ func (fg *FlakeGenerator) Generate(dir string, emulatorIDs []model.EmulatorID) e
 	data := struct {
 		NixpkgsCommit string
 		Packages      []PackageInfo
+		Launchers     []LauncherTemplateInfo
 	}{
 		NixpkgsCommit: v.Nixpkgs.Commit,
 		Packages:      packages,
+		Launchers:     launchers,
 	}
 
 	execErr := tmpl.Execute(f, data)
@@ -118,13 +208,14 @@ func (fg *FlakeGenerator) Generate(dir string, emulatorIDs []model.EmulatorID) e
 	return nil
 }
 
-func (fg *FlakeGenerator) packageForEmulator(emuID model.EmulatorID) (PackageInfo, error) {
-	emu, err := fg.emulators.GetEmulator(emuID)
-	if err != nil {
-		return PackageInfo{}, fmt.Errorf("unknown emulator: %s", emuID)
+func getAppImageVersion(name string) *versions.AppImageVersion {
+	v := versions.MustGet()
+	switch name {
+	case "eden":
+		return &v.Eden
+	default:
+		return nil
 	}
-
-	return packageInfoFromRef(emu.Package)
 }
 
 // packageInfoFromRef converts a PackageRef to nix package info.
@@ -170,14 +261,13 @@ func packageInfoFromGitHubAppImage(p model.GitHubAppImage) PackageInfo {
             url = assets.${arch}.url;
             sha256 = assets.${arch}.sha256;
           };
-        in pkgs.appimageTools.wrapType2 {
-          pname = "%s";
-          version = "%s";
-          src = src;
-        }`,
+        in pkgs.runCommand "%s-%s" {} ''
+          mkdir -p $out/bin
+          install -m755 ${src} $out/bin/%s
+        ''`,
 		p.Owner, p.Repo, p.Version, p.Assets["x86_64"], p.Hashes["x86_64"],
 		p.Owner, p.Repo, p.Version, p.Assets["aarch64"], p.Hashes["aarch64"],
-		p.Name, p.Version,
+		p.Name, p.Version, p.Name,
 	)
 	return PackageInfo{
 		Name: p.Name,
@@ -226,14 +316,13 @@ func packageInfoFromVersionedAppImage(p model.VersionedAppImage) (PackageInfo, e
             url = assets.${arch}.url;
             sha256 = assets.${arch}.sha256;
           };
-        in pkgs.appimageTools.wrapType2 {
-          pname = "%s";
-          version = "%s";
-          src = src;
-        }`,
+        in pkgs.runCommand "%s-%s" {} ''
+          mkdir -p $out/bin
+          install -m755 ${src} $out/bin/%s
+        ''`,
 		appimage.URL(x86Target), x86Build.SHA256,
 		appimage.URL(armTarget), armBuild.SHA256,
-		p.Name, appimage.Version,
+		p.Name, appimage.Version, p.Name,
 	)
 
 	return PackageInfo{
