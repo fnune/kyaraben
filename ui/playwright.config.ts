@@ -15,5 +15,6 @@ export default defineConfig({
   use: {
     trace: 'on-first-retry',
     video: 'retain-on-failure',
+    actionTimeout: 120000, // 2 minutes - app startup can be slow
   },
 })
