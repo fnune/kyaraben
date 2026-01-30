@@ -68,6 +68,11 @@ func (f *FakeClient) Build(ctx context.Context, flakeRef string) (string, error)
 	return fmt.Sprintf("/nix/store/fake-hash-%s", flakeRef), nil
 }
 
+func (f *FakeClient) BuildWithLink(ctx context.Context, flakeRef string, outLink string) error {
+	f.BuildCalls = append(f.BuildCalls, flakeRef)
+	return f.BuildError
+}
+
 func (f *FakeClient) BuildMultiple(ctx context.Context, flakeRefs []string) (map[string]string, error) {
 	results := make(map[string]string)
 	for _, ref := range flakeRefs {
