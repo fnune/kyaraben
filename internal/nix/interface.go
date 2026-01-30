@@ -39,6 +39,10 @@ type NixClient interface {
 
 	// FlakeCheck validates a flake without building it.
 	FlakeCheck(ctx context.Context, flakePath string) error
+
+	// RealStorePath translates a virtualized /nix/store path to the real
+	// nix-portable store path.
+	RealStorePath(virtualPath string) string
 }
 
 // GetFlakePath returns the flake path for the Client.
