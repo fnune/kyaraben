@@ -15,6 +15,7 @@ import type {
 import type { ApplyStatus, ProgressStep } from '@/types/ui'
 
 const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
+  store: 'Setting up emulation folder',
   build: 'Installing emulators',
   desktop: 'Adding to application menu',
   config: 'Configuring emulators',
@@ -114,7 +115,7 @@ export function App() {
     const MAX_OUTPUT_LINES = 5
 
     const progressHandler = (...args: unknown[]) => {
-      const data = args[0] as { step: string; message: string; output?: string }
+      const data = args[0] as { step: string; message: string; output?: string; speed?: string }
 
       setProgressSteps((prev) => {
         const existing = prev.find((s) => s.id === data.step)
@@ -140,11 +141,13 @@ export function App() {
               ...(data.output && {
                 outputLines: [...(s.outputLines ?? []), data.output].slice(-MAX_OUTPUT_LINES),
               }),
+              ...(data.speed && { speed: data.speed }),
             }
           }
           // Mark previous steps as completed when a new step arrives
           if (isNewStep && s.status === 'in_progress') {
-            return { ...s, status: 'completed' as const }
+            const { speed: _, ...rest } = s
+            return { ...rest, status: 'completed' as const }
           }
           return s
         })

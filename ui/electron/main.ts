@@ -1,7 +1,7 @@
 import { type ChildProcess, spawn } from 'node:child_process'
 import * as path from 'node:path'
 import * as readline from 'node:readline'
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, shell } from 'electron'
 
 // Protocol types for daemon communication.
 // Source of truth: internal/daemon/types.go
@@ -372,6 +372,14 @@ Categories=Game;Emulator;
     const event = await sendCommand({ type: 'sync_remove_device', data })
     return event.data
   })
+
+  ipcMain.handle('open_path', async (_, pathToOpen: string) => {
+    // Expand ~ to home directory
+    const expandedPath = pathToOpen.startsWith('~')
+      ? pathToOpen.replace('~', app.getPath('home'))
+      : pathToOpen
+    return shell.openPath(expandedPath)
+  })
 }
 
 // Window creation
@@ -393,11 +401,6 @@ function createWindow(): void {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)
   } else {
     mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'))
-  }
-
-  // Open devtools in dev mode or when KYARABEN_DEBUG is set
-  if (process.env.VITE_DEV_SERVER_URL || process.env.KYARABEN_DEBUG) {
-    mainWindow.webContents.openDevTools()
   }
 
   // Log renderer crashes
