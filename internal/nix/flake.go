@@ -37,7 +37,10 @@ const flakeTemplate = `{
     let
       forAllSystems = f: nixpkgs.lib.genAttrs [ "x86_64-linux" "aarch64-linux" ] (system: f {
         inherit system;
-        pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = import nixpkgs {
+          inherit system;
+          config.allowUnfree = true;
+        };
         arch = if system == "x86_64-linux" then "x86_64" else "aarch64";
       });
     in {
