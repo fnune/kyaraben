@@ -60,7 +60,7 @@ type PreflightResult struct {
 	FilesToBackup []string
 }
 
-func (a *Applier) Preflight(cfg *model.KyarabenConfig, userStore *store.UserStore) (*PreflightResult, error) {
+func (a *Applier) Preflight(ctx context.Context, cfg *model.KyarabenConfig, userStore *store.UserStore) (*PreflightResult, error) {
 	allPatches := make([]model.ConfigPatch, 0)
 
 	for _, sysConf := range cfg.Systems {
@@ -121,7 +121,7 @@ type Applier struct {
 	LauncherManager *launcher.Manager
 }
 
-func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, opts Options) (*Result, error) {
+func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStore *store.UserStore, opts Options) (*Result, error) {
 	if opts.OnProgress == nil {
 		opts.OnProgress = func(Progress) {}
 	}
@@ -194,7 +194,7 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 	})
 	defer a.NixClient.SetOutputCallback(nil)
 
-	buildCtx, cancel := context.WithTimeout(context.Background(), nixBuildTimeout)
+	buildCtx, cancel := context.WithTimeout(ctx, nixBuildTimeout)
 	defer cancel()
 
 	flakeRef := a.FlakeGenerator.DefaultFlakeRef(string(genPath))

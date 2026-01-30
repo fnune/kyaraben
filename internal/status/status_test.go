@@ -1,6 +1,7 @@
 package status
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -39,7 +40,7 @@ func TestGet(t *testing.T) {
 	registry := registry.NewDefault()
 	userStore := mustNewUserStore(t, userStorePath)
 
-	result, err := Get(cfg, configPath, registry, userStore, manifestPath)
+	result, err := Get(context.Background(), cfg, configPath, registry, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
@@ -90,7 +91,7 @@ func TestGetWithInitializedStore(t *testing.T) {
 	registry := registry.NewDefault()
 	userStore := mustNewUserStore(t, userStorePath)
 
-	result, err := Get(cfg, configPath, registry, userStore, manifestPath)
+	result, err := Get(context.Background(), cfg, configPath, registry, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
@@ -116,7 +117,7 @@ func TestGetSystemNames(t *testing.T) {
 	registry := registry.NewDefault()
 	userStore := mustNewUserStore(t, tmpDir)
 
-	result, err := Get(cfg, tmpDir, registry, userStore, manifestPath)
+	result, err := Get(context.Background(), cfg, tmpDir, registry, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
@@ -156,7 +157,7 @@ func TestGetMissingRequiredCount(t *testing.T) {
 	registry := registry.NewDefault()
 	userStore := mustNewUserStore(t, userStorePath)
 
-	result, err := Get(cfg, tmpDir, registry, userStore, manifestPath)
+	result, err := Get(context.Background(), cfg, tmpDir, registry, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
@@ -200,7 +201,7 @@ func TestGetWithManifest(t *testing.T) {
 	registry := registry.NewDefault()
 	userStore := mustNewUserStore(t, tmpDir)
 
-	result, err := Get(cfg, tmpDir, registry, userStore, manifestPath)
+	result, err := Get(context.Background(), cfg, tmpDir, registry, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}

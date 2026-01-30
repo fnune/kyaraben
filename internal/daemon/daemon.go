@@ -41,8 +41,6 @@ func New(configPath string, reg *registry.Registry, nixClient nix.NixClient, fla
 	}
 }
 
-// Handle processes a command and returns all events at once.
-// For streaming events during long operations, use HandleWithEmit.
 func (d *Daemon) Handle(cmd Command) []Event {
 	return d.HandleWithEmit(cmd, nil)
 }
@@ -132,7 +130,7 @@ func (d *Daemon) handleStatus() []Event {
 		}}
 	}
 
-	result, err := status.Get(cfg, configPath, d.reg, userStore, manifestPath)
+	result, err := status.Get(context.Background(), cfg, configPath, d.reg, userStore, manifestPath)
 	if err != nil {
 		return []Event{{
 			Type: EventError,
@@ -181,7 +179,7 @@ func (d *Daemon) handleDoctor() []Event {
 		}}
 	}
 
-	result, err := doctor.Run(cfg, d.reg, userStore)
+	result, err := doctor.Run(context.Background(), cfg, d.reg, userStore)
 	if err != nil {
 		return []Event{{
 			Type: EventError,
@@ -266,7 +264,7 @@ func (d *Daemon) handleApply(_ map[string]interface{}, emit func(Event)) []Event
 		},
 	}
 
-	result, err := applier.Apply(cfg, userStore, opts)
+	result, err := applier.Apply(context.Background(), cfg, userStore, opts)
 	if err != nil {
 		return []Event{{
 			Type: EventError,

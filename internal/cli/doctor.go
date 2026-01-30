@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -25,7 +26,7 @@ func (cmd *DoctorCmd) Run(ctx *Context) error {
 	fmt.Println("Checking provisions...")
 	fmt.Println()
 
-	result, err := doctor.Run(cfg, registry, userStore)
+	result, err := doctor.Run(context.Background(), cfg, registry, userStore)
 	if err != nil {
 		return err
 	}

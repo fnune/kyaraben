@@ -1,3 +1,8 @@
+import type { DaemonCommandType } from './generated'
+
+export type ElectronOnlyCommand = 'get_install_status' | 'install_app' | 'uninstall_app'
+export type CommandType = DaemonCommandType | ElectronOnlyCommand
+
 export type SystemID = 'snes' | 'psx' | 'tic80' | 'gba' | 'nds' | 'psp' | 'switch' | 'e2e-test'
 
 export type EmulatorID =
@@ -71,21 +76,6 @@ export interface InstallStatus {
   readonly installed: boolean
   readonly appPath?: string
 }
-
-export type CommandType =
-  | 'status'
-  | 'doctor'
-  | 'apply'
-  | 'get_systems'
-  | 'get_config'
-  | 'set_config'
-  | 'get_install_status'
-  | 'install_app'
-  | 'uninstall_app'
-  | 'sync_status'
-  | 'sync_add_device'
-  | 'sync_remove_device'
-  | 'uninstall_preview'
 
 export type SyncMode = 'primary' | 'secondary'
 export type SyncState = 'disabled' | 'synced' | 'syncing' | 'disconnected' | 'conflict' | 'error'

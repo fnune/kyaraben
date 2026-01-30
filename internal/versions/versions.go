@@ -32,8 +32,6 @@ type TargetBuild struct {
 	SHA256 string `toml:"sha256"`
 }
 
-// DefaultTargetForArch returns the default target name for a given architecture.
-// It returns the first target that matches the arch, or empty string if none found.
 func (a *AppImageVersion) DefaultTargetForArch(arch string) string {
 	for name, t := range a.Targets {
 		if t.Arch == arch {
