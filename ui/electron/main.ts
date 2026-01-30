@@ -373,12 +373,25 @@ Categories=Game;Emulator;
     return event.data
   })
 
+  ipcMain.handle('uninstall_preview', async () => {
+    const event = await sendCommand({ type: 'uninstall_preview' })
+    return event.data
+  })
+
   ipcMain.handle('open_path', async (_, pathToOpen: string) => {
-    // Expand ~ to home directory
     const expandedPath = pathToOpen.startsWith('~')
       ? pathToOpen.replace('~', app.getPath('home'))
       : pathToOpen
-    return shell.openPath(expandedPath)
+
+    // shell.openPath can hang indefinitely if xdg-open can't find a handler
+    const timeoutMs = 5000
+    const openPromise = shell.openPath(expandedPath)
+    const timeoutPromise = new Promise<string>((resolve) =>
+      setTimeout(() => resolve('Timed out opening folder'), timeoutMs),
+    )
+
+    const result = await Promise.race([openPromise, timeoutPromise])
+    return result || ''
   })
 }
 

@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Settings } from '@/components/Settings/Settings'
-import { SyncSettings } from '@/components/SyncSettings/SyncSettings'
-import { SyncStatusBar } from '@/components/SyncStatusBar/SyncStatusBar'
-import { SystemGrid } from '@/components/SystemGrid/SystemGrid'
-import { useDaemon } from '@/hooks/useDaemon'
-import { Button } from '@/lib/Button'
-import { ProgressSteps } from '@/lib/ProgressSteps'
+import { InstallationView } from '@/components/InstallationView/InstallationView'
+import { Sidebar } from '@/components/Sidebar/Sidebar'
+import { SyncView } from '@/components/SyncView/SyncView'
+import { SystemsView } from '@/components/SystemsView/SystemsView'
+import * as daemon from '@/lib/daemon'
 import { Toast } from '@/lib/Toast'
 import type {
   DoctorResponse,
@@ -14,7 +12,7 @@ import type {
   System,
   SystemID,
 } from '@/types/daemon'
-import type { ApplyStatus, ProgressStep } from '@/types/ui'
+import type { ApplyStatus, ProgressStep, View } from '@/types/ui'
 
 interface ToastState {
   message: string
@@ -29,8 +27,7 @@ const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
 }
 
 export function App() {
-  const daemon = useDaemon()
-
+  const [currentView, setCurrentView] = useState<View>('systems')
   const [systems, setSystems] = useState<readonly System[]>([])
   const [selections, setSelections] = useState<Map<SystemID, EmulatorID>>(new Map())
   const [provisions, setProvisions] = useState<DoctorResponse>({})
@@ -39,14 +36,12 @@ export function App() {
   const [progressSteps, setProgressSteps] = useState<readonly ProgressStep[]>([])
   const [error, setError] = useState<string | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null)
-  const [showSyncSettings, setShowSyncSettings] = useState(false)
   const [toast, setToast] = useState<ToastState | null>(null)
 
   const showToast = useCallback((message: string, type: ToastState['type'] = 'info') => {
     setToast({ message, type })
   }, [])
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: init runs once on mount, daemon methods are stable
   useEffect(() => {
     async function init() {
       const [systemsResult, configResult] = await Promise.all([
@@ -194,36 +189,27 @@ export function App() {
     } finally {
       window.electron.off('apply:progress', progressHandler)
     }
-  }, [daemon, selections, userStore])
+  }, [selections, userStore])
 
-  const handleAddDevice = useCallback(
-    async (deviceId: string, name: string) => {
-      const result = await daemon.addSyncDevice({ deviceId, name })
-      if (result.ok) {
-        const syncResult = await daemon.getSyncStatus()
-        if (syncResult.ok) {
-          setSyncStatus(syncResult.data)
-        }
+  const handleAddDevice = useCallback(async (deviceId: string, name: string) => {
+    const result = await daemon.addSyncDevice({ deviceId, name })
+    if (result.ok) {
+      const syncResult = await daemon.getSyncStatus()
+      if (syncResult.ok) {
+        setSyncStatus(syncResult.data)
       }
-    },
-    [daemon],
-  )
+    }
+  }, [])
 
-  const handleRemoveDevice = useCallback(
-    async (deviceId: string) => {
-      const result = await daemon.removeSyncDevice({ deviceId })
-      if (result.ok) {
-        const syncResult = await daemon.getSyncStatus()
-        if (syncResult.ok) {
-          setSyncStatus(syncResult.data)
-        }
+  const handleRemoveDevice = useCallback(async (deviceId: string) => {
+    const result = await daemon.removeSyncDevice({ deviceId })
+    if (result.ok) {
+      const syncResult = await daemon.getSyncStatus()
+      if (syncResult.ok) {
+        setSyncStatus(syncResult.data)
       }
-    },
-    [daemon],
-  )
-
-  const isApplying = applyStatus === 'applying'
-  const showProgress = applyStatus !== 'idle'
+    }
+  }, [])
 
   const handleReset = useCallback(() => {
     setApplyStatus('idle')
@@ -231,53 +217,43 @@ export function App() {
     setError(null)
   }, [])
 
+  const renderView = () => {
+    switch (currentView) {
+      case 'systems':
+        return (
+          <SystemsView
+            systems={systems}
+            selections={selections}
+            provisions={provisions}
+            userStore={userStore}
+            onUserStoreChange={setUserStore}
+            onToggle={handleToggle}
+            onApply={handleApply}
+            onError={(msg) => showToast(msg, 'error')}
+            applyStatus={applyStatus}
+            progressSteps={progressSteps}
+            error={error}
+            onReset={handleReset}
+          />
+        )
+      case 'installation':
+        return <InstallationView />
+      case 'sync':
+        return (
+          <SyncView
+            status={syncStatus}
+            onAddDevice={handleAddDevice}
+            onRemoveDevice={handleRemoveDevice}
+          />
+        )
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-white">
-      <SyncStatusBar status={syncStatus} onOpenSettings={() => setShowSyncSettings(true)} />
+    <div className="h-dvh bg-white flex overflow-hidden">
+      <Sidebar currentView={currentView} onNavigate={setCurrentView} syncStatus={syncStatus} />
 
-      <header className="border-b border-gray-200 py-6 px-8">
-        <h1 className="text-2xl font-bold text-gray-900">Kyaraben</h1>
-        <p className="text-gray-500">Declarative emulation manager</p>
-      </header>
-
-      <main className="max-w-5xl mx-auto px-8 py-6">
-        {showProgress ? (
-          <>
-            <ProgressSteps steps={progressSteps} error={error ?? undefined} />
-            {!isApplying && <Button onClick={handleReset}>Done</Button>}
-          </>
-        ) : (
-          <>
-            <Settings
-              userStore={userStore}
-              onUserStoreChange={setUserStore}
-              onError={(msg) => showToast(msg, 'error')}
-            />
-
-            <SystemGrid
-              systems={systems}
-              selections={selections}
-              provisions={provisions}
-              onToggle={handleToggle}
-            />
-
-            <div className="mt-6">
-              <Button onClick={handleApply} disabled={selections.size === 0}>
-                Apply
-              </Button>
-            </div>
-          </>
-        )}
-      </main>
-
-      {showSyncSettings && (
-        <SyncSettings
-          status={syncStatus}
-          onAddDevice={handleAddDevice}
-          onRemoveDevice={handleRemoveDevice}
-          onClose={() => setShowSyncSettings(false)}
-        />
-      )}
+      <main className="flex-1 overflow-y-auto">{renderView()}</main>
 
       {toast && (
         <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />
