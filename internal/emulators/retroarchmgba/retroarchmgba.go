@@ -14,7 +14,7 @@ func (Definition) Emulator() model.Emulator {
 		Systems: []model.SystemID{model.SystemGBA},
 		Package: model.NixpkgsOverlayRef(
 			"retroarch-mgba",
-			`pkgs.retroarch.override { cores = with pkgs.libretro; [ mgba ]; }`,
+			`pkgs.wrapRetroArch { cores = with pkgs.libretro; [ mgba ]; }`,
 		),
 		// BIOS is optional - mGBA has built-in high-level emulation.
 		// See: https://docs.libretro.com/library/mgba/
@@ -33,6 +33,7 @@ func (Definition) Emulator() model.Emulator {
 			model.StateSavestates,
 			model.StateScreenshots,
 		},
+		Launcher: retroarch.SharedLauncher,
 	}
 }
 

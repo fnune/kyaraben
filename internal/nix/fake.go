@@ -68,6 +68,11 @@ func (f *FakeClient) Build(ctx context.Context, flakeRef string) (string, error)
 	return fmt.Sprintf("/nix/store/fake-hash-%s", flakeRef), nil
 }
 
+func (f *FakeClient) BuildWithLink(ctx context.Context, flakeRef string, outLink string) error {
+	f.BuildCalls = append(f.BuildCalls, flakeRef)
+	return f.BuildError
+}
+
 func (f *FakeClient) BuildMultiple(ctx context.Context, flakeRefs []string) (map[string]string, error) {
 	results := make(map[string]string)
 	for _, ref := range flakeRefs {
@@ -108,6 +113,14 @@ func (f *FakeClient) EnsureFlakeDir() error {
 
 func (f *FakeClient) GetFlakePath() string {
 	return f.FlakePathValue
+}
+
+func (f *FakeClient) FlakeCheck(ctx context.Context, flakePath string) error {
+	return nil
+}
+
+func (f *FakeClient) RealStorePath(virtualPath string) string {
+	return virtualPath
 }
 
 // Ensure FakeClient implements NixClient.

@@ -14,7 +14,7 @@ func (Definition) Emulator() model.Emulator {
 		Systems: []model.SystemID{model.SystemSNES},
 		Package: model.NixpkgsOverlayRef(
 			"retroarch-bsnes",
-			`pkgs.retroarch.override { cores = with pkgs.libretro; [ bsnes ]; }`,
+			`pkgs.wrapRetroArch { cores = with pkgs.libretro; [ bsnes ]; }`,
 		),
 		Provisions: []model.Provision{},
 		StateKinds: []model.StateKind{
@@ -22,6 +22,7 @@ func (Definition) Emulator() model.Emulator {
 			model.StateSavestates,
 			model.StateScreenshots,
 		},
+		Launcher: retroarch.SharedLauncher,
 	}
 }
 

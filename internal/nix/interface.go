@@ -14,6 +14,11 @@ type NixClient interface {
 	// Build builds a flake reference and returns the store path.
 	Build(ctx context.Context, flakeRef string) (string, error)
 
+	// BuildWithLink builds a flake and creates a symlink to the result.
+	// This is preferred over Build when the result needs to be accessible
+	// from outside nix-portable's namespace.
+	BuildWithLink(ctx context.Context, flakeRef string, outLink string) error
+
 	// BuildMultiple builds multiple flake references.
 	BuildMultiple(ctx context.Context, flakeRefs []string) (map[string]string, error)
 
@@ -31,6 +36,13 @@ type NixClient interface {
 
 	// GetFlakePath returns the path to the flake directory.
 	GetFlakePath() string
+
+	// FlakeCheck validates a flake without building it.
+	FlakeCheck(ctx context.Context, flakePath string) error
+
+	// RealStorePath translates a virtualized /nix/store path to the real
+	// nix-portable store path.
+	RealStorePath(virtualPath string) string
 }
 
 // GetFlakePath returns the flake path for the Client.

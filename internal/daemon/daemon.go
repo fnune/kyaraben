@@ -1,34 +1,40 @@
 package daemon
 
 import (
+	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/fnune/kyaraben/internal/apply"
 	"github.com/fnune/kyaraben/internal/doctor"
 	"github.com/fnune/kyaraben/internal/emulators"
+	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/nix"
 	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/status"
 	"github.com/fnune/kyaraben/internal/store"
+	"github.com/fnune/kyaraben/internal/sync"
 )
 
 type Daemon struct {
-	configPath     string
-	reg            *registry.Registry
-	nixClient      nix.NixClient
-	flakeGenerator *nix.FlakeGenerator
-	configWriter   *emulators.ConfigWriter
+	configPath      string
+	reg             *registry.Registry
+	nixClient       nix.NixClient
+	flakeGenerator  *nix.FlakeGenerator
+	configWriter    *emulators.ConfigWriter
+	launcherManager *launcher.Manager
 }
 
-func New(configPath string, reg *registry.Registry, nixClient nix.NixClient, flakeGenerator *nix.FlakeGenerator, configWriter *emulators.ConfigWriter) *Daemon {
+func New(configPath string, reg *registry.Registry, nixClient nix.NixClient, flakeGenerator *nix.FlakeGenerator, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager) *Daemon {
 	return &Daemon{
-		configPath:     configPath,
-		reg:            reg,
-		nixClient:      nixClient,
-		flakeGenerator: flakeGenerator,
-		configWriter:   configWriter,
+		configPath:      configPath,
+		reg:             reg,
+		nixClient:       nixClient,
+		flakeGenerator:  flakeGenerator,
+		configWriter:    configWriter,
+		launcherManager: launcherManager,
 	}
 }
 
@@ -54,6 +60,12 @@ func (d *Daemon) HandleWithEmit(cmd Command, emit func(Event)) []Event {
 		return d.handleGetConfig()
 	case CmdSetConfig:
 		return d.handleSetConfig(cmd.Data)
+	case CmdSyncStatus:
+		return d.handleSyncStatus()
+	case CmdSyncAddDevice:
+		return d.handleSyncAddDevice(cmd.Data)
+	case CmdSyncRemoveDevice:
+		return d.handleSyncRemoveDevice(cmd.Data)
 	default:
 		return []Event{{
 			Type: EventError,
@@ -216,11 +228,12 @@ func (d *Daemon) handleApply(_ map[string]interface{}, emit func(Event)) []Event
 	}
 
 	applier := &apply.Applier{
-		NixClient:      d.nixClient,
-		FlakeGenerator: d.flakeGenerator,
-		ConfigWriter:   d.configWriter,
-		Registry:       d.reg,
-		ManifestPath:   manifestPath,
+		NixClient:       d.nixClient,
+		FlakeGenerator:  d.flakeGenerator,
+		ConfigWriter:    d.configWriter,
+		Registry:        d.reg,
+		ManifestPath:    manifestPath,
+		LauncherManager: d.launcherManager,
 	}
 
 	opts := apply.Options{
@@ -355,6 +368,194 @@ func (d *Daemon) handleSetConfig(data map[string]interface{}) []Event {
 		Type: EventResult,
 		Data: map[string]interface{}{
 			"success": true,
+		},
+	}}
+}
+
+func (d *Daemon) handleSyncStatus() []Event {
+	cfg, err := d.loadConfig()
+	if err != nil {
+		cfg, _ = model.NewDefaultConfig()
+	}
+
+	if !cfg.Sync.Enabled {
+		return []Event{{
+			Type: EventResult,
+			Data: map[string]interface{}{
+				"enabled": false,
+			},
+		}}
+	}
+
+	client := sync.NewClient(cfg.Sync)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if !client.IsRunning(ctx) {
+		return []Event{{
+			Type: EventResult,
+			Data: map[string]interface{}{
+				"enabled": true,
+				"mode":    string(cfg.Sync.Mode),
+				"running": false,
+				"guiURL":  fmt.Sprintf("http://127.0.0.1:%d", cfg.Sync.Syncthing.GUIPort),
+			},
+		}}
+	}
+
+	status, err := client.GetStatus(ctx)
+	if err != nil {
+		return []Event{{
+			Type: EventError,
+			Data: map[string]string{"error": err.Error()},
+		}}
+	}
+
+	devices := make([]map[string]interface{}, len(status.Devices))
+	for i, dev := range status.Devices {
+		devices[i] = map[string]interface{}{
+			"id":        dev.ID,
+			"name":      dev.Name,
+			"connected": dev.Connected,
+		}
+	}
+
+	return []Event{{
+		Type: EventResult,
+		Data: map[string]interface{}{
+			"enabled":  true,
+			"mode":     string(status.Mode),
+			"running":  true,
+			"deviceId": status.DeviceID,
+			"guiURL":   status.GUIURL,
+			"state":    string(status.OverallState()),
+			"devices":  devices,
+		},
+	}}
+}
+
+func (d *Daemon) handleSyncAddDevice(data map[string]interface{}) []Event {
+	cfg, err := d.loadConfig()
+	if err != nil {
+		return []Event{{
+			Type: EventError,
+			Data: map[string]string{"error": err.Error()},
+		}}
+	}
+
+	if !cfg.Sync.Enabled {
+		return []Event{{
+			Type: EventError,
+			Data: map[string]string{"error": "sync is not enabled"},
+		}}
+	}
+
+	deviceID, ok := data["deviceId"].(string)
+	if !ok || deviceID == "" {
+		return []Event{{
+			Type: EventError,
+			Data: map[string]string{"error": "deviceId is required"},
+		}}
+	}
+
+	name, _ := data["name"].(string)
+	if name == "" {
+		name = fmt.Sprintf("device-%d", len(cfg.Sync.Devices)+1)
+	}
+
+	deviceID = strings.ToUpper(strings.TrimSpace(deviceID))
+
+	for _, existing := range cfg.Sync.Devices {
+		if existing.ID == deviceID {
+			return []Event{{
+				Type: EventError,
+				Data: map[string]string{"error": "device already added"},
+			}}
+		}
+	}
+
+	cfg.Sync.Devices = append(cfg.Sync.Devices, model.SyncDevice{
+		ID:   deviceID,
+		Name: name,
+	})
+
+	path := d.configPath
+	if path == "" {
+		path, _ = model.DefaultConfigPath()
+	}
+
+	if err := model.SaveConfig(cfg, path); err != nil {
+		return []Event{{
+			Type: EventError,
+			Data: map[string]string{"error": err.Error()},
+		}}
+	}
+
+	return []Event{{
+		Type: EventResult,
+		Data: map[string]interface{}{
+			"success":  true,
+			"deviceId": deviceID,
+			"name":     name,
+		},
+	}}
+}
+
+func (d *Daemon) handleSyncRemoveDevice(data map[string]interface{}) []Event {
+	cfg, err := d.loadConfig()
+	if err != nil {
+		return []Event{{
+			Type: EventError,
+			Data: map[string]string{"error": err.Error()},
+		}}
+	}
+
+	deviceID, ok := data["deviceId"].(string)
+	if !ok || deviceID == "" {
+		return []Event{{
+			Type: EventError,
+			Data: map[string]string{"error": "deviceId is required"},
+		}}
+	}
+
+	deviceID = strings.ToUpper(strings.TrimSpace(deviceID))
+
+	found := -1
+	for i, dev := range cfg.Sync.Devices {
+		if strings.ToUpper(dev.ID) == deviceID || strings.EqualFold(dev.Name, deviceID) {
+			found = i
+			break
+		}
+	}
+
+	if found == -1 {
+		return []Event{{
+			Type: EventError,
+			Data: map[string]string{"error": "device not found"},
+		}}
+	}
+
+	removed := cfg.Sync.Devices[found]
+	cfg.Sync.Devices = append(cfg.Sync.Devices[:found], cfg.Sync.Devices[found+1:]...)
+
+	path := d.configPath
+	if path == "" {
+		path, _ = model.DefaultConfigPath()
+	}
+
+	if err := model.SaveConfig(cfg, path); err != nil {
+		return []Event{{
+			Type: EventError,
+			Data: map[string]string{"error": err.Error()},
+		}}
+	}
+
+	return []Event{{
+		Type: EventResult,
+		Data: map[string]interface{}{
+			"success":  true,
+			"deviceId": removed.ID,
+			"name":     removed.Name,
 		},
 	}}
 }

@@ -19,8 +19,9 @@ const (
 type PackageSource string
 
 const (
-	PackageSourceNixpkgs PackageSource = "nixpkgs"
-	PackageSourceGitHub  PackageSource = "github"
+	PackageSourceNixpkgs   PackageSource = "nixpkgs"
+	PackageSourceGitHub    PackageSource = "github"
+	PackageSourceVersioned PackageSource = "versioned"
 )
 
 type Emulator struct {
@@ -30,6 +31,14 @@ type Emulator struct {
 	Package    PackageRef
 	Provisions []Provision
 	StateKinds []StateKind
+	Launcher   LauncherInfo
+}
+
+type LauncherInfo struct {
+	Binary      string   // Binary name (e.g., "duckstation-qt", "retroarch")
+	DisplayName string   // Name for .desktop file (uses Emulator.Name if empty)
+	GenericName string   // For .desktop generation (e.g., "PlayStation Emulator")
+	Categories  []string // XDG categories (e.g., ["Game", "Emulator"])
 }
 
 // SupportsSystem checks if this emulator can run games for the given system.

@@ -1,0 +1,45 @@
+# Kyaraben version pinning
+# To compute hashes: nix-prefetch-url <url> && nix hash convert --to sri --hash-algo sha256 <hash>
+
+[nixpkgs]
+commit = "fa83fd837f3098e3e678e6cf017b2b36102c7211" # https://github.com/NixOS/nixpkgs/commits/nixos-25.11
+
+[eden] # https://github.com/eden-emulator/Releases/releases
+version = "v0.1.0"
+url_template = "https://github.com/eden-emulator/Releases/releases/download/{version}/Eden-Linux-{version}-{target}-clang-pgo.AppImage"
+icon_url = "https://git.eden-emu.dev/eden-emu/eden/raw/commit/979ea5563b3825083b4ed45e81d76abef49891ad/dist/dev.eden_emu.eden.svg"
+icon_sha256 = "sha256-XrRaJfrcYvw10SO0/hlGKw5///7X3T8Ukg5UMrOFl2k="
+
+[eden.targets.amd64] # generic x86_64 (default)
+arch = "x86_64"
+sha256 = "sha256-+1lBCtlau8ttdy2olhNvlir/bn/sSpUz+6Ofo+GZ0dg="
+
+[eden.targets.legacy] # pre-Ryzen / Haswell
+arch = "x86_64"
+sha256 = "sha256-kgzfHSinWcwTJk+HZwz5FvNNOzUG3iExcQYb2qxfnN4="
+
+[eden.targets.steamdeck] # Zen 2, SteamOS patches
+arch = "x86_64"
+sha256 = "sha256-n8xlLPoRxxHwlICf2QYU7iLVxq2EnRwG1de7gLwdOOY="
+
+[eden.targets.rog-ally] # Zen 4
+arch = "x86_64"
+sha256 = "sha256-UsGMjjJTdB4hzeSyIrN6aAgrckExgcxKVrdZz5mkhqo="
+
+[eden.targets.aarch64] # ARM64
+arch = "aarch64"
+sha256 = "sha256-KDYSvNknaApwDQXflb/Y1zhjWKhZsBOSfYRQPRCJI0M="
+
+[duckstation] # https://github.com/stenzek/duckstation/releases
+version = "v0.1-10655"
+url_template = "https://github.com/stenzek/duckstation/releases/download/{version}/DuckStation-{target}.AppImage"
+icon_url = "https://raw.githubusercontent.com/stenzek/duckstation/master/data/resources/images/duck.png"
+icon_sha256 = "sha256-qR+lWCmOZKt/wT6MFXPKtCx/p0IUCOgRNdjb8CLdwv4="
+
+[duckstation.targets.x64]
+arch = "x86_64"
+sha256 = "sha256-/fmHmyseqXVJ26OdhQUuZYrDWxnu0jKJvkaOGpGtoOc="
+
+[duckstation.targets.arm64]
+arch = "aarch64"
+sha256 = "sha256-WzUXY082lu4gcmss/rPNzzgBzQppyTxIWZruUR5uaLE="
