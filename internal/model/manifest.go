@@ -16,6 +16,8 @@ type Manifest struct {
 	LastApplied        time.Time                        `json:"last_applied"`
 	InstalledEmulators map[EmulatorID]InstalledEmulator `json:"installed_emulators"`
 	ManagedConfigs     []ManagedConfig                  `json:"managed_configs"`
+	DesktopFiles       []string                         `json:"desktop_files,omitempty"`
+	IconFiles          []string                         `json:"icon_files,omitempty"`
 }
 
 // InstalledEmulator tracks an installed emulator.

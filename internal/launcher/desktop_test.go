@@ -57,8 +57,12 @@ func TestGenerateDesktopFiles(t *testing.T) {
 		},
 	}
 
-	if err := m.GenerateDesktopFiles(entries); err != nil {
+	result, err := m.GenerateDesktopFiles(entries, nil)
+	if err != nil {
 		t.Fatalf("GenerateDesktopFiles() error = %v", err)
+	}
+	if len(result.DesktopFiles) == 0 {
+		t.Error("GenerateDesktopFiles() should return created desktop files")
 	}
 
 	retroarchPath := filepath.Join(m.ApplicationsDir(), "retroarch.desktop")
