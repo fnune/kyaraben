@@ -2,7 +2,7 @@
 # To compute hashes: nix-prefetch-url <url> && nix hash convert --to sri --hash-algo sha256 <hash>
 
 [nixpkgs]
-commit = "bfc1b8a4574108ceef22f02bafcf6611380c100d" # https://github.com/NixOS/nixpkgs/commits/nixos-unstable
+commit = "fa83fd837f3098e3e678e6cf017b2b36102c7211" # https://github.com/NixOS/nixpkgs/commits/nixos-25.11
 
 [eden] # https://github.com/eden-emulator/Releases/releases
 version = "v0.1.0"
