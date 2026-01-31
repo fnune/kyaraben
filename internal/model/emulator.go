@@ -44,7 +44,9 @@ type Emulator struct {
 }
 
 type LauncherInfo struct {
-	Binary      string   // Binary name (e.g., "duckstation-qt", "retroarch")
+	// Binary is the executable name installed to $out/bin/. For VersionedAppImage packages,
+	// this must match the name passed to VersionedAppImageRef() (the versions.toml key).
+	Binary      string
 	DisplayName string   // Name for .desktop file (uses Emulator.Name if empty)
 	GenericName string   // For .desktop generation (e.g., "PlayStation Emulator")
 	Categories  []string // XDG categories (e.g., ["Game", "Emulator"])

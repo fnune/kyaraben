@@ -42,7 +42,7 @@ func (Definition) Emulator() model.Emulator {
 			model.StateScreenshots,
 		},
 		Launcher: model.LauncherInfo{
-			Binary:      "melonDS",
+			Binary:      "melonds",
 			GenericName: "Nintendo DS Emulator",
 			Categories:  []string{"Game", "Emulator"},
 		},
