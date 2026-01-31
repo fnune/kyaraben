@@ -16,8 +16,8 @@ func TestLoadSaveConfig(t *testing.T) {
 			UserStore: "~/Emulation",
 		},
 		Systems: map[SystemID]SystemConf{
-			SystemSNES: {Emulator: EmulatorRetroArchBsnes},
-			SystemPSX:  {Emulator: EmulatorDuckStation},
+			SystemSNES: {Emulator: string(EmulatorRetroArchBsnes)},
+			SystemPSX:  {Emulator: string(EmulatorDuckStation)},
 		},
 	}
 
@@ -45,12 +45,12 @@ func TestLoadSaveConfig(t *testing.T) {
 		t.Errorf("Systems count mismatch: got %d, want %d", len(loaded.Systems), len(cfg.Systems))
 	}
 
-	if loaded.Systems[SystemSNES].Emulator != EmulatorRetroArchBsnes {
-		t.Errorf("SNES emulator mismatch: got %s, want %s", loaded.Systems[SystemSNES].Emulator, EmulatorRetroArchBsnes)
+	if loaded.Systems[SystemSNES].EmulatorID() != EmulatorRetroArchBsnes {
+		t.Errorf("SNES emulator mismatch: got %s, want %s", loaded.Systems[SystemSNES].EmulatorID(), EmulatorRetroArchBsnes)
 	}
 
-	if loaded.Systems[SystemPSX].Emulator != EmulatorDuckStation {
-		t.Errorf("PSX emulator mismatch: got %s, want %s", loaded.Systems[SystemPSX].Emulator, EmulatorDuckStation)
+	if loaded.Systems[SystemPSX].EmulatorID() != EmulatorDuckStation {
+		t.Errorf("PSX emulator mismatch: got %s, want %s", loaded.Systems[SystemPSX].EmulatorID(), EmulatorDuckStation)
 	}
 }
 
@@ -103,9 +103,9 @@ func TestExpandUserStore(t *testing.T) {
 func TestEnabledSystems(t *testing.T) {
 	cfg := &KyarabenConfig{
 		Systems: map[SystemID]SystemConf{
-			SystemSNES:  {Emulator: EmulatorRetroArchBsnes},
-			SystemPSX:   {Emulator: EmulatorDuckStation},
-			SystemTIC80: {Emulator: EmulatorTIC80},
+			SystemSNES:  {Emulator: string(EmulatorRetroArchBsnes)},
+			SystemPSX:   {Emulator: string(EmulatorDuckStation)},
+			SystemTIC80: {Emulator: string(EmulatorTIC80)},
 		},
 	}
 

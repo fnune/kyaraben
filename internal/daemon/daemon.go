@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -20,6 +21,7 @@ import (
 	"github.com/fnune/kyaraben/internal/status"
 	"github.com/fnune/kyaraben/internal/store"
 	syncpkg "github.com/fnune/kyaraben/internal/sync"
+	"github.com/fnune/kyaraben/internal/versions"
 )
 
 type Daemon struct {
@@ -325,16 +327,31 @@ func (d *Daemon) handleCancelApply() []Event {
 
 func (d *Daemon) handleGetSystems() []Event {
 	systems := d.reg.AllSystems()
+	vers, _ := versions.Get()
 
 	result := make([]map[string]interface{}, 0, len(systems))
 	for _, sys := range systems {
-		emulators := d.reg.GetEmulatorsForSystem(sys.ID)
-		emuList := make([]map[string]string, 0, len(emulators))
-		for _, emu := range emulators {
-			emuList = append(emuList, map[string]string{
+		emus := d.reg.GetEmulatorsForSystem(sys.ID)
+		emuList := make([]map[string]interface{}, 0, len(emus))
+		for _, emu := range emus {
+			emuData := map[string]interface{}{
 				"id":   string(emu.ID),
 				"name": emu.Name,
-			})
+			}
+
+			// Add version info if available
+			if vers != nil {
+				// Use the binary name as the key in versions.toml
+				emuName := string(emu.ID)
+				if spec, ok := vers.GetEmulator(emuName); ok {
+					emuData["defaultVersion"] = spec.Default
+					availableVersions := spec.AvailableVersions()
+					sort.Strings(availableVersions)
+					emuData["availableVersions"] = availableVersions
+				}
+			}
+
+			emuList = append(emuList, emuData)
 		}
 
 		result = append(result, map[string]interface{}{
@@ -360,9 +377,15 @@ func (d *Daemon) handleGetConfig() []Event {
 		}}
 	}
 
-	systems := make(map[string]string)
+	systems := make(map[string]map[string]interface{})
 	for sys, sysConf := range cfg.Systems {
-		systems[string(sys)] = string(sysConf.Emulator)
+		entry := map[string]interface{}{
+			"emulator": string(sysConf.EmulatorID()),
+		}
+		if version := sysConf.EmulatorVersion(); version != "" {
+			entry["pinnedVersion"] = version
+		}
+		systems[string(sys)] = entry
 	}
 
 	return []Event{{
@@ -392,7 +415,7 @@ func (d *Daemon) handleSetConfig(data map[string]interface{}) []Event {
 		for sysStr, emuVal := range systems {
 			if emuStr, ok := emuVal.(string); ok {
 				cfg.Systems[model.SystemID(sysStr)] = model.SystemConf{
-					Emulator: model.EmulatorID(emuStr),
+					Emulator: emuStr,
 				}
 			}
 		}

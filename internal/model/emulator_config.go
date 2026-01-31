@@ -15,6 +15,7 @@ const (
 	ConfigFormatCFG  ConfigFormat = "cfg"
 	ConfigFormatXML  ConfigFormat = "xml"
 	ConfigFormatJSON ConfigFormat = "json"
+	ConfigFormatYAML ConfigFormat = "yaml"
 )
 
 type ConfigBaseDir string

@@ -21,6 +21,8 @@ export type ProvisionStatus = 'found' | 'missing' | 'invalid' | 'optional'
 export interface EmulatorRef {
   readonly id: EmulatorID
   readonly name: string
+  readonly defaultVersion?: string
+  readonly availableVersions?: readonly string[]
 }
 
 export interface System {
@@ -49,14 +51,19 @@ export interface StatusResponse {
   readonly lastApplied: string
 }
 
+export interface SystemConfigEntry {
+  readonly emulator: EmulatorID
+  readonly pinnedVersion?: string
+}
+
 export interface ConfigResponse {
   readonly userStore: string
-  readonly systems: Readonly<Partial<Record<SystemID, EmulatorID>>>
+  readonly systems: Readonly<Partial<Record<SystemID, SystemConfigEntry>>>
 }
 
 export interface SetConfigRequest {
   readonly userStore: string
-  readonly systems: Readonly<Partial<Record<SystemID, EmulatorID>>>
+  readonly systems: Readonly<Partial<Record<SystemID, string>>> // "emulator" or "emulator@version"
 }
 
 export type DoctorResponse = Readonly<Partial<Record<SystemID, readonly ProvisionResult[]>>>

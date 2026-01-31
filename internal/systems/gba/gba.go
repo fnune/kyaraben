@@ -13,5 +13,5 @@ func (Definition) System() model.System {
 }
 
 func (Definition) DefaultEmulatorID() model.EmulatorID {
-	return model.EmulatorRetroArchMGBA
+	return model.EmulatorMGBA
 }

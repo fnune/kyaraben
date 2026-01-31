@@ -5,14 +5,24 @@ package model
 type EmulatorID string
 
 const (
-	EmulatorRetroArchBsnes   EmulatorID = "retroarch:bsnes"
-	EmulatorRetroArchMGBA    EmulatorID = "retroarch:mgba"
-	EmulatorRetroArchMelonDS EmulatorID = "retroarch:melonds"
-	EmulatorRetroArchPPSSPP  EmulatorID = "retroarch:ppsspp"
-	EmulatorDuckStation      EmulatorID = "duckstation"
-	EmulatorTIC80            EmulatorID = "tic80"
-	EmulatorEden             EmulatorID = "eden"
-	EmulatorE2ETest          EmulatorID = "e2e-test"
+	// EmulatorRetroArch is the base RetroArch installation shared by all cores.
+	// Used for shared data like the cores directory.
+	EmulatorRetroArch      EmulatorID = "retroarch"
+	EmulatorRetroArchBsnes EmulatorID = "retroarch:bsnes"
+	EmulatorDuckStation    EmulatorID = "duckstation"
+	EmulatorPCSX2          EmulatorID = "pcsx2"
+	EmulatorRPCS3          EmulatorID = "rpcs3"
+	EmulatorVita3K         EmulatorID = "vita3k"
+	EmulatorPPSSPP         EmulatorID = "ppsspp"
+	EmulatorMGBA           EmulatorID = "mgba"
+	EmulatorMelonDS        EmulatorID = "melonds"
+	EmulatorFlycast        EmulatorID = "flycast"
+	EmulatorCemu           EmulatorID = "cemu"
+	EmulatorAzahar         EmulatorID = "azahar"
+	EmulatorDolphin        EmulatorID = "dolphin"
+	EmulatorTIC80          EmulatorID = "tic80"
+	EmulatorEden           EmulatorID = "eden"
+	EmulatorE2ETest        EmulatorID = "e2e-test"
 )
 
 // PackageSource indicates where an emulator package comes from.
