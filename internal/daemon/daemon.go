@@ -392,7 +392,7 @@ func (d *Daemon) handleSetConfig(data map[string]interface{}) []Event {
 		for sysStr, emuVal := range systems {
 			if emuStr, ok := emuVal.(string); ok {
 				cfg.Systems[model.SystemID(sysStr)] = model.SystemConf{
-					Emulator: model.EmulatorID(emuStr),
+					Emulator: emuStr,
 				}
 			}
 		}
