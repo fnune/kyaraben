@@ -8,7 +8,18 @@ When adding support for an emulator, follow this priority order:
 
 ### 1. Check for Official Versioned Binary Releases
 
-The release MUST support versioned downloads (e.g., `/releases/download/v1.2.3/file.AppImage`). Rolling releases without version tags (e.g., "latest" only) cannot be used because Kyaraben needs reproducible installations.
+The release MUST support **reproducible downloads** - each URL must always return the same artifact. Acceptable versioning schemes:
+
+1. **Semantic versions** - e.g., `/releases/download/v1.2.3/file.AppImage`
+2. **Build numbers** - e.g., `/releases/download/build-1234/file.AppImage` (Vita3K uses this)
+3. **Commit hashes** - e.g., `/releases/download/abc123/file.AppImage` (RPCS3 uses this)
+4. **Date-based** - e.g., `/releases/download/2024-01-15/file.AppImage`
+
+**NOT acceptable:**
+- "Latest" only URLs that change over time (e.g., `/download/latest/file.AppImage`)
+- Releases without any identifier in the URL
+
+If an emulator only provides non-reproducible downloads, it cannot be supported by Kyaraben.
 
 **Preferred formats (in order):**
 1. **AppImage** - Self-contained, uses host graphics drivers, no extraction needed
@@ -65,16 +76,15 @@ AppImages avoid this because they use the host system's graphics drivers directl
 | Azahar | 3DS | VersionedAppImage | [GitHub Releases](https://github.com/azahar-emu/azahar/releases) | Citra successor |
 | RetroArch:bsnes | SNES | VersionedAppImage (7z) | [Buildbot](https://buildbot.libretro.com/stable/) | Shared package with melonDS |
 | RetroArch:melonds | NDS | VersionedAppImage (7z) | [Buildbot](https://buildbot.libretro.com/stable/) | Shared package with bsnes |
-| TIC-80 | TIC-80 | Nixpkgs | nixpkgs | **BROKEN** - falls back to CLI |
+| TIC-80 | TIC-80 | VersionedTarball | [GitHub Releases](https://github.com/nesbox/TIC-80/releases) | Fantasy console |
 
 ### Planned Changes
 
 | Emulator | System(s) | Method | Source | Versioned? | Notes |
 |----------|-----------|--------|--------|------------|-------|
-| RPCS3 | PS3 | AppImage | [GitHub Releases](https://github.com/RPCS3/rpcs3-binaries-linux/releases) | ✅ Yes | Rolling releases with build numbers |
+| RPCS3 | PS3 | AppImage | [GitHub Releases](https://github.com/RPCS3/rpcs3-binaries-linux/releases) | ✅ Yes | Rolling with commit hashes |
 | melonDS | NDS | AppImage (in ZIP) | [GitHub Releases](https://github.com/melonDS-emu/melonDS/releases) | ✅ Yes | Standalone, replace RA core as default |
-| Vita3K | PS Vita | AppImage | [GitHub Releases](https://github.com/Vita3K/Vita3K-builds/releases) | ⚠️ Continuous | Rolling continuous builds |
-| TIC-80 | TIC-80 | Tarball | [GitHub Releases](https://github.com/nesbox/TIC-80/releases) | ✅ Yes | Replace nix version |
+| Vita3K | PS Vita | AppImage | [GitHub Releases](https://github.com/Vita3K/Vita3K-builds/releases) | ✅ Yes | Rolling with build numbers + commit hashes |
 | Flycast | Dreamcast | Tarball | [GitHub Releases](https://github.com/flyinghead/flycast/releases) | ✅ Yes | Or use RA core |
 
 ### RetroArch Approach
@@ -162,12 +172,13 @@ https://buildbot.example.com/nightly/app.AppImage
 Archive extraction is implemented in flake.go (7z, tar.gz, zip). These emulators use archives instead of direct AppImages:
 
 - ✅ RetroArch - 7z archive from buildbot (shared by bsnes, melonDS cores)
-- 🔲 TIC-80 - tar.gz from GitHub (needs emulator definition update)
+- ✅ TIC-80 - tar.gz from GitHub
 
-### Needs Special Handling
-- 🔲 melonDS - AppImage inside ZIP file (replace RA core as NDS default)
-- 🔲 Vita3K - continuous builds without version tags
-- 🔲 RPCS3 - rolling releases with commit hashes in filenames
+### Needs Implementation
+- 🔲 melonDS standalone - AppImage inside ZIP file (replace RA core as NDS default)
+- 🔲 Vita3K - rolling builds with build numbers + commit hashes
+- 🔲 RPCS3 - rolling builds with commit hashes
+- 🔲 Flycast - tarball for Dreamcast
 
 ### All Hashes Are Placeholders
 All new entries in `versions.toml` have placeholder hashes. To compute real hashes:
