@@ -25,8 +25,6 @@ type AppImageVersion struct {
 	Version     string                 `toml:"version"`
 	URLTemplate string                 `toml:"url_template"`
 	Targets     map[string]TargetBuild `toml:"targets"`
-	IconURL     string                 `toml:"icon_url"`
-	IconSHA256  string                 `toml:"icon_sha256"`
 }
 
 type TargetBuild struct {
