@@ -1,0 +1,324 @@
+# Feedback
+
+## No installed emulator version display
+
+We don't show which version of each emulator we've actually installed anywhere: not in the CLI (`kyaraben status`) nor in the electron app UI.
+
+---
+
+## Update eden to v0.1.1
+
+eden has shipped v0.1.1, need to update our version.
+
+---
+
+## Web app does not show whether 'Apply' has run already or needs to run
+
+If an installation is e.g. cancelled or just hasn't been done yet because no apply run has completed, the user has no information about this. How might we present that to them? Does the CLI do this at the moment? How might the web app do it?
+
+---
+
+## Output when opening AppImage on my host system
+
+```
+ ~/Development/kyaraben λ ./ui/release/Kyaraben-0.1.0-x86_64.AppImage
+[302991:0201/200919.248966:ERROR:dbus/object_proxy.cc:573] Failed to call method: org.freedesktop.systemd1.Manager.StartTransientUnit: object_path= /org/freedesktop/systemd1: org.freedesktop.systemd1.UnitExists: Unit app-org.chromium.Chromium-302991.scope was already loaded or has a fragment file.
+[302991:0201/200919.393848:ERROR:ui/ozone/platform/wayland/host/wayland_wp_color_manager.cc:296] Unable to set image transfer function.
+[302991:0201/200919.393862:ERROR:ui/ozone/platform/wayland/host/wayland_wp_color_manager.cc:214] Failed to populate image description for color space {r:[0.6063, 0.3237], g:[0.2372, 0.5927], b:[0.1415, 0.0508], w:[0.3127, 0.3290]}, transfer:SRGB, matrix:RGB, range:FULL}
+[302991:0201/200919.394003:ERROR:ui/ozone/platform/wayland/host/wayland_wp_color_manager.cc:296] Unable to set image transfer function.
+[302991:0201/200919.394009:ERROR:ui/ozone/platform/wayland/host/wayland_wp_color_manager.cc:214] Failed to populate image description for color space {r:[0.6063, 0.3237], g:[0.2372, 0.5927], b:[0.1415, 0.0508], w:[0.3127, 0.3290]}, transfer:SRGB, matrix:RGB, range:FULL}
+[302991:0201/200919.394018:ERROR:ui/ozone/platform/wayland/host/wayland_wp_color_management_surface.cc:63] Failed to get image description for color space.
+[kyaraben] Checking: /tmp/nix-shell.EHP7lV/.mount_KyarabjYeFcR/kyaraben-x86_64-unknown-linux-gnu
+[kyaraben] Checking: /tmp/nix-shell.EHP7lV/.mount_KyarabjYeFcR/resources/kyaraben-x86_64-unknown-linux-gnu
+[kyaraben] Checking: /tmp/nix-shell.EHP7lV/.mount_KyarabjYeFcR/resources/binaries/kyaraben-x86_64-unknown-linux-gnu
+[kyaraben] Found sidecar at: /tmp/nix-shell.EHP7lV/.mount_KyarabjYeFcR/resources/binaries/kyaraben-x86_64-unknown-linux-gnu
+[kyaraben] Starting daemon: /tmp/nix-shell.EHP7lV/.mount_KyarabjYeFcR/resources/binaries/kyaraben-x86_64-unknown-linux-gnu
+[kyaraben] Daemon ready
+Error occurred in handler for 'doctor': Error: decoding config: open /home/fausto/.config/kyaraben/config.toml: no such file or directory
+    at resolve (/tmp/nix-shell.EHP7lV/.mount_KyarabjYeFcR/resources/app.asar/dist-electron/main.js:166:28)
+    at Interface.<anonymous> (/tmp/nix-shell.EHP7lV/.mount_KyarabjYeFcR/resources/app.asar/dist-electron/main.js:116:17)
+    at Interface.emit (node:events:508:28)
+    at [_onLine] [as _onLine] (node:internal/readline/interface:465:12)
+    at [_normalWrite] [as _normalWrite] (node:internal/readline/interface:647:22)
+    at Socket.ondata (node:internal/readline/interface:263:23)
+    at Socket.emit (node:events:508:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+Error occurred in handler for 'sync_status': Error: decoding config: open /home/fausto/.config/kyaraben/config.toml: no such file or directory
+    at resolve (/tmp/nix-shell.EHP7lV/.mount_KyarabjYeFcR/resources/app.asar/dist-electron/main.js:166:28)
+    at Interface.<anonymous> (/tmp/nix-shell.EHP7lV/.mount_KyarabjYeFcR/resources/app.asar/dist-electron/main.js:116:17)
+    at Interface.emit (node:events:508:28)
+    at [_onLine] [as _onLine] (node:internal/readline/interface:465:12)
+    at [_normalWrite] [as _normalWrite] (node:internal/readline/interface:647:22)
+    at Socket.ondata (node:internal/readline/interface:263:23)
+    at Socket.emit (node:events:508:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+[302991:0201/200919.471136:ERROR:ui/ozone/platform/wayland/host/wayland_wp_color_manager.cc:296] Unable to set image transfer function.
+[302991:0201/200919.471148:ERROR:ui/ozone/platform/wayland/host/wayland_wp_color_manager.cc:214] Failed to populate image description for color space {r:[0.6063, 0.3237], g:[0.2372, 0.5927], b:[0.1415, 0.0508], w:[0.3127, 0.3290]}, transfer:SRGB, matrix:RGB, range:FULL}
+[302991:0201/200919.478250:ERROR:ui/ozone/platform/wayland/host/wayland_wp_color_manager.cc:296] Unable to set image transfer function.
+[302991:0201/200919.478258:ERROR:ui/ozone/platform/wayland/host/wayland_wp_color_manager.cc:214] Failed to populate image description for color space {r:[0.6063, 0.3237], g:[0.2372, 0.5927], b:[0.1415, 0.0508], w:[0.3127, 0.3290]}, transfer:SRGB, matrix:RGB, range:FULL}
+[302991:0201/200920.411162:ERROR:ui/ozone/platform/wayland/host/wayland_wp_color_manager.cc:296] Unable to set image transfer function.
+[302991:0201/200920.411174:ERROR:ui/ozone/platform/wayland/host/wayland_wp_color_manager.cc:214] Failed to populate image description for color space {r:[0.6063, 0.3237], g:[0.2372, 0.5927], b:[0.1415, 0.0508], w:[0.3127, 0.3290]}, transfer:SRGB, matrix:RGB, range:FULL}
+[302991:0201/200920.416652:ERROR:ui/ozone/platform/wayland/host/wayland_wp_color_manager.cc:296] Unable to set image transfer function.
+[302991:0201/200920.416659:ERROR:ui/ozone/platform/wayland/host/wayland_wp_color_manager.cc:214] Failed to populate image description for color space {r:[0.6063, 0.3237], g:[0.2372, 0.5927], b:[0.1415, 0.0508], w:[0.3127, 0.3290]}, transfer:SRGB, matrix:RGB, range:FULL}
+[302991:0201/200920.422821:ERROR:ui/ozone/platform/wayland/host/wayland_wp_color_manager.cc:296] Unable to set image transfer function.
+[302991:0201/200920.422828:ERROR:ui/ozone/platform/wayland/host/wayland_wp_color_manager.cc:214] Failed to populate image description for color space {r:[0.6063, 0.3237], g:[0.2372, 0.5927], b:[0.1415, 0.0508], w:[0.3127, 0.3290]}, transfer:SRGB, matrix:RGB, range:FULL}
+```
+
+That's a bit much no? Should we be throwing errors for missing configs? I think that's an expected state of the app for a first run. Same for doctor. Then what's all that about 'image transfer function' and 'image description'?
+
+---
+
+## Open emulation directory button does not work if the directory does not exist
+
+The OS throws an error and then the app handler times out after 5s. We should probably only enable that button if the directory already exists.
+
+---
+
+## Cannot run installed emulators
+
+Generally I feel like `nix-portable` is probably doing something weird with the paths. I'm not sure.
+
+### Cannot run installed duckstation
+
+I see this:
+
+```
+ ~/Development/kyaraben λ ~/.local/state/kyaraben/bin/duckstation
+/usr/bin/fusermount3: mount failed: Operation not permitted
+
+Cannot mount AppImage, please check your FUSE setup.
+You might still be able to extract the contents of this AppImage
+if you run it with the --appimage-extract option.
+See https://github.com/AppImage/AppImageKit/wiki/FUSE
+for more information
+open dir error: No such file or directory
+```
+
+---
+
+### Cannot run installed retroarch
+
+```
+ ~/Development/kyaraben λ ~/.local/state/kyaraben/bin/retroarch
+
+GameMode ERROR: D-Bus error: Could not call method 'QueryStatus' on 'com.feralinteractive.GameMode': The name is not activatable
+```
+
+Note that if I install retroarch with `nix-shell` and run it then it also prints that error message, but it _does_ work in that case:
+
+```
+ ~/Development/kyaraben λ nix-shell --packages retroarch
+warning: Nix search path entry '/home/fausto/.nix-defexpr/channels' does not exist, ignoring
+this derivation will be built:
+  /nix/store/3mwqf6m36ijah3lgww535xxaqfg0vlfg-retroarch-with-cores-1.21.0.drv
+these 3 paths will be fetched (164.97 MiB download, 196.02 MiB unpacked):
+  /nix/store/757mya7v9rnjizz1f1j37cjq68ispgp2-declarative-retroarch.cfg
+  /nix/store/1aq76q3jk5i0wgbr5d6mkx5hr7vppm98-libretro-core-info-1.22.0
+  /nix/store/8cns3szl0vlcij037g5cjsnn9mdlifya-retroarch-assets-1.22.0-unstable-2025-11-10
+copying path '/nix/store/1aq76q3jk5i0wgbr5d6mkx5hr7vppm98-libretro-core-info-1.22.0' from 'https://cache.nixos.org'...
+copying path '/nix/store/8cns3szl0vlcij037g5cjsnn9mdlifya-retroarch-assets-1.22.0-unstable-2025-11-10' from 'https://cache.nixos.org'...
+copying path '/nix/store/757mya7v9rnjizz1f1j37cjq68ispgp2-declarative-retroarch.cfg' from 'https://cache.nixos.org'...
+building '/nix/store/3mwqf6m36ijah3lgww535xxaqfg0vlfg-retroarch-with-cores-1.21.0.drv'...
+Kyaraben development environment
+Go version: go version go1.25.5 linux/amd64
+ ~/Development/kyaraben λ which retroarch
+/nix/store/12zwidf0dbw12n15lc786wkj279h28f2-retroarch-with-cores-1.21.0/bin/retroarch
+ ~/Development/kyaraben λ retroarch
+GameMode ERROR: D-Bus error: Could not call method 'QueryStatus' on 'com.feralinteractive.GameMode': The name is not activatable
+```
+
+### Cannot run installed eden
+
+This one is very strange...
+
+```
+ ~/Development/kyaraben λ cat ~/.local/share/applications/eden.desktop
+─────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+     │ File: /home/fausto/.local/share/applications/eden.desktop
+─────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   1 │ [Desktop Entry]
+   2 │ Type=Application
+   3 │ Name=Eden
+   4 │ GenericName=Nintendo Switch Emulator
+   5 │ Exec=/tmp/nix-shell.dmfnVT/TestGenerateDesktopFiles3625339760/001/kyaraben/bin/eden %f
+   6 │ Icon=eden
+   7 │ Categories=Game;Emulator;
+─────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ~/Development/kyaraben λ /tmp/nix-shell.dmfnVT/TestGenerateDesktopFiles3625339760/001/kyaraben/bin/eden
+zsh: no such file or directory: /tmp/nix-shell.dmfnVT/TestGenerateDesktopFiles3625339760/001/kyaraben/bin/eden
+```
+
+## CLI output on apply
+
+It interleaves 'Installing emulators' all the time. This is probably not necessary in the CLI?
+
+```
+  /nix/store/2v59zbb6i773c1b0mwwdqhw3nghfm6d9-curl-8.6.0
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+  /nix/store/vcxkk3l25hlix62aivl2prfhpczrvymp-expat-2.6.2
+  /nix/store/c2yb135iv4maadia5f760b3xhbh6jh61-gcc-13.2.0-lib
+  /nix/store/a2fqd5k8ymb2cadb5awp5b90a5m8acln-gcc-13.2.0-libgcc
+  /nix/store/qjb0xvlkzdbrxxasmajw93phx3wh8vq6-gettext-0.21.1
+  /nix/store/bv5kc5im1r2b99x7vni3cwphnzgmd8ck-git-minimal-2.44.0
+  /nix/store/ddwyrxif62r8n6xclvskjyy6szdhvj60-glibc-2.39-5
+  /nix/store/n32h02pn52pk38m0p00wh7f2ri8xrh8h-gmp-with-cxx-6.3.0
+  /nix/store/avqi5nnx7qydr078ssgifc2hgzqipqgx-gnugrep-3.11
+  /nix/store/237dff1igc3v09p9r23a37yw8dr04bv6-gnused-4.9
+  /nix/store/d5wvzzmqx3dkmp36r1vzz69gak6x5bkx-keyutils-1.6.3-lib
+  /nix/store/s32cldbh9pfzd9z82izi12mdlrw0yf8q-libidn2-2.3.7
+  /nix/store/li8plf2qixrlrlny7qhw5ylgq01h3z7q-libkrb5-1.21.2
+  /nix/store/kci440kzdmyi7b1axs3w6nlmswk3881j-libpsl-0.21.5
+  /nix/store/gqrbbhxahk4mayblnc0sfpksgph197bb-libssh2-1.11.0
+  /nix/store/7n0mbqydcipkpbxm24fab066lxk68aqk-libunistring-1.1
+  /nix/store/dvwbmkf5gqwly9ysp6sld4c6iwmqijm3-nghttp2-1.60.0-lib
+  /nix/store/p25ghy7y53lyc834xnw5mrhfq096wa4x-openssl-3.0.13
+  /nix/store/5sqdrc4jpr4vjiiqycyw8q4v3zchpdka-pcre2-10.43
+  /nix/store/7ararm009ri4jrg1rgz2n1bhdzhln5s2-publicsuffix-list-0-unstable-2024-01-07
+  /nix/store/rxganm4ibf31qngal3j3psp20mak37yy-xgcc-13.2.0-libgcc
+  /nix/store/zph9xw0drmq3rl2ik5slg0n2frw9lw5m-zlib-1.3.1
+  /nix/store/ss6gh67xv5jw6jh0l7dwmyx9823wvb60-zstd-1.5.5
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/a2fqd5k8ymb2cadb5awp5b90a5m8acln-gcc-13.2.0-libgcc' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/rxganm4ibf31qngal3j3psp20mak37yy-xgcc-13.2.0-libgcc' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/7n0mbqydcipkpbxm24fab066lxk68aqk-libunistring-1.1' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/7ararm009ri4jrg1rgz2n1bhdzhln5s2-publicsuffix-list-0-unstable-2024-01-07' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/s32cldbh9pfzd9z82izi12mdlrw0yf8q-libidn2-2.3.7' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/ddwyrxif62r8n6xclvskjyy6szdhvj60-glibc-2.39-5' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/7i768y3q30fx0qgajwdp9m7bzj13xiyg-attr-2.5.2' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/s279kslfwqlnx79df9ygj9f758x3skda-brotli-1.1.0-lib' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/a1s263pmsci9zykm5xcdf7x9rv26w6d5-bash-5.2p26' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/vcxkk3l25hlix62aivl2prfhpczrvymp-expat-2.6.2' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/kci440kzdmyi7b1axs3w6nlmswk3881j-libpsl-0.21.5' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/p25ghy7y53lyc834xnw5mrhfq096wa4x-openssl-3.0.13' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/237dff1igc3v09p9r23a37yw8dr04bv6-gnused-4.9' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/d5wvzzmqx3dkmp36r1vzz69gak6x5bkx-keyutils-1.6.3-lib' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/dvwbmkf5gqwly9ysp6sld4c6iwmqijm3-nghttp2-1.60.0-lib' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/c2yb135iv4maadia5f760b3xhbh6jh61-gcc-13.2.0-lib' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/5sqdrc4jpr4vjiiqycyw8q4v3zchpdka-pcre2-10.43' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/zph9xw0drmq3rl2ik5slg0n2frw9lw5m-zlib-1.3.1' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/7d4h6k9rmh0gy39s024ggkbkasspsb4n-acl-2.3.2' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/li8plf2qixrlrlny7qhw5ylgq01h3z7q-libkrb5-1.21.2' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/avqi5nnx7qydr078ssgifc2hgzqipqgx-gnugrep-3.11' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/gqrbbhxahk4mayblnc0sfpksgph197bb-libssh2-1.11.0' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/qjb0xvlkzdbrxxasmajw93phx3wh8vq6-gettext-0.21.1' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/n32h02pn52pk38m0p00wh7f2ri8xrh8h-gmp-with-cxx-6.3.0' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/ss6gh67xv5jw6jh0l7dwmyx9823wvb60-zstd-1.5.5' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/ifzwv2xqwdnv1gz87rxkizi67py5p3vj-coreutils-9.4' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/2v59zbb6i773c1b0mwwdqhw3nghfm6d9-curl-8.6.0' from 'https://cache.nixos.org'...
+Installing emulators (this may take a while on first run)...
+copying path '/nix/store/bv5kc5im1r2b99x7vni3cwphnzgmd8ck-git-minimal-2.44.0' from 'https://cache.nixos.org'...
+```
+
+## Uninstall script can't remove nix store
+
+```
+ ~/Development/kyaraben λ ./ui/binaries/kyaraben-x86_64-unknown-linux-gnu uninstall
+This will remove:
+
+  /home/fausto/.local/state/kyaraben (nix store, manifest, state)
+
+  Desktop entries:
+    /home/fausto/.local/share/applications/com.libretro.RetroArch.desktop
+    /home/fausto/.local/share/applications/tic80.desktop
+    /home/fausto/.local/share/applications/com.libretro.RetroArch.desktop
+    /home/fausto/.local/share/applications/tic80.desktop
+    /home/fausto/.local/share/applications/duckstation.desktop
+    /home/fausto/.local/share/applications/eden.desktop
+
+  Icons:
+    /home/fausto/.local/share/icons/hicolor/scalable/apps/duckstation.svg
+    /home/fausto/.local/share/icons/hicolor/scalable/apps/eden.svg
+
+  Managed config files:
+    /home/fausto/.config/retroarch/retroarch.cfg
+    /home/fausto/.config/retroarch/config/mgba_libretro/mgba_libretro.cfg
+    /home/fausto/.config/duckstation/settings.ini
+    /home/fausto/.config/retroarch/config/bsnes_libretro/bsnes_libretro.cfg
+    /home/fausto/.config/eden/qt-config.ini
+
+This will NOT remove:
+  ~/Emulation (your ROMs, saves, BIOS)
+  /home/fausto/.config/kyaraben (your kyaraben config)
+
+Proceed? [y/N] y
+
+Removing kyaraben files...
+  Removed: /home/fausto/.config/retroarch/retroarch.cfg
+  Removed: /home/fausto/.config/retroarch/config/mgba_libretro/mgba_libretro.cfg
+  Removed: /home/fausto/.config/duckstation/settings.ini
+  Removed: /home/fausto/.config/retroarch/config/bsnes_libretro/bsnes_libretro.cfg
+  Removed: /home/fausto/.config/eden/qt-config.ini
+  Removed: /home/fausto/.local/share/applications/com.libretro.RetroArch.desktop
+  Removed: /home/fausto/.local/share/applications/tic80.desktop
+  Removed: /home/fausto/.local/share/applications/duckstation.desktop
+  Removed: /home/fausto/.local/share/applications/eden.desktop
+  Removed: /home/fausto/.local/share/icons/hicolor/scalable/apps/duckstation.svg
+  Removed: /home/fausto/.local/share/icons/hicolor/scalable/apps/eden.svg
+  Warning: could not remove /home/fausto/.local/state/kyaraben: unlinkat /home/fausto/.local/state/kyaraben/build/nix/.nix-portable/nix/store/a2fqd5k8ymb2cadb5awp5b90a5m8acln-gcc-13.2.0-libgcc/lib/libgcc_s.so: permission denied
+
+Done. Kyaraben files have been removed.
+
+To fully uninstall, also remove:
+  /home/fausto/.config/kyaraben (your config)
+  The kyaraben binary itself
+ ~/Development/kyaraben λ ls -la ~/.local/state/kyaraben/
+drwxr-xr-x - fausto  1 Feb 20:27 󱧼 build
+```
