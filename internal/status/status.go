@@ -65,7 +65,7 @@ func Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg 
 
 	checker := store.NewProvisionChecker(userStore)
 	for sys, sysConf := range cfg.Systems {
-		emu, err := reg.GetEmulator(sysConf.Emulator)
+		emu, err := reg.GetEmulator(sysConf.EmulatorID())
 		if err != nil {
 			continue
 		}
