@@ -74,3 +74,18 @@ export interface InstallStatus {
 }
 
 export type SyncMode = 'primary' | 'secondary'
+
+export interface StateDirInfo {
+  readonly exists: boolean
+  readonly manifestExists: boolean
+  readonly flakeExists: boolean
+  readonly brokenSymlinks: readonly string[]
+}
+
+export interface BugReportInfo {
+  readonly appVersion: string
+  readonly platform: string
+  readonly arch: string
+  readonly osRelease: string
+  readonly stateDir: StateDirInfo
+}
