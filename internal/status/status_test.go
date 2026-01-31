@@ -32,8 +32,8 @@ func TestGet(t *testing.T) {
 			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemTIC80: {Emulator: string(model.EmulatorTIC80)},
-			model.SystemSNES:  {Emulator: string(model.EmulatorRetroArchBsnes)},
+			model.SystemE2ETest: {Emulator: string(model.EmulatorE2ETest)},
+			model.SystemSNES:    {Emulator: string(model.EmulatorRetroArchBsnes)},
 		},
 	}
 
@@ -84,7 +84,7 @@ func TestGetWithInitializedStore(t *testing.T) {
 			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemTIC80: {Emulator: string(model.EmulatorTIC80)},
+			model.SystemE2ETest: {Emulator: string(model.EmulatorE2ETest)},
 		},
 	}
 
@@ -110,7 +110,7 @@ func TestGetSystemNames(t *testing.T) {
 			UserStore: tmpDir,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemTIC80: {Emulator: string(model.EmulatorTIC80)},
+			model.SystemE2ETest: {Emulator: string(model.EmulatorE2ETest)},
 		},
 	}
 
@@ -127,11 +127,11 @@ func TestGetSystemNames(t *testing.T) {
 	}
 
 	sys := result.EnabledSystems[0]
-	if sys.ID != model.SystemTIC80 {
-		t.Errorf("System ID: got %s, want %s", sys.ID, model.SystemTIC80)
+	if sys.ID != model.SystemE2ETest {
+		t.Errorf("System ID: got %s, want %s", sys.ID, model.SystemE2ETest)
 	}
-	if sys.Name != "TIC-80" {
-		t.Errorf("System Name: got %s, want TIC-80", sys.Name)
+	if sys.Name != "E2E Test" {
+		t.Errorf("System Name: got %s, want E2E Test", sys.Name)
 	}
 }
 
@@ -149,8 +149,8 @@ func TestGetMissingRequiredCount(t *testing.T) {
 			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemPSX:   {Emulator: string(model.EmulatorDuckStation)},
-			model.SystemTIC80: {Emulator: string(model.EmulatorTIC80)},
+			model.SystemPSX:     {Emulator: string(model.EmulatorDuckStation)},
+			model.SystemE2ETest: {Emulator: string(model.EmulatorE2ETest)},
 		},
 	}
 
@@ -162,7 +162,6 @@ func TestGetMissingRequiredCount(t *testing.T) {
 		t.Fatalf("Get failed: %v", err)
 	}
 
-	// PSX has required BIOS, TIC-80 doesn't
 	if result.MissingRequiredCount != 1 {
 		t.Errorf("MissingRequiredCount: got %d, want 1 (PSX missing BIOS)", result.MissingRequiredCount)
 	}
@@ -171,12 +170,11 @@ func TestGetMissingRequiredCount(t *testing.T) {
 func TestGetWithManifest(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	// Create manifest
 	manifest := &model.Manifest{
 		LastApplied: time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC),
 		InstalledEmulators: map[model.EmulatorID]model.InstalledEmulator{
-			model.EmulatorTIC80: {
-				ID:        model.EmulatorTIC80,
+			model.EmulatorE2ETest: {
+				ID:        model.EmulatorE2ETest,
 				Version:   "latest",
 				StorePath: "/nix/store/abc123",
 				Installed: time.Now(),
@@ -194,7 +192,7 @@ func TestGetWithManifest(t *testing.T) {
 			UserStore: tmpDir,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemTIC80: {Emulator: string(model.EmulatorTIC80)},
+			model.SystemE2ETest: {Emulator: string(model.EmulatorE2ETest)},
 		},
 	}
 
@@ -211,11 +209,11 @@ func TestGetWithManifest(t *testing.T) {
 	}
 
 	emu := result.InstalledEmulators[0]
-	if emu.ID != model.EmulatorTIC80 {
-		t.Errorf("Emulator ID: got %s, want %s", emu.ID, model.EmulatorTIC80)
+	if emu.ID != model.EmulatorE2ETest {
+		t.Errorf("Emulator ID: got %s, want %s", emu.ID, model.EmulatorE2ETest)
 	}
-	if emu.Name != "TIC-80" {
-		t.Errorf("Emulator Name: got %s, want TIC-80", emu.Name)
+	if emu.Name != "E2E Test" {
+		t.Errorf("Emulator Name: got %s, want E2E Test", emu.Name)
 	}
 	if emu.Version != "latest" {
 		t.Errorf("Emulator Version: got %s, want latest", emu.Version)

@@ -333,16 +333,17 @@ func packageInfoForArchive(name string, entry *versions.VersionEntry, spec *vers
 	}
 
 	// Determine extraction command based on archive type
+	// Note: ${src} uses Nix interpolation to reference the let-bound src
 	var extractCmd string
 	switch archiveType {
 	case "7z":
-		extractCmd = "${pkgs.p7zip}/bin/7z x -o$TMPDIR/extracted $src"
+		extractCmd = "${pkgs.p7zip}/bin/7z x -o$TMPDIR/extracted ${src}"
 	case "tar.gz", "tgz":
-		extractCmd = "${pkgs.gnutar}/bin/tar -xzf $src -C $TMPDIR/extracted"
+		extractCmd = "${pkgs.gnutar}/bin/tar -xzf ${src} -C $TMPDIR/extracted"
 	case "tar.xz":
-		extractCmd = "${pkgs.gnutar}/bin/tar -xJf $src -C $TMPDIR/extracted"
+		extractCmd = "${pkgs.gnutar}/bin/tar -xJf ${src} -C $TMPDIR/extracted"
 	case "zip":
-		extractCmd = "${pkgs.unzip}/bin/unzip -q $src -d $TMPDIR/extracted"
+		extractCmd = "${pkgs.unzip}/bin/unzip -q ${src} -d $TMPDIR/extracted"
 	default:
 		return PackageInfo{}, fmt.Errorf("unsupported archive type: %s", archiveType)
 	}

@@ -27,17 +27,13 @@ func TestRun(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(userStorePath, "bios", "psx"), 0755); err != nil {
 		t.Fatalf("Failed to create bios dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(userStorePath, "bios", "tic80"), 0755); err != nil {
-		t.Fatalf("Failed to create bios dir: %v", err)
-	}
-
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
 			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemPSX:   {Emulator: string(model.EmulatorDuckStation)},
-			model.SystemTIC80: {Emulator: string(model.EmulatorTIC80)},
+			model.SystemPSX:     {Emulator: string(model.EmulatorDuckStation)},
+			model.SystemE2ETest: {Emulator: string(model.EmulatorE2ETest)},
 		},
 	}
 
@@ -67,16 +63,12 @@ func TestRunNoProvisions(t *testing.T) {
 	tmpDir := t.TempDir()
 	userStorePath := filepath.Join(tmpDir, "Emulation")
 
-	if err := os.MkdirAll(filepath.Join(userStorePath, "bios", "tic80"), 0755); err != nil {
-		t.Fatalf("Failed to create bios dir: %v", err)
-	}
-
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
 			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemTIC80: {Emulator: string(model.EmulatorTIC80)},
+			model.SystemE2ETest: {Emulator: string(model.EmulatorE2ETest)},
 		},
 	}
 
@@ -93,14 +85,14 @@ func TestRunNoProvisions(t *testing.T) {
 	}
 
 	sys := result.Systems[0]
-	if sys.SystemID != model.SystemTIC80 {
-		t.Errorf("SystemID: got %s, want %s", sys.SystemID, model.SystemTIC80)
+	if sys.SystemID != model.SystemE2ETest {
+		t.Errorf("SystemID: got %s, want %s", sys.SystemID, model.SystemE2ETest)
 	}
-	if sys.EmulatorName != "TIC-80" {
-		t.Errorf("EmulatorName: got %s, want TIC-80", sys.EmulatorName)
+	if sys.EmulatorName != "E2E Test" {
+		t.Errorf("EmulatorName: got %s, want E2E Test", sys.EmulatorName)
 	}
 	if len(sys.Provisions) != 0 {
-		t.Errorf("Provisions: got %d, want 0 (TIC-80 has no provisions)", len(sys.Provisions))
+		t.Errorf("Provisions: got %d, want 0 (e2e-test has no provisions)", len(sys.Provisions))
 	}
 
 	if result.RequiredMissing != 0 {

@@ -13,21 +13,18 @@ func TestCLIInit(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "config.toml")
 	userStore := filepath.Join(tmpDir, "Emulation")
 
-	// Run init command
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "tic80")
+	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "e2e-test")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
 
-	// Verify config file was created
 	if _, err := os.Stat(configPath); err != nil {
 		t.Errorf("Config file not created: %v", err)
 	}
 
-	// Verify output mentions TIC-80
-	if !strings.Contains(string(output), "TIC-80") {
-		t.Errorf("Output doesn't mention TIC-80: %s", output)
+	if !strings.Contains(string(output), "E2E Test") {
+		t.Errorf("Output doesn't mention E2E Test: %s", output)
 	}
 }
 
@@ -88,24 +85,22 @@ func TestCLIDoctor(t *testing.T) {
 	}
 }
 
-func TestCLIDoctorTIC80(t *testing.T) {
+func TestCLIDoctorE2ETest(t *testing.T) {
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "config.toml")
 	userStore := filepath.Join(tmpDir, "Emulation")
 
-	// Initialize with TIC-80 (no BIOS requirements)
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "tic80")
+	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "e2e-test")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
 
-	_ = os.MkdirAll(filepath.Join(userStore, "bios", "tic80"), 0755)
+	_ = os.MkdirAll(filepath.Join(userStore, "bios", "e2e-test"), 0755)
 
-	// Run doctor command - should pass (no provisions needed)
 	cmd = kyarabenCmd(t, "-c", configPath, "doctor")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("doctor failed for TIC-80: %v\nOutput: %s", err, output)
+		t.Fatalf("doctor failed for E2E Test: %v\nOutput: %s", err, output)
 	}
 
 	outputStr := string(output)
@@ -119,13 +114,11 @@ func TestCLIApplyDryRun(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "config.toml")
 	userStore := filepath.Join(tmpDir, "Emulation")
 
-	// Initialize with TIC-80
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "tic80")
+	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "e2e-test")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
 
-	// Run apply with --dry-run
 	cmd = kyarabenCmd(t, "-c", configPath, "apply", "--dry-run")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -140,7 +133,6 @@ func TestCLIApplyDryRun(t *testing.T) {
 		t.Errorf("Output doesn't mention dry run: %s", outputStr)
 	}
 
-	// Verify directories were NOT created (dry run)
 	if _, err := os.Stat(userStore); err == nil {
 		t.Errorf("UserStore should not be created in dry run")
 	}
@@ -170,13 +162,11 @@ func TestCLIInitForce(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "config.toml")
 	userStore := filepath.Join(tmpDir, "Emulation")
 
-	// First init with TIC-80
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "tic80")
+	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "e2e-test")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
 
-	// Try to init again without --force (should fail)
 	cmd = kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "snes")
 	output, err := cmd.CombinedOutput()
 	if err == nil {
@@ -186,7 +176,6 @@ func TestCLIInitForce(t *testing.T) {
 		t.Errorf("Error message should mention config already exists: %s", output)
 	}
 
-	// Init with --force (should succeed)
 	cmd = kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "snes", "-f")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("init --force failed: %v\nOutput: %s", err, output)
@@ -234,13 +223,11 @@ func TestCLIUninstall(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "config.toml")
 	userStore := filepath.Join(tmpDir, "Emulation")
 
-	// Initialize
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "tic80")
+	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "e2e-test")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
 
-	// Run uninstall with --force (skip prompt)
 	cmd = kyarabenCmd(t, "-c", configPath, "uninstall", "-f")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -261,13 +248,11 @@ func TestCLISyncStatusDisabled(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "config.toml")
 	userStore := filepath.Join(tmpDir, "Emulation")
 
-	// Initialize without sync enabled
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "tic80")
+	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "e2e-test")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
 
-	// Run sync status - should show disabled
 	cmd = kyarabenCmd(t, "-c", configPath, "sync", "status")
 	output, err := cmd.CombinedOutput()
 	if err != nil {

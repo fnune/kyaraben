@@ -9,7 +9,6 @@ const (
 	SystemPS2       SystemID = "ps2"
 	SystemPS3       SystemID = "ps3"
 	SystemPSVita    SystemID = "psvita"
-	SystemTIC80     SystemID = "tic80"
 	SystemGBA       SystemID = "gba"
 	SystemNDS       SystemID = "nds"
 	SystemPSP       SystemID = "psp"

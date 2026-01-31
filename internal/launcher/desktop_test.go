@@ -194,9 +194,9 @@ func TestRewriteDesktopExecLines(t *testing.T) {
 		},
 		{
 			name:     "simple binary name with args",
-			input:    "Exec=tic80 %f",
-			binary:   "tic80",
-			expected: "Exec=/home/user/.local/state/kyaraben/bin/tic80 %f",
+			input:    "Exec=mgba %f",
+			binary:   "mgba",
+			expected: "Exec=/home/user/.local/state/kyaraben/bin/mgba %f",
 		},
 		{
 			name:     "simple binary in full desktop file",

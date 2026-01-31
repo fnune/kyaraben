@@ -75,17 +75,16 @@ AppImages avoid this because they use the host system's graphics drivers directl
 | Cemu | Wii U | VersionedAppImage | [GitHub Releases](https://github.com/cemu-project/Cemu/releases) | Official AppImage since 2.0 |
 | Azahar | 3DS | VersionedAppImage | [GitHub Releases](https://github.com/azahar-emu/azahar/releases) | Citra successor |
 | RetroArch:bsnes | SNES | VersionedAppImage (7z) | [Buildbot](https://buildbot.libretro.com/stable/) | Shared package with melonDS |
-| RetroArch:melonds | NDS | VersionedAppImage (7z) | [Buildbot](https://buildbot.libretro.com/stable/) | Shared package with bsnes |
-| TIC-80 | TIC-80 | VersionedTarball | [GitHub Releases](https://github.com/nesbox/TIC-80/releases) | Fantasy console |
+| melonDS | NDS | VersionedAppImage (zip) | [GitHub Releases](https://github.com/melonDS-emu/melonDS/releases) | Standalone NDS emulator |
+| Vita3K | PS Vita | VersionedAppImage | [GitHub Releases](https://github.com/Vita3K/Vita3K-builds/releases) | Rolling builds |
+| RPCS3 | PS3 | VersionedAppImage | [GitHub Releases](https://github.com/RPCS3/rpcs3-binaries-linux/releases) | Rolling with commit hashes |
+| Flycast | Dreamcast | VersionedAppImage | [GitHub Releases](https://github.com/flyinghead/flycast/releases) | Sega Dreamcast emulator |
 
 ### Planned Changes
 
 | Emulator | System(s) | Method | Source | Versioned? | Notes |
 |----------|-----------|--------|--------|------------|-------|
-| RPCS3 | PS3 | AppImage | [GitHub Releases](https://github.com/RPCS3/rpcs3-binaries-linux/releases) | ✅ Yes | Rolling with commit hashes |
-| melonDS | NDS | AppImage (in ZIP) | [GitHub Releases](https://github.com/melonDS-emu/melonDS/releases) | ✅ Yes | Standalone, replace RA core as default |
-| Vita3K | PS Vita | AppImage | [GitHub Releases](https://github.com/Vita3K/Vita3K-builds/releases) | ✅ Yes | Rolling with build numbers + commit hashes |
-| Flycast | Dreamcast | Tarball | [GitHub Releases](https://github.com/flyinghead/flycast/releases) | ✅ Yes | Or use RA core |
+| (All planned emulators have been implemented) | | | | |
 
 ### RetroArch Approach
 
@@ -132,10 +131,12 @@ All planned emulators support text-based configuration files:
 | **PPSSPP** | `https://github.com/hrydgard/ppsspp/releases/download/{version}/PPSSPP-{version}-anylinux-x86_64.AppImage` | `v1.19.3` |
 | **mGBA** | `https://github.com/mgba-emu/mgba/releases/download/{version}/mGBA-{version}-appimage-x64.appimage` | `0.10.5` (no 'v' prefix) |
 | **Cemu** | `https://github.com/cemu-project/Cemu/releases/download/v{version}/Cemu-{version}-x86_64.AppImage` | `2.4` |
-| **Azahar** | `https://github.com/azahar-emu/azahar/releases/download/{version}/azahar.AppImage` | `2120.1` |
+| **Azahar** | `https://github.com/azahar-emu/azahar/releases/download/{version}/azahar.AppImage` | `2124.3` |
 | **RPCS3** | `https://github.com/RPCS3/rpcs3-binaries-linux/releases/download/build-{hash}/rpcs3-v0.0.{minor}-{build}-{hash}_linux64.AppImage` | Rolling |
 | **RetroArch** | `https://buildbot.libretro.com/stable/{version}/linux/x86_64/RetroArch.7z` | `1.19.1` |
-| **TIC-80** | `https://github.com/nesbox/TIC-80/releases/download/v{version}/tic80-{version}-linux.tar.gz` | `1.1.2837` |
+| **Flycast** | `https://github.com/flyinghead/flycast/releases/download/v{version}/flycast-{target}.AppImage` | `2.6` |
+| **Vita3K** | `https://github.com/Vita3K/Vita3K-builds/releases/download/{release_tag}/Vita3K-{target}.AppImage` | `3912` |
+| **RPCS3** | `https://github.com/RPCS3/rpcs3-binaries-linux/releases/download/{release_tag}/rpcs3-v{version}_linux64.AppImage` | `0.0.18-12817-fff0c96b` |
 
 ### Patterns Requiring Special Handling
 
@@ -171,17 +172,11 @@ https://buildbot.example.com/nightly/app.AppImage
 ### Archive Extraction Support
 Archive extraction is implemented in flake.go (7z, tar.gz, zip). These emulators use archives instead of direct AppImages:
 
-- ✅ RetroArch - 7z archive from buildbot (shared by bsnes, melonDS cores)
-- ✅ TIC-80 - tar.gz from GitHub
+- ✅ RetroArch - 7z archive from buildbot
+- ✅ melonDS - zip archive containing AppImage
 
-### Needs Implementation
-- 🔲 melonDS standalone - AppImage inside ZIP file (replace RA core as NDS default)
-- 🔲 Vita3K - rolling builds with build numbers + commit hashes
-- 🔲 RPCS3 - rolling builds with commit hashes
-- 🔲 Flycast - tarball for Dreamcast
-
-### All Hashes Are Placeholders
-All new entries in `versions.toml` have placeholder hashes. To compute real hashes:
+### Computing Hashes
+To compute SHA256 hashes for new emulator versions:
 ```bash
 nix-prefetch-url <url>
 nix hash convert --to sri --hash-algo sha256 <hash>

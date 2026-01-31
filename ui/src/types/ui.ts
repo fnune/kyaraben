@@ -8,10 +8,17 @@ export const SYSTEM_MANUFACTURERS: Readonly<Record<SystemID, Manufacturer>> = {
   snes: 'Nintendo',
   gba: 'Nintendo',
   nds: 'Nintendo',
+  '3ds': 'Nintendo',
+  gamecube: 'Nintendo',
+  wii: 'Nintendo',
+  wiiu: 'Nintendo',
   switch: 'Nintendo',
   psx: 'Sony',
+  ps2: 'Sony',
+  ps3: 'Sony',
   psp: 'Sony',
-  tic80: 'Other',
+  psvita: 'Sony',
+  dreamcast: 'Other',
   'e2e-test': 'Other',
 }
 

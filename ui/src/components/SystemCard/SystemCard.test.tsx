@@ -17,9 +17,12 @@ describe('SystemCard', () => {
       <SystemCard
         system={mockSystem}
         selectedEmulator="retroarch:bsnes"
+        pinnedVersion={null}
+        installedVersion={null}
         provisions={[]}
         enabled={false}
         onToggle={vi.fn()}
+        onVersionChange={vi.fn()}
       />,
     )
 
@@ -32,9 +35,12 @@ describe('SystemCard', () => {
       <SystemCard
         system={mockSystem}
         selectedEmulator="retroarch:bsnes"
+        pinnedVersion={null}
+        installedVersion={null}
         provisions={[]}
         enabled={true}
         onToggle={vi.fn()}
+        onVersionChange={vi.fn()}
       />,
     )
 
@@ -50,9 +56,12 @@ describe('SystemCard', () => {
       <SystemCard
         system={mockSystem}
         selectedEmulator="retroarch:bsnes"
+        pinnedVersion={null}
+        installedVersion={null}
         provisions={[]}
         enabled={false}
         onToggle={onToggle}
+        onVersionChange={vi.fn()}
       />,
     )
 
@@ -65,6 +74,8 @@ describe('SystemCard', () => {
       <SystemCard
         system={mockSystem}
         selectedEmulator="retroarch:bsnes"
+        pinnedVersion={null}
+        installedVersion={null}
         provisions={[
           {
             filename: 'bios.bin',
@@ -75,6 +86,7 @@ describe('SystemCard', () => {
         ]}
         enabled={false}
         onToggle={vi.fn()}
+        onVersionChange={vi.fn()}
       />,
     )
 
@@ -87,6 +99,8 @@ describe('SystemCard', () => {
       <SystemCard
         system={mockSystem}
         selectedEmulator="retroarch:bsnes"
+        pinnedVersion={null}
+        installedVersion={null}
         provisions={[
           {
             filename: 'optional.bin',
@@ -97,6 +111,7 @@ describe('SystemCard', () => {
         ]}
         enabled={false}
         onToggle={vi.fn()}
+        onVersionChange={vi.fn()}
       />,
     )
 
