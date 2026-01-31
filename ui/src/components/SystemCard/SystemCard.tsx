@@ -1,13 +1,17 @@
 import type { ChangeEvent } from 'react'
 import { SystemIcon } from '@/components/SystemIcon/SystemIcon'
+import { VersionSelector } from '@/components/VersionSelector/VersionSelector'
 import type { EmulatorID, ProvisionResult, System, SystemID } from '@/types/daemon'
 
 export interface SystemCardProps {
   readonly system: System
   readonly selectedEmulator: EmulatorID | null
+  readonly pinnedVersion: string | null
+  readonly installedVersion: string | null
   readonly provisions: readonly ProvisionResult[]
   readonly enabled: boolean
   readonly onToggle: (systemId: SystemID, enabled: boolean) => void
+  readonly onVersionChange: (systemId: SystemID, version: string | null) => void
 }
 
 function ProvisionBadge({ provision }: { readonly provision: ProvisionResult }) {
@@ -35,16 +39,24 @@ function ProvisionBadge({ provision }: { readonly provision: ProvisionResult }) 
 export function SystemCard({
   system,
   selectedEmulator,
+  pinnedVersion,
+  installedVersion,
   provisions,
   enabled,
   onToggle,
+  onVersionChange,
 }: SystemCardProps) {
   const emulator = system.emulators.find((e) => e.id === selectedEmulator) ?? system.emulators[0]
   const hasRequiredMissing = provisions.some((p) => p.required && p.status !== 'found')
   const hasProvisions = provisions.length > 0
+  const hasVersions = emulator?.availableVersions && emulator.availableVersions.length > 0
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     onToggle(system.id, e.target.checked)
+  }
+
+  const handleVersionChange = (version: string | null) => {
+    onVersionChange(system.id, version)
   }
 
   return (
@@ -57,9 +69,19 @@ export function SystemCard({
           className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
         />
         <SystemIcon systemId={system.id} size="medium" />
-        <div className="flex flex-col">
+        <div className="flex flex-col flex-1">
           <h3 className="font-semibold text-gray-900">{system.name}</h3>
-          {emulator && <span className="text-sm text-gray-500">{emulator.name}</span>}
+          <div className="flex items-center justify-between gap-2">
+            {emulator && <span className="text-sm text-gray-500">{emulator.name}</span>}
+            {hasVersions && enabled && emulator && (
+              <VersionSelector
+                emulator={emulator}
+                pinnedVersion={pinnedVersion}
+                installedVersion={installedVersion}
+                onChange={handleVersionChange}
+              />
+            )}
+          </div>
         </div>
       </label>
 
