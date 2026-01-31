@@ -88,17 +88,24 @@ func (d *Daemon) loadConfig() (*model.KyarabenConfig, error) {
 	return model.LoadConfig(path)
 }
 
-func (d *Daemon) handleStatus() []Event {
+func (d *Daemon) loadConfigOrDefault() (*model.KyarabenConfig, error) {
 	cfg, err := d.loadConfig()
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			cfg = model.NewDefaultConfig()
-		} else {
-			return []Event{{
-				Type: EventError,
-				Data: map[string]string{"error": fmt.Sprintf("loading config: %v", err)},
-			}}
+			return model.NewDefaultConfig(), nil
 		}
+		return nil, err
+	}
+	return cfg, nil
+}
+
+func (d *Daemon) handleStatus() []Event {
+	cfg, err := d.loadConfig()
+	if err != nil {
+		return []Event{{
+			Type: EventError,
+			Data: map[string]string{"error": err.Error()},
+		}}
 	}
 
 	configPath := d.configPath
@@ -157,14 +164,10 @@ func (d *Daemon) handleStatus() []Event {
 func (d *Daemon) handleDoctor() []Event {
 	cfg, err := d.loadConfig()
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			cfg = model.NewDefaultConfig()
-		} else {
-			return []Event{{
-				Type: EventError,
-				Data: map[string]string{"error": fmt.Sprintf("loading config: %v", err)},
-			}}
-		}
+		return []Event{{
+			Type: EventError,
+			Data: map[string]string{"error": err.Error()},
+		}}
 	}
 
 	userStore, err := store.NewUserStore(cfg.Global.UserStore)
@@ -303,16 +306,12 @@ func (d *Daemon) handleGetSystems() []Event {
 }
 
 func (d *Daemon) handleGetConfig() []Event {
-	cfg, err := d.loadConfig()
+	cfg, err := d.loadConfigOrDefault()
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			cfg = model.NewDefaultConfig()
-		} else {
-			return []Event{{
-				Type: EventError,
-				Data: map[string]string{"error": fmt.Sprintf("loading config: %v", err)},
-			}}
-		}
+		return []Event{{
+			Type: EventError,
+			Data: map[string]string{"error": fmt.Sprintf("loading config: %v", err)},
+		}}
 	}
 
 	systems := make(map[string]string)
@@ -330,16 +329,12 @@ func (d *Daemon) handleGetConfig() []Event {
 }
 
 func (d *Daemon) handleSetConfig(data map[string]interface{}) []Event {
-	cfg, err := d.loadConfig()
+	cfg, err := d.loadConfigOrDefault()
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			cfg = model.NewDefaultConfig()
-		} else {
-			return []Event{{
-				Type: EventError,
-				Data: map[string]string{"error": fmt.Sprintf("loading config: %v", err)},
-			}}
-		}
+		return []Event{{
+			Type: EventError,
+			Data: map[string]string{"error": fmt.Sprintf("loading config: %v", err)},
+		}}
 	}
 
 	if userStore, ok := data["userStore"].(string); ok {
@@ -380,14 +375,10 @@ func (d *Daemon) handleSetConfig(data map[string]interface{}) []Event {
 func (d *Daemon) handleSyncStatus() []Event {
 	cfg, err := d.loadConfig()
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			cfg = model.NewDefaultConfig()
-		} else {
-			return []Event{{
-				Type: EventError,
-				Data: map[string]string{"error": fmt.Sprintf("loading config: %v", err)},
-			}}
-		}
+		return []Event{{
+			Type: EventError,
+			Data: map[string]string{"error": err.Error()},
+		}}
 	}
 
 	if !cfg.Sync.Enabled {

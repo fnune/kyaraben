@@ -112,8 +112,6 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 		opts.OnProgress = func(Progress) {}
 	}
 
-	opts.OnProgress(Progress{Step: "start", Message: "Starting apply..."})
-
 	if !opts.DryRun && !a.NixClient.IsAvailable() {
 		return nil, fmt.Errorf("nix is not available (nix-portable not found)")
 	}
@@ -140,8 +138,6 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 		return &Result{Patches: allPatches}, nil
 	}
 
-	opts.OnProgress(Progress{Step: "directories", Message: "Creating directory structure..."})
-
 	if err := userStore.Initialize(); err != nil {
 		return nil, fmt.Errorf("initializing user store: %w", err)
 	}
@@ -152,8 +148,6 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 		}
 	}
 
-	opts.OnProgress(Progress{Step: "flake", Message: "Generating Nix flake..."})
-
 	if err := a.NixClient.EnsureFlakeDir(); err != nil {
 		return nil, fmt.Errorf("creating flake directory: %w", err)
 	}
@@ -163,7 +157,7 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 		return nil, fmt.Errorf("generating flake: %w", err)
 	}
 
-	opts.OnProgress(Progress{Step: "build", Message: "Installing emulators..."})
+	opts.OnProgress(Progress{Step: "build", Message: "This may take a few minutes on first run"})
 
 	a.NixClient.SetOutputCallback(func(line string) {
 		opts.OnProgress(Progress{Step: "build", Output: line})
@@ -218,7 +212,7 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 	}
 
 	if a.LauncherManager != nil {
-		opts.OnProgress(Progress{Step: "wrappers", Message: "Generating launcher scripts..."})
+		opts.OnProgress(Progress{Step: "desktop"})
 
 		a.LauncherManager.SetNixPortableBinary(a.NixClient.GetNixPortableBinary())
 		a.LauncherManager.SetNixPortableLocation(a.NixClient.GetNixPortableLocation())
@@ -230,13 +224,9 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 		if err := a.LauncherManager.GenerateDesktopFiles(desktopEntries); err != nil {
 			return nil, fmt.Errorf("generating desktop files: %w", err)
 		}
-
-		if err := a.LauncherManager.GenerateEnvironmentConfig(); err != nil {
-			return nil, fmt.Errorf("generating environment config: %w", err)
-		}
 	}
 
-	opts.OnProgress(Progress{Step: "configs", Message: "Applying emulator configurations..."})
+	opts.OnProgress(Progress{Step: "config"})
 
 	manifest, err := model.LoadManifest(a.ManifestPath)
 	if err != nil {
@@ -274,8 +264,6 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 			})
 		}
 	}
-
-	opts.OnProgress(Progress{Step: "manifest", Message: "Updating manifest..."})
 
 	manifest.LastApplied = time.Now()
 

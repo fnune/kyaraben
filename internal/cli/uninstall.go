@@ -48,8 +48,11 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 	}
 
 	launcherMgr := launcher.NewManager()
-	if envPath, err := launcherMgr.EnvironmentConfigPath(); err == nil && fileExists(envPath) {
-		fmt.Printf("  %s (shell environment integration)\n", envPath)
+	if dirExists(launcherMgr.ApplicationsDir()) {
+		fmt.Printf("  %s (desktop entries)\n", launcherMgr.ApplicationsDir())
+	}
+	if dirExists(launcherMgr.IconsDir()) {
+		fmt.Printf("  %s (icons)\n", launcherMgr.IconsDir())
 	}
 
 	if len(manifest.ManagedConfigs) > 0 {
@@ -99,10 +102,20 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 		}
 	}
 
-	if err := launcherMgr.RemoveEnvironmentConfig(); err != nil {
-		fmt.Printf("  Warning: could not remove environment config: %v\n", err)
-	} else if envPath, err := launcherMgr.EnvironmentConfigPath(); err == nil {
-		fmt.Printf("  Removed: %s\n", envPath)
+	if dirExists(launcherMgr.ApplicationsDir()) {
+		if err := os.RemoveAll(launcherMgr.ApplicationsDir()); err != nil {
+			fmt.Printf("  Warning: could not remove %s: %v\n", launcherMgr.ApplicationsDir(), err)
+		} else {
+			fmt.Printf("  Removed: %s\n", launcherMgr.ApplicationsDir())
+		}
+	}
+
+	if dirExists(launcherMgr.IconsDir()) {
+		if err := os.RemoveAll(launcherMgr.IconsDir()); err != nil {
+			fmt.Printf("  Warning: could not remove %s: %v\n", launcherMgr.IconsDir(), err)
+		} else {
+			fmt.Printf("  Removed: %s\n", launcherMgr.IconsDir())
+		}
 	}
 
 	if dirExists(kyarabenStateDir) {

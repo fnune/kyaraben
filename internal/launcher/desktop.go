@@ -4,10 +4,13 @@ import (
 	"embed"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"text/template"
+
+	"github.com/fnune/kyaraben/internal/paths"
 )
 
 //go:embed icons/*.svg
@@ -41,21 +44,24 @@ Name={{.Name}}
 {{- if .GenericName}}
 GenericName={{.GenericName}}
 {{- end}}
-Exec={{.BinaryName}} %f
+Exec={{.BinDir}}/{{.BinaryName}} %f
 Icon={{.BinaryName}}
 Categories={{.CategoriesStr}};
 `
 
-func (m *Manager) ShareDir() string {
-	return filepath.Join(m.profileDir, "share")
-}
-
 func (m *Manager) ApplicationsDir() string {
-	return filepath.Join(m.ShareDir(), "applications")
+	dataDir, _ := paths.DataDir()
+	return filepath.Join(dataDir, "applications")
 }
 
 func (m *Manager) IconsDir() string {
-	return filepath.Join(m.ShareDir(), "icons", "hicolor", "scalable", "apps")
+	dataDir, _ := paths.DataDir()
+	return filepath.Join(dataDir, "icons", "hicolor", "scalable", "apps")
+}
+
+func (m *Manager) iconThemeDir() string {
+	dataDir, _ := paths.DataDir()
+	return filepath.Join(dataDir, "icons", "hicolor")
 }
 
 func (m *Manager) GenerateDesktopFiles(entries []DesktopEntry) error {
@@ -95,7 +101,32 @@ func (m *Manager) GenerateDesktopFiles(entries []DesktopEntry) error {
 		}
 	}
 
+	m.updateIconCache()
+
 	return nil
+}
+
+func (m *Manager) updateIconCache() {
+	themeDir := m.iconThemeDir()
+
+	// GTK-based DEs (GNOME, XFCE, etc.)
+	if _, err := exec.LookPath("gtk-update-icon-cache"); err == nil {
+		cmd := exec.Command("gtk-update-icon-cache", "-f", "-t", themeDir)
+		if err := cmd.Run(); err != nil {
+			log.Debug("gtk-update-icon-cache failed: %v", err)
+		}
+	}
+
+	// KDE Plasma
+	for _, kbuildsycoca := range []string{"kbuildsycoca6", "kbuildsycoca5"} {
+		if _, err := exec.LookPath(kbuildsycoca); err == nil {
+			cmd := exec.Command(kbuildsycoca)
+			if err := cmd.Run(); err != nil {
+				log.Debug("%s failed: %v", kbuildsycoca, err)
+			}
+			break
+		}
+	}
 }
 
 func (m *Manager) copyNixStoreDesktop(binary string) error {
@@ -131,7 +162,7 @@ func (m *Manager) copyNixStoreDesktop(binary string) error {
 			return fmt.Errorf("reading desktop file %s: %w", realPath, err)
 		}
 
-		content = rewriteDesktopExecLines(content, binary)
+		content = rewriteDesktopExecLines(content, m.BinDir(), binary)
 
 		if err := os.WriteFile(dstPath, content, 0644); err != nil {
 			if os.IsExist(err) {
@@ -157,8 +188,16 @@ func (m *Manager) virtualToRealStorePath(virtualPath string) string {
 
 var execLineRegex = regexp.MustCompile(`(?m)^Exec=/nix/store/[^/]+/bin/([^\s]+)(.*)$`)
 
-func rewriteDesktopExecLines(content []byte, binary string) []byte {
-	return execLineRegex.ReplaceAll(content, []byte("Exec="+binary+"$2"))
+func rewriteDesktopExecLines(content []byte, binDir, binary string) []byte {
+	return execLineRegex.ReplaceAll(content, []byte("Exec="+binDir+"/"+binary+"$2"))
+}
+
+type desktopTemplateData struct {
+	BinaryName    string
+	Name          string
+	GenericName   string
+	CategoriesStr string
+	BinDir        string
 }
 
 func (m *Manager) generateDesktopFile(tmpl *template.Template, entry GeneratedDesktop) error {
@@ -169,7 +208,15 @@ func (m *Manager) generateDesktopFile(tmpl *template.Template, entry GeneratedDe
 		return fmt.Errorf("creating desktop file: %w", err)
 	}
 
-	execErr := tmpl.Execute(f, entry)
+	data := desktopTemplateData{
+		BinaryName:    entry.BinaryName,
+		Name:          entry.Name,
+		GenericName:   entry.GenericName,
+		CategoriesStr: entry.CategoriesStr,
+		BinDir:        m.BinDir(),
+	}
+
+	execErr := tmpl.Execute(f, data)
 	closeErr := f.Close()
 
 	if execErr != nil {
