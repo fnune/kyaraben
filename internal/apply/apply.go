@@ -179,6 +179,8 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		return nil, fmt.Errorf("generating flake: %w", err)
 	}
 
+	resolvedVersions := a.FlakeGenerator.GetResolvedVersions(emulatorsToInstall)
+
 	opts.OnProgress(Progress{Step: "build", Message: "This may take a few minutes on first run"})
 
 	netMon := NewNetMonitor(func(bytesPerSec int64) {
@@ -310,9 +312,13 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	manifest.LastApplied = time.Now()
 
 	for _, emuID := range emulatorsToInstall {
+		version := resolvedVersions[emuID]
+		if version == "" {
+			version = "unknown"
+		}
 		manifest.AddEmulator(model.InstalledEmulator{
 			ID:        emuID,
-			Version:   "latest",
+			Version:   version,
 			StorePath: storePath,
 			Installed: time.Now(),
 		})
