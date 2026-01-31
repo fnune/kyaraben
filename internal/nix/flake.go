@@ -147,6 +147,22 @@ func getAppImageVersion(name string) *versions.AppImageVersion {
 		return &v.Eden
 	case "duckstation":
 		return &v.DuckStation
+	case "pcsx2":
+		return &v.PCSX2
+	case "ppsspp":
+		return &v.PPSSPP
+	case "mgba":
+		return &v.MGBA
+	case "cemu":
+		return &v.Cemu
+	case "azahar":
+		return &v.Azahar
+	case "dolphin":
+		return &v.Dolphin
+	case "retroarch":
+		return &v.RetroArch
+	case "tic80":
+		return &v.TIC80
 	default:
 		return nil
 	}
