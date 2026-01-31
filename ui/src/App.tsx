@@ -325,7 +325,7 @@ export function App() {
   }
 
   return (
-    <div className="h-dvh bg-white flex overflow-hidden">
+    <div className="h-dvh bg-white flex flex-col min-[720px]:flex-row overflow-hidden">
       <Sidebar currentView={currentView} onNavigate={setCurrentView} syncStatus={syncStatus} />
 
       <main className="flex-1 overflow-y-auto">{renderView()}</main>
