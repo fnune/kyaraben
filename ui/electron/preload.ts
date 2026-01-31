@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('electron', {
       'sync_status',
       'sync_add_device',
       'sync_remove_device',
+      'uninstall_preview',
       'open_path',
     ]
 
