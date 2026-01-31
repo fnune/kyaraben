@@ -11,6 +11,8 @@ const (
 	EmulatorRetroArchPPSSPP  EmulatorID = "retroarch:ppsspp"
 	EmulatorDuckStation      EmulatorID = "duckstation"
 	EmulatorPCSX2            EmulatorID = "pcsx2"
+	EmulatorPPSSPP           EmulatorID = "ppsspp"
+	EmulatorMGBA             EmulatorID = "mgba"
 	EmulatorTIC80            EmulatorID = "tic80"
 	EmulatorEden             EmulatorID = "eden"
 	EmulatorE2ETest          EmulatorID = "e2e-test"
