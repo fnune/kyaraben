@@ -25,7 +25,6 @@ type SystemConf struct {
 	Emulator EmulatorID `toml:"emulator"`
 }
 
-// DefaultConfigPath returns the default path to the kyaraben config file.
 func DefaultConfigPath() (string, error) {
 	configDir, err := os.UserConfigDir()
 	if err != nil {
@@ -34,7 +33,6 @@ func DefaultConfigPath() (string, error) {
 	return filepath.Join(configDir, "kyaraben", "config.toml"), nil
 }
 
-// DefaultUserStore returns the default path to the user's emulation directory.
 func DefaultUserStore() string {
 	return "~/Emulation"
 }
@@ -87,7 +85,6 @@ func (c *KyarabenConfig) ExpandUserStore() (string, error) {
 	return path, nil
 }
 
-// EnabledSystems returns a list of enabled system IDs.
 func (c *KyarabenConfig) EnabledSystems() []SystemID {
 	systems := make([]SystemID, 0, len(c.Systems))
 	for id := range c.Systems {

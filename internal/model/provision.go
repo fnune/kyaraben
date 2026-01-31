@@ -38,7 +38,6 @@ type ProvisionResult struct {
 	ActualHash string // Hash of found file (if any)
 }
 
-// IsSatisfied returns true if the provision check passed.
 func (pr *ProvisionResult) IsSatisfied() bool {
 	return pr.Status == ProvisionFound || pr.Status == ProvisionOptional
 }

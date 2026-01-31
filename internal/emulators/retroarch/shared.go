@@ -31,9 +31,6 @@ func SharedConfig(store model.StoreReader) model.ConfigPatch {
 	}
 }
 
-// CoreOverrideTarget returns the config target for a core's override file.
-// Override files let each core have its own ROM browser directory.
-// See: https://docs.libretro.com/guides/overrides/
 func CoreOverrideTarget(coreName string) model.ConfigTarget {
 	return model.ConfigTarget{
 		RelPath: "retroarch/config/" + coreName + "/" + coreName + ".cfg",

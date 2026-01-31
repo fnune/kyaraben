@@ -2,9 +2,8 @@ package daemon
 
 // Protocol types for daemon-UI communication.
 //
-// These types are the source of truth. When modifying this file, also update
-// the TypeScript definitions in ui/electron/main.ts (DaemonCommand, DaemonEvent
-// interfaces). Type generation from Go is planned but not yet implemented.
+// These types are the source of truth. Run `just generate-types` to regenerate
+// ui/src/types/generated.ts after modifying this file.
 
 // CommandType identifies the type of command.
 type CommandType string

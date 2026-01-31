@@ -49,7 +49,6 @@ func NewManifest() *Manifest {
 	}
 }
 
-// DefaultManifestPath returns the default path to the manifest file.
 func DefaultManifestPath() (string, error) {
 	stateDir, err := paths.KyarabenStateDir()
 	if err != nil {
@@ -129,7 +128,6 @@ func (m *Manifest) AddManagedConfig(cfg ManagedConfig) {
 	m.ManagedConfigs = append(m.ManagedConfigs, cfg)
 }
 
-// GetEmulator returns an installed emulator by ID.
 func (m *Manifest) GetEmulator(id EmulatorID) (InstalledEmulator, bool) {
 	emu, ok := m.InstalledEmulators[id]
 	return emu, ok
