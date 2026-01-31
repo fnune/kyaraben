@@ -22,6 +22,7 @@ func (Definition) Emulator() model.Emulator {
 			model.StateSavestates,
 			model.StateScreenshots,
 		},
+		Launcher: retroarch.SharedLauncher,
 	}
 }
 

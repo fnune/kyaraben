@@ -14,6 +14,11 @@ func (Definition) Emulator() model.Emulator {
 		StateKinds: []model.StateKind{
 			model.StateSaves,
 		},
+		Launcher: model.LauncherInfo{
+			Binary:      "tic80",
+			GenericName: "Fantasy Console",
+			Categories:  []string{"Game", "Development"},
+		},
 	}
 }
 

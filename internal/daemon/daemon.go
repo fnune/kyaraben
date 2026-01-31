@@ -9,6 +9,7 @@ import (
 	"github.com/fnune/kyaraben/internal/apply"
 	"github.com/fnune/kyaraben/internal/doctor"
 	"github.com/fnune/kyaraben/internal/emulators"
+	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/nix"
 	"github.com/fnune/kyaraben/internal/registry"
@@ -18,20 +19,22 @@ import (
 )
 
 type Daemon struct {
-	configPath     string
-	reg            *registry.Registry
-	nixClient      nix.NixClient
-	flakeGenerator *nix.FlakeGenerator
-	configWriter   *emulators.ConfigWriter
+	configPath      string
+	reg             *registry.Registry
+	nixClient       nix.NixClient
+	flakeGenerator  *nix.FlakeGenerator
+	configWriter    *emulators.ConfigWriter
+	launcherManager *launcher.Manager
 }
 
-func New(configPath string, reg *registry.Registry, nixClient nix.NixClient, flakeGenerator *nix.FlakeGenerator, configWriter *emulators.ConfigWriter) *Daemon {
+func New(configPath string, reg *registry.Registry, nixClient nix.NixClient, flakeGenerator *nix.FlakeGenerator, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager) *Daemon {
 	return &Daemon{
-		configPath:     configPath,
-		reg:            reg,
-		nixClient:      nixClient,
-		flakeGenerator: flakeGenerator,
-		configWriter:   configWriter,
+		configPath:      configPath,
+		reg:             reg,
+		nixClient:       nixClient,
+		flakeGenerator:  flakeGenerator,
+		configWriter:    configWriter,
+		launcherManager: launcherManager,
 	}
 }
 
@@ -225,11 +228,12 @@ func (d *Daemon) handleApply(_ map[string]interface{}, emit func(Event)) []Event
 	}
 
 	applier := &apply.Applier{
-		NixClient:      d.nixClient,
-		FlakeGenerator: d.flakeGenerator,
-		ConfigWriter:   d.configWriter,
-		Registry:       d.reg,
-		ManifestPath:   manifestPath,
+		NixClient:       d.nixClient,
+		FlakeGenerator:  d.flakeGenerator,
+		ConfigWriter:    d.configWriter,
+		Registry:        d.reg,
+		ManifestPath:    manifestPath,
+		LauncherManager: d.launcherManager,
 	}
 
 	opts := apply.Options{
