@@ -75,6 +75,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		fmt.Println()
 	}
 
+	buildMsgPrinted := false
 	opts := apply.Options{
 		DryRun:        cmd.DryRun,
 		ShowDiff:      cmd.ShowDiff,
@@ -84,7 +85,10 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 			case "store":
 				fmt.Println(p.Message)
 			case "build":
-				fmt.Println("Installing emulators (this may take a while on first run)...")
+				if !buildMsgPrinted {
+					buildMsgPrinted = true
+					fmt.Println("Installing emulators (this may take a while on first run)...")
+				}
 			case "desktop":
 				fmt.Println("Adding to application menu...")
 			case "config":
