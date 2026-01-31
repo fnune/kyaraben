@@ -6,6 +6,9 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/duckstation"
 	"github.com/fnune/kyaraben/internal/emulators/e2etestemu"
 	"github.com/fnune/kyaraben/internal/emulators/eden"
+	"github.com/fnune/kyaraben/internal/emulators/mgba"
+	"github.com/fnune/kyaraben/internal/emulators/pcsx2"
+	"github.com/fnune/kyaraben/internal/emulators/ppsspp"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbsnes"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmelonds"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmgba"
@@ -15,6 +18,7 @@ import (
 	"github.com/fnune/kyaraben/internal/systems/e2etest"
 	"github.com/fnune/kyaraben/internal/systems/gba"
 	"github.com/fnune/kyaraben/internal/systems/nds"
+	"github.com/fnune/kyaraben/internal/systems/ps2"
 	"github.com/fnune/kyaraben/internal/systems/psp"
 	"github.com/fnune/kyaraben/internal/systems/psx"
 	"github.com/fnune/kyaraben/internal/systems/snes"
@@ -26,6 +30,7 @@ func TestAllDefinitions(t *testing.T) {
 	systemDefs := []model.SystemDefinition{
 		snes.Definition{},
 		psx.Definition{},
+		ps2.Definition{},
 		tic80.Definition{},
 		gba.Definition{},
 		nds.Definition{},
@@ -40,6 +45,9 @@ func TestAllDefinitions(t *testing.T) {
 		retroarchmelonds.Definition{},
 		retroarchppsspp.Definition{},
 		duckstation.Definition{},
+		pcsx2.Definition{},
+		ppsspp.Definition{},
+		mgba.Definition{},
 		tic80emu.Definition{},
 		eden.Definition{},
 		e2etestemu.Definition{},
@@ -138,6 +146,9 @@ func TestRegistryGetEmulator(t *testing.T) {
 		{model.EmulatorRetroArchMelonDS, false},
 		{model.EmulatorRetroArchPPSSPP, false},
 		{model.EmulatorDuckStation, false},
+		{model.EmulatorPCSX2, false},
+		{model.EmulatorPPSSPP, false},
+		{model.EmulatorMGBA, false},
 		{model.EmulatorTIC80, false},
 		{model.EmulatorEden, false},
 		{model.EmulatorID("unknown"), true},
@@ -161,30 +172,36 @@ func TestRegistryGetEmulatorsForSystem(t *testing.T) {
 	reg := NewDefault()
 
 	tests := []struct {
-		system  model.SystemID
-		wantIDs []model.EmulatorID
+		system   model.SystemID
+		wantLen  int
+		wantAny  []model.EmulatorID // emulators that should be in the list
 	}{
-		{model.SystemSNES, []model.EmulatorID{model.EmulatorRetroArchBsnes}},
-		{model.SystemPSX, []model.EmulatorID{model.EmulatorDuckStation}},
-		{model.SystemTIC80, []model.EmulatorID{model.EmulatorTIC80}},
-		{model.SystemGBA, []model.EmulatorID{model.EmulatorRetroArchMGBA}},
-		{model.SystemNDS, []model.EmulatorID{model.EmulatorRetroArchMelonDS}},
-		{model.SystemPSP, []model.EmulatorID{model.EmulatorRetroArchPPSSPP}},
-		{model.SystemSwitch, []model.EmulatorID{model.EmulatorEden}},
+		{model.SystemSNES, 1, []model.EmulatorID{model.EmulatorRetroArchBsnes}},
+		{model.SystemPSX, 1, []model.EmulatorID{model.EmulatorDuckStation}},
+		{model.SystemPS2, 1, []model.EmulatorID{model.EmulatorPCSX2}},
+		{model.SystemTIC80, 1, []model.EmulatorID{model.EmulatorTIC80}},
+		{model.SystemGBA, 2, []model.EmulatorID{model.EmulatorRetroArchMGBA, model.EmulatorMGBA}},
+		{model.SystemNDS, 1, []model.EmulatorID{model.EmulatorRetroArchMelonDS}},
+		{model.SystemPSP, 2, []model.EmulatorID{model.EmulatorRetroArchPPSSPP, model.EmulatorPPSSPP}},
+		{model.SystemSwitch, 1, []model.EmulatorID{model.EmulatorEden}},
 	}
 
 	for _, tt := range tests {
 		t.Run(string(tt.system), func(t *testing.T) {
 			emulators := reg.GetEmulatorsForSystem(tt.system)
 
-			if len(emulators) != len(tt.wantIDs) {
-				t.Errorf("Got %d emulators, want %d", len(emulators), len(tt.wantIDs))
+			if len(emulators) != tt.wantLen {
+				t.Errorf("Got %d emulators, want %d", len(emulators), tt.wantLen)
 				return
 			}
 
-			for i, emu := range emulators {
-				if emu.ID != tt.wantIDs[i] {
-					t.Errorf("Emulator %d: got %s, want %s", i, emu.ID, tt.wantIDs[i])
+			found := make(map[model.EmulatorID]bool)
+			for _, emu := range emulators {
+				found[emu.ID] = true
+			}
+			for _, wantID := range tt.wantAny {
+				if !found[wantID] {
+					t.Errorf("Expected emulator %s not found", wantID)
 				}
 			}
 		})
@@ -201,10 +218,11 @@ func TestRegistryGetDefaultEmulator(t *testing.T) {
 	}{
 		{model.SystemSNES, model.EmulatorRetroArchBsnes, false},
 		{model.SystemPSX, model.EmulatorDuckStation, false},
+		{model.SystemPS2, model.EmulatorPCSX2, false},
 		{model.SystemTIC80, model.EmulatorTIC80, false},
-		{model.SystemGBA, model.EmulatorRetroArchMGBA, false},
+		{model.SystemGBA, model.EmulatorMGBA, false},
 		{model.SystemNDS, model.EmulatorRetroArchMelonDS, false},
-		{model.SystemPSP, model.EmulatorRetroArchPPSSPP, false},
+		{model.SystemPSP, model.EmulatorPPSSPP, false},
 		{model.SystemSwitch, model.EmulatorEden, false},
 		{model.SystemID("unknown"), "", true},
 	}
@@ -241,13 +259,14 @@ func TestAllSystems(t *testing.T) {
 	reg := NewDefault()
 
 	systems := reg.AllSystems()
-	if len(systems) < 7 {
-		t.Errorf("Expected at least 7 systems, got %d", len(systems))
+	if len(systems) < 8 {
+		t.Errorf("Expected at least 8 systems, got %d", len(systems))
 	}
 
 	expected := []model.SystemID{
 		model.SystemSNES,
 		model.SystemPSX,
+		model.SystemPS2,
 		model.SystemTIC80,
 		model.SystemGBA,
 		model.SystemNDS,
@@ -279,6 +298,9 @@ func TestGetConfigGenerator(t *testing.T) {
 		{model.EmulatorRetroArchMelonDS, true},
 		{model.EmulatorRetroArchPPSSPP, true},
 		{model.EmulatorDuckStation, true},
+		{model.EmulatorPCSX2, true},
+		{model.EmulatorPPSSPP, true},
+		{model.EmulatorMGBA, true},
 		{model.EmulatorTIC80, true},
 		{model.EmulatorEden, true},
 		{model.EmulatorID("unknown"), false},
