@@ -46,6 +46,9 @@ type NixClient interface {
 
 	// GetNixPortableBinary returns the path to the nix-portable binary.
 	GetNixPortableBinary() string
+
+	// GetNixPortableLocation returns the NP_LOCATION directory for nix-portable.
+	GetNixPortableLocation() string
 }
 
 // GetFlakePath returns the flake path for the Client.
