@@ -83,6 +83,7 @@ async function ensureDaemon(): Promise<void> {
 
   const child = spawn(sidecarPath, ['daemon'], {
     stdio: ['pipe', 'pipe', 'inherit'],
+    env: process.env,
   })
 
   if (!child.stdout) {
