@@ -9,7 +9,7 @@ func (Definition) Emulator() model.Emulator {
 		ID:         model.EmulatorTIC80,
 		Name:       "TIC-80",
 		Systems:    []model.SystemID{model.SystemTIC80},
-		Package:    model.NixpkgsRef("tic-80"),
+		Package:    model.VersionedAppImageRef("tic80"),
 		Provisions: []model.Provision{},
 		StateKinds: []model.StateKind{
 			model.StateSaves,
