@@ -3,6 +3,7 @@ package apply
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/fnune/kyaraben/internal/emulators"
@@ -155,16 +156,27 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 	defer cancel()
 
 	flakeRef := a.FlakeGenerator.DefaultFlakeRef(string(genPath))
-	storePath, err := a.NixClient.Build(buildCtx, flakeRef)
-	if err != nil {
-		return nil, fmt.Errorf("building emulators: %w", err)
+
+	var profileLink string
+	if a.LauncherManager != nil {
+		profileLink = a.LauncherManager.CurrentLink()
 	}
 
-	opts.OnProgress(Progress{Step: "launchers", Message: "Setting up launchers..."})
-
-	if a.LauncherManager != nil {
-		if err := a.LauncherManager.Link(storePath); err != nil {
-			return nil, fmt.Errorf("linking profile: %w", err)
+	var storePath string
+	if profileLink != "" {
+		if err := a.NixClient.BuildWithLink(buildCtx, flakeRef, profileLink); err != nil {
+			return nil, fmt.Errorf("building emulators: %w", err)
+		}
+		target, err := os.Readlink(profileLink)
+		if err != nil {
+			return nil, fmt.Errorf("reading profile link: %w", err)
+		}
+		storePath = target
+	} else {
+		var err error
+		storePath, err = a.NixClient.Build(buildCtx, flakeRef)
+		if err != nil {
+			return nil, fmt.Errorf("building emulators: %w", err)
 		}
 	}
 

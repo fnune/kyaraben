@@ -14,6 +14,11 @@ type NixClient interface {
 	// Build builds a flake reference and returns the store path.
 	Build(ctx context.Context, flakeRef string) (string, error)
 
+	// BuildWithLink builds a flake and creates a symlink to the result.
+	// This is preferred over Build when the result needs to be accessible
+	// from outside nix-portable's namespace.
+	BuildWithLink(ctx context.Context, flakeRef string, outLink string) error
+
 	// BuildMultiple builds multiple flake references.
 	BuildMultiple(ctx context.Context, flakeRefs []string) (map[string]string, error)
 
