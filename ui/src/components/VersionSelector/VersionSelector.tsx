@@ -27,6 +27,20 @@ export function VersionSelector({
 
   const currentValue = pinnedVersion ?? ''
   const effectiveVersion = pinnedVersion ?? emulator.defaultVersion
+  const willUpdate = installedVersion && effectiveVersion !== installedVersion
+  const notInstalled = !installedVersion
+
+  // Determine status message
+  let statusMessage: string | null = null
+  let statusColor = 'text-gray-500'
+
+  if (notInstalled) {
+    statusMessage = `will install ${effectiveVersion}`
+    statusColor = 'text-blue-600'
+  } else if (willUpdate) {
+    statusMessage = `${installedVersion} → ${effectiveVersion} on apply`
+    statusColor = 'text-amber-600'
+  }
 
   return (
     <div className="flex flex-col items-end gap-0.5">
@@ -44,11 +58,7 @@ export function VersionSelector({
           </option>
         ))}
       </select>
-      {installedVersion && effectiveVersion !== installedVersion && (
-        <span className="text-[10px] text-amber-600">
-          installed: {installedVersion}
-        </span>
-      )}
+      {statusMessage && <span className={`text-[10px] ${statusColor}`}>{statusMessage}</span>}
     </div>
   )
 }
