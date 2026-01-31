@@ -9,20 +9,26 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/duckstation"
 	"github.com/fnune/kyaraben/internal/emulators/e2etestemu"
 	"github.com/fnune/kyaraben/internal/emulators/eden"
+	"github.com/fnune/kyaraben/internal/emulators/flycast"
+	"github.com/fnune/kyaraben/internal/emulators/melonds"
 	"github.com/fnune/kyaraben/internal/emulators/mgba"
 	"github.com/fnune/kyaraben/internal/emulators/pcsx2"
 	"github.com/fnune/kyaraben/internal/emulators/ppsspp"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbsnes"
-	"github.com/fnune/kyaraben/internal/emulators/retroarchmelonds"
+	"github.com/fnune/kyaraben/internal/emulators/rpcs3"
 	"github.com/fnune/kyaraben/internal/emulators/tic80emu"
+	"github.com/fnune/kyaraben/internal/emulators/vita3k"
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/systems/dreamcast"
 	"github.com/fnune/kyaraben/internal/systems/e2etest"
 	"github.com/fnune/kyaraben/internal/systems/gamecube"
 	"github.com/fnune/kyaraben/internal/systems/gba"
 	"github.com/fnune/kyaraben/internal/systems/nds"
 	n3ds "github.com/fnune/kyaraben/internal/systems/nintendo3ds"
 	"github.com/fnune/kyaraben/internal/systems/ps2"
+	"github.com/fnune/kyaraben/internal/systems/ps3"
 	"github.com/fnune/kyaraben/internal/systems/psp"
+	"github.com/fnune/kyaraben/internal/systems/psvita"
 	"github.com/fnune/kyaraben/internal/systems/psx"
 	"github.com/fnune/kyaraben/internal/systems/snes"
 	switchsys "github.com/fnune/kyaraben/internal/systems/switch"
@@ -36,6 +42,9 @@ func TestAllDefinitions(t *testing.T) {
 		snes.Definition{},
 		psx.Definition{},
 		ps2.Definition{},
+		ps3.Definition{},
+		psvita.Definition{},
+		dreamcast.Definition{},
 		tic80.Definition{},
 		gba.Definition{},
 		nds.Definition{},
@@ -50,11 +59,14 @@ func TestAllDefinitions(t *testing.T) {
 
 	emulatorDefs := []model.EmulatorDefinition{
 		retroarchbsnes.Definition{},
-		retroarchmelonds.Definition{},
 		duckstation.Definition{},
 		pcsx2.Definition{},
+		rpcs3.Definition{},
+		vita3k.Definition{},
 		ppsspp.Definition{},
 		mgba.Definition{},
+		melonds.Definition{},
+		flycast.Definition{},
 		cemu.Definition{},
 		azahar.Definition{},
 		dolphin.Definition{},
@@ -152,11 +164,14 @@ func TestRegistryGetEmulator(t *testing.T) {
 		wantErr bool
 	}{
 		{model.EmulatorRetroArchBsnes, false},
-		{model.EmulatorRetroArchMelonDS, false},
 		{model.EmulatorDuckStation, false},
 		{model.EmulatorPCSX2, false},
+		{model.EmulatorRPCS3, false},
+		{model.EmulatorVita3K, false},
 		{model.EmulatorPPSSPP, false},
 		{model.EmulatorMGBA, false},
+		{model.EmulatorMelonDS, false},
+		{model.EmulatorFlycast, false},
 		{model.EmulatorCemu, false},
 		{model.EmulatorAzahar, false},
 		{model.EmulatorDolphin, false},
@@ -190,9 +205,12 @@ func TestRegistryGetEmulatorsForSystem(t *testing.T) {
 		{model.SystemSNES, 1, []model.EmulatorID{model.EmulatorRetroArchBsnes}},
 		{model.SystemPSX, 1, []model.EmulatorID{model.EmulatorDuckStation}},
 		{model.SystemPS2, 1, []model.EmulatorID{model.EmulatorPCSX2}},
+		{model.SystemPS3, 1, []model.EmulatorID{model.EmulatorRPCS3}},
+		{model.SystemPSVita, 1, []model.EmulatorID{model.EmulatorVita3K}},
+		{model.SystemDreamcast, 1, []model.EmulatorID{model.EmulatorFlycast}},
 		{model.SystemTIC80, 1, []model.EmulatorID{model.EmulatorTIC80}},
 		{model.SystemGBA, 1, []model.EmulatorID{model.EmulatorMGBA}},
-		{model.SystemNDS, 1, []model.EmulatorID{model.EmulatorRetroArchMelonDS}},
+		{model.SystemNDS, 1, []model.EmulatorID{model.EmulatorMelonDS}},
 		{model.SystemPSP, 1, []model.EmulatorID{model.EmulatorPPSSPP}},
 		{model.SystemGameCube, 1, []model.EmulatorID{model.EmulatorDolphin}},
 		{model.SystemWii, 1, []model.EmulatorID{model.EmulatorDolphin}},
@@ -234,9 +252,12 @@ func TestRegistryGetDefaultEmulator(t *testing.T) {
 		{model.SystemSNES, model.EmulatorRetroArchBsnes, false},
 		{model.SystemPSX, model.EmulatorDuckStation, false},
 		{model.SystemPS2, model.EmulatorPCSX2, false},
+		{model.SystemPS3, model.EmulatorRPCS3, false},
+		{model.SystemPSVita, model.EmulatorVita3K, false},
+		{model.SystemDreamcast, model.EmulatorFlycast, false},
 		{model.SystemTIC80, model.EmulatorTIC80, false},
 		{model.SystemGBA, model.EmulatorMGBA, false},
-		{model.SystemNDS, model.EmulatorRetroArchMelonDS, false},
+		{model.SystemNDS, model.EmulatorMelonDS, false},
 		{model.SystemPSP, model.EmulatorPPSSPP, false},
 		{model.SystemGameCube, model.EmulatorDolphin, false},
 		{model.SystemWii, model.EmulatorDolphin, false},
@@ -278,14 +299,17 @@ func TestAllSystems(t *testing.T) {
 	reg := NewDefault()
 
 	systems := reg.AllSystems()
-	if len(systems) < 12 {
-		t.Errorf("Expected at least 12 systems, got %d", len(systems))
+	if len(systems) < 15 {
+		t.Errorf("Expected at least 15 systems, got %d", len(systems))
 	}
 
 	expected := []model.SystemID{
 		model.SystemSNES,
 		model.SystemPSX,
 		model.SystemPS2,
+		model.SystemPS3,
+		model.SystemPSVita,
+		model.SystemDreamcast,
 		model.SystemTIC80,
 		model.SystemGBA,
 		model.SystemNDS,
@@ -317,11 +341,14 @@ func TestGetConfigGenerator(t *testing.T) {
 		expected bool
 	}{
 		{model.EmulatorRetroArchBsnes, true},
-		{model.EmulatorRetroArchMelonDS, true},
 		{model.EmulatorDuckStation, true},
 		{model.EmulatorPCSX2, true},
+		{model.EmulatorRPCS3, true},
+		{model.EmulatorVita3K, true},
 		{model.EmulatorPPSSPP, true},
 		{model.EmulatorMGBA, true},
+		{model.EmulatorMelonDS, true},
+		{model.EmulatorFlycast, true},
 		{model.EmulatorCemu, true},
 		{model.EmulatorAzahar, true},
 		{model.EmulatorDolphin, true},

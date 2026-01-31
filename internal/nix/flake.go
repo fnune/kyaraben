@@ -165,6 +165,14 @@ func getAppImageVersion(name string) *versions.AppImageVersion {
 		return &v.Azahar
 	case "dolphin":
 		return &v.Dolphin
+	case "melonds":
+		return &v.MelonDS
+	case "vita3k":
+		return &v.Vita3K
+	case "rpcs3":
+		return &v.RPCS3
+	case "flycast":
+		return &v.Flycast
 	case "retroarch":
 		return &v.RetroArch
 	case "tic80":

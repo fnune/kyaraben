@@ -153,23 +153,49 @@ sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
 # Note: TIC-80 ARM64 builds available via nightly, not stable releases
 
 # ============================================================================
-# EMULATORS REQUIRING SPECIAL HANDLING
+# EMULATORS WITH SPECIAL VERSIONING
 # ============================================================================
 
-# melonDS: AppImage is inside a ZIP file - needs extraction logic
-# [melonds]
-# version = "1.1"
-# url_template = "https://github.com/melonDS-emu/melonDS/releases/download/{version}/melonDS_{version}_linux_x64.zip"
-# extraction_type = "zip"  # Would need new field to handle this
+[melonds] # https://github.com/melonDS-emu/melonDS/releases
+# AppImage is inside a ZIP file
+version = "1.0.0"
+url_template = "https://github.com/melonDS-emu/melonDS/releases/download/{version}/melonDS_{version}_linux_x64.zip"
+binary_path = "melonDS"
 
-# Vita3K: Continuous builds without version tags
-# [vita3k]
-# Uses rolling continuous releases at https://github.com/Vita3K/Vita3K-builds/releases
-# Filename is just Vita3K-x86_64.AppImage without version
-# Would need different versioning strategy (date-based or commit-based)
+[melonds.targets.x64]
+arch = "x86_64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
 
-# RPCS3: Rolling releases with commit hashes
-# [rpcs3]
-# Uses build numbers like rpcs3-v0.0.35-17419-2a0f0bb5_linux64.AppImage
-# Version format: v0.0.{minor}-{build}-{hash}
-# Would need to track both version string and hash
+[vita3k] # https://github.com/Vita3K/Vita3K-builds/releases
+# Rolling builds with build numbers + commit hashes
+version = "3912"
+release_tag = "3912"
+url_template = "https://github.com/Vita3K/Vita3K-builds/releases/download/{release_tag}/Vita3K-{target}.AppImage"
+
+[vita3k.targets.x86_64]
+arch = "x86_64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+
+[rpcs3] # https://github.com/RPCS3/rpcs3-binaries-linux/releases
+# Rolling builds with commit hashes in filenames
+version = "0.0.35-17500"
+release_tag = "build-4b6f335a46055cc5e2c4e0af8bcea02340a0ab59"
+url_template = "https://github.com/RPCS3/rpcs3-binaries-linux/releases/download/{release_tag}/rpcs3-v{version}-4b6f335a_linux64.AppImage"
+
+[rpcs3.targets.x64]
+arch = "x86_64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+
+[flycast] # https://github.com/flyinghead/flycast/releases
+# Tarball containing flycast executable
+version = "2.4"
+url_template = "https://github.com/flyinghead/flycast/releases/download/v{version}/flycast-linux-{target}-{version}.tar.gz"
+binary_path = "flycast"
+
+[flycast.targets.x86_64]
+arch = "x86_64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+
+[flycast.targets.aarch64]
+arch = "aarch64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
