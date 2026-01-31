@@ -12,10 +12,7 @@ func (Definition) Emulator() model.Emulator {
 		ID:      model.EmulatorRetroArchMelonDS,
 		Name:    "RetroArch (melonDS)",
 		Systems: []model.SystemID{model.SystemNDS},
-		Package: model.NixpkgsOverlayRef(
-			"retroarch-melonds",
-			`pkgs.wrapRetroArch { cores = with pkgs.libretro; [ melonds ]; }`,
-		),
+		Package: model.VersionedAppImageRef("retroarch"),
 		// BIOS files are optional - melonDS has built-in replacements.
 		// See: https://docs.libretro.com/library/melonds/
 		Provisions: []model.Provision{
