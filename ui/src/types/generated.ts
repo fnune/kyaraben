@@ -4,6 +4,7 @@ export type DaemonCommandType =
   | 'status'
   | 'doctor'
   | 'apply'
+  | 'cancel_apply'
   | 'get_systems'
   | 'get_config'
   | 'set_config'
@@ -12,12 +13,13 @@ export type DaemonCommandType =
   | 'sync_remove_device'
   | 'uninstall_preview'
 
-export type EventType = 'ready' | 'result' | 'progress' | 'error'
+export type EventType = 'ready' | 'result' | 'progress' | 'error' | 'cancelled'
 
 export const DaemonCommands = {
   Status: 'status',
   Doctor: 'doctor',
   Apply: 'apply',
+  CancelApply: 'cancel_apply',
   GetSystems: 'get_systems',
   GetConfig: 'get_config',
   SetConfig: 'set_config',
@@ -32,4 +34,5 @@ export const Events = {
   Result: 'result',
   Progress: 'progress',
   Error: 'error',
+  Cancelled: 'cancelled',
 } as const

@@ -182,7 +182,7 @@ async function sendCommand(cmd: DaemonCommand): Promise<DaemonEvent> {
 }
 
 // Apply is special because it streams multiple progress events
-async function applyCommand(): Promise<string[]> {
+async function applyCommand(): Promise<{ messages: string[]; cancelled: boolean }> {
   await ensureDaemon()
 
   if (!daemon || !daemon.process.stdin) {
@@ -228,7 +228,10 @@ async function applyCommand(): Promise<string[]> {
       } else if (event.type === 'result') {
         clearTimeout(timeout)
         messages.push('Apply completed successfully')
-        resolve(messages)
+        resolve({ messages, cancelled: false })
+      } else if (event.type === 'cancelled') {
+        clearTimeout(timeout)
+        resolve({ messages, cancelled: true })
       } else if (event.type === 'error') {
         clearTimeout(timeout)
         reject(new Error((event.data as { error?: string })?.error || 'Unknown error'))
@@ -276,6 +279,11 @@ function setupIpcHandlers(): void {
       console.error('[kyaraben] Apply failed:', err)
       throw err
     }
+  })
+
+  ipcMain.handle('cancel_apply', async () => {
+    const event = await sendCommand({ type: 'cancel_apply' })
+    return event.data
   })
 
   ipcMain.handle('get_install_status', async () => {

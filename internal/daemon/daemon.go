@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/fnune/kyaraben/internal/apply"
@@ -18,7 +19,7 @@ import (
 	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/status"
 	"github.com/fnune/kyaraben/internal/store"
-	"github.com/fnune/kyaraben/internal/sync"
+	syncpkg "github.com/fnune/kyaraben/internal/sync"
 )
 
 type Daemon struct {
@@ -28,6 +29,9 @@ type Daemon struct {
 	flakeGenerator  *nix.FlakeGenerator
 	configWriter    *emulators.ConfigWriter
 	launcherManager *launcher.Manager
+
+	mu               sync.Mutex
+	applyCancelFunc  context.CancelFunc
 }
 
 func New(configPath string, reg *registry.Registry, nixClient nix.NixClient, flakeGenerator *nix.FlakeGenerator, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager) *Daemon {
@@ -55,6 +59,8 @@ func (d *Daemon) HandleWithEmit(cmd Command, emit func(Event)) []Event {
 		return d.handleDoctor()
 	case CmdApply:
 		return d.handleApply(cmd.Data, emit)
+	case CmdCancelApply:
+		return d.handleCancelApply()
 	case CmdGetSystems:
 		return d.handleGetSystems()
 	case CmdGetConfig:
@@ -233,6 +239,17 @@ func (d *Daemon) handleApply(_ map[string]interface{}, emit func(Event)) []Event
 		}}
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	d.mu.Lock()
+	d.applyCancelFunc = cancel
+	d.mu.Unlock()
+
+	defer func() {
+		d.mu.Lock()
+		d.applyCancelFunc = nil
+		d.mu.Unlock()
+	}()
+
 	applier := &apply.Applier{
 		NixClient:       d.nixClient,
 		FlakeGenerator:  d.flakeGenerator,
@@ -264,7 +281,13 @@ func (d *Daemon) handleApply(_ map[string]interface{}, emit func(Event)) []Event
 		},
 	}
 
-	result, err := applier.Apply(context.Background(), cfg, userStore, opts)
+	result, err := applier.Apply(ctx, cfg, userStore, opts)
+	if ctx.Err() != nil {
+		return []Event{{
+			Type: EventCancelled,
+			Data: map[string]string{"message": "Installation cancelled"},
+		}}
+	}
 	if err != nil {
 		return []Event{{
 			Type: EventError,
@@ -278,6 +301,25 @@ func (d *Daemon) handleApply(_ map[string]interface{}, emit func(Event)) []Event
 			"success":   true,
 			"storePath": result.StorePath,
 		},
+	}}
+}
+
+func (d *Daemon) handleCancelApply() []Event {
+	d.mu.Lock()
+	cancel := d.applyCancelFunc
+	d.mu.Unlock()
+
+	if cancel != nil {
+		cancel()
+		return []Event{{
+			Type: EventCancelled,
+			Data: map[string]string{"message": "Installation cancelled"},
+		}}
+	}
+
+	return []Event{{
+		Type: EventResult,
+		Data: map[string]interface{}{"cancelled": false, "message": "No apply in progress"},
 	}}
 }
 
@@ -394,7 +436,7 @@ func (d *Daemon) handleSyncStatus() []Event {
 		}}
 	}
 
-	client := sync.NewClient(cfg.Sync)
+	client := syncpkg.NewClient(cfg.Sync)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 

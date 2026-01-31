@@ -1,14 +1,15 @@
 export interface Step {
   id: string
   label: string
-  status: 'pending' | 'in_progress' | 'completed' | 'error'
+  status: 'pending' | 'in_progress' | 'completed' | 'error' | 'cancelled'
   message?: string
   output?: readonly string[]
 }
 
 export interface ProgressStepsProps {
   steps: readonly Step[]
-  error?: string | undefined
+  error?: string
+  cancelled?: boolean
 }
 
 function StepIcon({ status }: { readonly status: Step['status'] }) {
@@ -19,13 +20,15 @@ function StepIcon({ status }: { readonly status: Step['status'] }) {
       return <span className="text-blue-600 animate-pulse">●</span>
     case 'error':
       return <span className="text-red-600">✗</span>
+    case 'cancelled':
+      return <span className="text-amber-500">⊘</span>
     default:
       return <span className="text-gray-400">○</span>
   }
 }
 
-export function ProgressSteps({ steps, error }: ProgressStepsProps) {
-  if (steps.length === 0 && !error) {
+export function ProgressSteps({ steps, error, cancelled }: ProgressStepsProps) {
+  if (steps.length === 0 && !error && !cancelled) {
     return null
   }
 
@@ -52,7 +55,13 @@ export function ProgressSteps({ steps, error }: ProgressStepsProps) {
         </ol>
       )}
 
-      {error && (
+      {cancelled && (
+        <div className="mt-4 p-3 bg-amber-50 text-amber-700 rounded border border-amber-200">
+          Installation cancelled
+        </div>
+      )}
+
+      {error && !cancelled && (
         <div className="mt-4 p-3 bg-red-50 text-red-700 rounded border border-red-200">{error}</div>
       )}
     </div>

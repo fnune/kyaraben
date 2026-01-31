@@ -42,7 +42,9 @@ export const getStatus = () => invoke<StatusResponse>('status')
 
 export const runDoctor = () => invoke<DoctorResponse>('doctor')
 
-export const apply = () => invoke<readonly string[]>('apply')
+export const apply = () => invoke<{ messages: readonly string[]; cancelled: boolean }>('apply')
+
+export const cancelApply = () => invoke<{ cancelled: boolean }>('cancel_apply')
 
 export const getInstallStatus = () => invoke<InstallStatus>('get_install_status')
 
