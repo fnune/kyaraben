@@ -46,6 +46,7 @@ sandbox: build _container-sandbox-build _extract-appimage
         -v /run/dbus/system_bus_socket:/run/dbus/system_bus_socket:ro \
         -v "$(pwd)/.sandbox/app:/app:ro" \
         -v "$(pwd)/.sandbox/home:/home/sandbox" \
+        --device /dev/dri \
         --security-opt label=disable \
         kyaraben-sandbox
 
@@ -54,8 +55,9 @@ clean:
     rm -f kyaraben
     rm -rf ui/dist ui/dist-electron ui/release ui/binaries
 
-# Clean all sandbox state
+# Clean all sandbox state (chmod needed because nix store paths are read-only)
 clean-sandbox:
+    chmod -R u+w .sandbox 2>/dev/null || true
     rm -rf .sandbox
 
 # --- Internal targets (prefixed with _) ---

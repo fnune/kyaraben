@@ -316,6 +316,11 @@ func (c *Client) RealStorePath(virtualPath string) string {
 	return filepath.Join(c.NixPortableLocation, ".nix-portable", "nix", "store", hashAndName)
 }
 
+// GetNixPortableBinary returns the path to the nix-portable binary.
+func (c *Client) GetNixPortableBinary() string {
+	return c.NixPortableBinary
+}
+
 func (c *Client) FlakeCheck(ctx context.Context, flakePath string) error {
 	// Use 'nix flake show' which evaluates the flake structure without building
 	args := []string{

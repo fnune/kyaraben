@@ -43,6 +43,9 @@ type NixClient interface {
 	// RealStorePath translates a virtualized /nix/store path to the real
 	// nix-portable store path.
 	RealStorePath(virtualPath string) string
+
+	// GetNixPortableBinary returns the path to the nix-portable binary.
+	GetNixPortableBinary() string
 }
 
 // GetFlakePath returns the flake path for the Client.

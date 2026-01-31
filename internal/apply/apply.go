@@ -199,6 +199,15 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 		}
 	}
 
+	if a.LauncherManager != nil {
+		opts.OnProgress(Progress{Step: "wrappers", Message: "Generating launcher scripts..."})
+
+		a.LauncherManager.SetNixPortableBinary(a.NixClient.GetNixPortableBinary())
+		if err := a.LauncherManager.GenerateWrappers(); err != nil {
+			return nil, fmt.Errorf("generating launcher wrappers: %w", err)
+		}
+	}
+
 	opts.OnProgress(Progress{Step: "configs", Message: "Applying emulator configurations..."})
 
 	manifest, err := model.LoadManifest(a.ManifestPath)

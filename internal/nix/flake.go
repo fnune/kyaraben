@@ -49,50 +49,14 @@ const flakeTemplate = `{
         {{ .Name }} = {{ .Expr }};
 {{- end }}
 
-        default = pkgs.runCommand "kyaraben-profile" {} ''
-          mkdir -p $out/bin $out/share/applications $out/share/icons/hicolor/scalable/apps
-
+        default = pkgs.symlinkJoin {
+          name = "kyaraben-profile";
+          paths = [
 {{- range .Launchers }}
-          cp -L ${self.packages.${system}.{{ .Package }}}/bin/{{ .Binary }} $out/bin/{{ .Binary }}
-          chmod +x $out/bin/{{ .Binary }}
+            self.packages.${system}.{{ .Package }}
 {{- end }}
-
-{{- range .Launchers }}
-{{- if .HasDesktopFile }}
-          if [ -d "${self.packages.${system}.{{ .Package }}}/share/icons" ]; then
-            cp -rs ${self.packages.${system}.{{ .Package }}}/share/icons/* $out/share/icons/ 2>/dev/null || true
-          fi
-{{- end }}
-{{- end }}
-
-{{- range .Launchers }}
-{{- if and (not .HasDesktopFile) .IconURL }}
-          cp ${pkgs.fetchurl { url = "{{ .IconURL }}"; sha256 = "{{ .IconSHA256 }}"; }} $out/share/icons/hicolor/scalable/apps/{{ .Binary }}.svg
-{{- end }}
-{{- end }}
-
-{{- range .Launchers }}
-{{- if .HasDesktopFile }}
-          for desktop in ${self.packages.${system}.{{ .Package }}}/share/applications/*.desktop; do
-            if [ -f "$desktop" ]; then
-              ln -s "$desktop" $out/share/applications/
-            fi
-          done
-{{- else }}
-          cat > $out/share/applications/{{ .Binary }}.desktop << 'DESKTOP'
-[Desktop Entry]
-Type=Application
-Name={{ .Name }}
-GenericName={{ .GenericName }}
-Exec=$out/bin/{{ .Binary }}
-Icon={{ .Binary }}
-Terminal=false
-Categories={{ .CategoriesStr }};
-DESKTOP
-          sed -i "s|\$out|$out|g" $out/share/applications/{{ .Binary }}.desktop
-{{- end }}
-{{- end }}
-        '';
+          ];
+        };
       });
     };
 }

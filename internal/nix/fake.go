@@ -123,5 +123,9 @@ func (f *FakeClient) RealStorePath(virtualPath string) string {
 	return virtualPath
 }
 
+func (f *FakeClient) GetNixPortableBinary() string {
+	return "/fake/nix-portable"
+}
+
 // Ensure FakeClient implements NixClient.
 var _ NixClient = (*FakeClient)(nil)
