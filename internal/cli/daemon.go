@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/fnune/kyaraben/internal/daemon"
 	"github.com/fnune/kyaraben/internal/emulators"
@@ -28,8 +29,14 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 
 	scanner := bufio.NewScanner(os.Stdin)
 	encoder := json.NewEncoder(os.Stdout)
+	var encoderMu sync.Mutex
 
-	// Send ready event
+	sendEvent := func(event daemon.Event) {
+		encoderMu.Lock()
+		defer encoderMu.Unlock()
+		_ = encoder.Encode(event)
+	}
+
 	if err := encoder.Encode(daemon.Event{
 		Type: daemon.EventReady,
 		Data: map[string]string{"version": "0.1.0"},
@@ -45,22 +52,24 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 
 		var cmd daemon.Command
 		if err := json.Unmarshal(line, &cmd); err != nil {
-			_ = encoder.Encode(daemon.Event{
+			sendEvent(daemon.Event{
 				Type: daemon.EventError,
 				Data: map[string]string{"error": fmt.Sprintf("invalid command: %v", err)},
 			})
 			continue
 		}
 
-		// Emit function streams events immediately to stdout
-		emit := func(event daemon.Event) {
-			_ = encoder.Encode(event)
-		}
-
-		events := d.HandleWithEmit(cmd, emit)
-		for _, event := range events {
-			if err := encoder.Encode(event); err != nil {
-				return fmt.Errorf("sending event: %w", err)
+		if cmd.Type == daemon.CmdApply {
+			go func() {
+				events := d.HandleWithEmit(cmd, sendEvent)
+				for _, event := range events {
+					sendEvent(event)
+				}
+			}()
+		} else {
+			events := d.HandleWithEmit(cmd, sendEvent)
+			for _, event := range events {
+				sendEvent(event)
 			}
 		}
 	}

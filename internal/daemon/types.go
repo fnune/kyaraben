@@ -12,6 +12,7 @@ const (
 	CmdStatus           CommandType = "status"
 	CmdDoctor           CommandType = "doctor"
 	CmdApply            CommandType = "apply"
+	CmdCancelApply      CommandType = "cancel_apply"
 	CmdGetSystems       CommandType = "get_systems"
 	CmdGetConfig        CommandType = "get_config"
 	CmdSetConfig        CommandType = "set_config"
@@ -31,10 +32,11 @@ type Command struct {
 type EventType string
 
 const (
-	EventReady    EventType = "ready"
-	EventResult   EventType = "result"
-	EventProgress EventType = "progress"
-	EventError    EventType = "error"
+	EventReady     EventType = "ready"
+	EventResult    EventType = "result"
+	EventProgress  EventType = "progress"
+	EventError     EventType = "error"
+	EventCancelled EventType = "cancelled"
 )
 
 // Event represents an event sent to the UI.
