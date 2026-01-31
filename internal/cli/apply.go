@@ -8,6 +8,7 @@ import (
 
 	"github.com/fnune/kyaraben/internal/apply"
 	"github.com/fnune/kyaraben/internal/emulators"
+	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/nix"
 )
@@ -41,11 +42,12 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	}
 
 	applier := &apply.Applier{
-		NixClient:      nixClient,
-		FlakeGenerator: flakeGenerator,
-		ConfigWriter:   configWriter,
-		Registry:       registry,
-		ManifestPath:   manifestPath,
+		NixClient:       nixClient,
+		FlakeGenerator:  flakeGenerator,
+		ConfigWriter:    configWriter,
+		Registry:        registry,
+		ManifestPath:    manifestPath,
+		LauncherManager: launcher.NewManager(),
 	}
 
 	fmt.Println("Applying kyaraben configuration...")

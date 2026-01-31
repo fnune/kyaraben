@@ -13,23 +13,7 @@ func (Definition) Emulator() model.Emulator {
 		ID:      model.EmulatorEden,
 		Name:    "Eden",
 		Systems: []model.SystemID{model.SystemSwitch},
-		Package: model.GitHubAppImageRef(
-			"eden",
-			"eden-emulator",
-			"Releases",
-			"v0.0.4",
-			map[string]string{
-				"x86_64":  "Eden-Linux-v0.0.4-amd64-clang-pgo.AppImage",
-				"aarch64": "Eden-Linux-v0.0.4-aarch64-clang-pgo.AppImage",
-			},
-			// TODO: These hashes need to be computed by downloading the AppImages
-			// and running: sha256sum <file>
-			// Then convert to base32 for Nix: nix-hash --to-base32 --type sha256 <hex-hash>
-			map[string]string{
-				"x86_64":  "0000000000000000000000000000000000000000000000000000",
-				"aarch64": "0000000000000000000000000000000000000000000000000000",
-			},
-		),
+		Package: model.VersionedAppImageRef("eden"),
 		// Eden requires firmware and keys which must be installed via the Eden UI.
 		// Kyaraben can verify their presence but cannot automatically provision them.
 		// See: https://eden-emu.dev/
@@ -54,6 +38,11 @@ func (Definition) Emulator() model.Emulator {
 			model.StateSavestates,
 			model.StateScreenshots,
 			model.StatePersistent, // NAND, shader cache, etc.
+		},
+		Launcher: model.LauncherInfo{
+			Binary:      "eden",
+			GenericName: "Nintendo Switch Emulator",
+			Categories:  []string{"Game", "Emulator"},
 		},
 	}
 }

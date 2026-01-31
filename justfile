@@ -1,14 +1,17 @@
 # Kyaraben task runner
 
-# Default: show available tasks
 default:
     @just --list
 
-# Build the CLI
-build:
-    go build -o kyaraben ./cmd/kyaraben
+# Run the Electron app in development mode
+dev: _ensure-ui-deps _sidecar
+    cd ui && npm run dev
 
-# Run all tests
+# Run all checks (lint + test)
+check: lint test
+    cd ui && npm run lint
+
+# Run Go tests
 test:
     go test ./...
 
@@ -16,74 +19,73 @@ test:
 lint:
     golangci-lint run
 
-# Format Go code
+# Format all code
 fmt:
     gofmt -w .
     goimports -w -local github.com/fnune/kyaraben .
+    cd ui && npm run lint:fix
+
+# Build release AppImage
+build: _ensure-ui-deps _sidecar
+    cd ui && npm run electron:build
+
+# Run e2e tests in container
+e2e: _container-e2e-build
+    podman run -it --rm kyaraben-nix-e2e
+
+# Run app in sandbox container for manual testing (persistent state)
+sandbox: build _container-sandbox-build _extract-appimage
+    #!/usr/bin/env bash
+    mkdir -p .sandbox/home
+    podman run -it --rm \
+        --userns=keep-id \
+        -e WAYLAND_DISPLAY=$WAYLAND_DISPLAY \
+        -e XDG_RUNTIME_DIR=/run/user/$(id -u) \
+        -e DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus" \
+        -v $XDG_RUNTIME_DIR:/run/user/$(id -u) \
+        -v /run/dbus/system_bus_socket:/run/dbus/system_bus_socket:ro \
+        -v "$(pwd)/.sandbox/app:/app:ro" \
+        -v "$(pwd)/.sandbox/home:/home/sandbox" \
+        --security-opt label=disable \
+        kyaraben-sandbox
 
 # Clean build artifacts
 clean:
     rm -f kyaraben
+    rm -rf ui/dist ui/dist-electron ui/release ui/binaries
 
-# UI: install dependencies
-ui-install:
-    cd ui && npm ci
+# Clean all sandbox state
+clean-sandbox:
+    rm -rf .sandbox
 
-# UI: run dev server (frontend only)
-ui-dev:
-    cd ui && npm run dev
+# --- Internal targets (prefixed with _) ---
 
-# UI: run Tauri dev (full app with sidecar)
-ui-tauri-dev: sidecar
-    cd ui && npm run tauri dev
+_ensure-ui-deps:
+    #!/usr/bin/env bash
+    if [ ! -d ui/node_modules ]; then
+        echo "Installing UI dependencies..."
+        cd ui && npm ci
+    fi
 
-# UI: build for production
-ui-build:
-    cd ui && npm run build
-
-# UI: lint
-ui-lint:
-    cd ui && npm run lint
-
-# UI: fix lint issues
-ui-lint-fix:
-    cd ui && npm run lint:fix
-
-# Build Go CLI as Tauri sidecar
-sidecar:
+_sidecar:
     ./scripts/build-sidecar.sh
 
-# UI: build Tauri app (release)
-ui-tauri-build: sidecar
-    cd ui && npm run tauri build
-
-# UI: run E2E tests (requires built Tauri app + tauri-driver)
-ui-test-e2e:
-    cd ui && npm run test:e2e
-
-# Build dev container
-container-build:
-    podman build -t kyaraben-dev -f Containerfile.dev .
-
-# Run dev container (interactive)
-container-run:
-    podman run -it --rm -v "$(pwd):/workspace:Z" kyaraben-dev
-
-# Build CLI E2E container (with Nix)
-container-e2e-build:
+_container-e2e-build:
     podman build -t kyaraben-nix-e2e -f Containerfile.nix-e2e .
 
-# Run CLI E2E tests in container
-container-e2e:
-    podman run -it --rm kyaraben-nix-e2e
+_container-sandbox-build:
+    podman build -t kyaraben-sandbox -f Containerfile.sandbox \
+        --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .
 
-# Build Tauri E2E container (full UI tests)
-container-tauri-e2e-build:
-    podman build -t kyaraben-tauri-e2e -f Containerfile.tauri-e2e .
-
-# Run Tauri E2E tests in container
-container-tauri-e2e:
-    podman run -it --rm kyaraben-tauri-e2e
-
-# All checks (lint + test)
-check: lint test ui-lint
+_extract-appimage:
+    #!/usr/bin/env bash
+    appimage=$(realpath ui/release/Kyaraben-*-x86_64.AppImage 2>/dev/null | head -1)
+    if [ -z "$appimage" ]; then
+        echo "AppImage not found. Run 'just build' first."
+        exit 1
+    fi
+    rm -rf .sandbox/app
+    mkdir -p .sandbox/app
+    (cd .sandbox/app && "$appimage" --appimage-extract > /dev/null)
+    mv .sandbox/app/squashfs-root/* .sandbox/app/
+    rm -rf .sandbox/app/squashfs-root

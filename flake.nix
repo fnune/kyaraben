@@ -46,6 +46,7 @@
             # General tools
             git
             jq
+            just
             podman
           ];
 
@@ -62,6 +63,9 @@
           };
           duckstation = pkgs.duckstation;
         };
+
+        # Infrastructure packages
+        packages.syncthing = pkgs.syncthing;
       }
     );
 }

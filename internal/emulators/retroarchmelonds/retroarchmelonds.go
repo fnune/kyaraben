@@ -14,7 +14,7 @@ func (Definition) Emulator() model.Emulator {
 		Systems: []model.SystemID{model.SystemNDS},
 		Package: model.NixpkgsOverlayRef(
 			"retroarch-melonds",
-			`pkgs.retroarch.override { cores = with pkgs.libretro; [ melonds ]; }`,
+			`pkgs.wrapRetroArch { cores = with pkgs.libretro; [ melonds ]; }`,
 		),
 		// BIOS files are optional - melonDS has built-in replacements.
 		// See: https://docs.libretro.com/library/melonds/
@@ -49,6 +49,7 @@ func (Definition) Emulator() model.Emulator {
 			model.StateSavestates,
 			model.StateScreenshots,
 		},
+		Launcher: retroarch.SharedLauncher,
 	}
 }
 

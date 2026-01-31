@@ -3,9 +3,11 @@ package apply
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/fnune/kyaraben/internal/emulators"
+	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/nix"
 	"github.com/fnune/kyaraben/internal/registry"
@@ -84,11 +86,12 @@ func (a *Applier) Preflight(cfg *model.KyarabenConfig, userStore *store.UserStor
 }
 
 type Applier struct {
-	NixClient      nix.NixClient
-	FlakeGenerator *nix.FlakeGenerator
-	ConfigWriter   *emulators.ConfigWriter
-	Registry       *registry.Registry
-	ManifestPath   string
+	NixClient       nix.NixClient
+	FlakeGenerator  *nix.FlakeGenerator
+	ConfigWriter    *emulators.ConfigWriter
+	Registry        *registry.Registry
+	ManifestPath    string
+	LauncherManager *launcher.Manager
 }
 
 func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, opts Options) (*Result, error) {
@@ -142,7 +145,8 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 		return nil, fmt.Errorf("creating flake directory: %w", err)
 	}
 
-	if err := a.FlakeGenerator.Generate(a.NixClient.GetFlakePath(), emulatorsToInstall); err != nil {
+	genPath, err := a.FlakeGenerator.Generate(a.NixClient.GetFlakePath(), emulatorsToInstall)
+	if err != nil {
 		return nil, fmt.Errorf("generating flake: %w", err)
 	}
 
@@ -151,10 +155,48 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 	buildCtx, cancel := context.WithTimeout(context.Background(), nixBuildTimeout)
 	defer cancel()
 
-	flakeRef := a.FlakeGenerator.DefaultFlakeRef(a.NixClient.GetFlakePath())
-	storePath, err := a.NixClient.Build(buildCtx, flakeRef)
-	if err != nil {
-		return nil, fmt.Errorf("building emulators: %w", err)
+	flakeRef := a.FlakeGenerator.DefaultFlakeRef(string(genPath))
+
+	var profileLink string
+	if a.LauncherManager != nil {
+		profileLink = a.LauncherManager.CurrentLink()
+	}
+
+	var storePath string
+	if profileLink != "" {
+		// Remove existing symlink before building - nix won't overwrite it
+		if _, err := os.Lstat(profileLink); err == nil {
+			if err := os.Remove(profileLink); err != nil {
+				return nil, fmt.Errorf("removing existing profile link: %w", err)
+			}
+		}
+
+		if err := a.NixClient.BuildWithLink(buildCtx, flakeRef, profileLink); err != nil {
+			return nil, fmt.Errorf("building emulators: %w", err)
+		}
+		target, err := os.Readlink(profileLink)
+		if err != nil {
+			return nil, fmt.Errorf("reading profile link: %w", err)
+		}
+
+		// nix-portable virtualizes /nix/store, so the symlink target doesn't exist
+		// on the real filesystem. Translate to the real store path.
+		realTarget := a.NixClient.RealStorePath(target)
+		if realTarget != target {
+			if err := os.Remove(profileLink); err != nil {
+				return nil, fmt.Errorf("removing old profile link: %w", err)
+			}
+			if err := os.Symlink(realTarget, profileLink); err != nil {
+				return nil, fmt.Errorf("creating real profile link: %w", err)
+			}
+		}
+		storePath = realTarget
+	} else {
+		var err error
+		storePath, err = a.NixClient.Build(buildCtx, flakeRef)
+		if err != nil {
+			return nil, fmt.Errorf("building emulators: %w", err)
+		}
 	}
 
 	opts.OnProgress(Progress{Step: "configs", Message: "Applying emulator configurations..."})

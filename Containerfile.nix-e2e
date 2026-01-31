@@ -16,7 +16,7 @@ COPY . .
 # Download nix-portable for bundling
 RUN ./scripts/download-nix-portable.sh /app/binaries
 
-RUN go build -o /kyaraben ./cmd/kyaraben
+RUN go build -o /app/kyaraben ./cmd/kyaraben
 RUN go test ./... -v
 
 # Runtime image (no system Nix needed - using nix-portable)
@@ -34,7 +34,7 @@ USER testuser
 WORKDIR /home/testuser
 
 # Copy the built kyaraben binary and nix-portable
-COPY --from=builder --chown=testuser:testuser /kyaraben /usr/local/bin/kyaraben
+COPY --from=builder --chown=testuser:testuser /app/kyaraben /usr/local/bin/kyaraben
 COPY --from=builder --chown=testuser:testuser /app/binaries/nix-portable-* /usr/local/bin/
 
 # Copy and set up test runner script

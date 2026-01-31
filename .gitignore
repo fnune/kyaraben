@@ -19,3 +19,7 @@ Thumbs.db
 result
 result-*
 .direnv/
+
+# Sandbox persistent state
+.sandbox/
+ui/binaries/

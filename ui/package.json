@@ -4,16 +4,14 @@
   "private": true,
   "main": "dist-electron/main.js",
   "scripts": {
-    "dev": "vite",
-    "dev:electron": "npm run build:electron && electron .",
+    "dev": "npm run build && npm run build:electron && electron .",
+    "dev:vite": "vite",
     "build": "tsc -b && vite build",
     "build:electron": "tsc -p electron/tsconfig.json",
     "preview": "vite preview",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "format": "biome format --write .",
     "test": "vitest run",
-    "test:watch": "vitest",
     "test:e2e": "playwright test",
     "electron:build": "npm run build && npm run build:electron && electron-builder",
     "postinstall": "electron-builder install-app-deps"
