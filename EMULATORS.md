@@ -154,18 +154,18 @@ https://buildbot.example.com/nightly/app.AppImage
 ### Ready (AppImage, direct install)
 - ✅ DuckStation - implemented
 - ✅ Eden - implemented
-- 🔲 PCSX2 - versions.toml entry added, needs emulator definition
-- 🔲 PPSSPP - versions.toml entry added, needs emulator definition
-- 🔲 mGBA - versions.toml entry added, needs emulator definition
+- ✅ PCSX2 - implemented (PS2 default)
+- ✅ PPSSPP - implemented (PSP default, replaces RA core)
+- ✅ mGBA - implemented (GBA default, replaces RA core)
 - 🔲 Cemu - versions.toml entry added, needs emulator definition
 - 🔲 Azahar - versions.toml entry added, needs emulator definition
 - 🔲 Dolphin - versions.toml entry added, needs emulator definition (uses `release_tag` field)
 
-### Needs Archive Extraction Support
-These emulators distribute as archives (7z, tar.gz) instead of AppImages. The nix flake generation code needs to be extended to extract archives before installing.
+### Archive Extraction Support
+Archive extraction is implemented in flake.go (7z, tar.gz, zip). These emulators use archives instead of direct AppImages:
 
-- 🔲 RetroArch - 7z archive from buildbot
-- 🔲 TIC-80 - tar.gz from GitHub
+- 🔲 RetroArch - 7z archive from buildbot (needs emulator definition)
+- 🔲 TIC-80 - tar.gz from GitHub (needs emulator definition update)
 
 ### Needs Special Handling
 - 🔲 melonDS - AppImage inside ZIP file
