@@ -32,8 +32,8 @@ func TestGet(t *testing.T) {
 			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemTIC80: {Emulator: model.EmulatorTIC80},
-			model.SystemSNES:  {Emulator: model.EmulatorRetroArchBsnes},
+			model.SystemTIC80: {Emulator: string(model.EmulatorTIC80)},
+			model.SystemSNES:  {Emulator: string(model.EmulatorRetroArchBsnes)},
 		},
 	}
 
@@ -84,7 +84,7 @@ func TestGetWithInitializedStore(t *testing.T) {
 			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemTIC80: {Emulator: model.EmulatorTIC80},
+			model.SystemTIC80: {Emulator: string(model.EmulatorTIC80)},
 		},
 	}
 
@@ -110,7 +110,7 @@ func TestGetSystemNames(t *testing.T) {
 			UserStore: tmpDir,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemTIC80: {Emulator: model.EmulatorTIC80},
+			model.SystemTIC80: {Emulator: string(model.EmulatorTIC80)},
 		},
 	}
 
@@ -149,8 +149,8 @@ func TestGetMissingRequiredCount(t *testing.T) {
 			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemPSX:   {Emulator: model.EmulatorDuckStation},
-			model.SystemTIC80: {Emulator: model.EmulatorTIC80},
+			model.SystemPSX:   {Emulator: string(model.EmulatorDuckStation)},
+			model.SystemTIC80: {Emulator: string(model.EmulatorTIC80)},
 		},
 	}
 
@@ -194,7 +194,7 @@ func TestGetWithManifest(t *testing.T) {
 			UserStore: tmpDir,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemTIC80: {Emulator: model.EmulatorTIC80},
+			model.SystemTIC80: {Emulator: string(model.EmulatorTIC80)},
 		},
 	}
 

@@ -67,7 +67,13 @@ func (cmd *StatusCmd) Run(ctx *Context) error {
 	} else {
 		fmt.Println("Managed emulators:")
 		for _, emu := range result.InstalledEmulators {
-			fmt.Printf("  %-20s %s\n", emu.Name, emu.Version)
+			versionInfo := emu.Version
+			if emu.PinnedVersion != "" {
+				versionInfo += " (pinned)"
+			} else if emu.DefaultVersion != "" && emu.Version != emu.DefaultVersion {
+				versionInfo += fmt.Sprintf(" (update to %s on apply)", emu.DefaultVersion)
+			}
+			fmt.Printf("  %-20s %s\n", emu.Name, versionInfo)
 		}
 		fmt.Println()
 
