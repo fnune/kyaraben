@@ -51,3 +51,122 @@ sha256 = "sha256-tAnFWQTJCaw+raP7EjMxn4aomd0boxo93TMNBkFBxyg="
 [nix-portable.targets.aarch64]
 arch = "aarch64"
 sha256 = "sha256-r0HY3v25+hfuNhIg7gWgx1jT5iMThKP5aaMU+RM3ROo="
+
+# ============================================================================
+# NEW EMULATORS - Replacing nix-portable GUI apps with direct binary downloads
+# ============================================================================
+
+[pcsx2] # https://github.com/PCSX2/pcsx2/releases
+version = "v2.6.3"
+url_template = "https://github.com/PCSX2/pcsx2/releases/download/{version}/pcsx2-{version}-linux-appimage-x64-Qt.AppImage"
+
+[pcsx2.targets.x64]
+arch = "x86_64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+
+# Note: PCSX2 does not provide ARM64 AppImages
+
+[ppsspp] # https://github.com/hrydgard/ppsspp/releases
+version = "v1.19.3"
+url_template = "https://github.com/hrydgard/ppsspp/releases/download/{version}/PPSSPP-{version}-anylinux-{target}.AppImage"
+
+[ppsspp.targets.x86_64]
+arch = "x86_64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+
+# Note: PPSSPP does not provide ARM64 AppImages for Linux
+
+[mgba] # https://github.com/mgba-emu/mgba/releases
+# Note: mGBA uses version without 'v' prefix in URLs
+version = "0.10.5"
+url_template = "https://github.com/mgba-emu/mgba/releases/download/{version}/mGBA-{version}-appimage-{target}.appimage"
+
+[mgba.targets.x64]
+arch = "x86_64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+
+[mgba.targets.arm64]
+arch = "aarch64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+
+[cemu] # https://github.com/cemu-project/Cemu/releases
+version = "2.4"
+url_template = "https://github.com/cemu-project/Cemu/releases/download/v{version}/Cemu-{version}-x86_64.AppImage"
+
+[cemu.targets.x64]
+arch = "x86_64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+
+# Note: Cemu does not provide ARM64 builds
+
+[azahar] # https://github.com/azahar-emu/azahar/releases
+version = "2120.1"
+url_template = "https://github.com/azahar-emu/azahar/releases/download/{version}/azahar.AppImage"
+
+[azahar.targets.x64]
+arch = "x86_64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+
+# Note: Azahar provides ARM64 but filename pattern may differ
+
+[dolphin] # https://github.com/pkgforge-dev/Dolphin-emu-AppImage/releases
+# UNOFFICIAL but well-maintained; no official binary from Dolphin team
+# Tag format: {version}@{date}_{build_id}
+version = "2512"
+release_tag = "2512@2026-01-26_1769467304"
+url_template = "https://github.com/pkgforge-dev/Dolphin-emu-AppImage/releases/download/{release_tag}/Dolphin_Emulator-{version}-anylinux.dwarfs-{target}.AppImage"
+
+[dolphin.targets.x86_64]
+arch = "x86_64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+
+[dolphin.targets.aarch64]
+arch = "aarch64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+
+[retroarch] # https://buildbot.libretro.com/stable/
+# RetroArch frontend only - cores fetched via nix-portable
+# Note: Distributed as 7z archive, not AppImage - requires extraction
+version = "1.19.1"
+url_template = "https://buildbot.libretro.com/stable/{version}/linux/{target}/RetroArch.7z"
+
+[retroarch.targets.x86_64]
+arch = "x86_64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+
+[retroarch.targets.aarch64]
+arch = "aarch64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+
+[tic80] # https://github.com/nesbox/TIC-80/releases
+# Note: Distributed as tarball, not AppImage - requires extraction
+version = "1.1.2837"
+url_template = "https://github.com/nesbox/TIC-80/releases/download/v{version}/tic80-{version}-linux.tar.gz"
+
+[tic80.targets.x64]
+arch = "x86_64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+
+# Note: TIC-80 ARM64 builds available via nightly, not stable releases
+
+# ============================================================================
+# EMULATORS REQUIRING SPECIAL HANDLING
+# ============================================================================
+
+# melonDS: AppImage is inside a ZIP file - needs extraction logic
+# [melonds]
+# version = "1.1"
+# url_template = "https://github.com/melonDS-emu/melonDS/releases/download/{version}/melonDS_{version}_linux_x64.zip"
+# extraction_type = "zip"  # Would need new field to handle this
+
+# Vita3K: Continuous builds without version tags
+# [vita3k]
+# Uses rolling continuous releases at https://github.com/Vita3K/Vita3K-builds/releases
+# Filename is just Vita3K-x86_64.AppImage without version
+# Would need different versioning strategy (date-based or commit-based)
+
+# RPCS3: Rolling releases with commit hashes
+# [rpcs3]
+# Uses build numbers like rpcs3-v0.0.35-17419-2a0f0bb5_linux64.AppImage
+# Version format: v0.0.{minor}-{build}-{hash}
+# Would need to track both version string and hash
