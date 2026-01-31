@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ProgressDisplay } from '@/components/ProgressDisplay/ProgressDisplay'
 import { Settings } from '@/components/Settings/Settings'
 import { SyncSettings } from '@/components/SyncSettings/SyncSettings'
 import { SyncStatusBar } from '@/components/SyncStatusBar/SyncStatusBar'
 import { SystemGrid } from '@/components/SystemGrid/SystemGrid'
 import { useDaemon } from '@/hooks/useDaemon'
+import { Button } from '@/lib/Button'
+import { ProgressSteps } from '@/lib/ProgressSteps'
+import { Toast } from '@/lib/Toast'
 import type {
   DoctorResponse,
   EmulatorID,
@@ -13,6 +15,11 @@ import type {
   SystemID,
 } from '@/types/daemon'
 import type { ApplyStatus, ProgressStep } from '@/types/ui'
+
+interface ToastState {
+  message: string
+  type: 'error' | 'success' | 'info'
+}
 
 const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
   store: 'Setting up emulation folder',
@@ -33,6 +40,11 @@ export function App() {
   const [error, setError] = useState<string | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null)
   const [showSyncSettings, setShowSyncSettings] = useState(false)
+  const [toast, setToast] = useState<ToastState | null>(null)
+
+  const showToast = useCallback((message: string, type: ToastState['type'] = 'info') => {
+    setToast({ message, type })
+  }, [])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: init runs once on mount, daemon methods are stable
   useEffect(() => {
@@ -115,7 +127,7 @@ export function App() {
     const MAX_OUTPUT_LINES = 5
 
     const progressHandler = (...args: unknown[]) => {
-      const data = args[0] as { step: string; message: string; output?: string; speed?: string }
+      const data = args[0] as { step: string; message: string; output?: string }
 
       setProgressSteps((prev) => {
         const existing = prev.find((s) => s.id === data.step)
@@ -139,15 +151,12 @@ export function App() {
               status: 'in_progress' as const,
               ...(data.message && { message: data.message }),
               ...(data.output && {
-                outputLines: [...(s.outputLines ?? []), data.output].slice(-MAX_OUTPUT_LINES),
+                output: [...(s.output ?? []), data.output].slice(-MAX_OUTPUT_LINES),
               }),
-              ...(data.speed && { speed: data.speed }),
             }
           }
-          // Mark previous steps as completed when a new step arrives
           if (isNewStep && s.status === 'in_progress') {
-            const { speed: _, ...rest } = s
-            return { ...rest, status: 'completed' as const }
+            return { ...s, status: 'completed' as const }
           }
           return s
         })
@@ -234,20 +243,16 @@ export function App() {
       <main className="max-w-5xl mx-auto px-8 py-6">
         {showProgress ? (
           <>
-            <ProgressDisplay steps={progressSteps} error={error ?? ''} />
-            {!isApplying && (
-              <button
-                type="button"
-                onClick={handleReset}
-                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                Done
-              </button>
-            )}
+            <ProgressSteps steps={progressSteps} error={error ?? undefined} />
+            {!isApplying && <Button onClick={handleReset}>Done</Button>}
           </>
         ) : (
           <>
-            <Settings userStore={userStore} onUserStoreChange={setUserStore} />
+            <Settings
+              userStore={userStore}
+              onUserStoreChange={setUserStore}
+              onError={(msg) => showToast(msg, 'error')}
+            />
 
             <SystemGrid
               systems={systems}
@@ -257,14 +262,9 @@ export function App() {
             />
 
             <div className="mt-6">
-              <button
-                type="button"
-                onClick={handleApply}
-                disabled={selections.size === 0}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              <Button onClick={handleApply} disabled={selections.size === 0}>
                 Apply
-              </button>
+              </Button>
             </div>
           </>
         )}
@@ -277,6 +277,10 @@ export function App() {
           onRemoveDevice={handleRemoveDevice}
           onClose={() => setShowSyncSettings(false)}
         />
+      )}
+
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />
       )}
     </div>
   )

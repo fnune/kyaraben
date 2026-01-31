@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { Button } from '@/lib/Button'
+import { Input } from '@/lib/Input'
+import { Modal } from '@/lib/Modal'
 import type { SyncDevice, SyncStatusResponse } from '@/types/daemon'
 
 export interface SyncSettingsProps {
@@ -63,123 +66,94 @@ export function SyncSettings({ status, onAddDevice, onRemoveDevice, onClose }: S
 
   if (!status?.enabled) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Sync Settings</h2>
-          <p className="text-gray-600 mb-4">Sync is not enabled. Enable it in your config.toml:</p>
-          <pre className="bg-gray-100 p-3 rounded text-sm mb-4">
-            {`[sync]
+      <Modal open={true} onClose={onClose} title="Sync settings">
+        <p className="text-gray-600 mb-4">Sync is not enabled. Enable it in your config.toml:</p>
+        <pre className="bg-gray-100 p-3 rounded text-sm mb-4">
+          {`[sync]
 enabled = true
 mode = "primary"  # or "secondary"`}
-          </pre>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-          >
-            Close
-          </button>
-        </div>
-      </div>
+        </pre>
+        <Button variant="secondary" onClick={onClose}>
+          Close
+        </Button>
+      </Modal>
     )
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Sync Settings</h2>
-          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            &times;
-          </button>
+    <Modal open={true} onClose={onClose} title="Sync settings">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-gray-600">Mode</span>
+          <span className="text-sm font-medium capitalize">{status.mode}</span>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Mode</span>
-            <span className="text-sm font-medium capitalize">{status.mode}</span>
-          </div>
-
-          {status.deviceId && (
-            <div>
-              <span className="text-sm text-gray-600 block mb-1">This device ID</span>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 bg-gray-100 px-3 py-2 rounded text-xs break-all">
-                  {status.deviceId}
-                </code>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (status.deviceId) {
-                      navigator.clipboard.writeText(status.deviceId)
-                    }
-                  }}
-                  className="px-3 py-2 text-xs bg-gray-100 rounded hover:bg-gray-200"
-                >
-                  Copy
-                </button>
-              </div>
-            </div>
-          )}
-
+        {status.deviceId && (
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">Paired devices</span>
-              {status.guiURL && (
-                <button
-                  type="button"
-                  onClick={handleOpenGui}
-                  className="text-xs text-blue-600 hover:text-blue-800"
-                >
-                  Open Syncthing UI
-                </button>
-              )}
-            </div>
-
-            {status.devices && status.devices.length > 0 ? (
-              <div className="border rounded-lg px-3">
-                {status.devices.map((device) => (
-                  <DeviceRow
-                    key={device.id}
-                    device={device}
-                    onRemove={() => onRemoveDevice(device.id)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500 italic">No devices paired</p>
-            )}
-          </div>
-
-          <div className="border-t pt-4">
-            <span className="text-sm text-gray-600 block mb-2">Add a device</span>
-            <div className="space-y-2">
-              <input
-                type="text"
-                value={newDeviceId}
-                onChange={(e) => setNewDeviceId(e.target.value)}
-                placeholder="Device ID"
-                className="w-full px-3 py-2 border rounded text-sm"
-              />
-              <input
-                type="text"
-                value={newDeviceName}
-                onChange={(e) => setNewDeviceName(e.target.value)}
-                placeholder="Friendly name (optional)"
-                className="w-full px-3 py-2 border rounded text-sm"
-              />
+            <span className="text-sm text-gray-600 block mb-1">This device ID</span>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 bg-gray-100 px-3 py-2 rounded text-xs break-all">
+                {status.deviceId}
+              </code>
               <button
                 type="button"
-                onClick={handleAddDevice}
-                disabled={!newDeviceId.trim() || isAdding}
-                className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                onClick={() => {
+                  if (status.deviceId) {
+                    navigator.clipboard.writeText(status.deviceId)
+                  }
+                }}
+                className="px-3 py-2 text-xs bg-gray-100 rounded hover:bg-gray-200"
               >
-                {isAdding ? 'Adding...' : 'Add Device'}
+                Copy
               </button>
             </div>
           </div>
+        )}
+
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-gray-600">Paired devices</span>
+            {status.guiURL && (
+              <button
+                type="button"
+                onClick={handleOpenGui}
+                className="text-xs text-blue-600 hover:text-blue-800"
+              >
+                Open Syncthing UI
+              </button>
+            )}
+          </div>
+
+          {status.devices && status.devices.length > 0 ? (
+            <div className="border rounded-lg px-3">
+              {status.devices.map((device) => (
+                <DeviceRow
+                  key={device.id}
+                  device={device}
+                  onRemove={() => onRemoveDevice(device.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 italic">No devices paired</p>
+          )}
+        </div>
+
+        <div className="border-t pt-4">
+          <span className="text-sm text-gray-600 block mb-2">Add a device</span>
+          <div className="space-y-2">
+            <Input value={newDeviceId} onChange={setNewDeviceId} placeholder="Device ID" />
+            <Input
+              value={newDeviceName}
+              onChange={setNewDeviceName}
+              placeholder="Friendly name (optional)"
+            />
+            <Button onClick={handleAddDevice} disabled={!newDeviceId.trim() || isAdding}>
+              {isAdding ? 'Adding...' : 'Add device'}
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
+    </Modal>
   )
 }
