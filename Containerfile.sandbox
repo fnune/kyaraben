@@ -37,7 +37,7 @@ RUN echo '' >> /etc/bash.bashrc && \
     echo '# Kyaraben launcher integration' >> /etc/bash.bashrc && \
     echo 'export PATH="$HOME/.local/share/kyaraben/current/bin:$PATH"' >> /etc/bash.bashrc && \
     echo 'export XDG_DATA_DIRS="$HOME/.local/share/kyaraben/current/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"' >> /etc/bash.bashrc && \
-    echo 'alias kyaraben="/app/resources/kyaraben"' >> /etc/bash.bashrc
+    echo 'alias kyaraben="/app/resources/binaries/kyaraben-x86_64-unknown-linux-gnu"' >> /etc/bash.bashrc
 
 USER sandbox
 WORKDIR /home/sandbox
