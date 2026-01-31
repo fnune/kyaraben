@@ -6,9 +6,9 @@ type Definition struct{}
 
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
-		ID:      model.EmulatorAzahar,
+		ID:      model.EmulatorIDAzahar,
 		Name:    "Azahar",
-		Systems: []model.SystemID{model.System3DS},
+		Systems: []model.SystemID{model.SystemID3DS},
 		Package: model.AppImageRef("azahar"),
 		// 3DS AES keys required but handled separately
 		Provisions: nil,
@@ -42,10 +42,10 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
-			{Path: []string{"Data%20Storage", "nand_directory"}, Value: store.EmulatorOpaqueDir(model.EmulatorAzahar) + "/nand"},
-			{Path: []string{"Data%20Storage", "sdmc_directory"}, Value: store.EmulatorOpaqueDir(model.EmulatorAzahar) + "/sdmc"},
-			{Path: []string{"UI", "Paths\\gamedirs\\1\\path"}, Value: store.SystemRomsDir(model.System3DS)},
-			{Path: []string{"UI", "Screenshots\\screenshot_path"}, Value: store.SystemScreenshotsDir(model.System3DS)},
+			{Path: []string{"Data%20Storage", "nand_directory"}, Value: store.EmulatorOpaqueDir(model.EmulatorIDAzahar) + "/nand"},
+			{Path: []string{"Data%20Storage", "sdmc_directory"}, Value: store.EmulatorOpaqueDir(model.EmulatorIDAzahar) + "/sdmc"},
+			{Path: []string{"UI", "Paths\\gamedirs\\1\\path"}, Value: store.SystemRomsDir(model.SystemID3DS)},
+			{Path: []string{"UI", "Screenshots\\screenshot_path"}, Value: store.SystemScreenshotsDir(model.SystemID3DS)},
 		},
 	}}, nil
 }

@@ -55,7 +55,7 @@ func TestUserStoreInitializeSystem(t *testing.T) {
 	}
 
 	// Initialize SNES system
-	if err := store.InitializeSystem(model.SystemSNES); err != nil {
+	if err := store.InitializeSystem(model.SystemIDSNES); err != nil {
 		t.Fatalf("InitializeSystem failed: %v", err)
 	}
 
@@ -113,10 +113,10 @@ func TestUserStoreSystemPaths(t *testing.T) {
 		fn     func(model.SystemID) string
 		want   string
 	}{
-		{"SystemRomsDir", model.SystemSNES, store.SystemRomsDir, "/home/user/Emulation/roms/snes"},
-		{"SystemBiosDir", model.SystemPSX, store.SystemBiosDir, "/home/user/Emulation/bios/psx"},
-		{"SystemSavesDir", model.SystemGBA, store.SystemSavesDir, "/home/user/Emulation/saves/gba"},
-		{"SystemScreenshotsDir", model.SystemPSX, store.SystemScreenshotsDir, "/home/user/Emulation/screenshots/psx"},
+		{"SystemRomsDir", model.SystemIDSNES, store.SystemRomsDir, "/home/user/Emulation/roms/snes"},
+		{"SystemBiosDir", model.SystemIDPSX, store.SystemBiosDir, "/home/user/Emulation/bios/psx"},
+		{"SystemSavesDir", model.SystemIDGBA, store.SystemSavesDir, "/home/user/Emulation/saves/gba"},
+		{"SystemScreenshotsDir", model.SystemIDPSX, store.SystemScreenshotsDir, "/home/user/Emulation/screenshots/psx"},
 	}
 
 	for _, tt := range tests {
@@ -132,7 +132,7 @@ func TestUserStoreSystemPaths(t *testing.T) {
 func TestUserStoreEmulatorPaths(t *testing.T) {
 	store := mustNewUserStore(t, "/home/user/Emulation")
 
-	got := store.EmulatorStatesDir(model.EmulatorRetroArchBsnes)
+	got := store.EmulatorStatesDir(model.EmulatorIDRetroArchBsnes)
 	want := "/home/user/Emulation/states/retroarch:bsnes"
 	if got != want {
 		t.Errorf("EmulatorStatesDir got %s, want %s", got, want)

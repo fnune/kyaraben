@@ -53,10 +53,10 @@ func (e *EmulatorSpec) AvailableVersions() []string {
 
 // VersionEntry describes a specific version of an emulator.
 type VersionEntry struct {
-	Version    string                  // The version string (copied from map key)
-	ReleaseTag string                  // For repos where tag != version
-	BinaryPath string                  // Version-specific binary path override
-	Targets    map[string]TargetBuild  // Map of target name to build info
+	Version    string                 // The version string (copied from map key)
+	ReleaseTag string                 // For repos where tag != version
+	BinaryPath string                 // Version-specific binary path override
+	Targets    map[string]TargetBuild // Map of target name to build info
 }
 
 // EffectiveReleaseTag returns the release tag to use in URLs.

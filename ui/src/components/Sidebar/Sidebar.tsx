@@ -1,4 +1,12 @@
 import type { SyncState, SyncStatusResponse } from '@/types/daemon'
+import {
+  SyncStateConflict,
+  SyncStateDisabled,
+  SyncStateDisconnected,
+  SyncStateError,
+  SyncStateSynced,
+  SyncStateSyncing,
+} from '@/types/daemon'
 import type { View } from '@/types/ui'
 
 export interface SidebarProps {
@@ -15,18 +23,18 @@ interface NavItemProps {
 }
 
 const syncDotColors: Record<SyncState, string> = {
-  disabled: 'bg-gray-400',
-  synced: 'bg-green-500',
-  syncing: 'bg-blue-500 animate-pulse',
-  disconnected: 'bg-red-500',
-  conflict: 'bg-yellow-500',
-  error: 'bg-red-500',
+  [SyncStateDisabled]: 'bg-gray-400',
+  [SyncStateSynced]: 'bg-green-500',
+  [SyncStateSyncing]: 'bg-blue-500 animate-pulse',
+  [SyncStateDisconnected]: 'bg-red-500',
+  [SyncStateConflict]: 'bg-yellow-500',
+  [SyncStateError]: 'bg-red-500',
 }
 
 function getSyncState(status: SyncStatusResponse | null): SyncState {
-  if (!status?.enabled) return 'disabled'
-  if (!status.running) return 'disconnected'
-  return status.state ?? 'synced'
+  if (!status?.enabled) return SyncStateDisabled
+  if (!status.running) return SyncStateDisconnected
+  return status.state ?? SyncStateSynced
 }
 
 function NavItem({ label, active, onClick, indicator }: NavItemProps) {

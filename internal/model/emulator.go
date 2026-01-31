@@ -1,28 +1,5 @@
 package model
 
-// EmulatorID uniquely identifies an emulator implementation.
-// Format: "emulator" or "emulator:core" for RetroArch cores.
-type EmulatorID string
-
-const (
-	// EmulatorRetroArch is the base RetroArch installation shared by all cores.
-	// Used for shared data like the cores directory.
-	EmulatorRetroArch      EmulatorID = "retroarch"
-	EmulatorRetroArchBsnes EmulatorID = "retroarch:bsnes"
-	EmulatorDuckStation    EmulatorID = "duckstation"
-	EmulatorPCSX2          EmulatorID = "pcsx2"
-	EmulatorRPCS3          EmulatorID = "rpcs3"
-	EmulatorVita3K         EmulatorID = "vita3k"
-	EmulatorPPSSPP         EmulatorID = "ppsspp"
-	EmulatorMGBA           EmulatorID = "mgba"
-	EmulatorMelonDS        EmulatorID = "melonds"
-	EmulatorFlycast        EmulatorID = "flycast"
-	EmulatorCemu           EmulatorID = "cemu"
-	EmulatorAzahar         EmulatorID = "azahar"
-	EmulatorDolphin        EmulatorID = "dolphin"
-	EmulatorEden           EmulatorID = "eden"
-)
-
 // PackageSource indicates where an emulator package comes from.
 type PackageSource string
 

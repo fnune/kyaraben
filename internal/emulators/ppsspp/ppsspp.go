@@ -6,9 +6,9 @@ type Definition struct{}
 
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
-		ID:      model.EmulatorPPSSPP,
+		ID:      model.EmulatorIDPPSSPP,
 		Name:    "PPSSPP",
-		Systems: []model.SystemID{model.SystemPSP},
+		Systems: []model.SystemID{model.SystemIDPSP},
 		Package: model.AppImageRef("ppsspp"),
 		// PPSSPP uses HLE - no BIOS required
 		Provisions: nil,
@@ -43,8 +43,8 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
-			{Path: []string{"General", "MemStickDirectory"}, Value: store.EmulatorOpaqueDir(model.EmulatorPPSSPP)},
-			{Path: []string{"General", "ScreenshotsPath"}, Value: store.SystemScreenshotsDir(model.SystemPSP)},
+			{Path: []string{"General", "MemStickDirectory"}, Value: store.EmulatorOpaqueDir(model.EmulatorIDPPSSPP)},
+			{Path: []string{"General", "ScreenshotsPath"}, Value: store.SystemScreenshotsDir(model.SystemIDPSP)},
 		},
 	}}, nil
 }

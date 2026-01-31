@@ -1,6 +1,7 @@
 import { SystemCard } from '@/components/SystemCard/SystemCard'
 import type { DoctorResponse, EmulatorID, System, SystemID } from '@/types/daemon'
-import { MANUFACTURER_ORDER, type Manufacturer, SYSTEM_MANUFACTURERS } from '@/types/ui'
+import type { Manufacturer } from '@/types/model.gen'
+import { MANUFACTURER_ORDER } from '@/types/ui'
 
 export interface SystemGridProps {
   readonly systems: readonly System[]
@@ -20,8 +21,7 @@ function groupByManufacturer(systems: readonly System[]): Map<Manufacturer, Syst
   }
 
   for (const system of systems) {
-    const manufacturer = SYSTEM_MANUFACTURERS[system.id]
-    const group = groups.get(manufacturer)
+    const group = groups.get(system.manufacturer)
     if (group) {
       group.push(system)
     }
@@ -56,7 +56,7 @@ export function SystemGrid({
               {manufacturerSystems.map((system) => {
                 const selectedEmulator = selections.get(system.id) ?? null
                 const installedVersion = selectedEmulator
-                  ? installedVersions.get(selectedEmulator) ?? null
+                  ? (installedVersions.get(selectedEmulator) ?? null)
                   : null
 
                 return (

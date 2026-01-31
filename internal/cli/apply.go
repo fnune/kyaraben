@@ -194,4 +194,3 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 
 	return nil
 }
-

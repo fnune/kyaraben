@@ -1,32 +1,9 @@
-import type { EmulatorID, ProvisionResult, System, SystemID } from './daemon'
+import type { EmulatorID, ProvisionResult, SystemID } from './daemon'
+import type { Manufacturer } from './model.gen'
 
 export type View = 'systems' | 'installation' | 'sync'
 
-export type Manufacturer = 'Nintendo' | 'Sony' | 'Other'
-
-export const SYSTEM_MANUFACTURERS: Readonly<Record<SystemID, Manufacturer>> = {
-  snes: 'Nintendo',
-  gba: 'Nintendo',
-  nds: 'Nintendo',
-  '3ds': 'Nintendo',
-  gamecube: 'Nintendo',
-  wii: 'Nintendo',
-  wiiu: 'Nintendo',
-  switch: 'Nintendo',
-  psx: 'Sony',
-  ps2: 'Sony',
-  ps3: 'Sony',
-  psp: 'Sony',
-  psvita: 'Sony',
-  dreamcast: 'Other',
-  'e2e-test': 'Other',
-}
-
-export const MANUFACTURER_ORDER: readonly Manufacturer[] = ['Nintendo', 'Sony', 'Other']
-
-export interface SystemWithMetadata extends System {
-  readonly manufacturer: Manufacturer
-}
+export const MANUFACTURER_ORDER: readonly Manufacturer[] = ['Nintendo', 'Sony', 'Sega', 'Other']
 
 export interface EmulatorProvisions {
   readonly emulatorId: EmulatorID

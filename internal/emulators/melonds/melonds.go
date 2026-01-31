@@ -6,9 +6,9 @@ type Definition struct{}
 
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
-		ID:      model.EmulatorMelonDS,
+		ID:      model.EmulatorIDMelonDS,
 		Name:    "melonDS",
-		Systems: []model.SystemID{model.SystemNDS},
+		Systems: []model.SystemID{model.SystemIDNDS},
 		Package: model.AppImageRef("melonds"),
 		Provisions: []model.Provision{
 			{
@@ -65,13 +65,13 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
-			{Path: []string{"BIOS9Path"}, Value: store.SystemBiosDir(model.SystemNDS) + "/bios9.bin"},
-			{Path: []string{"BIOS7Path"}, Value: store.SystemBiosDir(model.SystemNDS) + "/bios7.bin"},
-			{Path: []string{"FirmwarePath"}, Value: store.SystemBiosDir(model.SystemNDS) + "/firmware.bin"},
-			{Path: []string{"SaveFilePath"}, Value: store.SystemSavesDir(model.SystemNDS)},
-			{Path: []string{"SavestatePath"}, Value: store.EmulatorStatesDir(model.EmulatorMelonDS)},
-			{Path: []string{"ScreenshotPath"}, Value: store.SystemScreenshotsDir(model.SystemNDS)},
-			{Path: []string{"LastROMFolder"}, Value: store.SystemRomsDir(model.SystemNDS)},
+			{Path: []string{"BIOS9Path"}, Value: store.SystemBiosDir(model.SystemIDNDS) + "/bios9.bin"},
+			{Path: []string{"BIOS7Path"}, Value: store.SystemBiosDir(model.SystemIDNDS) + "/bios7.bin"},
+			{Path: []string{"FirmwarePath"}, Value: store.SystemBiosDir(model.SystemIDNDS) + "/firmware.bin"},
+			{Path: []string{"SaveFilePath"}, Value: store.SystemSavesDir(model.SystemIDNDS)},
+			{Path: []string{"SavestatePath"}, Value: store.EmulatorStatesDir(model.EmulatorIDMelonDS)},
+			{Path: []string{"ScreenshotPath"}, Value: store.SystemScreenshotsDir(model.SystemIDNDS)},
+			{Path: []string{"LastROMFolder"}, Value: store.SystemRomsDir(model.SystemIDNDS)},
 		},
 	}}, nil
 }

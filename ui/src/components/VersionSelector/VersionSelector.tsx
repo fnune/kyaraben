@@ -49,7 +49,11 @@ export function VersionSelector({
         onChange={handleChange}
         disabled={disabled}
         className="text-xs bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5 text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50 cursor-pointer"
-        title={pinnedVersion ? `Pinned to ${pinnedVersion}` : `Using default (${emulator.defaultVersion})`}
+        title={
+          pinnedVersion
+            ? `Pinned to ${pinnedVersion}`
+            : `Using default (${emulator.defaultVersion})`
+        }
       >
         <option value="">{emulator.defaultVersion}</option>
         {emulator.availableVersions.map((version) => (

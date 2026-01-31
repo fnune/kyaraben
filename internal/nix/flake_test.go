@@ -122,7 +122,7 @@ func TestFlakeGeneratorCreatesDirectory(t *testing.T) {
 	reg := registry.NewDefault()
 	fg := NewFlakeGenerator(reg)
 
-	genPath, err := fg.Generate(nestedDir, []model.EmulatorID{model.EmulatorMGBA})
+	genPath, err := fg.Generate(nestedDir, []model.EmulatorID{model.EmulatorIDMGBA})
 	if err != nil {
 		t.Fatalf("Generate failed: %v", err)
 	}

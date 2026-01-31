@@ -6,9 +6,9 @@ type Definition struct{}
 
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
-		ID:      model.EmulatorRPCS3,
+		ID:      model.EmulatorIDRPCS3,
 		Name:    "RPCS3",
-		Systems: []model.SystemID{model.SystemPS3},
+		Systems: []model.SystemID{model.SystemIDPS3},
 		Package: model.AppImageRef("rpcs3"),
 		// PS3 firmware is installed through the emulator
 		Provisions: nil,
@@ -43,7 +43,7 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
-			{Path: []string{"VFS", "$(EmulatorDir)"}, Value: store.EmulatorOpaqueDir(model.EmulatorRPCS3)},
+			{Path: []string{"VFS", "$(EmulatorDir)"}, Value: store.EmulatorOpaqueDir(model.EmulatorIDRPCS3)},
 		},
 	}}, nil
 }

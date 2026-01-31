@@ -6,9 +6,9 @@ type Definition struct{}
 
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
-		ID:      model.EmulatorFlycast,
+		ID:      model.EmulatorIDFlycast,
 		Name:    "Flycast",
-		Systems: []model.SystemID{model.SystemDreamcast},
+		Systems: []model.SystemID{model.SystemIDDreamcast},
 		Package: model.AppImageRef("flycast"),
 		Provisions: []model.Provision{
 			{
@@ -57,9 +57,9 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
-			{Path: []string{"config", "Dreamcast.ContentPath"}, Value: store.SystemRomsDir(model.SystemDreamcast)},
-			{Path: []string{"config", "SavestatesPath"}, Value: store.EmulatorStatesDir(model.EmulatorFlycast)},
-			{Path: []string{"config", "ScreenshotsPath"}, Value: store.SystemScreenshotsDir(model.SystemDreamcast)},
+			{Path: []string{"config", "Dreamcast.ContentPath"}, Value: store.SystemRomsDir(model.SystemIDDreamcast)},
+			{Path: []string{"config", "SavestatesPath"}, Value: store.EmulatorStatesDir(model.EmulatorIDFlycast)},
+			{Path: []string{"config", "ScreenshotsPath"}, Value: store.SystemScreenshotsDir(model.SystemIDDreamcast)},
 		},
 	}}, nil
 }

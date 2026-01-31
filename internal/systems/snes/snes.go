@@ -6,12 +6,14 @@ type Definition struct{}
 
 func (Definition) System() model.System {
 	return model.System{
-		ID:          model.SystemSNES,
-		Name:        "Super Nintendo",
-		Description: "16-bit home console by Nintendo (1990)",
+		ID:           model.SystemIDSNES,
+		Name:         "Super Nintendo",
+		Description:  "16-bit home console by Nintendo (1990)",
+		Manufacturer: model.ManufacturerNintendo,
+		Label:        "SNES",
 	}
 }
 
 func (Definition) DefaultEmulatorID() model.EmulatorID {
-	return model.EmulatorRetroArchBsnes
+	return model.EmulatorIDRetroArchBsnes
 }

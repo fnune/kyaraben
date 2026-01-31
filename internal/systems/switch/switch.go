@@ -6,12 +6,14 @@ type Definition struct{}
 
 func (Definition) System() model.System {
 	return model.System{
-		ID:          model.SystemSwitch,
-		Name:        "Nintendo Switch",
-		Description: "Hybrid console by Nintendo (2017)",
+		ID:           model.SystemIDSwitch,
+		Name:         "Nintendo Switch",
+		Description:  "Hybrid console by Nintendo (2017)",
+		Manufacturer: model.ManufacturerNintendo,
+		Label:        "NSW",
 	}
 }
 
 func (Definition) DefaultEmulatorID() model.EmulatorID {
-	return model.EmulatorEden
+	return model.EmulatorIDEden
 }
