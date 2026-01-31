@@ -72,6 +72,13 @@ const (
 	colorDim    = "\033[2m"
 )
 
+func unquote(v string) string {
+	if len(v) >= 2 && v[0] == '"' && v[len(v)-1] == '"' {
+		return v[1 : len(v)-1]
+	}
+	return v
+}
+
 func ComputeDiffWithBaseline(patch model.ConfigPatch, baseline *model.ManagedConfig) (*ConfigDiff, error) {
 	diff, err := ComputeDiff(patch)
 	if err != nil {
@@ -100,7 +107,7 @@ func ComputeDiffWithBaseline(patch model.ConfigPatch, baseline *model.ManagedCon
 			key := mk.Path[len(mk.Path)-1]
 
 			if sectionMap, ok := current[section]; ok {
-				if currentVal, ok := sectionMap[key]; ok && currentVal != mk.Value {
+				if currentVal, ok := sectionMap[key]; ok && unquote(currentVal) != unquote(mk.Value) {
 					diff.UserChanges = append(diff.UserChanges, UserChange{
 						Path:          mk.Path,
 						BaselineValue: mk.Value,
@@ -174,7 +181,7 @@ func ComputeDiff(patch model.ConfigPatch) (*ConfigDiff, error) {
 			continue
 		}
 
-		if oldValue != newValue {
+		if unquote(oldValue) != unquote(newValue) {
 			diff.Changes = append(diff.Changes, ConfigChange{
 				Type:     ChangeModify,
 				Path:     entry.Path,
