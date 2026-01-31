@@ -29,3 +29,17 @@ sha256 = "sha256-UsGMjjJTdB4hzeSyIrN6aAgrckExgcxKVrdZz5mkhqo="
 [eden.targets.aarch64] # ARM64
 arch = "aarch64"
 sha256 = "sha256-KDYSvNknaApwDQXflb/Y1zhjWKhZsBOSfYRQPRCJI0M="
+
+[duckstation] # https://github.com/stenzek/duckstation/releases
+version = "v0.1-10655"
+url_template = "https://github.com/stenzek/duckstation/releases/download/{version}/DuckStation-{target}.AppImage"
+icon_url = "https://raw.githubusercontent.com/stenzek/duckstation/master/data/resources/images/duck.png"
+icon_sha256 = "sha256-qR+lWCmOZKt/wT6MFXPKtCx/p0IUCOgRNdjb8CLdwv4="
+
+[duckstation.targets.x64]
+arch = "x86_64"
+sha256 = "sha256-/fmHmyseqXVJ26OdhQUuZYrDWxnu0jKJvkaOGpGtoOc="
+
+[duckstation.targets.arm64]
+arch = "aarch64"
+sha256 = "sha256-WzUXY082lu4gcmss/rPNzzgBzQppyTxIWZruUR5uaLE="

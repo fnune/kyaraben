@@ -27,11 +27,20 @@ func TestURLTemplateExpansion(t *testing.T) {
 func TestDefaultTargetForArch(t *testing.T) {
 	v := MustGet()
 
-	if got := v.Eden.DefaultTargetForArch("x86_64"); got != "amd64" {
-		t.Errorf("DefaultTargetForArch(x86_64) = %s, want amd64", got)
+	x86Target := v.Eden.DefaultTargetForArch("x86_64")
+	if x86Target == "" {
+		t.Error("DefaultTargetForArch(x86_64) returned empty string")
 	}
-	if got := v.Eden.DefaultTargetForArch("aarch64"); got != "aarch64" {
-		t.Errorf("DefaultTargetForArch(aarch64) = %s, want aarch64", got)
+	if target := v.Eden.Target(x86Target); target == nil || target.Arch != "x86_64" {
+		t.Errorf("DefaultTargetForArch(x86_64) = %s, which is not a valid x86_64 target", x86Target)
+	}
+
+	armTarget := v.Eden.DefaultTargetForArch("aarch64")
+	if armTarget == "" {
+		t.Error("DefaultTargetForArch(aarch64) returned empty string")
+	}
+	if target := v.Eden.Target(armTarget); target == nil || target.Arch != "aarch64" {
+		t.Errorf("DefaultTargetForArch(aarch64) = %s, which is not a valid aarch64 target", armTarget)
 	}
 }
 

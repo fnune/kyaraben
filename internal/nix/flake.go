@@ -53,7 +53,8 @@ const flakeTemplate = `{
           mkdir -p $out/bin $out/share/applications $out/share/icons/hicolor/scalable/apps
 
 {{- range .Launchers }}
-          ln -s ${self.packages.${system}.{{ .Package }}}/bin/{{ .Binary }} $out/bin/{{ .Binary }}
+          cp -L ${self.packages.${system}.{{ .Package }}}/bin/{{ .Binary }} $out/bin/{{ .Binary }}
+          chmod +x $out/bin/{{ .Binary }}
 {{- end }}
 
 {{- range .Launchers }}
@@ -214,6 +215,8 @@ func getAppImageVersion(name string) *versions.AppImageVersion {
 	switch name {
 	case "eden":
 		return &v.Eden
+	case "duckstation":
+		return &v.DuckStation
 	default:
 		return nil
 	}
@@ -278,28 +281,23 @@ func packageInfoFromGitHubAppImage(p model.GitHubAppImage) PackageInfo {
 
 // packageInfoFromVersionedAppImage generates nix expression for an AppImage from versions.toml
 func packageInfoFromVersionedAppImage(p model.VersionedAppImage) (PackageInfo, error) {
-	v := versions.MustGet()
-
-	var appimage *versions.AppImageVersion
-	switch p.Name {
-	case "eden":
-		appimage = &v.Eden
-	default:
+	appimage := getAppImageVersion(p.Name)
+	if appimage == nil {
 		return PackageInfo{}, fmt.Errorf("unknown versioned appimage: %s", p.Name)
 	}
 
 	// Auto-detect hardware target for best performance
 	detected := hardware.DetectTarget()
 	x86Target := detected.Name
-	if detected.Arch != "x86_64" {
+	if detected.Arch != "x86_64" || appimage.Target(x86Target) == nil {
 		x86Target = appimage.DefaultTargetForArch("x86_64")
 	}
-	armTarget := "aarch64"
+	armTarget := appimage.DefaultTargetForArch("aarch64")
 
 	x86Build := appimage.Target(x86Target)
 	armBuild := appimage.Target(armTarget)
 	if x86Build == nil || armBuild == nil {
-		return PackageInfo{}, fmt.Errorf("missing target builds for %s", p.Name)
+		return PackageInfo{}, fmt.Errorf("missing target builds for %s (x86: %s, arm: %s)", p.Name, x86Target, armTarget)
 	}
 
 	expr := fmt.Sprintf(`let

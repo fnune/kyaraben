@@ -119,5 +119,9 @@ func (f *FakeClient) FlakeCheck(ctx context.Context, flakePath string) error {
 	return nil
 }
 
+func (f *FakeClient) RealStorePath(virtualPath string) string {
+	return virtualPath
+}
+
 // Ensure FakeClient implements NixClient.
 var _ NixClient = (*FakeClient)(nil)

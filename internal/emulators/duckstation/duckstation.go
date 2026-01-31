@@ -9,7 +9,7 @@ func (Definition) Emulator() model.Emulator {
 		ID:      model.EmulatorDuckStation,
 		Name:    "DuckStation",
 		Systems: []model.SystemID{model.SystemPSX},
-		Package: model.NixpkgsRef("duckstation"),
+		Package: model.VersionedAppImageRef("duckstation"),
 		Provisions: []model.Provision{
 			{
 				ID:          "psx-bios-usa",
@@ -42,7 +42,7 @@ func (Definition) Emulator() model.Emulator {
 			model.StateScreenshots,
 		},
 		Launcher: model.LauncherInfo{
-			Binary:      "duckstation-qt",
+			Binary:      "duckstation",
 			GenericName: "PlayStation Emulator",
 			Categories:  []string{"Game", "Emulator"},
 		},
