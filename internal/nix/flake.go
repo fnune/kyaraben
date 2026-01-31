@@ -83,6 +83,7 @@ func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorI
 	v := versions.MustGet()
 
 	packages := make([]PackageInfo, 0, len(emulatorIDs))
+	seenPackages := make(map[string]bool)
 	seenBinaries := make(map[string]bool)
 	launchers := make([]LauncherTemplateInfo, 0, len(emulatorIDs))
 
@@ -96,7 +97,12 @@ func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorI
 		if err != nil {
 			return "", err
 		}
-		packages = append(packages, pkg)
+
+		// Only add package once even if multiple emulators share it
+		if !seenPackages[pkg.Name] {
+			seenPackages[pkg.Name] = true
+			packages = append(packages, pkg)
+		}
 
 		if emu.Launcher.Binary != "" && !seenBinaries[emu.Launcher.Binary] {
 			seenBinaries[emu.Launcher.Binary] = true

@@ -12,10 +12,7 @@ func (Definition) Emulator() model.Emulator {
 		ID:      model.EmulatorRetroArchBsnes,
 		Name:    "RetroArch (bsnes)",
 		Systems: []model.SystemID{model.SystemSNES},
-		Package: model.NixpkgsOverlayRef(
-			"retroarch-bsnes",
-			`pkgs.wrapRetroArch { cores = with pkgs.libretro; [ bsnes ]; }`,
-		),
+		Package: model.VersionedAppImageRef("retroarch"),
 		Provisions: []model.Provision{},
 		StateKinds: []model.StateKind{
 			model.StateSaves,
