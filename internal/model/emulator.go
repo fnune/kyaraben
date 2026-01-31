@@ -10,6 +10,7 @@ const (
 	EmulatorRetroArchMelonDS EmulatorID = "retroarch:melonds"
 	EmulatorRetroArchPPSSPP  EmulatorID = "retroarch:ppsspp"
 	EmulatorDuckStation      EmulatorID = "duckstation"
+	EmulatorPCSX2            EmulatorID = "pcsx2"
 	EmulatorTIC80            EmulatorID = "tic80"
 	EmulatorEden             EmulatorID = "eden"
 	EmulatorE2ETest          EmulatorID = "e2e-test"

@@ -4,6 +4,7 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/duckstation"
 	"github.com/fnune/kyaraben/internal/emulators/e2etestemu"
 	"github.com/fnune/kyaraben/internal/emulators/eden"
+	"github.com/fnune/kyaraben/internal/emulators/pcsx2"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbsnes"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmelonds"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmgba"
@@ -13,6 +14,7 @@ import (
 	"github.com/fnune/kyaraben/internal/systems/e2etest"
 	"github.com/fnune/kyaraben/internal/systems/gba"
 	"github.com/fnune/kyaraben/internal/systems/nds"
+	"github.com/fnune/kyaraben/internal/systems/ps2"
 	"github.com/fnune/kyaraben/internal/systems/psp"
 	"github.com/fnune/kyaraben/internal/systems/psx"
 	"github.com/fnune/kyaraben/internal/systems/snes"
@@ -25,6 +27,7 @@ func NewDefault() *Registry {
 		[]model.SystemDefinition{
 			snes.Definition{},
 			psx.Definition{},
+			ps2.Definition{},
 			tic80.Definition{},
 			gba.Definition{},
 			nds.Definition{},
@@ -38,6 +41,7 @@ func NewDefault() *Registry {
 			retroarchmelonds.Definition{},
 			retroarchppsspp.Definition{},
 			duckstation.Definition{},
+			pcsx2.Definition{},
 			tic80emu.Definition{},
 			eden.Definition{},
 			e2etestemu.Definition{},

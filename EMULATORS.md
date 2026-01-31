@@ -80,15 +80,15 @@ AppImages avoid this because they use the host system's graphics drivers directl
 | TIC-80 | TIC-80 | Tarball | [GitHub Releases](https://github.com/nesbox/TIC-80/releases) | ✅ Yes | `tic80-vX.X.X-linux.tar.gz` |
 | Flycast | Dreamcast | Tarball | [GitHub Releases](https://github.com/flyinghead/flycast/releases) | ✅ Yes | Or use RA core |
 
-### Hybrid RetroArch Approach
+### RetroArch Approach
 
 For systems best served by RetroArch cores (SNES, NES, Genesis, Saturn, N64):
 
-1. **Frontend**: Download RetroArch AppImage (handles all GPU access)
-2. **Cores**: Use nix-portable to fetch from nixpkgs (`libretro.bsnes`, `libretro.genesis-plus-gx`, etc.)
-3. **Configuration**: Point RetroArch to nix-managed core directory
+1. **Download**: Fetch `RetroArch.7z` from buildbot (contains AppImage + cores)
+2. **Extract**: Get both the AppImage frontend and bundled cores
+3. **Install**: Place cores in managed directory, configure RetroArch to use them
 
-This works because libretro cores are just `.so` files with no GUI code.
+Using bundled cores ensures compatibility between frontend and cores. The buildbot archive includes a curated set of cores that work with that RetroArch version.
 
 ### Systems Without Good Options
 
