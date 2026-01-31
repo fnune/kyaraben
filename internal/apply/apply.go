@@ -21,6 +21,20 @@ type Progress struct {
 	Step    string
 	Message string
 	Output  string // Optional streaming output line (e.g., from nix build)
+	Speed   string // Optional download speed (e.g., "12.3 MB/s")
+}
+
+func formatSpeed(bytesPerSec int64) string {
+	const unit = 1024
+	if bytesPerSec < unit {
+		return fmt.Sprintf("%d B/s", bytesPerSec)
+	}
+	div, exp := int64(unit), 0
+	for n := bytesPerSec / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB/s", float64(bytesPerSec)/float64(div), "KMGTPE"[exp])
 }
 
 type Result struct {
@@ -138,6 +152,14 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 		return &Result{Patches: allPatches}, nil
 	}
 
+	var storeMsg string
+	if userStore.Exists() {
+		storeMsg = fmt.Sprintf("Using %s (existing data preserved)", userStore.Path())
+	} else {
+		storeMsg = fmt.Sprintf("Creating %s", userStore.Path())
+	}
+	opts.OnProgress(Progress{Step: "store", Message: storeMsg})
+
 	if err := userStore.Initialize(); err != nil {
 		return nil, fmt.Errorf("initializing user store: %w", err)
 	}
@@ -158,6 +180,14 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 	}
 
 	opts.OnProgress(Progress{Step: "build", Message: "This may take a few minutes on first run"})
+
+	netMon := NewNetMonitor(func(bytesPerSec int64) {
+		if bytesPerSec > 10*1024 { // Only report if >10 KB/s
+			opts.OnProgress(Progress{Step: "build", Speed: formatSpeed(bytesPerSec)})
+		}
+	})
+	netMon.Start()
+	defer netMon.Stop()
 
 	a.NixClient.SetOutputCallback(func(line string) {
 		opts.OnProgress(Progress{Step: "build", Output: line})
@@ -349,3 +379,4 @@ func (a *Applier) buildDesktopEntries(emulatorIDs []model.EmulatorID) []launcher
 
 	return entries
 }
+

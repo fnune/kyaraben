@@ -33,6 +33,14 @@ export function ProgressDisplay({ steps, error }: ProgressDisplayProps) {
                 <StepIcon status={step.status} />
                 <span className="font-medium text-gray-700">{step.label}</span>
                 {step.message && <span className="text-sm text-gray-500">{step.message}</span>}
+                {step.speed && (
+                  <span
+                    className="text-sm text-blue-600 ml-auto"
+                    title="System-wide network activity"
+                  >
+                    {step.speed}
+                  </span>
+                )}
               </div>
               {step.outputLines && step.outputLines.length > 0 && (
                 <div className="mt-1 ml-6 overflow-hidden">
