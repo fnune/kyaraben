@@ -21,18 +21,15 @@ func (cmd *InitCmd) Run(ctx *Context) error {
 		return err
 	}
 
-	// Check if config already exists
 	if _, err := os.Stat(configPath); err == nil && !cmd.Force {
 		return fmt.Errorf("config already exists at %s. Use --force to overwrite", configPath)
 	}
 
 	registry := ctx.NewRegistry()
 
-	// Create config
 	cfg := model.NewDefaultConfig()
 	cfg.Global.UserStore = cmd.UserStore
 
-	// Add systems
 	for _, sysName := range cmd.Systems {
 		sysID := model.SystemID(sysName)
 		_, err := registry.GetSystem(sysID)
@@ -50,7 +47,6 @@ func (cmd *InitCmd) Run(ctx *Context) error {
 		}
 	}
 
-	// Save config
 	if err := model.SaveConfig(cfg, configPath); err != nil {
 		return err
 	}

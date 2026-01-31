@@ -102,7 +102,7 @@ type IconInfo struct {
 type GenerationPath string
 
 type GenerateResult struct {
-	Path            GenerationPath
+	Path             GenerationPath
 	SkippedEmulators []model.EmulatorID
 }
 
@@ -218,7 +218,6 @@ func (fg *FlakeGenerator) getEmulatorVersion(name string) (*versions.VersionEntr
 		return nil, nil, fmt.Errorf("unknown emulator: %s", name)
 	}
 
-	// Check for user override
 	if override, ok := fg.versionOverrides[name]; ok {
 		entry := spec.GetVersion(override)
 		if entry == nil {
@@ -227,7 +226,6 @@ func (fg *FlakeGenerator) getEmulatorVersion(name string) (*versions.VersionEntr
 		return entry, spec, nil
 	}
 
-	// Use default
 	entry := spec.GetDefault()
 	if entry == nil {
 		return nil, nil, fmt.Errorf("no default version for %s", name)
@@ -276,9 +274,7 @@ func (fg *FlakeGenerator) packageInfoFromAppImage(p model.AppImage) (PackageInfo
 	return packageInfoForDirectBinary(p.Name, entry, spec, x86Target, armTarget, x86Build, armBuild)
 }
 
-// packageInfoForDirectBinary generates nix expression for direct binary downloads (AppImage, etc)
 func packageInfoForDirectBinary(name string, entry *versions.VersionEntry, spec *versions.EmulatorSpec, x86Target, armTarget string, x86Build, armBuild *versions.TargetBuild) (PackageInfo, error) {
-	// Build assets map, handling single-arch packages
 	var assetsExpr string
 	if x86Build != nil && armBuild != nil {
 		assetsExpr = fmt.Sprintf(`{
@@ -353,7 +349,6 @@ func packageInfoForArchive(name string, entry *versions.VersionEntry, spec *vers
 		return PackageInfo{}, fmt.Errorf("unsupported archive type: %s", archiveType)
 	}
 
-	// Build assets map with binary paths
 	var assetsExpr string
 	if x86Build != nil && armBuild != nil {
 		if armBinaryPath == "" {

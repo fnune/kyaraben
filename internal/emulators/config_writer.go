@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fnune/kyaraben/internal/model"
+	"github.com/beevik/etree"
 	"gopkg.in/yaml.v3"
 
-	"github.com/beevik/etree"
+	"github.com/fnune/kyaraben/internal/model"
 )
 
 type ConfigWriter struct{}
