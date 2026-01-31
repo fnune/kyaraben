@@ -14,6 +14,7 @@ import (
 	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/nix"
+	"github.com/fnune/kyaraben/internal/paths"
 	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/status"
 	"github.com/fnune/kyaraben/internal/store"
@@ -68,6 +69,8 @@ func (d *Daemon) HandleWithEmit(cmd Command, emit func(Event)) []Event {
 		return d.handleSyncAddDevice(cmd.Data)
 	case CmdSyncRemoveDevice:
 		return d.handleSyncRemoveDevice(cmd.Data)
+	case CmdUninstallPreview:
+		return d.handleUninstallPreview()
 	default:
 		return []Event{{
 			Type: EventError,
@@ -564,4 +567,76 @@ func (d *Daemon) handleSyncRemoveDevice(data map[string]interface{}) []Event {
 			"name":     removed.Name,
 		},
 	}}
+}
+
+func (d *Daemon) handleUninstallPreview() []Event {
+	stateDir, err := paths.KyarabenStateDir()
+	if err != nil {
+		return []Event{{
+			Type: EventError,
+			Data: map[string]string{"error": err.Error()},
+		}}
+	}
+
+	manifestPath, err := model.DefaultManifestPath()
+	if err != nil {
+		return []Event{{
+			Type: EventError,
+			Data: map[string]string{"error": err.Error()},
+		}}
+	}
+
+	manifest, _ := model.LoadManifest(manifestPath)
+
+	cfg, _ := d.loadConfigOrDefault()
+	userStore := cfg.Global.UserStore
+
+	configDir, _ := paths.KyarabenConfigDir()
+
+	var desktopFiles []string
+	for _, f := range manifest.DesktopFiles {
+		if fileExists(f) {
+			desktopFiles = append(desktopFiles, f)
+		}
+	}
+
+	var iconFiles []string
+	for _, f := range manifest.IconFiles {
+		if fileExists(f) {
+			iconFiles = append(iconFiles, f)
+		}
+	}
+
+	var configFiles []string
+	for _, cfg := range manifest.ManagedConfigs {
+		path, err := cfg.Target.Resolve()
+		if err == nil && fileExists(path) {
+			configFiles = append(configFiles, path)
+		}
+	}
+
+	return []Event{{
+		Type: EventResult,
+		Data: map[string]interface{}{
+			"stateDir":     stateDir,
+			"stateDirExists": dirExists(stateDir),
+			"desktopFiles": desktopFiles,
+			"iconFiles":    iconFiles,
+			"configFiles":  configFiles,
+			"preserved": map[string]string{
+				"userStore": userStore,
+				"configDir": configDir,
+			},
+		},
+	}}
+}
+
+func fileExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && !info.IsDir()
+}
+
+func dirExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && info.IsDir()
 }
