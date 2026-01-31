@@ -8,7 +8,7 @@ func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
 		ID:      model.EmulatorIDMGBA,
 		Name:    "mGBA",
-		Systems: []model.SystemID{model.SystemIDGBA},
+		Systems: []model.SystemID{model.SystemIDGB, model.SystemIDGBC, model.SystemIDGBA},
 		Package: model.AppImageRef("mgba"),
 		Provisions: []model.Provision{
 			{

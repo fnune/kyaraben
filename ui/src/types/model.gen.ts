@@ -15,6 +15,10 @@
  */
 export const EmulatorIDRetroArch = "retroarch";
 export const EmulatorIDRetroArchBsnes = "retroarch:bsnes";
+export const EmulatorIDRetroArchMesen = "retroarch:mesen";
+export const EmulatorIDRetroArchGenesisPlusGX = "retroarch:genesis_plus_gx";
+export const EmulatorIDRetroArchMupen64Plus = "retroarch:mupen64plus_next";
+export const EmulatorIDRetroArchBeetleSaturn = "retroarch:mednafen_saturn";
 export const EmulatorIDDuckStation = "duckstation";
 export const EmulatorIDPCSX2 = "pcsx2";
 export const EmulatorIDRPCS3 = "rpcs3";
@@ -27,7 +31,7 @@ export const EmulatorIDCemu = "cemu";
 export const EmulatorIDAzahar = "azahar";
 export const EmulatorIDDolphin = "dolphin";
 export const EmulatorIDEden = "eden";
-export type EmulatorID = typeof EmulatorIDRetroArch | typeof EmulatorIDRetroArchBsnes | typeof EmulatorIDDuckStation | typeof EmulatorIDPCSX2 | typeof EmulatorIDRPCS3 | typeof EmulatorIDVita3K | typeof EmulatorIDPPSSPP | typeof EmulatorIDMGBA | typeof EmulatorIDMelonDS | typeof EmulatorIDFlycast | typeof EmulatorIDCemu | typeof EmulatorIDAzahar | typeof EmulatorIDDolphin | typeof EmulatorIDEden;
+export type EmulatorID = typeof EmulatorIDRetroArch | typeof EmulatorIDRetroArchBsnes | typeof EmulatorIDRetroArchMesen | typeof EmulatorIDRetroArchGenesisPlusGX | typeof EmulatorIDRetroArchMupen64Plus | typeof EmulatorIDRetroArchBeetleSaturn | typeof EmulatorIDDuckStation | typeof EmulatorIDPCSX2 | typeof EmulatorIDRPCS3 | typeof EmulatorIDVita3K | typeof EmulatorIDPPSSPP | typeof EmulatorIDMGBA | typeof EmulatorIDMelonDS | typeof EmulatorIDFlycast | typeof EmulatorIDCemu | typeof EmulatorIDAzahar | typeof EmulatorIDDolphin | typeof EmulatorIDEden;
 
 //////////
 // source: system.go
@@ -37,21 +41,27 @@ export type EmulatorID = typeof EmulatorIDRetroArch | typeof EmulatorIDRetroArch
  * Constants use the full type name as prefix (SystemID*) because tygo's
  * enum_style: union requires the prefix to match the type name exactly.
  */
+export const SystemIDNES = "nes";
 export const SystemIDSNES = "snes";
-export const SystemIDPSX = "psx";
-export const SystemIDPS2 = "ps2";
-export const SystemIDPS3 = "ps3";
-export const SystemIDPSVita = "psvita";
+export const SystemIDN64 = "n64";
+export const SystemIDGB = "gb";
+export const SystemIDGBC = "gbc";
 export const SystemIDGBA = "gba";
 export const SystemIDNDS = "nds";
-export const SystemIDPSP = "psp";
-export const SystemIDDreamcast = "dreamcast";
+export const SystemID3DS = "3ds";
 export const SystemIDGameCube = "gamecube";
 export const SystemIDWii = "wii";
 export const SystemIDWiiU = "wiiu";
-export const SystemID3DS = "3ds";
 export const SystemIDSwitch = "switch";
-export type SystemID = typeof SystemIDSNES | typeof SystemIDPSX | typeof SystemIDPS2 | typeof SystemIDPS3 | typeof SystemIDPSVita | typeof SystemIDGBA | typeof SystemIDNDS | typeof SystemIDPSP | typeof SystemIDDreamcast | typeof SystemIDGameCube | typeof SystemIDWii | typeof SystemIDWiiU | typeof SystemID3DS | typeof SystemIDSwitch;
+export const SystemIDPSX = "psx";
+export const SystemIDPS2 = "ps2";
+export const SystemIDPS3 = "ps3";
+export const SystemIDPSP = "psp";
+export const SystemIDPSVita = "psvita";
+export const SystemIDGenesis = "genesis";
+export const SystemIDSaturn = "saturn";
+export const SystemIDDreamcast = "dreamcast";
+export type SystemID = typeof SystemIDNES | typeof SystemIDSNES | typeof SystemIDN64 | typeof SystemIDGB | typeof SystemIDGBC | typeof SystemIDGBA | typeof SystemIDNDS | typeof SystemID3DS | typeof SystemIDGameCube | typeof SystemIDWii | typeof SystemIDWiiU | typeof SystemIDSwitch | typeof SystemIDPSX | typeof SystemIDPS2 | typeof SystemIDPS3 | typeof SystemIDPSP | typeof SystemIDPSVita | typeof SystemIDGenesis | typeof SystemIDSaturn | typeof SystemIDDreamcast;
 /**
  * Manufacturer represents the company that made a gaming system.
  */
