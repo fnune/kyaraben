@@ -25,10 +25,10 @@ type ErrorResponse struct {
 }
 
 type StatusResponse struct {
-	UserStore          string             `json:"userStore"`
-	EnabledSystems     []model.SystemID   `json:"enabledSystems"`
+	UserStore          string              `json:"userStore"`
+	EnabledSystems     []model.SystemID    `json:"enabledSystems"`
 	InstalledEmulators []InstalledEmulator `json:"installedEmulators"`
-	LastApplied        string             `json:"lastApplied"`
+	LastApplied        string              `json:"lastApplied"`
 }
 
 type InstalledEmulator struct {
@@ -140,12 +140,12 @@ type SyncRemoveDeviceResponse struct {
 }
 
 type UninstallPreviewResponse struct {
-	StateDir       string           `json:"stateDir"`
-	StateDirExists bool             `json:"stateDirExists"`
-	DesktopFiles   []string         `json:"desktopFiles"`
-	IconFiles      []string         `json:"iconFiles"`
-	ConfigFiles    []string         `json:"configFiles"`
-	Preserved      PreservedPaths   `json:"preserved"`
+	StateDir       string         `json:"stateDir"`
+	StateDirExists bool           `json:"stateDirExists"`
+	DesktopFiles   []string       `json:"desktopFiles"`
+	IconFiles      []string       `json:"iconFiles"`
+	ConfigFiles    []string       `json:"configFiles"`
+	Preserved      PreservedPaths `json:"preserved"`
 }
 
 type PreservedPaths struct {
