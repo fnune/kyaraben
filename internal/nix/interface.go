@@ -49,6 +49,9 @@ type NixClient interface {
 
 	// GetNixPortableLocation returns the NP_LOCATION directory for nix-portable.
 	GetNixPortableLocation() string
+
+	// SetOutputCallback sets a callback that receives output lines during builds.
+	SetOutputCallback(fn func(line string))
 }
 
 // GetFlakePath returns the flake path for the Client.

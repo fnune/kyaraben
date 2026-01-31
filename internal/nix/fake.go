@@ -131,5 +131,8 @@ func (f *FakeClient) GetNixPortableLocation() string {
 	return "/fake/nix-portable-location"
 }
 
+func (f *FakeClient) SetOutputCallback(fn func(line string)) {
+}
+
 // Ensure FakeClient implements NixClient.
 var _ NixClient = (*FakeClient)(nil)

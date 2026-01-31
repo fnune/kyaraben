@@ -238,15 +238,17 @@ func (d *Daemon) handleApply(_ map[string]interface{}, emit func(Event)) []Event
 
 	opts := apply.Options{
 		OnProgress: func(p apply.Progress) {
+			data := map[string]interface{}{
+				"step":    p.Step,
+				"message": p.Message,
+			}
+			if p.Output != "" {
+				data["output"] = p.Output
+			}
 			event := Event{
 				Type: EventProgress,
-				Data: map[string]interface{}{
-					"step":    p.Step,
-					"message": p.Message,
-				},
+				Data: data,
 			}
-			// Stream immediately if emit is provided, otherwise events are lost
-			// (we don't batch progress events anymore)
 			if emit != nil {
 				emit(event)
 			}
