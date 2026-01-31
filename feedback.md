@@ -322,3 +322,85 @@ To fully uninstall, also remove:
  ~/Development/kyaraben λ ls -la ~/.local/state/kyaraben/
 drwxr-xr-x - fausto  1 Feb 20:27 󱧼 build
 ```
+
+---
+
+## DuckStation onboarding wizard
+
+DuckStation runs an onboarding wizard on first launch that wants to create a config file and set up autoupdates. This is not good for kyaraben's managed experience. We need a better default config that prevents this wizard from appearing.
+
+---
+
+## Missing icons for nixpkgs emulators (retroarch, tic80)
+
+Emulators from nixpkgs (NixStoreDesktop entries) don't have icons showing up in the desktop environment. The desktop files reference icons like `Icon=com.libretro.RetroArch` and `Icon=tic80`, but these icons are in the nix store's share/icons directory which isn't in the system's icon search path.
+
+Options:
+1. Copy icons from nix store to ~/.local/share/icons during desktop file generation
+2. Embed SVG icons for these emulators like we do for eden/duckstation
+3. Add nix store's share directory to XDG_DATA_DIRS (may have other side effects)
+
+---
+
+## TIC-80 runs in CLI mode instead of GUI
+
+TIC-80 falls back to console/CLI mode instead of showing a GUI window. Running it shows:
+
+```
+ TIC-80 tiny computer
+ version 1.2.3042-dev ()
+ https://tic80.com (C) 2017-2025
+
+ hello! type help for help
+
+>
+```
+
+This is likely due to nix-portable's environment not properly exposing the graphics stack (SDL2/Wayland/X11) to the binary. The SDL libraries are found but display initialization seems to fail silently.
+
+Possible causes:
+- nix-portable sandbox interfering with display server access
+- Missing environment variables for SDL/Wayland
+- Need to use a different package or wrapper approach for GUI apps from nixpkgs
+
+---
+
+## RetroArch fails with EGL/graphics initialization errors
+
+RetroArch installed via nix-portable fails to launch entirely because it cannot access the host's graphics stack. Running it produces:
+
+```
+libGL error: pci id for fd 28: 1002:67df, driver unknown
+libGL error: failed to load driver: unknown
+libGL error: pci id for fd 28: 1002:67df, driver unknown
+libGL error: failed to load driver: unknown
+[INFO] [X11/GLX] Suspend screensaver.
+[INFO] [X11] X/Y exts: w: 3840 h: 2160 x: 0 y: 0.
+[INFO] [X11] Monitor axis: 3840 2160.
+[INFO] Trying to find shared context driver for: gl
+[INFO] Found a shared context driver: gl
+[INFO] [X11] XDisplay selected: 0x7fc9a8001440
+[INFO] [GLX] glXSwapInterval = 0
+[ERROR] [EGL] Could not get EGL display.
+[INFO] [EGL]: Quitting EGL.
+[ERROR] [X11/EGL]: EGL context creation failed.
+[ERROR] [Video]: Driver gl failed, falling back to next driver: sdl2
+[INFO] [X11] X/Y exts: w: 3840 h: 2160 x: 0 y: 0.
+[INFO] [X11] Monitor axis: 3840 2160.
+[INFO] [SDL2]: SDL anthropic.2.28.4 x11 Video Context.
+[INFO] [SDL] Quitting SDL.
+[ERROR] [SDL2]: Failed to initialize window.
+[ERROR] [Video]: Cannot initialize video driver "sdl2".
+[ERROR] [Video]: Cannot find video driver "sdl2".
+[FATAL] Failed to init any video driver. Aborting ...
+[INFO] Application has been terminated!
+```
+
+Root cause: nix-portable's sandboxed environment can't access the host system's EGL/Mesa/Vulkan drivers. The libraries exist but can't find the actual GPU drivers.
+
+This is a fundamental limitation of running GUI applications through nix-portable. Possible solutions:
+1. Use AppImages for graphics-heavy applications (like we do for duckstation/eden)
+2. Find or create AppImages for retroarch/tic80
+3. Investigate nix-portable configuration for exposing host graphics
+4. Consider proot or other sandboxing approaches that allow GPU access
+5. Hybrid approach: download RetroArch AppImage directly but still fetch cores via nix (cores are just shared libraries, don't need GPU access)

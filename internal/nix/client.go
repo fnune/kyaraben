@@ -359,6 +359,59 @@ func (c *Client) GetNixPortableBinary() string {
 	return c.NixPortableBinary
 }
 
+func (c *Client) GetPersistentNixPortablePath() string {
+	return filepath.Join(c.NixPortableLocation, "nix-portable")
+}
+
+func (c *Client) EnsurePersistentNixPortable() (string, error) {
+	persistentPath := c.GetPersistentNixPortablePath()
+
+	if _, err := os.Stat(persistentPath); err == nil {
+		currentBinaryInfo, _ := os.Stat(c.NixPortableBinary)
+		persistentInfo, _ := os.Stat(persistentPath)
+		if currentBinaryInfo != nil && persistentInfo != nil &&
+			currentBinaryInfo.Size() == persistentInfo.Size() {
+			return persistentPath, nil
+		}
+	}
+
+	if err := os.MkdirAll(filepath.Dir(persistentPath), 0755); err != nil {
+		return "", fmt.Errorf("creating directory for persistent nix-portable: %w", err)
+	}
+
+	if err := copyFile(c.NixPortableBinary, persistentPath); err != nil {
+		return "", fmt.Errorf("copying nix-portable: %w", err)
+	}
+
+	log.Info("Copied nix-portable to persistent location: %s", persistentPath)
+	return persistentPath, nil
+}
+
+func copyFile(srcPath, dstPath string) (err error) {
+	src, err := os.Open(srcPath)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if cerr := src.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
+
+	dst, err := os.OpenFile(dstPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if cerr := dst.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
+
+	_, err = io.Copy(dst, src)
+	return err
+}
+
 func (c *Client) GetNixPortableLocation() string {
 	return c.NixPortableLocation
 }

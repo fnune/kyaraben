@@ -38,7 +38,8 @@ func TestGenerateDesktopFiles(t *testing.T) {
 		t.Fatalf("creating symlink: %v", err)
 	}
 
-	m := &Manager{profileDir: profileDir, nixPortableLocation: npLocation}
+	dataDir := filepath.Join(tmpDir, "data")
+	m := &Manager{profileDir: profileDir, dataDir: dataDir, nixPortableLocation: npLocation}
 
 	if err := os.MkdirAll(profileDir, 0755); err != nil {
 		t.Fatalf("creating profile dir: %v", err)
@@ -184,6 +185,24 @@ func TestRewriteDesktopExecLines(t *testing.T) {
 			input:    "Exec=/usr/bin/retroarch %f",
 			binary:   "retroarch",
 			expected: "Exec=/usr/bin/retroarch %f",
+		},
+		{
+			name:     "simple binary name",
+			input:    "Exec=retroarch",
+			binary:   "retroarch",
+			expected: "Exec=/home/user/.local/state/kyaraben/bin/retroarch",
+		},
+		{
+			name:     "simple binary name with args",
+			input:    "Exec=tic80 %f",
+			binary:   "tic80",
+			expected: "Exec=/home/user/.local/state/kyaraben/bin/tic80 %f",
+		},
+		{
+			name:     "simple binary in full desktop file",
+			input:    "[Desktop Entry]\nName=RetroArch\nExec=retroarch\nIcon=retroarch",
+			binary:   "retroarch",
+			expected: "[Desktop Entry]\nName=RetroArch\nExec=/home/user/.local/state/kyaraben/bin/retroarch\nIcon=retroarch",
 		},
 	}
 
