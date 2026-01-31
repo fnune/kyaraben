@@ -1,7 +1,6 @@
 package launcher
 
 import (
-	"embed"
 	"fmt"
 	"os"
 	"os/exec"
@@ -9,9 +8,6 @@ import (
 	"strings"
 	"text/template"
 )
-
-//go:embed icons/*.svg
-var embeddedIcons embed.FS
 
 type GeneratedDesktop struct {
 	BinaryName    string
@@ -87,9 +83,9 @@ func (m *Manager) GenerateDesktopFiles(entries []GeneratedDesktop, previousFiles
 		}
 		result.DesktopFiles = append(result.DesktopFiles, desktopPath)
 
-		iconPath, err := m.writeEmbeddedIcon(entry.BinaryName)
+		iconPath, err := m.copyStoreIcon(entry.BinaryName)
 		if err != nil {
-			log.Debug("No embedded icon for %s: %v", entry.BinaryName, err)
+			log.Debug("No icon for %s: %v", entry.BinaryName, err)
 		} else {
 			result.IconFiles = append(result.IconFiles, iconPath)
 		}
@@ -186,17 +182,40 @@ func (m *Manager) generateDesktopFile(tmpl *template.Template, entry GeneratedDe
 	return desktopPath, nil
 }
 
-func (m *Manager) writeEmbeddedIcon(binary string) (string, error) {
-	iconData, err := embeddedIcons.ReadFile("icons/" + binary + ".svg")
+// copyStoreIcon copies an icon from the nix store profile to the user's icons directory.
+func (m *Manager) copyStoreIcon(binary string) (string, error) {
+	storeIconsDir := filepath.Join(m.profileDir, "share", "icons")
+
+	entries, err := os.ReadDir(storeIconsDir)
 	if err != nil {
-		return "", fmt.Errorf("reading embedded icon: %w", err)
+		return "", fmt.Errorf("reading store icons dir: %w", err)
 	}
 
-	iconPath := filepath.Join(m.IconsDir(), binary+".svg")
-	if err := os.WriteFile(iconPath, iconData, 0644); err != nil {
+	var srcPath string
+	var ext string
+	for _, entry := range entries {
+		name := entry.Name()
+		if strings.HasPrefix(name, binary+".") {
+			srcPath = filepath.Join(storeIconsDir, name)
+			ext = filepath.Ext(name)
+			break
+		}
+	}
+
+	if srcPath == "" {
+		return "", fmt.Errorf("icon not found for %s", binary)
+	}
+
+	iconData, err := os.ReadFile(srcPath)
+	if err != nil {
+		return "", fmt.Errorf("reading source icon: %w", err)
+	}
+
+	destPath := filepath.Join(m.IconsDir(), binary+ext)
+	if err := os.WriteFile(destPath, iconData, 0644); err != nil {
 		return "", fmt.Errorf("writing icon: %w", err)
 	}
 
-	log.Debug("Wrote icon: %s", iconPath)
-	return iconPath, nil
+	log.Debug("Copied icon: %s -> %s", srcPath, destPath)
+	return destPath, nil
 }

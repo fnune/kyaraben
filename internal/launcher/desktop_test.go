@@ -29,6 +29,17 @@ func TestGenerateDesktopFiles(t *testing.T) {
 		t.Fatalf("creating current symlink: %v", err)
 	}
 
+	storeIconsDir := filepath.Join(profileDir, "share", "icons")
+	if err := os.MkdirAll(storeIconsDir, 0755); err != nil {
+		t.Fatalf("creating store icons dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(storeIconsDir, "eden.svg"), []byte("<svg></svg>"), 0644); err != nil {
+		t.Fatalf("writing eden icon: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(storeIconsDir, "duckstation.png"), []byte("fake png"), 0644); err != nil {
+		t.Fatalf("writing duckstation icon: %v", err)
+	}
+
 	entries := []GeneratedDesktop{
 		{
 			BinaryName:    "eden",
@@ -50,6 +61,9 @@ func TestGenerateDesktopFiles(t *testing.T) {
 	}
 	if len(result.DesktopFiles) != 2 {
 		t.Errorf("GenerateDesktopFiles() should return 2 desktop files, got %d", len(result.DesktopFiles))
+	}
+	if len(result.IconFiles) != 2 {
+		t.Errorf("GenerateDesktopFiles() should return 2 icon files, got %d", len(result.IconFiles))
 	}
 
 	edenPath := filepath.Join(m.ApplicationsDir(), "eden.desktop")
@@ -76,21 +90,10 @@ func TestGenerateDesktopFiles(t *testing.T) {
 	if _, err := os.Stat(edenIconPath); err != nil {
 		t.Errorf("eden.svg should exist: %v", err)
 	}
-}
 
-func TestEmbeddedIcons(t *testing.T) {
-	for _, name := range []string{"eden", "duckstation"} {
-		data, err := embeddedIcons.ReadFile("icons/" + name + ".svg")
-		if err != nil {
-			t.Errorf("icon %s.svg not embedded: %v", name, err)
-			continue
-		}
-		if len(data) == 0 {
-			t.Errorf("icon %s.svg is empty", name)
-		}
-		if !strings.Contains(string(data), "<svg") {
-			t.Errorf("icon %s.svg doesn't look like an SVG", name)
-		}
+	duckstationIconPath := filepath.Join(m.IconsDir(), "duckstation.png")
+	if _, err := os.Stat(duckstationIconPath); err != nil {
+		t.Errorf("duckstation.png should exist: %v", err)
 	}
 }
 
