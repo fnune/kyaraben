@@ -3,6 +3,7 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -138,7 +139,7 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 	}
 
 	if dirExists(kyarabenStateDir) {
-		if err := os.RemoveAll(kyarabenStateDir); err != nil {
+		if err := forceRemoveAll(kyarabenStateDir); err != nil {
 			fmt.Printf("  Warning: could not remove %s: %v\n", kyarabenStateDir, err)
 		} else {
 			fmt.Printf("  Removed: %s\n", kyarabenStateDir)
@@ -163,4 +164,22 @@ func dirExists(path string) bool {
 func fileExists(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && !info.IsDir()
+}
+
+// forceRemoveAll removes a directory tree, even if it contains read-only files
+// (like nix store paths). It works by first making all directories writable.
+func forceRemoveAll(path string) error {
+	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return os.Chmod(path, 0755)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return os.RemoveAll(path)
 }
