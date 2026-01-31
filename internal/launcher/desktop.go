@@ -9,8 +9,6 @@ import (
 	"regexp"
 	"strings"
 	"text/template"
-
-	"github.com/fnune/kyaraben/internal/paths"
 )
 
 //go:embed icons/*.svg
@@ -50,18 +48,15 @@ Categories={{.CategoriesStr}};
 `
 
 func (m *Manager) ApplicationsDir() string {
-	dataDir, _ := paths.DataDir()
-	return filepath.Join(dataDir, "applications")
+	return filepath.Join(m.dataDir, "applications")
 }
 
 func (m *Manager) IconsDir() string {
-	dataDir, _ := paths.DataDir()
-	return filepath.Join(dataDir, "icons", "hicolor", "scalable", "apps")
+	return filepath.Join(m.dataDir, "icons", "hicolor", "scalable", "apps")
 }
 
 func (m *Manager) iconThemeDir() string {
-	dataDir, _ := paths.DataDir()
-	return filepath.Join(dataDir, "icons", "hicolor")
+	return filepath.Join(m.dataDir, "icons", "hicolor")
 }
 
 type GeneratedFiles struct {
@@ -229,10 +224,15 @@ func (m *Manager) virtualToRealStorePath(virtualPath string) string {
 	return filepath.Join(m.nixPortableLocation, ".nix-portable", "nix", "store", hashAndName)
 }
 
-var execLineRegex = regexp.MustCompile(`(?m)^Exec=/nix/store/[^/]+/bin/([^\s]+)(.*)$`)
+var nixStoreExecRegex = regexp.MustCompile(`(?m)^Exec=/nix/store/[^/]+/bin/([^\s]+)(.*)$`)
 
 func rewriteDesktopExecLines(content []byte, binDir, binary string) []byte {
-	return execLineRegex.ReplaceAll(content, []byte("Exec="+binDir+"/"+binary+"$2"))
+	result := nixStoreExecRegex.ReplaceAll(content, []byte("Exec="+binDir+"/"+binary+"$2"))
+
+	simpleBinaryRegex := regexp.MustCompile(`(?m)^Exec=` + regexp.QuoteMeta(binary) + `($|\s.*)$`)
+	result = simpleBinaryRegex.ReplaceAll(result, []byte("Exec="+binDir+"/"+binary+"$1"))
+
+	return result
 }
 
 type desktopTemplateData struct {
