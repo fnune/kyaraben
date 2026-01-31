@@ -18,13 +18,20 @@ type EmulatorLookup interface {
 }
 
 type FlakeGenerator struct {
-	emulators EmulatorLookup
+	emulators        EmulatorLookup
+	versionOverrides map[string]string // emulator name -> pinned version
 }
 
 func NewFlakeGenerator(emulators EmulatorLookup) *FlakeGenerator {
 	return &FlakeGenerator{
-		emulators: emulators,
+		emulators:        emulators,
+		versionOverrides: make(map[string]string),
 	}
+}
+
+// SetVersionOverrides configures pinned versions from user config.
+func (fg *FlakeGenerator) SetVersionOverrides(overrides map[string]string) {
+	fg.versionOverrides = overrides
 }
 
 const flakeTemplate = `{
@@ -93,7 +100,7 @@ func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorI
 			return "", fmt.Errorf("unknown emulator: %s", emuID)
 		}
 
-		pkg, err := packageInfoFromRef(emu.Package)
+		pkg, err := fg.packageInfoFromRef(emu.Package)
 		if err != nil {
 			return "", err
 		}
@@ -146,44 +153,38 @@ func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorI
 	return GenerationPath(genDir), nil
 }
 
-func getAppImageVersion(name string) *versions.AppImageVersion {
-	v := versions.MustGet()
-	switch name {
-	case "eden":
-		return &v.Eden
-	case "duckstation":
-		return &v.DuckStation
-	case "pcsx2":
-		return &v.PCSX2
-	case "ppsspp":
-		return &v.PPSSPP
-	case "mgba":
-		return &v.MGBA
-	case "cemu":
-		return &v.Cemu
-	case "azahar":
-		return &v.Azahar
-	case "dolphin":
-		return &v.Dolphin
-	case "melonds":
-		return &v.MelonDS
-	case "vita3k":
-		return &v.Vita3K
-	case "rpcs3":
-		return &v.RPCS3
-	case "flycast":
-		return &v.Flycast
-	case "retroarch":
-		return &v.RetroArch
-	case "tic80":
-		return &v.TIC80
-	default:
-		return nil
+// getEmulatorVersion returns the version entry and spec for an emulator,
+// respecting any user-configured version overrides.
+func (fg *FlakeGenerator) getEmulatorVersion(name string) (*versions.VersionEntry, *versions.EmulatorSpec, error) {
+	v, err := versions.Get()
+	if err != nil {
+		return nil, nil, err
 	}
+
+	spec, ok := v.GetEmulator(name)
+	if !ok {
+		return nil, nil, fmt.Errorf("unknown emulator: %s", name)
+	}
+
+	// Check for user override
+	if override, ok := fg.versionOverrides[name]; ok {
+		entry := spec.GetVersion(override)
+		if entry == nil {
+			return nil, nil, fmt.Errorf("version %s not found for %s (available: %v)", override, name, spec.AvailableVersions())
+		}
+		return entry, spec, nil
+	}
+
+	// Use default
+	entry := spec.GetDefault()
+	if entry == nil {
+		return nil, nil, fmt.Errorf("no default version for %s", name)
+	}
+	return entry, spec, nil
 }
 
 // packageInfoFromRef converts a PackageRef to nix package info.
-func packageInfoFromRef(ref model.PackageRef) (PackageInfo, error) {
+func (fg *FlakeGenerator) packageInfoFromRef(ref model.PackageRef) (PackageInfo, error) {
 	switch p := ref.(type) {
 	case model.NixpkgsPackage:
 		expr := "pkgs." + p.Attr
@@ -199,7 +200,7 @@ func packageInfoFromRef(ref model.PackageRef) (PackageInfo, error) {
 		return packageInfoFromGitHubAppImage(p), nil
 
 	case model.VersionedAppImage:
-		return packageInfoFromVersionedAppImage(p)
+		return fg.packageInfoFromVersionedAppImage(p)
 
 	default:
 		return PackageInfo{}, fmt.Errorf("unsupported package source: %T", ref)
@@ -240,38 +241,38 @@ func packageInfoFromGitHubAppImage(p model.GitHubAppImage) PackageInfo {
 }
 
 // packageInfoFromVersionedAppImage generates nix expression for an AppImage from versions.toml
-func packageInfoFromVersionedAppImage(p model.VersionedAppImage) (PackageInfo, error) {
-	appimage := getAppImageVersion(p.Name)
-	if appimage == nil {
-		return PackageInfo{}, fmt.Errorf("unknown versioned appimage: %s", p.Name)
+func (fg *FlakeGenerator) packageInfoFromVersionedAppImage(p model.VersionedAppImage) (PackageInfo, error) {
+	entry, spec, err := fg.getEmulatorVersion(p.Name)
+	if err != nil {
+		return PackageInfo{}, err
 	}
 
 	// Auto-detect hardware target for best performance
 	detected := hardware.DetectTarget()
 	x86Target := detected.Name
-	if detected.Arch != "x86_64" || appimage.Target(x86Target) == nil {
-		x86Target = appimage.DefaultTargetForArch("x86_64")
+	if detected.Arch != "x86_64" || entry.Target(x86Target) == nil {
+		x86Target = entry.DefaultTargetForArch("x86_64")
 	}
-	armTarget := appimage.DefaultTargetForArch("aarch64")
+	armTarget := entry.DefaultTargetForArch("aarch64")
 
-	x86Build := appimage.Target(x86Target)
-	armBuild := appimage.Target(armTarget)
+	x86Build := entry.Target(x86Target)
+	armBuild := entry.Target(armTarget)
 
 	// Handle single-arch packages (e.g., PCSX2 only has x86_64)
 	if x86Build == nil && armBuild == nil {
 		return PackageInfo{}, fmt.Errorf("no target builds for %s", p.Name)
 	}
 
-	archiveType := appimage.ArchiveType(x86Target)
+	archiveType := entry.ArchiveType(x86Target, spec)
 	if archiveType != "" {
-		return packageInfoForArchive(p.Name, appimage, x86Target, armTarget, x86Build, armBuild, archiveType)
+		return packageInfoForArchive(p.Name, entry, spec, x86Target, armTarget, x86Build, armBuild, archiveType)
 	}
 
-	return packageInfoForDirectBinary(p.Name, appimage, x86Target, armTarget, x86Build, armBuild)
+	return packageInfoForDirectBinary(p.Name, entry, spec, x86Target, armTarget, x86Build, armBuild)
 }
 
 // packageInfoForDirectBinary generates nix expression for direct binary downloads (AppImage, etc)
-func packageInfoForDirectBinary(name string, appimage *versions.AppImageVersion, x86Target, armTarget string, x86Build, armBuild *versions.TargetBuild) (PackageInfo, error) {
+func packageInfoForDirectBinary(name string, entry *versions.VersionEntry, spec *versions.EmulatorSpec, x86Target, armTarget string, x86Build, armBuild *versions.TargetBuild) (PackageInfo, error) {
 	// Build assets map, handling single-arch packages
 	var assetsExpr string
 	if x86Build != nil && armBuild != nil {
@@ -284,22 +285,22 @@ func packageInfoForDirectBinary(name string, appimage *versions.AppImageVersion,
               url = "%s";
               sha256 = "%s";
             };
-          }`, appimage.URL(x86Target), x86Build.SHA256,
-			appimage.URL(armTarget), armBuild.SHA256)
+          }`, entry.URL(x86Target, spec), x86Build.SHA256,
+			entry.URL(armTarget, spec), armBuild.SHA256)
 	} else if x86Build != nil {
 		assetsExpr = fmt.Sprintf(`{
             x86_64 = {
               url = "%s";
               sha256 = "%s";
             };
-          }`, appimage.URL(x86Target), x86Build.SHA256)
+          }`, entry.URL(x86Target, spec), x86Build.SHA256)
 	} else {
 		assetsExpr = fmt.Sprintf(`{
             aarch64 = {
               url = "%s";
               sha256 = "%s";
             };
-          }`, appimage.URL(armTarget), armBuild.SHA256)
+          }`, entry.URL(armTarget, spec), armBuild.SHA256)
 	}
 
 	expr := fmt.Sprintf(`let
@@ -313,7 +314,7 @@ func packageInfoForDirectBinary(name string, appimage *versions.AppImageVersion,
           install -m755 ${src} $out/bin/%s
         ''`,
 		assetsExpr,
-		name, appimage.Version, name,
+		name, entry.Version, name,
 	)
 
 	return PackageInfo{
@@ -323,9 +324,9 @@ func packageInfoForDirectBinary(name string, appimage *versions.AppImageVersion,
 }
 
 // packageInfoForArchive generates nix expression for archives that need extraction
-func packageInfoForArchive(name string, appimage *versions.AppImageVersion, x86Target, armTarget string, x86Build, armBuild *versions.TargetBuild, archiveType string) (PackageInfo, error) {
-	x86BinaryPath := appimage.BinaryPathForTarget(x86Target)
-	armBinaryPath := appimage.BinaryPathForTarget(armTarget)
+func packageInfoForArchive(name string, entry *versions.VersionEntry, spec *versions.EmulatorSpec, x86Target, armTarget string, x86Build, armBuild *versions.TargetBuild, archiveType string) (PackageInfo, error) {
+	x86BinaryPath := entry.BinaryPathForTarget(x86Target, spec)
+	armBinaryPath := entry.BinaryPathForTarget(armTarget, spec)
 
 	if x86BinaryPath == "" {
 		return PackageInfo{}, fmt.Errorf("binary_path required for archive package %s", name)
@@ -363,8 +364,8 @@ func packageInfoForArchive(name string, appimage *versions.AppImageVersion, x86T
               sha256 = "%s";
               binaryPath = "%s";
             };
-          }`, appimage.URL(x86Target), x86Build.SHA256, x86BinaryPath,
-			appimage.URL(armTarget), armBuild.SHA256, armBinaryPath)
+          }`, entry.URL(x86Target, spec), x86Build.SHA256, x86BinaryPath,
+			entry.URL(armTarget, spec), armBuild.SHA256, armBinaryPath)
 	} else if x86Build != nil {
 		assetsExpr = fmt.Sprintf(`{
             x86_64 = {
@@ -372,7 +373,7 @@ func packageInfoForArchive(name string, appimage *versions.AppImageVersion, x86T
               sha256 = "%s";
               binaryPath = "%s";
             };
-          }`, appimage.URL(x86Target), x86Build.SHA256, x86BinaryPath)
+          }`, entry.URL(x86Target, spec), x86Build.SHA256, x86BinaryPath)
 	} else {
 		assetsExpr = fmt.Sprintf(`{
             aarch64 = {
@@ -380,7 +381,7 @@ func packageInfoForArchive(name string, appimage *versions.AppImageVersion, x86T
               sha256 = "%s";
               binaryPath = "%s";
             };
-          }`, appimage.URL(armTarget), armBuild.SHA256, armBinaryPath)
+          }`, entry.URL(armTarget, spec), armBuild.SHA256, armBinaryPath)
 	}
 
 	expr := fmt.Sprintf(`let
@@ -396,7 +397,7 @@ func packageInfoForArchive(name string, appimage *versions.AppImageVersion, x86T
           install -m755 $TMPDIR/extracted/${assets.${arch}.binaryPath} $out/bin/%s
         ''`,
 		assetsExpr,
-		name, appimage.Version,
+		name, entry.Version,
 		extractCmd,
 		name,
 	)
@@ -413,7 +414,7 @@ func (fg *FlakeGenerator) FlakeRef(flakeDir string, emuID model.EmulatorID) (str
 		return "", fmt.Errorf("unknown emulator: %s", emuID)
 	}
 
-	pkg, err := packageInfoFromRef(emu.Package)
+	pkg, err := fg.packageInfoFromRef(emu.Package)
 	if err != nil {
 		return "", err
 	}
