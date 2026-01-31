@@ -21,12 +21,12 @@ func TestFlakeGeneratorGenerateAllEmulators(t *testing.T) {
 		emulatorIDs[i] = emu.ID
 	}
 
-	err := fg.Generate(tmpDir, emulatorIDs)
+	genPath, err := fg.Generate(tmpDir, emulatorIDs)
 	if err != nil {
 		t.Fatalf("Generate failed for all emulators: %v", err)
 	}
 
-	flakePath := filepath.Join(tmpDir, "flake.nix")
+	flakePath := filepath.Join(string(genPath), "flake.nix")
 	if _, err := os.Stat(flakePath); os.IsNotExist(err) {
 		t.Fatal("flake.nix was not created")
 	}
@@ -54,12 +54,12 @@ func TestFlakeGeneratorGenerateSingleEmulator(t *testing.T) {
 		t.Run(string(emu.ID), func(t *testing.T) {
 			tmpDir := t.TempDir()
 
-			err := fg.Generate(tmpDir, []model.EmulatorID{emu.ID})
+			genPath, err := fg.Generate(tmpDir, []model.EmulatorID{emu.ID})
 			if err != nil {
 				t.Fatalf("Generate failed for %s: %v", emu.ID, err)
 			}
 
-			content, err := os.ReadFile(filepath.Join(tmpDir, "flake.nix"))
+			content, err := os.ReadFile(filepath.Join(string(genPath), "flake.nix"))
 			if err != nil {
 				t.Fatalf("failed to read flake.nix: %v", err)
 			}
@@ -76,7 +76,7 @@ func TestFlakeGeneratorGenerateUnknownEmulator(t *testing.T) {
 	reg := registry.NewDefault()
 	fg := NewFlakeGenerator(reg)
 
-	err := fg.Generate(tmpDir, []model.EmulatorID{"unknown-emulator"})
+	_, err := fg.Generate(tmpDir, []model.EmulatorID{"unknown-emulator"})
 	if err == nil {
 		t.Fatal("expected error for unknown emulator")
 	}
@@ -122,14 +122,17 @@ func TestFlakeGeneratorCreatesDirectory(t *testing.T) {
 	reg := registry.NewDefault()
 	fg := NewFlakeGenerator(reg)
 
-	// Use e2e-test emulator which should always exist
-	err := fg.Generate(nestedDir, []model.EmulatorID{model.EmulatorE2ETest})
+	genPath, err := fg.Generate(nestedDir, []model.EmulatorID{model.EmulatorE2ETest})
 	if err != nil {
 		t.Fatalf("Generate failed: %v", err)
 	}
 
-	if _, err := os.Stat(nestedDir); os.IsNotExist(err) {
-		t.Error("nested directory should have been created")
+	if _, err := os.Stat(string(genPath)); os.IsNotExist(err) {
+		t.Error("generation directory should have been created")
+	}
+
+	if !strings.Contains(string(genPath), "generations") {
+		t.Error("generation path should contain 'generations' directory")
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/fnune/kyaraben/internal/hardware"
 	"github.com/fnune/kyaraben/internal/model"
@@ -30,60 +31,51 @@ func NewFlakeGenerator(emulators EmulatorLookup) *FlakeGenerator {
 const flakeTemplate = `{
   description = "Kyaraben-managed emulator environment";
 
-  inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/{{ .NixpkgsCommit }}";
-    flake-utils.url = "github:numtide/flake-utils";
-  };
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/{{ .NixpkgsCommit }}";
 
-  outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
+  outputs = { self, nixpkgs }:
+    let
+      forAllSystems = f: nixpkgs.lib.genAttrs [ "x86_64-linux" "aarch64-linux" ] (system: f {
+        inherit system;
         pkgs = nixpkgs.legacyPackages.${system};
-        arch = if system == "x86_64-linux" then "x86_64"
-               else if system == "aarch64-linux" then "aarch64"
-               else throw "Unsupported system: ${system}";
-      in
-      {
-        packages = {
+        arch = if system == "x86_64-linux" then "x86_64" else "aarch64";
+      });
+    in {
+      packages = forAllSystems ({ system, pkgs, arch }: {
 {{- range .Packages }}
-          {{ .Name }} = {{ .Expr }};
+        {{ .Name }} = {{ .Expr }};
 {{- end }}
 
-          # Profile with bin/ and share/applications/ structure
-          default = pkgs.runCommand "kyaraben-profile" {} ''
-            mkdir -p $out/bin $out/share/applications $out/share/icons/hicolor/scalable/apps
+        default = pkgs.runCommand "kyaraben-profile" {} ''
+          mkdir -p $out/bin $out/share/applications $out/share/icons/hicolor/scalable/apps
 
-            # Link binaries
 {{- range .Launchers }}
-            ln -s ${self.packages.${system}.{{ .Package }}}/bin/{{ .Binary }} $out/bin/{{ .Binary }}
+          ln -s ${self.packages.${system}.{{ .Package }}}/bin/{{ .Binary }} $out/bin/{{ .Binary }}
 {{- end }}
 
-            # Link icons from packages that have them
 {{- range .Launchers }}
 {{- if .HasDesktopFile }}
-            if [ -d "${self.packages.${system}.{{ .Package }}}/share/icons" ]; then
-              cp -rs ${self.packages.${system}.{{ .Package }}}/share/icons/* $out/share/icons/ 2>/dev/null || true
-            fi
+          if [ -d "${self.packages.${system}.{{ .Package }}}/share/icons" ]; then
+            cp -rs ${self.packages.${system}.{{ .Package }}}/share/icons/* $out/share/icons/ 2>/dev/null || true
+          fi
 {{- end }}
 {{- end }}
 
-            # Install icons for AppImages
 {{- range .Launchers }}
 {{- if and (not .HasDesktopFile) .IconURL }}
-            cp ${pkgs.fetchurl { url = "{{ .IconURL }}"; sha256 = "{{ .IconSHA256 }}"; }} $out/share/icons/hicolor/scalable/apps/{{ .Binary }}.svg
+          cp ${pkgs.fetchurl { url = "{{ .IconURL }}"; sha256 = "{{ .IconSHA256 }}"; }} $out/share/icons/hicolor/scalable/apps/{{ .Binary }}.svg
 {{- end }}
 {{- end }}
 
-            # Link or generate .desktop files
 {{- range .Launchers }}
 {{- if .HasDesktopFile }}
-            for desktop in ${self.packages.${system}.{{ .Package }}}/share/applications/*.desktop; do
-              if [ -f "$desktop" ]; then
-                ln -s "$desktop" $out/share/applications/
-              fi
-            done
+          for desktop in ${self.packages.${system}.{{ .Package }}}/share/applications/*.desktop; do
+            if [ -f "$desktop" ]; then
+              ln -s "$desktop" $out/share/applications/
+            fi
+          done
 {{- else }}
-            cat > $out/share/applications/{{ .Binary }}.desktop << 'DESKTOP'
+          cat > $out/share/applications/{{ .Binary }}.desktop << 'DESKTOP'
 [Desktop Entry]
 Type=Application
 Name={{ .Name }}
@@ -93,13 +85,12 @@ Icon={{ .Binary }}
 Terminal=false
 Categories={{ .CategoriesStr }};
 DESKTOP
-            sed -i "s|\$out|$out|g" $out/share/applications/{{ .Binary }}.desktop
+          sed -i "s|\$out|$out|g" $out/share/applications/{{ .Binary }}.desktop
 {{- end }}
 {{- end }}
-          '';
-        };
-      }
-    );
+        '';
+      });
+    };
 }
 `
 
@@ -119,10 +110,17 @@ type LauncherTemplateInfo struct {
 	IconSHA256     string // SHA256 of icon
 }
 
-// Generate creates a flake.nix file in the given directory.
-func (fg *FlakeGenerator) Generate(dir string, emulatorIDs []model.EmulatorID) error {
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("creating flake directory: %w", err)
+// GenerationPath returns the path where flake.nix was generated.
+type GenerationPath string
+
+// Generate creates a flake.nix file in a timestamped generation subdirectory.
+// Returns the generation directory path.
+func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorID) (GenerationPath, error) {
+	timestamp := time.Now().Format("2006-01-02T15-04-05")
+	genDir := filepath.Join(baseDir, "generations", timestamp)
+
+	if err := os.MkdirAll(genDir, 0755); err != nil {
+		return "", fmt.Errorf("creating generation directory: %w", err)
 	}
 
 	v := versions.MustGet()
@@ -134,12 +132,12 @@ func (fg *FlakeGenerator) Generate(dir string, emulatorIDs []model.EmulatorID) e
 	for _, emuID := range emulatorIDs {
 		emu, err := fg.emulators.GetEmulator(emuID)
 		if err != nil {
-			return fmt.Errorf("unknown emulator: %s", emuID)
+			return "", fmt.Errorf("unknown emulator: %s", emuID)
 		}
 
 		pkg, err := packageInfoFromRef(emu.Package)
 		if err != nil {
-			return err
+			return "", err
 		}
 		packages = append(packages, pkg)
 
@@ -176,13 +174,13 @@ func (fg *FlakeGenerator) Generate(dir string, emulatorIDs []model.EmulatorID) e
 
 	tmpl, err := template.New("flake").Parse(flakeTemplate)
 	if err != nil {
-		return fmt.Errorf("parsing template: %w", err)
+		return "", fmt.Errorf("parsing template: %w", err)
 	}
 
-	flakePath := filepath.Join(dir, "flake.nix")
+	flakePath := filepath.Join(genDir, "flake.nix")
 	f, err := os.Create(flakePath)
 	if err != nil {
-		return fmt.Errorf("creating flake.nix: %w", err)
+		return "", fmt.Errorf("creating flake.nix: %w", err)
 	}
 
 	data := struct {
@@ -199,13 +197,13 @@ func (fg *FlakeGenerator) Generate(dir string, emulatorIDs []model.EmulatorID) e
 	closeErr := f.Close()
 
 	if execErr != nil {
-		return fmt.Errorf("executing template: %w", execErr)
+		return "", fmt.Errorf("executing template: %w", execErr)
 	}
 	if closeErr != nil {
-		return fmt.Errorf("closing flake.nix: %w", closeErr)
+		return "", fmt.Errorf("closing flake.nix: %w", closeErr)
 	}
 
-	return nil
+	return GenerationPath(genDir), nil
 }
 
 func getAppImageVersion(name string) *versions.AppImageVersion {

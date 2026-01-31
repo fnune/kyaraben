@@ -40,7 +40,8 @@ func (cmd *ValidateFlakeCmd) Run(ctx *Context) error {
 	}
 
 	fmt.Printf("Generating flake for %d emulators...\n", len(emulatorIDs))
-	if err := flakeGenerator.Generate(tmpDir, emulatorIDs); err != nil {
+	genPath, err := flakeGenerator.Generate(tmpDir, emulatorIDs)
+	if err != nil {
 		return fmt.Errorf("generating flake: %w", err)
 	}
 
@@ -49,7 +50,7 @@ func (cmd *ValidateFlakeCmd) Run(ctx *Context) error {
 	evalCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	if err := nixClient.FlakeCheck(evalCtx, tmpDir); err != nil {
+	if err := nixClient.FlakeCheck(evalCtx, string(genPath)); err != nil {
 		return fmt.Errorf("flake validation failed: %w", err)
 	}
 
