@@ -10,8 +10,6 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/retroarch"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbsnes"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmelonds"
-	"github.com/fnune/kyaraben/internal/emulators/retroarchmgba"
-	"github.com/fnune/kyaraben/internal/emulators/retroarchppsspp"
 	"github.com/fnune/kyaraben/internal/emulators/tic80emu"
 	"github.com/fnune/kyaraben/internal/model"
 )
@@ -125,13 +123,6 @@ func TestRetroArchCoresGenerate(t *testing.T) {
 			wantRomDir: "/emulation/roms/snes",
 		},
 		{
-			name:       "mgba",
-			gen:        retroarchmgba.Definition{}.ConfigGenerator(),
-			system:     model.SystemGBA,
-			coreName:   "mgba_libretro",
-			wantRomDir: "/emulation/roms/gba",
-		},
-		{
 			name:       "melonds",
 			gen:        retroarchmelonds.Definition{}.ConfigGenerator(),
 			system:     model.SystemNDS,
@@ -205,40 +196,6 @@ func TestTIC80Generate(t *testing.T) {
 
 	if len(patches) != 0 {
 		t.Errorf("expected nil or empty patches for TIC-80, got %d", len(patches))
-	}
-}
-
-func TestRetroArchPPSSPPGenerate(t *testing.T) {
-	store := &fakeStoreReader{root: "/emulation"}
-	gen := retroarchppsspp.Definition{}.ConfigGenerator()
-
-	patches, err := gen.Generate(store)
-	if err != nil {
-		t.Fatalf("Generate() error = %v", err)
-	}
-
-	if len(patches) != 2 {
-		t.Fatalf("expected 2 patches (shared + override), got %d", len(patches))
-	}
-
-	// First patch: shared retroarch.cfg
-	shared := patches[0]
-	if shared.Target.RelPath != "retroarch/retroarch.cfg" {
-		t.Errorf("expected shared config path, got %s", shared.Target.RelPath)
-	}
-
-	// Second patch: per-core override
-	override := patches[1]
-	expectedOverridePath := retroarch.CoreOverrideTarget("ppsspp_libretro").RelPath
-	if override.Target.RelPath != expectedOverridePath {
-		t.Errorf("expected override path %q, got %q", expectedOverridePath, override.Target.RelPath)
-	}
-
-	// Check ROM browser points to PSP ROMs
-	for _, entry := range override.Entries {
-		if entry.Key() == "rgui_browser_directory" && !strings.Contains(entry.Value, "/emulation/roms/psp") {
-			t.Errorf("rgui_browser_directory %q doesn't contain /emulation/roms/psp", entry.Value)
-		}
 	}
 }
 

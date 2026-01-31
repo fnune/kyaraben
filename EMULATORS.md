@@ -57,27 +57,25 @@ AppImages avoid this because they use the host system's graphics drivers directl
 |----------|-----------|--------|--------|-------|
 | DuckStation | PSX | VersionedAppImage | [GitHub Releases](https://github.com/stenzek/duckstation/releases) | Flatpak deprecated by upstream |
 | Eden | Switch | VersionedAppImage | [GitHub Releases](https://github.com/eden-emulator/Releases/releases) | Multiple hardware-optimized builds |
+| PCSX2 | PS2 | VersionedAppImage | [GitHub Releases](https://github.com/PCSX2/pcsx2/releases) | Default for PS2 |
+| PPSSPP | PSP | VersionedAppImage | [GitHub Releases](https://github.com/hrydgard/ppsspp/releases) | Default for PSP, replaced RA core |
+| mGBA | GBA | VersionedAppImage | [GitHub Releases](https://github.com/mgba-emu/mgba/releases) | Default for GBA, replaced RA core |
+| Dolphin | GC/Wii | VersionedAppImage | [pkgforge-dev](https://github.com/pkgforge-dev/Dolphin-emu-AppImage/releases) | Unofficial but well-maintained |
+| Cemu | Wii U | VersionedAppImage | [GitHub Releases](https://github.com/cemu-project/Cemu/releases) | Official AppImage since 2.0 |
+| Azahar | 3DS | VersionedAppImage | [GitHub Releases](https://github.com/azahar-emu/azahar/releases) | Citra successor |
 | RetroArch:bsnes | SNES | Nixpkgs overlay | nixpkgs | **BROKEN** - graphics issues |
-| RetroArch:mgba | GBA | Nixpkgs overlay | nixpkgs | **BROKEN** - graphics issues |
 | RetroArch:melonds | NDS | Nixpkgs overlay | nixpkgs | **BROKEN** - graphics issues |
-| RetroArch:ppsspp | PSP | Nixpkgs overlay | nixpkgs | **BROKEN** - graphics issues |
 | TIC-80 | TIC-80 | Nixpkgs | nixpkgs | **BROKEN** - falls back to CLI |
 
 ### Planned Changes
 
 | Emulator | System(s) | Method | Source | Versioned? | Notes |
 |----------|-----------|--------|--------|------------|-------|
-| PCSX2 | PS2 | AppImage | [GitHub Releases](https://github.com/PCSX2/pcsx2/releases) | ✅ Yes | Tagged releases like `v2.6.3` |
 | RPCS3 | PS3 | AppImage | [GitHub Releases](https://github.com/RPCS3/rpcs3-binaries-linux/releases) | ✅ Yes | Rolling releases with build numbers |
-| PPSSPP | PSP | AppImage | [GitHub Releases](https://github.com/hrydgard/ppsspp/releases) | ✅ Yes | Replace RA core with standalone |
-| melonDS | NDS | AppImage (in ZIP) | [GitHub Releases](https://github.com/melonDS-emu/melonDS/releases) | ✅ Yes | Needs extraction from ZIP |
-| mGBA | GBA | AppImage | [GitHub Releases](https://github.com/mgba-emu/mgba/releases) | ✅ Yes | Replace RA core with standalone |
-| Dolphin | GC/Wii | AppImage (unofficial) | [pkgforge-dev](https://github.com/pkgforge-dev/Dolphin-emu-AppImage/releases) | ✅ Yes | No official binary; unofficial is well-maintained |
-| Cemu | Wii U | AppImage | [GitHub Releases](https://github.com/cemu-project/Cemu/releases) | ✅ Yes | Official AppImage since 2.0 |
-| Azahar | 3DS | AppImage | [GitHub Releases](https://github.com/azahar-emu/azahar/releases) | ✅ Yes | Citra successor |
+| melonDS | NDS | AppImage (in ZIP) | [GitHub Releases](https://github.com/melonDS-emu/melonDS/releases) | ✅ Yes | Needs extraction from ZIP, replace RA core |
 | Vita3K | PS Vita | AppImage | [GitHub Releases](https://github.com/Vita3K/Vita3K-builds/releases) | ⚠️ Continuous | Rolling continuous builds |
-| RetroArch | Multi | Archive (7z) | [Buildbot](https://buildbot.libretro.com/stable/) | ✅ Yes | Frontend only; cores via nix |
-| TIC-80 | TIC-80 | Tarball | [GitHub Releases](https://github.com/nesbox/TIC-80/releases) | ✅ Yes | `tic80-vX.X.X-linux.tar.gz` |
+| RetroArch | Multi | Archive (7z) | [Buildbot](https://buildbot.libretro.com/stable/) | ✅ Yes | Frontend + bundled cores |
+| TIC-80 | TIC-80 | Tarball | [GitHub Releases](https://github.com/nesbox/TIC-80/releases) | ✅ Yes | Replace nix version |
 | Flycast | Dreamcast | Tarball | [GitHub Releases](https://github.com/flyinghead/flycast/releases) | ✅ Yes | Or use RA core |
 
 ### RetroArch Approach
@@ -157,9 +155,9 @@ https://buildbot.example.com/nightly/app.AppImage
 - ✅ PCSX2 - implemented (PS2 default)
 - ✅ PPSSPP - implemented (PSP default, replaces RA core)
 - ✅ mGBA - implemented (GBA default, replaces RA core)
-- 🔲 Cemu - versions.toml entry added, needs emulator definition
-- 🔲 Azahar - versions.toml entry added, needs emulator definition
-- 🔲 Dolphin - versions.toml entry added, needs emulator definition (uses `release_tag` field)
+- ✅ Cemu - implemented (Wii U default)
+- ✅ Azahar - implemented (3DS default)
+- ✅ Dolphin - implemented (GameCube/Wii default, uses `release_tag` field)
 
 ### Archive Extraction Support
 Archive extraction is implemented in flake.go (7z, tar.gz, zip). These emulators use archives instead of direct AppImages:
@@ -168,7 +166,7 @@ Archive extraction is implemented in flake.go (7z, tar.gz, zip). These emulators
 - 🔲 TIC-80 - tar.gz from GitHub (needs emulator definition update)
 
 ### Needs Special Handling
-- 🔲 melonDS - AppImage inside ZIP file
+- 🔲 melonDS - AppImage inside ZIP file (replace RA core as NDS default)
 - 🔲 Vita3K - continuous builds without version tags
 - 🔲 RPCS3 - rolling releases with commit hashes in filenames
 

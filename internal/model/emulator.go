@@ -6,13 +6,14 @@ type EmulatorID string
 
 const (
 	EmulatorRetroArchBsnes   EmulatorID = "retroarch:bsnes"
-	EmulatorRetroArchMGBA    EmulatorID = "retroarch:mgba"
 	EmulatorRetroArchMelonDS EmulatorID = "retroarch:melonds"
-	EmulatorRetroArchPPSSPP  EmulatorID = "retroarch:ppsspp"
 	EmulatorDuckStation      EmulatorID = "duckstation"
 	EmulatorPCSX2            EmulatorID = "pcsx2"
 	EmulatorPPSSPP           EmulatorID = "ppsspp"
 	EmulatorMGBA             EmulatorID = "mgba"
+	EmulatorCemu             EmulatorID = "cemu"
+	EmulatorAzahar           EmulatorID = "azahar"
+	EmulatorDolphin          EmulatorID = "dolphin"
 	EmulatorTIC80            EmulatorID = "tic80"
 	EmulatorEden             EmulatorID = "eden"
 	EmulatorE2ETest          EmulatorID = "e2e-test"
