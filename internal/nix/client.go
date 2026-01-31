@@ -130,6 +130,10 @@ func (c *Client) runNix(ctx context.Context, args []string) (*exec.Cmd, error) {
 		return nil, fmt.Errorf("nix-portable is not available (bundled binary not found)")
 	}
 
+	if err := c.EnsureNixPortableDir(); err != nil {
+		return nil, fmt.Errorf("creating nix-portable data directory: %w", err)
+	}
+
 	// nix-portable wraps nix, so we call: nix-portable nix <args>
 	fullArgs := append([]string{"nix"}, args...)
 	cmd := exec.CommandContext(ctx, c.NixPortableBinary, fullArgs...)
@@ -141,6 +145,10 @@ func (c *Client) runNix(ctx context.Context, args []string) (*exec.Cmd, error) {
 	log.Debug("NP_LOCATION=%s", c.NixPortableLocation)
 
 	return cmd, nil
+}
+
+func (c *Client) EnsureNixPortableDir() error {
+	return os.MkdirAll(c.NixPortableLocation, 0755)
 }
 
 func (c *Client) Build(ctx context.Context, flakeRef string) (string, error) {

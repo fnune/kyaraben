@@ -31,7 +31,8 @@ kyaraben status
 echo ""
 
 echo "6. Verify directory structure was created..."
-for dir in roms/tic80 bios/tic80 saves/tic80 states/tic80 screenshots/tic80; do
+# Note: states are per-emulator (states/tic-80), not per-system (states/tic80)
+for dir in roms/tic80 bios/tic80 saves/tic80 screenshots/tic80; do
     if [ -d ~/Emulation/$dir ]; then
         echo "   OK: ~/Emulation/$dir exists"
     else
