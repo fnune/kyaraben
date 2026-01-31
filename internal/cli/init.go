@@ -60,7 +60,7 @@ func (cmd *InitCmd) Run(ctx *Context) error {
 
 	if len(cfg.Systems) == 0 {
 		fmt.Println("No systems enabled. Use 'kyaraben init -s <system>' to enable systems.")
-		fmt.Println("Available systems: snes, psx, gba, nds, psp, switch, e2e-test")
+		fmt.Println("Available systems: snes, psx, gba, nds, psp, switch")
 	} else {
 		fmt.Println("Enabled systems:")
 		for sys, sysConf := range cfg.Systems {

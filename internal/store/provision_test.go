@@ -71,19 +71,19 @@ func TestProvisionCheckerWithFile(t *testing.T) {
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
 	}
-	if err := store.InitializeSystem(model.SystemE2ETest); err != nil {
-		t.Fatalf("Failed to initialize E2E Test system: %v", err)
+	if err := store.InitializeSystem(model.SystemGBA); err != nil {
+		t.Fatalf("Failed to initialize GBA system: %v", err)
 	}
 
 	checker := NewProvisionChecker(store)
 
 	emu := model.Emulator{
-		ID:         model.EmulatorE2ETest,
-		Systems:    []model.SystemID{model.SystemE2ETest},
+		ID:         model.EmulatorMGBA,
+		Systems:    []model.SystemID{model.SystemGBA},
 		Provisions: []model.Provision{},
 	}
 
-	results := checker.Check(emu, model.SystemE2ETest)
+	results := checker.Check(emu, model.SystemGBA)
 	if len(results) != 0 {
 		t.Errorf("Expected 0 results for emulator with no provisions, got %d", len(results))
 	}

@@ -93,26 +93,13 @@ func (m *Manager) BinDir() string {
 
 type EmulatorPackageInfo struct {
 	BinaryName string
-	IsAppImage bool
 }
 
-const nixShellWrapperTemplate = `#!/bin/sh
-NP_LOCATION="{{.NpLocation}}" \
-exec "{{.NixPortable}}" nix shell "{{.VirtualStorePath}}" -c "{{.BinaryName}}" "$@"
-`
-
-const directWrapperTemplate = `#!/bin/sh
+const wrapperTemplate = `#!/bin/sh
 exec "{{.RealBinaryPath}}" "$@"
 `
 
-type nixShellWrapperData struct {
-	BinaryName       string
-	NixPortable      string
-	NpLocation       string
-	VirtualStorePath string
-}
-
-type directWrapperData struct {
+type wrapperData struct {
 	RealBinaryPath string
 }
 
@@ -129,16 +116,6 @@ func (m *Manager) GenerateWrappers(emulators []EmulatorPackageInfo) error {
 		return nil
 	}
 
-	currentTarget, err := os.Readlink(m.CurrentLink())
-	if err != nil {
-		return fmt.Errorf("reading current link: %w", err)
-	}
-
-	virtualStorePath, err := realToVirtualStorePath(currentTarget)
-	if err != nil {
-		return fmt.Errorf("converting store path: %w", err)
-	}
-
 	if err := os.RemoveAll(binDir); err != nil {
 		return fmt.Errorf("removing old bin directory: %w", err)
 	}
@@ -152,24 +129,10 @@ func (m *Manager) GenerateWrappers(emulators []EmulatorPackageInfo) error {
 		return fmt.Errorf("reading profile bin directory: %w", err)
 	}
 
-	nixShellTmpl, err := template.New("nixShell").Parse(nixShellWrapperTemplate)
+	tmpl, err := template.New("wrapper").Parse(wrapperTemplate)
 	if err != nil {
-		return fmt.Errorf("parsing nix shell wrapper template: %w", err)
+		return fmt.Errorf("parsing wrapper template: %w", err)
 	}
-
-	directTmpl, err := template.New("direct").Parse(directWrapperTemplate)
-	if err != nil {
-		return fmt.Errorf("parsing direct wrapper template: %w", err)
-	}
-
-	appImageBinaries := make(map[string]bool)
-	for _, emu := range emulators {
-		if emu.IsAppImage {
-			appImageBinaries[emu.BinaryName] = true
-		}
-	}
-
-	npLocation := filepath.Join(m.profileDir, "build", "nix")
 
 	for _, entry := range entries {
 		if entry.IsDir() {
@@ -188,33 +151,19 @@ func (m *Manager) GenerateWrappers(emulators []EmulatorPackageInfo) error {
 			return fmt.Errorf("creating wrapper %s: %w", binaryName, err)
 		}
 
-		if appImageBinaries[binaryName] {
-			symlinkPath := filepath.Join(profileBinDir, binaryName)
-			virtualTarget, err := os.Readlink(symlinkPath)
-			if err != nil {
-				_ = f.Close()
-				return fmt.Errorf("reading symlink for %s: %w", binaryName, err)
-			}
-			realBinaryPath := m.virtualToRealStorePath(virtualTarget)
-			data := directWrapperData{RealBinaryPath: realBinaryPath}
-			if err := directTmpl.Execute(f, data); err != nil {
-				_ = f.Close()
-				return fmt.Errorf("writing direct wrapper %s: %w", binaryName, err)
-			}
-			log.Debug("Generated direct wrapper (AppImage): %s -> %s", wrapperPath, realBinaryPath)
-		} else {
-			data := nixShellWrapperData{
-				BinaryName:       binaryName,
-				NixPortable:      m.nixPortableBinary,
-				NpLocation:       npLocation,
-				VirtualStorePath: virtualStorePath,
-			}
-			if err := nixShellTmpl.Execute(f, data); err != nil {
-				_ = f.Close()
-				return fmt.Errorf("writing nix shell wrapper %s: %w", binaryName, err)
-			}
-			log.Debug("Generated nix shell wrapper: %s -> %s", wrapperPath, filepath.Join(virtualStorePath, "bin", binaryName))
+		symlinkPath := filepath.Join(profileBinDir, binaryName)
+		virtualTarget, err := os.Readlink(symlinkPath)
+		if err != nil {
+			_ = f.Close()
+			return fmt.Errorf("reading symlink for %s: %w", binaryName, err)
 		}
+		realBinaryPath := m.virtualToRealStorePath(virtualTarget)
+		data := wrapperData{RealBinaryPath: realBinaryPath}
+		if err := tmpl.Execute(f, data); err != nil {
+			_ = f.Close()
+			return fmt.Errorf("writing wrapper %s: %w", binaryName, err)
+		}
+		log.Debug("Generated wrapper: %s -> %s", wrapperPath, realBinaryPath)
 
 		if err := f.Close(); err != nil {
 			return fmt.Errorf("closing wrapper %s: %w", binaryName, err)

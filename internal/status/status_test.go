@@ -32,7 +32,7 @@ func TestGet(t *testing.T) {
 			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemE2ETest: {Emulator: string(model.EmulatorE2ETest)},
+			model.SystemGBA: {Emulator: string(model.EmulatorMGBA)},
 			model.SystemSNES:    {Emulator: string(model.EmulatorRetroArchBsnes)},
 		},
 	}
@@ -84,7 +84,7 @@ func TestGetWithInitializedStore(t *testing.T) {
 			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemE2ETest: {Emulator: string(model.EmulatorE2ETest)},
+			model.SystemGBA: {Emulator: string(model.EmulatorMGBA)},
 		},
 	}
 
@@ -110,7 +110,7 @@ func TestGetSystemNames(t *testing.T) {
 			UserStore: tmpDir,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemE2ETest: {Emulator: string(model.EmulatorE2ETest)},
+			model.SystemGBA: {Emulator: string(model.EmulatorMGBA)},
 		},
 	}
 
@@ -127,11 +127,11 @@ func TestGetSystemNames(t *testing.T) {
 	}
 
 	sys := result.EnabledSystems[0]
-	if sys.ID != model.SystemE2ETest {
-		t.Errorf("System ID: got %s, want %s", sys.ID, model.SystemE2ETest)
+	if sys.ID != model.SystemGBA {
+		t.Errorf("System ID: got %s, want %s", sys.ID, model.SystemGBA)
 	}
-	if sys.Name != "E2E Test" {
-		t.Errorf("System Name: got %s, want E2E Test", sys.Name)
+	if sys.Name != "Game Boy Advance" {
+		t.Errorf("System Name: got %s, want Game Boy Advance", sys.Name)
 	}
 }
 
@@ -150,7 +150,7 @@ func TestGetMissingRequiredCount(t *testing.T) {
 		},
 		Systems: map[model.SystemID]model.SystemConf{
 			model.SystemPSX:     {Emulator: string(model.EmulatorDuckStation)},
-			model.SystemE2ETest: {Emulator: string(model.EmulatorE2ETest)},
+			model.SystemGBA: {Emulator: string(model.EmulatorMGBA)},
 		},
 	}
 
@@ -173,8 +173,8 @@ func TestGetWithManifest(t *testing.T) {
 	manifest := &model.Manifest{
 		LastApplied: time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC),
 		InstalledEmulators: map[model.EmulatorID]model.InstalledEmulator{
-			model.EmulatorE2ETest: {
-				ID:        model.EmulatorE2ETest,
+			model.EmulatorMGBA: {
+				ID:        model.EmulatorMGBA,
 				Version:   "latest",
 				StorePath: "/nix/store/abc123",
 				Installed: time.Now(),
@@ -192,7 +192,7 @@ func TestGetWithManifest(t *testing.T) {
 			UserStore: tmpDir,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemE2ETest: {Emulator: string(model.EmulatorE2ETest)},
+			model.SystemGBA: {Emulator: string(model.EmulatorMGBA)},
 		},
 	}
 
@@ -209,11 +209,11 @@ func TestGetWithManifest(t *testing.T) {
 	}
 
 	emu := result.InstalledEmulators[0]
-	if emu.ID != model.EmulatorE2ETest {
-		t.Errorf("Emulator ID: got %s, want %s", emu.ID, model.EmulatorE2ETest)
+	if emu.ID != model.EmulatorMGBA {
+		t.Errorf("Emulator ID: got %s, want %s", emu.ID, model.EmulatorMGBA)
 	}
-	if emu.Name != "E2E Test" {
-		t.Errorf("Emulator Name: got %s, want E2E Test", emu.Name)
+	if emu.Name != "mGBA" {
+		t.Errorf("Emulator Name: got %s, want mGBA", emu.Name)
 	}
 	if emu.Version != "latest" {
 		t.Errorf("Emulator Version: got %s, want latest", emu.Version)

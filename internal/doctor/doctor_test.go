@@ -33,7 +33,7 @@ func TestRun(t *testing.T) {
 		},
 		Systems: map[model.SystemID]model.SystemConf{
 			model.SystemPSX:     {Emulator: string(model.EmulatorDuckStation)},
-			model.SystemE2ETest: {Emulator: string(model.EmulatorE2ETest)},
+			model.SystemGBA: {Emulator: string(model.EmulatorMGBA)},
 		},
 	}
 
@@ -59,7 +59,7 @@ func TestRun(t *testing.T) {
 	}
 }
 
-func TestRunNoProvisions(t *testing.T) {
+func TestRunNoRequiredProvisions(t *testing.T) {
 	tmpDir := t.TempDir()
 	userStorePath := filepath.Join(tmpDir, "Emulation")
 
@@ -68,7 +68,7 @@ func TestRunNoProvisions(t *testing.T) {
 			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemE2ETest: {Emulator: string(model.EmulatorE2ETest)},
+			model.SystemGBA: {Emulator: string(model.EmulatorMGBA)},
 		},
 	}
 
@@ -85,18 +85,15 @@ func TestRunNoProvisions(t *testing.T) {
 	}
 
 	sys := result.Systems[0]
-	if sys.SystemID != model.SystemE2ETest {
-		t.Errorf("SystemID: got %s, want %s", sys.SystemID, model.SystemE2ETest)
+	if sys.SystemID != model.SystemGBA {
+		t.Errorf("SystemID: got %s, want %s", sys.SystemID, model.SystemGBA)
 	}
-	if sys.EmulatorName != "E2E Test" {
-		t.Errorf("EmulatorName: got %s, want E2E Test", sys.EmulatorName)
-	}
-	if len(sys.Provisions) != 0 {
-		t.Errorf("Provisions: got %d, want 0 (e2e-test has no provisions)", len(sys.Provisions))
+	if sys.EmulatorName != "mGBA" {
+		t.Errorf("EmulatorName: got %s, want mGBA", sys.EmulatorName)
 	}
 
 	if result.RequiredMissing != 0 {
-		t.Errorf("RequiredMissing: got %d, want 0", result.RequiredMissing)
+		t.Errorf("RequiredMissing: got %d, want 0 (GBA BIOS is optional)", result.RequiredMissing)
 	}
 	if result.HasIssues() {
 		t.Error("HasIssues should return false when no required files are missing")

@@ -186,62 +186,15 @@ func (fg *FlakeGenerator) getEmulatorVersion(name string) (*versions.VersionEntr
 // packageInfoFromRef converts a PackageRef to nix package info.
 func (fg *FlakeGenerator) packageInfoFromRef(ref model.PackageRef) (PackageInfo, error) {
 	switch p := ref.(type) {
-	case model.NixpkgsPackage:
-		expr := "pkgs." + p.Attr
-		if p.Overlay != "" {
-			expr = p.Overlay
-		}
-		return PackageInfo{
-			Name: p.Attr,
-			Expr: expr,
-		}, nil
-
-	case model.GitHubAppImage:
-		return packageInfoFromGitHubAppImage(p), nil
-
-	case model.VersionedAppImage:
-		return fg.packageInfoFromVersionedAppImage(p)
-
+	case model.AppImage:
+		return fg.packageInfoFromAppImage(p)
 	default:
 		return PackageInfo{}, fmt.Errorf("unsupported package source: %T", ref)
 	}
 }
 
-// packageInfoFromGitHubAppImage generates nix expression for a GitHub AppImage.
-// Deprecated: Use packageInfoFromVersionedAppImage instead
-func packageInfoFromGitHubAppImage(p model.GitHubAppImage) PackageInfo {
-	// Build a nix expression that selects the correct asset based on system architecture
-	expr := fmt.Sprintf(`let
-          assets = {
-            x86_64 = {
-              url = "https://github.com/%s/%s/releases/download/%s/%s";
-              sha256 = "%s";
-            };
-            aarch64 = {
-              url = "https://github.com/%s/%s/releases/download/%s/%s";
-              sha256 = "%s";
-            };
-          };
-          src = pkgs.fetchurl {
-            url = assets.${arch}.url;
-            sha256 = assets.${arch}.sha256;
-          };
-        in pkgs.runCommand "%s-%s" {} ''
-          mkdir -p $out/bin
-          install -m755 ${src} $out/bin/%s
-        ''`,
-		p.Owner, p.Repo, p.Version, p.Assets["x86_64"], p.Hashes["x86_64"],
-		p.Owner, p.Repo, p.Version, p.Assets["aarch64"], p.Hashes["aarch64"],
-		p.Name, p.Version, p.Name,
-	)
-	return PackageInfo{
-		Name: p.Name,
-		Expr: expr,
-	}
-}
-
-// packageInfoFromVersionedAppImage generates nix expression for an AppImage from versions.toml
-func (fg *FlakeGenerator) packageInfoFromVersionedAppImage(p model.VersionedAppImage) (PackageInfo, error) {
+// packageInfoFromAppImage generates nix expression for an AppImage from versions.toml
+func (fg *FlakeGenerator) packageInfoFromAppImage(p model.AppImage) (PackageInfo, error) {
 	entry, spec, err := fg.getEmulatorVersion(p.Name)
 	if err != nil {
 		return PackageInfo{}, err
@@ -436,13 +389,11 @@ func (fg *FlakeGenerator) GetResolvedVersions(emulatorIDs []model.EmulatorID) ma
 		if err != nil {
 			continue
 		}
-		if pkg, ok := emu.Package.(model.VersionedAppImage); ok {
-			entry, _, err := fg.getEmulatorVersion(pkg.Name)
-			if err != nil {
-				continue
-			}
-			result[emuID] = entry.Version
+		entry, _, err := fg.getEmulatorVersion(emu.Package.PackageName())
+		if err != nil {
+			continue
 		}
+		result[emuID] = entry.Version
 	}
 	return result
 }

@@ -9,7 +9,7 @@ func (Definition) Emulator() model.Emulator {
 		ID:      model.EmulatorPCSX2,
 		Name:    "PCSX2",
 		Systems: []model.SystemID{model.SystemPS2},
-		Package: model.VersionedAppImageRef("pcsx2"),
+		Package: model.AppImageRef("pcsx2"),
 		Provisions: []model.Provision{
 			{
 				ID:          "ps2-bios-usa",

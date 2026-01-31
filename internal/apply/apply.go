@@ -376,21 +376,17 @@ func (a *Applier) buildEmulatorPackageInfo(emulatorIDs []model.EmulatorID) []lau
 		}
 		seenBinaries[emu.Launcher.Binary] = true
 
-		source := emu.Package.Source()
-		isAppImage := source == model.PackageSourceGitHub || source == model.PackageSourceVersioned
-
 		info = append(info, launcher.EmulatorPackageInfo{
 			BinaryName: emu.Launcher.Binary,
-			IsAppImage: isAppImage,
 		})
 	}
 
 	return info
 }
 
-func (a *Applier) buildDesktopEntries(emulatorIDs []model.EmulatorID) []launcher.DesktopEntry {
+func (a *Applier) buildDesktopEntries(emulatorIDs []model.EmulatorID) []launcher.GeneratedDesktop {
 	seenBinaries := make(map[string]bool)
-	var entries []launcher.DesktopEntry
+	var entries []launcher.GeneratedDesktop
 
 	for _, emuID := range emulatorIDs {
 		emu, err := a.Registry.GetEmulator(emuID)
@@ -408,18 +404,12 @@ func (a *Applier) buildDesktopEntries(emulatorIDs []model.EmulatorID) []launcher
 			displayName = emu.Name
 		}
 
-		if emu.Package.Source() == model.PackageSourceNixpkgs {
-			entries = append(entries, launcher.NixStoreDesktop{
-				BinaryName: emu.Launcher.Binary,
-			})
-		} else {
-			entries = append(entries, launcher.GeneratedDesktop{
-				BinaryName:    emu.Launcher.Binary,
-				Name:          displayName,
-				GenericName:   emu.Launcher.GenericName,
-				CategoriesStr: strings.Join(emu.Launcher.Categories, ";"),
-			})
-		}
+		entries = append(entries, launcher.GeneratedDesktop{
+			BinaryName:    emu.Launcher.Binary,
+			Name:          displayName,
+			GenericName:   emu.Launcher.GenericName,
+			CategoriesStr: strings.Join(emu.Launcher.Categories, ";"),
+		})
 	}
 
 	return entries

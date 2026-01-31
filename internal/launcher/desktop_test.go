@@ -1,7 +1,6 @@
 package launcher
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,29 +12,11 @@ func TestGenerateDesktopFiles(t *testing.T) {
 
 	profileDir := filepath.Join(tmpDir, "kyaraben")
 	npLocation := filepath.Join(tmpDir, "nix-portable")
-	realStoreDir := filepath.Join(npLocation, ".nix-portable", "nix", "store", "xyz789-retroarch")
-	realAppsDir := filepath.Join(realStoreDir, "share", "applications")
 
 	currentDir := filepath.Join(tmpDir, "store", "nix", "store", "abc123-profile")
-	currentAppsDir := filepath.Join(currentDir, "share", "applications")
 
-	if err := os.MkdirAll(realAppsDir, 0755); err != nil {
-		t.Fatalf("creating real apps dir: %v", err)
-	}
-	if err := os.MkdirAll(currentAppsDir, 0755); err != nil {
-		t.Fatalf("creating current apps dir: %v", err)
-	}
-
-	realDesktop := filepath.Join(realAppsDir, "retroarch.desktop")
-	desktopContent := "[Desktop Entry]\nName=RetroArch\nExec=/nix/store/xyz789-retroarch/bin/retroarch %f\n"
-	if err := os.WriteFile(realDesktop, []byte(desktopContent), 0644); err != nil {
-		t.Fatalf("creating real desktop file: %v", err)
-	}
-
-	virtualTarget := "/nix/store/xyz789-retroarch/share/applications/retroarch.desktop"
-	symlinkPath := filepath.Join(currentAppsDir, "retroarch.desktop")
-	if err := os.Symlink(virtualTarget, symlinkPath); err != nil {
-		t.Fatalf("creating symlink: %v", err)
+	if err := os.MkdirAll(currentDir, 0755); err != nil {
+		t.Fatalf("creating current dir: %v", err)
 	}
 
 	dataDir := filepath.Join(tmpDir, "data")
@@ -48,12 +29,17 @@ func TestGenerateDesktopFiles(t *testing.T) {
 		t.Fatalf("creating current symlink: %v", err)
 	}
 
-	entries := []DesktopEntry{
-		NixStoreDesktop{BinaryName: "retroarch"},
-		GeneratedDesktop{
+	entries := []GeneratedDesktop{
+		{
 			BinaryName:    "eden",
 			Name:          "Eden",
 			GenericName:   "Nintendo Switch Emulator",
+			CategoriesStr: "Game;Emulator",
+		},
+		{
+			BinaryName:    "duckstation",
+			Name:          "DuckStation",
+			GenericName:   "PlayStation Emulator",
 			CategoriesStr: "Game;Emulator",
 		},
 	}
@@ -62,29 +48,8 @@ func TestGenerateDesktopFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GenerateDesktopFiles() error = %v", err)
 	}
-	if len(result.DesktopFiles) == 0 {
-		t.Error("GenerateDesktopFiles() should return created desktop files")
-	}
-
-	retroarchPath := filepath.Join(m.ApplicationsDir(), "retroarch.desktop")
-	info, err := os.Lstat(retroarchPath)
-	if err != nil {
-		t.Fatalf("checking retroarch.desktop: %v", err)
-	}
-	if info.Mode()&os.ModeSymlink != 0 {
-		t.Error("retroarch.desktop should be a regular file, not a symlink")
-	}
-
-	retroarchContent, err := os.ReadFile(retroarchPath)
-	if err != nil {
-		t.Fatalf("reading retroarch.desktop: %v", err)
-	}
-	if strings.Contains(string(retroarchContent), "/nix/store/") {
-		t.Errorf("retroarch.desktop should not contain /nix/store/ paths, got:\n%s", retroarchContent)
-	}
-	expectedExec := fmt.Sprintf("Exec=%s/retroarch", m.BinDir())
-	if !strings.Contains(string(retroarchContent), expectedExec) {
-		t.Errorf("retroarch.desktop should contain %s, got:\n%s", expectedExec, retroarchContent)
+	if len(result.DesktopFiles) != 2 {
+		t.Errorf("GenerateDesktopFiles() should return 2 desktop files, got %d", len(result.DesktopFiles))
 	}
 
 	edenPath := filepath.Join(m.ApplicationsDir(), "eden.desktop")
@@ -100,10 +65,6 @@ func TestGenerateDesktopFiles(t *testing.T) {
 	if !strings.Contains(contentStr, "GenericName=Nintendo Switch Emulator") {
 		t.Errorf("eden.desktop should contain GenericName, got:\n%s", contentStr)
 	}
-	expectedEdenExec := fmt.Sprintf("Exec=%s/eden", m.BinDir())
-	if !strings.Contains(contentStr, expectedEdenExec) {
-		t.Errorf("eden.desktop should contain %s, got:\n%s", expectedEdenExec, contentStr)
-	}
 	if !strings.Contains(contentStr, "Icon=eden") {
 		t.Errorf("eden.desktop should contain Icon=eden, got:\n%s", contentStr)
 	}
@@ -114,21 +75,6 @@ func TestGenerateDesktopFiles(t *testing.T) {
 	edenIconPath := filepath.Join(m.IconsDir(), "eden.svg")
 	if _, err := os.Stat(edenIconPath); err != nil {
 		t.Errorf("eden.svg should exist: %v", err)
-	}
-}
-
-func TestDesktopEntryInterface(t *testing.T) {
-	nix := NixStoreDesktop{BinaryName: "retroarch"}
-	gen := GeneratedDesktop{BinaryName: "eden", Name: "Eden"}
-
-	var entries []DesktopEntry
-	entries = append(entries, nix, gen)
-
-	if entries[0].Binary() != "retroarch" {
-		t.Errorf("NixStoreDesktop.Binary() = %s, want retroarch", entries[0].Binary())
-	}
-	if entries[1].Binary() != "eden" {
-		t.Errorf("GeneratedDesktop.Binary() = %s, want eden", entries[1].Binary())
 	}
 }
 
@@ -145,74 +91,6 @@ func TestEmbeddedIcons(t *testing.T) {
 		if !strings.Contains(string(data), "<svg") {
 			t.Errorf("icon %s.svg doesn't look like an SVG", name)
 		}
-	}
-}
-
-func TestRewriteDesktopExecLines(t *testing.T) {
-	binDir := "/home/user/.local/state/kyaraben/bin"
-	tests := []struct {
-		name     string
-		input    string
-		binary   string
-		expected string
-	}{
-		{
-			name:     "simple exec line",
-			input:    "Exec=/nix/store/abc123-foo/bin/retroarch %f",
-			binary:   "retroarch",
-			expected: "Exec=/home/user/.local/state/kyaraben/bin/retroarch %f",
-		},
-		{
-			name:     "exec line with flags",
-			input:    "Exec=/nix/store/xyz789-bar/bin/retroarch --verbose",
-			binary:   "retroarch",
-			expected: "Exec=/home/user/.local/state/kyaraben/bin/retroarch --verbose",
-		},
-		{
-			name:     "multiple lines",
-			input:    "[Desktop Entry]\nName=RetroArch\nExec=/nix/store/abc123/bin/retroarch %f\nIcon=retroarch",
-			binary:   "retroarch",
-			expected: "[Desktop Entry]\nName=RetroArch\nExec=/home/user/.local/state/kyaraben/bin/retroarch %f\nIcon=retroarch",
-		},
-		{
-			name:     "no exec line",
-			input:    "[Desktop Entry]\nName=Test\nIcon=test",
-			binary:   "test",
-			expected: "[Desktop Entry]\nName=Test\nIcon=test",
-		},
-		{
-			name:     "non-nix exec line unchanged",
-			input:    "Exec=/usr/bin/retroarch %f",
-			binary:   "retroarch",
-			expected: "Exec=/usr/bin/retroarch %f",
-		},
-		{
-			name:     "simple binary name",
-			input:    "Exec=retroarch",
-			binary:   "retroarch",
-			expected: "Exec=/home/user/.local/state/kyaraben/bin/retroarch",
-		},
-		{
-			name:     "simple binary name with args",
-			input:    "Exec=mgba %f",
-			binary:   "mgba",
-			expected: "Exec=/home/user/.local/state/kyaraben/bin/mgba %f",
-		},
-		{
-			name:     "simple binary in full desktop file",
-			input:    "[Desktop Entry]\nName=RetroArch\nExec=retroarch\nIcon=retroarch",
-			binary:   "retroarch",
-			expected: "[Desktop Entry]\nName=RetroArch\nExec=/home/user/.local/state/kyaraben/bin/retroarch\nIcon=retroarch",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := rewriteDesktopExecLines([]byte(tt.input), binDir, tt.binary)
-			if string(result) != tt.expected {
-				t.Errorf("got:\n%s\nexpected:\n%s", result, tt.expected)
-			}
-		})
 	}
 }
 

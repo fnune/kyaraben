@@ -225,6 +225,15 @@ func (d *Daemon) handleApply(_ map[string]interface{}, emit func(Event)) []Event
 		}}
 	}
 
+	versionOverrides, err := cfg.BuildVersionOverrides(d.reg.GetEmulator)
+	if err != nil {
+		return []Event{{
+			Type: EventError,
+			Data: map[string]string{"error": err.Error()},
+		}}
+	}
+	d.flakeGenerator.SetVersionOverrides(versionOverrides)
+
 	userStore, err := store.NewUserStore(cfg.Global.UserStore)
 	if err != nil {
 		return []Event{{
@@ -341,9 +350,7 @@ func (d *Daemon) handleGetSystems() []Event {
 
 			// Add version info if available
 			if vers != nil {
-				// Use the binary name as the key in versions.toml
-				emuName := string(emu.ID)
-				if spec, ok := vers.GetEmulator(emuName); ok {
+				if spec, ok := vers.GetEmulator(emu.Package.PackageName()); ok {
 					emuData["defaultVersion"] = spec.Default
 					availableVersions := spec.AvailableVersions()
 					sort.Strings(availableVersions)
@@ -703,3 +710,4 @@ func dirExists(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && info.IsDir()
 }
+

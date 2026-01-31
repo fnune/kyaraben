@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"text/template"
 )
@@ -14,27 +13,12 @@ import (
 //go:embed icons/*.svg
 var embeddedIcons embed.FS
 
-type DesktopEntry interface {
-	Binary() string
-	isDesktopEntry()
-}
-
-type NixStoreDesktop struct {
-	BinaryName string
-}
-
-func (n NixStoreDesktop) Binary() string  { return n.BinaryName }
-func (n NixStoreDesktop) isDesktopEntry() {}
-
 type GeneratedDesktop struct {
 	BinaryName    string
 	Name          string
 	GenericName   string
 	CategoriesStr string
 }
-
-func (g GeneratedDesktop) Binary() string  { return g.BinaryName }
-func (g GeneratedDesktop) isDesktopEntry() {}
 
 const desktopTemplate = `[Desktop Entry]
 Type=Application
@@ -64,7 +48,7 @@ type GeneratedFiles struct {
 	IconFiles    []string
 }
 
-func (m *Manager) GenerateDesktopFiles(entries []DesktopEntry, previousFiles *GeneratedFiles) (*GeneratedFiles, error) {
+func (m *Manager) GenerateDesktopFiles(entries []GeneratedDesktop, previousFiles *GeneratedFiles) (*GeneratedFiles, error) {
 	appsDir := m.ApplicationsDir()
 	iconsDir := m.IconsDir()
 
@@ -97,27 +81,17 @@ func (m *Manager) GenerateDesktopFiles(entries []DesktopEntry, previousFiles *Ge
 	result := &GeneratedFiles{}
 
 	for _, entry := range entries {
-		switch e := entry.(type) {
-		case NixStoreDesktop:
-			files, err := m.copyNixStoreDesktop(e.BinaryName)
-			if err != nil {
-				log.Debug("Failed to copy desktop file for %s: %v", e.BinaryName, err)
-			} else {
-				result.DesktopFiles = append(result.DesktopFiles, files...)
-			}
-		case GeneratedDesktop:
-			desktopPath, err := m.generateDesktopFile(tmpl, e)
-			if err != nil {
-				return nil, fmt.Errorf("generating desktop file for %s: %w", e.BinaryName, err)
-			}
-			result.DesktopFiles = append(result.DesktopFiles, desktopPath)
+		desktopPath, err := m.generateDesktopFile(tmpl, entry)
+		if err != nil {
+			return nil, fmt.Errorf("generating desktop file for %s: %w", entry.BinaryName, err)
+		}
+		result.DesktopFiles = append(result.DesktopFiles, desktopPath)
 
-			iconPath, err := m.writeEmbeddedIcon(e.BinaryName)
-			if err != nil {
-				log.Debug("No embedded icon for %s: %v", e.BinaryName, err)
-			} else {
-				result.IconFiles = append(result.IconFiles, iconPath)
-			}
+		iconPath, err := m.writeEmbeddedIcon(entry.BinaryName)
+		if err != nil {
+			log.Debug("No embedded icon for %s: %v", entry.BinaryName, err)
+		} else {
+			result.IconFiles = append(result.IconFiles, iconPath)
 		}
 	}
 
@@ -165,56 +139,6 @@ func (m *Manager) updateIconCache() {
 	}
 }
 
-func (m *Manager) copyNixStoreDesktop(binary string) ([]string, error) {
-	currentAppsDir := filepath.Join(m.CurrentLink(), "share", "applications")
-
-	entries, err := os.ReadDir(currentAppsDir)
-	if err != nil {
-		return nil, fmt.Errorf("reading nix store applications: %w", err)
-	}
-
-	var created []string
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-
-		name := entry.Name()
-		if filepath.Ext(name) != ".desktop" {
-			continue
-		}
-
-		srcPath := filepath.Join(currentAppsDir, name)
-		dstPath := filepath.Join(m.ApplicationsDir(), name)
-
-		virtualTarget, err := os.Readlink(srcPath)
-		if err != nil {
-			return created, fmt.Errorf("reading symlink %s: %w", srcPath, err)
-		}
-
-		realPath := m.virtualToRealStorePath(virtualTarget)
-
-		content, err := os.ReadFile(realPath)
-		if err != nil {
-			return created, fmt.Errorf("reading desktop file %s: %w", realPath, err)
-		}
-
-		content = rewriteDesktopExecLines(content, m.BinDir(), binary)
-
-		if err := os.WriteFile(dstPath, content, 0644); err != nil {
-			if os.IsExist(err) {
-				continue
-			}
-			return created, fmt.Errorf("writing desktop file %s: %w", dstPath, err)
-		}
-
-		created = append(created, dstPath)
-		log.Debug("Copied desktop file: %s (from %s)", dstPath, realPath)
-	}
-
-	return created, nil
-}
-
 func (m *Manager) virtualToRealStorePath(virtualPath string) string {
 	const nixStorePrefix = "/nix/store/"
 	if !strings.HasPrefix(virtualPath, nixStorePrefix) {
@@ -222,17 +146,6 @@ func (m *Manager) virtualToRealStorePath(virtualPath string) string {
 	}
 	hashAndName := strings.TrimPrefix(virtualPath, nixStorePrefix)
 	return filepath.Join(m.nixPortableLocation, ".nix-portable", "nix", "store", hashAndName)
-}
-
-var nixStoreExecRegex = regexp.MustCompile(`(?m)^Exec=/nix/store/[^/]+/bin/([^\s]+)(.*)$`)
-
-func rewriteDesktopExecLines(content []byte, binDir, binary string) []byte {
-	result := nixStoreExecRegex.ReplaceAll(content, []byte("Exec="+binDir+"/"+binary+"$2"))
-
-	simpleBinaryRegex := regexp.MustCompile(`(?m)^Exec=` + regexp.QuoteMeta(binary) + `($|\s.*)$`)
-	result = simpleBinaryRegex.ReplaceAll(result, []byte("Exec="+binDir+"/"+binary+"$1"))
-
-	return result
 }
 
 type desktopTemplateData struct {
