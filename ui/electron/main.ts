@@ -387,20 +387,20 @@ Categories=Game;Emulator;
     return event.data
   })
 
-  ipcMain.handle('open_path', async (_, pathToOpen: string) => {
+  ipcMain.handle('open_path', (_, pathToOpen: string) => {
     const expandedPath = pathToOpen.startsWith('~')
       ? pathToOpen.replace('~', app.getPath('home'))
       : pathToOpen
+    shell.openPath(expandedPath)
+    return ''
+  })
 
-    // shell.openPath can hang indefinitely if xdg-open can't find a handler
-    const timeoutMs = 5000
-    const openPromise = shell.openPath(expandedPath)
-    const timeoutPromise = new Promise<string>((resolve) =>
-      setTimeout(() => resolve('Timed out opening folder'), timeoutMs),
-    )
-
-    const result = await Promise.race([openPromise, timeoutPromise])
-    return result || ''
+  ipcMain.handle('path_exists', async (_, pathToCheck: string) => {
+    const fs = require('node:fs')
+    const expandedPath = pathToCheck.startsWith('~')
+      ? pathToCheck.replace('~', app.getPath('home'))
+      : pathToCheck
+    return fs.existsSync(expandedPath)
   })
 }
 

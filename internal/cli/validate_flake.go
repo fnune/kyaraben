@@ -40,9 +40,13 @@ func (cmd *ValidateFlakeCmd) Run(ctx *Context) error {
 	}
 
 	fmt.Printf("Generating flake for %d emulators...\n", len(emulatorIDs))
-	genPath, err := flakeGenerator.Generate(tmpDir, emulatorIDs)
+	genResult, err := flakeGenerator.Generate(tmpDir, emulatorIDs)
 	if err != nil {
 		return fmt.Errorf("generating flake: %w", err)
+	}
+
+	for _, skipped := range genResult.SkippedEmulators {
+		fmt.Printf("Warning: emulator '%s' was skipped (unknown)\n", skipped)
 	}
 
 	fmt.Println("Evaluating flake (this checks syntax and attribute existence)...")
@@ -50,7 +54,7 @@ func (cmd *ValidateFlakeCmd) Run(ctx *Context) error {
 	evalCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	if err := nixClient.FlakeCheck(evalCtx, string(genPath)); err != nil {
+	if err := nixClient.FlakeCheck(evalCtx, string(genResult.Path)); err != nil {
 		return fmt.Errorf("flake validation failed: %w", err)
 	}
 

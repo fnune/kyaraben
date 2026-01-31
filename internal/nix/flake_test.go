@@ -21,12 +21,16 @@ func TestFlakeGeneratorGenerateAllEmulators(t *testing.T) {
 		emulatorIDs[i] = emu.ID
 	}
 
-	genPath, err := fg.Generate(tmpDir, emulatorIDs)
+	result, err := fg.Generate(tmpDir, emulatorIDs)
 	if err != nil {
 		t.Fatalf("Generate failed for all emulators: %v", err)
 	}
 
-	flakePath := filepath.Join(string(genPath), "flake.nix")
+	if len(result.SkippedEmulators) > 0 {
+		t.Errorf("Expected no skipped emulators, got: %v", result.SkippedEmulators)
+	}
+
+	flakePath := filepath.Join(string(result.Path), "flake.nix")
 	if _, err := os.Stat(flakePath); os.IsNotExist(err) {
 		t.Fatal("flake.nix was not created")
 	}
@@ -54,12 +58,12 @@ func TestFlakeGeneratorGenerateSingleEmulator(t *testing.T) {
 		t.Run(string(emu.ID), func(t *testing.T) {
 			tmpDir := t.TempDir()
 
-			genPath, err := fg.Generate(tmpDir, []model.EmulatorID{emu.ID})
+			result, err := fg.Generate(tmpDir, []model.EmulatorID{emu.ID})
 			if err != nil {
 				t.Fatalf("Generate failed for %s: %v", emu.ID, err)
 			}
 
-			content, err := os.ReadFile(filepath.Join(string(genPath), "flake.nix"))
+			content, err := os.ReadFile(filepath.Join(string(result.Path), "flake.nix"))
 			if err != nil {
 				t.Fatalf("failed to read flake.nix: %v", err)
 			}
@@ -76,13 +80,48 @@ func TestFlakeGeneratorGenerateUnknownEmulator(t *testing.T) {
 	reg := registry.NewDefault()
 	fg := NewFlakeGenerator(reg)
 
-	_, err := fg.Generate(tmpDir, []model.EmulatorID{"unknown-emulator"})
-	if err == nil {
-		t.Fatal("expected error for unknown emulator")
+	result, err := fg.Generate(tmpDir, []model.EmulatorID{"unknown-emulator"})
+	if err != nil {
+		t.Fatalf("Generate should not fail for unknown emulator: %v", err)
 	}
 
-	if !strings.Contains(err.Error(), "unknown emulator") {
-		t.Errorf("error should mention unknown emulator, got: %v", err)
+	if len(result.SkippedEmulators) != 1 {
+		t.Fatalf("expected 1 skipped emulator, got %d", len(result.SkippedEmulators))
+	}
+
+	if result.SkippedEmulators[0] != "unknown-emulator" {
+		t.Errorf("expected skipped emulator 'unknown-emulator', got %s", result.SkippedEmulators[0])
+	}
+}
+
+func TestFlakeGeneratorGenerateMixedEmulators(t *testing.T) {
+	tmpDir := t.TempDir()
+	reg := registry.NewDefault()
+	fg := NewFlakeGenerator(reg)
+
+	result, err := fg.Generate(tmpDir, []model.EmulatorID{model.EmulatorIDMGBA, "unknown-emulator", model.EmulatorIDDolphin})
+	if err != nil {
+		t.Fatalf("Generate should not fail: %v", err)
+	}
+
+	if len(result.SkippedEmulators) != 1 {
+		t.Fatalf("expected 1 skipped emulator, got %d", len(result.SkippedEmulators))
+	}
+
+	if result.SkippedEmulators[0] != "unknown-emulator" {
+		t.Errorf("expected skipped emulator 'unknown-emulator', got %s", result.SkippedEmulators[0])
+	}
+
+	content, err := os.ReadFile(filepath.Join(string(result.Path), "flake.nix"))
+	if err != nil {
+		t.Fatalf("failed to read flake.nix: %v", err)
+	}
+
+	if !strings.Contains(string(content), "mgba") {
+		t.Error("flake.nix should contain mgba package")
+	}
+	if !strings.Contains(string(content), "dolphin") {
+		t.Error("flake.nix should contain dolphin package")
 	}
 }
 
@@ -122,16 +161,16 @@ func TestFlakeGeneratorCreatesDirectory(t *testing.T) {
 	reg := registry.NewDefault()
 	fg := NewFlakeGenerator(reg)
 
-	genPath, err := fg.Generate(nestedDir, []model.EmulatorID{model.EmulatorIDMGBA})
+	result, err := fg.Generate(nestedDir, []model.EmulatorID{model.EmulatorIDMGBA})
 	if err != nil {
 		t.Fatalf("Generate failed: %v", err)
 	}
 
-	if _, err := os.Stat(string(genPath)); os.IsNotExist(err) {
+	if _, err := os.Stat(string(result.Path)); os.IsNotExist(err) {
 		t.Error("generation directory should have been created")
 	}
 
-	if !strings.Contains(string(genPath), "generations") {
+	if !strings.Contains(string(result.Path), "generations") {
 		t.Error("generation path should contain 'generations' directory")
 	}
 }

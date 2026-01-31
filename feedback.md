@@ -1,31 +1,8 @@
 # Feedback
 
-## Open emulation directory button does not work if the directory does not exist
-
-The OS throws an error and then the app handler times out after 5s. We should probably only enable that button if the directory already exists.
-
----
-
 ## DuckStation onboarding wizard
 
 DuckStation runs an onboarding wizard on first launch that wants to create a config file and set up autoupdates. This is not good for kyaraben's managed experience. We need a better default config that prevents this wizard from appearing.
-
----
-
-## Removing emulator support breaks existing configs
-
-If we remove support for an emulator (e.g., TIC-80) but the user's config still references it, the apply fails hard:
-
-```
-generating flake: unknown emulator: tic80
-```
-
-Instead, we should:
-1. Skip unknown emulators during flake generation (don't fail)
-2. Show a warning in the UI: "Emulator 'tic80' is no longer supported and will be removed from your config"
-3. Optionally auto-clean the config to remove stale entries
-
-This makes upgrades smoother when we deprecate emulators.
 
 ---
 
@@ -61,16 +38,6 @@ Questions to consider:
 - Are we keeping these lock files around? It seems like we're just throwing them away.
 - The warning is a bit ugly for users who don't care about nix internals.
 - Should we reconsider the generations system for flake versions?
-
----
-
-## UI feels frozen during nix flake lock creation
-
-In both the UI and CLI, there's a gap between when "Installing emulators" appears and when nix actually starts producing output (the `warning: creating lock file` message). During this time the interface appears frozen with no indication that work is happening.
-
-The delay occurs because nix is evaluating the flake and creating/updating the lock file before it starts downloading or building anything. This can take several seconds on first run.
-
-We should emit a log message before this phase starts, something like "Resolving package versions..." or "Preparing nix environment...". This would thread through naturally to the UI via the existing log streaming.
 
 ---
 

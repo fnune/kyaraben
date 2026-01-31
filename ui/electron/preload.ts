@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('electron', {
       'sync_remove_device',
       'uninstall_preview',
       'open_path',
+      'path_exists',
     ]
 
     if (validChannels.includes(channel)) {
