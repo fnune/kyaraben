@@ -125,23 +125,26 @@ arch = "aarch64"
 sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
 
 [retroarch] # https://buildbot.libretro.com/stable/
-# RetroArch frontend only - cores fetched via nix-portable
-# Note: Distributed as 7z archive, not AppImage - requires extraction
+# Archive contains AppImage + bundled cores - use both for compatibility
 version = "1.19.1"
 url_template = "https://buildbot.libretro.com/stable/{version}/linux/{target}/RetroArch.7z"
+binary_path = "RetroArch-Linux-x86_64.AppImage"
 
 [retroarch.targets.x86_64]
 arch = "x86_64"
 sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+binary_path = "RetroArch-Linux-x86_64.AppImage"
 
 [retroarch.targets.aarch64]
 arch = "aarch64"
 sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+binary_path = "RetroArch-Linux-aarch64.AppImage"
 
 [tic80] # https://github.com/nesbox/TIC-80/releases
-# Note: Distributed as tarball, not AppImage - requires extraction
+# Tarball contains bin/tic80 executable
 version = "1.1.2837"
 url_template = "https://github.com/nesbox/TIC-80/releases/download/v{version}/tic80-{version}-linux.tar.gz"
+binary_path = "bin/tic80"
 
 [tic80.targets.x64]
 arch = "x86_64"

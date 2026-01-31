@@ -6,6 +6,7 @@ type SystemID string
 const (
 	SystemSNES    SystemID = "snes"
 	SystemPSX     SystemID = "psx"
+	SystemPS2     SystemID = "ps2"
 	SystemTIC80   SystemID = "tic80"
 	SystemGBA     SystemID = "gba"
 	SystemNDS     SystemID = "nds"

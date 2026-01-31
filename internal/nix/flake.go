@@ -242,12 +242,26 @@ func packageInfoFromVersionedAppImage(p model.VersionedAppImage) (PackageInfo, e
 
 	x86Build := appimage.Target(x86Target)
 	armBuild := appimage.Target(armTarget)
-	if x86Build == nil || armBuild == nil {
-		return PackageInfo{}, fmt.Errorf("missing target builds for %s (x86: %s, arm: %s)", p.Name, x86Target, armTarget)
+
+	// Handle single-arch packages (e.g., PCSX2 only has x86_64)
+	if x86Build == nil && armBuild == nil {
+		return PackageInfo{}, fmt.Errorf("no target builds for %s", p.Name)
 	}
 
-	expr := fmt.Sprintf(`let
-          assets = {
+	archiveType := appimage.ArchiveType(x86Target)
+	if archiveType != "" {
+		return packageInfoForArchive(p.Name, appimage, x86Target, armTarget, x86Build, armBuild, archiveType)
+	}
+
+	return packageInfoForDirectBinary(p.Name, appimage, x86Target, armTarget, x86Build, armBuild)
+}
+
+// packageInfoForDirectBinary generates nix expression for direct binary downloads (AppImage, etc)
+func packageInfoForDirectBinary(name string, appimage *versions.AppImageVersion, x86Target, armTarget string, x86Build, armBuild *versions.TargetBuild) (PackageInfo, error) {
+	// Build assets map, handling single-arch packages
+	var assetsExpr string
+	if x86Build != nil && armBuild != nil {
+		assetsExpr = fmt.Sprintf(`{
             x86_64 = {
               url = "%s";
               sha256 = "%s";
@@ -256,7 +270,26 @@ func packageInfoFromVersionedAppImage(p model.VersionedAppImage) (PackageInfo, e
               url = "%s";
               sha256 = "%s";
             };
-          };
+          }`, appimage.URL(x86Target), x86Build.SHA256,
+			appimage.URL(armTarget), armBuild.SHA256)
+	} else if x86Build != nil {
+		assetsExpr = fmt.Sprintf(`{
+            x86_64 = {
+              url = "%s";
+              sha256 = "%s";
+            };
+          }`, appimage.URL(x86Target), x86Build.SHA256)
+	} else {
+		assetsExpr = fmt.Sprintf(`{
+            aarch64 = {
+              url = "%s";
+              sha256 = "%s";
+            };
+          }`, appimage.URL(armTarget), armBuild.SHA256)
+	}
+
+	expr := fmt.Sprintf(`let
+          assets = %s;
           src = pkgs.fetchurl {
             url = assets.${arch}.url;
             sha256 = assets.${arch}.sha256;
@@ -265,13 +298,97 @@ func packageInfoFromVersionedAppImage(p model.VersionedAppImage) (PackageInfo, e
           mkdir -p $out/bin
           install -m755 ${src} $out/bin/%s
         ''`,
-		appimage.URL(x86Target), x86Build.SHA256,
-		appimage.URL(armTarget), armBuild.SHA256,
-		p.Name, appimage.Version, p.Name,
+		assetsExpr,
+		name, appimage.Version, name,
 	)
 
 	return PackageInfo{
-		Name: p.Name,
+		Name: name,
+		Expr: expr,
+	}, nil
+}
+
+// packageInfoForArchive generates nix expression for archives that need extraction
+func packageInfoForArchive(name string, appimage *versions.AppImageVersion, x86Target, armTarget string, x86Build, armBuild *versions.TargetBuild, archiveType string) (PackageInfo, error) {
+	x86BinaryPath := appimage.BinaryPathForTarget(x86Target)
+	armBinaryPath := appimage.BinaryPathForTarget(armTarget)
+
+	if x86BinaryPath == "" {
+		return PackageInfo{}, fmt.Errorf("binary_path required for archive package %s", name)
+	}
+
+	// Determine extraction command based on archive type
+	var extractCmd string
+	switch archiveType {
+	case "7z":
+		extractCmd = "${pkgs.p7zip}/bin/7z x -o$TMPDIR/extracted $src"
+	case "tar.gz", "tgz":
+		extractCmd = "${pkgs.gnutar}/bin/tar -xzf $src -C $TMPDIR/extracted"
+	case "tar.xz":
+		extractCmd = "${pkgs.gnutar}/bin/tar -xJf $src -C $TMPDIR/extracted"
+	case "zip":
+		extractCmd = "${pkgs.unzip}/bin/unzip -q $src -d $TMPDIR/extracted"
+	default:
+		return PackageInfo{}, fmt.Errorf("unsupported archive type: %s", archiveType)
+	}
+
+	// Build assets map with binary paths
+	var assetsExpr string
+	if x86Build != nil && armBuild != nil {
+		if armBinaryPath == "" {
+			armBinaryPath = x86BinaryPath
+		}
+		assetsExpr = fmt.Sprintf(`{
+            x86_64 = {
+              url = "%s";
+              sha256 = "%s";
+              binaryPath = "%s";
+            };
+            aarch64 = {
+              url = "%s";
+              sha256 = "%s";
+              binaryPath = "%s";
+            };
+          }`, appimage.URL(x86Target), x86Build.SHA256, x86BinaryPath,
+			appimage.URL(armTarget), armBuild.SHA256, armBinaryPath)
+	} else if x86Build != nil {
+		assetsExpr = fmt.Sprintf(`{
+            x86_64 = {
+              url = "%s";
+              sha256 = "%s";
+              binaryPath = "%s";
+            };
+          }`, appimage.URL(x86Target), x86Build.SHA256, x86BinaryPath)
+	} else {
+		assetsExpr = fmt.Sprintf(`{
+            aarch64 = {
+              url = "%s";
+              sha256 = "%s";
+              binaryPath = "%s";
+            };
+          }`, appimage.URL(armTarget), armBuild.SHA256, armBinaryPath)
+	}
+
+	expr := fmt.Sprintf(`let
+          assets = %s;
+          src = pkgs.fetchurl {
+            url = assets.${arch}.url;
+            sha256 = assets.${arch}.sha256;
+          };
+        in pkgs.runCommand "%s-%s" {} ''
+          mkdir -p $TMPDIR/extracted
+          %s
+          mkdir -p $out/bin
+          install -m755 $TMPDIR/extracted/${assets.${arch}.binaryPath} $out/bin/%s
+        ''`,
+		assetsExpr,
+		name, appimage.Version,
+		extractCmd,
+		name,
+	)
+
+	return PackageInfo{
+		Name: name,
 		Expr: expr,
 	}, nil
 }
