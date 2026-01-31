@@ -29,7 +29,7 @@ func TestGenerateDesktopFiles(t *testing.T) {
 		t.Fatalf("creating current symlink: %v", err)
 	}
 
-	storeIconsDir := filepath.Join(profileDir, "share", "icons")
+	storeIconsDir := filepath.Join(currentDir, "share", "icons")
 	if err := os.MkdirAll(storeIconsDir, 0755); err != nil {
 		t.Fatalf("creating store icons dir: %v", err)
 	}
