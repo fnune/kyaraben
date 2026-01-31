@@ -19,8 +19,9 @@ const (
 type PackageSource string
 
 const (
-	PackageSourceNixpkgs PackageSource = "nixpkgs"
-	PackageSourceGitHub  PackageSource = "github"
+	PackageSourceNixpkgs   PackageSource = "nixpkgs"
+	PackageSourceGitHub    PackageSource = "github"
+	PackageSourceVersioned PackageSource = "versioned"
 )
 
 type Emulator struct {

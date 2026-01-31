@@ -14,7 +14,7 @@ func (Definition) Emulator() model.Emulator {
 		Systems: []model.SystemID{model.SystemPSP},
 		Package: model.NixpkgsOverlayRef(
 			"retroarch-ppsspp",
-			`pkgs.retroarch.override { cores = with pkgs.libretro; [ ppsspp ]; }`,
+			`pkgs.wrapRetroArch { cores = with pkgs.libretro; [ ppsspp ]; }`,
 		),
 		// PPSSPP is an HLE emulator - no BIOS required.
 		// See: https://docs.libretro.com/library/ppsspp/

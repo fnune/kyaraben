@@ -1,0 +1,42 @@
+# Kyaraben sandbox container for manual functional testing
+# Runs the full Electron app with X11 forwarding
+#
+# Build: podman build -t kyaraben-sandbox -f Containerfile.sandbox .
+# Run:   just sandbox
+
+FROM docker.io/library/debian:bookworm
+
+# Install dependencies for Electron/AppImage
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    libgtk-3-0 \
+    libnotify4 \
+    libnss3 \
+    libxss1 \
+    libxtst6 \
+    xdg-utils \
+    libatspi2.0-0 \
+    libdrm2 \
+    libgbm1 \
+    libasound2 \
+    libx11-xcb1 \
+    libxcb-dri3-0 \
+    libxshmfence1 \
+    dbus \
+    dbus-x11 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create user matching host UID for X11 permissions
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+RUN groupadd -g ${GROUP_ID} sandbox && \
+    useradd -m -u ${USER_ID} -g ${GROUP_ID} -s /bin/bash sandbox
+
+USER sandbox
+WORKDIR /home/sandbox
+
+# Extracted AppImage is mounted at /app at runtime
+# Create directory for persistent state (Emulation is mounted from host)
+RUN mkdir -p /home/sandbox/.local/share/kyaraben
+
+CMD ["/bin/bash", "-c", "test -f ~/kyaraben || echo -e '#!/bin/bash\\ndbus-launch /app/kyaraben-ui --no-sandbox --ozone-platform=wayland --disable-gpu \"$@\"' > ~/kyaraben && chmod +x ~/kyaraben; ~/kyaraben &>/tmp/kyaraben.log & echo 'App started (logs: /tmp/kyaraben.log). Run ~/kyaraben to restart.' && exec bash"]

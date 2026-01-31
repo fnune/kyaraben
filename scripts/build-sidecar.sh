@@ -48,7 +48,7 @@ echo "Building kyaraben sidecar for $TARGET_TRIPLE..."
 
 mkdir -p "$BINARIES_DIR"
 cd "$PROJECT_ROOT"
-go build -o "$BINARIES_DIR/$OUTPUT_NAME" ./cmd/kyaraben
+CGO_ENABLED=0 go build -o "$BINARIES_DIR/$OUTPUT_NAME" ./cmd/kyaraben
 
 echo "Built: $BINARIES_DIR/$OUTPUT_NAME"
 
