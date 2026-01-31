@@ -18,7 +18,7 @@ func (Definition) Emulator() model.Emulator {
 			model.StateScreenshots,
 		},
 		Launcher: model.LauncherInfo{
-			Binary:      "dolphin-emu",
+			Binary:      "dolphin",
 			GenericName: "GameCube/Wii Emulator",
 			Categories:  []string{"Game", "Emulator"},
 		},
