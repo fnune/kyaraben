@@ -8,7 +8,7 @@ Breakdown of work to build the MVP.
 - UI: TypeScript
 - Protocol: JSON over stdin/stdout, strictly typed (schema TBD)
 - Nix integration: generate flake, shell out to `nix` / `nix-portable`
-- Testing: unit tests, integration tests, E2E with open-licensed emulator (TIC-80 or similar)
+- Testing: unit tests, integration tests, E2E with lightweight test emulator
 
 ## Project structure
 
@@ -81,7 +81,6 @@ kyaraben/
 │
 ├── test/
 │   ├── fixtures/                # Test ROMs, configs
-│   │   └── tic80/               # TIC-80 carts for E2E
 │   ├── e2e/                     # E2E tests
 │   │   └── e2e_test.go
 │   └── integration/             # Integration tests
@@ -277,7 +276,6 @@ Note: each `Emulator` ID represents a stable config/state contract. Breaking emu
 
 #### E2E test harness
 
-- [ ] Research open-licensed emulators for testing (TIC-80, others?)
 - [ ] Package test emulator in Nix
 - [ ] Create test fixture format (config + expected outcomes)
 - [ ] Harness: spin up isolated `UserStore` and `KyarabenState`

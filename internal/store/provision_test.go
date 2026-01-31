@@ -71,20 +71,19 @@ func TestProvisionCheckerWithFile(t *testing.T) {
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
 	}
-	if err := store.InitializeSystem(model.SystemTIC80); err != nil {
-		t.Fatalf("Failed to initialize TIC80 system: %v", err)
+	if err := store.InitializeSystem(model.SystemE2ETest); err != nil {
+		t.Fatalf("Failed to initialize E2E Test system: %v", err)
 	}
 
 	checker := NewProvisionChecker(store)
 
-	// Emulator with no provisions (like TIC-80)
 	emu := model.Emulator{
-		ID:         model.EmulatorTIC80,
-		Systems:    []model.SystemID{model.SystemTIC80},
+		ID:         model.EmulatorE2ETest,
+		Systems:    []model.SystemID{model.SystemE2ETest},
 		Provisions: []model.Provision{},
 	}
 
-	results := checker.Check(emu, model.SystemTIC80)
+	results := checker.Check(emu, model.SystemE2ETest)
 	if len(results) != 0 {
 		t.Errorf("Expected 0 results for emulator with no provisions, got %d", len(results))
 	}

@@ -10,7 +10,7 @@ import (
 // InitCmd initializes a new kyaraben configuration.
 type InitCmd struct {
 	UserStore string   `short:"u" help:"Path to emulation directory." default:"~/Emulation"`
-	Systems   []string `short:"s" help:"Systems to enable (e.g., snes, psx, tic80)."`
+	Systems   []string `short:"s" help:"Systems to enable (e.g., snes, psx, gba)."`
 	Force     bool     `short:"f" help:"Overwrite existing configuration."`
 }
 
@@ -60,7 +60,7 @@ func (cmd *InitCmd) Run(ctx *Context) error {
 
 	if len(cfg.Systems) == 0 {
 		fmt.Println("No systems enabled. Use 'kyaraben init -s <system>' to enable systems.")
-		fmt.Println("Available systems: snes, psx, gba, nds, psp, switch, tic80")
+		fmt.Println("Available systems: snes, psx, gba, nds, psp, switch, e2e-test")
 	} else {
 		fmt.Println("Enabled systems:")
 		for sys, sysConf := range cfg.Systems {

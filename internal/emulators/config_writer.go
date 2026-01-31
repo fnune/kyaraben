@@ -12,6 +12,9 @@ import (
 	"time"
 
 	"github.com/fnune/kyaraben/internal/model"
+	"gopkg.in/yaml.v3"
+
+	"github.com/beevik/etree"
 )
 
 type ConfigWriter struct{}
@@ -88,6 +91,10 @@ func (w *ConfigWriter) ApplyWithOptions(patch model.ConfigPatch, opts ApplyOptio
 		result, err = w.applyCFG(path, patch.Entries)
 	case model.ConfigFormatINI:
 		result, err = w.applyINI(path, patch.Entries)
+	case model.ConfigFormatYAML:
+		result, err = w.applyYAML(path, patch.Entries)
+	case model.ConfigFormatXML:
+		result, err = w.applyXML(path, patch.Entries)
 	default:
 		return ApplyResult{}, fmt.Errorf("unsupported config format: %s", patch.Target.Format)
 	}
@@ -253,4 +260,128 @@ func (w *ConfigWriter) applyINI(path string, entries []model.ConfigEntry) (Apply
 	}
 
 	return ApplyResult{Path: path, BaselineHash: hash}, nil
+}
+
+func (w *ConfigWriter) applyYAML(path string, entries []model.ConfigEntry) (ApplyResult, error) {
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return ApplyResult{}, fmt.Errorf("creating config directory: %w", err)
+	}
+
+	existing := make(map[string]interface{})
+	if data, err := os.ReadFile(path); err == nil {
+		if err := yaml.Unmarshal(data, &existing); err != nil {
+			return ApplyResult{}, fmt.Errorf("parsing existing YAML: %w", err)
+		}
+	}
+
+	for _, entry := range entries {
+		setNestedValue(existing, entry.Path, entry.Value)
+	}
+
+	f, err := os.Create(path)
+	if err != nil {
+		return ApplyResult{}, fmt.Errorf("creating config file: %w", err)
+	}
+	defer func() { _ = f.Close() }()
+
+	_, _ = fmt.Fprintln(f, "# Configuration managed by kyaraben")
+	_, _ = fmt.Fprintln(f, "# Manual changes will be preserved on next apply")
+	_, _ = fmt.Fprintln(f)
+
+	encoder := yaml.NewEncoder(f)
+	encoder.SetIndent(2)
+	if err := encoder.Encode(existing); err != nil {
+		return ApplyResult{}, fmt.Errorf("encoding YAML: %w", err)
+	}
+	_ = encoder.Close()
+
+	hash, err := hashFile(path)
+	if err != nil {
+		return ApplyResult{}, fmt.Errorf("hashing config file: %w", err)
+	}
+
+	return ApplyResult{Path: path, BaselineHash: hash}, nil
+}
+
+func setNestedValue(m map[string]interface{}, path []string, value string) {
+	if len(path) == 0 {
+		return
+	}
+
+	if len(path) == 1 {
+		m[path[0]] = value
+		return
+	}
+
+	key := path[0]
+	if m[key] == nil {
+		m[key] = make(map[string]interface{})
+	}
+
+	if nested, ok := m[key].(map[string]interface{}); ok {
+		setNestedValue(nested, path[1:], value)
+	} else {
+		nested := make(map[string]interface{})
+		m[key] = nested
+		setNestedValue(nested, path[1:], value)
+	}
+}
+
+func (w *ConfigWriter) applyXML(path string, entries []model.ConfigEntry) (ApplyResult, error) {
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return ApplyResult{}, fmt.Errorf("creating config directory: %w", err)
+	}
+
+	doc := etree.NewDocument()
+	if data, err := os.ReadFile(path); err == nil {
+		if err := doc.ReadFromBytes(data); err != nil {
+			doc = etree.NewDocument()
+		}
+	}
+
+	for _, entry := range entries {
+		setXMLValue(doc, entry.Path, entry.Value)
+	}
+
+	doc.Indent(2)
+	if err := doc.WriteToFile(path); err != nil {
+		return ApplyResult{}, fmt.Errorf("writing XML file: %w", err)
+	}
+
+	hash, err := hashFile(path)
+	if err != nil {
+		return ApplyResult{}, fmt.Errorf("hashing config file: %w", err)
+	}
+
+	return ApplyResult{Path: path, BaselineHash: hash}, nil
+}
+
+func setXMLValue(doc *etree.Document, path []string, value string) {
+	if len(path) == 0 {
+		return
+	}
+
+	root := doc.Root()
+	if root == nil {
+		root = doc.CreateElement(path[0])
+		path = path[1:]
+	} else if root.Tag != path[0] {
+		root = doc.CreateElement(path[0])
+		path = path[1:]
+	} else {
+		path = path[1:]
+	}
+
+	elem := root
+	for i, key := range path {
+		isLast := i == len(path)-1
+		child := elem.SelectElement(key)
+		if child == nil {
+			child = elem.CreateElement(key)
+		}
+		if isLast {
+			child.SetText(value)
+		}
+		elem = child
+	}
 }

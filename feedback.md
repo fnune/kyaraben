@@ -404,3 +404,55 @@ This is a fundamental limitation of running GUI applications through nix-portabl
 3. Investigate nix-portable configuration for exposing host graphics
 4. Consider proot or other sandboxing approaches that allow GPU access
 5. Hybrid approach: download RetroArch AppImage directly but still fetch cores via nix (cores are just shared libraries, don't need GPU access)
+
+---
+
+## Type generator is fragile and incomplete
+
+The `scripts/generate-types` tool only generates command/event types from Go to TypeScript. Adding a new system or emulator currently requires manual updates in many places:
+
+- `internal/model/system.go` and `internal/model/emulator.go` (Go constants)
+- `ui/src/types/daemon.ts` (SystemID and EmulatorID union types)
+- `ui/src/types/ui.ts` (SYSTEM_MANUFACTURERS mapping)
+- `ui/src/components/SystemIcon/SystemIcon.tsx` (SYSTEM_LABELS mapping)
+
+All of these are stringly-typed and easy to get out of sync. The registry already contains most of this information (system definitions know their names, emulators know which systems they support), but it's not being leveraged.
+
+Ideally, the Go registry would be the single source of truth, and we'd generate:
+- TypeScript types for SystemID and EmulatorID
+- Manufacturer mappings (could be added to system definitions)
+- Icon/label mappings (could be added to system definitions)
+- Any other UI metadata
+
+This would make adding new systems/emulators a single-file change instead of a multi-file hunt.
+
+Note: CONTRIBUTING.md documents the Go-side steps for adding emulators but is missing all the UI-side updates, making it an incomplete guide.
+
+---
+
+## Removing emulator support breaks existing configs
+
+If we remove support for an emulator (e.g., TIC-80) but the user's config still references it, the apply fails hard:
+
+```
+generating flake: unknown emulator: tic80
+```
+
+Instead, we should:
+1. Skip unknown emulators during flake generation (don't fail)
+2. Show a warning in the UI: "Emulator 'tic80' is no longer supported and will be removed from your config"
+3. Optionally auto-clean the config to remove stale entries
+
+This makes upgrades smoother when we deprecate emulators.
+
+## Version tracking for emulators
+
+It would be useful to have a programmatic, non-LLM way to check if any emulator supported by kyaraben has new versions available that we're not offering. This would:
+
+1. Automatically query GitHub releases (or other sources) for each emulator
+2. Compare against versions.toml to identify:
+   - New versions available that we don't have
+   - Old versions we're tracking that could be removed
+3. Provide a quick way to bump versions and remove old versions
+
+This should be a development script (e.g., `scripts/check-versions.go` or a make target) or a CI job that runs periodically and creates PRs when updates are available.

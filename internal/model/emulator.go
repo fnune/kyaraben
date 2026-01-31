@@ -20,7 +20,6 @@ const (
 	EmulatorCemu           EmulatorID = "cemu"
 	EmulatorAzahar         EmulatorID = "azahar"
 	EmulatorDolphin        EmulatorID = "dolphin"
-	EmulatorTIC80          EmulatorID = "tic80"
 	EmulatorEden           EmulatorID = "eden"
 	EmulatorE2ETest        EmulatorID = "e2e-test"
 )

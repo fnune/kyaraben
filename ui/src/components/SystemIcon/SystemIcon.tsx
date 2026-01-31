@@ -11,10 +11,17 @@ const SYSTEM_LABELS: Readonly<Record<SystemID, string>> = {
   snes: 'SNES',
   gba: 'GBA',
   nds: 'NDS',
+  '3ds': '3DS',
+  gamecube: 'GC',
+  wii: 'Wii',
+  wiiu: 'WiiU',
   switch: 'NSW',
   psx: 'PSX',
+  ps2: 'PS2',
+  ps3: 'PS3',
   psp: 'PSP',
-  tic80: 'TIC',
+  psvita: 'Vita',
+  dreamcast: 'DC',
   'e2e-test': 'TST',
 }
 

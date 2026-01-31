@@ -115,7 +115,7 @@ func TestUserStoreSystemPaths(t *testing.T) {
 	}{
 		{"SystemRomsDir", model.SystemSNES, store.SystemRomsDir, "/home/user/Emulation/roms/snes"},
 		{"SystemBiosDir", model.SystemPSX, store.SystemBiosDir, "/home/user/Emulation/bios/psx"},
-		{"SystemSavesDir", model.SystemTIC80, store.SystemSavesDir, "/home/user/Emulation/saves/tic80"},
+		{"SystemSavesDir", model.SystemGBA, store.SystemSavesDir, "/home/user/Emulation/saves/gba"},
 		{"SystemScreenshotsDir", model.SystemPSX, store.SystemScreenshotsDir, "/home/user/Emulation/screenshots/psx"},
 	}
 

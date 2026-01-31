@@ -54,11 +54,16 @@ func TestDefaultTargetForArch(t *testing.T) {
 		t.Errorf("DefaultTargetForArch(x86_64) = %s, which is not a valid x86_64 target", x86Target)
 	}
 
-	armTarget := entry.DefaultTargetForArch("aarch64")
-	if armTarget == "" {
-		t.Error("DefaultTargetForArch(aarch64) returned empty string")
+	// Test aarch64 with v0.1.0 which has that target
+	entry010 := spec.GetVersion("v0.1.0")
+	if entry010 == nil {
+		t.Fatal("eden v0.1.0 not found")
 	}
-	if target := entry.Target(armTarget); target == nil || target.Arch != "aarch64" {
+	armTarget := entry010.DefaultTargetForArch("aarch64")
+	if armTarget == "" {
+		t.Error("DefaultTargetForArch(aarch64) returned empty string for v0.1.0")
+	}
+	if target := entry010.Target(armTarget); target == nil || target.Arch != "aarch64" {
 		t.Errorf("DefaultTargetForArch(aarch64) = %s, which is not a valid aarch64 target", armTarget)
 	}
 }
@@ -69,19 +74,21 @@ func TestTargetsForArch(t *testing.T) {
 	if !ok {
 		t.Fatal("eden emulator not found")
 	}
-	entry := spec.GetDefault()
+
+	// Test with v0.1.0 which has multiple targets
+	entry := spec.GetVersion("v0.1.0")
 	if entry == nil {
-		t.Fatal("eden default version not found")
+		t.Fatal("eden v0.1.0 not found")
 	}
 
 	x86Targets := entry.TargetsForArch("x86_64")
 	if len(x86Targets) != 4 {
-		t.Errorf("expected 4 x86_64 targets, got %d: %v", len(x86Targets), x86Targets)
+		t.Errorf("expected 4 x86_64 targets for v0.1.0, got %d: %v", len(x86Targets), x86Targets)
 	}
 
 	armTargets := entry.TargetsForArch("aarch64")
 	if len(armTargets) != 1 {
-		t.Errorf("expected 1 aarch64 target, got %d: %v", len(armTargets), armTargets)
+		t.Errorf("expected 1 aarch64 target for v0.1.0, got %d: %v", len(armTargets), armTargets)
 	}
 }
 
@@ -97,7 +104,7 @@ func TestArchiveType(t *testing.T) {
 		{"eden is direct AppImage", "eden", "amd64", ""},
 		{"duckstation is direct AppImage", "duckstation", "x64", ""},
 		{"retroarch is 7z", "retroarch", "x86_64", "7z"},
-		{"tic80 is tar.gz", "tic80", "x64", "tar.gz"},
+		{"melonds is zip", "melonds", "x86_64", "zip"},
 	}
 
 	for _, tt := range tests {
@@ -128,9 +135,7 @@ func TestBinaryPathForTarget(t *testing.T) {
 		expected string
 	}{
 		{"eden has no binary path (direct)", "eden", "amd64", ""},
-		{"retroarch x86_64 has per-target binary path", "retroarch", "x86_64", "RetroArch-Linux-x86_64.AppImage"},
-		{"retroarch aarch64 has per-target binary path", "retroarch", "aarch64", "RetroArch-Linux-aarch64.AppImage"},
-		{"tic80 has binary path", "tic80", "x64", "bin/tic80"},
+		{"retroarch x86_64 has per-target binary path", "retroarch", "x86_64", "RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage"},
 	}
 
 	for _, tt := range tests {
@@ -229,7 +234,7 @@ func TestGetEmulator(t *testing.T) {
 	knownEmulators := []string{
 		"eden", "duckstation", "pcsx2", "ppsspp", "mgba",
 		"cemu", "azahar", "dolphin", "melonds", "vita3k",
-		"rpcs3", "flycast", "retroarch", "tic80",
+		"rpcs3", "flycast", "retroarch",
 	}
 
 	for _, name := range knownEmulators {

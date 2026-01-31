@@ -160,7 +160,6 @@ var emulatorNames = []string{
 	"rpcs3",
 	"flycast",
 	"retroarch",
-	"tic80",
 }
 
 // GetEmulator returns the EmulatorSpec for a given emulator name.
