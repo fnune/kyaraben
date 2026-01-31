@@ -43,7 +43,6 @@ func (f *FakeClient) Build(ctx context.Context, flakeRef string) (string, error)
 		return path, nil
 	}
 
-	// Return a generated path if not explicitly configured
 	return fmt.Sprintf("/nix/store/fake-hash-%s", flakeRef), nil
 }
 

@@ -175,26 +175,28 @@ func (v *Versions) GetEmulator(name string) (*EmulatorSpec, bool) {
 
 var parsed *Versions
 
-func Get() (*Versions, error) {
-	if parsed != nil {
-		return parsed, nil
-	}
-
+// Init parses and caches version data. Call from main.go at startup.
+func Init() error {
 	v, err := parse(versionsData)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
 	parsed = v
+	return nil
+}
+
+func Get() (*Versions, error) {
+	if parsed == nil {
+		return nil, fmt.Errorf("versions not initialized: call versions.Init() at startup")
+	}
 	return parsed, nil
 }
 
 func MustGet() *Versions {
-	v, err := Get()
-	if err != nil {
-		panic(err)
+	if parsed == nil {
+		panic("versions not initialized: call versions.Init() at startup")
 	}
-	return v
+	return parsed
 }
 
 // ResetCache clears the cached versions (for testing).
@@ -214,14 +216,12 @@ func parse(data string) (*Versions, error) {
 		Emulators: make(map[string]EmulatorSpec),
 	}
 
-	// Parse nixpkgs
 	if nixpkgsRaw, ok := raw["nixpkgs"].(map[string]interface{}); ok {
 		if commit, ok := nixpkgsRaw["commit"].(string); ok {
 			v.Nixpkgs.Commit = commit
 		}
 	}
 
-	// Parse each emulator
 	for _, name := range emulatorNames {
 		emuRaw, ok := raw[name].(map[string]interface{})
 		if !ok {
@@ -244,7 +244,6 @@ func parseEmulatorSpec(raw map[string]interface{}) (EmulatorSpec, error) {
 		Versions: make(map[string]VersionEntry),
 	}
 
-	// Extract known fields
 	if v, ok := raw["url_template"].(string); ok {
 		spec.URLTemplate = v
 	}
@@ -314,7 +313,6 @@ func parseVersionEntry(version string, raw map[string]interface{}) (VersionEntry
 		entry.BinaryPath = v
 	}
 
-	// Parse targets
 	if targetsRaw, ok := raw["targets"].(map[string]interface{}); ok {
 		for targetName, targetValue := range targetsRaw {
 			targetRaw, ok := targetValue.(map[string]interface{})
