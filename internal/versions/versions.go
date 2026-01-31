@@ -13,60 +13,8 @@ var versionsData string
 
 // Versions holds all version information parsed from versions.toml.
 type Versions struct {
-	Nixpkgs     NixpkgsVersion `toml:"nixpkgs"`
-	NixPortable EmulatorSpec   `toml:"nix-portable"`
-	Eden        EmulatorSpec   `toml:"eden"`
-	DuckStation EmulatorSpec   `toml:"duckstation"`
-	PCSX2       EmulatorSpec   `toml:"pcsx2"`
-	PPSSPP      EmulatorSpec   `toml:"ppsspp"`
-	MGBA        EmulatorSpec   `toml:"mgba"`
-	Cemu        EmulatorSpec   `toml:"cemu"`
-	Azahar      EmulatorSpec   `toml:"azahar"`
-	Dolphin     EmulatorSpec   `toml:"dolphin"`
-	MelonDS     EmulatorSpec   `toml:"melonds"`
-	Vita3K      EmulatorSpec   `toml:"vita3k"`
-	RPCS3       EmulatorSpec   `toml:"rpcs3"`
-	Flycast     EmulatorSpec   `toml:"flycast"`
-	RetroArch   EmulatorSpec   `toml:"retroarch"`
-	TIC80       EmulatorSpec   `toml:"tic80"`
-}
-
-// GetEmulator returns the EmulatorSpec for a given emulator name.
-func (v *Versions) GetEmulator(name string) (*EmulatorSpec, bool) {
-	switch name {
-	case "nix-portable":
-		return &v.NixPortable, true
-	case "eden":
-		return &v.Eden, true
-	case "duckstation":
-		return &v.DuckStation, true
-	case "pcsx2":
-		return &v.PCSX2, true
-	case "ppsspp":
-		return &v.PPSSPP, true
-	case "mgba":
-		return &v.MGBA, true
-	case "cemu":
-		return &v.Cemu, true
-	case "azahar":
-		return &v.Azahar, true
-	case "dolphin":
-		return &v.Dolphin, true
-	case "melonds":
-		return &v.MelonDS, true
-	case "vita3k":
-		return &v.Vita3K, true
-	case "rpcs3":
-		return &v.RPCS3, true
-	case "flycast":
-		return &v.Flycast, true
-	case "retroarch":
-		return &v.RetroArch, true
-	case "tic80":
-		return &v.TIC80, true
-	default:
-		return nil, false
-	}
+	Nixpkgs   NixpkgsVersion          `toml:"nixpkgs"`
+	Emulators map[string]EmulatorSpec // Populated after parsing
 }
 
 type NixpkgsVersion struct {
@@ -75,51 +23,40 @@ type NixpkgsVersion struct {
 
 // EmulatorSpec describes all available versions of an emulator.
 type EmulatorSpec struct {
-	URLTemplate string         `toml:"url_template"`
-	BinaryPath  string         `toml:"binary_path"` // default for archives
-	Versions    []VersionEntry `toml:"versions"`
+	URLTemplate string                  // URL template with {version}, {target}, {release_tag}, {arch} placeholders
+	BinaryPath  string                  // Default binary path for archives
+	Default     string                  // Default version string
+	Versions    map[string]VersionEntry // Map of version string to entry
 }
 
 // GetVersion returns a specific version entry, or nil if not found.
 func (e *EmulatorSpec) GetVersion(version string) *VersionEntry {
-	for i := range e.Versions {
-		if e.Versions[i].Version == version {
-			return &e.Versions[i]
-		}
+	if v, ok := e.Versions[version]; ok {
+		return &v
 	}
 	return nil
 }
 
 // GetDefault returns the default version entry.
-// If no version is marked as default, returns the first one.
 func (e *EmulatorSpec) GetDefault() *VersionEntry {
-	for i := range e.Versions {
-		if e.Versions[i].Default {
-			return &e.Versions[i]
-		}
-	}
-	if len(e.Versions) > 0 {
-		return &e.Versions[0]
-	}
-	return nil
+	return e.GetVersion(e.Default)
 }
 
-// AvailableVersions returns all version strings in order.
+// AvailableVersions returns all version strings.
 func (e *EmulatorSpec) AvailableVersions() []string {
-	versions := make([]string, len(e.Versions))
-	for i, v := range e.Versions {
-		versions[i] = v.Version
+	versions := make([]string, 0, len(e.Versions))
+	for v := range e.Versions {
+		versions = append(versions, v)
 	}
 	return versions
 }
 
 // VersionEntry describes a specific version of an emulator.
 type VersionEntry struct {
-	Version    string        `toml:"version"`
-	ReleaseTag string        `toml:"release_tag"` // for repos where tag != version
-	Default    bool          `toml:"default"`
-	BinaryPath string        `toml:"binary_path"` // version-specific override
-	Targets    []TargetBuild `toml:"targets"`
+	Version    string                  // The version string (copied from map key)
+	ReleaseTag string                  // For repos where tag != version
+	BinaryPath string                  // Version-specific binary path override
+	Targets    map[string]TargetBuild  // Map of target name to build info
 }
 
 // EffectiveReleaseTag returns the release tag to use in URLs.
@@ -136,7 +73,6 @@ func (v *VersionEntry) URL(target string, spec *EmulatorSpec) string {
 	url := strings.ReplaceAll(spec.URLTemplate, "{version}", v.Version)
 	url = strings.ReplaceAll(url, "{target}", target)
 	url = strings.ReplaceAll(url, "{release_tag}", v.EffectiveReleaseTag())
-	// Also support {arch} placeholder
 	if t := v.Target(target); t != nil {
 		url = strings.ReplaceAll(url, "{arch}", t.Arch)
 	}
@@ -145,10 +81,8 @@ func (v *VersionEntry) URL(target string, spec *EmulatorSpec) string {
 
 // Target returns the target build info by name, or nil if not found.
 func (v *VersionEntry) Target(name string) *TargetBuild {
-	for i := range v.Targets {
-		if v.Targets[i].Name == name {
-			return &v.Targets[i]
-		}
+	if t, ok := v.Targets[name]; ok {
+		return &t
 	}
 	return nil
 }
@@ -156,9 +90,9 @@ func (v *VersionEntry) Target(name string) *TargetBuild {
 // TargetsForArch returns all target names available for a given architecture.
 func (v *VersionEntry) TargetsForArch(arch string) []string {
 	var targets []string
-	for _, t := range v.Targets {
+	for name, t := range v.Targets {
 		if t.Arch == arch {
-			targets = append(targets, t.Name)
+			targets = append(targets, name)
 		}
 	}
 	return targets
@@ -166,16 +100,15 @@ func (v *VersionEntry) TargetsForArch(arch string) []string {
 
 // DefaultTargetForArch returns the first target matching the given architecture.
 func (v *VersionEntry) DefaultTargetForArch(arch string) string {
-	for _, t := range v.Targets {
+	for name, t := range v.Targets {
 		if t.Arch == arch {
-			return t.Name
+			return name
 		}
 	}
 	return ""
 }
 
 // BinaryPathForTarget returns the path to the binary inside an archive.
-// Returns empty string for direct AppImage downloads (no extraction needed).
 // Priority: target-specific > version-specific > spec-level > empty.
 func (v *VersionEntry) BinaryPathForTarget(target string, spec *EmulatorSpec) string {
 	if t := v.Target(target); t != nil && t.BinaryPath != "" {
@@ -188,7 +121,6 @@ func (v *VersionEntry) BinaryPathForTarget(target string, spec *EmulatorSpec) st
 }
 
 // ArchiveType returns the archive type based on URL extension.
-// Returns empty string for direct binaries (AppImage, etc).
 func (v *VersionEntry) ArchiveType(target string, spec *EmulatorSpec) string {
 	url := v.URL(target, spec)
 	switch {
@@ -207,10 +139,37 @@ func (v *VersionEntry) ArchiveType(target string, spec *EmulatorSpec) string {
 
 // TargetBuild describes a build for a specific hardware target.
 type TargetBuild struct {
-	Name       string `toml:"name"`       // e.g., "amd64", "steamdeck"
-	Arch       string `toml:"arch"`       // e.g., "x86_64", "aarch64"
+	Arch       string `toml:"arch"`
 	SHA256     string `toml:"sha256"`
-	BinaryPath string `toml:"binary_path"` // target-specific override
+	BinaryPath string `toml:"binary_path"`
+}
+
+// Known emulator names for parsing
+var emulatorNames = []string{
+	"nix-portable",
+	"eden",
+	"duckstation",
+	"pcsx2",
+	"ppsspp",
+	"mgba",
+	"cemu",
+	"azahar",
+	"dolphin",
+	"melonds",
+	"vita3k",
+	"rpcs3",
+	"flycast",
+	"retroarch",
+	"tic80",
+}
+
+// GetEmulator returns the EmulatorSpec for a given emulator name.
+func (v *Versions) GetEmulator(name string) (*EmulatorSpec, bool) {
+	spec, ok := v.Emulators[name]
+	if !ok {
+		return nil, false
+	}
+	return &spec, true
 }
 
 var parsed *Versions
@@ -220,12 +179,12 @@ func Get() (*Versions, error) {
 		return parsed, nil
 	}
 
-	var v Versions
-	if _, err := toml.Decode(versionsData, &v); err != nil {
-		return nil, fmt.Errorf("parsing versions.toml: %w", err)
+	v, err := parse(versionsData)
+	if err != nil {
+		return nil, err
 	}
 
-	parsed = &v
+	parsed = v
 	return parsed, nil
 }
 
@@ -240,4 +199,134 @@ func MustGet() *Versions {
 // ResetCache clears the cached versions (for testing).
 func ResetCache() {
 	parsed = nil
+}
+
+// parse parses the versions.toml content into Versions struct.
+func parse(data string) (*Versions, error) {
+	// First pass: decode into generic map
+	var raw map[string]interface{}
+	if _, err := toml.Decode(data, &raw); err != nil {
+		return nil, fmt.Errorf("parsing versions.toml: %w", err)
+	}
+
+	v := &Versions{
+		Emulators: make(map[string]EmulatorSpec),
+	}
+
+	// Parse nixpkgs
+	if nixpkgsRaw, ok := raw["nixpkgs"].(map[string]interface{}); ok {
+		if commit, ok := nixpkgsRaw["commit"].(string); ok {
+			v.Nixpkgs.Commit = commit
+		}
+	}
+
+	// Parse each emulator
+	for _, name := range emulatorNames {
+		emuRaw, ok := raw[name].(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		spec, err := parseEmulatorSpec(emuRaw)
+		if err != nil {
+			return nil, fmt.Errorf("parsing emulator %s: %w", name, err)
+		}
+		v.Emulators[name] = spec
+	}
+
+	return v, nil
+}
+
+// parseEmulatorSpec parses a single emulator's specification from raw TOML data.
+func parseEmulatorSpec(raw map[string]interface{}) (EmulatorSpec, error) {
+	spec := EmulatorSpec{
+		Versions: make(map[string]VersionEntry),
+	}
+
+	// Extract known fields
+	if v, ok := raw["url_template"].(string); ok {
+		spec.URLTemplate = v
+	}
+	if v, ok := raw["binary_path"].(string); ok {
+		spec.BinaryPath = v
+	}
+	if v, ok := raw["default"].(string); ok {
+		spec.Default = v
+	}
+
+	// Everything else is a version entry
+	knownKeys := map[string]bool{
+		"url_template": true,
+		"binary_path":  true,
+		"default":      true,
+	}
+
+	for key, value := range raw {
+		if knownKeys[key] {
+			continue
+		}
+
+		// This should be a version entry
+		versionRaw, ok := value.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		entry, err := parseVersionEntry(key, versionRaw)
+		if err != nil {
+			return spec, fmt.Errorf("parsing version %s: %w", key, err)
+		}
+		spec.Versions[key] = entry
+	}
+
+	// If no explicit default and we have versions, use the first one found
+	// (though this shouldn't happen with proper TOML)
+	if spec.Default == "" && len(spec.Versions) > 0 {
+		for v := range spec.Versions {
+			spec.Default = v
+			break
+		}
+	}
+
+	return spec, nil
+}
+
+// parseVersionEntry parses a single version entry from raw TOML data.
+func parseVersionEntry(version string, raw map[string]interface{}) (VersionEntry, error) {
+	entry := VersionEntry{
+		Version: version,
+		Targets: make(map[string]TargetBuild),
+	}
+
+	if v, ok := raw["release_tag"].(string); ok {
+		entry.ReleaseTag = v
+	}
+	if v, ok := raw["binary_path"].(string); ok {
+		entry.BinaryPath = v
+	}
+
+	// Parse targets
+	if targetsRaw, ok := raw["targets"].(map[string]interface{}); ok {
+		for targetName, targetValue := range targetsRaw {
+			targetRaw, ok := targetValue.(map[string]interface{})
+			if !ok {
+				continue
+			}
+
+			target := TargetBuild{}
+			if v, ok := targetRaw["arch"].(string); ok {
+				target.Arch = v
+			}
+			if v, ok := targetRaw["sha256"].(string); ok {
+				target.SHA256 = v
+			}
+			if v, ok := targetRaw["binary_path"].(string); ok {
+				target.BinaryPath = v
+			}
+
+			entry.Targets[targetName] = target
+		}
+	}
+
+	return entry, nil
 }

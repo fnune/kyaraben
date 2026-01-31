@@ -4,198 +4,271 @@
 [nixpkgs]
 commit = "fa83fd837f3098e3e678e6cf017b2b36102c7211" # https://github.com/NixOS/nixpkgs/commits/nixos-25.11
 
-[eden] # https://github.com/eden-emulator/Releases/releases
-version = "v0.1.0"
-url_template = "https://github.com/eden-emulator/Releases/releases/download/{version}/Eden-Linux-{version}-{target}-clang-pgo.AppImage"
+# ============================================================================
+# EDEN - Nintendo Switch emulator (pilot for multi-version support)
+# https://github.com/eden-emulator/Releases/releases
+# ============================================================================
 
-[eden.targets.amd64] # generic x86_64 (default)
+[eden]
+url_template = "https://github.com/eden-emulator/Releases/releases/download/{version}/Eden-Linux-{version}-{target}-clang-pgo.AppImage"
+default = "v0.1.1"
+
+[eden."v0.1.1".targets.amd64]
+arch = "x86_64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+
+[eden."v0.1.1".targets.legacy]
+arch = "x86_64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+
+[eden."v0.1.1".targets.steamdeck]
+arch = "x86_64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+
+[eden."v0.1.1".targets.rog-ally]
+arch = "x86_64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+
+[eden."v0.1.1".targets.aarch64]
+arch = "aarch64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+
+[eden."v0.1.0".targets.amd64]
 arch = "x86_64"
 sha256 = "sha256-+1lBCtlau8ttdy2olhNvlir/bn/sSpUz+6Ofo+GZ0dg="
 
-[eden.targets.legacy] # pre-Ryzen / Haswell
+[eden."v0.1.0".targets.legacy]
 arch = "x86_64"
 sha256 = "sha256-kgzfHSinWcwTJk+HZwz5FvNNOzUG3iExcQYb2qxfnN4="
 
-[eden.targets.steamdeck] # Zen 2, SteamOS patches
+[eden."v0.1.0".targets.steamdeck]
 arch = "x86_64"
 sha256 = "sha256-n8xlLPoRxxHwlICf2QYU7iLVxq2EnRwG1de7gLwdOOY="
 
-[eden.targets.rog-ally] # Zen 4
+[eden."v0.1.0".targets.rog-ally]
 arch = "x86_64"
 sha256 = "sha256-UsGMjjJTdB4hzeSyIrN6aAgrckExgcxKVrdZz5mkhqo="
 
-[eden.targets.aarch64] # ARM64
+[eden."v0.1.0".targets.aarch64]
 arch = "aarch64"
 sha256 = "sha256-KDYSvNknaApwDQXflb/Y1zhjWKhZsBOSfYRQPRCJI0M="
 
-[duckstation] # https://github.com/stenzek/duckstation/releases
-version = "v0.1-10655"
-url_template = "https://github.com/stenzek/duckstation/releases/download/{version}/DuckStation-{target}.AppImage"
+# ============================================================================
+# NIX-PORTABLE - Bootstrap tool
+# https://github.com/DavHau/nix-portable/releases
+# ============================================================================
 
-[duckstation.targets.x64]
-arch = "x86_64"
-sha256 = "sha256-/fmHmyseqXVJ26OdhQUuZYrDWxnu0jKJvkaOGpGtoOc="
-
-[duckstation.targets.arm64]
-arch = "aarch64"
-sha256 = "sha256-WzUXY082lu4gcmss/rPNzzgBzQppyTxIWZruUR5uaLE="
-
-[nix-portable] # https://github.com/DavHau/nix-portable/releases
-version = "v012"
+[nix-portable]
 url_template = "https://github.com/DavHau/nix-portable/releases/download/{version}/nix-portable-{arch}"
+default = "v012"
 
-[nix-portable.targets.x86_64]
+[nix-portable."v012".targets.x86_64]
 arch = "x86_64"
 sha256 = "sha256-tAnFWQTJCaw+raP7EjMxn4aomd0boxo93TMNBkFBxyg="
 
-[nix-portable.targets.aarch64]
+[nix-portable."v012".targets.aarch64]
 arch = "aarch64"
 sha256 = "sha256-r0HY3v25+hfuNhIg7gWgx1jT5iMThKP5aaMU+RM3ROo="
 
 # ============================================================================
-# NEW EMULATORS - Replacing nix-portable GUI apps with direct binary downloads
+# DUCKSTATION - PlayStation emulator
+# https://github.com/stenzek/duckstation/releases
 # ============================================================================
 
-[pcsx2] # https://github.com/PCSX2/pcsx2/releases
-version = "v2.6.3"
+[duckstation]
+url_template = "https://github.com/stenzek/duckstation/releases/download/{version}/DuckStation-{target}.AppImage"
+default = "v0.1-10655"
+
+[duckstation."v0.1-10655".targets.x64]
+arch = "x86_64"
+sha256 = "sha256-/fmHmyseqXVJ26OdhQUuZYrDWxnu0jKJvkaOGpGtoOc="
+
+[duckstation."v0.1-10655".targets.arm64]
+arch = "aarch64"
+sha256 = "sha256-WzUXY082lu4gcmss/rPNzzgBzQppyTxIWZruUR5uaLE="
+
+# ============================================================================
+# PCSX2 - PlayStation 2 emulator
+# https://github.com/PCSX2/pcsx2/releases
+# ============================================================================
+
+[pcsx2]
 url_template = "https://github.com/PCSX2/pcsx2/releases/download/{version}/pcsx2-{version}-linux-appimage-x64-Qt.AppImage"
+default = "v2.6.3"
 
-[pcsx2.targets.x64]
+[pcsx2."v2.6.3".targets.x64]
 arch = "x86_64"
 sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
 
-# Note: PCSX2 does not provide ARM64 AppImages
+# ============================================================================
+# PPSSPP - PlayStation Portable emulator
+# https://github.com/hrydgard/ppsspp/releases
+# ============================================================================
 
-[ppsspp] # https://github.com/hrydgard/ppsspp/releases
-version = "v1.19.3"
+[ppsspp]
 url_template = "https://github.com/hrydgard/ppsspp/releases/download/{version}/PPSSPP-{version}-anylinux-{target}.AppImage"
+default = "v1.19.3"
 
-[ppsspp.targets.x86_64]
+[ppsspp."v1.19.3".targets.x86_64]
 arch = "x86_64"
 sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
 
-# Note: PPSSPP does not provide ARM64 AppImages for Linux
+# ============================================================================
+# MGBA - Game Boy Advance emulator
+# https://github.com/mgba-emu/mgba/releases
+# ============================================================================
 
-[mgba] # https://github.com/mgba-emu/mgba/releases
-# Note: mGBA uses version without 'v' prefix in URLs
-version = "0.10.5"
+[mgba]
 url_template = "https://github.com/mgba-emu/mgba/releases/download/{version}/mGBA-{version}-appimage-{target}.appimage"
+default = "0.10.5"
 
-[mgba.targets.x64]
+[mgba."0.10.5".targets.x64]
 arch = "x86_64"
 sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
 
-[mgba.targets.arm64]
+[mgba."0.10.5".targets.arm64]
 arch = "aarch64"
 sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
 
-[cemu] # https://github.com/cemu-project/Cemu/releases
-version = "2.4"
+# ============================================================================
+# CEMU - Wii U emulator
+# https://github.com/cemu-project/Cemu/releases
+# ============================================================================
+
+[cemu]
 url_template = "https://github.com/cemu-project/Cemu/releases/download/v{version}/Cemu-{version}-x86_64.AppImage"
+default = "2.4"
 
-[cemu.targets.x64]
+[cemu."2.4".targets.x64]
 arch = "x86_64"
 sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
 
-# Note: Cemu does not provide ARM64 builds
+# ============================================================================
+# AZAHAR - Nintendo 3DS emulator
+# https://github.com/azahar-emu/azahar/releases
+# ============================================================================
 
-[azahar] # https://github.com/azahar-emu/azahar/releases
-version = "2120.1"
+[azahar]
 url_template = "https://github.com/azahar-emu/azahar/releases/download/{version}/azahar.AppImage"
+default = "2120.1"
 
-[azahar.targets.x64]
+[azahar."2120.1".targets.x64]
 arch = "x86_64"
 sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
 
-# Note: Azahar provides ARM64 but filename pattern may differ
+# ============================================================================
+# DOLPHIN - GameCube/Wii emulator (unofficial AppImage)
+# https://github.com/pkgforge-dev/Dolphin-emu-AppImage/releases
+# ============================================================================
 
-[dolphin] # https://github.com/pkgforge-dev/Dolphin-emu-AppImage/releases
-# UNOFFICIAL but well-maintained; no official binary from Dolphin team
-# Tag format: {version}@{date}_{build_id}
-version = "2512"
-release_tag = "2512@2026-01-26_1769467304"
+[dolphin]
 url_template = "https://github.com/pkgforge-dev/Dolphin-emu-AppImage/releases/download/{release_tag}/Dolphin_Emulator-{version}-anylinux.dwarfs-{target}.AppImage"
+default = "2512"
 
-[dolphin.targets.x86_64]
+[dolphin."2512"]
+release_tag = "2512@2026-01-26_1769467304"
+
+[dolphin."2512".targets.x86_64]
 arch = "x86_64"
 sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
 
-[dolphin.targets.aarch64]
+[dolphin."2512".targets.aarch64]
 arch = "aarch64"
 sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
 
-[retroarch] # https://buildbot.libretro.com/stable/
-# Archive contains AppImage + bundled cores - use both for compatibility
-version = "1.19.1"
-url_template = "https://buildbot.libretro.com/stable/{version}/linux/{target}/RetroArch.7z"
-binary_path = "RetroArch-Linux-x86_64.AppImage"
+# ============================================================================
+# MELONDS - Nintendo DS emulator
+# https://github.com/melonDS-emu/melonDS/releases
+# ============================================================================
 
-[retroarch.targets.x86_64]
+[melonds]
+url_template = "https://github.com/melonDS-emu/melonDS/releases/download/{version}/melonDS_{version}_linux_x64.zip"
+binary_path = "melonDS"
+default = "1.0.0"
+
+[melonds."1.0.0".targets.x64]
+arch = "x86_64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+
+# ============================================================================
+# VITA3K - PlayStation Vita emulator
+# https://github.com/Vita3K/Vita3K-builds/releases
+# ============================================================================
+
+[vita3k]
+url_template = "https://github.com/Vita3K/Vita3K-builds/releases/download/{release_tag}/Vita3K-{target}.AppImage"
+default = "3912"
+
+[vita3k."3912"]
+release_tag = "3912"
+
+[vita3k."3912".targets.x86_64]
+arch = "x86_64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+
+# ============================================================================
+# RPCS3 - PlayStation 3 emulator
+# https://github.com/RPCS3/rpcs3-binaries-linux/releases
+# ============================================================================
+
+[rpcs3]
+url_template = "https://github.com/RPCS3/rpcs3-binaries-linux/releases/download/{release_tag}/rpcs3-v{version}-4b6f335a_linux64.AppImage"
+default = "0.0.35-17500"
+
+[rpcs3."0.0.35-17500"]
+release_tag = "build-4b6f335a46055cc5e2c4e0af8bcea02340a0ab59"
+
+[rpcs3."0.0.35-17500".targets.x64]
+arch = "x86_64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+
+# ============================================================================
+# FLYCAST - Sega Dreamcast emulator
+# https://github.com/flyinghead/flycast/releases
+# ============================================================================
+
+[flycast]
+url_template = "https://github.com/flyinghead/flycast/releases/download/v{version}/flycast-linux-{target}-{version}.tar.gz"
+binary_path = "flycast"
+default = "2.4"
+
+[flycast."2.4".targets.x86_64]
+arch = "x86_64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+
+[flycast."2.4".targets.aarch64]
+arch = "aarch64"
+sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+
+# ============================================================================
+# RETROARCH - Multi-system emulator frontend
+# https://buildbot.libretro.com/stable/
+# ============================================================================
+
+[retroarch]
+url_template = "https://buildbot.libretro.com/stable/{version}/linux/{target}/RetroArch.7z"
+default = "1.19.1"
+
+[retroarch."1.19.1".targets.x86_64]
 arch = "x86_64"
 sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
 binary_path = "RetroArch-Linux-x86_64.AppImage"
 
-[retroarch.targets.aarch64]
+[retroarch."1.19.1".targets.aarch64]
 arch = "aarch64"
 sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
 binary_path = "RetroArch-Linux-aarch64.AppImage"
 
-[tic80] # https://github.com/nesbox/TIC-80/releases
-# Tarball contains bin/tic80 executable
-version = "1.1.2837"
+# ============================================================================
+# TIC-80 - Fantasy console
+# https://github.com/nesbox/TIC-80/releases
+# ============================================================================
+
+[tic80]
 url_template = "https://github.com/nesbox/TIC-80/releases/download/v{version}/tic80-{version}-linux.tar.gz"
 binary_path = "bin/tic80"
+default = "1.1.2837"
 
-[tic80.targets.x64]
+[tic80."1.1.2837".targets.x64]
 arch = "x86_64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
-
-# Note: TIC-80 ARM64 builds available via nightly, not stable releases
-
-# ============================================================================
-# EMULATORS WITH SPECIAL VERSIONING
-# ============================================================================
-
-[melonds] # https://github.com/melonDS-emu/melonDS/releases
-# AppImage is inside a ZIP file
-version = "1.0.0"
-url_template = "https://github.com/melonDS-emu/melonDS/releases/download/{version}/melonDS_{version}_linux_x64.zip"
-binary_path = "melonDS"
-
-[melonds.targets.x64]
-arch = "x86_64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
-
-[vita3k] # https://github.com/Vita3K/Vita3K-builds/releases
-# Rolling builds with build numbers + commit hashes
-version = "3912"
-release_tag = "3912"
-url_template = "https://github.com/Vita3K/Vita3K-builds/releases/download/{release_tag}/Vita3K-{target}.AppImage"
-
-[vita3k.targets.x86_64]
-arch = "x86_64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
-
-[rpcs3] # https://github.com/RPCS3/rpcs3-binaries-linux/releases
-# Rolling builds with commit hashes in filenames
-version = "0.0.35-17500"
-release_tag = "build-4b6f335a46055cc5e2c4e0af8bcea02340a0ab59"
-url_template = "https://github.com/RPCS3/rpcs3-binaries-linux/releases/download/{release_tag}/rpcs3-v{version}-4b6f335a_linux64.AppImage"
-
-[rpcs3.targets.x64]
-arch = "x86_64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
-
-[flycast] # https://github.com/flyinghead/flycast/releases
-# Tarball containing flycast executable
-version = "2.4"
-url_template = "https://github.com/flyinghead/flycast/releases/download/v{version}/flycast-linux-{target}-{version}.tar.gz"
-binary_path = "flycast"
-
-[flycast.targets.x86_64]
-arch = "x86_64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
-
-[flycast.targets.aarch64]
-arch = "aarch64"
 sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
