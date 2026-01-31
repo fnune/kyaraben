@@ -13,7 +13,7 @@ func (Definition) Emulator() model.Emulator {
 		ID:      model.EmulatorEden,
 		Name:    "Eden",
 		Systems: []model.SystemID{model.SystemSwitch},
-		Package: model.VersionedAppImageRef("eden"),
+		Package: model.AppImageRef("eden"),
 		// Eden requires firmware and keys which must be installed via the Eden UI.
 		// Kyaraben can verify their presence but cannot automatically provision them.
 		// See: https://eden-emu.dev/

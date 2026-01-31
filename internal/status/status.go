@@ -76,8 +76,10 @@ func Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg 
 
 		// Get default version from versions.toml
 		if vers != nil {
-			if spec, ok := vers.GetEmulator(string(emu.ID)); ok {
-				info.DefaultVersion = spec.Default
+			if e, err := reg.GetEmulator(emu.ID); err == nil {
+				if spec, ok := vers.GetEmulator(e.Package.PackageName()); ok {
+					info.DefaultVersion = spec.Default
+				}
 			}
 		}
 

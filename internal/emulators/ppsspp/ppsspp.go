@@ -9,7 +9,7 @@ func (Definition) Emulator() model.Emulator {
 		ID:      model.EmulatorPPSSPP,
 		Name:    "PPSSPP",
 		Systems: []model.SystemID{model.SystemPSP},
-		Package: model.VersionedAppImageRef("ppsspp"),
+		Package: model.AppImageRef("ppsspp"),
 		// PPSSPP uses HLE - no BIOS required
 		Provisions: nil,
 		StateKinds: []model.StateKind{

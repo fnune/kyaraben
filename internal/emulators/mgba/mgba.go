@@ -9,7 +9,7 @@ func (Definition) Emulator() model.Emulator {
 		ID:      model.EmulatorMGBA,
 		Name:    "mGBA",
 		Systems: []model.SystemID{model.SystemGBA},
-		Package: model.VersionedAppImageRef("mgba"),
+		Package: model.AppImageRef("mgba"),
 		Provisions: []model.Provision{
 			{
 				ID:          "gba-bios",

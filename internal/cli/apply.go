@@ -36,6 +36,11 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		return fmt.Errorf("creating nix client: %w", err)
 	}
 	flakeGenerator := nix.NewFlakeGenerator(registry)
+	versionOverrides, err := cfg.BuildVersionOverrides(registry.GetEmulator)
+	if err != nil {
+		return err
+	}
+	flakeGenerator.SetVersionOverrides(versionOverrides)
 	configWriter := emulators.NewConfigWriter()
 	manifestPath, err := model.DefaultManifestPath()
 	if err != nil {
@@ -189,3 +194,4 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 
 	return nil
 }
+

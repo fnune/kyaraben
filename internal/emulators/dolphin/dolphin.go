@@ -9,7 +9,7 @@ func (Definition) Emulator() model.Emulator {
 		ID:      model.EmulatorDolphin,
 		Name:    "Dolphin",
 		Systems: []model.SystemID{model.SystemGameCube, model.SystemWii},
-		Package: model.VersionedAppImageRef("dolphin"),
+		Package: model.AppImageRef("dolphin"),
 		// Wii system menu optional, GameCube IPL optional
 		Provisions: nil,
 		StateKinds: []model.StateKind{

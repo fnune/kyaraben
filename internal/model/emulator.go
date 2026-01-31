@@ -21,16 +21,13 @@ const (
 	EmulatorAzahar         EmulatorID = "azahar"
 	EmulatorDolphin        EmulatorID = "dolphin"
 	EmulatorEden           EmulatorID = "eden"
-	EmulatorE2ETest        EmulatorID = "e2e-test"
 )
 
 // PackageSource indicates where an emulator package comes from.
 type PackageSource string
 
 const (
-	PackageSourceNixpkgs   PackageSource = "nixpkgs"
-	PackageSourceGitHub    PackageSource = "github"
-	PackageSourceVersioned PackageSource = "versioned"
+	PackageSourceAppImage PackageSource = "appimage"
 )
 
 type Emulator struct {
@@ -44,8 +41,8 @@ type Emulator struct {
 }
 
 type LauncherInfo struct {
-	// Binary is the executable name installed to $out/bin/. For VersionedAppImage packages,
-	// this must match the name passed to VersionedAppImageRef() (the versions.toml key).
+	// Binary is the executable name installed to $out/bin/. For AppImage packages,
+	// this must match the name passed to AppImageRef() (the versions.toml key).
 	Binary      string
 	DisplayName string   // Name for .desktop file (uses Emulator.Name if empty)
 	GenericName string   // For .desktop generation (e.g., "PlayStation Emulator")

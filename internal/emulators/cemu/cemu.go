@@ -9,7 +9,7 @@ func (Definition) Emulator() model.Emulator {
 		ID:      model.EmulatorCemu,
 		Name:    "Cemu",
 		Systems: []model.SystemID{model.SystemWiiU},
-		Package: model.VersionedAppImageRef("cemu"),
+		Package: model.AppImageRef("cemu"),
 		// Wii U keys are required but handled separately (not as BIOS files)
 		Provisions: nil,
 		StateKinds: []model.StateKind{

@@ -9,7 +9,7 @@ func (Definition) Emulator() model.Emulator {
 		ID:      model.EmulatorAzahar,
 		Name:    "Azahar",
 		Systems: []model.SystemID{model.System3DS},
-		Package: model.VersionedAppImageRef("azahar"),
+		Package: model.AppImageRef("azahar"),
 		// 3DS AES keys required but handled separately
 		Provisions: nil,
 		StateKinds: []model.StateKind{

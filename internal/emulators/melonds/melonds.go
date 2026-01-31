@@ -9,7 +9,7 @@ func (Definition) Emulator() model.Emulator {
 		ID:      model.EmulatorMelonDS,
 		Name:    "melonDS",
 		Systems: []model.SystemID{model.SystemNDS},
-		Package: model.VersionedAppImageRef("melonds"),
+		Package: model.AppImageRef("melonds"),
 		Provisions: []model.Provision{
 			{
 				ID:          "nds-bios-arm7",
