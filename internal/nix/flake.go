@@ -142,17 +142,18 @@ func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorI
 			})
 		}
 
-		// Collect icon for this emulator's package
-		if !seenIcons[pkg.Name] {
+		// Collect icon for this emulator, named after the binary for desktop file lookup
+		binaryName := emu.Launcher.Binary
+		if binaryName != "" && !seenIcons[binaryName] {
 			spec, ok := v.GetEmulator(pkg.Name)
 			if ok && spec.IconURL != "" && spec.IconSHA256 != "" {
-				seenIcons[pkg.Name] = true
+				seenIcons[binaryName] = true
 				ext := filepath.Ext(spec.IconURL)
 				icons = append(icons, IconInfo{
-					Name:     pkg.Name,
+					Name:     binaryName,
 					URL:      spec.IconURL,
 					SHA256:   spec.IconSHA256,
-					Filename: pkg.Name + ext,
+					Filename: binaryName + ext,
 				})
 			}
 		}
