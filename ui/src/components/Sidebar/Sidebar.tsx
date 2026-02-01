@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { BugReport } from '@/components/BugReport/BugReport'
 import type { SyncState, SyncStatusResponse } from '@/types/daemon'
 import {
   SyncStateConflict,
@@ -55,6 +57,7 @@ function NavItem({ label, active, onClick, indicator }: NavItemProps) {
 }
 
 export function Sidebar({ currentView, onNavigate, syncStatus }: SidebarProps) {
+  const [bugReportOpen, setBugReportOpen] = useState(false)
   const syncState = getSyncState(syncStatus)
   const syncDotColor = syncDotColors[syncState]
 
@@ -84,8 +87,19 @@ export function Sidebar({ currentView, onNavigate, syncStatus }: SidebarProps) {
       </nav>
 
       <div className="p-4 border-t border-gray-200">
-        <span className="text-xs text-gray-400">v0.1.0</span>
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-gray-400">v0.1.0</span>
+          <button
+            type="button"
+            onClick={() => setBugReportOpen(true)}
+            className="text-xs text-gray-400 hover:text-gray-600"
+          >
+            Report a problem
+          </button>
+        </div>
       </div>
+
+      <BugReport open={bugReportOpen} onClose={() => setBugReportOpen(false)} />
     </aside>
   )
 }

@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld('electron', {
       'uninstall_preview',
       'open_path',
       'path_exists',
+      'get_bug_report_info',
     ]
 
     if (validChannels.includes(channel)) {
