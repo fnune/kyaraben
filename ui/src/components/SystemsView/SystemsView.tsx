@@ -1,5 +1,5 @@
 import { Settings } from '@/components/Settings/Settings'
-import { SystemGrid } from '@/components/SystemGrid/SystemGrid'
+import { SystemList } from '@/components/SystemList/SystemList'
 import { Button } from '@/lib/Button'
 import { ProgressSteps } from '@/lib/ProgressSteps'
 import type { DoctorResponse, EmulatorID, System, SystemID } from '@/types/daemon'
@@ -71,13 +71,15 @@ export function SystemsView({
     <div className="p-6">
       <Settings userStore={userStore} onUserStoreChange={onUserStoreChange} onError={onError} />
 
-      <SystemGrid
+      <SystemList
         systems={systems}
         selections={selections}
         versionSelections={versionSelections}
         installedVersions={installedVersions}
         provisions={provisions}
+        userStore={userStore}
         onToggle={onToggle}
+        onEmulatorChange={() => undefined}
         onVersionChange={onVersionChange}
       />
 

@@ -1,7 +1,7 @@
 import { type ChildProcess, spawn } from 'node:child_process'
 import * as path from 'node:path'
 import * as readline from 'node:readline'
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron'
 
 // Protocol types for daemon communication.
 // Source of truth: internal/daemon/types.go
@@ -487,6 +487,7 @@ process.on('unhandledRejection', (reason) => {
 
 // App lifecycle
 app.whenReady().then(() => {
+  Menu.setApplicationMenu(null)
   setupIpcHandlers()
   createWindow()
 
