@@ -210,11 +210,15 @@ async function applyCommand(): Promise<string[]> {
         if (msg) messages.push(msg)
 
         // Stream progress to renderer
-        if (mainWindow) {
-          mainWindow.webContents.send('apply:progress', {
-            step: data?.step ?? 'unknown',
-            message: msg ?? '',
-          })
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          try {
+            mainWindow.webContents.send('apply:progress', {
+              step: data?.step ?? 'unknown',
+              message: msg ?? '',
+            })
+          } catch (sendErr) {
+            console.error('[kyaraben] Failed to send progress:', sendErr)
+          }
         }
 
         // Continue listening for more events
@@ -265,7 +269,12 @@ function setupIpcHandlers(): void {
   })
 
   ipcMain.handle('apply', async () => {
-    return await applyCommand()
+    try {
+      return await applyCommand()
+    } catch (err) {
+      console.error('[kyaraben] Apply failed:', err)
+      throw err
+    }
   })
 
   ipcMain.handle('get_install_status', async () => {
@@ -385,10 +394,29 @@ function createWindow(): void {
     mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'))
   }
 
+  // Open devtools in dev mode or when KYARABEN_DEBUG is set
+  if (process.env.VITE_DEV_SERVER_URL || process.env.KYARABEN_DEBUG) {
+    mainWindow.webContents.openDevTools()
+  }
+
+  // Log renderer crashes
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    console.error('[kyaraben] Renderer process gone:', details)
+  })
+
   mainWindow.on('closed', () => {
     mainWindow = null
   })
 }
+
+// Global error handlers
+process.on('uncaughtException', (error) => {
+  console.error('[kyaraben] Uncaught exception:', error)
+})
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[kyaraben] Unhandled rejection:', reason)
+})
 
 // App lifecycle
 app.whenReady().then(() => {

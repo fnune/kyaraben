@@ -155,6 +155,10 @@ export function App() {
       if (doctorResult.ok) {
         setProvisions(doctorResult.data)
       }
+    } catch (err) {
+      console.error('Apply failed:', err)
+      setError(err instanceof Error ? err.message : String(err))
+      setApplyStatus('error')
     } finally {
       window.electron.off('apply:progress', progressHandler)
     }

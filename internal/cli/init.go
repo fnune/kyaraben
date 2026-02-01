@@ -37,11 +37,6 @@ func (cmd *InitCmd) Run(ctx *Context) error {
 	cfg.Global.UserStore = cmd.UserStore
 
 	// Add systems
-	if len(cmd.Systems) == 0 {
-		// Default to tic80 for easy testing
-		cmd.Systems = []string{"tic80"}
-	}
-
 	for _, sysName := range cmd.Systems {
 		sysID := model.SystemID(sysName)
 		_, err := registry.GetSystem(sysID)
@@ -66,14 +61,20 @@ func (cmd *InitCmd) Run(ctx *Context) error {
 
 	fmt.Printf("Created configuration at %s\n", configPath)
 	fmt.Println()
-	fmt.Println("Enabled systems:")
-	for sys, sysConf := range cfg.Systems {
-		s, _ := registry.GetSystem(sys)
-		e, _ := registry.GetEmulator(sysConf.Emulator)
-		fmt.Printf("  %s (%s) - %s\n", s.Name, sys, e.Name)
+
+	if len(cfg.Systems) == 0 {
+		fmt.Println("No systems enabled. Use 'kyaraben init -s <system>' to enable systems.")
+		fmt.Println("Available systems: snes, psx, gba, nds, psp, switch, tic80")
+	} else {
+		fmt.Println("Enabled systems:")
+		for sys, sysConf := range cfg.Systems {
+			s, _ := registry.GetSystem(sys)
+			e, _ := registry.GetEmulator(sysConf.Emulator)
+			fmt.Printf("  %s (%s) - %s\n", s.Name, sys, e.Name)
+		}
+		fmt.Println()
+		fmt.Println("Run 'kyaraben apply' to install emulators and create directories.")
 	}
-	fmt.Println()
-	fmt.Println("Run 'kyaraben apply' to install emulators and create directories.")
 
 	return nil
 }
