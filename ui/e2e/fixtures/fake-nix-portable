@@ -1,0 +1,165 @@
+#!/bin/bash
+# Environment variables:
+#   FAKE_NIX_FAIL=1        - Simulate build failure
+#   FAKE_NIX_SLOW=1        - Add delays to simulate slow builds
+#   FAKE_NIX_STORE         - Base path for fake store (required for builds)
+#   FAKE_NIX_PROGRESS=1    - Output realistic progress messages
+
+set -e
+
+log() {
+  echo "[fake-nix] $*" >&2
+}
+
+simulate_progress() {
+  local pkg="$1"
+  if [[ "$FAKE_NIX_PROGRESS" == "1" ]]; then
+    echo "evaluating derivation..." >&2
+    [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.2
+    echo "these 1 derivations will be built:" >&2
+    echo "  /nix/store/fake-hash-$pkg.drv" >&2
+    [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.3
+    echo "building '/nix/store/fake-hash-$pkg.drv'..." >&2
+    echo "$pkg> unpacking sources" >&2
+    [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.2
+    echo "$pkg> configuring" >&2
+    [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.2
+    echo "$pkg> building" >&2
+    [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.3
+    echo "$pkg> installing" >&2
+    [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.1
+  fi
+}
+
+if [[ "$1" != "nix" ]]; then
+  log "ERROR: expected 'nix' as first argument, got '$1'"
+  exit 1
+fi
+shift
+
+case "$1" in
+  build)
+    shift
+
+    flake_ref=""
+    out_link=""
+    print_out_paths=false
+
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --out-link)
+          out_link="$2"
+          shift 2
+          ;;
+        --print-out-paths)
+          print_out_paths=true
+          shift
+          ;;
+        --no-link|-L|--option)
+          if [[ "$1" == "--option" ]]; then
+            shift 2
+          else
+            shift
+          fi
+          ;;
+        -*)
+          shift
+          ;;
+        *)
+          if [[ -z "$flake_ref" ]]; then
+            flake_ref="$1"
+          fi
+          shift
+          ;;
+      esac
+    done
+
+    if [[ -z "$flake_ref" ]]; then
+      log "ERROR: no flake reference provided"
+      exit 1
+    fi
+
+    pkg_name="${flake_ref##*#}"  # ".#kyaraben" -> "kyaraben"
+    pkg_name="${pkg_name:-unknown}"
+
+    log "Building: $flake_ref (package: $pkg_name)"
+
+    if [[ "$FAKE_NIX_FAIL" == "1" ]]; then
+      log "Simulating build failure"
+      echo "error: builder for '/nix/store/fake-hash-$pkg_name.drv' failed with exit code 1" >&2
+      exit 1
+    fi
+
+    simulate_progress "$pkg_name"
+
+    fake_hash="$(echo "$pkg_name-$RANDOM" | md5sum | cut -c1-32)"
+    store_path="/nix/store/$fake_hash-$pkg_name"
+
+    if [[ -n "$FAKE_NIX_STORE" ]]; then
+      real_store_path="$FAKE_NIX_STORE/$fake_hash-$pkg_name"
+      mkdir -p "$real_store_path/bin"
+      mkdir -p "$real_store_path/lib/retroarch/cores"
+      mkdir -p "$real_store_path/share/applications"
+      mkdir -p "$real_store_path/share/icons/hicolor/256x256/apps"
+
+      case "$pkg_name" in
+        kyaraben)
+          echo '#!/bin/bash' > "$real_store_path/bin/bsnes"
+          echo 'echo "fake bsnes"' >> "$real_store_path/bin/bsnes"
+          chmod +x "$real_store_path/bin/bsnes"
+
+          echo '#!/bin/bash' > "$real_store_path/bin/duckstation-qt"
+          echo 'echo "fake duckstation"' >> "$real_store_path/bin/duckstation-qt"
+          chmod +x "$real_store_path/bin/duckstation-qt"
+
+          touch "$real_store_path/lib/retroarch/cores/mgba_libretro.so"
+          touch "$real_store_path/lib/retroarch/cores/snes9x_libretro.so"
+          ;;
+      esac
+
+      log "Created fake store at: $real_store_path"
+
+      if [[ -n "$out_link" ]]; then
+        mkdir -p "$(dirname "$out_link")"
+        ln -sfn "$real_store_path" "$out_link"
+        log "Created symlink: $out_link -> $real_store_path"
+      fi
+    fi
+
+    if [[ "$print_out_paths" == true ]]; then
+      echo "$store_path"
+    fi
+
+    log "Build complete: $store_path"
+    ;;
+
+  --version)
+    echo "nix (Nix) 2.18.1 (fake)"
+    ;;
+
+  flake)
+    shift
+    case "$1" in
+      update)
+        log "Fake flake update"
+        ;;
+      show)
+        log "Fake flake show"
+        echo '{}'
+        ;;
+      *)
+        log "Unknown flake subcommand: $1"
+        ;;
+    esac
+    ;;
+
+  eval)
+    shift
+    echo '{}'
+    ;;
+
+  *)
+    log "Unknown command: $1"
+    exit 1
+    ;;
+esac

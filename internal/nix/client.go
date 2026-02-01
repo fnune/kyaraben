@@ -86,6 +86,14 @@ func NewClient() (*Client, error) {
 }
 
 func findNixPortable() (string, error) {
+	if override := os.Getenv("KYARABEN_NIX_PORTABLE_PATH"); override != "" {
+		if _, err := os.Stat(override); err == nil {
+			log.Debug("Using nix-portable from KYARABEN_NIX_PORTABLE_PATH: %s", override)
+			return override, nil
+		}
+		log.Debug("KYARABEN_NIX_PORTABLE_PATH set but file not found: %s", override)
+	}
+
 	targetTriple := getTargetTriple()
 	binaryName := "nix-portable-" + targetTriple
 
