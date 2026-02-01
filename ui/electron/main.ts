@@ -1,8 +1,13 @@
 import { type ChildProcess, spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
+import * as os from 'node:os'
 import * as path from 'node:path'
 import * as readline from 'node:readline'
 import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron'
+
+// Set userData to XDG state directory instead of config
+const stateDir = process.env.XDG_STATE_HOME || path.join(os.homedir(), '.local', 'state')
+app.setPath('userData', path.join(stateDir, 'kyaraben', 'ui'))
 
 // Protocol types for daemon communication.
 // Source of truth: internal/daemon/types.go
