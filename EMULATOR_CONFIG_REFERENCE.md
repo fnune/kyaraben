@@ -374,6 +374,24 @@ Vita3K must be managed as an opaque directory. The pref-path setting redirects t
 - Settings in config.yml
 - Basic controller support configurable via GUI
 
+### CLI Arguments
+
+Vita3K supports setting the config/data location via command line:
+
+```bash
+# Set config/data location
+vita3k -c /path/to/config/directory
+# or
+vita3k --config-location /path/to/config/directory
+```
+
+When using `-c`, Vita3K stores **all** its data within the specified directory:
+- Config at `<dir>/config.yml`
+- Vita ux0 data at `<dir>/ux0/`
+- Screenshots at `<dir>/screenshots/`
+
+**kyaraben Implementation**: Uses `-c` to set the config location to the opaque path. The config file inside sets `pref-path` for consistency.
+
 ### Manual Configuration Required
 
 - **Firmware installation**: Must be done through the Vita3K GUI on first run
@@ -685,15 +703,29 @@ SkipIPL = True
 - Located at `Wii/sd.raw`
 - Configurable in Options > Configuration > Wii
 
+### CLI Arguments
+
+Dolphin supports setting the user directory via command line or environment variable:
+
+```bash
+# CLI argument (preferred by kyaraben)
+dolphin -u /path/to/user/directory
+
+# Environment variable
+DOLPHIN_EMU_USERPATH=/path/to/user/directory dolphin
+```
+
+When using `-u`, Dolphin stores **all** its data within the specified directory:
+- Config at `<user_dir>/Config/Dolphin.ini`
+- GC memory cards at `<user_dir>/GC/`
+- Wii NAND at `<user_dir>/Wii/`
+- Screenshots at `<user_dir>/ScreenShots/`
+
+**kyaraben Implementation**: Uses `-u` to set the user directory to the opaque path, then configures ROM paths via the config file inside that directory.
+
 ### Manual Configuration Required
 
-- Memory card path changes require editing through the GUI (Options > Configuration > GameCube)
-- Some paths not easily configurable via INI alone
-
-### Limitations
-
-- Memory card directory not directly configurable via INI (uses slot-based system)
-- Wii NAND location tied to data directory structure
+None when using `-u` CLI argument - kyaraben manages everything through the opaque directory.
 
 ### Sources
 
@@ -764,16 +796,26 @@ Cemu is best managed with an opaque directory for the mlc_path. This directory c
 - Controller profiles in `controllerProfiles/` directory
 - Configurable through GUI: Options > Input settings
 
+### CLI Arguments
+
+Cemu supports setting the MLC path via command line:
+
+```bash
+# Set MLC directory (user data/saves)
+cemu -mlc /path/to/mlc/directory
+```
+
+The MLC directory contains:
+- Save data
+- Installed updates and DLC
+- System files
+
+**kyaraben Implementation**: Uses `-mlc` to set the MLC directory to the opaque path. ROM paths are still configured via settings.xml.
+
 ### Manual Configuration Required
 
 - Controller configuration typically done through GUI
 - Flatpak users may need `flatpak override` for custom MLC paths
-
-### Limitations
-
-- Editing settings.xml directly may not work well (Cemu overwrites symlinks)
-- Relative game paths may cause issues
-- Some settings best changed through GUI
 
 ### Sources
 
@@ -851,9 +893,26 @@ Eden is strongly suited for the opaque directory pattern. The NAND contains:
 
 Settings in qt-config.ini under input sections.
 
+### CLI Arguments
+
+Eden supports setting the root data directory via command line:
+
+```bash
+# Set root data directory
+eden -r /path/to/root/directory
+```
+
+When using `-r`, Eden stores **all** its data within the specified directory:
+- Config at `<root>/config/qt-config.ini`
+- NAND at `<root>/nand/`
+- SDMC at `<root>/sdmc/`
+- Keys at `<root>/keys/`
+
+**kyaraben Implementation**: Uses `-r` to set the root data directory to the opaque path, then configures ROM paths and screenshot location via the config file inside that directory.
+
 ### Manual Configuration Required
 
-- **Keys**: Must be placed in the keys directory
+- **Keys**: Must be placed in the keys directory (`<root>/keys/prod.keys`)
 - **Firmware installation**: Done through Eden GUI if needed
 
 ### Important Notes
@@ -1119,6 +1178,23 @@ Emulators recommended for the opaque directory pattern (managed as a single unit
 | Cemu | Wii U MLC storage structure |
 | Eden | Switch NAND/SDMC structure |
 
+### CLI Argument Support
+
+Emulators that support CLI arguments for setting user/data directories:
+
+| Emulator | CLI Argument | Description |
+|----------|-------------|-------------|
+| Dolphin | `-u /path` | Sets user directory (config, saves, NAND) |
+| Cemu | `-mlc /path` | Sets MLC directory (saves, updates, DLC) |
+| Eden | `-r /path` | Sets root data directory (config, NAND, keys) |
+| Vita3K | `-c /path` | Sets config/data location |
+
+**Benefits of CLI arguments**:
+- Avoids conflicts with system-wide installations
+- kyaraben has full control over emulator data
+- Simplifies configuration (fewer INI/XML edits needed)
+- Config files inside the specified directory are still editable
+
 ### Manual Setup Requirements
 
 | Emulator | Manual Steps Required |
@@ -1140,7 +1216,13 @@ Emulators recommended for the opaque directory pattern (managed as a single unit
    - Use system-specific subdirectories for saves/screenshots
    - Use emulator-specific subdirectories for states
 
-2. **Opaque Directory Emulators** (RPCS3, PPSSPP, Vita3K, Azahar, Cemu, Eden):
+2. **CLI Argument Emulators** (Dolphin, Cemu, Eden, Vita3K):
+   - Use CLI arguments in the `.desktop` file Exec line to set user/data directory
+   - Point to `UserStore/opaque/<emulator>/`
+   - Write config files inside the opaque directory for ROM paths, screenshots, etc.
+   - Implemented via `LaunchArgsProvider` interface
+
+3. **Opaque Directory Emulators** (RPCS3, PPSSPP, Azahar):
    - Configure the emulator's root data path to `UserStore/opaque/<emulator>/`
    - Let the emulator manage internal structure
    - Sync entire opaque directory
