@@ -38,7 +38,7 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 	}
 
 	if err := encoder.Encode(daemon.Event{
-		Type: daemon.EventReady,
+		Type: daemon.EventTypeReady,
 		Data: map[string]string{"version": "0.1.0"},
 	}); err != nil {
 		return fmt.Errorf("sending ready event: %w", err)
@@ -53,24 +53,58 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 		var cmd daemon.Command
 		if err := json.Unmarshal(line, &cmd); err != nil {
 			sendEvent(daemon.Event{
-				Type: daemon.EventError,
+				Type: daemon.EventTypeError,
 				Data: map[string]string{"error": fmt.Sprintf("invalid command: %v", err)},
 			})
 			continue
 		}
 
-		if cmd.Type == daemon.CmdApply {
+		var events []daemon.Event
+		switch cmd.Type {
+		case daemon.CommandTypeApply:
 			go func() {
 				events := d.HandleWithEmit(cmd, sendEvent)
 				for _, event := range events {
 					sendEvent(event)
 				}
 			}()
-		} else {
-			events := d.HandleWithEmit(cmd, sendEvent)
-			for _, event := range events {
-				sendEvent(event)
+			continue
+		case daemon.CommandTypeSetConfig:
+			var setConfigCmd daemon.SetConfigCommand
+			if err := json.Unmarshal(line, &setConfigCmd); err != nil {
+				sendEvent(daemon.Event{
+					Type: daemon.EventTypeError,
+					Data: map[string]string{"error": fmt.Sprintf("invalid set_config command: %v", err)},
+				})
+				continue
 			}
+			events = d.HandleSetConfig(setConfigCmd, sendEvent)
+		case daemon.CommandTypeSyncAddDevice:
+			var syncAddCmd daemon.SyncAddDeviceCommand
+			if err := json.Unmarshal(line, &syncAddCmd); err != nil {
+				sendEvent(daemon.Event{
+					Type: daemon.EventTypeError,
+					Data: map[string]string{"error": fmt.Sprintf("invalid sync_add_device command: %v", err)},
+				})
+				continue
+			}
+			events = d.HandleSyncAddDevice(syncAddCmd, sendEvent)
+		case daemon.CommandTypeSyncRemoveDevice:
+			var syncRemoveCmd daemon.SyncRemoveDeviceCommand
+			if err := json.Unmarshal(line, &syncRemoveCmd); err != nil {
+				sendEvent(daemon.Event{
+					Type: daemon.EventTypeError,
+					Data: map[string]string{"error": fmt.Sprintf("invalid sync_remove_device command: %v", err)},
+				})
+				continue
+			}
+			events = d.HandleSyncRemoveDevice(syncRemoveCmd, sendEvent)
+		default:
+			events = d.HandleWithEmit(cmd, sendEvent)
+		}
+
+		for _, event := range events {
+			sendEvent(event)
 		}
 	}
 

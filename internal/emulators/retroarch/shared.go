@@ -24,7 +24,7 @@ var MainConfigTarget = model.ConfigTarget{
 // See: https://docs.libretro.com/guides/change-directories/
 func SharedConfig(store model.StoreReader) model.ConfigPatch {
 	// Use shared RetroArch data directory for cores and assets
-	raDataDir := store.EmulatorOpaqueDir(model.EmulatorRetroArch)
+	raDataDir := store.EmulatorOpaqueDir(model.EmulatorIDRetroArch)
 	return model.ConfigPatch{
 		Target: MainConfigTarget,
 		Entries: []model.ConfigEntry{

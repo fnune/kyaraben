@@ -16,8 +16,8 @@ func TestLoadSaveConfig(t *testing.T) {
 			UserStore: "~/Emulation",
 		},
 		Systems: map[SystemID]SystemConf{
-			SystemSNES: {Emulator: string(EmulatorRetroArchBsnes)},
-			SystemPSX:  {Emulator: string(EmulatorDuckStation)},
+			SystemIDSNES: {Emulator: string(EmulatorIDRetroArchBsnes)},
+			SystemIDPSX:  {Emulator: string(EmulatorIDDuckStation)},
 		},
 	}
 
@@ -45,12 +45,12 @@ func TestLoadSaveConfig(t *testing.T) {
 		t.Errorf("Systems count mismatch: got %d, want %d", len(loaded.Systems), len(cfg.Systems))
 	}
 
-	if loaded.Systems[SystemSNES].EmulatorID() != EmulatorRetroArchBsnes {
-		t.Errorf("SNES emulator mismatch: got %s, want %s", loaded.Systems[SystemSNES].EmulatorID(), EmulatorRetroArchBsnes)
+	if loaded.Systems[SystemIDSNES].EmulatorID() != EmulatorIDRetroArchBsnes {
+		t.Errorf("SNES emulator mismatch: got %s, want %s", loaded.Systems[SystemIDSNES].EmulatorID(), EmulatorIDRetroArchBsnes)
 	}
 
-	if loaded.Systems[SystemPSX].EmulatorID() != EmulatorDuckStation {
-		t.Errorf("PSX emulator mismatch: got %s, want %s", loaded.Systems[SystemPSX].EmulatorID(), EmulatorDuckStation)
+	if loaded.Systems[SystemIDPSX].EmulatorID() != EmulatorIDDuckStation {
+		t.Errorf("PSX emulator mismatch: got %s, want %s", loaded.Systems[SystemIDPSX].EmulatorID(), EmulatorIDDuckStation)
 	}
 }
 
@@ -103,9 +103,9 @@ func TestExpandUserStore(t *testing.T) {
 func TestEnabledSystems(t *testing.T) {
 	cfg := &KyarabenConfig{
 		Systems: map[SystemID]SystemConf{
-			SystemSNES: {Emulator: string(EmulatorRetroArchBsnes)},
-			SystemPSX:  {Emulator: string(EmulatorDuckStation)},
-			SystemGBA:  {Emulator: string(EmulatorMGBA)},
+			SystemIDSNES: {Emulator: string(EmulatorIDRetroArchBsnes)},
+			SystemIDPSX:  {Emulator: string(EmulatorIDDuckStation)},
+			SystemIDGBA:  {Emulator: string(EmulatorIDMGBA)},
 		},
 	}
 
@@ -119,7 +119,7 @@ func TestEnabledSystems(t *testing.T) {
 		systemMap[s] = true
 	}
 
-	for _, expected := range []SystemID{SystemSNES, SystemPSX, SystemGBA} {
+	for _, expected := range []SystemID{SystemIDSNES, SystemIDPSX, SystemIDGBA} {
 		if !systemMap[expected] {
 			t.Errorf("System %s not found in enabled systems", expected)
 		}

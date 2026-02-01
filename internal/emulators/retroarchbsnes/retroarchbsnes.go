@@ -9,10 +9,10 @@ type Definition struct{}
 
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
-		ID:      model.EmulatorRetroArchBsnes,
-		Name:    "RetroArch (bsnes)",
-		Systems: []model.SystemID{model.SystemSNES},
-		Package: model.AppImageRef("retroarch"),
+		ID:         model.EmulatorIDRetroArchBsnes,
+		Name:       "RetroArch (bsnes)",
+		Systems:    []model.SystemID{model.SystemIDSNES},
+		Package:    model.AppImageRef("retroarch"),
 		Provisions: []model.Provision{},
 		StateKinds: []model.StateKind{
 			model.StateSaves,
@@ -42,10 +42,10 @@ func coreOverrideConfig(store model.StoreReader) model.ConfigPatch {
 	return model.ConfigPatch{
 		Target: retroarch.CoreOverrideTarget(coreName),
 		Entries: []model.ConfigEntry{
-			{Path: []string{"savefile_directory"}, Value: store.SystemSavesDir(model.SystemSNES)},
-			{Path: []string{"savestate_directory"}, Value: store.EmulatorStatesDir(model.EmulatorRetroArchBsnes)},
-			{Path: []string{"screenshot_directory"}, Value: store.SystemScreenshotsDir(model.SystemSNES)},
-			{Path: []string{"rgui_browser_directory"}, Value: store.SystemRomsDir(model.SystemSNES)},
+			{Path: []string{"savefile_directory"}, Value: store.SystemSavesDir(model.SystemIDSNES)},
+			{Path: []string{"savestate_directory"}, Value: store.EmulatorStatesDir(model.EmulatorIDRetroArchBsnes)},
+			{Path: []string{"screenshot_directory"}, Value: store.SystemScreenshotsDir(model.SystemIDSNES)},
+			{Path: []string{"rgui_browser_directory"}, Value: store.SystemRomsDir(model.SystemIDSNES)},
 		},
 	}
 }

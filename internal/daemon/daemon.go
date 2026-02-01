@@ -32,8 +32,8 @@ type Daemon struct {
 	configWriter    *emulators.ConfigWriter
 	launcherManager *launcher.Manager
 
-	mu               sync.Mutex
-	applyCancelFunc  context.CancelFunc
+	mu              sync.Mutex
+	applyCancelFunc context.CancelFunc
 }
 
 func New(configPath string, reg *registry.Registry, nixClient nix.NixClient, flakeGenerator *nix.FlakeGenerator, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager) *Daemon {
@@ -51,38 +51,52 @@ func (d *Daemon) Handle(cmd Command) []Event {
 	return d.HandleWithEmit(cmd, nil)
 }
 
-// HandleWithEmit processes a command. If emit is provided, progress events
-// are sent immediately via emit rather than being batched.
 func (d *Daemon) HandleWithEmit(cmd Command, emit func(Event)) []Event {
 	switch cmd.Type {
-	case CmdStatus:
+	case CommandTypeStatus:
 		return d.handleStatus()
-	case CmdDoctor:
+	case CommandTypeDoctor:
 		return d.handleDoctor()
-	case CmdApply:
-		return d.handleApply(cmd.Data, emit)
-	case CmdCancelApply:
+	case CommandTypeApply:
+		return d.handleApply(emit)
+	case CommandTypeCancelApply:
 		return d.handleCancelApply()
-	case CmdGetSystems:
+	case CommandTypeGetSystems:
 		return d.handleGetSystems()
-	case CmdGetConfig:
+	case CommandTypeGetConfig:
 		return d.handleGetConfig()
-	case CmdSetConfig:
-		return d.handleSetConfig(cmd.Data)
-	case CmdSyncStatus:
+	case CommandTypeSetConfig:
+		return d.handleSetConfig(nil)
+	case CommandTypeSyncStatus:
 		return d.handleSyncStatus()
-	case CmdSyncAddDevice:
-		return d.handleSyncAddDevice(cmd.Data)
-	case CmdSyncRemoveDevice:
-		return d.handleSyncRemoveDevice(cmd.Data)
-	case CmdUninstallPreview:
+	case CommandTypeSyncAddDevice:
+		return d.handleSyncAddDevice(nil)
+	case CommandTypeSyncRemoveDevice:
+		return d.handleSyncRemoveDevice(nil)
+	case CommandTypeUninstallPreview:
 		return d.handleUninstallPreview()
 	default:
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": fmt.Sprintf("unknown command: %s", cmd.Type)},
-		}}
+		return d.errorResponse(fmt.Sprintf("unknown command: %s", cmd.Type))
 	}
+}
+
+func (d *Daemon) HandleSetConfig(cmd SetConfigCommand, emit func(Event)) []Event {
+	return d.handleSetConfig(&cmd.Data)
+}
+
+func (d *Daemon) HandleSyncAddDevice(cmd SyncAddDeviceCommand, emit func(Event)) []Event {
+	return d.handleSyncAddDevice(&cmd.Data)
+}
+
+func (d *Daemon) HandleSyncRemoveDevice(cmd SyncRemoveDeviceCommand, emit func(Event)) []Event {
+	return d.handleSyncRemoveDevice(&cmd.Data)
+}
+
+func (d *Daemon) errorResponse(msg string) []Event {
+	return []Event{{
+		Type: EventTypeError,
+		Data: ErrorResponse{Error: msg},
+	}}
 }
 
 func (d *Daemon) loadConfig() (*model.KyarabenConfig, error) {
@@ -111,10 +125,7 @@ func (d *Daemon) loadConfigOrDefault() (*model.KyarabenConfig, error) {
 func (d *Daemon) handleStatus() []Event {
 	cfg, err := d.loadConfig()
 	if err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		return d.errorResponse(err.Error())
 	}
 
 	configPath := d.configPath
@@ -124,48 +135,39 @@ func (d *Daemon) handleStatus() []Event {
 
 	userStore, err := store.NewUserStore(cfg.Global.UserStore)
 	if err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		return d.errorResponse(err.Error())
 	}
 
 	manifestPath, err := model.DefaultManifestPath()
 	if err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		return d.errorResponse(err.Error())
 	}
 
 	result, err := status.Get(context.Background(), cfg, configPath, d.reg, userStore, manifestPath)
 	if err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		return d.errorResponse(err.Error())
 	}
 
-	systems := make([]string, len(result.EnabledSystems))
+	systems := make([]model.SystemID, len(result.EnabledSystems))
 	for i, sys := range result.EnabledSystems {
-		systems[i] = string(sys.ID)
+		systems[i] = sys.ID
 	}
 
-	installedEmulators := make([]map[string]string, len(result.InstalledEmulators))
+	installedEmulators := make([]InstalledEmulator, len(result.InstalledEmulators))
 	for i, emu := range result.InstalledEmulators {
-		installedEmulators[i] = map[string]string{
-			"id":      string(emu.ID),
-			"version": emu.Version,
+		installedEmulators[i] = InstalledEmulator{
+			ID:      emu.ID,
+			Version: emu.Version,
 		}
 	}
 
 	return []Event{{
-		Type: EventResult,
-		Data: map[string]interface{}{
-			"userStore":          result.UserStorePath,
-			"enabledSystems":     systems,
-			"installedEmulators": installedEmulators,
-			"lastApplied":        result.LastApplied.Format(time.RFC3339),
+		Type: EventTypeResult,
+		Data: StatusResponse{
+			UserStore:          result.UserStorePath,
+			EnabledSystems:     systems,
+			InstalledEmulators: installedEmulators,
+			LastApplied:        result.LastApplied.Format(time.RFC3339),
 		},
 	}}
 }
@@ -173,81 +175,60 @@ func (d *Daemon) handleStatus() []Event {
 func (d *Daemon) handleDoctor() []Event {
 	cfg, err := d.loadConfig()
 	if err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		return d.errorResponse(err.Error())
 	}
 
 	userStore, err := store.NewUserStore(cfg.Global.UserStore)
 	if err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		return d.errorResponse(err.Error())
 	}
 
 	result, err := doctor.Run(context.Background(), cfg, d.reg, userStore)
 	if err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		return d.errorResponse(err.Error())
 	}
 
-	systems := make(map[string][]map[string]interface{})
+	response := make(DoctorResponse)
 	for _, sys := range result.Systems {
-		provisions := make([]map[string]interface{}, len(sys.Provisions))
+		provisions := make([]ProvisionResult, len(sys.Provisions))
 		for i, prov := range sys.Provisions {
-			provisions[i] = map[string]interface{}{
-				"filename":    prov.Filename,
-				"description": prov.Description,
-				"required":    prov.Required,
-				"status":      string(prov.Status),
-				"foundPath":   prov.FoundPath,
+			provisions[i] = ProvisionResult{
+				Filename:    prov.Filename,
+				Description: prov.Description,
+				Required:    prov.Required,
+				Status:      string(prov.Status),
+				FoundPath:   prov.FoundPath,
 			}
 		}
-		systems[string(sys.SystemID)] = provisions
+		response[string(sys.SystemID)] = provisions
 	}
 
 	return []Event{{
-		Type: EventResult,
-		Data: systems,
+		Type: EventTypeResult,
+		Data: response,
 	}}
 }
 
-func (d *Daemon) handleApply(_ map[string]interface{}, emit func(Event)) []Event {
+func (d *Daemon) handleApply(emit func(Event)) []Event {
 	cfg, err := d.loadConfig()
 	if err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		return d.errorResponse(err.Error())
 	}
 
 	versionOverrides, err := cfg.BuildVersionOverrides(d.reg.GetEmulator)
 	if err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		return d.errorResponse(err.Error())
 	}
 	d.flakeGenerator.SetVersionOverrides(versionOverrides)
 
 	userStore, err := store.NewUserStore(cfg.Global.UserStore)
 	if err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		return d.errorResponse(err.Error())
 	}
 
 	manifestPath, err := model.DefaultManifestPath()
 	if err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		return d.errorResponse(err.Error())
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -272,19 +253,14 @@ func (d *Daemon) handleApply(_ map[string]interface{}, emit func(Event)) []Event
 
 	opts := apply.Options{
 		OnProgress: func(p apply.Progress) {
-			data := map[string]interface{}{
-				"step":    p.Step,
-				"message": p.Message,
-			}
-			if p.Output != "" {
-				data["output"] = p.Output
-			}
-			if p.Speed != "" {
-				data["speed"] = p.Speed
-			}
 			event := Event{
-				Type: EventProgress,
-				Data: data,
+				Type: EventTypeProgress,
+				Data: ProgressEvent{
+					Step:    p.Step,
+					Message: p.Message,
+					Output:  p.Output,
+					Speed:   p.Speed,
+				},
 			}
 			if emit != nil {
 				emit(event)
@@ -295,22 +271,19 @@ func (d *Daemon) handleApply(_ map[string]interface{}, emit func(Event)) []Event
 	result, err := applier.Apply(ctx, cfg, userStore, opts)
 	if ctx.Err() != nil {
 		return []Event{{
-			Type: EventCancelled,
-			Data: map[string]string{"message": "Installation cancelled"},
+			Type: EventTypeCancelled,
+			Data: CancelledResponse{Message: "Installation cancelled"},
 		}}
 	}
 	if err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		return d.errorResponse(err.Error())
 	}
 
 	return []Event{{
-		Type: EventResult,
-		Data: map[string]interface{}{
-			"success":   true,
-			"storePath": result.StorePath,
+		Type: EventTypeResult,
+		Data: ApplyResult{
+			Success:   true,
+			StorePath: result.StorePath,
 		},
 	}}
 }
@@ -323,14 +296,14 @@ func (d *Daemon) handleCancelApply() []Event {
 	if cancel != nil {
 		cancel()
 		return []Event{{
-			Type: EventCancelled,
-			Data: map[string]string{"message": "Installation cancelled"},
+			Type: EventTypeCancelled,
+			Data: CancelledResponse{Message: "Installation cancelled"},
 		}}
 	}
 
 	return []Event{{
-		Type: EventResult,
-		Data: map[string]interface{}{"cancelled": false, "message": "No apply in progress"},
+		Type: EventTypeResult,
+		Data: CancelledResponse{Message: "No apply in progress"},
 	}}
 }
 
@@ -338,39 +311,40 @@ func (d *Daemon) handleGetSystems() []Event {
 	systems := d.reg.AllSystems()
 	vers, _ := versions.Get()
 
-	result := make([]map[string]interface{}, 0, len(systems))
+	result := make(GetSystemsResponse, 0, len(systems))
 	for _, sys := range systems {
 		emus := d.reg.GetEmulatorsForSystem(sys.ID)
-		emuList := make([]map[string]interface{}, 0, len(emus))
+		emuList := make([]EmulatorRef, 0, len(emus))
 		for _, emu := range emus {
-			emuData := map[string]interface{}{
-				"id":   string(emu.ID),
-				"name": emu.Name,
+			ref := EmulatorRef{
+				ID:   emu.ID,
+				Name: emu.Name,
 			}
 
-			// Add version info if available
 			if vers != nil {
 				if spec, ok := vers.GetEmulator(emu.Package.PackageName()); ok {
-					emuData["defaultVersion"] = spec.Default
+					ref.DefaultVersion = spec.Default
 					availableVersions := spec.AvailableVersions()
 					sort.Strings(availableVersions)
-					emuData["availableVersions"] = availableVersions
+					ref.AvailableVersions = availableVersions
 				}
 			}
 
-			emuList = append(emuList, emuData)
+			emuList = append(emuList, ref)
 		}
 
-		result = append(result, map[string]interface{}{
-			"id":          string(sys.ID),
-			"name":        sys.Name,
-			"description": sys.Description,
-			"emulators":   emuList,
+		result = append(result, SystemWithEmulators{
+			ID:           sys.ID,
+			Name:         sys.Name,
+			Description:  sys.Description,
+			Manufacturer: sys.Manufacturer,
+			Label:        sys.Label,
+			Emulators:    emuList,
 		})
 	}
 
 	return []Event{{
-		Type: EventResult,
+		Type: EventTypeResult,
 		Data: result,
 	}}
 }
@@ -378,49 +352,43 @@ func (d *Daemon) handleGetSystems() []Event {
 func (d *Daemon) handleGetConfig() []Event {
 	cfg, err := d.loadConfigOrDefault()
 	if err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": fmt.Sprintf("loading config: %v", err)},
-		}}
+		return d.errorResponse(fmt.Sprintf("loading config: %v", err))
 	}
 
-	systems := make(map[string]map[string]interface{})
+	systems := make(map[string]SystemConf)
 	for sys, sysConf := range cfg.Systems {
-		entry := map[string]interface{}{
-			"emulator": string(sysConf.EmulatorID()),
+		entry := SystemConf{
+			Emulator: sysConf.EmulatorID(),
 		}
 		if version := sysConf.EmulatorVersion(); version != "" {
-			entry["pinnedVersion"] = version
+			entry.PinnedVersion = version
 		}
 		systems[string(sys)] = entry
 	}
 
 	return []Event{{
-		Type: EventResult,
-		Data: map[string]interface{}{
-			"userStore": cfg.Global.UserStore,
-			"systems":   systems,
+		Type: EventTypeResult,
+		Data: ConfigResponse{
+			UserStore: cfg.Global.UserStore,
+			Systems:   systems,
 		},
 	}}
 }
 
-func (d *Daemon) handleSetConfig(data map[string]interface{}) []Event {
+func (d *Daemon) handleSetConfig(data *SetConfigRequest) []Event {
 	cfg, err := d.loadConfigOrDefault()
 	if err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": fmt.Sprintf("loading config: %v", err)},
-		}}
+		return d.errorResponse(fmt.Sprintf("loading config: %v", err))
 	}
 
-	if userStore, ok := data["userStore"].(string); ok {
-		cfg.Global.UserStore = userStore
-	}
+	if data != nil {
+		if data.UserStore != "" {
+			cfg.Global.UserStore = data.UserStore
+		}
 
-	if systems, ok := data["systems"].(map[string]interface{}); ok {
-		cfg.Systems = make(map[model.SystemID]model.SystemConf)
-		for sysStr, emuVal := range systems {
-			if emuStr, ok := emuVal.(string); ok {
+		if data.Systems != nil {
+			cfg.Systems = make(map[model.SystemID]model.SystemConf)
+			for sysStr, emuStr := range data.Systems {
 				cfg.Systems[model.SystemID(sysStr)] = model.SystemConf{
 					Emulator: emuStr,
 				}
@@ -434,35 +402,25 @@ func (d *Daemon) handleSetConfig(data map[string]interface{}) []Event {
 	}
 
 	if err := model.SaveConfig(cfg, path); err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		return d.errorResponse(err.Error())
 	}
 
 	return []Event{{
-		Type: EventResult,
-		Data: map[string]interface{}{
-			"success": true,
-		},
+		Type: EventTypeResult,
+		Data: SetConfigResponse{Success: true},
 	}}
 }
 
 func (d *Daemon) handleSyncStatus() []Event {
 	cfg, err := d.loadConfig()
 	if err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		return d.errorResponse(err.Error())
 	}
 
 	if !cfg.Sync.Enabled {
 		return []Event{{
-			Type: EventResult,
-			Data: map[string]interface{}{
-				"enabled": false,
-			},
+			Type: EventTypeResult,
+			Data: SyncStatusResponse{Enabled: false},
 		}}
 	}
 
@@ -472,84 +430,67 @@ func (d *Daemon) handleSyncStatus() []Event {
 
 	if !client.IsRunning(ctx) {
 		return []Event{{
-			Type: EventResult,
-			Data: map[string]interface{}{
-				"enabled": true,
-				"mode":    string(cfg.Sync.Mode),
-				"running": false,
-				"guiURL":  fmt.Sprintf("http://127.0.0.1:%d", cfg.Sync.Syncthing.GUIPort),
+			Type: EventTypeResult,
+			Data: SyncStatusResponse{
+				Enabled: true,
+				Mode:    string(cfg.Sync.Mode),
+				Running: false,
+				GUIURL:  fmt.Sprintf("http://127.0.0.1:%d", cfg.Sync.Syncthing.GUIPort),
 			},
 		}}
 	}
 
-	status, err := client.GetStatus(ctx)
+	syncStatus, err := client.GetStatus(ctx)
 	if err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		return d.errorResponse(err.Error())
 	}
 
-	devices := make([]map[string]interface{}, len(status.Devices))
-	for i, dev := range status.Devices {
-		devices[i] = map[string]interface{}{
-			"id":        dev.ID,
-			"name":      dev.Name,
-			"connected": dev.Connected,
+	devices := make([]SyncDevice, len(syncStatus.Devices))
+	for i, dev := range syncStatus.Devices {
+		devices[i] = SyncDevice{
+			ID:        dev.ID,
+			Name:      dev.Name,
+			Connected: dev.Connected,
 		}
 	}
 
 	return []Event{{
-		Type: EventResult,
-		Data: map[string]interface{}{
-			"enabled":  true,
-			"mode":     string(status.Mode),
-			"running":  true,
-			"deviceId": status.DeviceID,
-			"guiURL":   status.GUIURL,
-			"state":    string(status.OverallState()),
-			"devices":  devices,
+		Type: EventTypeResult,
+		Data: SyncStatusResponse{
+			Enabled:  true,
+			Mode:     string(syncStatus.Mode),
+			Running:  true,
+			DeviceID: syncStatus.DeviceID,
+			GUIURL:   syncStatus.GUIURL,
+			State:    SyncState(syncStatus.OverallState()),
+			Devices:  devices,
 		},
 	}}
 }
 
-func (d *Daemon) handleSyncAddDevice(data map[string]interface{}) []Event {
+func (d *Daemon) handleSyncAddDevice(data *SyncAddDeviceRequest) []Event {
 	cfg, err := d.loadConfig()
 	if err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		return d.errorResponse(err.Error())
 	}
 
 	if !cfg.Sync.Enabled {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": "sync is not enabled"},
-		}}
+		return d.errorResponse("sync is not enabled")
 	}
 
-	deviceID, ok := data["deviceId"].(string)
-	if !ok || deviceID == "" {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": "deviceId is required"},
-		}}
+	if data == nil || data.DeviceID == "" {
+		return d.errorResponse("deviceId is required")
 	}
 
-	name, _ := data["name"].(string)
+	deviceID := strings.ToUpper(strings.TrimSpace(data.DeviceID))
+	name := data.Name
 	if name == "" {
 		name = fmt.Sprintf("device-%d", len(cfg.Sync.Devices)+1)
 	}
 
-	deviceID = strings.ToUpper(strings.TrimSpace(deviceID))
-
 	for _, existing := range cfg.Sync.Devices {
 		if existing.ID == deviceID {
-			return []Event{{
-				Type: EventError,
-				Data: map[string]string{"error": "device already added"},
-			}}
+			return d.errorResponse("device already added")
 		}
 	}
 
@@ -564,40 +505,30 @@ func (d *Daemon) handleSyncAddDevice(data map[string]interface{}) []Event {
 	}
 
 	if err := model.SaveConfig(cfg, path); err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		return d.errorResponse(err.Error())
 	}
 
 	return []Event{{
-		Type: EventResult,
-		Data: map[string]interface{}{
-			"success":  true,
-			"deviceId": deviceID,
-			"name":     name,
+		Type: EventTypeResult,
+		Data: SyncAddDeviceResponse{
+			Success:  true,
+			DeviceID: deviceID,
+			Name:     name,
 		},
 	}}
 }
 
-func (d *Daemon) handleSyncRemoveDevice(data map[string]interface{}) []Event {
+func (d *Daemon) handleSyncRemoveDevice(data *SyncRemoveDeviceRequest) []Event {
 	cfg, err := d.loadConfig()
 	if err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		return d.errorResponse(err.Error())
 	}
 
-	deviceID, ok := data["deviceId"].(string)
-	if !ok || deviceID == "" {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": "deviceId is required"},
-		}}
+	if data == nil || data.DeviceID == "" {
+		return d.errorResponse("deviceId is required")
 	}
 
-	deviceID = strings.ToUpper(strings.TrimSpace(deviceID))
+	deviceID := strings.ToUpper(strings.TrimSpace(data.DeviceID))
 
 	found := -1
 	for i, dev := range cfg.Sync.Devices {
@@ -608,10 +539,7 @@ func (d *Daemon) handleSyncRemoveDevice(data map[string]interface{}) []Event {
 	}
 
 	if found == -1 {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": "device not found"},
-		}}
+		return d.errorResponse("device not found")
 	}
 
 	removed := cfg.Sync.Devices[found]
@@ -623,18 +551,15 @@ func (d *Daemon) handleSyncRemoveDevice(data map[string]interface{}) []Event {
 	}
 
 	if err := model.SaveConfig(cfg, path); err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		return d.errorResponse(err.Error())
 	}
 
 	return []Event{{
-		Type: EventResult,
-		Data: map[string]interface{}{
-			"success":  true,
-			"deviceId": removed.ID,
-			"name":     removed.Name,
+		Type: EventTypeResult,
+		Data: SyncRemoveDeviceResponse{
+			Success:  true,
+			DeviceID: removed.ID,
+			Name:     removed.Name,
 		},
 	}}
 }
@@ -642,18 +567,12 @@ func (d *Daemon) handleSyncRemoveDevice(data map[string]interface{}) []Event {
 func (d *Daemon) handleUninstallPreview() []Event {
 	stateDir, err := paths.KyarabenStateDir()
 	if err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		return d.errorResponse(err.Error())
 	}
 
 	manifestPath, err := model.DefaultManifestPath()
 	if err != nil {
-		return []Event{{
-			Type: EventError,
-			Data: map[string]string{"error": err.Error()},
-		}}
+		return d.errorResponse(err.Error())
 	}
 
 	manifest, _ := model.LoadManifest(manifestPath)
@@ -686,16 +605,16 @@ func (d *Daemon) handleUninstallPreview() []Event {
 	}
 
 	return []Event{{
-		Type: EventResult,
-		Data: map[string]interface{}{
-			"stateDir":     stateDir,
-			"stateDirExists": dirExists(stateDir),
-			"desktopFiles": desktopFiles,
-			"iconFiles":    iconFiles,
-			"configFiles":  configFiles,
-			"preserved": map[string]string{
-				"userStore": userStore,
-				"configDir": configDir,
+		Type: EventTypeResult,
+		Data: UninstallPreviewResponse{
+			StateDir:       stateDir,
+			StateDirExists: dirExists(stateDir),
+			DesktopFiles:   desktopFiles,
+			IconFiles:      iconFiles,
+			ConfigFiles:    configFiles,
+			Preserved: PreservedPaths{
+				UserStore: userStore,
+				ConfigDir: configDir,
 			},
 		},
 	}}
@@ -710,4 +629,3 @@ func dirExists(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && info.IsDir()
 }
-

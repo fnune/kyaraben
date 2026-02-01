@@ -1,0 +1,20 @@
+packages:
+  - path: github.com/fnune/kyaraben/internal/model
+    output_path: ui/src/types/model.gen.ts
+    include_files:
+      - system.go
+      - emulator_id.go
+    enum_style: union
+
+  - path: github.com/fnune/kyaraben/internal/daemon
+    output_path: ui/src/types/daemon.gen.ts
+    include_files:
+      - types.go
+      - protocol.go
+    enum_style: union
+    type_mappings:
+      model.SystemID: SystemID
+      model.EmulatorID: EmulatorID
+      model.Manufacturer: Manufacturer
+    frontmatter: |
+      import type { SystemID, EmulatorID, Manufacturer } from './model.gen'

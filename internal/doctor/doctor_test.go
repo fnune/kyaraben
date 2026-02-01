@@ -32,8 +32,8 @@ func TestRun(t *testing.T) {
 			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemPSX:     {Emulator: string(model.EmulatorDuckStation)},
-			model.SystemGBA: {Emulator: string(model.EmulatorMGBA)},
+			model.SystemIDPSX: {Emulator: string(model.EmulatorIDDuckStation)},
+			model.SystemIDGBA: {Emulator: string(model.EmulatorIDMGBA)},
 		},
 	}
 
@@ -68,7 +68,7 @@ func TestRunNoRequiredProvisions(t *testing.T) {
 			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemGBA: {Emulator: string(model.EmulatorMGBA)},
+			model.SystemIDGBA: {Emulator: string(model.EmulatorIDMGBA)},
 		},
 	}
 
@@ -85,8 +85,8 @@ func TestRunNoRequiredProvisions(t *testing.T) {
 	}
 
 	sys := result.Systems[0]
-	if sys.SystemID != model.SystemGBA {
-		t.Errorf("SystemID: got %s, want %s", sys.SystemID, model.SystemGBA)
+	if sys.SystemID != model.SystemIDGBA {
+		t.Errorf("SystemID: got %s, want %s", sys.SystemID, model.SystemIDGBA)
 	}
 	if sys.EmulatorName != "mGBA" {
 		t.Errorf("EmulatorName: got %s, want mGBA", sys.EmulatorName)
@@ -120,7 +120,7 @@ func TestRunWithBiosFile(t *testing.T) {
 			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemPSX: {Emulator: string(model.EmulatorDuckStation)},
+			model.SystemIDPSX: {Emulator: string(model.EmulatorIDDuckStation)},
 		},
 	}
 
@@ -171,7 +171,7 @@ func TestRunSystemResult(t *testing.T) {
 			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemPSX: {Emulator: string(model.EmulatorDuckStation)},
+			model.SystemIDPSX: {Emulator: string(model.EmulatorIDDuckStation)},
 		},
 	}
 
@@ -185,11 +185,11 @@ func TestRunSystemResult(t *testing.T) {
 
 	sys := result.Systems[0]
 
-	if sys.SystemID != model.SystemPSX {
-		t.Errorf("SystemID: got %s, want %s", sys.SystemID, model.SystemPSX)
+	if sys.SystemID != model.SystemIDPSX {
+		t.Errorf("SystemID: got %s, want %s", sys.SystemID, model.SystemIDPSX)
 	}
-	if sys.EmulatorID != model.EmulatorDuckStation {
-		t.Errorf("EmulatorID: got %s, want %s", sys.EmulatorID, model.EmulatorDuckStation)
+	if sys.EmulatorID != model.EmulatorIDDuckStation {
+		t.Errorf("EmulatorID: got %s, want %s", sys.EmulatorID, model.EmulatorIDDuckStation)
 	}
 	if sys.EmulatorName != "DuckStation" {
 		t.Errorf("EmulatorName: got %s, want DuckStation", sys.EmulatorName)

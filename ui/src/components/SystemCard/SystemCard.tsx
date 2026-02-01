@@ -68,7 +68,7 @@ export function SystemCard({
           onChange={handleChange}
           className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
         />
-        <SystemIcon systemId={system.id} size="medium" />
+        <SystemIcon system={system} size="medium" />
         <div className="flex flex-col flex-1">
           <h3 className="font-semibold text-gray-900">{system.name}</h3>
           <div className="flex items-center justify-between gap-2">

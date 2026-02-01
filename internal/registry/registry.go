@@ -2,7 +2,6 @@ package registry
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/fnune/kyaraben/internal/model"
 )
@@ -77,12 +76,9 @@ func (r *Registry) GetDefaultEmulator(sys model.SystemID) (model.Emulator, error
 }
 
 func (r *Registry) AllSystems() []model.System {
-	showHidden := os.Getenv("KYARABEN_SHOW_HIDDEN") == "1"
 	result := make([]model.System, 0, len(r.systems))
 	for _, sys := range r.systems {
-		if !sys.Hidden || showHidden {
-			result = append(result, sys)
-		}
+		result = append(result, sys)
 	}
 	return result
 }

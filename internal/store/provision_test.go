@@ -16,7 +16,7 @@ func TestProvisionCheckerCheck(t *testing.T) {
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
 	}
-	if err := store.InitializeSystem(model.SystemPSX); err != nil {
+	if err := store.InitializeSystem(model.SystemIDPSX); err != nil {
 		t.Fatalf("Failed to initialize PSX system: %v", err)
 	}
 
@@ -24,8 +24,8 @@ func TestProvisionCheckerCheck(t *testing.T) {
 
 	// Test emulator with provisions
 	emu := model.Emulator{
-		ID:      model.EmulatorDuckStation,
-		Systems: []model.SystemID{model.SystemPSX},
+		ID:      model.EmulatorIDDuckStation,
+		Systems: []model.SystemID{model.SystemIDPSX},
 		Provisions: []model.Provision{
 			{
 				ID:       "psx-bios-usa",
@@ -43,7 +43,7 @@ func TestProvisionCheckerCheck(t *testing.T) {
 	}
 
 	// Without any BIOS files
-	results := checker.Check(emu, model.SystemPSX)
+	results := checker.Check(emu, model.SystemIDPSX)
 	if len(results) != 2 {
 		t.Errorf("Expected 2 results, got %d", len(results))
 	}
@@ -71,19 +71,19 @@ func TestProvisionCheckerWithFile(t *testing.T) {
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
 	}
-	if err := store.InitializeSystem(model.SystemGBA); err != nil {
+	if err := store.InitializeSystem(model.SystemIDGBA); err != nil {
 		t.Fatalf("Failed to initialize GBA system: %v", err)
 	}
 
 	checker := NewProvisionChecker(store)
 
 	emu := model.Emulator{
-		ID:         model.EmulatorMGBA,
-		Systems:    []model.SystemID{model.SystemGBA},
+		ID:         model.EmulatorIDMGBA,
+		Systems:    []model.SystemID{model.SystemIDGBA},
 		Provisions: []model.Provision{},
 	}
 
-	results := checker.Check(emu, model.SystemGBA)
+	results := checker.Check(emu, model.SystemIDGBA)
 	if len(results) != 0 {
 		t.Errorf("Expected 0 results for emulator with no provisions, got %d", len(results))
 	}
@@ -100,12 +100,12 @@ func TestProvisionCheckerHashVerification(t *testing.T) {
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
 	}
-	if err := store.InitializeSystem(model.SystemPSX); err != nil {
+	if err := store.InitializeSystem(model.SystemIDPSX); err != nil {
 		t.Fatalf("Failed to initialize PSX system: %v", err)
 	}
 
 	// Create a fake BIOS file with known content
-	biosDir := store.SystemBiosDir(model.SystemPSX)
+	biosDir := store.SystemBiosDir(model.SystemIDPSX)
 	biosFile := filepath.Join(biosDir, "test.bin")
 	content := []byte("test content")
 	if err := os.WriteFile(biosFile, content, 0644); err != nil {
@@ -117,8 +117,8 @@ func TestProvisionCheckerHashVerification(t *testing.T) {
 
 	// Test with correct hash
 	emu := model.Emulator{
-		ID:      model.EmulatorDuckStation,
-		Systems: []model.SystemID{model.SystemPSX},
+		ID:      model.EmulatorIDDuckStation,
+		Systems: []model.SystemID{model.SystemIDPSX},
 		Provisions: []model.Provision{
 			{
 				ID:       "test-bios",
@@ -129,14 +129,14 @@ func TestProvisionCheckerHashVerification(t *testing.T) {
 		},
 	}
 
-	results := checker.Check(emu, model.SystemPSX)
+	results := checker.Check(emu, model.SystemIDPSX)
 	if results[0].Status != model.ProvisionFound {
 		t.Errorf("Expected provision to be found with correct hash, got %s", results[0].Status)
 	}
 
 	// Test with incorrect hash
 	emu.Provisions[0].MD5Hash = "wronghash"
-	results = checker.Check(emu, model.SystemPSX)
+	results = checker.Check(emu, model.SystemIDPSX)
 	if results[0].Status != model.ProvisionInvalid {
 		t.Errorf("Expected provision to be invalid with wrong hash, got %s", results[0].Status)
 	}
@@ -149,12 +149,12 @@ func TestProvisionCheckerCaseInsensitive(t *testing.T) {
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
 	}
-	if err := store.InitializeSystem(model.SystemPSX); err != nil {
+	if err := store.InitializeSystem(model.SystemIDPSX); err != nil {
 		t.Fatalf("Failed to initialize PSX system: %v", err)
 	}
 
 	// Create file with different case
-	biosDir := store.SystemBiosDir(model.SystemPSX)
+	biosDir := store.SystemBiosDir(model.SystemIDPSX)
 	biosFile := filepath.Join(biosDir, "SCPH5501.BIN")
 	if err := os.WriteFile(biosFile, []byte("fake bios"), 0644); err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
@@ -163,8 +163,8 @@ func TestProvisionCheckerCaseInsensitive(t *testing.T) {
 	checker := NewProvisionChecker(store)
 
 	emu := model.Emulator{
-		ID:      model.EmulatorDuckStation,
-		Systems: []model.SystemID{model.SystemPSX},
+		ID:      model.EmulatorIDDuckStation,
+		Systems: []model.SystemID{model.SystemIDPSX},
 		Provisions: []model.Provision{
 			{
 				ID:       "psx-bios",
@@ -175,7 +175,7 @@ func TestProvisionCheckerCaseInsensitive(t *testing.T) {
 		},
 	}
 
-	results := checker.Check(emu, model.SystemPSX)
+	results := checker.Check(emu, model.SystemIDPSX)
 	if results[0].Status != model.ProvisionFound {
 		t.Errorf("Expected provision to be found (case insensitive), got %s", results[0].Status)
 	}

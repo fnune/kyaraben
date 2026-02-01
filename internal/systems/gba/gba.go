@@ -6,12 +6,14 @@ type Definition struct{}
 
 func (Definition) System() model.System {
 	return model.System{
-		ID:          model.SystemGBA,
-		Name:        "Game Boy Advance",
-		Description: "32-bit handheld by Nintendo (2001)",
+		ID:           model.SystemIDGBA,
+		Name:         "Game Boy Advance",
+		Description:  "32-bit handheld by Nintendo (2001)",
+		Manufacturer: model.ManufacturerNintendo,
+		Label:        "GBA",
 	}
 }
 
 func (Definition) DefaultEmulatorID() model.EmulatorID {
-	return model.EmulatorMGBA
+	return model.EmulatorIDMGBA
 }

@@ -6,12 +6,14 @@ type Definition struct{}
 
 func (Definition) System() model.System {
 	return model.System{
-		ID:          model.SystemNDS,
-		Name:        "Nintendo DS",
-		Description: "Dual-screen handheld by Nintendo (2004)",
+		ID:           model.SystemIDNDS,
+		Name:         "Nintendo DS",
+		Description:  "Dual-screen handheld by Nintendo (2004)",
+		Manufacturer: model.ManufacturerNintendo,
+		Label:        "NDS",
 	}
 }
 
 func (Definition) DefaultEmulatorID() model.EmulatorID {
-	return model.EmulatorMelonDS
+	return model.EmulatorIDMelonDS
 }
