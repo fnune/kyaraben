@@ -88,5 +88,7 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 			{Path: []string{"UI", "Paths\\gamedirs\\1\\expanded"}, Value: "true"},
 			{Path: []string{"UI", "Paths\\gamedirs\\1\\path"}, Value: store.SystemRomsDir(model.SystemIDSwitch)},
 		},
+		// Config lives inside opaque dir (via -r flag), so don't track in manifest
+		Untracked: true,
 	}}, nil
 }
