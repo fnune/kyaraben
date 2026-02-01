@@ -331,10 +331,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	}
 
 	for i, patch := range allPatches {
-		// Configs with absolute paths live inside opaque directories (set via CLI
-		// args), which are part of the user store. Don't track them in the manifest
-		// since the user store is preserved during uninstall.
-		if patch.Target.BaseDir == model.ConfigBaseDirAbsolute {
+		if patch.Target.BaseDir == model.ConfigBaseDirOpaqueDir {
 			continue
 		}
 

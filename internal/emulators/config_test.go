@@ -298,8 +298,8 @@ func TestDolphinGenerate(t *testing.T) {
 	}
 
 	// Dolphin now uses -u CLI arg to set user directory, so config is inside opaque dir
-	if patch.Target.BaseDir != model.ConfigBaseDirAbsolute {
-		t.Errorf("expected absolute base dir, got %s", patch.Target.BaseDir)
+	if patch.Target.BaseDir != model.ConfigBaseDirOpaqueDir {
+		t.Errorf("expected opaque dir base dir, got %s", patch.Target.BaseDir)
 	}
 
 	if !strings.Contains(patch.Target.RelPath, "opaque/dolphin") {
@@ -432,8 +432,8 @@ func TestVita3KGenerate(t *testing.T) {
 	}
 
 	// Vita3K now uses -c CLI arg to set config location, so config is inside opaque dir
-	if patch.Target.BaseDir != model.ConfigBaseDirAbsolute {
-		t.Errorf("expected absolute base dir, got %s", patch.Target.BaseDir)
+	if patch.Target.BaseDir != model.ConfigBaseDirOpaqueDir {
+		t.Errorf("expected opaque dir base dir, got %s", patch.Target.BaseDir)
 	}
 
 	if !strings.Contains(patch.Target.RelPath, "opaque/vita3k") {
@@ -576,8 +576,8 @@ func TestEdenGenerate(t *testing.T) {
 	}
 
 	// Eden now uses -r CLI arg to set root data directory, so config is inside opaque dir
-	if patch.Target.BaseDir != model.ConfigBaseDirAbsolute {
-		t.Errorf("expected absolute base dir, got %s", patch.Target.BaseDir)
+	if patch.Target.BaseDir != model.ConfigBaseDirOpaqueDir {
+		t.Errorf("expected opaque dir base dir, got %s", patch.Target.BaseDir)
 	}
 
 	if !strings.Contains(patch.Target.RelPath, "opaque/eden") {
