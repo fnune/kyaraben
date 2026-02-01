@@ -106,18 +106,14 @@ export function App() {
     init()
   }, [])
 
-  const handleToggle = useCallback(
-    (systemId: SystemID, enabled: boolean) => {
+  const handleEnableDefault = useCallback(
+    (systemId: SystemID) => {
       setSystemEmulators((prev) => {
         const next = new Map(prev)
-        if (enabled) {
-          const system = systems.find((s) => s.id === systemId)
-          const defaultEmulator = system?.emulators[0]
-          if (defaultEmulator) {
-            next.set(systemId, [defaultEmulator.id])
-          }
-        } else {
-          next.delete(systemId)
+        const system = systems.find((s) => s.id === systemId)
+        const defaultEmulator = system?.emulators[0]
+        if (defaultEmulator && !next.has(systemId)) {
+          next.set(systemId, [defaultEmulator.id])
         }
         return next
       })
@@ -326,7 +322,7 @@ export function App() {
             provisions={provisions}
             userStore={userStore}
             onUserStoreChange={setUserStore}
-            onToggle={handleToggle}
+            onEnableDefault={handleEnableDefault}
             onEmulatorToggle={handleEmulatorToggle}
             onVersionChange={handleVersionChange}
             onApply={handleApply}
