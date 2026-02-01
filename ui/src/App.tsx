@@ -172,6 +172,14 @@ export function App() {
         return
       }
 
+      if (applyResult.data.cancelled) {
+        setApplyStatus('cancelled')
+        setProgressSteps((prev) =>
+          prev.map((s) => ({ ...s, status: s.status === 'in_progress' ? 'cancelled' : s.status })),
+        )
+        return
+      }
+
       setProgressSteps((prev) => prev.map((s) => ({ ...s, status: 'completed' as const })))
       setApplyStatus('success')
 
@@ -181,7 +189,8 @@ export function App() {
       }
     } catch (err) {
       console.error('Apply failed:', err)
-      setError(err instanceof Error ? err.message : String(err))
+      const message = err instanceof Error ? err.message : String(err)
+      setError(message)
       setApplyStatus('error')
       setProgressSteps((prev) =>
         prev.map((s) => ({ ...s, status: s.status === 'in_progress' ? 'error' : s.status })),
@@ -190,6 +199,10 @@ export function App() {
       window.electron.off('apply:progress', progressHandler)
     }
   }, [selections, userStore])
+
+  const handleCancel = useCallback(async () => {
+    await daemon.cancelApply()
+  }, [])
 
   const handleAddDevice = useCallback(async (deviceId: string, name: string) => {
     const result = await daemon.addSyncDevice({ deviceId, name })
@@ -229,6 +242,7 @@ export function App() {
             onUserStoreChange={setUserStore}
             onToggle={handleToggle}
             onApply={handleApply}
+            onCancel={handleCancel}
             onError={(msg) => showToast(msg, 'error')}
             applyStatus={applyStatus}
             progressSteps={progressSteps}

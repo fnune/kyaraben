@@ -35,7 +35,7 @@ export interface SystemSelection {
   readonly enabled: boolean
 }
 
-export type ProgressStepStatus = 'pending' | 'in_progress' | 'completed' | 'error'
+export type ProgressStepStatus = 'pending' | 'in_progress' | 'completed' | 'error' | 'cancelled'
 
 export interface ProgressStep {
   readonly id: string
@@ -45,7 +45,7 @@ export interface ProgressStep {
   readonly output?: readonly string[]
 }
 
-export type ApplyStatus = 'idle' | 'applying' | 'success' | 'error'
+export type ApplyStatus = 'idle' | 'applying' | 'success' | 'error' | 'cancelled'
 
 export interface ApplyState {
   readonly status: ApplyStatus

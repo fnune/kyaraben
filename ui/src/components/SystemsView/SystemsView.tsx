@@ -13,6 +13,7 @@ export interface SystemsViewProps {
   readonly onUserStoreChange: (value: string) => void
   readonly onToggle: (systemId: SystemID, enabled: boolean) => void
   readonly onApply: () => void
+  readonly onCancel: () => void
   readonly onError: (message: string) => void
   readonly applyStatus: ApplyStatus
   readonly progressSteps: readonly ProgressStep[]
@@ -28,6 +29,7 @@ export function SystemsView({
   onUserStoreChange,
   onToggle,
   onApply,
+  onCancel,
   onError,
   applyStatus,
   progressSteps,
@@ -38,10 +40,23 @@ export function SystemsView({
   const showProgress = applyStatus !== 'idle'
 
   if (showProgress) {
+    const errorMessage = applyStatus === 'error' && error ? error : undefined
+
     return (
       <div className="p-6">
-        <ProgressSteps steps={progressSteps} error={error ?? undefined} />
-        {!isApplying && <Button onClick={onReset}>Done</Button>}
+        <ProgressSteps
+          steps={progressSteps}
+          {...(errorMessage && { error: errorMessage })}
+          {...(applyStatus === 'cancelled' && { cancelled: true })}
+        />
+        <div className="flex gap-2">
+          {isApplying && (
+            <Button onClick={onCancel} variant="secondary">
+              Cancel
+            </Button>
+          )}
+          {!isApplying && <Button onClick={onReset}>Done</Button>}
+        </div>
       </div>
     )
   }
