@@ -15,6 +15,15 @@ type Versions struct {
 	Nixpkgs     NixpkgsVersion  `toml:"nixpkgs"`
 	Eden        AppImageVersion `toml:"eden"`
 	DuckStation AppImageVersion `toml:"duckstation"`
+	// New standalone emulators replacing nix-portable GUI apps
+	PCSX2     AppImageVersion `toml:"pcsx2"`
+	PPSSPP    AppImageVersion `toml:"ppsspp"`
+	MGBA      AppImageVersion `toml:"mgba"`
+	Cemu      AppImageVersion `toml:"cemu"`
+	Azahar    AppImageVersion `toml:"azahar"`
+	Dolphin   AppImageVersion `toml:"dolphin"`
+	RetroArch AppImageVersion `toml:"retroarch"`
+	TIC80     AppImageVersion `toml:"tic80"`
 }
 
 type NixpkgsVersion struct {
