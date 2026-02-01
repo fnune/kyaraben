@@ -249,9 +249,14 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	if a.LauncherManager != nil {
 		opts.OnProgress(Progress{Step: "desktop"})
 
-		a.LauncherManager.SetNixPortableBinary(a.NixClient.GetNixPortableBinary())
+		persistentNixPortable, err := a.NixClient.EnsurePersistentNixPortable()
+		if err != nil {
+			return nil, fmt.Errorf("ensuring persistent nix-portable: %w", err)
+		}
+		a.LauncherManager.SetNixPortableBinary(persistentNixPortable)
 		a.LauncherManager.SetNixPortableLocation(a.NixClient.GetNixPortableLocation())
-		if err := a.LauncherManager.GenerateWrappers(); err != nil {
+		packageInfo := a.buildEmulatorPackageInfo(emulatorsToInstall)
+		if err := a.LauncherManager.GenerateWrappers(packageInfo); err != nil {
 			return nil, fmt.Errorf("generating launcher wrappers: %w", err)
 		}
 
@@ -350,6 +355,33 @@ func ComputeDiffs(patches []model.ConfigPatch) ([]*emulators.ConfigDiff, error) 
 	return diffs, nil
 }
 
+func (a *Applier) buildEmulatorPackageInfo(emulatorIDs []model.EmulatorID) []launcher.EmulatorPackageInfo {
+	seenBinaries := make(map[string]bool)
+	var info []launcher.EmulatorPackageInfo
+
+	for _, emuID := range emulatorIDs {
+		emu, err := a.Registry.GetEmulator(emuID)
+		if err != nil || emu.Launcher.Binary == "" {
+			continue
+		}
+
+		if seenBinaries[emu.Launcher.Binary] {
+			continue
+		}
+		seenBinaries[emu.Launcher.Binary] = true
+
+		source := emu.Package.Source()
+		isAppImage := source == model.PackageSourceGitHub || source == model.PackageSourceVersioned
+
+		info = append(info, launcher.EmulatorPackageInfo{
+			BinaryName: emu.Launcher.Binary,
+			IsAppImage: isAppImage,
+		})
+	}
+
+	return info
+}
+
 func (a *Applier) buildDesktopEntries(emulatorIDs []model.EmulatorID) []launcher.DesktopEntry {
 	seenBinaries := make(map[string]bool)
 	var entries []launcher.DesktopEntry
@@ -386,4 +418,3 @@ func (a *Applier) buildDesktopEntries(emulatorIDs []model.EmulatorID) []launcher
 
 	return entries
 }
-

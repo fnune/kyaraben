@@ -30,6 +30,9 @@ type NixClient interface {
 	GetNixPortableBinary() string
 	GetNixPortableLocation() string
 	SetOutputCallback(fn func(line string))
+
+	GetPersistentNixPortablePath() string
+	EnsurePersistentNixPortable() (string, error)
 }
 
 func (c *Client) GetFlakePath() string {
