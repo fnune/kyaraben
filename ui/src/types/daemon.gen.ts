@@ -33,6 +33,7 @@ export interface InstalledEmulator {
   version: string;
   execLine?: string;
   managedConfigs?: string[];
+  iconPath?: string;
 }
 /**
  * DoctorResponse uses map[string] because tygo can't generate valid TypeScript
