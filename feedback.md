@@ -260,3 +260,65 @@ In EmulatorSubcard, the provision items (folder buttons, copy buttons, launch bu
 
 Fix: Disable or hide provision action buttons when the emulator is disabled (`enabled={false}`).
 
+---
+
+## Use kyaraben-specific subdirectories for generated files [DONE]
+
+Kyaraben now uses kyaraben-specific locations for generated files:
+
+- Desktop files: `~/.local/share/applications/kyaraben/*.desktop`
+- Icons: `~/.local/share/icons/hicolor/*/apps/kyaraben-*.{svg,png}` (prefixed rather than subdirectory, since hicolor icon theme requires standard structure)
+
+Benefits:
+1. Easier to uninstall - desktop files can be removed by deleting the subdirectory
+2. Icons are easily identifiable by their `kyaraben-` prefix
+3. Avoids filename clashes with other applications
+4. Migration from old paths happens automatically on next `kyaraben apply`
+
+---
+
+## Reconsider the manifest
+
+Now that kyaraben uses dedicated directories for most things it installs:
+- `~/.local/share/applications/kyaraben/` for desktop files
+- `~/.local/share/icons/hicolor/*/apps/kyaraben-*` for icons
+- `~/.local/bin/kyaraben*` for binaries
+
+What is the manifest still useful for?
+
+Current uses:
+1. Tracking managed configs (scattered in emulator-specific config dirs)
+2. Last applied timestamp (for determining pending changes)
+3. Installed emulator versions
+
+Potential simplification:
+- Scan kyaraben directories at runtime instead of tracking files in manifest
+- Only keep managed configs and versions in manifest
+- Or eliminate manifest entirely and derive state from filesystem + config
+
+The manifest has been a source of bugs (disappearing, corruption). Reducing its role or eliminating it could improve reliability.
+
+---
+
+## Daemon protocol request/response correlation [DONE]
+
+Added UUID-based request IDs to the daemon protocol for proper request/response matching. Previously, the Electron handler used FIFO matching which broke when commands were sent during apply (their responses got matched to the wrong handler).
+
+---
+
+## Electron user data location [DONE]
+
+Moved Electron's user data from `~/.config/kyaraben-ui/` to `~/.local/state/kyaraben/ui/` following XDG conventions. Cache, cookies, session storage is state, not config.
+
+---
+
+## RetroArch cores building from source [DONE]
+
+Pinned `retroarch-cores` in versions.toml to a hydra-cached nixpkgs commit to avoid building libretro cores from source on every apply.
+
+---
+
+## Vita3K opaque config location
+
+Vita3K config lives in `~/Emulation/opaque/vita3k/config.yml` because the emulator takes a single `-c` path for its entire user directory. We can't separate config from data with Vita3K's current architecture. This is intentional - same pattern as Dolphin and Eden.
+
