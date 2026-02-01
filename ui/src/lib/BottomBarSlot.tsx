@@ -39,8 +39,9 @@ export function BottomBarPortal({ children }: { children: ReactNode }) {
   const context = useContext(BottomBarSlotContext)
   const id = useId()
 
+  const noop = () => undefined
   const container = useSyncExternalStore(
-    context?.subscribe ?? (() => () => {}),
+    context?.subscribe ?? (() => noop),
     context?.getContainer ?? (() => null),
   )
 
