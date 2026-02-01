@@ -20,6 +20,7 @@ const nixBuildTimeout = 30 * time.Minute
 type Progress struct {
 	Step    string
 	Message string
+	Output  string // Optional streaming output line (e.g., from nix build)
 }
 
 type Result struct {
@@ -162,7 +163,12 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 		return nil, fmt.Errorf("generating flake: %w", err)
 	}
 
-	opts.OnProgress(Progress{Step: "build", Message: "Building emulators..."})
+	opts.OnProgress(Progress{Step: "build", Message: "Installing emulators..."})
+
+	a.NixClient.SetOutputCallback(func(line string) {
+		opts.OnProgress(Progress{Step: "build", Output: line})
+	})
+	defer a.NixClient.SetOutputCallback(nil)
 
 	buildCtx, cancel := context.WithTimeout(context.Background(), nixBuildTimeout)
 	defer cancel()

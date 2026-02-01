@@ -18,8 +18,8 @@ const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
   start: 'Starting',
   directories: 'Creating directories',
   flake: 'Generating Nix flake',
-  build: 'Building emulators',
-  launchers: 'Setting up launchers',
+  build: 'Installing emulators',
+  wrappers: 'Setting up launchers',
   configs: 'Applying configurations',
   manifest: 'Updating manifest',
   done: 'Complete',
@@ -116,25 +116,30 @@ export function App() {
       return
     }
 
-    // Subscribe to progress events
+    const MAX_OUTPUT_LINES = 5
+
     const progressHandler = (...args: unknown[]) => {
-      const data = args[0] as { step: string; message: string }
+      const data = args[0] as { step: string; message: string; output?: string }
+
       setProgressSteps((prev) => {
         const existing = prev.find((s) => s.id === data.step)
-        if (existing) {
-          return prev.map((s) =>
-            s.id === data.step ? { ...s, message: data.message, status: 'completed' as const } : s,
-          )
-        }
-        return [
-          ...prev,
-          {
-            id: data.step,
-            label: PROGRESS_STEP_LABELS[data.step] ?? data.step,
-            status: 'completed' as const,
-            message: data.message,
-          },
-        ]
+        const isNewStep = !existing
+
+        return (isNewStep ? [...prev, { id: data.step, label: PROGRESS_STEP_LABELS[data.step] ?? data.step, status: 'in_progress' as const }] : prev).map((s) => {
+          if (s.id === data.step) {
+            return {
+              ...s,
+              status: 'in_progress' as const,
+              ...(data.message && { message: data.message }),
+              ...(data.output && { outputLines: [...(s.outputLines ?? []), data.output].slice(-MAX_OUTPUT_LINES) }),
+            }
+          }
+          // Mark previous steps as completed when a new step arrives
+          if (isNewStep && s.status === 'in_progress') {
+            return { ...s, status: 'completed' as const }
+          }
+          return s
+        })
       })
     }
 
@@ -146,9 +151,13 @@ export function App() {
       if (!applyResult.ok) {
         setError(applyResult.error.message)
         setApplyStatus('error')
+        setProgressSteps((prev) =>
+          prev.map((s) => ({ ...s, status: s.status === 'in_progress' ? 'error' : s.status })),
+        )
         return
       }
 
+      setProgressSteps((prev) => prev.map((s) => ({ ...s, status: 'completed' as const })))
       setApplyStatus('success')
 
       const doctorResult = await daemon.runDoctor()
@@ -159,6 +168,9 @@ export function App() {
       console.error('Apply failed:', err)
       setError(err instanceof Error ? err.message : String(err))
       setApplyStatus('error')
+      setProgressSteps((prev) =>
+        prev.map((s) => ({ ...s, status: s.status === 'in_progress' ? 'error' : s.status })),
+      )
     } finally {
       window.electron.off('apply:progress', progressHandler)
     }
@@ -198,6 +210,13 @@ export function App() {
   )
 
   const isApplying = applyStatus === 'applying'
+  const showProgress = applyStatus !== 'idle'
+
+  const handleReset = useCallback(() => {
+    setApplyStatus('idle')
+    setProgressSteps([])
+    setError(null)
+  }, [])
 
   return (
     <div className="min-h-screen bg-white">
@@ -209,35 +228,49 @@ export function App() {
       </header>
 
       <main className="max-w-5xl mx-auto px-8 py-6">
-        <Settings userStore={userStore} onUserStoreChange={setUserStore} />
+        {showProgress ? (
+          <>
+            <ProgressDisplay steps={progressSteps} error={error ?? ''} />
+            {!isApplying && (
+              <button
+                type="button"
+                onClick={handleReset}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Done
+              </button>
+            )}
+          </>
+        ) : (
+          <>
+            <Settings userStore={userStore} onUserStoreChange={setUserStore} />
 
-        <SystemGrid
-          systems={systems}
-          selections={selections}
-          provisions={provisions}
-          onToggle={handleToggle}
-        />
+            <SystemGrid
+              systems={systems}
+              selections={selections}
+              provisions={provisions}
+              onToggle={handleToggle}
+            />
 
-        <div className="mt-6 flex gap-3">
-          <button
-            type="button"
-            onClick={handleApply}
-            disabled={isApplying || selections.size === 0}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isApplying ? 'Applying...' : 'Apply'}
-          </button>
-          <button
-            type="button"
-            onClick={handleCheckProvisions}
-            disabled={isApplying}
-            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Check provisions
-          </button>
-        </div>
-
-        <ProgressDisplay steps={progressSteps} error={error ?? ''} />
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={handleApply}
+                disabled={selections.size === 0}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Apply
+              </button>
+              <button
+                type="button"
+                onClick={handleCheckProvisions}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+              >
+                Check provisions
+              </button>
+            </div>
+          </>
+        )}
       </main>
 
       {showSyncSettings && (
