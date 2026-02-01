@@ -23,6 +23,7 @@ type GlobalConfig struct {
 // SystemConf holds per-system configuration.
 type SystemConf struct {
 	Emulator EmulatorID `toml:"emulator"`
+	Version  string     `toml:"version,omitempty"` // Optional: pin emulator to specific version
 }
 
 func DefaultConfigPath() (string, error) {
