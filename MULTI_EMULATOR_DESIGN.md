@@ -1,5 +1,7 @@
 # Multi-Emulator Support Design
 
+> **Status: IMPLEMENTED** - This design has been fully implemented. See commits on branch `claude/multi-emulator-support-design-elyQ4`.
+
 This document specifies the design for supporting multiple emulators per system in kyaraben.
 
 ## Overview
@@ -240,46 +242,35 @@ interface EmulatorConf {
 
 ### Systems View
 
-Current: Dropdown to select ONE emulator per system
+**Implemented approach**: Conditional parent/child row pattern
+
+- **Single emulator enabled**: Shows single row with system logo, emulator dropdown, version selector (existing behavior)
+- **Multiple emulators enabled**: Shows parent row (system) with child rows (emulators) beneath it
 
 ```
-┌─────────────┐
-│ PlayStation │
-│ DuckStation▼│  ← Dropdown
-│  [Enabled]  │
-└─────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│ ☑ │ [PSX Logo]     [BIOS badges]     DuckStation▼  v0.1▼     │  ← Single emulator: compact row
+└───────────────────────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────────────────────┐
+│ ☑ │ [PSX Logo]     [BIOS badges]                              │  ← Parent row: system only
+├───────────────────────────────────────────────────────────────┤
+│ ☑ │     └ DuckStation                    Will install  v0.1▼ │  ← Child row: emulator
+├───────────────────────────────────────────────────────────────┤
+│ ☑ │     └ RetroArch (Mednafen)           Will install  v1.0▼ │  ← Child row: emulator
+└───────────────────────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────────────────────┐
+│ ☐ │ [N64 Logo]                                                │  ← Disabled system
+└───────────────────────────────────────────────────────────────┘
 ```
 
-New: Checkbox list to select MULTIPLE emulators per system
-
-```
-┌─────────────────────────────────────────────────────────┐
-│ PlayStation                                             │
-│                                                         │
-│   ☑ DuckStation                              v0.1 ▼    │
-│   ☐ RetroArch (mednafen_psx)                 latest ▼  │
-│   ☐ RetroArch (beetle_psx_hw)                latest ▼  │
-│                                                         │
-│   [Disable System]                                      │
-└─────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────┐
-│ Nintendo Switch                                         │
-│                                                         │
-│   ☑ Eden                                     v0.1.0 ▼  │
-│                                                         │
-│   [Disable System]                                      │
-└─────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────┐
-│ Nintendo 64                                    Disabled │
-│                                                         │
-│   ☐ RetroArch (mupen64plus_next)             latest ▼  │
-│   ☐ Ares                                     latest ▼  │
-│                                                         │
-│   [Enable System]                                       │
-└─────────────────────────────────────────────────────────┘
-```
+Key UI behaviors:
+- Toggling system checkbox enables/disables entire system (all emulators)
+- Child row checkboxes toggle individual emulators
+- When all emulators are unchecked, system becomes disabled
+- Visual hierarchy with "└" prefix and indentation for child rows
+- Child rows have subtle background tint to indicate grouping
 
 ### State Management
 
@@ -610,17 +601,17 @@ Detection: Check if `systems.psx` is a table (v1) or array (v2).
 
 ## Implementation Order
 
-Suggested sequence to minimize churn:
+Completed implementation sequence:
 
-1. **Config model** - Update `KyarabenConfig` struct and parsing
-2. **CLI commands** - Update `init`, `status`, `doctor` output
-3. **Apply process** - Update installation and config generation loops
-4. **Desktop files** - Update naming and generation
-5. **Protocol types** - Update request/response structures
-6. **Frontend state** - Update React state management
-7. **Frontend UI** - Implement multi-select checkboxes
-8. **Documentation** - Update all docs
-9. **Tests** - Update test fixtures and assertions
+1. ✅ **Config model** - Updated `KyarabenConfig` struct: `Systems map[SystemID][]EmulatorID`
+2. ✅ **CLI commands** - Updated `init`, `status`, `doctor` output
+3. ✅ **Apply process** - Updated with `collectEnabledEmulators()` for deduplication
+4. ✅ **Desktop files** - (No changes needed - existing logic handles multiple)
+5. ✅ **Protocol types** - Updated request/response structures, regenerated TypeScript types
+6. ✅ **Frontend state** - Updated to `Map<SystemID, EmulatorID[]>` and `Map<EmulatorID, string>`
+7. ✅ **Frontend UI** - Implemented parent/child row pattern for multi-emulator systems
+8. ✅ **Tests** - Updated test fixtures and assertions
+9. ⏳ **Documentation** - Updated design doc (this file)
 
 ---
 
