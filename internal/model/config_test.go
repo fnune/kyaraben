@@ -15,9 +15,9 @@ func TestLoadSaveConfig(t *testing.T) {
 		Global: GlobalConfig{
 			UserStore: "~/Emulation",
 		},
-		Systems: map[SystemID]SystemConf{
-			SystemIDSNES: {Emulator: string(EmulatorIDRetroArchBsnes)},
-			SystemIDPSX:  {Emulator: string(EmulatorIDDuckStation)},
+		Systems: map[SystemID][]EmulatorID{
+			SystemIDSNES: {EmulatorIDRetroArchBsnes},
+			SystemIDPSX:  {EmulatorIDDuckStation},
 		},
 	}
 
@@ -45,12 +45,14 @@ func TestLoadSaveConfig(t *testing.T) {
 		t.Errorf("Systems count mismatch: got %d, want %d", len(loaded.Systems), len(cfg.Systems))
 	}
 
-	if loaded.Systems[SystemIDSNES].EmulatorID() != EmulatorIDRetroArchBsnes {
-		t.Errorf("SNES emulator mismatch: got %s, want %s", loaded.Systems[SystemIDSNES].EmulatorID(), EmulatorIDRetroArchBsnes)
+	snesEmulators := loaded.Systems[SystemIDSNES]
+	if len(snesEmulators) != 1 || snesEmulators[0] != EmulatorIDRetroArchBsnes {
+		t.Errorf("SNES emulator mismatch: got %v, want [%s]", snesEmulators, EmulatorIDRetroArchBsnes)
 	}
 
-	if loaded.Systems[SystemIDPSX].EmulatorID() != EmulatorIDDuckStation {
-		t.Errorf("PSX emulator mismatch: got %s, want %s", loaded.Systems[SystemIDPSX].EmulatorID(), EmulatorIDDuckStation)
+	psxEmulators := loaded.Systems[SystemIDPSX]
+	if len(psxEmulators) != 1 || psxEmulators[0] != EmulatorIDDuckStation {
+		t.Errorf("PSX emulator mismatch: got %v, want [%s]", psxEmulators, EmulatorIDDuckStation)
 	}
 }
 
@@ -102,10 +104,10 @@ func TestExpandUserStore(t *testing.T) {
 
 func TestEnabledSystems(t *testing.T) {
 	cfg := &KyarabenConfig{
-		Systems: map[SystemID]SystemConf{
-			SystemIDSNES: {Emulator: string(EmulatorIDRetroArchBsnes)},
-			SystemIDPSX:  {Emulator: string(EmulatorIDDuckStation)},
-			SystemIDGBA:  {Emulator: string(EmulatorIDMGBA)},
+		Systems: map[SystemID][]EmulatorID{
+			SystemIDSNES: {EmulatorIDRetroArchBsnes},
+			SystemIDPSX:  {EmulatorIDDuckStation},
+			SystemIDGBA:  {EmulatorIDMGBA},
 		},
 	}
 
@@ -123,5 +125,54 @@ func TestEnabledSystems(t *testing.T) {
 		if !systemMap[expected] {
 			t.Errorf("System %s not found in enabled systems", expected)
 		}
+	}
+}
+
+func TestEnabledEmulators(t *testing.T) {
+	cfg := &KyarabenConfig{
+		Systems: map[SystemID][]EmulatorID{
+			SystemIDSNES:     {EmulatorIDRetroArchBsnes},
+			SystemIDPSX:      {EmulatorIDDuckStation, EmulatorIDRetroArchBeetleSaturn},
+			SystemIDGameCube: {EmulatorIDDolphin},
+			SystemIDWii:      {EmulatorIDDolphin}, // Same emulator, should be deduplicated
+		},
+	}
+
+	emulators := cfg.EnabledEmulators()
+
+	emulatorMap := make(map[EmulatorID]bool)
+	for _, e := range emulators {
+		emulatorMap[e] = true
+	}
+
+	// Dolphin should appear only once despite being in two systems
+	expectedCount := 4 // bsnes, duckstation, beetle_saturn, dolphin
+	if len(emulators) != expectedCount {
+		t.Errorf("Expected %d emulators, got %d: %v", expectedCount, len(emulators), emulators)
+	}
+
+	for _, expected := range []EmulatorID{EmulatorIDRetroArchBsnes, EmulatorIDDuckStation, EmulatorIDRetroArchBeetleSaturn, EmulatorIDDolphin} {
+		if !emulatorMap[expected] {
+			t.Errorf("Emulator %s not found in enabled emulators", expected)
+		}
+	}
+}
+
+func TestEmulatorVersion(t *testing.T) {
+	cfg := &KyarabenConfig{
+		Systems: map[SystemID][]EmulatorID{
+			SystemIDPSX: {EmulatorIDDuckStation},
+		},
+		Emulators: map[EmulatorID]EmulatorConf{
+			EmulatorIDDuckStation: {Version: "v0.1-10655"},
+		},
+	}
+
+	if version := cfg.EmulatorVersion(EmulatorIDDuckStation); version != "v0.1-10655" {
+		t.Errorf("Expected version v0.1-10655, got %s", version)
+	}
+
+	if version := cfg.EmulatorVersion(EmulatorIDMGBA); version != "" {
+		t.Errorf("Expected empty version for unconfigured emulator, got %s", version)
 	}
 }

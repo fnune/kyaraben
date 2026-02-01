@@ -58,19 +58,13 @@ func Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg 
 
 	for _, emu := range manifest.InstalledEmulators {
 		info := EmulatorInfo{
-			ID:      emu.ID,
-			Name:    string(emu.ID),
-			Version: emu.Version,
+			ID:            emu.ID,
+			Name:          string(emu.ID),
+			Version:       emu.Version,
+			PinnedVersion: cfg.EmulatorVersion(emu.ID),
 		}
 		if e, err := reg.GetEmulator(emu.ID); err == nil {
 			info.Name = e.Name
-		}
-
-		for _, sysConf := range cfg.Systems {
-			if sysConf.EmulatorID() == emu.ID {
-				info.PinnedVersion = sysConf.EmulatorVersion()
-				break
-			}
 		}
 
 		if vers != nil {
@@ -85,14 +79,16 @@ func Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg 
 	}
 
 	checker := store.NewProvisionChecker(userStore)
-	for sys, sysConf := range cfg.Systems {
-		emu, err := reg.GetEmulator(sysConf.EmulatorID())
-		if err != nil {
-			continue
-		}
-		results := checker.Check(emu, sys)
-		if store.HasMissingRequired(results) {
-			result.MissingRequiredCount++
+	for sys, emulatorIDs := range cfg.Systems {
+		for _, emuID := range emulatorIDs {
+			emu, err := reg.GetEmulator(emuID)
+			if err != nil {
+				continue
+			}
+			results := checker.Check(emu, sys)
+			if store.HasMissingRequired(results) {
+				result.MissingRequiredCount++
+			}
 		}
 	}
 
