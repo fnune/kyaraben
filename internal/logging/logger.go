@@ -45,7 +45,6 @@ func Close() {
 	}
 }
 
-// LogPath returns the path to the log file.
 func LogPath() (string, error) {
 	stateDir, err := paths.KyarabenStateDir()
 	if err != nil {
@@ -108,7 +107,6 @@ func Debug(format string, args ...interface{}) {
 	}
 }
 
-// Writer returns an io.Writer that writes to the log.
 func Writer() io.Writer {
 	if logFile != nil {
 		return logFile

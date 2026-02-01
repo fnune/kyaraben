@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -34,7 +35,7 @@ func (cmd *StatusCmd) Run(ctx *Context) error {
 		return err
 	}
 
-	result, err := status.Get(cfg, configPath, registry, userStore, manifestPath)
+	result, err := status.Get(context.Background(), cfg, configPath, registry, userStore, manifestPath)
 	if err != nil {
 		return err
 	}

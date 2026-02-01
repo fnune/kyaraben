@@ -3,8 +3,12 @@
 default:
     @just --list
 
+# Generate TypeScript types from Go
+generate-types:
+    go run ./scripts/generate-types
+
 # Run the Electron app in development mode
-dev: _ensure-ui-deps _sidecar
+dev: _ensure-ui-deps generate-types _sidecar
     cd ui && npm run dev
 
 # Run all checks (lint + test)
@@ -26,7 +30,7 @@ fmt:
     cd ui && npm run lint:fix
 
 # Build release AppImage
-build: _ensure-ui-deps _sidecar
+build: _ensure-ui-deps generate-types _sidecar
     cd ui && npm run electron:build
 
 # Run e2e tests in container

@@ -1,6 +1,7 @@
 package doctor
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -43,7 +44,7 @@ func TestRun(t *testing.T) {
 	registry := registry.NewDefault()
 	userStore := mustNewUserStore(t, userStorePath)
 
-	result, err := Run(cfg, registry, userStore)
+	result, err := Run(context.Background(), cfg, registry, userStore)
 	if err != nil {
 		t.Fatalf("Run failed: %v", err)
 	}
@@ -82,7 +83,7 @@ func TestRunNoProvisions(t *testing.T) {
 	registry := registry.NewDefault()
 	userStore := mustNewUserStore(t, userStorePath)
 
-	result, err := Run(cfg, registry, userStore)
+	result, err := Run(context.Background(), cfg, registry, userStore)
 	if err != nil {
 		t.Fatalf("Run failed: %v", err)
 	}
@@ -137,7 +138,7 @@ func TestRunWithBiosFile(t *testing.T) {
 	registry := registry.NewDefault()
 	userStore := mustNewUserStore(t, userStorePath)
 
-	result, err := Run(cfg, registry, userStore)
+	result, err := Run(context.Background(), cfg, registry, userStore)
 	if err != nil {
 		t.Fatalf("Run failed: %v", err)
 	}
@@ -188,7 +189,7 @@ func TestRunSystemResult(t *testing.T) {
 	registry := registry.NewDefault()
 	userStore := mustNewUserStore(t, userStorePath)
 
-	result, err := Run(cfg, registry, userStore)
+	result, err := Run(context.Background(), cfg, registry, userStore)
 	if err != nil {
 		t.Fatalf("Run failed: %v", err)
 	}

@@ -6,39 +6,18 @@ import (
 	"fmt"
 )
 
-// FakeClient is a fake NixClient for testing.
-// Configure its behavior by setting fields before use.
 type FakeClient struct {
-	// Available controls whether IsAvailable returns true.
-	Available bool
-
-	// FlakePath is returned by GetFlakePath and EnsureFlakeDir creates it.
+	Available      bool
 	FlakePathValue string
-
-	// BuildResults maps flake references to store paths.
-	// If a ref is not in the map and BuildError is nil, Build returns a generated path.
-	BuildResults map[string]string
-
-	// BuildError is returned by Build if set.
-	BuildError error
-
-	// EvalResults maps expressions to JSON results.
-	EvalResults map[string]json.RawMessage
-
-	// EvalError is returned by Eval if set.
-	EvalError error
-
-	// Version is returned by GetVersion.
-	Version string
-
-	// BuildCalls records all calls to Build.
-	BuildCalls []string
-
-	// EvalCalls records all calls to Eval.
-	EvalCalls []string
+	BuildResults   map[string]string
+	BuildError     error
+	EvalResults    map[string]json.RawMessage
+	EvalError      error
+	Version        string
+	BuildCalls     []string
+	EvalCalls      []string
 }
 
-// NewFakeClient creates a FakeClient with sensible defaults for testing.
 func NewFakeClient() *FakeClient {
 	return &FakeClient{
 		Available:      true,

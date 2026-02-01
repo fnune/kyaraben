@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -53,7 +54,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	fmt.Println("Applying kyaraben configuration...")
 	fmt.Println()
 
-	preflight, err := applier.Preflight(cfg, userStore)
+	preflight, err := applier.Preflight(context.Background(), cfg, userStore)
 	if err != nil {
 		return fmt.Errorf("preflight check: %w", err)
 	}
@@ -94,7 +95,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 
 	if cmd.DryRun || cmd.ShowDiff {
 		dryOpts := apply.Options{DryRun: true}
-		dryResult, err := applier.Apply(cfg, userStore, dryOpts)
+		dryResult, err := applier.Apply(context.Background(), cfg, userStore, dryOpts)
 		if err != nil {
 			return err
 		}
@@ -155,7 +156,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		}
 	}
 
-	result, err := applier.Apply(cfg, userStore, opts)
+	result, err := applier.Apply(context.Background(), cfg, userStore, opts)
 	if err != nil {
 		return err
 	}

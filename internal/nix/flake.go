@@ -70,11 +70,8 @@ type LauncherTemplateInfo struct {
 	Package string
 }
 
-// GenerationPath returns the path where flake.nix was generated.
 type GenerationPath string
 
-// Generate creates a flake.nix file in a timestamped generation subdirectory.
-// Returns the generation directory path.
 func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorID) (GenerationPath, error) {
 	timestamp := time.Now().Format("2006-01-02T15-04-05")
 	genDir := filepath.Join(baseDir, "generations", timestamp)
@@ -263,7 +260,6 @@ func packageInfoFromVersionedAppImage(p model.VersionedAppImage) (PackageInfo, e
 	}, nil
 }
 
-// FlakeRef returns the flake reference for building an emulator.
 func (fg *FlakeGenerator) FlakeRef(flakeDir string, emuID model.EmulatorID) (string, error) {
 	emu, err := fg.emulators.GetEmulator(emuID)
 	if err != nil {
@@ -279,7 +275,6 @@ func (fg *FlakeGenerator) FlakeRef(flakeDir string, emuID model.EmulatorID) (str
 	return fmt.Sprintf("%s#%s", absPath, pkg.Name), nil
 }
 
-// DefaultFlakeRef returns the flake reference for the combined environment.
 func (fg *FlakeGenerator) DefaultFlakeRef(flakeDir string) string {
 	absPath, _ := filepath.Abs(flakeDir)
 	return absPath

@@ -70,8 +70,7 @@ func NewClient() (*Client, error) {
 		return nil, err
 	}
 
-	// Try to find nix-portable, but don't fail if not found.
-	// This allows dry-run and other non-Nix operations to work.
+	// Allows dry-run and other non-Nix operations to work without nix-portable.
 	nixPortable, findErr := findNixPortable()
 	if findErr != nil {
 		log.Debug("nix-portable not found: %v", findErr)
@@ -89,7 +88,6 @@ func findNixPortable() (string, error) {
 	targetTriple := getTargetTriple()
 	binaryName := "nix-portable-" + targetTriple
 
-	// Get the directory of the current executable
 	execPath, err := os.Executable()
 	if err != nil {
 		return "", fmt.Errorf("getting executable path: %w", err)
@@ -174,7 +172,6 @@ func (c *Client) runNix(ctx context.Context, args []string) (*exec.Cmd, error) {
 	fullArgs := append([]string{"nix"}, args...)
 	cmd := exec.CommandContext(ctx, c.NixPortableBinary, fullArgs...)
 
-	// Set NP_LOCATION to control where nix-portable stores its data
 	cmd.Env = append(os.Environ(), "NP_LOCATION="+c.NixPortableLocation)
 
 	log.Debug("Running: %s %v", c.NixPortableBinary, fullArgs)
@@ -349,9 +346,6 @@ func (c *Client) EnsureFlakeDir() error {
 	return os.MkdirAll(c.FlakePath, 0755)
 }
 
-// RealStorePath translates a virtualized /nix/store path to the real
-// nix-portable store path. This is needed because nix-portable virtualizes
-// /nix/store, but the actual files are in $NP_LOCATION/.nix-portable/nix/store/.
 func (c *Client) RealStorePath(virtualPath string) string {
 	const nixStorePrefix = "/nix/store/"
 	if !strings.HasPrefix(virtualPath, nixStorePrefix) {
@@ -361,12 +355,10 @@ func (c *Client) RealStorePath(virtualPath string) string {
 	return filepath.Join(c.NixPortableLocation, ".nix-portable", "nix", "store", hashAndName)
 }
 
-// GetNixPortableBinary returns the path to the nix-portable binary.
 func (c *Client) GetNixPortableBinary() string {
 	return c.NixPortableBinary
 }
 
-// GetNixPortableLocation returns the NP_LOCATION directory for nix-portable.
 func (c *Client) GetNixPortableLocation() string {
 	return c.NixPortableLocation
 }

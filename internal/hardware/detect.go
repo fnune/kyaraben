@@ -11,7 +11,6 @@ type Target struct {
 	Arch string
 }
 
-// DetectTarget returns the best Eden target for the current hardware.
 func DetectTarget() Target {
 	arch := runtime.GOARCH
 	if arch == "arm64" {

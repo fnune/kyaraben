@@ -1,6 +1,7 @@
 package status
 
 import (
+	"context"
 	"time"
 
 	"github.com/fnune/kyaraben/internal/model"
@@ -29,7 +30,7 @@ type Result struct {
 	MissingRequiredCount int
 }
 
-func Get(cfg *model.KyarabenConfig, configPath string, reg *registry.Registry, userStore *store.UserStore, manifestPath string) (*Result, error) {
+func Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg *registry.Registry, userStore *store.UserStore, manifestPath string) (*Result, error) {
 	manifest, err := model.LoadManifest(manifestPath)
 	if err != nil {
 		return nil, err
