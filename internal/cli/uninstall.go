@@ -43,12 +43,6 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 		userStore = cfg.Global.UserStore
 	}
 
-	homeDir, _ := os.UserHomeDir()
-	kyarabenAppImage := filepath.Join(homeDir, ".local", "bin", "kyaraben.AppImage")
-	kyarabenCLI := filepath.Join(homeDir, ".local", "bin", "kyaraben")
-	kyarabenDesktop := filepath.Join(homeDir, ".local", "share", "applications", "kyaraben", "kyaraben.desktop")
-	kyarabenDesktopDir := filepath.Join(homeDir, ".local", "share", "applications", "kyaraben")
-
 	fmt.Println("This will remove:")
 	fmt.Println()
 
@@ -56,17 +50,20 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 		fmt.Printf("  %s (nix store, manifest, state)\n", kyarabenStateDir)
 	}
 
-	if fileExists(kyarabenAppImage) || fileExists(kyarabenCLI) || fileExists(kyarabenDesktop) {
-		fmt.Println()
-		fmt.Println("  Kyaraben installation:")
-		if fileExists(kyarabenAppImage) {
-			fmt.Printf("    %s\n", kyarabenAppImage)
-		}
-		if fileExists(kyarabenCLI) {
-			fmt.Printf("    %s\n", kyarabenCLI)
-		}
-		if fileExists(kyarabenDesktop) {
-			fmt.Printf("    %s\n", kyarabenDesktop)
+	if manifest.KyarabenInstall != nil {
+		ki := manifest.KyarabenInstall
+		if fileExists(ki.AppPath) || fileExists(ki.CLIPath) || fileExists(ki.DesktopPath) {
+			fmt.Println()
+			fmt.Println("  Kyaraben installation:")
+			if fileExists(ki.AppPath) {
+				fmt.Printf("    %s\n", ki.AppPath)
+			}
+			if fileExists(ki.CLIPath) {
+				fmt.Printf("    %s\n", ki.CLIPath)
+			}
+			if fileExists(ki.DesktopPath) {
+				fmt.Printf("    %s\n", ki.DesktopPath)
+			}
 		}
 	}
 
@@ -126,20 +123,16 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 	fmt.Println()
 	fmt.Println("Removing kyaraben files...")
 
-	for _, path := range []string{kyarabenAppImage, kyarabenCLI, kyarabenDesktop} {
-		if fileExists(path) {
-			if err := os.Remove(path); err != nil {
-				fmt.Printf("  Warning: could not remove %s: %v\n", path, err)
-			} else {
-				fmt.Printf("  Removed: %s\n", path)
+	if manifest.KyarabenInstall != nil {
+		ki := manifest.KyarabenInstall
+		for _, path := range []string{ki.AppPath, ki.CLIPath, ki.DesktopPath} {
+			if path != "" && fileExists(path) {
+				if err := os.Remove(path); err != nil {
+					fmt.Printf("  Warning: could not remove %s: %v\n", path, err)
+				} else {
+					fmt.Printf("  Removed: %s\n", path)
+				}
 			}
-		}
-	}
-	if dirExists(kyarabenDesktopDir) {
-		if err := os.RemoveAll(kyarabenDesktopDir); err != nil {
-			fmt.Printf("  Warning: could not remove %s: %v\n", kyarabenDesktopDir, err)
-		} else {
-			fmt.Printf("  Removed: %s\n", kyarabenDesktopDir)
 		}
 	}
 
@@ -185,6 +178,7 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 		}
 	}
 
+	homeDir, _ := os.UserHomeDir()
 	refreshIconCaches(homeDir)
 
 	fmt.Println()
@@ -192,7 +186,6 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 	fmt.Println()
 	fmt.Printf("To fully uninstall, also remove:\n")
 	fmt.Printf("  %s (your config)\n", configDir)
-	fmt.Println("  The kyaraben binary itself")
 
 	return nil
 }
@@ -208,14 +201,16 @@ func fileExists(path string) bool {
 }
 
 // forceRemoveAll removes a directory tree, even if it contains read-only files
-// (like nix store paths). It works by first making all directories writable.
+// (like nix store paths). It works by making all files and directories writable.
 func forceRemoveAll(path string) error {
-	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(path, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return err
+			return nil
 		}
 		if d.IsDir() {
-			return os.Chmod(path, 0755)
+			_ = os.Chmod(p, 0755)
+		} else {
+			_ = os.Chmod(p, 0644)
 		}
 		return nil
 	})

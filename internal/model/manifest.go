@@ -18,6 +18,14 @@ type Manifest struct {
 	ManagedConfigs     []ManagedConfig                  `json:"managed_configs"`
 	DesktopFiles       []string                         `json:"desktop_files,omitempty"`
 	IconFiles          []string                         `json:"icon_files,omitempty"`
+	KyarabenInstall    *KyarabenInstall                 `json:"kyaraben_install,omitempty"`
+}
+
+// KyarabenInstall tracks the kyaraben app installation paths.
+type KyarabenInstall struct {
+	AppPath     string `json:"app_path,omitempty"`
+	CLIPath     string `json:"cli_path,omitempty"`
+	DesktopPath string `json:"desktop_path,omitempty"`
 }
 
 // InstalledEmulator tracks an installed emulator.

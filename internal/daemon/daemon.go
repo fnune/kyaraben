@@ -667,15 +667,28 @@ func (d *Daemon) handleUninstallPreview() []Event {
 	}
 
 	var kyarabenFiles []string
-	homeDir, _ := os.UserHomeDir()
-	kyarabenPaths := []string{
-		filepath.Join(homeDir, ".local", "bin", "kyaraben-ui"),
-		filepath.Join(homeDir, ".local", "bin", "kyaraben"),
-		filepath.Join(homeDir, ".local", "share", "applications", "kyaraben.desktop"),
+	if manifest.KyarabenInstall != nil {
+		for _, p := range []string{
+			manifest.KyarabenInstall.AppPath,
+			manifest.KyarabenInstall.CLIPath,
+			manifest.KyarabenInstall.DesktopPath,
+		} {
+			if p != "" && fileExists(p) {
+				kyarabenFiles = append(kyarabenFiles, p)
+			}
+		}
 	}
-	for _, p := range kyarabenPaths {
-		if fileExists(p) {
-			kyarabenFiles = append(kyarabenFiles, p)
+	if len(kyarabenFiles) == 0 {
+		homeDir, _ := os.UserHomeDir()
+		kyarabenPaths := []string{
+			filepath.Join(homeDir, ".local", "bin", "kyaraben-ui"),
+			filepath.Join(homeDir, ".local", "bin", "kyaraben"),
+			filepath.Join(homeDir, ".local", "share", "applications", "kyaraben.desktop"),
+		}
+		for _, p := range kyarabenPaths {
+			if fileExists(p) {
+				kyarabenFiles = append(kyarabenFiles, p)
+			}
 		}
 	}
 
@@ -714,9 +727,22 @@ func (d *Daemon) handleInstallKyaraben(data *InstallKyarabenRequest) []Event {
 		sidecarPath = data.SidecarPath
 	}
 
-	_, err := d.launcherManager.InstallKyaraben(appImagePath, sidecarPath)
+	result, err := d.launcherManager.InstallKyaraben(appImagePath, sidecarPath)
 	if err != nil {
 		return d.errorResponse(err.Error())
+	}
+
+	manifestPath, err := model.DefaultManifestPath()
+	if err == nil {
+		manifest, _ := model.LoadManifest(manifestPath)
+		manifest.KyarabenInstall = &model.KyarabenInstall{
+			AppPath:     result.AppPath,
+			CLIPath:     result.CLIPath,
+			DesktopPath: result.DesktopPath,
+		}
+		if saveErr := manifest.Save(manifestPath); saveErr != nil {
+			log.Debug("Failed to save manifest with install info: %v", saveErr)
+		}
 	}
 
 	return []Event{{
@@ -726,8 +752,27 @@ func (d *Daemon) handleInstallKyaraben(data *InstallKyarabenRequest) []Event {
 }
 
 func (d *Daemon) handleInstallStatus() []Event {
-	status := d.launcherManager.GetInstallStatus()
+	manifestPath, _ := model.DefaultManifestPath()
+	manifest, _ := model.LoadManifest(manifestPath)
 
+	if manifest.KyarabenInstall != nil {
+		ki := manifest.KyarabenInstall
+		cliExists := ki.CLIPath != "" && fileExists(ki.CLIPath)
+		desktopExists := ki.DesktopPath != "" && fileExists(ki.DesktopPath)
+		appExists := ki.AppPath != "" && fileExists(ki.AppPath)
+
+		return []Event{{
+			Type: EventTypeResult,
+			Data: InstallStatusResponse{
+				Installed:   cliExists && desktopExists,
+				AppPath:     boolToPath(appExists, ki.AppPath),
+				DesktopPath: boolToPath(desktopExists, ki.DesktopPath),
+				CLIPath:     boolToPath(cliExists, ki.CLIPath),
+			},
+		}}
+	}
+
+	status := d.launcherManager.GetInstallStatus()
 	installed := status.CLIPath != "" && status.DesktopPath != ""
 
 	return []Event{{
@@ -739,4 +784,11 @@ func (d *Daemon) handleInstallStatus() []Event {
 			CLIPath:     status.CLIPath,
 		},
 	}}
+}
+
+func boolToPath(exists bool, path string) string {
+	if exists {
+		return path
+	}
+	return ""
 }
