@@ -106,14 +106,29 @@ export function App() {
     init()
   }, [])
 
-  const handleEnableDefault = useCallback(
-    (systemId: SystemID) => {
+  const handleEmulatorToggle = useCallback(
+    (emulatorId: EmulatorID, enabled: boolean) => {
       setSystemEmulators((prev) => {
         const next = new Map(prev)
-        const system = systems.find((s) => s.id === systemId)
-        const defaultEmulator = system?.emulators[0]
-        if (defaultEmulator && !next.has(systemId)) {
-          next.set(systemId, [defaultEmulator.id])
+
+        for (const system of systems) {
+          const hasEmulator = system.emulators.some((e) => e.id === emulatorId)
+          if (!hasEmulator) continue
+
+          const current = next.get(system.id) ?? []
+
+          if (enabled) {
+            if (!current.includes(emulatorId)) {
+              next.set(system.id, [...current, emulatorId])
+            }
+          } else {
+            const filtered = current.filter((id) => id !== emulatorId)
+            if (filtered.length === 0) {
+              next.delete(system.id)
+            } else {
+              next.set(system.id, filtered)
+            }
+          }
         }
         return next
       })
@@ -121,29 +136,7 @@ export function App() {
     [systems],
   )
 
-  const handleEmulatorToggle = useCallback(
-    (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => {
-      setSystemEmulators((prev) => {
-        const next = new Map(prev)
-        const current = next.get(systemId) ?? []
-
-        if (enabled) {
-          if (!current.includes(emulatorId)) {
-            next.set(systemId, [...current, emulatorId])
-          }
-        } else {
-          const filtered = current.filter((id) => id !== emulatorId)
-          if (filtered.length === 0) {
-            next.delete(systemId)
-          } else {
-            next.set(systemId, filtered)
-          }
-        }
-        return next
-      })
-    },
-    [],
-  )
+  const enabledEmulators = new Set(Array.from(systemEmulators.values()).flat())
 
   const handleVersionChange = useCallback((emulatorId: EmulatorID, version: string | null) => {
     setEmulatorVersions((prev) => {
@@ -316,13 +309,12 @@ export function App() {
         return (
           <SystemsView
             systems={systems}
-            systemEmulators={systemEmulators}
+            enabledEmulators={enabledEmulators}
             emulatorVersions={emulatorVersions}
             installedVersions={installedVersions}
             provisions={provisions}
             userStore={userStore}
             onUserStoreChange={setUserStore}
-            onEnableDefault={handleEnableDefault}
             onEmulatorToggle={handleEmulatorToggle}
             onVersionChange={handleVersionChange}
             onApply={handleApply}

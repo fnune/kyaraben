@@ -1,20 +1,19 @@
+import { EmulatorList } from '@/components/EmulatorList/EmulatorList'
 import { Settings } from '@/components/Settings/Settings'
-import { SystemList } from '@/components/SystemList/SystemList'
 import { Button } from '@/lib/Button'
 import { ProgressSteps } from '@/lib/ProgressSteps'
-import type { DoctorResponse, EmulatorID, System, SystemID } from '@/types/daemon'
+import type { DoctorResponse, EmulatorID, System } from '@/types/daemon'
 import type { ApplyStatus, ProgressStep } from '@/types/ui'
 
 export interface SystemsViewProps {
   readonly systems: readonly System[]
-  readonly systemEmulators: Map<SystemID, EmulatorID[]>
+  readonly enabledEmulators: ReadonlySet<EmulatorID>
   readonly emulatorVersions: Map<EmulatorID, string | null>
   readonly installedVersions: Map<EmulatorID, string>
   readonly provisions: DoctorResponse
   readonly userStore: string
   readonly onUserStoreChange: (value: string) => void
-  readonly onEnableDefault: (systemId: SystemID) => void
-  readonly onEmulatorToggle: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
+  readonly onEmulatorToggle: (emulatorId: EmulatorID, enabled: boolean) => void
   readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
   readonly onApply: () => void
   readonly onCancel: () => void
@@ -27,13 +26,12 @@ export interface SystemsViewProps {
 
 export function SystemsView({
   systems,
-  systemEmulators,
+  enabledEmulators,
   emulatorVersions,
   installedVersions,
   provisions,
   userStore,
   onUserStoreChange,
-  onEnableDefault,
   onEmulatorToggle,
   onVersionChange,
   onApply,
@@ -73,20 +71,19 @@ export function SystemsView({
     <div className="p-6">
       <Settings userStore={userStore} onUserStoreChange={onUserStoreChange} onError={onError} />
 
-      <SystemList
+      <EmulatorList
         systems={systems}
-        systemEmulators={systemEmulators}
+        enabledEmulators={enabledEmulators}
         emulatorVersions={emulatorVersions}
         installedVersions={installedVersions}
         provisions={provisions}
         userStore={userStore}
-        onEnableDefault={onEnableDefault}
-        onEmulatorToggle={onEmulatorToggle}
+        onToggle={onEmulatorToggle}
         onVersionChange={onVersionChange}
       />
 
       <div className="mt-6">
-        <Button onClick={onApply} disabled={systemEmulators.size === 0}>
+        <Button onClick={onApply} disabled={enabledEmulators.size === 0}>
           Apply
         </Button>
       </div>
