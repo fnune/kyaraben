@@ -12,6 +12,8 @@ commit = "fa83fd837f3098e3e678e6cf017b2b36102c7211" # https://github.com/NixOS/n
 [eden]
 url_template = "https://github.com/eden-emulator/Releases/releases/download/{version}/Eden-Linux-{version}-{target}-clang-pgo.AppImage"
 default = "v0.1.1"
+icon_url = "https://git.eden-emu.dev/eden-emu/eden/raw/commit/a82cf247fd7b4244b4477afdb1f7860b5b4e9b92/dist/dev.eden_emu.eden.svg"
+icon_sha256 = "sha256-XrRaJfrcYvw10SO0/hlGKw5///7X3T8Ukg5UMrOFl2k="
 
 [eden."v0.1.1".targets.amd64]
 arch = "x86_64"
@@ -78,6 +80,8 @@ sha256 = "sha256-r0HY3v25+hfuNhIg7gWgx1jT5iMThKP5aaMU+RM3ROo="
 [duckstation]
 url_template = "https://github.com/stenzek/duckstation/releases/download/{version}/DuckStation-{target}.AppImage"
 default = "v0.1-10655"
+icon_url = "https://github.com/stenzek/duckstation/raw/016c08b9c35a0ccf4196b21bc10c7d057af689d8/data/resources/images/duck.png"
+icon_sha256 = "sha256-qR+lWCmOZKt/wT6MFXPKtCx/p0IUCOgRNdjb8CLdwv4="
 
 [duckstation."v0.1-10655".targets.x64]
 arch = "x86_64"
@@ -95,6 +99,8 @@ sha256 = "sha256-WzUXY082lu4gcmss/rPNzzgBzQppyTxIWZruUR5uaLE="
 [pcsx2]
 url_template = "https://github.com/PCSX2/pcsx2/releases/download/{version}/pcsx2-{version}-linux-appimage-x64-Qt.AppImage"
 default = "v2.6.3"
+icon_url = "https://github.com/PCSX2/pcsx2/raw/fe7935ce0e9c2457eb2586897c3cbc5eef10324a/pcsx2-qt/resources/icons/AppIcon64.png"
+icon_sha256 = "sha256-vyHthTMThVUN2IWrbkfXYQGbj6I1O+iUG30MoZxa+z4="
 
 [pcsx2."v2.6.3".targets.x64]
 arch = "x86_64"
@@ -108,6 +114,8 @@ sha256 = "sha256-jOfehhPBewCwECilEt0bgZmLZibrvpOgZ+DrIK7t1b8="
 [ppsspp]
 url_template = "https://github.com/hrydgard/ppsspp/releases/download/{version}/PPSSPP-{version}-anylinux-{target}.AppImage"
 default = "v1.19.3"
+icon_url = "https://github.com/hrydgard/ppsspp/raw/7c2632cd551fdc50856d304ae22fc5ecf41111b2/icons/hicolor/256x256/apps/ppsspp.png"
+icon_sha256 = "sha256-il19tCxn2RhdAgz6QE6p4IYuEToagHMZp2HsdL1kZp4="
 
 [ppsspp."v1.19.3".targets.x86_64]
 arch = "x86_64"
@@ -125,6 +133,8 @@ sha256 = "sha256-ugtlnflAX9qOfzlOKCgrcaseFfgp+rHFfB1CPFpQzv4="
 [mgba]
 url_template = "https://github.com/mgba-emu/mgba/releases/download/{version}/mGBA-{version}-appimage-{target}.appimage"
 default = "0.10.5"
+icon_url = "https://raw.githubusercontent.com/mgba-emu/mgba/95dd33cf9f05595cc285604df230eda106a330f6/res/mgba-256.png"
+icon_sha256 = "sha256-DV/Ot8C2vn/YD6jmVsXC/CpyQpB1kPjHZMMIEVqD7qg="
 
 [mgba."0.10.5".targets.x64]
 arch = "x86_64"
@@ -142,6 +152,8 @@ sha256 = "sha256-3jy/Q3vh1TJMOFO6ug2v6jMRMiojgpNV1YMwiUfgWOg="
 [cemu]
 url_template = "https://github.com/cemu-project/Cemu/releases/download/v{version}/Cemu-{version}-x86_64.AppImage"
 default = "2.4"
+icon_url = "https://github.com/cemu-project/Cemu/raw/ba82dc57d64fe8fc1b268e24fa583b350404b9a6/src/resource/logo_icon.png"
+icon_sha256 = "sha256-ZFipm4vVTkSFfvoPgr/WA15+By5+CA4zMOTiz+icvTM="
 
 [cemu."2.4".targets.x64]
 arch = "x86_64"
@@ -155,6 +167,8 @@ sha256 = "sha256-kqHwgSMICb0Kwwsij3LG2Meqfqo+Vt9M+K1U1MmScJc="
 [azahar]
 url_template = "https://github.com/azahar-emu/azahar/releases/download/{version}/azahar.AppImage"
 default = "2124.3"
+icon_url = "https://github.com/azahar-emu/azahar/raw/dd65ef47491ff659b02ed1257411317ab4975f29/dist/apple/launch_logo.png"
+icon_sha256 = "sha256-faLnIedyniDyjzgYf9ct6I9PEKVcQH3bkcMhktGqmV8="
 
 [azahar."2124.3".targets.x64]
 arch = "x86_64"
@@ -168,6 +182,8 @@ sha256 = "sha256-HkmgFkvxmZC/REe8KF8jmXuSMYnzbt18/r/TGO9e2vM="
 [dolphin]
 url_template = "https://github.com/pkgforge-dev/Dolphin-emu-AppImage/releases/download/{release_tag}/Dolphin_Emulator-{version}-anylinux-{target}.AppImage"
 default = "2512"
+icon_url = "https://github.com/dolphin-emu/dolphin/raw/6711d77b9901ed0a4418203db49ed4d8576e6fe0/Data/Sys/Resources/dolphin_logo.png"
+icon_sha256 = "sha256-sPmm3QD91J6kr57PPY7zTjyh0uKgsW8Hq+yp0+bBovw="
 
 [dolphin."2512"]
 release_tag = "2512@2026-01-26_1769467304"
@@ -188,6 +204,8 @@ sha256 = "sha256-dkymxq8mVOkRyFiBXCH9OiqOF7eKRbV9K9s9N2wH3Wo="
 [melonds]
 url_template = "https://github.com/melonDS-emu/melonDS/releases/download/{version}/melonDS-{version}-appimage-{target}.zip"
 default = "1.1"
+icon_url = "https://github.com/melonDS-emu/melonDS/raw/182e462486f126507a29ad6ee1ee9a447afe35bc/res/icon/melon_256x256.png"
+icon_sha256 = "sha256-4NTddCHB0exuyPUR+eqDiq64XhnF/LLJ+VCgQTSbYaA="
 
 [melonds."1.1".targets.x86_64]
 arch = "x86_64"
@@ -207,6 +225,8 @@ binary_path = "melonDS-aarch64.AppImage"
 [vita3k]
 url_template = "https://github.com/Vita3K/Vita3K-builds/releases/download/{release_tag}/Vita3K-{target}.AppImage"
 default = "3912"
+icon_url = "https://github.com/Vita3K/Vita3K/raw/750a516d8fb8ffaaa063db3d226d8f382db58063/data/image/icon.png"
+icon_sha256 = "sha256-lW+0WbQ+hdg/gnjk+9vA//eDZmbhvwAoNqmaLLvAWMs="
 
 [vita3k."3912"]
 release_tag = "3912"
@@ -223,6 +243,8 @@ sha256 = "sha256-EEwgm67R4FphMVkCwmL0tCbZtkH25vhneVwZuifh22w="
 [rpcs3]
 url_template = "https://github.com/RPCS3/rpcs3-binaries-linux/releases/download/{release_tag}/rpcs3-v{version}_linux64.AppImage"
 default = "0.0.18-12817-fff0c96b"
+icon_url = "https://raw.githubusercontent.com/RPCS3/rpcs3/588cf69dad726a4485af945ba0507193c526ccf7/rpcs3/rpcs3.svg"
+icon_sha256 = "sha256-++YdZ65VMc6SYFcfB3uTrHTHvYGRztfwi+Ktg3x2+d0="
 
 [rpcs3."0.0.18-12817-fff0c96b"]
 release_tag = "build-fff0c96bf38d1ada075e524c4753a7f263c06449"
@@ -239,6 +261,8 @@ sha256 = "sha256-dcloGeNbIDVf36GkP6Td4YN/YdwIpw27OoLZb8rYbGk="
 [flycast]
 url_template = "https://github.com/flyinghead/flycast/releases/download/v{version}/flycast-{target}.AppImage"
 default = "2.6"
+icon_url = "https://github.com/flyinghead/flycast/raw/21eb24f86d785b1c631161f03057b22c160182c0/shell/linux/flycast.png"
+icon_sha256 = "sha256-Im6VDsp4HVCu82Oz8xJZ45dwRkgOJBQJ7kTcJev2tuQ="
 
 [flycast."2.6".targets.x86_64]
 arch = "x86_64"
@@ -252,6 +276,8 @@ sha256 = "sha256-upuvtFJ7u3JHxrRg2/nuOauiTGy2nCLpsCH3iG60Cx8="
 [retroarch]
 url_template = "https://buildbot.libretro.com/stable/{version}/linux/{target}/RetroArch.7z"
 default = "1.19.1"
+icon_url = "https://raw.githubusercontent.com/libretro/RetroArch/bed2dc3b6cb35173f79e19bbb91a5f9436803f13/media/ico_src/icon.svg"
+icon_sha256 = "sha256-rsb78xEhAOOnBxZbofDFs0O8hiMB2B6SM0kJMK0QJYM="
 
 [retroarch."1.19.1".targets.x86_64]
 arch = "x86_64"
