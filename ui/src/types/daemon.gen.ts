@@ -72,6 +72,7 @@ export interface EmulatorRef {
   name: string;
   defaultVersion?: string;
   availableVersions?: string[];
+  downloadSize?: string;
 }
 export interface ConfigResponse {
   userStore: string;

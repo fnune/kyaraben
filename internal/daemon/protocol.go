@@ -86,6 +86,7 @@ type EmulatorRef struct {
 	Name              string           `json:"name"`
 	DefaultVersion    string           `json:"defaultVersion,omitempty"`
 	AvailableVersions []string         `json:"availableVersions,omitempty"`
+	DownloadSize      string           `json:"downloadSize,omitempty"`
 }
 
 type ConfigResponse struct {

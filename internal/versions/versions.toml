@@ -4,6 +4,9 @@
 [nixpkgs]
 commit = "fa83fd837f3098e3e678e6cf017b2b36102c7211" # https://github.com/NixOS/nixpkgs/commits/nixos-25.11
 
+[retroarch-cores]
+commit = "fa83fd837f3098e3e678e6cf017b2b36102c7211"
+
 # ============================================================================
 # EDEN - Nintendo Switch emulator (pilot for multi-version support)
 # https://github.com/eden-emulator/Releases/releases
@@ -18,22 +21,27 @@ icon_sha256 = "sha256-XrRaJfrcYvw10SO0/hlGKw5///7X3T8Ukg5UMrOFl2k="
 [eden."v0.1.1".targets.amd64]
 arch = "x86_64"
 sha256 = "sha256-g7x10zM/55z2avdETcpRJ56O1oN8cndbzl9UAiOJZF8="
+size = 66274509
 
 [eden."v0.1.1".targets.legacy]
 arch = "x86_64"
 sha256 = "sha256-sArRWvGMEdgJ3JfL/aPXbKbwQS/CE8DSoQS1qu27zsw="
+size = 66169242
 
 [eden."v0.1.1".targets.steamdeck]
 arch = "x86_64"
 sha256 = "sha256-TSqAXu6nZElt6jTyy7NCU6YGmhwlWvucEzDuB5wNShM="
+size = 65225523
 
 [eden."v0.1.1".targets.rog-ally]
 arch = "x86_64"
 sha256 = "sha256-F0dVNkaiDTR/f8T8A2x7Id5pA+vr9EnU9njEERObcPw="
+size = 61974938
 
 [eden."v0.1.1".targets.aarch64]
 arch = "aarch64"
 sha256 = "sha256-6iU5RV5gogxpJUFwWi0p2y4r8IRvAcuxSwcpCIWsG6E="
+size = 61660569
 
 [eden."v0.1.0".targets.amd64]
 arch = "x86_64"
@@ -86,10 +94,12 @@ icon_sha256 = "sha256-qR+lWCmOZKt/wT6MFXPKtCx/p0IUCOgRNdjb8CLdwv4="
 [duckstation."v0.1-10655".targets.x64]
 arch = "x86_64"
 sha256 = "sha256-/fmHmyseqXVJ26OdhQUuZYrDWxnu0jKJvkaOGpGtoOc="
+size = 89860710
 
 [duckstation."v0.1-10655".targets.arm64]
 arch = "aarch64"
 sha256 = "sha256-WzUXY082lu4gcmss/rPNzzgBzQppyTxIWZruUR5uaLE="
+size = 81788928
 
 # ============================================================================
 # PCSX2 - PlayStation 2 emulator
@@ -105,6 +115,7 @@ icon_sha256 = "sha256-vyHthTMThVUN2IWrbkfXYQGbj6I1O+iUG30MoZxa+z4="
 [pcsx2."v2.6.3".targets.x64]
 arch = "x86_64"
 sha256 = "sha256-jOfehhPBewCwECilEt0bgZmLZibrvpOgZ+DrIK7t1b8="
+size = 71725056
 
 # ============================================================================
 # PPSSPP - PlayStation Portable emulator
@@ -120,10 +131,12 @@ icon_sha256 = "sha256-il19tCxn2RhdAgz6QE6p4IYuEToagHMZp2HsdL1kZp4="
 [ppsspp."v1.19.3".targets.x86_64]
 arch = "x86_64"
 sha256 = "sha256-VA8xfB7WZhiUFn0tziG2IpWFfhqRInSYLacEjPIlZGY="
+size = 69103206
 
 [ppsspp."v1.19.3".targets.aarch64]
 arch = "aarch64"
 sha256 = "sha256-ugtlnflAX9qOfzlOKCgrcaseFfgp+rHFfB1CPFpQzv4="
+size = 64486809
 
 # ============================================================================
 # MGBA - Game Boy Advance emulator
@@ -139,10 +152,12 @@ icon_sha256 = "sha256-DV/Ot8C2vn/YD6jmVsXC/CpyQpB1kPjHZMMIEVqD7qg="
 [mgba."0.10.5".targets.x64]
 arch = "x86_64"
 sha256 = "sha256-/fClwViOFgbDgxVzXPSKn53KNXPzKjlH68lW+Cl+hc0="
+size = 25165824
 
 [mgba."0.10.5".targets.arm64]
 arch = "aarch64"
 sha256 = "sha256-3jy/Q3vh1TJMOFO6ug2v6jMRMiojgpNV1YMwiUfgWOg="
+size = 24536678
 
 # ============================================================================
 # CEMU - Wii U emulator
@@ -158,6 +173,7 @@ icon_sha256 = "sha256-ZFipm4vVTkSFfvoPgr/WA15+By5+CA4zMOTiz+icvTM="
 [cemu."2.4".targets.x64]
 arch = "x86_64"
 sha256 = "sha256-kqHwgSMICb0Kwwsij3LG2Meqfqo+Vt9M+K1U1MmScJc="
+size = 61235610
 
 # ============================================================================
 # AZAHAR - Nintendo 3DS emulator
@@ -173,6 +189,7 @@ icon_sha256 = "sha256-faLnIedyniDyjzgYf9ct6I9PEKVcQH3bkcMhktGqmV8="
 [azahar."2124.3".targets.x64]
 arch = "x86_64"
 sha256 = "sha256-HkmgFkvxmZC/REe8KF8jmXuSMYnzbt18/r/TGO9e2vM="
+size = 101396070
 
 # ============================================================================
 # DOLPHIN - GameCube/Wii emulator (unofficial AppImage)
@@ -191,10 +208,12 @@ release_tag = "2512@2026-01-26_1769467304"
 [dolphin."2512".targets.x86_64]
 arch = "x86_64"
 sha256 = "sha256-+zW7dA5VGPU5vUAaUf6RCGGhAppOAm+8KzD5LH976c4="
+size = 67318374
 
 [dolphin."2512".targets.aarch64]
 arch = "aarch64"
 sha256 = "sha256-dkymxq8mVOkRyFiBXCH9OiqOF7eKRbV9K9s9N2wH3Wo="
+size = 71198720
 
 # ============================================================================
 # MELONDS - Nintendo DS emulator
@@ -211,11 +230,13 @@ icon_sha256 = "sha256-4NTddCHB0exuyPUR+eqDiq64XhnF/LLJ+VCgQTSbYaA="
 arch = "x86_64"
 sha256 = "sha256-vzd0IKLpXyzSzdoX1TcrUcJTT4WLA4257G0SlVSHUSQ="
 binary_path = "melonDS-x86_64.AppImage"
+size = 34287206
 
 [melonds."1.1".targets.aarch64]
 arch = "aarch64"
 sha256 = "sha256-xTeuAY1tzt/p2gMXodXAFj5pIB4jq/oWP6KmPkN6zgk="
 binary_path = "melonDS-aarch64.AppImage"
+size = 33342259
 
 # ============================================================================
 # VITA3K - PlayStation Vita emulator
@@ -234,6 +255,7 @@ release_tag = "3912"
 [vita3k."3912".targets.x86_64]
 arch = "x86_64"
 sha256 = "sha256-EEwgm67R4FphMVkCwmL0tCbZtkH25vhneVwZuifh22w="
+size = 22964019
 
 # ============================================================================
 # RPCS3 - PlayStation 3 emulator
@@ -252,6 +274,7 @@ release_tag = "build-fff0c96bf38d1ada075e524c4753a7f263c06449"
 [rpcs3."0.0.18-12817-fff0c96b".targets.x64]
 arch = "x86_64"
 sha256 = "sha256-dcloGeNbIDVf36GkP6Td4YN/YdwIpw27OoLZb8rYbGk="
+size = 61235610
 
 # ============================================================================
 # FLYCAST - Sega Dreamcast emulator
@@ -267,6 +290,7 @@ icon_sha256 = "sha256-Im6VDsp4HVCu82Oz8xJZ45dwRkgOJBQJ7kTcJev2tuQ="
 [flycast."2.6".targets.x86_64]
 arch = "x86_64"
 sha256 = "sha256-upuvtFJ7u3JHxrRg2/nuOauiTGy2nCLpsCH3iG60Cx8="
+size = 19818086
 
 # ============================================================================
 # RETROARCH - Multi-system emulator frontend
@@ -283,4 +307,5 @@ icon_sha256 = "sha256-rsb78xEhAOOnBxZbofDFs0O8hiMB2B6SM0kJMK0QJYM="
 arch = "x86_64"
 sha256 = "sha256-fWLamiE5fW4blJB4XO2+r9JieBtQEVB2c2++infvMOk="
 binary_path = "RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage"
+size = 179415654
 
