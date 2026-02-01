@@ -24,12 +24,12 @@ Name={{.Name}}
 GenericName={{.GenericName}}
 {{- end}}
 Exec={{.BinDir}}/{{.BinaryName}}{{if .LaunchArgs}} {{.LaunchArgs}}{{end}} %f
-Icon={{.BinaryName}}
+Icon=kyaraben-{{.BinaryName}}
 Categories={{.CategoriesStr}};
 `
 
 func (m *Manager) ApplicationsDir() string {
-	return filepath.Join(m.dataDir, "applications")
+	return filepath.Join(m.dataDir, "applications", "kyaraben")
 }
 
 func (m *Manager) IconsDir() string {
@@ -234,7 +234,7 @@ func (m *Manager) copyStoreIcon(binary string) (string, error) {
 		return "", fmt.Errorf("creating icons directory: %w", err)
 	}
 
-	destPath := filepath.Join(destDir, binary+ext)
+	destPath := filepath.Join(destDir, "kyaraben-"+binary+ext)
 	if err := os.WriteFile(destPath, iconData, 0644); err != nil {
 		return "", fmt.Errorf("writing icon: %w", err)
 	}

@@ -1,17 +1,18 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { Settings } from '@/components/Settings/Settings'
 import { StickyActionBar } from '@/components/StickyActionBar/StickyActionBar'
 import { SYSTEM_YEARS, SystemCard } from '@/components/SystemCard/SystemCard'
+import { useApply } from '@/lib/ApplyContext'
 import { BottomBar } from '@/lib/BottomBar'
 import { Button } from '@/lib/Button'
 import { addChange, emptyChangeSummary, getChangeType } from '@/lib/changeUtils'
 import { ProgressSteps } from '@/lib/ProgressSteps'
-import type { DoctorResponse, EmulatorID, System } from '@/types/daemon'
-import type { ApplyStatus, ProgressStep } from '@/types/ui'
+import type { DoctorResponse, EmulatorID, System, SystemID } from '@/types/daemon'
 import { MANUFACTURER_ORDER } from '@/types/ui'
 
 export interface SystemsViewProps {
   readonly systems: readonly System[]
+  readonly systemEmulators: Map<SystemID, EmulatorID[]>
   readonly enabledEmulators: ReadonlySet<EmulatorID>
   readonly emulatorVersions: Map<EmulatorID, string | null>
   readonly installedVersions: Map<EmulatorID, string>
@@ -22,12 +23,6 @@ export interface SystemsViewProps {
   readonly onUserStoreChange: (value: string) => void
   readonly onEmulatorToggle: (emulatorId: EmulatorID, enabled: boolean) => void
   readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
-  readonly onApply: () => void
-  readonly onCancel: () => void
-  readonly applyStatus: ApplyStatus
-  readonly progressSteps: readonly ProgressStep[]
-  readonly error: string | null
-  readonly onReset: () => void
   readonly onDiscard: () => void
 }
 
@@ -54,6 +49,7 @@ function groupSystemsByManufacturer(systems: readonly System[]) {
 
 export function SystemsView({
   systems,
+  systemEmulators,
   enabledEmulators,
   emulatorVersions,
   installedVersions,
@@ -64,16 +60,32 @@ export function SystemsView({
   onUserStoreChange,
   onEmulatorToggle,
   onVersionChange,
-  onApply,
-  onCancel,
-  applyStatus,
-  progressSteps,
-  error,
-  onReset,
   onDiscard,
 }: SystemsViewProps) {
+  const { status: applyStatus, progressSteps, error, apply, cancel, reset } = useApply()
+
   const isApplying = applyStatus === 'applying'
   const showProgress = applyStatus !== 'idle'
+
+  const handleApply = useCallback(async () => {
+    const systemsConfig: Record<string, string[]> = {}
+    for (const [sysId, emuIds] of systemEmulators) {
+      systemsConfig[sysId] = emuIds
+    }
+
+    const emulatorsConfig: Record<string, { version?: string }> = {}
+    for (const [emuId, version] of emulatorVersions) {
+      if (version) {
+        emulatorsConfig[emuId] = { version }
+      }
+    }
+
+    await apply({
+      userStore,
+      systems: systemsConfig,
+      emulators: emulatorsConfig,
+    })
+  }, [apply, systemEmulators, emulatorVersions, userStore])
 
   const changes = useMemo(() => {
     let summary = emptyChangeSummary()
@@ -118,13 +130,13 @@ export function SystemsView({
         <BottomBar>
           <button
             type="button"
-            onClick={onCancel}
+            onClick={cancel}
             disabled={!isApplying}
             className="text-blue-400 hover:text-blue-300 hover:underline text-sm disabled:text-gray-600 disabled:no-underline disabled:cursor-not-allowed"
           >
             Cancel
           </button>
-          <Button onClick={onReset} disabled={isApplying}>
+          <Button onClick={reset} disabled={isApplying}>
             Done
           </Button>
         </BottomBar>
@@ -165,7 +177,7 @@ export function SystemsView({
 
       <StickyActionBar
         changes={changes}
-        onApply={onApply}
+        onApply={handleApply}
         onDiscard={onDiscard}
         applying={isApplying}
       />

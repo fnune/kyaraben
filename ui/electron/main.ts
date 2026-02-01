@@ -1,4 +1,5 @@
 import { type ChildProcess, spawn } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
 import * as path from 'node:path'
 import * as readline from 'node:readline'
 import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron'
@@ -8,11 +9,13 @@ import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron'
 // Keep these in sync when modifying the protocol.
 interface DaemonCommand {
   type: string
+  id?: string
   data?: unknown
 }
 
 interface DaemonEvent {
   type: string
+  id?: string
   data: unknown
 }
 
@@ -20,8 +23,7 @@ interface DaemonEvent {
 let daemon: {
   process: ChildProcess
   rl: readline.Interface
-  pending: Map<number, { resolve: (value: DaemonEvent) => void; reject: (err: Error) => void }>
-  requestId: number
+  pending: Map<string, { resolve: (value: DaemonEvent) => void; reject: (err: Error) => void }>
 } | null = null
 
 function getSidecarName(): string {
@@ -99,20 +101,27 @@ async function ensureDaemon(): Promise<void> {
     process: child,
     rl,
     pending: new Map(),
-    requestId: 0,
   }
 
   // Handle daemon events
   rl.on('line', (line: string) => {
     try {
       const event: DaemonEvent = JSON.parse(line)
-      // For now, we handle responses sequentially since the daemon
-      // doesn't support request IDs yet
-      const firstPending = daemon?.pending.entries().next().value
-      if (firstPending) {
-        const [id, { resolve }] = firstPending
-        daemon?.pending.delete(id)
-        resolve(event)
+
+      if (event.type === 'ready') {
+        const handler = daemon?.pending.get('__ready__')
+        if (handler) {
+          daemon?.pending.delete('__ready__')
+          handler.resolve(event)
+        }
+        return
+      }
+
+      if (event.id) {
+        const handler = daemon?.pending.get(event.id)
+        if (handler) {
+          handler.resolve(event)
+        }
       }
     } catch (err) {
       console.error(`[kyaraben] Failed to parse daemon event: ${err}`)
@@ -128,15 +137,10 @@ async function ensureDaemon(): Promise<void> {
   const currentDaemon = daemon
   await new Promise<DaemonEvent>((resolve, reject) => {
     const timeout = setTimeout(() => reject(new Error('Daemon startup timeout')), 10000)
-    const id = currentDaemon.requestId++
-    currentDaemon.pending.set(id, {
+    currentDaemon.pending.set('__ready__', {
       resolve: (event) => {
         clearTimeout(timeout)
-        if (event.type === 'ready') {
-          resolve(event)
-        } else {
-          reject(new Error(`Expected ready event, got: ${event.type}`))
-        }
+        resolve(event)
       },
       reject,
     })
@@ -154,19 +158,21 @@ async function sendCommand(cmd: DaemonCommand): Promise<DaemonEvent> {
 
   const currentDaemon = daemon
   const stdin = daemon.process.stdin
-  const json = `${JSON.stringify(cmd)}\n`
+  const requestId = randomUUID()
+  const commandWithId = { ...cmd, id: requestId }
+  const json = `${JSON.stringify(commandWithId)}\n`
   stdin.write(json)
 
   return new Promise((resolve, reject) => {
-    const id = currentDaemon.requestId++
     const timeout = setTimeout(() => {
-      currentDaemon.pending.delete(id)
+      currentDaemon.pending.delete(requestId)
       reject(new Error('Command timeout'))
     }, 600000) // 10 minute timeout for long operations
 
-    currentDaemon.pending.set(id, {
+    currentDaemon.pending.set(requestId, {
       resolve: (event) => {
         clearTimeout(timeout)
+        currentDaemon.pending.delete(requestId)
         if (event.type === 'error') {
           reject(new Error((event.data as { error?: string })?.error || 'Unknown error'))
         } else {
@@ -175,6 +181,7 @@ async function sendCommand(cmd: DaemonCommand): Promise<DaemonEvent> {
       },
       reject: (err) => {
         clearTimeout(timeout)
+        currentDaemon.pending.delete(requestId)
         reject(err)
       },
     })
@@ -192,12 +199,14 @@ async function applyCommand(): Promise<{ messages: string[]; cancelled: boolean 
   const currentDaemon = daemon
   const stdin = daemon.process.stdin
   const messages: string[] = []
-  const json = `${JSON.stringify({ type: 'apply' })}\n`
+  const requestId = randomUUID()
+  const json = `${JSON.stringify({ type: 'apply', id: requestId })}\n`
   stdin.write(json)
 
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(
       () => {
+        currentDaemon.pending.delete(requestId)
         reject(new Error('Apply timeout'))
       },
       15 * 60 * 1000,
@@ -221,25 +230,23 @@ async function applyCommand(): Promise<{ messages: string[]; cancelled: boolean 
             console.error('[kyaraben] Failed to send progress:', sendErr)
           }
         }
-
-        // Continue listening for more events
-        const id = currentDaemon.requestId++
-        currentDaemon.pending.set(id, { resolve: handleEvent, reject })
       } else if (event.type === 'result') {
         clearTimeout(timeout)
+        currentDaemon.pending.delete(requestId)
         messages.push('Apply completed successfully')
         resolve({ messages, cancelled: false })
       } else if (event.type === 'cancelled') {
         clearTimeout(timeout)
+        currentDaemon.pending.delete(requestId)
         resolve({ messages, cancelled: true })
       } else if (event.type === 'error') {
         clearTimeout(timeout)
+        currentDaemon.pending.delete(requestId)
         reject(new Error((event.data as { error?: string })?.error || 'Unknown error'))
       }
     }
 
-    const id = currentDaemon.requestId++
-    currentDaemon.pending.set(id, { resolve: handleEvent, reject })
+    currentDaemon.pending.set(requestId, { resolve: handleEvent, reject })
   })
 }
 
@@ -288,83 +295,18 @@ function setupIpcHandlers(): void {
   })
 
   ipcMain.handle('get_install_status', async () => {
-    const os = require('node:os')
-    const fs = require('node:fs')
-    const homeDir = os.homedir()
-    const binDir = path.join(homeDir, '.local', 'bin')
-    const appsDir = path.join(homeDir, '.local', 'share', 'applications')
-
-    const appPath = path.join(binDir, 'kyaraben.AppImage')
-    const desktopPath = path.join(appsDir, 'kyaraben.desktop')
-    const cliPath = path.join(binDir, 'kyaraben')
-
-    const installed = fs.existsSync(appPath) && fs.existsSync(desktopPath)
-
-    return {
-      installed,
-      appPath: fs.existsSync(appPath) ? appPath : null,
-      desktopPath: fs.existsSync(desktopPath) ? desktopPath : null,
-      cliPath: fs.existsSync(cliPath) ? cliPath : null,
-    }
+    const event = await sendCommand({ type: 'install_status' })
+    return event.data
   })
 
   ipcMain.handle('install_app', async () => {
-    const os = require('node:os')
-    const fs = require('node:fs/promises')
-    const homeDir = os.homedir()
-    const binDir = path.join(homeDir, '.local', 'bin')
-    const appsDir = path.join(homeDir, '.local', 'share', 'applications')
-
-    const appPath = path.join(binDir, 'kyaraben.AppImage')
-    const desktopPath = path.join(appsDir, 'kyaraben.desktop')
-    const cliPath = path.join(binDir, 'kyaraben')
-
-    // Create directories
-    await fs.mkdir(binDir, { recursive: true })
-    await fs.mkdir(appsDir, { recursive: true })
-
-    // Copy AppImage
-    const currentExe = app.getPath('exe')
-    await fs.copyFile(currentExe, appPath)
-    await fs.chmod(appPath, 0o755)
-
-    // Copy CLI binary
-    try {
-      const sidecarPath = findSidecarPath()
-      await fs.copyFile(sidecarPath, cliPath)
-      await fs.chmod(cliPath, 0o755)
-    } catch {
-      // CLI copy is optional
-    }
-
-    // Create .desktop file
-    const desktopContent = `[Desktop Entry]
-Name=Kyaraben
-Comment=Declarative emulation manager
-Exec=${appPath}
-Icon=applications-games
-Terminal=false
-Type=Application
-Categories=Game;Emulator;
-`
-    await fs.writeFile(desktopPath, desktopContent)
-  })
-
-  ipcMain.handle('uninstall_app', async () => {
-    const os = require('node:os')
-    const fs = require('node:fs/promises')
-    const homeDir = os.homedir()
-    const binDir = path.join(homeDir, '.local', 'bin')
-    const appsDir = path.join(homeDir, '.local', 'share', 'applications')
-
-    const appPath = path.join(binDir, 'kyaraben.AppImage')
-    const desktopPath = path.join(appsDir, 'kyaraben.desktop')
-    const cliPath = path.join(binDir, 'kyaraben')
-
-    // Remove files (ignore errors if they don't exist)
-    await fs.unlink(appPath).catch(() => undefined)
-    await fs.unlink(desktopPath).catch(() => undefined)
-    await fs.unlink(cliPath).catch(() => undefined)
+    const appImagePath = process.env.APPIMAGE || ''
+    const sidecarPath = findSidecarPath()
+    const event = await sendCommand({
+      type: 'install_kyaraben',
+      data: { appImagePath, sidecarPath },
+    })
+    return event.data
   })
 
   ipcMain.handle('sync_status', async () => {

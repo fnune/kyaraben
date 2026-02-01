@@ -132,11 +132,25 @@ export interface UninstallPreviewResponse {
   desktopFiles: string[];
   iconFiles: string[];
   configFiles: string[];
+  kyarabenFiles: string[];
   preserved: PreservedPaths;
 }
 export interface PreservedPaths {
   userStore: string;
   configDir: string;
+}
+export interface InstallKyarabenRequest {
+  appImagePath?: string;
+  sidecarPath?: string;
+}
+export interface InstallKyarabenResponse {
+  success: boolean;
+}
+export interface InstallStatusResponse {
+  installed: boolean;
+  appPath?: string;
+  desktopPath?: string;
+  cliPath?: string;
 }
 
 //////////
@@ -158,18 +172,22 @@ export const CommandTypeSyncStatus = "sync_status";
 export const CommandTypeSyncAddDevice = "sync_add_device";
 export const CommandTypeSyncRemoveDevice = "sync_remove_device";
 export const CommandTypeUninstallPreview = "uninstall_preview";
-export type CommandType = typeof CommandTypeStatus | typeof CommandTypeDoctor | typeof CommandTypeApply | typeof CommandTypeCancelApply | typeof CommandTypeGetSystems | typeof CommandTypeGetConfig | typeof CommandTypeSetConfig | typeof CommandTypeSyncStatus | typeof CommandTypeSyncAddDevice | typeof CommandTypeSyncRemoveDevice | typeof CommandTypeUninstallPreview;
+export const CommandTypeInstallKyaraben = "install_kyaraben";
+export const CommandTypeInstallStatus = "install_status";
+export type CommandType = typeof CommandTypeStatus | typeof CommandTypeDoctor | typeof CommandTypeApply | typeof CommandTypeCancelApply | typeof CommandTypeGetSystems | typeof CommandTypeGetConfig | typeof CommandTypeSetConfig | typeof CommandTypeSyncStatus | typeof CommandTypeSyncAddDevice | typeof CommandTypeSyncRemoveDevice | typeof CommandTypeUninstallPreview | typeof CommandTypeInstallKyaraben | typeof CommandTypeInstallStatus;
 /**
  * Command represents a command from the UI.
  */
 export interface Command {
   type: CommandType;
+  id?: string;
 }
 /**
  * SetConfigCommand includes the config data to set.
  */
 export interface SetConfigCommand {
   type: CommandType;
+  id?: string;
   data: SetConfigRequest;
 }
 /**
@@ -177,6 +195,7 @@ export interface SetConfigCommand {
  */
 export interface SyncAddDeviceCommand {
   type: CommandType;
+  id?: string;
   data: SyncAddDeviceRequest;
 }
 /**
@@ -184,7 +203,16 @@ export interface SyncAddDeviceCommand {
  */
 export interface SyncRemoveDeviceCommand {
   type: CommandType;
+  id?: string;
   data: SyncRemoveDeviceRequest;
+}
+/**
+ * InstallKyarabenCommand includes the install options.
+ */
+export interface InstallKyarabenCommand {
+  type: CommandType;
+  id?: string;
+  data: InstallKyarabenRequest;
 }
 /**
  * EventType identifies the type of event.
@@ -203,5 +231,6 @@ export type EventType = typeof EventTypeReady | typeof EventTypeResult | typeof 
  */
 export interface Event {
   type: EventType;
+  id?: string;
   data?: unknown;
 }

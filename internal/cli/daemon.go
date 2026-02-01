@@ -40,6 +40,11 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 		_ = encoder.Encode(event)
 	}
 
+	sendEventWithID := func(event daemon.Event, id string) {
+		event.ID = id
+		sendEvent(event)
+	}
+
 	if err := encoder.Encode(daemon.Event{
 		Type: daemon.EventTypeReady,
 		Data: map[string]string{"version": "0.1.0"},
@@ -62,52 +67,70 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 			continue
 		}
 
+		cmdID := cmd.ID
+		emitWithID := func(event daemon.Event) {
+			sendEventWithID(event, cmdID)
+		}
+
 		var events []daemon.Event
 		switch cmd.Type {
 		case daemon.CommandTypeApply:
-			go func() {
-				events := d.HandleWithEmit(cmd, sendEvent)
-				for _, event := range events {
-					sendEvent(event)
+			go func(id string) {
+				emitForApply := func(event daemon.Event) {
+					sendEventWithID(event, id)
 				}
-			}()
+				events := d.HandleWithEmit(cmd, emitForApply)
+				for _, event := range events {
+					sendEventWithID(event, id)
+				}
+			}(cmdID)
 			continue
 		case daemon.CommandTypeSetConfig:
 			var setConfigCmd daemon.SetConfigCommand
 			if err := json.Unmarshal(line, &setConfigCmd); err != nil {
-				sendEvent(daemon.Event{
+				sendEventWithID(daemon.Event{
 					Type: daemon.EventTypeError,
 					Data: map[string]string{"error": fmt.Sprintf("invalid set_config command: %v", err)},
-				})
+				}, cmdID)
 				continue
 			}
-			events = d.HandleSetConfig(setConfigCmd, sendEvent)
+			events = d.HandleSetConfig(setConfigCmd, emitWithID)
 		case daemon.CommandTypeSyncAddDevice:
 			var syncAddCmd daemon.SyncAddDeviceCommand
 			if err := json.Unmarshal(line, &syncAddCmd); err != nil {
-				sendEvent(daemon.Event{
+				sendEventWithID(daemon.Event{
 					Type: daemon.EventTypeError,
 					Data: map[string]string{"error": fmt.Sprintf("invalid sync_add_device command: %v", err)},
-				})
+				}, cmdID)
 				continue
 			}
-			events = d.HandleSyncAddDevice(syncAddCmd, sendEvent)
+			events = d.HandleSyncAddDevice(syncAddCmd, emitWithID)
 		case daemon.CommandTypeSyncRemoveDevice:
 			var syncRemoveCmd daemon.SyncRemoveDeviceCommand
 			if err := json.Unmarshal(line, &syncRemoveCmd); err != nil {
-				sendEvent(daemon.Event{
+				sendEventWithID(daemon.Event{
 					Type: daemon.EventTypeError,
 					Data: map[string]string{"error": fmt.Sprintf("invalid sync_remove_device command: %v", err)},
-				})
+				}, cmdID)
 				continue
 			}
-			events = d.HandleSyncRemoveDevice(syncRemoveCmd, sendEvent)
+			events = d.HandleSyncRemoveDevice(syncRemoveCmd, emitWithID)
+		case daemon.CommandTypeInstallKyaraben:
+			var installCmd daemon.InstallKyarabenCommand
+			if err := json.Unmarshal(line, &installCmd); err != nil {
+				sendEventWithID(daemon.Event{
+					Type: daemon.EventTypeError,
+					Data: map[string]string{"error": fmt.Sprintf("invalid install_kyaraben command: %v", err)},
+				}, cmdID)
+				continue
+			}
+			events = d.HandleInstallKyaraben(installCmd, emitWithID)
 		default:
-			events = d.HandleWithEmit(cmd, sendEvent)
+			events = d.HandleWithEmit(cmd, emitWithID)
 		}
 
 		for _, event := range events {
-			sendEvent(event)
+			sendEventWithID(event, cmdID)
 		}
 	}
 

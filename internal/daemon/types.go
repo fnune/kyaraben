@@ -23,29 +23,42 @@ const (
 	CommandTypeSyncAddDevice    CommandType = "sync_add_device"
 	CommandTypeSyncRemoveDevice CommandType = "sync_remove_device"
 	CommandTypeUninstallPreview CommandType = "uninstall_preview"
+	CommandTypeInstallKyaraben  CommandType = "install_kyaraben"
+	CommandTypeInstallStatus    CommandType = "install_status"
 )
 
 // Command represents a command from the UI.
 type Command struct {
 	Type CommandType `json:"type"`
+	ID   string      `json:"id,omitempty"`
 }
 
 // SetConfigCommand includes the config data to set.
 type SetConfigCommand struct {
 	Type CommandType      `json:"type"`
+	ID   string           `json:"id,omitempty"`
 	Data SetConfigRequest `json:"data"`
 }
 
 // SyncAddDeviceCommand includes the device to add.
 type SyncAddDeviceCommand struct {
 	Type CommandType          `json:"type"`
+	ID   string               `json:"id,omitempty"`
 	Data SyncAddDeviceRequest `json:"data"`
 }
 
 // SyncRemoveDeviceCommand includes the device to remove.
 type SyncRemoveDeviceCommand struct {
 	Type CommandType             `json:"type"`
+	ID   string                  `json:"id,omitempty"`
 	Data SyncRemoveDeviceRequest `json:"data"`
+}
+
+// InstallKyarabenCommand includes the install options.
+type InstallKyarabenCommand struct {
+	Type CommandType            `json:"type"`
+	ID   string                 `json:"id,omitempty"`
+	Data InstallKyarabenRequest `json:"data"`
 }
 
 // EventType identifies the type of event.
@@ -66,5 +79,6 @@ const (
 // The Data field contains a typed response struct depending on the command.
 type Event struct {
 	Type EventType   `json:"type"`
+	ID   string      `json:"id,omitempty"`
 	Data interface{} `json:"data,omitempty" tstype:"unknown"`
 }

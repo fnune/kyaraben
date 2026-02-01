@@ -9,7 +9,6 @@ type CommandType =
   | 'set_config'
   | 'get_install_status'
   | 'install_app'
-  | 'uninstall_app'
   | 'sync_status'
   | 'sync_add_device'
   | 'sync_remove_device'
