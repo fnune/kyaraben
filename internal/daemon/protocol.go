@@ -5,8 +5,8 @@ import "github.com/fnune/kyaraben/internal/model"
 // Request types
 
 type SetConfigRequest struct {
-	UserStore string                        `json:"userStore"`
-	Systems   map[string][]string           `json:"systems"`
+	UserStore string                         `json:"userStore"`
+	Systems   map[string][]string            `json:"systems"`
 	Emulators map[string]EmulatorConfRequest `json:"emulators,omitempty"`
 }
 
@@ -89,9 +89,9 @@ type EmulatorRef struct {
 }
 
 type ConfigResponse struct {
-	UserStore string                           `json:"userStore"`
-	Systems   map[string][]model.EmulatorID    `json:"systems"`
-	Emulators map[string]EmulatorConfResponse  `json:"emulators,omitempty"`
+	UserStore string                          `json:"userStore"`
+	Systems   map[string][]model.EmulatorID   `json:"systems"`
+	Emulators map[string]EmulatorConfResponse `json:"emulators,omitempty"`
 }
 
 type EmulatorConfResponse struct {

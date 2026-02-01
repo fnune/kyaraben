@@ -258,11 +258,11 @@ func TestFlycastGenerate(t *testing.T) {
 
 	// Verify Flycast has all required path settings
 	expectedKeys := map[string]bool{
-		"Flycast.DataPath":       false,
-		"Dreamcast.ContentPath":  false,
-		"Dreamcast.SavePath":     false,
-		"SavestatesPath":         false,
-		"ScreenshotsPath":        false,
+		"Flycast.DataPath":      false,
+		"Dreamcast.ContentPath": false,
+		"Dreamcast.SavePath":    false,
+		"SavestatesPath":        false,
+		"ScreenshotsPath":       false,
 	}
 
 	for _, entry := range patch.Entries {

@@ -73,7 +73,13 @@ function ProvisionsBadges({
   )
 }
 
-type ActionType = 'will-install' | 'will-update' | 'will-uninstall' | 'already-installed' | 'shared-uninstall' | null
+type ActionType =
+  | 'will-install'
+  | 'will-update'
+  | 'will-uninstall'
+  | 'already-installed'
+  | 'shared-uninstall'
+  | null
 
 function getAction(
   enabled: boolean,
@@ -297,7 +303,13 @@ export function EmulatorRow({
   onVersionChange,
 }: EmulatorRowProps) {
   const effectiveVersion = pinnedVersion ?? emulator.defaultVersion ?? null
-  const action = getAction(enabled, installedVersion, effectiveVersion, emulatorSharedWith, emulatorInstalledFor)
+  const action = getAction(
+    enabled,
+    installedVersion,
+    effectiveVersion,
+    emulatorSharedWith,
+    emulatorInstalledFor,
+  )
 
   const handleCheckboxChange = (e: ChangeEvent<HTMLInputElement>) => {
     onToggle(systemId, emulator.id, e.target.checked)
@@ -316,7 +328,9 @@ export function EmulatorRow({
   }
 
   return (
-    <div className={`border-b border-gray-100 ${isLast ? 'last:border-b-0' : ''} relative bg-gray-50/50`}>
+    <div
+      className={`border-b border-gray-100 ${isLast ? 'last:border-b-0' : ''} relative bg-gray-50/50`}
+    >
       <div className={`absolute left-0 top-0 bottom-0 w-1 ${getStatusColor()}`} />
 
       {/* Desktop */}
@@ -385,13 +399,7 @@ export function EmulatorRow({
   )
 }
 
-export function SystemRow({
-  system,
-  enabled,
-  provisions,
-  userStore,
-  onToggle,
-}: SystemRowProps) {
+export function SystemRow({ system, enabled, provisions, userStore, onToggle }: SystemRowProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
 
   const hasMissingRequired = provisions.some((p) => p.required && p.status !== 'found')
