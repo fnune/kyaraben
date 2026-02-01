@@ -174,9 +174,13 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		return nil, fmt.Errorf("creating flake directory: %w", err)
 	}
 
-	genPath, err := a.FlakeGenerator.Generate(a.NixClient.GetFlakePath(), emulatorsToInstall)
+	genResult, err := a.FlakeGenerator.Generate(a.NixClient.GetFlakePath(), emulatorsToInstall)
 	if err != nil {
 		return nil, fmt.Errorf("generating flake: %w", err)
+	}
+
+	for _, skipped := range genResult.SkippedEmulators {
+		opts.OnProgress(Progress{Step: "build", Message: fmt.Sprintf("Warning: emulator '%s' is no longer supported and will be skipped", skipped)})
 	}
 
 	resolvedVersions := a.FlakeGenerator.GetResolvedVersions(emulatorsToInstall)
@@ -196,10 +200,12 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	})
 	defer a.NixClient.SetOutputCallback(nil)
 
+	opts.OnProgress(Progress{Step: "build", Message: "Resolving package versions..."})
+
 	buildCtx, cancel := context.WithTimeout(ctx, nixBuildTimeout)
 	defer cancel()
 
-	flakeRef := a.FlakeGenerator.DefaultFlakeRef(string(genPath))
+	flakeRef := a.FlakeGenerator.DefaultFlakeRef(string(genResult.Path))
 
 	var profileLink string
 	if a.LauncherManager != nil {
