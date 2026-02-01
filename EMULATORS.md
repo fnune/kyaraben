@@ -63,8 +63,8 @@ AppImages avoid this because they use the host system's graphics drivers directl
 | Dolphin | GC/Wii | VersionedAppImage | [pkgforge-dev](https://github.com/pkgforge-dev/Dolphin-emu-AppImage/releases) | Unofficial but well-maintained |
 | Cemu | Wii U | VersionedAppImage | [GitHub Releases](https://github.com/cemu-project/Cemu/releases) | Official AppImage since 2.0 |
 | Azahar | 3DS | VersionedAppImage | [GitHub Releases](https://github.com/azahar-emu/azahar/releases) | Citra successor |
-| RetroArch:bsnes | SNES | Nixpkgs overlay | nixpkgs | **BROKEN** - graphics issues |
-| RetroArch:melonds | NDS | Nixpkgs overlay | nixpkgs | **BROKEN** - graphics issues |
+| RetroArch:bsnes | SNES | VersionedAppImage (7z) | [Buildbot](https://buildbot.libretro.com/stable/) | Shared package with melonDS |
+| RetroArch:melonds | NDS | VersionedAppImage (7z) | [Buildbot](https://buildbot.libretro.com/stable/) | Shared package with bsnes |
 | TIC-80 | TIC-80 | Nixpkgs | nixpkgs | **BROKEN** - falls back to CLI |
 
 ### Planned Changes
@@ -72,9 +72,8 @@ AppImages avoid this because they use the host system's graphics drivers directl
 | Emulator | System(s) | Method | Source | Versioned? | Notes |
 |----------|-----------|--------|--------|------------|-------|
 | RPCS3 | PS3 | AppImage | [GitHub Releases](https://github.com/RPCS3/rpcs3-binaries-linux/releases) | ✅ Yes | Rolling releases with build numbers |
-| melonDS | NDS | AppImage (in ZIP) | [GitHub Releases](https://github.com/melonDS-emu/melonDS/releases) | ✅ Yes | Needs extraction from ZIP, replace RA core |
+| melonDS | NDS | AppImage (in ZIP) | [GitHub Releases](https://github.com/melonDS-emu/melonDS/releases) | ✅ Yes | Standalone, replace RA core as default |
 | Vita3K | PS Vita | AppImage | [GitHub Releases](https://github.com/Vita3K/Vita3K-builds/releases) | ⚠️ Continuous | Rolling continuous builds |
-| RetroArch | Multi | Archive (7z) | [Buildbot](https://buildbot.libretro.com/stable/) | ✅ Yes | Frontend + bundled cores |
 | TIC-80 | TIC-80 | Tarball | [GitHub Releases](https://github.com/nesbox/TIC-80/releases) | ✅ Yes | Replace nix version |
 | Flycast | Dreamcast | Tarball | [GitHub Releases](https://github.com/flyinghead/flycast/releases) | ✅ Yes | Or use RA core |
 
@@ -162,7 +161,7 @@ https://buildbot.example.com/nightly/app.AppImage
 ### Archive Extraction Support
 Archive extraction is implemented in flake.go (7z, tar.gz, zip). These emulators use archives instead of direct AppImages:
 
-- 🔲 RetroArch - 7z archive from buildbot (needs emulator definition)
+- ✅ RetroArch - 7z archive from buildbot (shared by bsnes, melonDS cores)
 - 🔲 TIC-80 - tar.gz from GitHub (needs emulator definition update)
 
 ### Needs Special Handling

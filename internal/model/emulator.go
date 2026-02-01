@@ -5,6 +5,9 @@ package model
 type EmulatorID string
 
 const (
+	// EmulatorRetroArch is the base RetroArch installation shared by all cores.
+	// Used for shared data like the cores directory.
+	EmulatorRetroArch        EmulatorID = "retroarch"
 	EmulatorRetroArchBsnes   EmulatorID = "retroarch:bsnes"
 	EmulatorRetroArchMelonDS EmulatorID = "retroarch:melonds"
 	EmulatorDuckStation      EmulatorID = "duckstation"
