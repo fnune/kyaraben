@@ -13,10 +13,29 @@ func TestGenerateDesktopFiles(t *testing.T) {
 	profileDir := filepath.Join(tmpDir, "kyaraben")
 	npLocation := filepath.Join(tmpDir, "nix-portable")
 
-	currentDir := filepath.Join(tmpDir, "store", "nix", "store", "abc123-profile")
+	// Create the fake nix-portable store structure
+	realIconsDir := filepath.Join(npLocation, ".nix-portable", "nix", "store", "abc123-icons", "share", "icons")
+	if err := os.MkdirAll(realIconsDir, 0755); err != nil {
+		t.Fatalf("creating real icons dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(realIconsDir, "eden.svg"), []byte("<svg></svg>"), 0644); err != nil {
+		t.Fatalf("writing eden icon: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(realIconsDir, "duckstation.png"), []byte("fake png"), 0644); err != nil {
+		t.Fatalf("writing duckstation icon: %v", err)
+	}
 
-	if err := os.MkdirAll(currentDir, 0755); err != nil {
-		t.Fatalf("creating current dir: %v", err)
+	// Create the profile with symlinks pointing to virtual /nix/store paths
+	currentDir := filepath.Join(npLocation, ".nix-portable", "nix", "store", "xyz789-profile")
+	profileIconsDir := filepath.Join(currentDir, "share", "icons")
+	if err := os.MkdirAll(profileIconsDir, 0755); err != nil {
+		t.Fatalf("creating profile icons dir: %v", err)
+	}
+	if err := os.Symlink("/nix/store/abc123-icons/share/icons/eden.svg", filepath.Join(profileIconsDir, "eden.svg")); err != nil {
+		t.Fatalf("creating eden symlink: %v", err)
+	}
+	if err := os.Symlink("/nix/store/abc123-icons/share/icons/duckstation.png", filepath.Join(profileIconsDir, "duckstation.png")); err != nil {
+		t.Fatalf("creating duckstation symlink: %v", err)
 	}
 
 	dataDir := filepath.Join(tmpDir, "data")
@@ -27,17 +46,6 @@ func TestGenerateDesktopFiles(t *testing.T) {
 	}
 	if err := os.Symlink(currentDir, m.CurrentLink()); err != nil {
 		t.Fatalf("creating current symlink: %v", err)
-	}
-
-	storeIconsDir := filepath.Join(currentDir, "share", "icons")
-	if err := os.MkdirAll(storeIconsDir, 0755); err != nil {
-		t.Fatalf("creating store icons dir: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(storeIconsDir, "eden.svg"), []byte("<svg></svg>"), 0644); err != nil {
-		t.Fatalf("writing eden icon: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(storeIconsDir, "duckstation.png"), []byte("fake png"), 0644); err != nil {
-		t.Fatalf("writing duckstation icon: %v", err)
 	}
 
 	entries := []GeneratedDesktop{
@@ -86,14 +94,14 @@ func TestGenerateDesktopFiles(t *testing.T) {
 		t.Errorf("eden.desktop should contain Categories, got:\n%s", contentStr)
 	}
 
-	edenIconPath := filepath.Join(m.IconsDir(), "eden.svg")
+	edenIconPath := filepath.Join(m.iconsDirForExt(".svg"), "eden.svg")
 	if _, err := os.Stat(edenIconPath); err != nil {
-		t.Errorf("eden.svg should exist: %v", err)
+		t.Errorf("eden.svg should exist in scalable/apps: %v", err)
 	}
 
-	duckstationIconPath := filepath.Join(m.IconsDir(), "duckstation.png")
+	duckstationIconPath := filepath.Join(m.iconsDirForExt(".png"), "duckstation.png")
 	if _, err := os.Stat(duckstationIconPath); err != nil {
-		t.Errorf("duckstation.png should exist: %v", err)
+		t.Errorf("duckstation.png should exist in 256x256/apps: %v", err)
 	}
 }
 
