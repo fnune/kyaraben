@@ -66,7 +66,6 @@ func Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg 
 			info.Name = e.Name
 		}
 
-		// Check if this emulator is pinned in any system config
 		for _, sysConf := range cfg.Systems {
 			if sysConf.EmulatorID() == emu.ID {
 				info.PinnedVersion = sysConf.EmulatorVersion()
@@ -74,7 +73,6 @@ func Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg 
 			}
 		}
 
-		// Get default version from versions.toml
 		if vers != nil {
 			if e, err := reg.GetEmulator(emu.ID); err == nil {
 				if spec, ok := vers.GetEmulator(e.Package.PackageName()); ok {

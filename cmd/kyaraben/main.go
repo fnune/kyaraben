@@ -1,10 +1,14 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/alecthomas/kong"
 
 	"github.com/fnune/kyaraben/internal/cli"
 	"github.com/fnune/kyaraben/internal/logging"
+	"github.com/fnune/kyaraben/internal/versions"
 )
 
 var CLI struct {
@@ -23,6 +27,11 @@ var CLI struct {
 func main() {
 	_ = logging.Init()
 	defer logging.Close()
+
+	if err := versions.Init(); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to load version data: %v\n", err)
+		os.Exit(1)
+	}
 
 	ctx := kong.Parse(&CLI,
 		kong.Name("kyaraben"),
