@@ -9,7 +9,6 @@ export interface SystemRowProps {
   readonly provisions: readonly ProvisionResult[]
   readonly userStore: string
   readonly onToggle: (systemId: SystemID, enabled: boolean) => void
-  // Optional props for single-emulator mode
   readonly selectedEmulator?: EmulatorID | null
   readonly pinnedVersion?: string | null
   readonly installedVersion?: string | null
@@ -17,7 +16,6 @@ export interface SystemRowProps {
   readonly emulatorInstalledFor?: readonly string[]
   readonly onEmulatorToggle?: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
   readonly onVersionChange?: (emulatorId: EmulatorID, version: string | null) => void
-  // Parent row mode (for multi-emulator systems)
   readonly isParentRow?: boolean
 }
 
@@ -349,10 +347,6 @@ function ProvisionsDialog({
   )
 }
 
-/**
- * EmulatorRow is a child row for systems with multiple emulators enabled.
- * It shows an individual emulator with its checkbox, version selector, and action label.
- */
 export function EmulatorRow({
   systemId,
   emulator,
@@ -407,7 +401,6 @@ export function EmulatorRow({
         </label>
 
         <div className="flex-1 flex items-center gap-x-3 py-2 pl-6 pr-3">
-          {/* Indentation to show hierarchy */}
           <span className="text-gray-400 text-sm">└</span>
           <span className="text-sm text-gray-700">{emulator.name}</span>
 
@@ -464,11 +457,6 @@ export function EmulatorRow({
   )
 }
 
-/**
- * SystemRow displays a system row. It has two modes:
- * 1. isParentRow=true: A parent row for multi-emulator systems (only shows system, no emulator controls)
- * 2. isParentRow=false: A full row for single-emulator systems (shows system + emulator controls)
- */
 export function SystemRow({
   system,
   enabled,
@@ -489,7 +477,6 @@ export function SystemRow({
   const hasMissingRequired = provisions.some((p) => p.required && p.status !== 'found')
   const hasMissingOptional = provisions.some((p) => !p.required && p.status !== 'found')
 
-  // For single-emulator mode (isParentRow=false with emulator props)
   const emulator = !isParentRow && selectedEmulator
     ? system.emulators.find((e) => e.id === selectedEmulator) ?? system.emulators[0]
     : system.emulators[0]
@@ -533,7 +520,6 @@ export function SystemRow({
     }
   }
 
-  // Parent row for multi-emulator systems
   if (isParentRow) {
     return (
       <div className="border-b border-gray-100 last:border-b-0 relative">
@@ -588,7 +574,6 @@ export function SystemRow({
     )
   }
 
-  // Regular single-emulator row
   const enabledEmulators = selectedEmulator ? [selectedEmulator] : []
 
   return (
