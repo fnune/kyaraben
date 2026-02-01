@@ -180,3 +180,7 @@ type InstallStatusResponse struct {
 	DesktopPath string `json:"desktopPath,omitempty"`
 	CLIPath     string `json:"cliPath,omitempty"`
 }
+
+type RefreshIconCachesResponse struct {
+	Refreshed []string `json:"refreshed"`
+}

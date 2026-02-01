@@ -85,6 +85,8 @@ func (d *Daemon) HandleWithEmit(cmd Command, emit func(Event)) []Event {
 		return d.handleInstallKyaraben(nil)
 	case CommandTypeInstallStatus:
 		return d.handleInstallStatus()
+	case CommandTypeRefreshIconCaches:
+		return d.handleRefreshIconCaches()
 	default:
 		return d.errorResponse(fmt.Sprintf("unknown command: %s", cmd.Type))
 	}
@@ -791,4 +793,12 @@ func boolToPath(exists bool, path string) string {
 		return path
 	}
 	return ""
+}
+
+func (d *Daemon) handleRefreshIconCaches() []Event {
+	refreshed := d.launcherManager.RefreshIconCaches()
+	return []Event{{
+		Type: EventTypeResult,
+		Data: RefreshIconCachesResponse{Refreshed: refreshed},
+	}}
 }

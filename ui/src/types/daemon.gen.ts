@@ -152,6 +152,9 @@ export interface InstallStatusResponse {
   desktopPath?: string;
   cliPath?: string;
 }
+export interface RefreshIconCachesResponse {
+  refreshed: string[];
+}
 
 //////////
 // source: types.go
@@ -174,7 +177,8 @@ export const CommandTypeSyncRemoveDevice = "sync_remove_device";
 export const CommandTypeUninstallPreview = "uninstall_preview";
 export const CommandTypeInstallKyaraben = "install_kyaraben";
 export const CommandTypeInstallStatus = "install_status";
-export type CommandType = typeof CommandTypeStatus | typeof CommandTypeDoctor | typeof CommandTypeApply | typeof CommandTypeCancelApply | typeof CommandTypeGetSystems | typeof CommandTypeGetConfig | typeof CommandTypeSetConfig | typeof CommandTypeSyncStatus | typeof CommandTypeSyncAddDevice | typeof CommandTypeSyncRemoveDevice | typeof CommandTypeUninstallPreview | typeof CommandTypeInstallKyaraben | typeof CommandTypeInstallStatus;
+export const CommandTypeRefreshIconCaches = "refresh_icon_caches";
+export type CommandType = typeof CommandTypeStatus | typeof CommandTypeDoctor | typeof CommandTypeApply | typeof CommandTypeCancelApply | typeof CommandTypeGetSystems | typeof CommandTypeGetConfig | typeof CommandTypeSetConfig | typeof CommandTypeSyncStatus | typeof CommandTypeSyncAddDevice | typeof CommandTypeSyncRemoveDevice | typeof CommandTypeUninstallPreview | typeof CommandTypeInstallKyaraben | typeof CommandTypeInstallStatus | typeof CommandTypeRefreshIconCaches;
 /**
  * Command represents a command from the UI.
  */
