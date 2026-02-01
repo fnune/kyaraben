@@ -53,7 +53,7 @@ func DefaultManifestPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(stateDir, "manifest.json"), nil
+	return filepath.Join(stateDir, "build", "manifest.json"), nil
 }
 
 // LoadManifest loads the manifest from a file.

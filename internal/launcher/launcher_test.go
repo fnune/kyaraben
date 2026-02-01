@@ -16,7 +16,7 @@ func TestRealToVirtualStorePath(t *testing.T) {
 	}{
 		{
 			name:     "typical nix-portable path",
-			realPath: "/home/user/.local/share/kyaraben/nix-portable/.nix-portable/nix/store/abc123-package",
+			realPath: "/home/user/.local/state/kyaraben/build/nix/.nix-portable/nix/store/abc123-package",
 			want:     "/nix/store/abc123-package",
 		},
 		{
@@ -61,6 +61,12 @@ func TestGenerateWrappers(t *testing.T) {
 		t.Fatalf("creating test binary: %v", err)
 	}
 
+	// Create hidden files that should be skipped (nixpkgs internal wrappers)
+	hiddenBinary := filepath.Join(currentBinDir, ".testemu-wrapped")
+	if err := os.WriteFile(hiddenBinary, []byte("#!/bin/sh\necho wrapped"), 0755); err != nil {
+		t.Fatalf("creating hidden binary: %v", err)
+	}
+
 	m := &Manager{
 		profileDir:        profileDir,
 		nixPortableBinary: "/fake/nix-portable",
@@ -94,7 +100,7 @@ func TestGenerateWrappers(t *testing.T) {
 	}
 
 	if !strings.Contains(wrapperStr, `nix shell "/nix/store/abc123-profile" -c "testemu"`) {
-		t.Errorf("wrapper should use nix shell with store path and binary name, got:\n%s", wrapperStr)
+		t.Errorf("wrapper should use nix shell with store path and binary, got:\n%s", wrapperStr)
 	}
 
 	info, err := os.Stat(wrapperPath)
@@ -103,5 +109,11 @@ func TestGenerateWrappers(t *testing.T) {
 	}
 	if info.Mode()&0111 == 0 {
 		t.Error("wrapper should be executable")
+	}
+
+	// Verify hidden files are not wrapped
+	hiddenWrapperPath := filepath.Join(m.BinDir(), ".testemu-wrapped")
+	if _, err := os.Stat(hiddenWrapperPath); !os.IsNotExist(err) {
+		t.Error("hidden files (nixpkgs internal wrappers) should not be wrapped")
 	}
 }

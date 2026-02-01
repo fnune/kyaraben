@@ -1,21 +1,31 @@
+// Package paths provides XDG Base Directory paths for kyaraben.
+//
+// Kyaraben stores all its operational data in XDG_STATE_HOME (~/.local/state/kyaraben/):
+//
+//	~/.local/state/kyaraben/
+//	├── bin/              # wrapper scripts for emulator binaries (add to PATH)
+//	├── current           # symlink to active nix profile (for XDG_DATA_DIRS)
+//	├── syncthing/        # sync device pairings and identity (user data)
+//	├── kyaraben.log      # application log
+//	└── build/            # regenerable via 'kyaraben apply'
+//	    ├── nix/          # nix-portable store (multi-GB)
+//	    ├── flake/        # generated flake.nix
+//	    └── manifest.json # tracks installed emulators and configs
+//
+// We use STATE rather than DATA because this data is:
+//   - Machine-specific (nix store paths contain hashes that won't work elsewhere)
+//   - Mostly regenerable (kyaraben apply rebuilds build/ from config)
+//   - Not user data (the actual user data is in ~/Emulation and ~/.config/<emulator>)
+//
+// User configuration lives in XDG_CONFIG_HOME (~/.config/kyaraben/config.toml).
+// User emulation data (ROMs, saves) lives in a user-chosen location (default ~/Emulation).
+// Emulator configs live in their standard locations (~/.config/<emulator>/).
 package paths
 
 import (
 	"os"
 	"path/filepath"
 )
-
-// DataDir returns XDG_DATA_HOME or ~/.local/share
-func DataDir() (string, error) {
-	if dir := os.Getenv("XDG_DATA_HOME"); dir != "" {
-		return dir, nil
-	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(home, ".local", "share"), nil
-}
 
 // StateDir returns XDG_STATE_HOME or ~/.local/state
 func StateDir() (string, error) {
@@ -35,15 +45,6 @@ func ConfigDir() (string, error) {
 		return dir, nil
 	}
 	return os.UserConfigDir()
-}
-
-// KyarabenDataDir returns the kyaraben data directory
-func KyarabenDataDir() (string, error) {
-	base, err := DataDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(base, "kyaraben"), nil
 }
 
 // KyarabenStateDir returns the kyaraben state directory

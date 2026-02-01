@@ -16,11 +16,6 @@ type UninstallCmd struct {
 }
 
 func (cmd *UninstallCmd) Run(ctx *Context) error {
-	kyarabenDataDir, err := paths.KyarabenDataDir()
-	if err != nil {
-		return err
-	}
-
 	kyarabenStateDir, err := paths.KyarabenStateDir()
 	if err != nil {
 		return err
@@ -47,11 +42,8 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 	fmt.Println("This will remove:")
 	fmt.Println()
 
-	if dirExists(kyarabenDataDir) {
-		fmt.Printf("  %s (emulator store, flake)\n", kyarabenDataDir)
-	}
 	if dirExists(kyarabenStateDir) {
-		fmt.Printf("  %s (manifest, state)\n", kyarabenStateDir)
+		fmt.Printf("  %s (nix store, manifest, state)\n", kyarabenStateDir)
 	}
 
 	if len(manifest.ManagedConfigs) > 0 {
@@ -101,13 +93,11 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 		}
 	}
 
-	for _, dir := range []string{kyarabenDataDir, kyarabenStateDir} {
-		if dirExists(dir) {
-			if err := os.RemoveAll(dir); err != nil {
-				fmt.Printf("  Warning: could not remove %s: %v\n", dir, err)
-			} else {
-				fmt.Printf("  Removed: %s\n", dir)
-			}
+	if dirExists(kyarabenStateDir) {
+		if err := os.RemoveAll(kyarabenStateDir); err != nil {
+			fmt.Printf("  Warning: could not remove %s: %v\n", kyarabenStateDir, err)
+		} else {
+			fmt.Printf("  Removed: %s\n", kyarabenStateDir)
 		}
 	}
 
