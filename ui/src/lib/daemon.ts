@@ -64,3 +64,6 @@ export const removeSyncDevice = (req: SyncRemoveDeviceRequest) =>
 export const getUninstallPreview = () => invoke<UninstallPreviewResponse>('uninstall_preview')
 
 export const getBugReportInfo = () => invoke<BugReportInfo>('get_bug_report_info')
+
+export const launchEmulator = (execLine: string) =>
+  invoke<{ success: boolean }>('launch_emulator', execLine)

@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
 import { Settings } from '@/components/Settings/Settings'
 import { StickyActionBar } from '@/components/StickyActionBar/StickyActionBar'
-import { SystemCard } from '@/components/SystemCard/SystemCard'
+import { SYSTEM_YEARS, SystemCard } from '@/components/SystemCard/SystemCard'
+import { BottomBar } from '@/lib/BottomBar'
 import { Button } from '@/lib/Button'
 import { addChange, emptyChangeSummary, getChangeType } from '@/lib/changeUtils'
 import { ProgressSteps } from '@/lib/ProgressSteps'
@@ -14,6 +15,7 @@ export interface SystemsViewProps {
   readonly enabledEmulators: ReadonlySet<EmulatorID>
   readonly emulatorVersions: Map<EmulatorID, string | null>
   readonly installedVersions: Map<EmulatorID, string>
+  readonly installedExecLines: Map<EmulatorID, string>
   readonly provisions: DoctorResponse
   readonly userStore: string
   readonly onUserStoreChange: (value: string) => void
@@ -21,7 +23,6 @@ export interface SystemsViewProps {
   readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
   readonly onApply: () => void
   readonly onCancel: () => void
-  readonly onError: (message: string) => void
   readonly applyStatus: ApplyStatus
   readonly progressSteps: readonly ProgressStep[]
   readonly error: string | null
@@ -43,6 +44,10 @@ function groupSystemsByManufacturer(systems: readonly System[]) {
     }
   }
 
+  for (const group of groups.values()) {
+    group.sort((a, b) => (SYSTEM_YEARS[a.id] ?? 0) - (SYSTEM_YEARS[b.id] ?? 0))
+  }
+
   return Array.from(groups.entries()).filter(([, systems]) => systems.length > 0)
 }
 
@@ -51,6 +56,7 @@ export function SystemsView({
   enabledEmulators,
   emulatorVersions,
   installedVersions,
+  installedExecLines,
   provisions,
   userStore,
   onUserStoreChange,
@@ -58,7 +64,6 @@ export function SystemsView({
   onVersionChange,
   onApply,
   onCancel,
-  onError,
   applyStatus,
   progressSteps,
   error,
@@ -89,7 +94,7 @@ export function SystemsView({
           emulator.availableVersions,
         )
 
-        summary = addChange(summary, changeType)
+        summary = addChange(summary, changeType, emulator.downloadBytes)
       }
     }
 
@@ -102,32 +107,37 @@ export function SystemsView({
     const errorMessage = applyStatus === 'error' && error ? error : undefined
 
     return (
-      <div className="p-6">
+      <div className="p-6 pb-24">
         <ProgressSteps
           steps={progressSteps}
           {...(errorMessage && { error: errorMessage })}
           {...(applyStatus === 'cancelled' && { cancelled: true })}
         />
-        <div className="flex gap-2">
-          {isApplying && (
-            <Button onClick={onCancel} variant="secondary">
-              Cancel
-            </Button>
-          )}
-          {!isApplying && <Button onClick={onReset}>Done</Button>}
-        </div>
+        <BottomBar>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={!isApplying}
+            className="text-blue-400 hover:text-blue-300 hover:underline text-sm disabled:text-gray-600 disabled:no-underline disabled:cursor-not-allowed"
+          >
+            Cancel
+          </button>
+          <Button onClick={onReset} disabled={isApplying}>
+            Done
+          </Button>
+        </BottomBar>
       </div>
     )
   }
 
   return (
     <div className="p-6 pb-24">
-      <Settings userStore={userStore} onUserStoreChange={onUserStoreChange} onError={onError} />
+      <Settings userStore={userStore} onUserStoreChange={onUserStoreChange} />
 
       <div className="space-y-8 mt-6">
         {groupedSystems.map(([manufacturer, manufacturerSystems]) => (
           <section key={manufacturer}>
-            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
               {manufacturer}
             </h2>
             <div className="space-y-4">
@@ -138,6 +148,7 @@ export function SystemsView({
                   enabledEmulators={enabledEmulators}
                   emulatorVersions={emulatorVersions}
                   installedVersions={installedVersions}
+                  installedExecLines={installedExecLines}
                   provisions={provisions}
                   userStore={userStore}
                   onEmulatorToggle={onEmulatorToggle}

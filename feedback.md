@@ -175,9 +175,27 @@ The download size shown for RetroArch emulators (e.g., "RetroArch (bsnes)") disp
 This is misleading because:
 1. If RetroArch is already installed, enabling a new core only downloads the core (from nix), not RetroArch again
 2. Users might think each RetroArch variant is a separate 170MB download
+3. The change summary total (e.g., "Downloading 500 MB") is wildly inaccurate when enabling multiple RetroArch cores
+
+The architecture is: RetroArch AppImage is downloaded once if any system needs it, then cores are downloaded individually from nix for each enabled system. The current UI has no way to represent this.
 
 Possible solutions:
+- Track RetroArch separately from cores in the download calculation
 - Show core size separately (would need to fetch from nix or estimate)
 - Show "RetroArch: 170MB + cores from nix" as a note
 - Don't show size for RetroArch emulators since cores come from nix
+- Have the backend return more granular download info that accounts for shared packages
+
+---
+
+## Garbage collection via nix-portable
+
+We need a way for Kyaraben to run garbage collection using nix-portable to free up disk space. This would:
+
+1. Clean up unused store paths from previous generations
+2. Remove old flake generations that are no longer needed
+3. Provide a UI affordance (e.g., in settings or installation view) to trigger cleanup
+4. Show how much space would be / was freed
+
+This is important because the nix store can grow significantly over time with updates.
 

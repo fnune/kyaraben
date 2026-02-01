@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('electron', {
       'open_path',
       'path_exists',
       'get_bug_report_info',
+      'launch_emulator',
     ]
 
     if (validChannels.includes(channel)) {
