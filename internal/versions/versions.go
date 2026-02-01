@@ -22,6 +22,10 @@ type Versions struct {
 	Cemu      AppImageVersion `toml:"cemu"`
 	Azahar    AppImageVersion `toml:"azahar"`
 	Dolphin   AppImageVersion `toml:"dolphin"`
+	MelonDS   AppImageVersion `toml:"melonds"`
+	Vita3K    AppImageVersion `toml:"vita3k"`
+	RPCS3     AppImageVersion `toml:"rpcs3"`
+	Flycast   AppImageVersion `toml:"flycast"`
 	RetroArch AppImageVersion `toml:"retroarch"`
 	TIC80     AppImageVersion `toml:"tic80"`
 }
