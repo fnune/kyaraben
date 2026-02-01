@@ -272,7 +272,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 			DesktopFiles: manifest.DesktopFiles,
 			IconFiles:    manifest.IconFiles,
 		}
-		desktopEntries := a.buildDesktopEntries(emulatorsToInstall)
+		desktopEntries := a.buildDesktopEntries(emulatorsToInstall, userStore)
 		generatedFiles, err := a.LauncherManager.GenerateDesktopFiles(desktopEntries, previousFiles)
 		if err != nil {
 			return nil, fmt.Errorf("generating desktop files: %w", err)
@@ -390,7 +390,7 @@ func (a *Applier) buildEmulatorPackageInfo(emulatorIDs []model.EmulatorID) []lau
 	return info
 }
 
-func (a *Applier) buildDesktopEntries(emulatorIDs []model.EmulatorID) []launcher.GeneratedDesktop {
+func (a *Applier) buildDesktopEntries(emulatorIDs []model.EmulatorID, store model.StoreReader) []launcher.GeneratedDesktop {
 	seenBinaries := make(map[string]bool)
 	var entries []launcher.GeneratedDesktop
 
@@ -410,11 +410,21 @@ func (a *Applier) buildDesktopEntries(emulatorIDs []model.EmulatorID) []launcher
 			displayName = emu.Name
 		}
 
+		// Check if the config generator provides launch arguments
+		var launchArgs string
+		if gen := a.Registry.GetConfigGenerator(emuID); gen != nil {
+			if provider, ok := gen.(model.LaunchArgsProvider); ok {
+				args := provider.LaunchArgs(store)
+				launchArgs = strings.Join(args, " ")
+			}
+		}
+
 		entries = append(entries, launcher.GeneratedDesktop{
 			BinaryName:    emu.Launcher.Binary,
 			Name:          displayName,
 			GenericName:   emu.Launcher.GenericName,
 			CategoriesStr: strings.Join(emu.Launcher.Categories, ";"),
+			LaunchArgs:    launchArgs,
 		})
 	}
 

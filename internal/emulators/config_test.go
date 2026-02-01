@@ -6,8 +6,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fnune/kyaraben/internal/emulators/cemu"
 	"github.com/fnune/kyaraben/internal/emulators/dolphin"
 	"github.com/fnune/kyaraben/internal/emulators/duckstation"
+	"github.com/fnune/kyaraben/internal/emulators/eden"
 	"github.com/fnune/kyaraben/internal/emulators/flycast"
 	"github.com/fnune/kyaraben/internal/emulators/melonds"
 	"github.com/fnune/kyaraben/internal/emulators/mgba"
@@ -295,40 +297,42 @@ func TestDolphinGenerate(t *testing.T) {
 		t.Errorf("expected INI format, got %s", patch.Target.Format)
 	}
 
-	if !strings.Contains(patch.Target.RelPath, "dolphin-emu") {
-		t.Errorf("expected RelPath to contain 'dolphin-emu', got %s", patch.Target.RelPath)
+	// Dolphin now uses -u CLI arg to set user directory, so config is inside opaque dir
+	if patch.Target.BaseDir != model.ConfigBaseDirAbsolute {
+		t.Errorf("expected absolute base dir, got %s", patch.Target.BaseDir)
 	}
 
-	// Verify Dolphin has opaque directory paths for GC/Wii data
-	foundMemcard := false
-	foundNAND := false
+	if !strings.Contains(patch.Target.RelPath, "opaque/dolphin") {
+		t.Errorf("expected RelPath to contain 'opaque/dolphin', got %s", patch.Target.RelPath)
+	}
+
+	// With -u flag, GC/Wii saves are automatic. We only configure ROM paths.
 	foundISOPath := false
+	foundDumpPath := false
 	for _, entry := range patch.Entries {
-		if strings.Contains(entry.Key(), "Memcard") {
-			foundMemcard = true
-			if !strings.Contains(entry.Value, "opaque/dolphin") {
-				t.Errorf("Memcard path should use opaque directory, got %s", entry.Value)
-			}
-		}
-		if entry.Key() == "NANDRootPath" {
-			foundNAND = true
-			if !strings.Contains(entry.Value, "opaque/dolphin") {
-				t.Errorf("NANDRootPath should use opaque directory, got %s", entry.Value)
-			}
-		}
 		if entry.Key() == "ISOPath0" {
 			foundISOPath = true
 		}
+		if entry.Key() == "DumpPath" {
+			foundDumpPath = true
+		}
 	}
 
-	if !foundMemcard {
-		t.Error("expected Memcard path entry not found")
-	}
-	if !foundNAND {
-		t.Error("expected NANDRootPath entry not found")
-	}
 	if !foundISOPath {
 		t.Error("expected ISOPath0 entry not found")
+	}
+	if !foundDumpPath {
+		t.Error("expected DumpPath entry not found")
+	}
+
+	// Test LaunchArgsProvider interface
+	provider, ok := gen.(model.LaunchArgsProvider)
+	if !ok {
+		t.Fatal("Dolphin config generator should implement LaunchArgsProvider")
+	}
+	args := provider.LaunchArgs(store)
+	if len(args) != 2 || args[0] != "-u" {
+		t.Errorf("expected LaunchArgs to return [-u, <path>], got %v", args)
 	}
 }
 
@@ -427,8 +431,13 @@ func TestVita3KGenerate(t *testing.T) {
 		t.Errorf("expected YAML format, got %s", patch.Target.Format)
 	}
 
-	if !strings.Contains(patch.Target.RelPath, "Vita3K") {
-		t.Errorf("expected RelPath to contain 'Vita3K', got %s", patch.Target.RelPath)
+	// Vita3K now uses -c CLI arg to set config location, so config is inside opaque dir
+	if patch.Target.BaseDir != model.ConfigBaseDirAbsolute {
+		t.Errorf("expected absolute base dir, got %s", patch.Target.BaseDir)
+	}
+
+	if !strings.Contains(patch.Target.RelPath, "opaque/vita3k") {
+		t.Errorf("expected RelPath to contain 'opaque/vita3k', got %s", patch.Target.RelPath)
 	}
 
 	foundPrefPath := false
@@ -443,6 +452,16 @@ func TestVita3KGenerate(t *testing.T) {
 
 	if !foundPrefPath {
 		t.Error("expected pref-path entry not found")
+	}
+
+	// Test LaunchArgsProvider interface
+	provider, ok := gen.(model.LaunchArgsProvider)
+	if !ok {
+		t.Fatal("Vita3K config generator should implement LaunchArgsProvider")
+	}
+	args := provider.LaunchArgs(store)
+	if len(args) != 2 || args[0] != "-c" {
+		t.Errorf("expected LaunchArgs to return [-c, <path>], got %v", args)
 	}
 }
 
@@ -516,6 +535,63 @@ func TestGeneratedEntriesContainStorePaths(t *testing.T) {
 
 	if !foundStorePath {
 		t.Error("no entry contains the store path")
+	}
+}
+
+func TestCemuLaunchArgs(t *testing.T) {
+	store := &fakeStoreReader{root: "/emulation"}
+	gen := cemu.Definition{}.ConfigGenerator()
+
+	// Test LaunchArgsProvider interface
+	provider, ok := gen.(model.LaunchArgsProvider)
+	if !ok {
+		t.Fatal("Cemu config generator should implement LaunchArgsProvider")
+	}
+	args := provider.LaunchArgs(store)
+	if len(args) != 2 || args[0] != "-mlc" {
+		t.Errorf("expected LaunchArgs to return [-mlc, <path>], got %v", args)
+	}
+	if !strings.Contains(args[1], "cemu") {
+		t.Errorf("MLC path should contain 'cemu', got %s", args[1])
+	}
+}
+
+func TestEdenGenerate(t *testing.T) {
+	store := &fakeStoreReader{root: "/emulation"}
+	gen := eden.Definition{}.ConfigGenerator()
+
+	patches, err := gen.Generate(store)
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	if len(patches) != 1 {
+		t.Fatalf("expected 1 patch, got %d", len(patches))
+	}
+
+	patch := patches[0]
+
+	if patch.Target.Format != model.ConfigFormatINI {
+		t.Errorf("expected INI format, got %s", patch.Target.Format)
+	}
+
+	// Eden now uses -r CLI arg to set root data directory, so config is inside opaque dir
+	if patch.Target.BaseDir != model.ConfigBaseDirAbsolute {
+		t.Errorf("expected absolute base dir, got %s", patch.Target.BaseDir)
+	}
+
+	if !strings.Contains(patch.Target.RelPath, "opaque/eden") {
+		t.Errorf("expected RelPath to contain 'opaque/eden', got %s", patch.Target.RelPath)
+	}
+
+	// Test LaunchArgsProvider interface
+	provider, ok := gen.(model.LaunchArgsProvider)
+	if !ok {
+		t.Fatal("Eden config generator should implement LaunchArgsProvider")
+	}
+	args := provider.LaunchArgs(store)
+	if len(args) != 2 || args[0] != "-r" {
+		t.Errorf("expected LaunchArgs to return [-r, <path>], got %v", args)
 	}
 }
 

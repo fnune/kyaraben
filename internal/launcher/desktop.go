@@ -14,6 +14,7 @@ type GeneratedDesktop struct {
 	Name          string
 	GenericName   string
 	CategoriesStr string
+	LaunchArgs    string // Command-line arguments to pass to the emulator
 }
 
 const desktopTemplate = `[Desktop Entry]
@@ -22,7 +23,7 @@ Name={{.Name}}
 {{- if .GenericName}}
 GenericName={{.GenericName}}
 {{- end}}
-Exec={{.BinDir}}/{{.BinaryName}} %f
+Exec={{.BinDir}}/{{.BinaryName}}{{if .LaunchArgs}} {{.LaunchArgs}}{{end}} %f
 Icon={{.BinaryName}}
 Categories={{.CategoriesStr}};
 `
@@ -157,6 +158,7 @@ type desktopTemplateData struct {
 	GenericName   string
 	CategoriesStr string
 	BinDir        string
+	LaunchArgs    string
 }
 
 func (m *Manager) generateDesktopFile(tmpl *template.Template, entry GeneratedDesktop) (string, error) {
@@ -173,6 +175,7 @@ func (m *Manager) generateDesktopFile(tmpl *template.Template, entry GeneratedDe
 		GenericName:   entry.GenericName,
 		CategoriesStr: entry.CategoriesStr,
 		BinDir:        m.BinDir(),
+		LaunchArgs:    entry.LaunchArgs,
 	}
 
 	execErr := tmpl.Execute(f, data)
