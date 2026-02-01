@@ -73,10 +73,21 @@ func (a *Applier) Preflight(cfg *model.KyarabenConfig, userStore *store.UserStor
 			return nil, fmt.Errorf("checking config file: %w", err)
 		}
 
-		if exists {
-			if _, managed := manifest.GetManagedConfig(patch.Target); !managed {
-				filesToBackup = append(filesToBackup, path)
-			}
+		if !exists {
+			continue
+		}
+
+		if _, managed := manifest.GetManagedConfig(patch.Target); managed {
+			continue
+		}
+
+		diff, err := emulators.ComputeDiff(patch)
+		if err != nil {
+			return nil, fmt.Errorf("computing diff for %s: %w", path, err)
+		}
+
+		if diff.HasChanges() {
+			filesToBackup = append(filesToBackup, path)
 		}
 	}
 
