@@ -36,8 +36,8 @@ func TestRun(t *testing.T) {
 			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemPSX:   {Emulator: model.EmulatorDuckStation},
-			model.SystemTIC80: {Emulator: model.EmulatorTIC80},
+			model.SystemPSX:   {Emulator: string(model.EmulatorDuckStation)},
+			model.SystemTIC80: {Emulator: string(model.EmulatorTIC80)},
 		},
 	}
 
@@ -76,7 +76,7 @@ func TestRunNoProvisions(t *testing.T) {
 			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemTIC80: {Emulator: model.EmulatorTIC80},
+			model.SystemTIC80: {Emulator: string(model.EmulatorTIC80)},
 		},
 	}
 
@@ -131,7 +131,7 @@ func TestRunWithBiosFile(t *testing.T) {
 			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemPSX: {Emulator: model.EmulatorDuckStation},
+			model.SystemPSX: {Emulator: string(model.EmulatorDuckStation)},
 		},
 	}
 
@@ -182,7 +182,7 @@ func TestRunSystemResult(t *testing.T) {
 			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemPSX: {Emulator: model.EmulatorDuckStation},
+			model.SystemPSX: {Emulator: string(model.EmulatorDuckStation)},
 		},
 	}
 

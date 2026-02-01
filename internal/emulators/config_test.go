@@ -7,12 +7,13 @@ import (
 	"testing"
 
 	"github.com/fnune/kyaraben/internal/emulators/duckstation"
+	"github.com/fnune/kyaraben/internal/emulators/flycast"
+	"github.com/fnune/kyaraben/internal/emulators/melonds"
 	"github.com/fnune/kyaraben/internal/emulators/retroarch"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbsnes"
-	"github.com/fnune/kyaraben/internal/emulators/retroarchmelonds"
-	"github.com/fnune/kyaraben/internal/emulators/retroarchmgba"
-	"github.com/fnune/kyaraben/internal/emulators/retroarchppsspp"
+	"github.com/fnune/kyaraben/internal/emulators/rpcs3"
 	"github.com/fnune/kyaraben/internal/emulators/tic80emu"
+	"github.com/fnune/kyaraben/internal/emulators/vita3k"
 	"github.com/fnune/kyaraben/internal/model"
 )
 
@@ -124,20 +125,6 @@ func TestRetroArchCoresGenerate(t *testing.T) {
 			coreName:   "bsnes_libretro",
 			wantRomDir: "/emulation/roms/snes",
 		},
-		{
-			name:       "mgba",
-			gen:        retroarchmgba.Definition{}.ConfigGenerator(),
-			system:     model.SystemGBA,
-			coreName:   "mgba_libretro",
-			wantRomDir: "/emulation/roms/gba",
-		},
-		{
-			name:       "melonds",
-			gen:        retroarchmelonds.Definition{}.ConfigGenerator(),
-			system:     model.SystemNDS,
-			coreName:   "melonds_libretro",
-			wantRomDir: "/emulation/roms/nds",
-		},
 	}
 
 	for _, tt := range tests {
@@ -208,37 +195,160 @@ func TestTIC80Generate(t *testing.T) {
 	}
 }
 
-func TestRetroArchPPSSPPGenerate(t *testing.T) {
+func TestMelonDSGenerate(t *testing.T) {
 	store := &fakeStoreReader{root: "/emulation"}
-	gen := retroarchppsspp.Definition{}.ConfigGenerator()
+	gen := melonds.Definition{}.ConfigGenerator()
 
 	patches, err := gen.Generate(store)
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	if len(patches) != 2 {
-		t.Fatalf("expected 2 patches (shared + override), got %d", len(patches))
+	if len(patches) != 1 {
+		t.Fatalf("expected 1 patch, got %d", len(patches))
 	}
 
-	// First patch: shared retroarch.cfg
-	shared := patches[0]
-	if shared.Target.RelPath != "retroarch/retroarch.cfg" {
-		t.Errorf("expected shared config path, got %s", shared.Target.RelPath)
+	patch := patches[0]
+
+	if patch.Target.Format != model.ConfigFormatINI {
+		t.Errorf("expected INI format, got %s", patch.Target.Format)
 	}
 
-	// Second patch: per-core override
-	override := patches[1]
-	expectedOverridePath := retroarch.CoreOverrideTarget("ppsspp_libretro").RelPath
-	if override.Target.RelPath != expectedOverridePath {
-		t.Errorf("expected override path %q, got %q", expectedOverridePath, override.Target.RelPath)
+	if !strings.Contains(patch.Target.RelPath, "melonDS") {
+		t.Errorf("expected RelPath to contain 'melonDS', got %s", patch.Target.RelPath)
 	}
 
-	// Check ROM browser points to PSP ROMs
-	for _, entry := range override.Entries {
-		if entry.Key() == "rgui_browser_directory" && !strings.Contains(entry.Value, "/emulation/roms/psp") {
-			t.Errorf("rgui_browser_directory %q doesn't contain /emulation/roms/psp", entry.Value)
+	expectedKeys := map[string]bool{
+		"BIOS9Path":      false,
+		"BIOS7Path":      false,
+		"SaveFilePath":   false,
+		"SavestatePath":  false,
+		"ScreenshotPath": false,
+		"LastROMFolder":  false,
+	}
+
+	for _, entry := range patch.Entries {
+		if _, ok := expectedKeys[entry.Key()]; ok {
+			expectedKeys[entry.Key()] = true
 		}
+	}
+
+	for key, found := range expectedKeys {
+		if !found {
+			t.Errorf("expected key %q not found in entries", key)
+		}
+	}
+}
+
+func TestFlycastGenerate(t *testing.T) {
+	store := &fakeStoreReader{root: "/emulation"}
+	gen := flycast.Definition{}.ConfigGenerator()
+
+	patches, err := gen.Generate(store)
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	if len(patches) != 1 {
+		t.Fatalf("expected 1 patch, got %d", len(patches))
+	}
+
+	patch := patches[0]
+
+	if patch.Target.Format != model.ConfigFormatCFG {
+		t.Errorf("expected CFG format, got %s", patch.Target.Format)
+	}
+
+	if !strings.Contains(patch.Target.RelPath, "flycast") {
+		t.Errorf("expected RelPath to contain 'flycast', got %s", patch.Target.RelPath)
+	}
+
+	foundStorePath := false
+	for _, entry := range patch.Entries {
+		if strings.Contains(entry.Value, "/emulation") {
+			foundStorePath = true
+			break
+		}
+	}
+
+	if !foundStorePath {
+		t.Error("no entry contains the store path")
+	}
+}
+
+func TestVita3KGenerate(t *testing.T) {
+	store := &fakeStoreReader{root: "/emulation"}
+	gen := vita3k.Definition{}.ConfigGenerator()
+
+	patches, err := gen.Generate(store)
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	if len(patches) != 1 {
+		t.Fatalf("expected 1 patch, got %d", len(patches))
+	}
+
+	patch := patches[0]
+
+	if patch.Target.Format != model.ConfigFormatYAML {
+		t.Errorf("expected YAML format, got %s", patch.Target.Format)
+	}
+
+	if !strings.Contains(patch.Target.RelPath, "Vita3K") {
+		t.Errorf("expected RelPath to contain 'Vita3K', got %s", patch.Target.RelPath)
+	}
+
+	foundPrefPath := false
+	for _, entry := range patch.Entries {
+		if entry.Key() == "pref-path" {
+			foundPrefPath = true
+			if !strings.Contains(entry.Value, "vita3k") {
+				t.Errorf("pref-path should contain 'vita3k', got %s", entry.Value)
+			}
+		}
+	}
+
+	if !foundPrefPath {
+		t.Error("expected pref-path entry not found")
+	}
+}
+
+func TestRPCS3Generate(t *testing.T) {
+	store := &fakeStoreReader{root: "/emulation"}
+	gen := rpcs3.Definition{}.ConfigGenerator()
+
+	patches, err := gen.Generate(store)
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	if len(patches) != 1 {
+		t.Fatalf("expected 1 patch, got %d", len(patches))
+	}
+
+	patch := patches[0]
+
+	if patch.Target.Format != model.ConfigFormatYAML {
+		t.Errorf("expected YAML format, got %s", patch.Target.Format)
+	}
+
+	if !strings.Contains(patch.Target.RelPath, "rpcs3") {
+		t.Errorf("expected RelPath to contain 'rpcs3', got %s", patch.Target.RelPath)
+	}
+
+	foundEmulatorDir := false
+	for _, entry := range patch.Entries {
+		if strings.Contains(entry.Key(), "EmulatorDir") {
+			foundEmulatorDir = true
+			if !strings.Contains(entry.Value, "rpcs3") {
+				t.Errorf("EmulatorDir should contain 'rpcs3', got %s", entry.Value)
+			}
+		}
+	}
+
+	if !foundEmulatorDir {
+		t.Error("expected EmulatorDir entry not found")
 	}
 }
 

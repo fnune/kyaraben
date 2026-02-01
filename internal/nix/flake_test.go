@@ -146,6 +146,9 @@ func TestNewFlakeGenerator(t *testing.T) {
 }
 
 func TestPackageInfoFromRef(t *testing.T) {
+	reg := registry.NewDefault()
+	fg := NewFlakeGenerator(reg)
+
 	tests := []struct {
 		name     string
 		ref      model.PackageRef
@@ -178,7 +181,7 @@ func TestPackageInfoFromRef(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			info, err := packageInfoFromRef(tt.ref)
+			info, err := fg.packageInfoFromRef(tt.ref)
 			if tt.wantErr {
 				if err == nil {
 					t.Error("expected error, got nil")

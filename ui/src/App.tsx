@@ -30,6 +30,10 @@ export function App() {
   const [currentView, setCurrentView] = useState<View>('systems')
   const [systems, setSystems] = useState<readonly System[]>([])
   const [selections, setSelections] = useState<Map<SystemID, EmulatorID>>(new Map())
+  const [versionSelections, setVersionSelections] = useState<Map<SystemID, string | null>>(
+    new Map(),
+  )
+  const [installedVersions, setInstalledVersions] = useState<Map<EmulatorID, string>>(new Map())
   const [provisions, setProvisions] = useState<DoctorResponse>({})
   const [userStore, setUserStore] = useState('~/Emulation')
   const [applyStatus, setApplyStatus] = useState<ApplyStatus>('idle')
@@ -44,9 +48,10 @@ export function App() {
 
   useEffect(() => {
     async function init() {
-      const [systemsResult, configResult] = await Promise.all([
+      const [systemsResult, configResult, statusResult] = await Promise.all([
         daemon.getSystems(),
         daemon.getConfig(),
+        daemon.getStatus(),
       ])
 
       if (systemsResult.ok) {
@@ -56,10 +61,25 @@ export function App() {
       if (configResult.ok) {
         setUserStore(configResult.data.userStore)
         const newSelections = new Map<SystemID, EmulatorID>()
-        for (const [sysId, emuId] of Object.entries(configResult.data.systems)) {
-          newSelections.set(sysId as SystemID, emuId as EmulatorID)
+        const newVersionSelections = new Map<SystemID, string | null>()
+        for (const [sysId, entry] of Object.entries(configResult.data.systems)) {
+          if (entry) {
+            newSelections.set(sysId as SystemID, entry.emulator)
+            if (entry.pinnedVersion) {
+              newVersionSelections.set(sysId as SystemID, entry.pinnedVersion)
+            }
+          }
         }
         setSelections(newSelections)
+        setVersionSelections(newVersionSelections)
+      }
+
+      if (statusResult.ok) {
+        const versions = new Map<EmulatorID, string>()
+        for (const emu of statusResult.data.installedEmulators) {
+          versions.set(emu.id, emu.version)
+        }
+        setInstalledVersions(versions)
       }
 
       const [doctorResult, syncResult] = await Promise.all([
@@ -94,18 +114,43 @@ export function App() {
         }
         return next
       })
+      // Clear version selection when disabling
+      if (!enabled) {
+        setVersionSelections((prev) => {
+          const next = new Map(prev)
+          next.delete(systemId)
+          return next
+        })
+      }
     },
     [systems],
   )
+
+  const handleVersionChange = useCallback((systemId: SystemID, version: string | null) => {
+    setVersionSelections((prev) => {
+      const next = new Map(prev)
+      if (version === null) {
+        next.delete(systemId)
+      } else {
+        next.set(systemId, version)
+      }
+      return next
+    })
+  }, [])
 
   const handleApply = useCallback(async () => {
     setApplyStatus('applying')
     setProgressSteps([])
     setError(null)
 
-    const systemsConfig: Partial<Record<SystemID, EmulatorID>> = {}
+    const systemsConfig: Partial<Record<SystemID, string>> = {}
     for (const [sysId, emuId] of selections) {
-      systemsConfig[sysId] = emuId
+      const pinnedVersion = versionSelections.get(sysId)
+      if (pinnedVersion) {
+        systemsConfig[sysId] = `${emuId}@${pinnedVersion}`
+      } else {
+        systemsConfig[sysId] = emuId
+      }
     }
 
     const configResult = await daemon.setConfig({
@@ -183,9 +228,22 @@ export function App() {
       setProgressSteps((prev) => prev.map((s) => ({ ...s, status: 'completed' as const })))
       setApplyStatus('success')
 
-      const doctorResult = await daemon.runDoctor()
+      // Refresh doctor and status after successful apply
+      const [doctorResult, statusResult] = await Promise.all([
+        daemon.runDoctor(),
+        daemon.getStatus(),
+      ])
+
       if (doctorResult.ok) {
         setProvisions(doctorResult.data)
+      }
+
+      if (statusResult.ok) {
+        const versions = new Map<EmulatorID, string>()
+        for (const emu of statusResult.data.installedEmulators) {
+          versions.set(emu.id, emu.version)
+        }
+        setInstalledVersions(versions)
       }
     } catch (err) {
       console.error('Apply failed:', err)
@@ -198,7 +256,7 @@ export function App() {
     } finally {
       window.electron.off('apply:progress', progressHandler)
     }
-  }, [selections, userStore])
+  }, [selections, versionSelections, userStore])
 
   const handleCancel = useCallback(async () => {
     await daemon.cancelApply()
@@ -237,10 +295,13 @@ export function App() {
           <SystemsView
             systems={systems}
             selections={selections}
+            versionSelections={versionSelections}
+            installedVersions={installedVersions}
             provisions={provisions}
             userStore={userStore}
             onUserStoreChange={setUserStore}
             onToggle={handleToggle}
+            onVersionChange={handleVersionChange}
             onApply={handleApply}
             onCancel={handleCancel}
             onError={(msg) => showToast(msg, 'error')}

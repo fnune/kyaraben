@@ -5,8 +5,11 @@ import { MANUFACTURER_ORDER, type Manufacturer, SYSTEM_MANUFACTURERS } from '@/t
 export interface SystemGridProps {
   readonly systems: readonly System[]
   readonly selections: ReadonlyMap<SystemID, EmulatorID>
+  readonly versionSelections: ReadonlyMap<SystemID, string | null>
+  readonly installedVersions: ReadonlyMap<EmulatorID, string>
   readonly provisions: DoctorResponse
   readonly onToggle: (systemId: SystemID, enabled: boolean) => void
+  readonly onVersionChange: (systemId: SystemID, version: string | null) => void
 }
 
 function groupByManufacturer(systems: readonly System[]): Map<Manufacturer, System[]> {
@@ -27,7 +30,15 @@ function groupByManufacturer(systems: readonly System[]): Map<Manufacturer, Syst
   return groups
 }
 
-export function SystemGrid({ systems, selections, provisions, onToggle }: SystemGridProps) {
+export function SystemGrid({
+  systems,
+  selections,
+  versionSelections,
+  installedVersions,
+  provisions,
+  onToggle,
+  onVersionChange,
+}: SystemGridProps) {
   const grouped = groupByManufacturer(systems)
 
   return (
@@ -42,16 +53,26 @@ export function SystemGrid({ systems, selections, provisions, onToggle }: System
           <section key={manufacturer}>
             <h2 className="text-lg font-semibold text-gray-700 mb-4">{manufacturer}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {manufacturerSystems.map((system) => (
-                <SystemCard
-                  key={system.id}
-                  system={system}
-                  selectedEmulator={selections.get(system.id) ?? null}
-                  provisions={provisions[system.id] ?? []}
-                  enabled={selections.has(system.id)}
-                  onToggle={onToggle}
-                />
-              ))}
+              {manufacturerSystems.map((system) => {
+                const selectedEmulator = selections.get(system.id) ?? null
+                const installedVersion = selectedEmulator
+                  ? installedVersions.get(selectedEmulator) ?? null
+                  : null
+
+                return (
+                  <SystemCard
+                    key={system.id}
+                    system={system}
+                    selectedEmulator={selectedEmulator}
+                    pinnedVersion={versionSelections.get(system.id) ?? null}
+                    installedVersion={installedVersion}
+                    provisions={provisions[system.id] ?? []}
+                    enabled={selections.has(system.id)}
+                    onToggle={onToggle}
+                    onVersionChange={onVersionChange}
+                  />
+                )
+              })}
             </div>
           </section>
         )

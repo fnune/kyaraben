@@ -38,7 +38,7 @@ func Run(ctx context.Context, cfg *model.KyarabenConfig, reg *registry.Registry,
 	result := &Result{}
 
 	for sys, sysConf := range cfg.Systems {
-		emu, err := reg.GetEmulator(sysConf.Emulator)
+		emu, err := reg.GetEmulator(sysConf.EmulatorID())
 		if err != nil {
 			continue
 		}
