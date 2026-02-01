@@ -1,102 +1,98 @@
-import type { ChangeEvent } from 'react'
-import { SystemIcon } from '@/components/SystemIcon/SystemIcon'
-import { VersionSelector } from '@/components/VersionSelector/VersionSelector'
-import type { EmulatorID, ProvisionResult, System, SystemID } from '@/types/daemon'
+import { EmulatorSubcard } from '@/components/EmulatorSubcard/EmulatorSubcard'
+import { SYSTEM_LOGOS } from '@/components/SystemLogo/SystemLogo'
+import type { DoctorResponse, EmulatorID, System, SystemID } from '@/types/daemon'
+
+const SYSTEM_YEARS: Record<SystemID, number> = {
+  nes: 1983,
+  snes: 1990,
+  n64: 1996,
+  gb: 1989,
+  gbc: 1998,
+  gba: 2001,
+  nds: 2004,
+  '3ds': 2011,
+  gamecube: 2001,
+  wii: 2006,
+  wiiu: 2012,
+  switch: 2017,
+  psx: 1994,
+  ps2: 2000,
+  ps3: 2006,
+  psp: 2004,
+  psvita: 2011,
+  genesis: 1988,
+  saturn: 1994,
+  dreamcast: 1998,
+}
 
 export interface SystemCardProps {
   readonly system: System
-  readonly selectedEmulator: EmulatorID | null
-  readonly pinnedVersion: string | null
-  readonly installedVersion: string | null
-  readonly provisions: readonly ProvisionResult[]
-  readonly enabled: boolean
-  readonly onToggle: (systemId: SystemID, enabled: boolean) => void
-  readonly onVersionChange: (systemId: SystemID, version: string | null) => void
-}
-
-function ProvisionBadge({ provision }: { readonly provision: ProvisionResult }) {
-  const isOk = provision.status === 'found'
-  const isOptional = !provision.required
-
-  const badgeClasses = isOk
-    ? 'bg-green-100 text-green-800'
-    : isOptional
-      ? 'bg-yellow-100 text-yellow-800'
-      : 'bg-red-100 text-red-800'
-
-  const statusText = isOk ? 'OK' : isOptional ? 'optional' : 'missing'
-
-  return (
-    <span
-      className={`${badgeClasses} px-2 py-0.5 rounded text-xs font-medium`}
-      title={provision.description}
-    >
-      {provision.filename} ({statusText})
-    </span>
-  )
+  readonly enabledEmulators: ReadonlySet<EmulatorID>
+  readonly emulatorVersions: ReadonlyMap<EmulatorID, string | null>
+  readonly installedVersions: ReadonlyMap<EmulatorID, string>
+  readonly provisions: DoctorResponse
+  readonly userStore: string
+  readonly onEmulatorToggle: (emulatorId: EmulatorID, enabled: boolean) => void
+  readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
 }
 
 export function SystemCard({
   system,
-  selectedEmulator,
-  pinnedVersion,
-  installedVersion,
+  enabledEmulators,
+  emulatorVersions,
+  installedVersions,
   provisions,
-  enabled,
-  onToggle,
+  userStore,
+  onEmulatorToggle,
   onVersionChange,
 }: SystemCardProps) {
-  const emulator = system.emulators.find((e) => e.id === selectedEmulator) ?? system.emulators[0]
-  const hasRequiredMissing = provisions.some((p) => p.required && p.status !== 'found')
-  const hasProvisions = provisions.length > 0
-  const hasVersions = emulator?.availableVersions && emulator.availableVersions.length > 0
-
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    onToggle(system.id, e.target.checked)
-  }
-
-  const handleVersionChange = (version: string | null) => {
-    onVersionChange(system.id, version)
-  }
+  const logo = SYSTEM_LOGOS[system.id]
+  const year = SYSTEM_YEARS[system.id]
 
   return (
-    <article className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
-      <label className="flex items-center gap-3 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={enabled}
-          onChange={handleChange}
-          className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-        />
-        <SystemIcon system={system} size="medium" />
-        <div className="flex flex-col flex-1">
-          <h3 className="font-semibold text-gray-900">{system.name}</h3>
-          <div className="flex items-center justify-between gap-2">
-            {emulator && <span className="text-sm text-gray-500">{emulator.name}</span>}
-            {hasVersions && enabled && emulator && (
-              <VersionSelector
-                emulator={emulator}
-                pinnedVersion={pinnedVersion}
-                installedVersion={installedVersion}
-                onChange={handleVersionChange}
-              />
-            )}
-          </div>
+    <article className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+      <div className="relative h-20 bg-gradient-to-r from-gray-100 to-gray-50 overflow-hidden">
+        <div className="absolute inset-y-0 left-0 flex flex-col justify-center px-5 z-10">
+          <h3 className="text-lg font-semibold text-gray-900">{system.name}</h3>
+          <p className="text-sm text-gray-500">
+            {system.manufacturer} · {year}
+          </p>
         </div>
-      </label>
 
-      {hasProvisions && (
-        <div className="mt-3 pl-8">
-          {hasRequiredMissing && (
-            <span className="text-amber-600 text-sm font-medium block mb-2">Requires files</span>
-          )}
-          <div className="flex flex-wrap gap-1">
-            {provisions.map((p) => (
-              <ProvisionBadge key={p.filename} provision={p} />
-            ))}
-          </div>
+        <div
+          className="absolute -right-4 top-1/2 -translate-y-1/2 h-28 w-40 opacity-[0.08]"
+          style={{
+            maskImage: 'linear-gradient(to left, black 40%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to left, black 40%, transparent 100%)',
+          }}
+        >
+          <img
+            src={logo}
+            alt=""
+            className="h-full w-full object-contain object-right"
+            style={{
+              filter: 'brightness(0)',
+            }}
+          />
         </div>
-      )}
+      </div>
+
+      <div className="p-2 space-y-2">
+        {system.emulators.map((emulator) => (
+          <EmulatorSubcard
+            key={emulator.id}
+            emulator={emulator}
+            systemId={system.id}
+            enabled={enabledEmulators.has(emulator.id)}
+            pinnedVersion={emulatorVersions.get(emulator.id) ?? null}
+            installedVersion={installedVersions.get(emulator.id) ?? null}
+            provisions={provisions[emulator.id] ?? []}
+            userStore={userStore}
+            onToggle={(enabled) => onEmulatorToggle(emulator.id, enabled)}
+            onVersionChange={(version) => onVersionChange(emulator.id, version)}
+          />
+        ))}
+      </div>
     </article>
   )
 }
