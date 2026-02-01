@@ -251,12 +251,12 @@ func TestInstallKyarabenCLIOnly(t *testing.T) {
 		t.Errorf("DesktopPath = %s, want %s", result.DesktopPath, filepath.Join(appsDir, "kyaraben.desktop"))
 	}
 
-	linkTarget, err := os.Readlink(result.CLIPath)
+	info, err := os.Stat(result.CLIPath)
 	if err != nil {
-		t.Fatalf("reading CLI symlink: %v", err)
+		t.Fatalf("stat CLI: %v", err)
 	}
-	if linkTarget == "" {
-		t.Error("CLI symlink should point to current executable")
+	if info.Size() == 0 {
+		t.Error("CLI should be a copy of current executable")
 	}
 
 	content, err := os.ReadFile(result.DesktopPath)
