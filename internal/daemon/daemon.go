@@ -250,6 +250,9 @@ func (d *Daemon) handleApply(_ map[string]interface{}, emit func(Event)) []Event
 			if p.Output != "" {
 				data["output"] = p.Output
 			}
+			if p.Speed != "" {
+				data["speed"] = p.Speed
+			}
 			event := Event{
 				Type: EventProgress,
 				Data: data,

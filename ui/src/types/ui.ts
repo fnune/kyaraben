@@ -41,6 +41,7 @@ export interface ProgressStep {
   readonly status: ProgressStepStatus
   readonly message?: string
   readonly outputLines?: readonly string[]
+  readonly speed?: string
 }
 
 export type ApplyStatus = 'idle' | 'applying' | 'success' | 'error'

@@ -80,6 +80,8 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		CreateBackups: createBackups,
 		OnProgress: func(p apply.Progress) {
 			switch p.Step {
+			case "store":
+				fmt.Println(p.Message)
 			case "build":
 				fmt.Println("Installing emulators (this may take a while on first run)...")
 			case "desktop":
