@@ -18,8 +18,8 @@ function truncateDeviceId(id: string): string {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="p-4 bg-gray-50 rounded-lg">
-      <h3 className="text-sm font-medium text-gray-900 mb-3">{title}</h3>
+    <div className="p-4 bg-gray-800 rounded-lg">
+      <h3 className="text-sm font-medium text-gray-100 mb-3">{title}</h3>
       {children}
     </div>
   )
@@ -33,15 +33,15 @@ function DeviceRow({
   readonly onRemove: () => void
 }) {
   return (
-    <div className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+    <div className="flex items-center justify-between py-2 border-b border-gray-700 last:border-0">
       <div className="flex items-center gap-2">
         <span
-          className={`w-2 h-2 rounded-full ${device.connected ? 'bg-green-500' : 'bg-gray-300'}`}
+          className={`w-2 h-2 rounded-full ${device.connected ? 'bg-green-500' : 'bg-gray-600'}`}
         />
-        <span className="font-medium text-gray-900">{device.name}</span>
-        <span className="text-xs text-gray-400">{truncateDeviceId(device.id)}</span>
+        <span className="font-medium text-gray-100">{device.name}</span>
+        <span className="text-xs text-gray-500">{truncateDeviceId(device.id)}</span>
       </div>
-      <button type="button" onClick={onRemove} className="text-xs text-red-600 hover:text-red-800">
+      <button type="button" onClick={onRemove} className="text-xs text-red-400 hover:text-red-300">
         Remove
       </button>
     </div>
@@ -52,8 +52,8 @@ function DisabledState() {
   return (
     <div className="p-6">
       <Section title="Sync is not enabled">
-        <p className="text-sm text-gray-600 mb-4">Enable sync in your config.toml:</p>
-        <pre className="bg-gray-100 p-3 rounded text-sm font-mono">
+        <p className="text-sm text-gray-400 mb-4">Enable sync in your config.toml:</p>
+        <pre className="bg-gray-700 text-gray-300 p-3 rounded text-sm font-mono">
           {`[sync]
 enabled = true
 mode = "primary"  # or "secondary"`}
@@ -98,19 +98,19 @@ export function SyncView({ status, onAddDevice, onRemoveDevice }: SyncViewProps)
       <Section title="Status">
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-gray-600">Mode</span>
-            <span className="font-medium capitalize">{status.mode}</span>
+            <span className="text-gray-400">Mode</span>
+            <span className="font-medium text-gray-100 capitalize">{status.mode}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">Running</span>
-            <span className={`font-medium ${status.running ? 'text-green-600' : 'text-red-600'}`}>
+            <span className="text-gray-400">Running</span>
+            <span className={`font-medium ${status.running ? 'text-green-400' : 'text-red-400'}`}>
               {status.running ? 'Yes' : 'No'}
             </span>
           </div>
           {totalDevices > 0 && (
             <div className="flex justify-between">
-              <span className="text-gray-600">Connected devices</span>
-              <span className="font-medium">
+              <span className="text-gray-400">Connected devices</span>
+              <span className="font-medium text-gray-100">
                 {connectedCount}/{totalDevices}
               </span>
             </div>
@@ -121,7 +121,7 @@ export function SyncView({ status, onAddDevice, onRemoveDevice }: SyncViewProps)
       {status.deviceId && (
         <Section title="This device ID">
           <div className="flex items-center gap-2">
-            <code className="flex-1 bg-gray-100 px-3 py-2 rounded text-xs break-all font-mono">
+            <code className="flex-1 bg-gray-700 text-gray-300 px-3 py-2 rounded text-xs break-all font-mono">
               {status.deviceId}
             </code>
             <button
@@ -131,7 +131,7 @@ export function SyncView({ status, onAddDevice, onRemoveDevice }: SyncViewProps)
                   navigator.clipboard.writeText(status.deviceId)
                 }
               }}
-              className="px-3 py-2 text-xs bg-gray-100 rounded hover:bg-gray-200"
+              className="px-3 py-2 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600"
             >
               Copy
             </button>
@@ -141,7 +141,7 @@ export function SyncView({ status, onAddDevice, onRemoveDevice }: SyncViewProps)
 
       <Section title="Paired devices">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-gray-400">
             {totalDevices === 0
               ? 'No devices paired'
               : `${totalDevices} device${totalDevices === 1 ? '' : 's'}`}
@@ -150,7 +150,7 @@ export function SyncView({ status, onAddDevice, onRemoveDevice }: SyncViewProps)
             <button
               type="button"
               onClick={handleOpenGui}
-              className="text-xs text-blue-600 hover:text-blue-800"
+              className="text-xs text-blue-400 hover:text-blue-300"
             >
               Open Syncthing UI
             </button>
@@ -158,7 +158,7 @@ export function SyncView({ status, onAddDevice, onRemoveDevice }: SyncViewProps)
         </div>
 
         {status.devices && status.devices.length > 0 && (
-          <div className="border rounded-lg px-3 bg-white">
+          <div className="border border-gray-700 rounded-lg px-3 bg-gray-900">
             {status.devices.map((device) => (
               <DeviceRow
                 key={device.id}

@@ -21,9 +21,12 @@ const (
 
 // Provision represents something the user must provide for an emulator.
 type Provision struct {
-	ID          string
-	Kind        ProvisionKind
-	Filename    string
+	ID       string
+	Kind     ProvisionKind
+	Filename string
+	// Description is a short label for the provision variant, typically a region
+	// like "USA", "Europe", or "Japan". Shown in the UI as "{Kind} ({Description})"
+	// e.g. "BIOS (USA)" or "Firmware (Europe)".
 	Description string
 	Required    bool
 	MD5Hash     string // Expected hash for verification

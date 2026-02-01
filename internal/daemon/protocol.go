@@ -37,8 +37,9 @@ type StatusResponse struct {
 }
 
 type InstalledEmulator struct {
-	ID      model.EmulatorID `json:"id"`
-	Version string           `json:"version"`
+	ID       model.EmulatorID `json:"id"`
+	Version  string           `json:"version"`
+	ExecLine string           `json:"execLine,omitempty"`
 }
 
 // DoctorResponse uses map[string] because tygo can't generate valid TypeScript
@@ -48,6 +49,7 @@ type DoctorResponse map[string][]ProvisionResult
 
 type ProvisionResult struct {
 	Filename    string `json:"filename"`
+	Kind        string `json:"kind"`
 	Description string `json:"description"`
 	Required    bool   `json:"required"`
 	Status      string `json:"status"`
@@ -86,7 +88,7 @@ type EmulatorRef struct {
 	Name              string           `json:"name"`
 	DefaultVersion    string           `json:"defaultVersion,omitempty"`
 	AvailableVersions []string         `json:"availableVersions,omitempty"`
-	DownloadSize      string           `json:"downloadSize,omitempty"`
+	DownloadBytes     int64            `json:"downloadBytes,omitempty"`
 }
 
 type ConfigResponse struct {

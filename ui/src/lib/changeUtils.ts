@@ -83,13 +83,30 @@ export interface ChangeSummary {
   readonly upgrades: number
   readonly downgrades: number
   readonly total: number
+  readonly downloadBytes: number
+  readonly freeBytes: number
 }
 
 export function emptyChangeSummary(): ChangeSummary {
-  return { installs: 0, removes: 0, upgrades: 0, downgrades: 0, total: 0 }
+  return { installs: 0, removes: 0, upgrades: 0, downgrades: 0, total: 0, downloadBytes: 0, freeBytes: 0 }
 }
 
-export function addChange(summary: ChangeSummary, changeType: ChangeType): ChangeSummary {
+export function formatBytes(bytes: number): string {
+  const absBytes = Math.abs(bytes)
+  if (absBytes >= 1024 * 1024 * 1024) {
+    return `${(absBytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
+  }
+  if (absBytes >= 1024 * 1024) {
+    return `${Math.round(absBytes / (1024 * 1024))} MB`
+  }
+  return `${Math.round(absBytes / 1024)} KB`
+}
+
+export function addChange(
+  summary: ChangeSummary,
+  changeType: ChangeType,
+  sizeBytes?: number,
+): ChangeSummary {
   if (!changeType) return summary
 
   const updates = {
@@ -99,9 +116,15 @@ export function addChange(summary: ChangeSummary, changeType: ChangeType): Chang
     downgrade: { downgrades: summary.downgrades + 1 },
   }
 
+  const download =
+    changeType === 'install' || changeType === 'upgrade' ? (sizeBytes ?? 0) : 0
+  const free = changeType === 'remove' ? (sizeBytes ?? 0) : 0
+
   return {
     ...summary,
     ...updates[changeType],
     total: summary.total + 1,
+    downloadBytes: summary.downloadBytes + download,
+    freeBytes: summary.freeBytes + free,
   }
 }

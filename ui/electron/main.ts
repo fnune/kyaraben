@@ -403,6 +403,16 @@ Categories=Game;Emulator;
     return fs.existsSync(expandedPath)
   })
 
+  ipcMain.handle('launch_emulator', (_, execLine: string) => {
+    const { spawn } = require('node:child_process')
+    spawn(execLine, [], {
+      detached: true,
+      stdio: 'ignore',
+      shell: true,
+    }).unref()
+    return { success: true }
+  })
+
   ipcMain.handle('get_bug_report_info', async () => {
     const os = require('node:os')
     const fs = require('node:fs')

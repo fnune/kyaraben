@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { BugReport } from '@/components/BugReport/BugReport'
+import { useBottomBar } from '@/lib/BottomBarContext'
 import type { SyncState, SyncStatusResponse } from '@/types/daemon'
 import {
   SyncStateConflict,
@@ -46,8 +47,8 @@ function NavItem({ label, active, onClick, indicator }: NavItemProps) {
       onClick={onClick}
       className={`px-4 py-2 text-sm flex items-center gap-2 ${
         active
-          ? 'bg-blue-50 text-blue-700 min-[720px]:border-l-2 min-[720px]:border-blue-600 max-[719px]:border-b-2 max-[719px]:border-blue-600'
-          : 'text-gray-700 hover:bg-gray-100 min-[720px]:border-l-2 max-[719px]:border-b-2 border-transparent'
+          ? 'bg-blue-500/10 text-blue-400 min-[720px]:border-l-2 min-[720px]:border-blue-500 max-[719px]:border-b-2 max-[719px]:border-blue-500'
+          : 'text-gray-300 hover:bg-gray-700 min-[720px]:border-l-2 max-[719px]:border-b-2 border-transparent'
       }`}
     >
       <span>{label}</span>
@@ -58,13 +59,14 @@ function NavItem({ label, active, onClick, indicator }: NavItemProps) {
 
 export function Sidebar({ currentView, onNavigate, syncStatus }: SidebarProps) {
   const [bugReportOpen, setBugReportOpen] = useState(false)
+  const { isVisible: bottomBarVisible } = useBottomBar()
   const syncState = getSyncState(syncStatus)
   const syncDotColor = syncDotColors[syncState]
 
   return (
-    <aside className="bg-gray-50 border-b min-[720px]:border-b-0 min-[720px]:border-r border-gray-200 flex flex-row min-[720px]:flex-col min-[720px]:w-56">
-      <div className="p-4 border-r min-[720px]:border-r-0 min-[720px]:border-b border-gray-200">
-        <h1 className="text-lg font-semibold text-gray-900">Kyaraben</h1>
+    <aside className={`bg-gray-800 border-b min-[720px]:border-b-0 min-[720px]:border-r border-gray-700 flex flex-row min-[720px]:flex-col min-[720px]:w-56 ${bottomBarVisible ? 'min-[720px]:pb-20' : ''}`}>
+      <div className="p-4 border-r min-[720px]:border-r-0 min-[720px]:border-b border-gray-700">
+        <h1 className="text-lg font-semibold text-gray-100">Kyaraben</h1>
       </div>
 
       <nav className="flex-1 flex flex-row min-[720px]:flex-col min-[720px]:py-2">
@@ -86,13 +88,13 @@ export function Sidebar({ currentView, onNavigate, syncStatus }: SidebarProps) {
         />
       </nav>
 
-      <div className="hidden min-[720px]:block p-4 border-t border-gray-200">
+      <div className="hidden min-[720px]:block p-4 border-t border-gray-700">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-400">v0.1.0</span>
+          <span className="text-xs text-gray-500">v0.1.0</span>
           <button
             type="button"
             onClick={() => setBugReportOpen(true)}
-            className="text-xs text-gray-400 hover:text-gray-600"
+            className="text-xs text-gray-500 hover:text-gray-300"
           >
             Report a problem
           </button>

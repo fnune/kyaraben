@@ -4,7 +4,8 @@ import { Sidebar } from '@/components/Sidebar/Sidebar'
 import { SyncView } from '@/components/SyncView/SyncView'
 import { SystemsView } from '@/components/SystemsView/SystemsView'
 import * as daemon from '@/lib/daemon'
-import { Toast } from '@/lib/Toast'
+import { BottomBarProvider } from '@/lib/BottomBarContext'
+import { ToastProvider } from '@/lib/ToastContext'
 import type {
   DoctorResponse,
   EmulatorID,
@@ -14,11 +15,6 @@ import type {
 } from '@/types/daemon'
 import type { ApplyStatus, ProgressStep, View } from '@/types/ui'
 
-interface ToastState {
-  message: string
-  type: 'error' | 'success' | 'info'
-}
-
 const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
   store: 'Setting up emulation folder',
   build: 'Installing emulators',
@@ -26,7 +22,7 @@ const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
   config: 'Configuring emulators',
 }
 
-export function App() {
+function AppContent() {
   const [currentView, setCurrentView] = useState<View>('systems')
   const [systems, setSystems] = useState<readonly System[]>([])
   const [systemEmulators, setSystemEmulators] = useState<Map<SystemID, EmulatorID[]>>(new Map())
@@ -34,17 +30,14 @@ export function App() {
     new Map(),
   )
   const [installedVersions, setInstalledVersions] = useState<Map<EmulatorID, string>>(new Map())
+  const [installedExecLines, setInstalledExecLines] = useState<Map<EmulatorID, string>>(new Map())
   const [provisions, setProvisions] = useState<DoctorResponse>({})
   const [userStore, setUserStore] = useState('~/Emulation')
   const [applyStatus, setApplyStatus] = useState<ApplyStatus>('idle')
   const [progressSteps, setProgressSteps] = useState<readonly ProgressStep[]>([])
   const [error, setError] = useState<string | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null)
-  const [toast, setToast] = useState<ToastState | null>(null)
 
-  const showToast = useCallback((message: string, type: ToastState['type'] = 'info') => {
-    setToast({ message, type })
-  }, [])
 
   useEffect(() => {
     async function init() {
@@ -83,10 +76,15 @@ export function App() {
 
       if (statusResult.ok) {
         const versions = new Map<EmulatorID, string>()
+        const execLines = new Map<EmulatorID, string>()
         for (const emu of statusResult.data.installedEmulators) {
           versions.set(emu.id, emu.version)
+          if (emu.execLine) {
+            execLines.set(emu.id, emu.execLine)
+          }
         }
         setInstalledVersions(versions)
+        setInstalledExecLines(execLines)
       }
 
       const [doctorResult, syncResult] = await Promise.all([
@@ -255,10 +253,15 @@ export function App() {
 
       if (statusResult.ok) {
         const versions = new Map<EmulatorID, string>()
+        const execLines = new Map<EmulatorID, string>()
         for (const emu of statusResult.data.installedEmulators) {
           versions.set(emu.id, emu.version)
+          if (emu.execLine) {
+            execLines.set(emu.id, emu.execLine)
+          }
         }
         setInstalledVersions(versions)
+        setInstalledExecLines(execLines)
       }
     } catch (err) {
       console.error('Apply failed:', err)
@@ -330,10 +333,15 @@ export function App() {
 
     if (statusResult.ok) {
       const versions = new Map<EmulatorID, string>()
+      const execLines = new Map<EmulatorID, string>()
       for (const emu of statusResult.data.installedEmulators) {
         versions.set(emu.id, emu.version)
+        if (emu.execLine) {
+          execLines.set(emu.id, emu.execLine)
+        }
       }
       setInstalledVersions(versions)
+      setInstalledExecLines(execLines)
     }
   }, [])
 
@@ -346,6 +354,7 @@ export function App() {
             enabledEmulators={enabledEmulators}
             emulatorVersions={emulatorVersions}
             installedVersions={installedVersions}
+            installedExecLines={installedExecLines}
             provisions={provisions}
             userStore={userStore}
             onUserStoreChange={setUserStore}
@@ -353,7 +362,6 @@ export function App() {
             onVersionChange={handleVersionChange}
             onApply={handleApply}
             onCancel={handleCancel}
-            onError={(msg) => showToast(msg, 'error')}
             applyStatus={applyStatus}
             progressSteps={progressSteps}
             error={error}
@@ -375,14 +383,20 @@ export function App() {
   }
 
   return (
-    <div className="h-dvh bg-white flex flex-col min-[720px]:flex-row overflow-hidden">
+    <div className="h-dvh bg-gray-900 flex flex-col min-[720px]:flex-row overflow-hidden">
       <Sidebar currentView={currentView} onNavigate={setCurrentView} syncStatus={syncStatus} />
 
       <main className="flex-1 overflow-y-auto">{renderView()}</main>
-
-      {toast && (
-        <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />
-      )}
     </div>
+  )
+}
+
+export function App() {
+  return (
+    <BottomBarProvider>
+      <ToastProvider>
+        <AppContent />
+      </ToastProvider>
+    </BottomBarProvider>
   )
 }
