@@ -89,14 +89,7 @@ func (d *Daemon) loadConfig() (*model.KyarabenConfig, error) {
 func (d *Daemon) handleStatus() []Event {
 	cfg, err := d.loadConfig()
 	if err != nil {
-		// Use default config if none exists
-		cfg, err = model.NewDefaultConfig()
-		if err != nil {
-			return []Event{{
-				Type: EventError,
-				Data: map[string]string{"error": err.Error()},
-			}}
-		}
+		cfg = model.NewDefaultConfig()
 	}
 
 	configPath := d.configPath
@@ -155,14 +148,7 @@ func (d *Daemon) handleStatus() []Event {
 func (d *Daemon) handleDoctor() []Event {
 	cfg, err := d.loadConfig()
 	if err != nil {
-		// Use default config if none exists
-		cfg, err = model.NewDefaultConfig()
-		if err != nil {
-			return []Event{{
-				Type: EventError,
-				Data: map[string]string{"error": err.Error()},
-			}}
-		}
+		cfg = model.NewDefaultConfig()
 	}
 
 	userStore, err := store.NewUserStore(cfg.Global.UserStore)
@@ -303,13 +289,7 @@ func (d *Daemon) handleGetSystems() []Event {
 func (d *Daemon) handleGetConfig() []Event {
 	cfg, err := d.loadConfig()
 	if err != nil {
-		cfg, err = model.NewDefaultConfig()
-		if err != nil {
-			return []Event{{
-				Type: EventError,
-				Data: map[string]string{"error": err.Error()},
-			}}
-		}
+		cfg = model.NewDefaultConfig()
 	}
 
 	systems := make(map[string]string)
@@ -329,14 +309,7 @@ func (d *Daemon) handleGetConfig() []Event {
 func (d *Daemon) handleSetConfig(data map[string]interface{}) []Event {
 	cfg, err := d.loadConfig()
 	if err != nil {
-		// Create new config if it doesn't exist
-		cfg, err = model.NewDefaultConfig()
-		if err != nil {
-			return []Event{{
-				Type: EventError,
-				Data: map[string]string{"error": err.Error()},
-			}}
-		}
+		cfg = model.NewDefaultConfig()
 	}
 
 	if userStore, ok := data["userStore"].(string); ok {
@@ -377,7 +350,7 @@ func (d *Daemon) handleSetConfig(data map[string]interface{}) []Event {
 func (d *Daemon) handleSyncStatus() []Event {
 	cfg, err := d.loadConfig()
 	if err != nil {
-		cfg, _ = model.NewDefaultConfig()
+		cfg = model.NewDefaultConfig()
 	}
 
 	if !cfg.Sync.Enabled {

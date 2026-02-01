@@ -35,12 +35,8 @@ func DefaultConfigPath() (string, error) {
 }
 
 // DefaultUserStore returns the default path to the user's emulation directory.
-func DefaultUserStore() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("getting home directory: %w", err)
-	}
-	return filepath.Join(home, "Emulation"), nil
+func DefaultUserStore() string {
+	return "~/Emulation"
 }
 
 // LoadConfig loads the kyaraben configuration from a file.
@@ -101,16 +97,12 @@ func (c *KyarabenConfig) EnabledSystems() []SystemID {
 }
 
 // NewDefaultConfig creates a new config with default values.
-func NewDefaultConfig() (*KyarabenConfig, error) {
-	userStore, err := DefaultUserStore()
-	if err != nil {
-		return nil, err
-	}
+func NewDefaultConfig() *KyarabenConfig {
 	return &KyarabenConfig{
 		Global: GlobalConfig{
-			UserStore: userStore,
+			UserStore: DefaultUserStore(),
 		},
 		Sync:    DefaultSyncConfig(),
 		Systems: make(map[SystemID]SystemConf),
-	}, nil
+	}
 }
