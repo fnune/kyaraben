@@ -9,10 +9,10 @@ type Definition struct{}
 
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
-		ID:         model.EmulatorIDRetroArchBeetleSaturn,
-		Name:       "RetroArch (Beetle Saturn)",
-		Systems:    []model.SystemID{model.SystemIDSaturn},
-		Package:    model.AppImageRef("retroarch"),
+		ID:      model.EmulatorIDRetroArchBeetleSaturn,
+		Name:    "RetroArch (Beetle Saturn)",
+		Systems: []model.SystemID{model.SystemIDSaturn},
+		Package: model.AppImageRef("retroarch"),
 		Provisions: []model.Provision{
 			{
 				ID:          "saturn-bios",

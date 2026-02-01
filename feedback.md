@@ -74,3 +74,35 @@ Options:
 1. Document this as a required post-install step
 2. Bundle RetroArch assets as a separate nix package
 3. Pre-configure RetroArch to use a simpler menu that doesn't need assets (e.g., rgui instead of ozone/xmb)
+
+---
+
+## Consider backend preview command for apply status
+
+The UI now shows appropriate messages for shared emulators ("Already installed for X", "In use by X"), but this logic lives in the frontend and duplicates knowledge about package sharing.
+
+Consider adding a `CommandTypeApplyPreview` that returns per-system actions:
+
+```go
+type SystemActionPreview struct {
+    SystemID         model.SystemID   `json:"systemId"`
+    Action           string           `json:"action"` // will-install, will-update, will-uninstall, already-installed, shared-uninstall, no-change
+    SharedWith       []string         `json:"sharedWith"`
+    InstalledFor     []string         `json:"installedFor"`
+    EffectiveVersion string           `json:"effectiveVersion"`
+    InstalledVersion string           `json:"installedVersion"`
+}
+```
+
+The backend already has everything needed:
+- `manifest.InstalledEmulators` for what's installed
+- `cfg.Systems` for enabled systems and selected emulators
+- `registry.GetEmulator(id).Package.PackageName()` for package sharing (more accurate than the UI's string splitting)
+
+The handler would:
+1. Load config and manifest
+2. Group enabled systems by package name
+3. Check which packages are installed
+4. Compute actions for each system
+
+This moves all the logic to one place and makes the UI a simple display layer. The existing `Preflight` function in `apply.go` already does similar work for config patches and could be extended.
