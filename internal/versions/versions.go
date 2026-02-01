@@ -33,12 +33,15 @@ type NixpkgsVersion struct {
 type AppImageVersion struct {
 	Version     string                 `toml:"version"`
 	URLTemplate string                 `toml:"url_template"`
+	ReleaseTag  string                 `toml:"release_tag"` // For repos where tag differs from version (e.g., Dolphin)
+	BinaryPath  string                 `toml:"binary_path"` // Path to binary inside archive (for 7z, tar.gz, zip)
 	Targets     map[string]TargetBuild `toml:"targets"`
 }
 
 type TargetBuild struct {
-	Arch   string `toml:"arch"`
-	SHA256 string `toml:"sha256"`
+	Arch       string `toml:"arch"`
+	SHA256     string `toml:"sha256"`
+	BinaryPath string `toml:"binary_path"` // Per-target override for binary path
 }
 
 func (a *AppImageVersion) DefaultTargetForArch(arch string) string {
@@ -54,6 +57,7 @@ func (a *AppImageVersion) DefaultTargetForArch(arch string) string {
 func (a *AppImageVersion) URL(target string) string {
 	url := strings.ReplaceAll(a.URLTemplate, "{version}", a.Version)
 	url = strings.ReplaceAll(url, "{target}", target)
+	url = strings.ReplaceAll(url, "{release_tag}", a.EffectiveReleaseTag())
 	return url
 }
 
@@ -75,6 +79,42 @@ func (a *AppImageVersion) TargetsForArch(arch string) []string {
 		}
 	}
 	return targets
+}
+
+// BinaryPathForTarget returns the path to the binary inside an archive.
+// Returns empty string for direct AppImage downloads (no extraction needed).
+func (a *AppImageVersion) BinaryPathForTarget(target string) string {
+	if t, ok := a.Targets[target]; ok && t.BinaryPath != "" {
+		return t.BinaryPath
+	}
+	return a.BinaryPath
+}
+
+// ArchiveType returns the archive type based on URL extension.
+// Returns empty string for direct binaries (AppImage, etc).
+func (a *AppImageVersion) ArchiveType(target string) string {
+	url := a.URL(target)
+	switch {
+	case strings.HasSuffix(url, ".7z"):
+		return "7z"
+	case strings.HasSuffix(url, ".tar.gz") || strings.HasSuffix(url, ".tgz"):
+		return "tar.gz"
+	case strings.HasSuffix(url, ".tar.xz"):
+		return "tar.xz"
+	case strings.HasSuffix(url, ".zip"):
+		return "zip"
+	default:
+		return ""
+	}
+}
+
+// EffectiveReleaseTag returns the release tag to use in URLs.
+// Falls back to Version if ReleaseTag is not set.
+func (a *AppImageVersion) EffectiveReleaseTag() string {
+	if a.ReleaseTag != "" {
+		return a.ReleaseTag
+	}
+	return a.Version
 }
 
 var parsed *Versions
