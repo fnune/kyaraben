@@ -32,6 +32,8 @@ var log = logging.New("daemon")
 
 type Daemon struct {
 	configPath      string
+	stateDir        string
+	manifestPath    string
 	reg             *registry.Registry
 	nixClient       nix.NixClient
 	flakeGenerator  *nix.FlakeGenerator
@@ -42,9 +44,11 @@ type Daemon struct {
 	applyCancelFunc context.CancelFunc
 }
 
-func New(configPath string, reg *registry.Registry, nixClient nix.NixClient, flakeGenerator *nix.FlakeGenerator, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager) *Daemon {
+func New(configPath, stateDir, manifestPath string, reg *registry.Registry, nixClient nix.NixClient, flakeGenerator *nix.FlakeGenerator, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager) *Daemon {
 	return &Daemon{
 		configPath:      configPath,
+		stateDir:        stateDir,
+		manifestPath:    manifestPath,
 		reg:             reg,
 		nixClient:       nixClient,
 		flakeGenerator:  flakeGenerator,
@@ -150,12 +154,7 @@ func (d *Daemon) handleStatus() []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	manifestPath, err := model.DefaultManifestPath()
-	if err != nil {
-		return d.errorResponse(err.Error())
-	}
-
-	result, err := status.Get(context.Background(), cfg, configPath, d.reg, userStore, manifestPath)
+	result, err := status.Get(context.Background(), cfg, configPath, d.reg, userStore, d.manifestPath)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
@@ -245,13 +244,8 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	manifestPath, err := model.DefaultManifestPath()
-	if err != nil {
-		return d.errorResponse(err.Error())
-	}
-
 	// Acquire exclusive lock to prevent concurrent Apply operations
-	lockDir := filepath.Dir(manifestPath)
+	lockDir := filepath.Dir(d.manifestPath)
 	if err := os.MkdirAll(lockDir, 0755); err != nil {
 		return d.errorResponse(fmt.Sprintf("creating state directory: %v", err))
 	}
@@ -283,7 +277,7 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 		FlakeGenerator:  d.flakeGenerator,
 		ConfigWriter:    d.configWriter,
 		Registry:        d.reg,
-		ManifestPath:    manifestPath,
+		ManifestPath:    d.manifestPath,
 		LauncherManager: d.launcherManager,
 	}
 
@@ -629,19 +623,12 @@ func (d *Daemon) handleSyncRemoveDevice(data *SyncRemoveDeviceRequest) []Event {
 }
 
 func (d *Daemon) handleUninstallPreview() []Event {
-	stateDir, err := paths.KyarabenStateDir()
+	manifest, _ := model.LoadManifest(d.manifestPath)
+
+	cfg, err := d.loadConfig()
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
-
-	manifestPath, err := model.DefaultManifestPath()
-	if err != nil {
-		return d.errorResponse(err.Error())
-	}
-
-	manifest, _ := model.LoadManifest(manifestPath)
-
-	cfg, _ := d.loadConfig()
 	userStore := cfg.Global.UserStore
 
 	configDir, _ := paths.KyarabenConfigDir()
@@ -697,8 +684,8 @@ func (d *Daemon) handleUninstallPreview() []Event {
 	return []Event{{
 		Type: EventTypeResult,
 		Data: UninstallPreviewResponse{
-			StateDir:       stateDir,
-			StateDirExists: dirExists(stateDir),
+			StateDir:       d.stateDir,
+			StateDirExists: dirExists(d.stateDir),
 			DesktopFiles:   desktopFiles,
 			IconFiles:      iconFiles,
 			ConfigFiles:    configFiles,
@@ -734,17 +721,14 @@ func (d *Daemon) handleInstallKyaraben(data *InstallKyarabenRequest) []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	manifestPath, err := model.DefaultManifestPath()
-	if err == nil {
-		manifest, _ := model.LoadManifest(manifestPath)
-		manifest.KyarabenInstall = &model.KyarabenInstall{
-			AppPath:     result.AppPath,
-			CLIPath:     result.CLIPath,
-			DesktopPath: result.DesktopPath,
-		}
-		if saveErr := manifest.Save(manifestPath); saveErr != nil {
-			log.Debug("Failed to save manifest with install info: %v", saveErr)
-		}
+	manifest, _ := model.LoadManifest(d.manifestPath)
+	manifest.KyarabenInstall = &model.KyarabenInstall{
+		AppPath:     result.AppPath,
+		CLIPath:     result.CLIPath,
+		DesktopPath: result.DesktopPath,
+	}
+	if saveErr := manifest.Save(d.manifestPath); saveErr != nil {
+		log.Debug("Failed to save manifest with install info: %v", saveErr)
 	}
 
 	return []Event{{
@@ -754,8 +738,7 @@ func (d *Daemon) handleInstallKyaraben(data *InstallKyarabenRequest) []Event {
 }
 
 func (d *Daemon) handleInstallStatus() []Event {
-	manifestPath, _ := model.DefaultManifestPath()
-	manifest, _ := model.LoadManifest(manifestPath)
+	manifest, _ := model.LoadManifest(d.manifestPath)
 
 	if manifest.KyarabenInstall != nil {
 		ki := manifest.KyarabenInstall
