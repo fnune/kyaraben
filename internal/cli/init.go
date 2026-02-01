@@ -46,7 +46,7 @@ func (cmd *InitCmd) Run(ctx *Context) error {
 		}
 
 		cfg.Systems[sysID] = model.SystemConf{
-			Emulator: emu.ID,
+			Emulator: string(emu.ID),
 		}
 	}
 
@@ -65,7 +65,7 @@ func (cmd *InitCmd) Run(ctx *Context) error {
 		fmt.Println("Enabled systems:")
 		for sys, sysConf := range cfg.Systems {
 			s, _ := registry.GetSystem(sys)
-			e, _ := registry.GetEmulator(sysConf.Emulator)
+			e, _ := registry.GetEmulator(sysConf.EmulatorID())
 			fmt.Printf("  %s (%s) - %s\n", s.Name, sys, e.Name)
 		}
 		fmt.Println()

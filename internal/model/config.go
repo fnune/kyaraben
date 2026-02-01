@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 )
@@ -22,8 +23,23 @@ type GlobalConfig struct {
 
 // SystemConf holds per-system configuration.
 type SystemConf struct {
-	Emulator EmulatorID `toml:"emulator"`
-	Version  string     `toml:"version,omitempty"` // Optional: pin emulator to specific version
+	Emulator string `toml:"emulator"` // "eden" or "eden@v0.1.0"
+}
+
+// EmulatorID returns the emulator ID from the Emulator field.
+func (s SystemConf) EmulatorID() EmulatorID {
+	if idx := strings.Index(s.Emulator, "@"); idx != -1 {
+		return EmulatorID(s.Emulator[:idx])
+	}
+	return EmulatorID(s.Emulator)
+}
+
+// EmulatorVersion returns the pinned version, or empty string for default.
+func (s SystemConf) EmulatorVersion() string {
+	if idx := strings.Index(s.Emulator, "@"); idx != -1 {
+		return s.Emulator[idx+1:]
+	}
+	return ""
 }
 
 func DefaultConfigPath() (string, error) {
