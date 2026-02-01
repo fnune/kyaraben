@@ -37,9 +37,11 @@ type StatusResponse struct {
 }
 
 type InstalledEmulator struct {
-	ID       model.EmulatorID `json:"id"`
-	Version  string           `json:"version"`
-	ExecLine string           `json:"execLine,omitempty"`
+	ID             model.EmulatorID `json:"id"`
+	Version        string           `json:"version"`
+	ExecLine       string           `json:"execLine,omitempty"`
+	ManagedConfigs []string         `json:"managedConfigs,omitempty"`
+	IconPath       string           `json:"iconPath,omitempty"`
 }
 
 // DoctorResponse uses map[string] because tygo can't generate valid TypeScript
@@ -54,6 +56,7 @@ type ProvisionResult struct {
 	Required    bool   `json:"required"`
 	Status      string `json:"status"`
 	FoundPath   string `json:"foundPath,omitempty"`
+	ImportViaUI bool   `json:"importViaUI,omitempty"`
 }
 
 type ProgressEvent struct {
