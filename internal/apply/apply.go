@@ -63,15 +63,15 @@ type PreflightResult struct {
 func (a *Applier) Preflight(ctx context.Context, cfg *model.KyarabenConfig, userStore *store.UserStore) (*PreflightResult, error) {
 	allPatches := make([]model.ConfigPatch, 0)
 
-	for _, sysConf := range cfg.Systems {
-		gen := a.Registry.GetConfigGenerator(sysConf.EmulatorID())
+	for emuID := range a.collectEnabledEmulators(cfg) {
+		gen := a.Registry.GetConfigGenerator(emuID)
 		if gen == nil {
 			continue
 		}
 
 		patches, err := gen.Generate(userStore)
 		if err != nil {
-			return nil, fmt.Errorf("generating config for %s: %w", sysConf.EmulatorID(), err)
+			return nil, fmt.Errorf("generating config for %s: %w", emuID, err)
 		}
 		allPatches = append(allPatches, patches...)
 	}
@@ -130,20 +130,21 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		return nil, fmt.Errorf("nix is not available (nix-portable not found)")
 	}
 
-	emulatorsToInstall := make([]model.EmulatorID, 0, len(cfg.Systems))
+	enabledEmulators := a.collectEnabledEmulators(cfg)
+	emulatorsToInstall := make([]model.EmulatorID, 0, len(enabledEmulators))
 	allPatches := make([]model.ConfigPatch, 0)
 
-	for _, sysConf := range cfg.Systems {
-		emulatorsToInstall = append(emulatorsToInstall, sysConf.EmulatorID())
+	for emuID := range enabledEmulators {
+		emulatorsToInstall = append(emulatorsToInstall, emuID)
 
-		gen := a.Registry.GetConfigGenerator(sysConf.EmulatorID())
+		gen := a.Registry.GetConfigGenerator(emuID)
 		if gen == nil {
 			continue
 		}
 
 		patches, err := gen.Generate(userStore)
 		if err != nil {
-			return nil, fmt.Errorf("generating config for %s: %w", sysConf.EmulatorID(), err)
+			return nil, fmt.Errorf("generating config for %s: %w", emuID, err)
 		}
 		allPatches = append(allPatches, patches...)
 	}
@@ -433,4 +434,15 @@ func (a *Applier) buildDesktopEntries(emulatorIDs []model.EmulatorID, store mode
 	}
 
 	return entries
+}
+
+// collectEnabledEmulators returns a deduplicated set of emulator IDs from the config.
+func (a *Applier) collectEnabledEmulators(cfg *model.KyarabenConfig) map[model.EmulatorID]bool {
+	enabled := make(map[model.EmulatorID]bool)
+	for _, emulators := range cfg.Systems {
+		for _, emuID := range emulators {
+			enabled[emuID] = true
+		}
+	}
+	return enabled
 }

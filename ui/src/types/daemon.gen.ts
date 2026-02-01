@@ -6,7 +6,11 @@ import type { SystemID, EmulatorID, Manufacturer } from './model.gen'
 
 export interface SetConfigRequest {
   userStore: string;
-  systems: { [key: string]: string};
+  systems: { [key: string]: string[]};
+  emulators?: { [key: string]: EmulatorConfRequest};
+}
+export interface EmulatorConfRequest {
+  version?: string;
 }
 export interface SyncAddDeviceRequest {
   deviceId: string;
@@ -71,11 +75,11 @@ export interface EmulatorRef {
 }
 export interface ConfigResponse {
   userStore: string;
-  systems: { [key: string]: SystemConf};
+  systems: { [key: string]: EmulatorID[]};
+  emulators?: { [key: string]: EmulatorConfResponse};
 }
-export interface SystemConf {
-  emulator: EmulatorID;
-  pinnedVersion?: string;
+export interface EmulatorConfResponse {
+  version?: string;
 }
 export interface SetConfigResponse {
   success: boolean;

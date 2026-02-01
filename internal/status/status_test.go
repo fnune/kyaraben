@@ -39,9 +39,9 @@ func TestGet(t *testing.T) {
 		Global: model.GlobalConfig{
 			UserStore: userStorePath,
 		},
-		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemIDGBA:  {Emulator: string(model.EmulatorIDMGBA)},
-			model.SystemIDSNES: {Emulator: string(model.EmulatorIDRetroArchBsnes)},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDGBA:  {model.EmulatorIDMGBA},
+			model.SystemIDSNES: {model.EmulatorIDRetroArchBsnes},
 		},
 	}
 
@@ -91,8 +91,8 @@ func TestGetWithInitializedStore(t *testing.T) {
 		Global: model.GlobalConfig{
 			UserStore: userStorePath,
 		},
-		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemIDGBA: {Emulator: string(model.EmulatorIDMGBA)},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDGBA: {model.EmulatorIDMGBA},
 		},
 	}
 
@@ -117,8 +117,8 @@ func TestGetSystemNames(t *testing.T) {
 		Global: model.GlobalConfig{
 			UserStore: tmpDir,
 		},
-		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemIDGBA: {Emulator: string(model.EmulatorIDMGBA)},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDGBA: {model.EmulatorIDMGBA},
 		},
 	}
 
@@ -156,9 +156,9 @@ func TestGetMissingRequiredCount(t *testing.T) {
 		Global: model.GlobalConfig{
 			UserStore: userStorePath,
 		},
-		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemIDPSX: {Emulator: string(model.EmulatorIDDuckStation)},
-			model.SystemIDGBA: {Emulator: string(model.EmulatorIDMGBA)},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDPSX: {model.EmulatorIDDuckStation},
+			model.SystemIDGBA: {model.EmulatorIDMGBA},
 		},
 	}
 
@@ -199,8 +199,8 @@ func TestGetWithManifest(t *testing.T) {
 		Global: model.GlobalConfig{
 			UserStore: tmpDir,
 		},
-		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemIDGBA: {Emulator: string(model.EmulatorIDMGBA)},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDGBA: {model.EmulatorIDMGBA},
 		},
 	}
 
@@ -229,5 +229,55 @@ func TestGetWithManifest(t *testing.T) {
 
 	if result.LastApplied.IsZero() {
 		t.Error("LastApplied should not be zero")
+	}
+}
+
+func TestGetWithVersionPinning(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	manifest := &model.Manifest{
+		LastApplied: time.Now(),
+		InstalledEmulators: map[model.EmulatorID]model.InstalledEmulator{
+			model.EmulatorIDDuckStation: {
+				ID:        model.EmulatorIDDuckStation,
+				Version:   "v0.1-10655",
+				StorePath: "/nix/store/abc123",
+				Installed: time.Now(),
+			},
+		},
+	}
+
+	manifestPath := filepath.Join(tmpDir, "manifest.json")
+	if err := manifest.Save(manifestPath); err != nil {
+		t.Fatalf("Failed to save manifest: %v", err)
+	}
+
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{
+			UserStore: tmpDir,
+		},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDPSX: {model.EmulatorIDDuckStation},
+		},
+		Emulators: map[model.EmulatorID]model.EmulatorConf{
+			model.EmulatorIDDuckStation: {Version: "v0.1-10655"},
+		},
+	}
+
+	registry := registry.NewDefault()
+	userStore := mustNewUserStore(t, tmpDir)
+
+	result, err := Get(context.Background(), cfg, tmpDir, registry, userStore, manifestPath)
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+
+	if len(result.InstalledEmulators) != 1 {
+		t.Fatalf("InstalledEmulators: got %d, want 1", len(result.InstalledEmulators))
+	}
+
+	emu := result.InstalledEmulators[0]
+	if emu.PinnedVersion != "v0.1-10655" {
+		t.Errorf("PinnedVersion: got %s, want v0.1-10655", emu.PinnedVersion)
 	}
 }

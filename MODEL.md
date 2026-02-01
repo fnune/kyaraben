@@ -10,7 +10,7 @@ erDiagram
     Emulator ||--o{ Provision : "may need"
     Emulator ||--o{ State : "produces"
     Emulator ||--|| EmulatorConfig : "configured via"
-    KyarabenConfig ||--o{ System : "enables"
+    KyarabenConfig ||--o{ Emulator : "enables"
     KyarabenConfig ||--o| Synchronizer : "uses"
     KyarabenConfig ||--|| UserStore : "points to"
     Synchronizer ||--|| UserStore : "syncs"
@@ -157,10 +157,11 @@ Kyaraben's own configuration.
 
 Default location: `~/.config/kyaraben/config.toml`
 
-- Declares which systems are enabled
-- Specifies which emulator to use per system (explicit, no implicit defaults)
+- Declares which systems are enabled with their emulators
+- Each system maps to a list of emulator IDs
 - Points to UserStore location
 - Configures Synchronizer (if enabled)
+- Optional emulator-specific settings (version pinning)
 
 ### Synchronizer
 
@@ -237,7 +238,7 @@ Interface for generating `ConfigPatch` values for an emulator.
 - An **Emulator** may need **Provisions**
 - An **Emulator** produces **State**
 - An **Emulator** is configured via **EmulatorConfig**
-- **KyarabenConfig** enables **Systems**, specifies emulators, points to **UserStore**, configures **Synchronizer**
+- **KyarabenConfig** maps **Systems** to lists of **Emulators**, points to **UserStore**, configures **Synchronizer**
 - **KyarabenState** contains **KyarabenConfig** and **Manifest**
 - **UserStore** holds **State** and user-provided files
 - **Manifest** manages **EmulatorConfigs** (with base snapshots) and tracks installed **Emulators** (with versions)
