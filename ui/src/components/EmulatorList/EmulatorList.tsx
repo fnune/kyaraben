@@ -307,7 +307,7 @@ function EmulatorRow({
 
         <ProvisionsBadges provisions={provisions} onClick={() => setDialogOpen(true)} />
 
-        {emulator.downloadSize && action === 'will-install' && (
+        {emulator.downloadSize && (
           <span className="text-xs text-gray-400">{emulator.downloadSize}</span>
         )}
 
