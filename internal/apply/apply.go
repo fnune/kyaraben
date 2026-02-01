@@ -182,7 +182,7 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 	opts.OnProgress(Progress{Step: "build", Message: "This may take a few minutes on first run"})
 
 	netMon := NewNetMonitor(func(bytesPerSec int64) {
-		if bytesPerSec > 10*1024 { // Only report if >10 KB/s
+		if bytesPerSec > 1024 { // Only report if >1 KB/s
 			opts.OnProgress(Progress{Step: "build", Speed: formatSpeed(bytesPerSec)})
 		}
 	})
@@ -241,6 +241,11 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 		}
 	}
 
+	manifest, err := model.LoadManifest(a.ManifestPath)
+	if err != nil {
+		return nil, fmt.Errorf("loading manifest: %w", err)
+	}
+
 	if a.LauncherManager != nil {
 		opts.OnProgress(Progress{Step: "desktop"})
 
@@ -250,18 +255,20 @@ func (a *Applier) Apply(cfg *model.KyarabenConfig, userStore *store.UserStore, o
 			return nil, fmt.Errorf("generating launcher wrappers: %w", err)
 		}
 
+		previousFiles := &launcher.GeneratedFiles{
+			DesktopFiles: manifest.DesktopFiles,
+			IconFiles:    manifest.IconFiles,
+		}
 		desktopEntries := a.buildDesktopEntries(emulatorsToInstall)
-		if err := a.LauncherManager.GenerateDesktopFiles(desktopEntries); err != nil {
+		generatedFiles, err := a.LauncherManager.GenerateDesktopFiles(desktopEntries, previousFiles)
+		if err != nil {
 			return nil, fmt.Errorf("generating desktop files: %w", err)
 		}
+		manifest.DesktopFiles = generatedFiles.DesktopFiles
+		manifest.IconFiles = generatedFiles.IconFiles
 	}
 
 	opts.OnProgress(Progress{Step: "config"})
-
-	manifest, err := model.LoadManifest(a.ManifestPath)
-	if err != nil {
-		return nil, fmt.Errorf("loading manifest: %w", err)
-	}
 
 	configResults := make([]emulators.ApplyResult, len(allPatches))
 	var backups []BackupInfo

@@ -19,6 +19,7 @@ const (
 	CmdSyncStatus       CommandType = "sync_status"
 	CmdSyncAddDevice    CommandType = "sync_add_device"
 	CmdSyncRemoveDevice CommandType = "sync_remove_device"
+	CmdUninstallPreview CommandType = "uninstall_preview"
 )
 
 // Command represents a command from the UI.

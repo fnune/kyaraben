@@ -7,13 +7,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/paths"
 )
 
 type UninstallCmd struct {
-	Force bool `short:"f" help:"Skip confirmation prompt."`
+	Force  bool `short:"f" help:"Skip confirmation prompt."`
+	DryRun bool `short:"n" help:"Show what would be removed without doing anything."`
 }
 
 func (cmd *UninstallCmd) Run(ctx *Context) error {
@@ -47,12 +47,24 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 		fmt.Printf("  %s (nix store, manifest, state)\n", kyarabenStateDir)
 	}
 
-	launcherMgr := launcher.NewManager()
-	if dirExists(launcherMgr.ApplicationsDir()) {
-		fmt.Printf("  %s (desktop entries)\n", launcherMgr.ApplicationsDir())
+	if len(manifest.DesktopFiles) > 0 {
+		fmt.Println()
+		fmt.Println("  Desktop entries:")
+		for _, f := range manifest.DesktopFiles {
+			if fileExists(f) {
+				fmt.Printf("    %s\n", f)
+			}
+		}
 	}
-	if dirExists(launcherMgr.IconsDir()) {
-		fmt.Printf("  %s (icons)\n", launcherMgr.IconsDir())
+
+	if len(manifest.IconFiles) > 0 {
+		fmt.Println()
+		fmt.Println("  Icons:")
+		for _, f := range manifest.IconFiles {
+			if fileExists(f) {
+				fmt.Printf("    %s\n", f)
+			}
+		}
 	}
 
 	if len(manifest.ManagedConfigs) > 0 {
@@ -71,6 +83,9 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 	fmt.Printf("  %s (your ROMs, saves, BIOS)\n", userStore)
 	fmt.Printf("  %s (your kyaraben config)\n", configDir)
 	fmt.Println()
+	if cmd.DryRun {
+		return nil
+	}
 	if !cmd.Force {
 		fmt.Print("Proceed? [y/N] ")
 		reader := bufio.NewReader(os.Stdin)
@@ -102,19 +117,23 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 		}
 	}
 
-	if dirExists(launcherMgr.ApplicationsDir()) {
-		if err := os.RemoveAll(launcherMgr.ApplicationsDir()); err != nil {
-			fmt.Printf("  Warning: could not remove %s: %v\n", launcherMgr.ApplicationsDir(), err)
-		} else {
-			fmt.Printf("  Removed: %s\n", launcherMgr.ApplicationsDir())
+	for _, f := range manifest.DesktopFiles {
+		if fileExists(f) {
+			if err := os.Remove(f); err != nil {
+				fmt.Printf("  Warning: could not remove %s: %v\n", f, err)
+			} else {
+				fmt.Printf("  Removed: %s\n", f)
+			}
 		}
 	}
 
-	if dirExists(launcherMgr.IconsDir()) {
-		if err := os.RemoveAll(launcherMgr.IconsDir()); err != nil {
-			fmt.Printf("  Warning: could not remove %s: %v\n", launcherMgr.IconsDir(), err)
-		} else {
-			fmt.Printf("  Removed: %s\n", launcherMgr.IconsDir())
+	for _, f := range manifest.IconFiles {
+		if fileExists(f) {
+			if err := os.Remove(f); err != nil {
+				fmt.Printf("  Warning: could not remove %s: %v\n", f, err)
+			} else {
+				fmt.Printf("  Removed: %s\n", f)
+			}
 		}
 	}
 
