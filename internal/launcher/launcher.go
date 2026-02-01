@@ -8,24 +8,30 @@ import (
 	"text/template"
 
 	"github.com/fnune/kyaraben/internal/logging"
+	"github.com/fnune/kyaraben/internal/paths"
 )
 
 var log = logging.New("launcher")
 
 type Manager struct {
-	profileDir        string
-	nixPortableBinary string
+	profileDir          string
+	nixPortableBinary   string
+	nixPortableLocation string
 }
 
 func NewManager() *Manager {
-	homeDir, _ := os.UserHomeDir()
+	stateDir, _ := paths.KyarabenStateDir()
 	return &Manager{
-		profileDir: filepath.Join(homeDir, ".local", "share", "kyaraben"),
+		profileDir: stateDir,
 	}
 }
 
 func (m *Manager) SetNixPortableBinary(path string) {
 	m.nixPortableBinary = path
+}
+
+func (m *Manager) SetNixPortableLocation(path string) {
+	m.nixPortableLocation = path
 }
 
 func (m *Manager) ProfileDir() string {
@@ -137,7 +143,7 @@ func (m *Manager) GenerateWrappers() error {
 		return fmt.Errorf("parsing wrapper template: %w", err)
 	}
 
-	npLocation := filepath.Join(m.profileDir, "nix-portable")
+	npLocation := filepath.Join(m.profileDir, "build", "nix")
 
 	for _, entry := range entries {
 		if entry.IsDir() {
@@ -145,6 +151,11 @@ func (m *Manager) GenerateWrappers() error {
 		}
 
 		binaryName := entry.Name()
+
+		// Skip internal nixpkgs wrapper scripts (e.g. .retroarch-wrapped)
+		if strings.HasPrefix(binaryName, ".") {
+			continue
+		}
 		wrapperPath := filepath.Join(binDir, binaryName)
 
 		f, err := os.Create(wrapperPath)
@@ -160,7 +171,7 @@ func (m *Manager) GenerateWrappers() error {
 		}
 
 		if err := tmpl.Execute(f, data); err != nil {
-			f.Close()
+			_ = f.Close()
 			return fmt.Errorf("writing wrapper %s: %w", binaryName, err)
 		}
 
