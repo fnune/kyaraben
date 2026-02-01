@@ -7,14 +7,15 @@ import type { ApplyStatus, ProgressStep } from '@/types/ui'
 
 export interface SystemsViewProps {
   readonly systems: readonly System[]
-  readonly selections: Map<SystemID, EmulatorID>
-  readonly versionSelections: Map<SystemID, string | null>
+  readonly systemEmulators: Map<SystemID, EmulatorID[]>
+  readonly emulatorVersions: Map<EmulatorID, string | null>
   readonly installedVersions: Map<EmulatorID, string>
   readonly provisions: DoctorResponse
   readonly userStore: string
   readonly onUserStoreChange: (value: string) => void
   readonly onToggle: (systemId: SystemID, enabled: boolean) => void
-  readonly onVersionChange: (systemId: SystemID, version: string | null) => void
+  readonly onEmulatorToggle: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
+  readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
   readonly onApply: () => void
   readonly onCancel: () => void
   readonly onError: (message: string) => void
@@ -26,13 +27,14 @@ export interface SystemsViewProps {
 
 export function SystemsView({
   systems,
-  selections,
-  versionSelections,
+  systemEmulators,
+  emulatorVersions,
   installedVersions,
   provisions,
   userStore,
   onUserStoreChange,
   onToggle,
+  onEmulatorToggle,
   onVersionChange,
   onApply,
   onCancel,
@@ -73,18 +75,18 @@ export function SystemsView({
 
       <SystemList
         systems={systems}
-        selections={selections}
-        versionSelections={versionSelections}
+        systemEmulators={systemEmulators}
+        emulatorVersions={emulatorVersions}
         installedVersions={installedVersions}
         provisions={provisions}
         userStore={userStore}
         onToggle={onToggle}
-        onEmulatorChange={() => undefined}
+        onEmulatorToggle={onEmulatorToggle}
         onVersionChange={onVersionChange}
       />
 
       <div className="mt-6">
-        <Button onClick={onApply} disabled={selections.size === 0}>
+        <Button onClick={onApply} disabled={systemEmulators.size === 0}>
           Apply
         </Button>
       </div>

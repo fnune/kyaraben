@@ -29,8 +29,8 @@ const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
 export function App() {
   const [currentView, setCurrentView] = useState<View>('systems')
   const [systems, setSystems] = useState<readonly System[]>([])
-  const [selections, setSelections] = useState<Map<SystemID, EmulatorID>>(new Map())
-  const [versionSelections, setVersionSelections] = useState<Map<SystemID, string | null>>(
+  const [systemEmulators, setSystemEmulators] = useState<Map<SystemID, EmulatorID[]>>(new Map())
+  const [emulatorVersions, setEmulatorVersions] = useState<Map<EmulatorID, string | null>>(
     new Map(),
   )
   const [installedVersions, setInstalledVersions] = useState<Map<EmulatorID, string>>(new Map())
@@ -60,18 +60,25 @@ export function App() {
 
       if (configResult.ok) {
         setUserStore(configResult.data.userStore)
-        const newSelections = new Map<SystemID, EmulatorID>()
-        const newVersionSelections = new Map<SystemID, string | null>()
-        for (const [sysId, entry] of Object.entries(configResult.data.systems)) {
-          if (entry) {
-            newSelections.set(sysId as SystemID, entry.emulator)
-            if (entry.pinnedVersion) {
-              newVersionSelections.set(sysId as SystemID, entry.pinnedVersion)
+        const newSystemEmulators = new Map<SystemID, EmulatorID[]>()
+        const newEmulatorVersions = new Map<EmulatorID, string | null>()
+
+        for (const [sysId, emulatorIds] of Object.entries(configResult.data.systems)) {
+          if (emulatorIds && emulatorIds.length > 0) {
+            newSystemEmulators.set(sysId as SystemID, emulatorIds as EmulatorID[])
+          }
+        }
+
+        if (configResult.data.emulators) {
+          for (const [emuId, conf] of Object.entries(configResult.data.emulators)) {
+            if (conf.version) {
+              newEmulatorVersions.set(emuId as EmulatorID, conf.version)
             }
           }
         }
-        setSelections(newSelections)
-        setVersionSelections(newVersionSelections)
+
+        setSystemEmulators(newSystemEmulators)
+        setEmulatorVersions(newEmulatorVersions)
       }
 
       if (statusResult.ok) {
@@ -101,38 +108,54 @@ export function App() {
 
   const handleToggle = useCallback(
     (systemId: SystemID, enabled: boolean) => {
-      setSelections((prev) => {
+      setSystemEmulators((prev) => {
         const next = new Map(prev)
         if (enabled) {
           const system = systems.find((s) => s.id === systemId)
           const defaultEmulator = system?.emulators[0]
           if (defaultEmulator) {
-            next.set(systemId, defaultEmulator.id)
+            next.set(systemId, [defaultEmulator.id])
           }
         } else {
           next.delete(systemId)
         }
         return next
       })
-      // Clear version selection when disabling
-      if (!enabled) {
-        setVersionSelections((prev) => {
-          const next = new Map(prev)
-          next.delete(systemId)
-          return next
-        })
-      }
     },
     [systems],
   )
 
-  const handleVersionChange = useCallback((systemId: SystemID, version: string | null) => {
-    setVersionSelections((prev) => {
+  const handleEmulatorToggle = useCallback(
+    (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => {
+      setSystemEmulators((prev) => {
+        const next = new Map(prev)
+        const current = next.get(systemId) ?? []
+
+        if (enabled) {
+          if (!current.includes(emulatorId)) {
+            next.set(systemId, [...current, emulatorId])
+          }
+        } else {
+          const filtered = current.filter((id) => id !== emulatorId)
+          if (filtered.length === 0) {
+            next.delete(systemId)
+          } else {
+            next.set(systemId, filtered)
+          }
+        }
+        return next
+      })
+    },
+    [],
+  )
+
+  const handleVersionChange = useCallback((emulatorId: EmulatorID, version: string | null) => {
+    setEmulatorVersions((prev) => {
       const next = new Map(prev)
       if (version === null) {
-        next.delete(systemId)
+        next.delete(emulatorId)
       } else {
-        next.set(systemId, version)
+        next.set(emulatorId, version)
       }
       return next
     })
@@ -143,19 +166,22 @@ export function App() {
     setProgressSteps([])
     setError(null)
 
-    const systemsConfig: Partial<Record<SystemID, string>> = {}
-    for (const [sysId, emuId] of selections) {
-      const pinnedVersion = versionSelections.get(sysId)
-      if (pinnedVersion) {
-        systemsConfig[sysId] = `${emuId}@${pinnedVersion}`
-      } else {
-        systemsConfig[sysId] = emuId
+    const systemsConfig: Record<string, string[]> = {}
+    for (const [sysId, emuIds] of systemEmulators) {
+      systemsConfig[sysId] = emuIds
+    }
+
+    const emulatorsConfig: Record<string, { version?: string }> = {}
+    for (const [emuId, version] of emulatorVersions) {
+      if (version) {
+        emulatorsConfig[emuId] = { version }
       }
     }
 
     const configResult = await daemon.setConfig({
       userStore,
       systems: systemsConfig,
+      emulators: emulatorsConfig,
     })
 
     if (!configResult.ok) {
@@ -256,7 +282,7 @@ export function App() {
     } finally {
       window.electron.off('apply:progress', progressHandler)
     }
-  }, [selections, versionSelections, userStore])
+  }, [systemEmulators, emulatorVersions, userStore])
 
   const handleCancel = useCallback(async () => {
     await daemon.cancelApply()
@@ -294,13 +320,14 @@ export function App() {
         return (
           <SystemsView
             systems={systems}
-            selections={selections}
-            versionSelections={versionSelections}
+            systemEmulators={systemEmulators}
+            emulatorVersions={emulatorVersions}
             installedVersions={installedVersions}
             provisions={provisions}
             userStore={userStore}
             onUserStoreChange={setUserStore}
             onToggle={handleToggle}
+            onEmulatorToggle={handleEmulatorToggle}
             onVersionChange={handleVersionChange}
             onApply={handleApply}
             onCancel={handleCancel}
