@@ -1,13 +1,19 @@
 import dreamcast from '@/assets/systems/dreamcast.svg'
+import gb from '@/assets/systems/gb.svg'
 import gba from '@/assets/systems/gba.svg'
+import gbc from '@/assets/systems/gbc.svg'
 import gc from '@/assets/systems/gc.svg'
+import genesis from '@/assets/systems/genesis.svg'
 import n3ds from '@/assets/systems/n3ds.svg'
+import n64 from '@/assets/systems/n64.svg'
 import nds from '@/assets/systems/nds.svg'
+import nes from '@/assets/systems/nes.svg'
 import ps2 from '@/assets/systems/ps2.svg'
 import ps3 from '@/assets/systems/ps3.svg'
 import psp from '@/assets/systems/psp.svg'
 import psvita from '@/assets/systems/psvita.svg'
 import psx from '@/assets/systems/psx.svg'
+import saturn from '@/assets/systems/saturn.svg'
 import snes from '@/assets/systems/snes.svg'
 import nswitch from '@/assets/systems/switch.svg'
 import wii from '@/assets/systems/wii.svg'
@@ -15,12 +21,12 @@ import wiiu from '@/assets/systems/wiiu.svg'
 import type { SystemID } from '@/types/daemon'
 
 const SYSTEM_LOGOS: Record<SystemID, string> = {
+  // Nintendo
+  nes,
   snes,
-  psx,
-  ps2,
-  ps3,
-  psvita,
-  psp,
+  n64,
+  gb,
+  gbc,
   gba,
   nds,
   '3ds': n3ds,
@@ -28,6 +34,15 @@ const SYSTEM_LOGOS: Record<SystemID, string> = {
   wii,
   wiiu,
   switch: nswitch,
+  // Sony
+  psx,
+  ps2,
+  ps3,
+  psp,
+  psvita,
+  // Sega
+  genesis,
+  saturn,
   dreamcast,
 }
 

@@ -7,20 +7,26 @@ package model
 type SystemID string
 
 const (
+	SystemIDNES       SystemID = "nes"
 	SystemIDSNES      SystemID = "snes"
-	SystemIDPSX       SystemID = "psx"
-	SystemIDPS2       SystemID = "ps2"
-	SystemIDPS3       SystemID = "ps3"
-	SystemIDPSVita    SystemID = "psvita"
+	SystemIDN64       SystemID = "n64"
+	SystemIDGB        SystemID = "gb"
+	SystemIDGBC       SystemID = "gbc"
 	SystemIDGBA       SystemID = "gba"
 	SystemIDNDS       SystemID = "nds"
-	SystemIDPSP       SystemID = "psp"
-	SystemIDDreamcast SystemID = "dreamcast"
+	SystemID3DS       SystemID = "3ds"
 	SystemIDGameCube  SystemID = "gamecube"
 	SystemIDWii       SystemID = "wii"
 	SystemIDWiiU      SystemID = "wiiu"
-	SystemID3DS       SystemID = "3ds"
 	SystemIDSwitch    SystemID = "switch"
+	SystemIDPSX       SystemID = "psx"
+	SystemIDPS2       SystemID = "ps2"
+	SystemIDPS3       SystemID = "ps3"
+	SystemIDPSP       SystemID = "psp"
+	SystemIDPSVita    SystemID = "psvita"
+	SystemIDGenesis   SystemID = "genesis"
+	SystemIDSaturn    SystemID = "saturn"
+	SystemIDDreamcast SystemID = "dreamcast"
 )
 
 // Manufacturer represents the company that made a gaming system.
