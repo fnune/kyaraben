@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { IconButton } from '@/lib/IconButton'
-import { FolderIcon } from '@/lib/icons'
 import { Input } from '@/lib/Input'
+import { FolderIcon } from '@/lib/icons'
 import { useToast } from '@/lib/ToastContext'
 
 export interface SettingsProps {

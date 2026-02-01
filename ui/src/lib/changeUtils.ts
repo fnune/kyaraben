@@ -88,7 +88,15 @@ export interface ChangeSummary {
 }
 
 export function emptyChangeSummary(): ChangeSummary {
-  return { installs: 0, removes: 0, upgrades: 0, downgrades: 0, total: 0, downloadBytes: 0, freeBytes: 0 }
+  return {
+    installs: 0,
+    removes: 0,
+    upgrades: 0,
+    downgrades: 0,
+    total: 0,
+    downloadBytes: 0,
+    freeBytes: 0,
+  }
 }
 
 export function formatBytes(bytes: number): string {
@@ -116,8 +124,7 @@ export function addChange(
     downgrade: { downgrades: summary.downgrades + 1 },
   }
 
-  const download =
-    changeType === 'install' || changeType === 'upgrade' ? (sizeBytes ?? 0) : 0
+  const download = changeType === 'install' || changeType === 'upgrade' ? (sizeBytes ?? 0) : 0
   const free = changeType === 'remove' ? (sizeBytes ?? 0) : 0
 
   return {

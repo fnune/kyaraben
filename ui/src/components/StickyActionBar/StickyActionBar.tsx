@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BottomBar } from '@/lib/BottomBar'
 import { Button } from '@/lib/Button'
-import { formatBytes, type ChangeSummary } from '@/lib/changeUtils'
+import { type ChangeSummary, formatBytes } from '@/lib/changeUtils'
 
 export interface StickyActionBarProps {
   readonly changes: ChangeSummary
@@ -51,7 +51,8 @@ export function StickyActionBar({
             )}
             {changes.downloadBytes > 0 && changes.freeBytes > 0 && (
               <span className="text-gray-500">
-                ({netBytes >= 0 ? '+' : '-'}{formatBytes(netBytes)})
+                ({netBytes >= 0 ? '+' : '-'}
+                {formatBytes(netBytes)})
               </span>
             )}
           </div>
