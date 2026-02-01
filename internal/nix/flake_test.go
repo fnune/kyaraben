@@ -8,7 +8,15 @@ import (
 
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/registry"
+	"github.com/fnune/kyaraben/internal/versions"
 )
+
+func TestMain(m *testing.M) {
+	if err := versions.Init(); err != nil {
+		panic(err)
+	}
+	os.Exit(m.Run())
+}
 
 func TestFlakeGeneratorGenerateAllEmulators(t *testing.T) {
 	tmpDir := t.TempDir()
