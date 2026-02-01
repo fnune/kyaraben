@@ -31,9 +31,9 @@ func TestRun(t *testing.T) {
 		Global: model.GlobalConfig{
 			UserStore: userStorePath,
 		},
-		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemIDPSX: {Emulator: string(model.EmulatorIDDuckStation)},
-			model.SystemIDGBA: {Emulator: string(model.EmulatorIDMGBA)},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDPSX: {model.EmulatorIDDuckStation},
+			model.SystemIDGBA: {model.EmulatorIDMGBA},
 		},
 	}
 
@@ -67,8 +67,8 @@ func TestRunNoRequiredProvisions(t *testing.T) {
 		Global: model.GlobalConfig{
 			UserStore: userStorePath,
 		},
-		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemIDGBA: {Emulator: string(model.EmulatorIDMGBA)},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDGBA: {model.EmulatorIDMGBA},
 		},
 	}
 
@@ -119,8 +119,8 @@ func TestRunWithBiosFile(t *testing.T) {
 		Global: model.GlobalConfig{
 			UserStore: userStorePath,
 		},
-		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemIDPSX: {Emulator: string(model.EmulatorIDDuckStation)},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDPSX: {model.EmulatorIDDuckStation},
 		},
 	}
 
@@ -170,8 +170,8 @@ func TestRunSystemResult(t *testing.T) {
 		Global: model.GlobalConfig{
 			UserStore: userStorePath,
 		},
-		Systems: map[model.SystemID]model.SystemConf{
-			model.SystemIDPSX: {Emulator: string(model.EmulatorIDDuckStation)},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDPSX: {model.EmulatorIDDuckStation},
 		},
 	}
 
@@ -203,6 +203,49 @@ func TestRunSystemResult(t *testing.T) {
 	// PSX should have provisions
 	if len(sys.Provisions) == 0 {
 		t.Error("PSX should have provisions defined")
+	}
+}
+
+func TestRunMultipleEmulators(t *testing.T) {
+	tmpDir := t.TempDir()
+	userStorePath := filepath.Join(tmpDir, "Emulation")
+
+	if err := os.MkdirAll(filepath.Join(userStorePath, "bios", "psx"), 0755); err != nil {
+		t.Fatalf("Failed to create bios dir: %v", err)
+	}
+
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{
+			UserStore: userStorePath,
+		},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDPSX: {model.EmulatorIDDuckStation, model.EmulatorIDRetroArchBeetleSaturn},
+		},
+	}
+
+	registry := registry.NewDefault()
+	userStore := mustNewUserStore(t, userStorePath)
+
+	result, err := Run(context.Background(), cfg, registry, userStore)
+	if err != nil {
+		t.Fatalf("Run failed: %v", err)
+	}
+
+	// Should have results for both emulators
+	if len(result.Systems) != 2 {
+		t.Errorf("Systems: got %d, want 2 (one per emulator)", len(result.Systems))
+	}
+
+	emulatorsSeen := make(map[model.EmulatorID]bool)
+	for _, sys := range result.Systems {
+		emulatorsSeen[sys.EmulatorID] = true
+	}
+
+	if !emulatorsSeen[model.EmulatorIDDuckStation] {
+		t.Error("DuckStation result not found")
+	}
+	if !emulatorsSeen[model.EmulatorIDRetroArchBeetleSaturn] {
+		t.Error("RetroArch Beetle Saturn result not found")
 	}
 }
 

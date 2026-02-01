@@ -42,9 +42,7 @@ func (cmd *InitCmd) Run(ctx *Context) error {
 			return fmt.Errorf("no default emulator for system %s", sysName)
 		}
 
-		cfg.Systems[sysID] = model.SystemConf{
-			Emulator: string(emu.ID),
-		}
+		cfg.Systems[sysID] = []model.EmulatorID{emu.ID}
 	}
 
 	if err := model.SaveConfig(cfg, configPath); err != nil {
@@ -59,10 +57,12 @@ func (cmd *InitCmd) Run(ctx *Context) error {
 		fmt.Println("Available systems: snes, psx, gba, nds, psp, switch")
 	} else {
 		fmt.Println("Enabled systems:")
-		for sys, sysConf := range cfg.Systems {
+		for sys, emulators := range cfg.Systems {
 			s, _ := registry.GetSystem(sys)
-			e, _ := registry.GetEmulator(sysConf.EmulatorID())
-			fmt.Printf("  %s (%s) - %s\n", s.Name, sys, e.Name)
+			for _, emuID := range emulators {
+				e, _ := registry.GetEmulator(emuID)
+				fmt.Printf("  %s (%s) - %s\n", s.Name, sys, e.Name)
+			}
 		}
 		fmt.Println()
 		fmt.Println("Run 'kyaraben apply' to install emulators and create directories.")

@@ -106,3 +106,61 @@ The handler would:
 4. Compute actions for each system
 
 This moves all the logic to one place and makes the UI a simple display layer. The existing `Preflight` function in `apply.go` already does similar work for config patches and could be extended.
+
+---
+
+## CLI philosophy: minimal commands, editable config
+
+The CLI should stay minimal. Rather than adding subcommands for every operation (`kyaraben enable psx`, `kyaraben add-emulator psx retroarch:mednafen`, `kyaraben list-emulators`, etc.), prefer:
+
+1. **Simple, discoverable config format** - TOML is human-readable; users can edit `~/.config/kyaraben/config.toml` directly
+2. **Few core commands** - `init`, `apply`, `status`, `doctor` cover the essential workflow
+3. **Good defaults** - `kyaraben init` creates a working config; users remove what they don't want
+
+This avoids:
+- CLI flag/subcommand explosion
+- Duplicating UI functionality in terminal
+- Maintaining two interaction paradigms
+
+The config file *is* the interface for advanced users. The UI is for users who don't want to edit files. The CLI is glue: initialize, apply changes, check status.
+
+If users need to discover available emulators for a system, they can:
+- Check the UI (shows all options)
+- Read EMULATORS.md (reference doc)
+- Look at a freshly-generated config from `kyaraben init` (shows defaults)
+
+We should ensure EMULATORS.md stays current and documents all system → emulator mappings.
+
+---
+
+## UI: show all available emulators for enabled systems
+
+Current gap: when a system has one emulator enabled, the UI shows a dropdown that switches between emulators but provides no way to enable a second one. The parent/child row pattern only appears when multiple emulators are already enabled (via config edit).
+
+Proposed fix: always show all available emulators when a system is enabled.
+
+**Current (single emulator):**
+```
+☑ PSX  [DuckStation ▼]  v0.1 ▼     ← dropdown switches, can't add
+```
+
+**Proposed:**
+```
+☑ PSX
+   ☑ DuckStation                    v0.1 ▼
+   ☐ RetroArch (Mednafen)           latest
+   ☐ RetroArch (Beetle HW)          latest
+```
+
+- Enabled system shows all available emulators with checkboxes
+- Checked = will be installed, unchecked = available but not enabled
+- Removes the dropdown-that-switches pattern
+- Consistent: checkboxes everywhere for enable/disable
+
+**Disabled systems** stay as single row:
+```
+☐ PSX                               ← click to enable with defaults
+```
+
+Trade-off: more vertical space, but clearer affordance.
+

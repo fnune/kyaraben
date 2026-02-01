@@ -355,15 +355,18 @@ func (d *Daemon) handleGetConfig() []Event {
 		return d.errorResponse(fmt.Sprintf("loading config: %v", err))
 	}
 
-	systems := make(map[string]SystemConf)
-	for sys, sysConf := range cfg.Systems {
-		entry := SystemConf{
-			Emulator: sysConf.EmulatorID(),
+	systems := make(map[string][]model.EmulatorID)
+	for sys, emulators := range cfg.Systems {
+		systems[string(sys)] = emulators
+	}
+
+	emulators := make(map[string]EmulatorConfResponse)
+	for emuID, emuConf := range cfg.Emulators {
+		if emuConf.Version != "" {
+			emulators[string(emuID)] = EmulatorConfResponse{
+				Version: emuConf.Version,
+			}
 		}
-		if version := sysConf.EmulatorVersion(); version != "" {
-			entry.PinnedVersion = version
-		}
-		systems[string(sys)] = entry
 	}
 
 	return []Event{{
@@ -371,6 +374,7 @@ func (d *Daemon) handleGetConfig() []Event {
 		Data: ConfigResponse{
 			UserStore: cfg.Global.UserStore,
 			Systems:   systems,
+			Emulators: emulators,
 		},
 	}}
 }
@@ -387,10 +391,21 @@ func (d *Daemon) handleSetConfig(data *SetConfigRequest) []Event {
 		}
 
 		if data.Systems != nil {
-			cfg.Systems = make(map[model.SystemID]model.SystemConf)
-			for sysStr, emuStr := range data.Systems {
-				cfg.Systems[model.SystemID(sysStr)] = model.SystemConf{
-					Emulator: emuStr,
+			cfg.Systems = make(map[model.SystemID][]model.EmulatorID)
+			for sysStr, emuStrs := range data.Systems {
+				emulators := make([]model.EmulatorID, len(emuStrs))
+				for i, emuStr := range emuStrs {
+					emulators[i] = model.EmulatorID(emuStr)
+				}
+				cfg.Systems[model.SystemID(sysStr)] = emulators
+			}
+		}
+
+		if data.Emulators != nil {
+			cfg.Emulators = make(map[model.EmulatorID]model.EmulatorConf)
+			for emuStr, emuConf := range data.Emulators {
+				cfg.Emulators[model.EmulatorID(emuStr)] = model.EmulatorConf{
+					Version: emuConf.Version,
 				}
 			}
 		}
