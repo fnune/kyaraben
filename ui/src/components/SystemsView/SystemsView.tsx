@@ -62,8 +62,7 @@ export function SystemsView({
   onVersionChange,
   onDiscard,
 }: SystemsViewProps) {
-  const { status: applyStatus, progressSteps, error, apply, cancel, reset } = useApply()
-
+  const { status: applyStatus, progressSteps, error, apply, reset } = useApply()
   const isApplying = applyStatus === 'applying'
   const showProgress = applyStatus !== 'idle'
 
@@ -119,6 +118,8 @@ export function SystemsView({
 
   if (showProgress) {
     const errorMessage = applyStatus === 'error' && error ? error : undefined
+    const isDone =
+      applyStatus === 'success' || applyStatus === 'error' || applyStatus === 'cancelled'
 
     return (
       <div className="p-6 pb-24">
@@ -127,19 +128,12 @@ export function SystemsView({
           {...(errorMessage && { error: errorMessage })}
           {...(applyStatus === 'cancelled' && { cancelled: true })}
         />
-        <BottomBar>
-          <button
-            type="button"
-            onClick={cancel}
-            disabled={!isApplying}
-            className="text-blue-400 hover:text-blue-300 hover:underline text-sm disabled:text-gray-600 disabled:no-underline disabled:cursor-not-allowed"
-          >
-            Cancel
-          </button>
-          <Button onClick={reset} disabled={isApplying}>
-            Done
-          </Button>
-        </BottomBar>
+        {isDone && (
+          <BottomBar>
+            <span />
+            <Button onClick={reset}>Done</Button>
+          </BottomBar>
+        )}
       </div>
     )
   }

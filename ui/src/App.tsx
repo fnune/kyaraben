@@ -31,7 +31,7 @@ function AppContent() {
   const [userStore, setUserStore] = useState('~/Emulation')
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null)
 
-  const { status: applyStatus, onCompleteRef } = useApply()
+  const { onCompleteRef } = useApply()
 
   const refreshAfterApply = useCallback(async () => {
     const [doctorResult, statusResult] = await Promise.all([daemon.runDoctor(), daemon.getStatus()])
@@ -274,8 +274,6 @@ function AppContent() {
     }
   }
 
-  const showApplyProgressBar = applyStatus === 'applying' && currentView !== 'systems'
-
   return (
     <div className="h-dvh bg-gray-900 flex flex-col overflow-hidden">
       <div className="flex-1 flex flex-col min-[720px]:flex-row min-h-0">
@@ -285,9 +283,10 @@ function AppContent() {
 
       <BottomBarSlot />
 
-      {showApplyProgressBar && (
-        <ApplyProgressBar onNavigateToSystems={() => setCurrentView('systems')} />
-      )}
+      <ApplyProgressBar
+        currentView={currentView}
+        onNavigateToSystems={() => setCurrentView('systems')}
+      />
     </div>
   )
 }
