@@ -1,6 +1,10 @@
 package dolphin
 
-import "github.com/fnune/kyaraben/internal/model"
+import (
+	"path/filepath"
+
+	"github.com/fnune/kyaraben/internal/model"
+)
 
 type Definition struct{}
 
@@ -38,13 +42,32 @@ var configTarget = model.ConfigTarget{
 type Config struct{}
 
 func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	// Dolphin uses INI config
+	// Dolphin stores saves in GC memory cards and Wii NAND, both within its data directory.
+	// We use an opaque directory pattern since this structure is complex and tightly coupled.
+	// See: https://dolphin-emu.org/docs/guides/
+	opaqueDir := store.EmulatorOpaqueDir(model.EmulatorIDDolphin)
+
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
+			// ROM paths
 			{Path: []string{"General", "ISOPath0"}, Value: store.SystemRomsDir(model.SystemIDGameCube)},
 			{Path: []string{"General", "ISOPath1"}, Value: store.SystemRomsDir(model.SystemIDWii)},
 			{Path: []string{"General", "ISOPaths"}, Value: "2"},
+
+			// GC memory cards - Slot A for GameCube saves
+			// Uses per-game memory cards for better organization
+			{Path: []string{"Core", "MemcardAPath"}, Value: filepath.Join(opaqueDir, "GC", "MemoryCardA.USA.raw")},
+			{Path: []string{"Core", "MemcardBPath"}, Value: filepath.Join(opaqueDir, "GC", "MemoryCardB.USA.raw")},
+			{Path: []string{"Core", "GCIFolderAPathOverride"}, Value: filepath.Join(opaqueDir, "GC", "USA", "Card A")},
+			{Path: []string{"Core", "GCIFolderBPathOverride"}, Value: filepath.Join(opaqueDir, "GC", "USA", "Card B")},
+
+			// Wii NAND and SD card paths
+			{Path: []string{"General", "NANDRootPath"}, Value: filepath.Join(opaqueDir, "Wii")},
+			{Path: []string{"General", "WiiSDCardPath"}, Value: filepath.Join(opaqueDir, "Wii", "sd.raw")},
+
+			// Dump paths (screenshots, etc.)
+			{Path: []string{"General", "DumpPath"}, Value: store.SystemScreenshotsDir(model.SystemIDGameCube)},
 		},
 	}}, nil
 }
