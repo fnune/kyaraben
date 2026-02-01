@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { System, SystemID, EmulatorID } from '@/types/daemon'
+import type { EmulatorID, System, SystemID } from '@/types/daemon'
 
 function getPackageName(emulatorId: EmulatorID): string {
   if (emulatorId.includes(':')) {
@@ -51,7 +51,14 @@ const mockSystems: System[] = [
     description: '',
     manufacturer: 'Nintendo',
     label: 'NES',
-    emulators: [{ id: 'retroarch:mesen', name: 'RetroArch (Mesen)', defaultVersion: '1.22.2', availableVersions: [] }],
+    emulators: [
+      {
+        id: 'retroarch:mesen',
+        name: 'RetroArch (Mesen)',
+        defaultVersion: '1.22.2',
+        availableVersions: [],
+      },
+    ],
   },
   {
     id: 'snes',
@@ -59,7 +66,14 @@ const mockSystems: System[] = [
     description: '',
     manufacturer: 'Nintendo',
     label: 'SNES',
-    emulators: [{ id: 'retroarch:bsnes', name: 'RetroArch (bsnes)', defaultVersion: '1.22.2', availableVersions: [] }],
+    emulators: [
+      {
+        id: 'retroarch:bsnes',
+        name: 'RetroArch (bsnes)',
+        defaultVersion: '1.22.2',
+        availableVersions: [],
+      },
+    ],
   },
   {
     id: 'genesis',
@@ -67,7 +81,14 @@ const mockSystems: System[] = [
     description: '',
     manufacturer: 'Sega',
     label: 'Genesis',
-    emulators: [{ id: 'retroarch:genesis_plus_gx', name: 'RetroArch (Genesis Plus GX)', defaultVersion: '1.22.2', availableVersions: [] }],
+    emulators: [
+      {
+        id: 'retroarch:genesis_plus_gx',
+        name: 'RetroArch (Genesis Plus GX)',
+        defaultVersion: '1.22.2',
+        availableVersions: [],
+      },
+    ],
   },
   {
     id: 'gb',
@@ -100,7 +121,13 @@ describe('getEmulatorSharingInfo', () => {
     const selections = new Map<SystemID, EmulatorID>([['nes', 'retroarch:mesen']])
     const installedVersions = new Map<EmulatorID, string>()
 
-    const result = getEmulatorSharingInfo(mockSystems, selections, installedVersions, 'nes', 'retroarch:mesen')
+    const result = getEmulatorSharingInfo(
+      mockSystems,
+      selections,
+      installedVersions,
+      'nes',
+      'retroarch:mesen',
+    )
 
     expect(result.sharedWith).toEqual([])
     expect(result.installedFor).toEqual([])
@@ -178,7 +205,13 @@ describe('getEmulatorSharingInfo', () => {
     ])
     const installedVersions = new Map<EmulatorID, string>()
 
-    const result = getEmulatorSharingInfo(mockSystems, selections, installedVersions, 'nes', 'retroarch:mesen')
+    const result = getEmulatorSharingInfo(
+      mockSystems,
+      selections,
+      installedVersions,
+      'nes',
+      'retroarch:mesen',
+    )
 
     expect(result.sharedWith).toEqual(['SNES', 'Genesis'])
   })
@@ -190,7 +223,13 @@ describe('getEmulatorSharingInfo', () => {
     ])
     const installedVersions = new Map<EmulatorID, string>([['retroarch:bsnes', '1.22.2']])
 
-    const result = getEmulatorSharingInfo(mockSystems, selections, installedVersions, 'nes', 'retroarch:mesen')
+    const result = getEmulatorSharingInfo(
+      mockSystems,
+      selections,
+      installedVersions,
+      'nes',
+      'retroarch:mesen',
+    )
 
     expect(result.sharedWith).toEqual(['SNES'])
     expect(result.installedFor).toEqual(['SNES'])
