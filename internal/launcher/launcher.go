@@ -285,7 +285,7 @@ func (m *Manager) InstallKyaraben(appImagePath, sidecarPath string) (*InstallRes
 	if err != nil {
 		return nil, fmt.Errorf("creating desktop file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	if err := tmpl.Execute(f, struct{ ExecPath string }{ExecPath: execPath}); err != nil {
 		return nil, fmt.Errorf("writing desktop file: %w", err)
