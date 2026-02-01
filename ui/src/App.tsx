@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
+import { ApplyProgressBar } from '@/components/ApplyProgressBar/ApplyProgressBar'
 import { InstallationView } from '@/components/InstallationView/InstallationView'
 import { Sidebar } from '@/components/Sidebar/Sidebar'
 import { SyncView } from '@/components/SyncView/SyncView'
 import { SystemsView } from '@/components/SystemsView/SystemsView'
-import { BottomBarProvider } from '@/lib/BottomBarContext'
+import { ApplyProvider, useApply } from '@/lib/ApplyContext'
+import { BottomBarSlot, BottomBarSlotProvider } from '@/lib/BottomBarSlot'
 import * as daemon from '@/lib/daemon'
 import { ToastProvider } from '@/lib/ToastContext'
 import type {
@@ -13,14 +15,7 @@ import type {
   System,
   SystemID,
 } from '@/types/daemon'
-import type { ApplyStatus, ProgressStep, View } from '@/types/ui'
-
-const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
-  store: 'Setting up emulation folder',
-  build: 'Installing emulators',
-  desktop: 'Adding to application menu',
-  config: 'Configuring emulators',
-}
+import type { View } from '@/types/ui'
 
 function AppContent() {
   const [currentView, setCurrentView] = useState<View>('systems')
@@ -34,10 +29,39 @@ function AppContent() {
   const [managedConfigs, setManagedConfigs] = useState<Map<EmulatorID, string[]>>(new Map())
   const [provisions, setProvisions] = useState<DoctorResponse>({})
   const [userStore, setUserStore] = useState('~/Emulation')
-  const [applyStatus, setApplyStatus] = useState<ApplyStatus>('idle')
-  const [progressSteps, setProgressSteps] = useState<readonly ProgressStep[]>([])
-  const [error, setError] = useState<string | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null)
+
+  const { status: applyStatus, onCompleteRef } = useApply()
+
+  const refreshAfterApply = useCallback(async () => {
+    const [doctorResult, statusResult] = await Promise.all([daemon.runDoctor(), daemon.getStatus()])
+
+    if (doctorResult.ok) {
+      setProvisions(doctorResult.data)
+    }
+
+    if (statusResult.ok) {
+      const versions = new Map<EmulatorID, string>()
+      const execLines = new Map<EmulatorID, string>()
+      const configs = new Map<EmulatorID, string[]>()
+      for (const emu of statusResult.data.installedEmulators ?? []) {
+        versions.set(emu.id, emu.version)
+        if (emu.execLine) {
+          execLines.set(emu.id, emu.execLine)
+        }
+        if (emu.managedConfigs) {
+          configs.set(emu.id, emu.managedConfigs)
+        }
+      }
+      setInstalledVersions(versions)
+      setInstalledExecLines(execLines)
+      setManagedConfigs(configs)
+    }
+  }, [])
+
+  useEffect(() => {
+    onCompleteRef.current = refreshAfterApply
+  }, [onCompleteRef, refreshAfterApply])
 
   useEffect(() => {
     async function init() {
@@ -78,7 +102,7 @@ function AppContent() {
         const versions = new Map<EmulatorID, string>()
         const execLines = new Map<EmulatorID, string>()
         const configs = new Map<EmulatorID, string[]>()
-        for (const emu of statusResult.data.installedEmulators) {
+        for (const emu of statusResult.data.installedEmulators ?? []) {
           versions.set(emu.id, emu.version)
           if (emu.execLine) {
             execLines.set(emu.id, emu.execLine)
@@ -153,143 +177,6 @@ function AppContent() {
     })
   }, [])
 
-  const handleApply = useCallback(async () => {
-    setApplyStatus('applying')
-    setProgressSteps([])
-    setError(null)
-
-    const systemsConfig: Record<string, string[]> = {}
-    for (const [sysId, emuIds] of systemEmulators) {
-      systemsConfig[sysId] = emuIds
-    }
-
-    const emulatorsConfig: Record<string, { version?: string }> = {}
-    for (const [emuId, version] of emulatorVersions) {
-      if (version) {
-        emulatorsConfig[emuId] = { version }
-      }
-    }
-
-    const configResult = await daemon.setConfig({
-      userStore,
-      systems: systemsConfig,
-      emulators: emulatorsConfig,
-    })
-
-    if (!configResult.ok) {
-      setError(configResult.error.message)
-      setApplyStatus('error')
-      return
-    }
-
-    const MAX_OUTPUT_LINES = 5
-
-    const progressHandler = (...args: unknown[]) => {
-      const data = args[0] as { step: string; message: string; output?: string }
-
-      setProgressSteps((prev) => {
-        const existing = prev.find((s) => s.id === data.step)
-        const isNewStep = !existing
-
-        return (
-          isNewStep
-            ? [
-                ...prev,
-                {
-                  id: data.step,
-                  label: PROGRESS_STEP_LABELS[data.step] ?? data.step,
-                  status: 'in_progress' as const,
-                },
-              ]
-            : prev
-        ).map((s) => {
-          if (s.id === data.step) {
-            return {
-              ...s,
-              status: 'in_progress' as const,
-              ...(data.message && { message: data.message }),
-              ...(data.output && {
-                output: [...(s.output ?? []), data.output].slice(-MAX_OUTPUT_LINES),
-              }),
-            }
-          }
-          if (isNewStep && s.status === 'in_progress') {
-            return { ...s, status: 'completed' as const }
-          }
-          return s
-        })
-      })
-    }
-
-    window.electron.on('apply:progress', progressHandler)
-
-    try {
-      const applyResult = await daemon.apply()
-
-      if (!applyResult.ok) {
-        setError(applyResult.error.message)
-        setApplyStatus('error')
-        setProgressSteps((prev) =>
-          prev.map((s) => ({ ...s, status: s.status === 'in_progress' ? 'error' : s.status })),
-        )
-        return
-      }
-
-      if (applyResult.data.cancelled) {
-        setApplyStatus('cancelled')
-        setProgressSteps((prev) =>
-          prev.map((s) => ({ ...s, status: s.status === 'in_progress' ? 'cancelled' : s.status })),
-        )
-        return
-      }
-
-      setProgressSteps((prev) => prev.map((s) => ({ ...s, status: 'completed' as const })))
-      setApplyStatus('success')
-
-      // Refresh doctor and status after successful apply
-      const [doctorResult, statusResult] = await Promise.all([
-        daemon.runDoctor(),
-        daemon.getStatus(),
-      ])
-
-      if (doctorResult.ok) {
-        setProvisions(doctorResult.data)
-      }
-
-      if (statusResult.ok) {
-        const versions = new Map<EmulatorID, string>()
-        const execLines = new Map<EmulatorID, string>()
-        const configs = new Map<EmulatorID, string[]>()
-        for (const emu of statusResult.data.installedEmulators) {
-          versions.set(emu.id, emu.version)
-          if (emu.execLine) {
-            execLines.set(emu.id, emu.execLine)
-          }
-          if (emu.managedConfigs) {
-            configs.set(emu.id, emu.managedConfigs)
-          }
-        }
-        setInstalledVersions(versions)
-        setInstalledExecLines(execLines)
-        setManagedConfigs(configs)
-      }
-    } catch (err) {
-      console.error('Apply failed:', err)
-      const message = err instanceof Error ? err.message : String(err)
-      setError(message)
-      setApplyStatus('error')
-      setProgressSteps((prev) =>
-        prev.map((s) => ({ ...s, status: s.status === 'in_progress' ? 'error' : s.status })),
-      )
-    } finally {
-      window.electron.off('apply:progress', progressHandler)
-    }
-  }, [systemEmulators, emulatorVersions, userStore])
-
-  const handleCancel = useCallback(async () => {
-    await daemon.cancelApply()
-  }, [])
-
   const handleAddDevice = useCallback(async (deviceId: string, name: string) => {
     const result = await daemon.addSyncDevice({ deviceId, name })
     if (result.ok) {
@@ -308,12 +195,6 @@ function AppContent() {
         setSyncStatus(syncResult.data)
       }
     }
-  }, [])
-
-  const handleReset = useCallback(() => {
-    setApplyStatus('idle')
-    setProgressSteps([])
-    setError(null)
   }, [])
 
   const handleDiscard = useCallback(async () => {
@@ -345,7 +226,7 @@ function AppContent() {
       const versions = new Map<EmulatorID, string>()
       const execLines = new Map<EmulatorID, string>()
       const configs = new Map<EmulatorID, string[]>()
-      for (const emu of statusResult.data.installedEmulators) {
+      for (const emu of statusResult.data.installedEmulators ?? []) {
         versions.set(emu.id, emu.version)
         if (emu.execLine) {
           execLines.set(emu.id, emu.execLine)
@@ -366,6 +247,7 @@ function AppContent() {
         return (
           <SystemsView
             systems={systems}
+            systemEmulators={systemEmulators}
             enabledEmulators={enabledEmulators}
             emulatorVersions={emulatorVersions}
             installedVersions={installedVersions}
@@ -376,12 +258,6 @@ function AppContent() {
             onUserStoreChange={setUserStore}
             onEmulatorToggle={handleEmulatorToggle}
             onVersionChange={handleVersionChange}
-            onApply={handleApply}
-            onCancel={handleCancel}
-            applyStatus={applyStatus}
-            progressSteps={progressSteps}
-            error={error}
-            onReset={handleReset}
             onDiscard={handleDiscard}
           />
         )
@@ -398,21 +274,32 @@ function AppContent() {
     }
   }
 
-  return (
-    <div className="h-dvh bg-gray-900 flex flex-col min-[720px]:flex-row overflow-hidden">
-      <Sidebar currentView={currentView} onNavigate={setCurrentView} syncStatus={syncStatus} />
+  const showApplyProgressBar = applyStatus === 'applying' && currentView !== 'systems'
 
-      <main className="flex-1 overflow-y-auto">{renderView()}</main>
+  return (
+    <div className="h-dvh bg-gray-900 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col min-[720px]:flex-row min-h-0">
+        <Sidebar currentView={currentView} onNavigate={setCurrentView} syncStatus={syncStatus} />
+        <main className="flex-1 overflow-y-auto">{renderView()}</main>
+      </div>
+
+      <BottomBarSlot />
+
+      {showApplyProgressBar && (
+        <ApplyProgressBar onNavigateToSystems={() => setCurrentView('systems')} />
+      )}
     </div>
   )
 }
 
 export function App() {
   return (
-    <BottomBarProvider>
+    <BottomBarSlotProvider>
       <ToastProvider>
-        <AppContent />
+        <ApplyProvider>
+          <AppContent />
+        </ApplyProvider>
       </ToastProvider>
-    </BottomBarProvider>
+    </BottomBarSlotProvider>
   )
 }

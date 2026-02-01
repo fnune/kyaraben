@@ -156,10 +156,27 @@ type UninstallPreviewResponse struct {
 	DesktopFiles   []string       `json:"desktopFiles"`
 	IconFiles      []string       `json:"iconFiles"`
 	ConfigFiles    []string       `json:"configFiles"`
+	KyarabenFiles  []string       `json:"kyarabenFiles"`
 	Preserved      PreservedPaths `json:"preserved"`
 }
 
 type PreservedPaths struct {
 	UserStore string `json:"userStore"`
 	ConfigDir string `json:"configDir"`
+}
+
+type InstallKyarabenRequest struct {
+	AppImagePath string `json:"appImagePath,omitempty"`
+	SidecarPath  string `json:"sidecarPath,omitempty"`
+}
+
+type InstallKyarabenResponse struct {
+	Success bool `json:"success"`
+}
+
+type InstallStatusResponse struct {
+	Installed   bool   `json:"installed"`
+	AppPath     string `json:"appPath,omitempty"`
+	DesktopPath string `json:"desktopPath,omitempty"`
+	CLIPath     string `json:"cliPath,omitempty"`
 }

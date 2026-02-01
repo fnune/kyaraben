@@ -17,6 +17,7 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/hardware"
 	"github.com/fnune/kyaraben/internal/launcher"
+	"github.com/fnune/kyaraben/internal/logging"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/nix"
 	"github.com/fnune/kyaraben/internal/paths"
@@ -26,6 +27,8 @@ import (
 	syncpkg "github.com/fnune/kyaraben/internal/sync"
 	"github.com/fnune/kyaraben/internal/versions"
 )
+
+var log = logging.New("daemon")
 
 type Daemon struct {
 	configPath      string
@@ -78,6 +81,10 @@ func (d *Daemon) HandleWithEmit(cmd Command, emit func(Event)) []Event {
 		return d.handleSyncRemoveDevice(nil)
 	case CommandTypeUninstallPreview:
 		return d.handleUninstallPreview()
+	case CommandTypeInstallKyaraben:
+		return d.handleInstallKyaraben(nil)
+	case CommandTypeInstallStatus:
+		return d.handleInstallStatus()
 	default:
 		return d.errorResponse(fmt.Sprintf("unknown command: %s", cmd.Type))
 	}
@@ -93,6 +100,10 @@ func (d *Daemon) HandleSyncAddDevice(cmd SyncAddDeviceCommand, emit func(Event))
 
 func (d *Daemon) HandleSyncRemoveDevice(cmd SyncRemoveDeviceCommand, emit func(Event)) []Event {
 	return d.handleSyncRemoveDevice(&cmd.Data)
+}
+
+func (d *Daemon) HandleInstallKyaraben(cmd InstallKyarabenCommand, emit func(Event)) []Event {
+	return d.handleInstallKyaraben(&cmd.Data)
 }
 
 func (d *Daemon) errorResponse(msg string) []Event {
@@ -300,6 +311,10 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 	}
 	if err != nil {
 		return d.errorResponse(err.Error())
+	}
+
+	if _, err := d.launcherManager.InstallKyaraben("", ""); err != nil {
+		log.Debug("Failed to install Kyaraben to PATH: %v", err)
 	}
 
 	return []Event{{
@@ -651,6 +666,19 @@ func (d *Daemon) handleUninstallPreview() []Event {
 		}
 	}
 
+	var kyarabenFiles []string
+	homeDir, _ := os.UserHomeDir()
+	kyarabenPaths := []string{
+		filepath.Join(homeDir, ".local", "bin", "kyaraben-ui"),
+		filepath.Join(homeDir, ".local", "bin", "kyaraben"),
+		filepath.Join(homeDir, ".local", "share", "applications", "kyaraben.desktop"),
+	}
+	for _, p := range kyarabenPaths {
+		if fileExists(p) {
+			kyarabenFiles = append(kyarabenFiles, p)
+		}
+	}
+
 	return []Event{{
 		Type: EventTypeResult,
 		Data: UninstallPreviewResponse{
@@ -659,6 +687,7 @@ func (d *Daemon) handleUninstallPreview() []Event {
 			DesktopFiles:   desktopFiles,
 			IconFiles:      iconFiles,
 			ConfigFiles:    configFiles,
+			KyarabenFiles:  kyarabenFiles,
 			Preserved: PreservedPaths{
 				UserStore: userStore,
 				ConfigDir: configDir,
@@ -675,4 +704,39 @@ func fileExists(path string) bool {
 func dirExists(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && info.IsDir()
+}
+
+func (d *Daemon) handleInstallKyaraben(data *InstallKyarabenRequest) []Event {
+	appImagePath := ""
+	sidecarPath := ""
+	if data != nil {
+		appImagePath = data.AppImagePath
+		sidecarPath = data.SidecarPath
+	}
+
+	_, err := d.launcherManager.InstallKyaraben(appImagePath, sidecarPath)
+	if err != nil {
+		return d.errorResponse(err.Error())
+	}
+
+	return []Event{{
+		Type: EventTypeResult,
+		Data: InstallKyarabenResponse{Success: true},
+	}}
+}
+
+func (d *Daemon) handleInstallStatus() []Event {
+	status := d.launcherManager.GetInstallStatus()
+
+	installed := status.CLIPath != "" && status.DesktopPath != ""
+
+	return []Event{{
+		Type: EventTypeResult,
+		Data: InstallStatusResponse{
+			Installed:   installed,
+			AppPath:     status.AppPath,
+			DesktopPath: status.DesktopPath,
+			CLIPath:     status.CLIPath,
+		},
+	}}
 }

@@ -49,9 +49,7 @@ export const cancelApply = () => invoke<{ cancelled: boolean }>('cancel_apply')
 
 export const getInstallStatus = () => invoke<InstallStatus>('get_install_status')
 
-export const installApp = () => invoke<void>('install_app')
-
-export const uninstallApp = () => invoke<void>('uninstall_app')
+export const installApp = () => invoke<{ success: boolean }>('install_app')
 
 export const getSyncStatus = () => invoke<SyncStatusResponse>('sync_status')
 
