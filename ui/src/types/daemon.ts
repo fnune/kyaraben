@@ -85,6 +85,7 @@ export type CommandType =
   | 'sync_status'
   | 'sync_add_device'
   | 'sync_remove_device'
+  | 'uninstall_preview'
 
 export type SyncMode = 'primary' | 'secondary'
 export type SyncState = 'disabled' | 'synced' | 'syncing' | 'disconnected' | 'conflict' | 'error'
@@ -124,4 +125,16 @@ export interface SyncRemoveDeviceResponse {
   readonly success: boolean
   readonly deviceId: string
   readonly name: string
+}
+
+export interface UninstallPreviewResponse {
+  readonly stateDir: string
+  readonly stateDirExists: boolean
+  readonly desktopFiles: readonly string[]
+  readonly iconFiles: readonly string[]
+  readonly configFiles: readonly string[]
+  readonly preserved: {
+    readonly userStore: string
+    readonly configDir: string
+  }
 }

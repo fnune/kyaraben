@@ -1,5 +1,7 @@
 import type { EmulatorID, ProvisionResult, System, SystemID } from './daemon'
 
+export type View = 'systems' | 'installation' | 'sync'
+
 export type Manufacturer = 'Nintendo' | 'Sony' | 'Other'
 
 export const SYSTEM_MANUFACTURERS: Readonly<Record<SystemID, Manufacturer>> = {
