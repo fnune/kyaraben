@@ -51,39 +51,35 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 	return &Config{}
 }
 
-// Eden uses an opaque data directory structure.
-// Config is at ~/.config/eden/qt-config.ini
-// Data directories (nand, sdmc) are configured to live in ~/Emulation/opaque/eden/
-// See FILESYSTEM.md for the opaque directory pattern.
-var configTarget = model.ConfigTarget{
-	RelPath: "eden/qt-config.ini",
-	Format:  model.ConfigFormatINI,
-	BaseDir: model.ConfigBaseDirUserConfig,
-}
-
 type Config struct{}
 
+// LaunchArgs implements model.LaunchArgsProvider.
+// Eden's -r flag sets the root data directory where all data is stored:
+// config, nand, sdmc, keys, etc.
+func (c *Config) LaunchArgs(store model.StoreReader) []string {
+	return []string{"-r", store.EmulatorOpaqueDir(model.EmulatorIDEden)}
+}
+
 func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	// Eden uses an opaque data directory at ~/Emulation/opaque/eden/
-	// Within this, we configure nand/ and sdmc/ subdirectories.
+	// With -r flag, Eden stores everything in the root data directory:
+	// - Config at <root>/config/qt-config.ini
+	// - NAND at <root>/nand/
+	// - SDMC at <root>/sdmc/
+	// - Keys at <root>/keys/
+	//
+	// We only need to configure ROM paths and screenshot location.
 	opaqueDir := store.EmulatorOpaqueDir(model.EmulatorIDEden)
-	nandDir := filepath.Join(opaqueDir, "nand")
-	sdmcDir := filepath.Join(opaqueDir, "sdmc")
+
+	configTarget := model.ConfigTarget{
+		RelPath: filepath.Join(opaqueDir, "config", "qt-config.ini"),
+		Format:  model.ConfigFormatINI,
+		BaseDir: model.ConfigBaseDirOpaqueDir,
+	}
 
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
-			// Data storage paths - NAND and SDMC in opaque directory
-			{Path: []string{"Data%20Storage", "nand_directory"}, Value: nandDir},
-			{Path: []string{"Data%20Storage", `nand_directory\default`}, Value: "false"},
-			{Path: []string{"Data%20Storage", "sdmc_directory"}, Value: sdmcDir},
-			{Path: []string{"Data%20Storage", `sdmc_directory\default`}, Value: "false"},
-
-			// UI paths
 			{Path: []string{"UI", "Screenshots\\screenshot_path"}, Value: store.SystemScreenshotsDir(model.SystemIDSwitch)},
-
-			// Game directories - point to ROMs folder
-			// Note: Eden uses a complex gamedirs format, this sets the first entry
 			{Path: []string{"UI", "Paths\\gamedirs\\size"}, Value: "1"},
 			{Path: []string{"UI", "Paths\\gamedirs\\1\\deep_scan"}, Value: "false"},
 			{Path: []string{"UI", "Paths\\gamedirs\\1\\expanded"}, Value: "true"},

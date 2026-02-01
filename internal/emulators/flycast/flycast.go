@@ -54,11 +54,20 @@ var configTarget = model.ConfigTarget{
 type Config struct{}
 
 func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
+	// Flycast looks for BIOS files (dc_boot.bin, dc_flash.bin) in DataPath
+	// VMU saves (Dreamcast memory cards) go in a separate path
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
+			// BIOS/data directory - Flycast looks for dc_boot.bin and dc_flash.bin here
+			{Path: []string{"config", "Flycast.DataPath"}, Value: store.SystemBiosDir(model.SystemIDDreamcast)},
+			// ROM directory
 			{Path: []string{"config", "Dreamcast.ContentPath"}, Value: store.SystemRomsDir(model.SystemIDDreamcast)},
+			// VMU saves (Dreamcast memory cards)
+			{Path: []string{"config", "Dreamcast.SavePath"}, Value: store.SystemSavesDir(model.SystemIDDreamcast)},
+			// Savestates
 			{Path: []string{"config", "SavestatesPath"}, Value: store.EmulatorStatesDir(model.EmulatorIDFlycast)},
+			// Screenshots
 			{Path: []string{"config", "ScreenshotsPath"}, Value: store.SystemScreenshotsDir(model.SystemIDDreamcast)},
 		},
 	}}, nil
