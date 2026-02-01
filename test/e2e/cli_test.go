@@ -287,3 +287,79 @@ func TestCLISyncHelp(t *testing.T) {
 		t.Errorf("Sync help doesn't mention remove-device: %s", outputStr)
 	}
 }
+
+func TestCLIStatusNoConfig(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "nonexistent", "config.toml")
+
+	cmd := kyarabenCmd(t, "-c", configPath, "status")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("status command failed unexpectedly: %v\nOutput: %s", err, output)
+	}
+
+	outputStr := string(output)
+	if !strings.Contains(outputStr, "not found or invalid") {
+		t.Errorf("Output should mention config not found: %s", outputStr)
+	}
+	if !strings.Contains(outputStr, "kyaraben init") {
+		t.Errorf("Output should suggest running init: %s", outputStr)
+	}
+}
+
+func TestCLIDoctorNoConfig(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "nonexistent", "config.toml")
+
+	cmd := kyarabenCmd(t, "-c", configPath, "doctor")
+	output, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Errorf("doctor without config should fail")
+	}
+
+	outputStr := string(output)
+	if !strings.Contains(outputStr, "loading config") {
+		t.Errorf("Output should mention config loading issue: %s", outputStr)
+	}
+}
+
+func TestCLIInitInvalidSystem(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.toml")
+	userStore := filepath.Join(tmpDir, "Emulation")
+
+	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "nonexistent-system")
+	output, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Errorf("init with invalid system should fail")
+	}
+
+	outputStr := string(output)
+	if !strings.Contains(outputStr, "unknown system") {
+		t.Errorf("Output should indicate unknown system: %s", outputStr)
+	}
+}
+
+func TestCLIDoctorAllProvisionsSatisfied(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.toml")
+	userStore := filepath.Join(tmpDir, "Emulation")
+
+	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "snes")
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("init failed: %v\nOutput: %s", err, output)
+	}
+
+	_ = os.MkdirAll(filepath.Join(userStore, "bios", "snes"), 0755)
+
+	cmd = kyarabenCmd(t, "-c", configPath, "doctor")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("doctor failed: %v\nOutput: %s", err, output)
+	}
+
+	outputStr := string(output)
+	if !strings.Contains(outputStr, "No provisions required") {
+		t.Errorf("Output should show no provisions required for SNES: %s", outputStr)
+	}
+}
