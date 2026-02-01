@@ -319,6 +319,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	}
 
 	manifest.LastApplied = time.Now()
+	manifest.InstalledEmulators = make(map[model.EmulatorID]model.InstalledEmulator)
 
 	for _, emuID := range emulatorsToInstall {
 		version := resolvedVersions[emuID]
