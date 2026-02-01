@@ -258,12 +258,12 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 	if err != nil {
 		return d.errorResponse(fmt.Sprintf("creating lock file: %v", err))
 	}
-	defer lockFile.Close()
+	defer func() { _ = lockFile.Close() }()
 
 	if err := syscall.Flock(int(lockFile.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
 		return d.errorResponse("another installation is already in progress")
 	}
-	defer syscall.Flock(int(lockFile.Fd()), syscall.LOCK_UN)
+	defer func() { _ = syscall.Flock(int(lockFile.Fd()), syscall.LOCK_UN) }()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	d.mu.Lock()
