@@ -1,6 +1,7 @@
 package launcher
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -76,8 +77,9 @@ func TestGenerateDesktopFiles(t *testing.T) {
 	if strings.Contains(string(retroarchContent), "/nix/store/") {
 		t.Errorf("retroarch.desktop should not contain /nix/store/ paths, got:\n%s", retroarchContent)
 	}
-	if !strings.Contains(string(retroarchContent), "Exec=retroarch %f") {
-		t.Errorf("retroarch.desktop should contain Exec=retroarch, got:\n%s", retroarchContent)
+	expectedExec := fmt.Sprintf("Exec=%s/retroarch", m.BinDir())
+	if !strings.Contains(string(retroarchContent), expectedExec) {
+		t.Errorf("retroarch.desktop should contain %s, got:\n%s", expectedExec, retroarchContent)
 	}
 
 	edenPath := filepath.Join(m.ApplicationsDir(), "eden.desktop")
@@ -93,8 +95,9 @@ func TestGenerateDesktopFiles(t *testing.T) {
 	if !strings.Contains(contentStr, "GenericName=Nintendo Switch Emulator") {
 		t.Errorf("eden.desktop should contain GenericName, got:\n%s", contentStr)
 	}
-	if !strings.Contains(contentStr, "Exec=eden %f") {
-		t.Errorf("eden.desktop should contain Exec=eden, got:\n%s", contentStr)
+	expectedEdenExec := fmt.Sprintf("Exec=%s/eden", m.BinDir())
+	if !strings.Contains(contentStr, expectedEdenExec) {
+		t.Errorf("eden.desktop should contain %s, got:\n%s", expectedEdenExec, contentStr)
 	}
 	if !strings.Contains(contentStr, "Icon=eden") {
 		t.Errorf("eden.desktop should contain Icon=eden, got:\n%s", contentStr)
@@ -141,6 +144,7 @@ func TestEmbeddedIcons(t *testing.T) {
 }
 
 func TestRewriteDesktopExecLines(t *testing.T) {
+	binDir := "/home/user/.local/state/kyaraben/bin"
 	tests := []struct {
 		name     string
 		input    string
@@ -151,19 +155,19 @@ func TestRewriteDesktopExecLines(t *testing.T) {
 			name:     "simple exec line",
 			input:    "Exec=/nix/store/abc123-foo/bin/retroarch %f",
 			binary:   "retroarch",
-			expected: "Exec=retroarch %f",
+			expected: "Exec=/home/user/.local/state/kyaraben/bin/retroarch %f",
 		},
 		{
 			name:     "exec line with flags",
 			input:    "Exec=/nix/store/xyz789-bar/bin/retroarch --verbose",
 			binary:   "retroarch",
-			expected: "Exec=retroarch --verbose",
+			expected: "Exec=/home/user/.local/state/kyaraben/bin/retroarch --verbose",
 		},
 		{
 			name:     "multiple lines",
 			input:    "[Desktop Entry]\nName=RetroArch\nExec=/nix/store/abc123/bin/retroarch %f\nIcon=retroarch",
 			binary:   "retroarch",
-			expected: "[Desktop Entry]\nName=RetroArch\nExec=retroarch %f\nIcon=retroarch",
+			expected: "[Desktop Entry]\nName=RetroArch\nExec=/home/user/.local/state/kyaraben/bin/retroarch %f\nIcon=retroarch",
 		},
 		{
 			name:     "no exec line",
@@ -181,7 +185,7 @@ func TestRewriteDesktopExecLines(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := rewriteDesktopExecLines([]byte(tt.input), tt.binary)
+			result := rewriteDesktopExecLines([]byte(tt.input), binDir, tt.binary)
 			if string(result) != tt.expected {
 				t.Errorf("got:\n%s\nexpected:\n%s", result, tt.expected)
 			}

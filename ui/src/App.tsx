@@ -15,14 +15,9 @@ import type {
 import type { ApplyStatus, ProgressStep } from '@/types/ui'
 
 const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
-  start: 'Starting',
-  directories: 'Creating directories',
-  flake: 'Generating Nix flake',
   build: 'Installing emulators',
-  wrappers: 'Setting up launchers',
-  configs: 'Applying configurations',
-  manifest: 'Updating manifest',
-  done: 'Complete',
+  desktop: 'Adding to application menu',
+  config: 'Configuring emulators',
 }
 
 export function App() {
