@@ -341,7 +341,7 @@ export function EmulatorRow({
           }}
         />
         <span className="flex-1" />
-        {emulator.downloadSize && action === 'will-install' && (
+        {emulator.downloadSize && (
           <span className="text-xs text-gray-400">{emulator.downloadSize}</span>
         )}
         <ActionLabel
