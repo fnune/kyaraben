@@ -76,7 +76,7 @@ func LoadManifest(path string) (*Manifest, error) {
 }
 
 // Save writes the manifest to a file atomically.
-// It writes to a temporary file first, then renames to the target path.
+// It writes to a temporary file first, syncs it, then renames to the target path.
 // This prevents corruption if the process crashes during write.
 func (m *Manifest) Save(path string) error {
 	dir := filepath.Dir(path)
@@ -101,6 +101,12 @@ func (m *Manifest) Save(path string) error {
 		return fmt.Errorf("writing manifest: %w", err)
 	}
 
+	if err := tempFile.Sync(); err != nil {
+		_ = tempFile.Close()
+		_ = os.Remove(tempPath)
+		return fmt.Errorf("syncing manifest: %w", err)
+	}
+
 	if err := tempFile.Close(); err != nil {
 		_ = os.Remove(tempPath)
 		return fmt.Errorf("closing temp file: %w", err)
@@ -111,7 +117,20 @@ func (m *Manifest) Save(path string) error {
 		return fmt.Errorf("renaming manifest: %w", err)
 	}
 
+	if err := syncDir(dir); err != nil {
+		return fmt.Errorf("syncing directory: %w", err)
+	}
+
 	return nil
+}
+
+func syncDir(path string) error {
+	d, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer d.Close()
+	return d.Sync()
 }
 
 // AddEmulator records an installed emulator.

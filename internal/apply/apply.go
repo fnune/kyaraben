@@ -320,22 +320,31 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		}
 	}
 
-	manifest.LastApplied = time.Now()
-	manifest.InstalledEmulators = make(map[model.EmulatorID]model.InstalledEmulator)
+	// Check for cancellation before committing manifest changes.
+	// This prevents saving partial state if the user cancelled during config application.
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
 
+	// Build new emulator map separately to avoid losing existing data on failure.
+	// Only replace the manifest's map right before save.
+	newInstalledEmulators := make(map[model.EmulatorID]model.InstalledEmulator)
+	now := time.Now()
 	for _, emuID := range emulatorsToInstall {
 		version := resolvedVersions[emuID]
 		if version == "" {
 			version = "unknown"
 		}
-		manifest.AddEmulator(model.InstalledEmulator{
+		newInstalledEmulators[emuID] = model.InstalledEmulator{
 			ID:        emuID,
 			Version:   version,
 			StorePath: storePath,
-			Installed: time.Now(),
-		})
+			Installed: now,
+		}
 	}
 
+	// Build new managed configs list
+	newManagedConfigs := make([]model.ManagedConfig, 0, len(allPatches))
 	for i, patch := range allPatches {
 		if patch.Target.BaseDir == model.ConfigBaseDirOpaqueDir {
 			continue
@@ -346,13 +355,25 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 			managedKeys[j] = model.ManagedKey(entry)
 		}
 
-		manifest.AddManagedConfig(model.ManagedConfig{
+		newManagedConfigs = append(newManagedConfigs, model.ManagedConfig{
 			EmulatorID:   patchEmulators[i],
 			Target:       patch.Target,
 			BaselineHash: configResults[i].BaselineHash,
-			LastModified: time.Now(),
+			LastModified: now,
 			ManagedKeys:  managedKeys,
 		})
+	}
+
+	// Final cancellation check before committing to disk
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+
+	// Now commit all changes to manifest atomically
+	manifest.LastApplied = now
+	manifest.InstalledEmulators = newInstalledEmulators
+	for _, cfg := range newManagedConfigs {
+		manifest.AddManagedConfig(cfg)
 	}
 
 	if err := manifest.Save(a.ManifestPath); err != nil {
