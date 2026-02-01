@@ -8,10 +8,13 @@ import type { ApplyStatus, ProgressStep } from '@/types/ui'
 export interface SystemsViewProps {
   readonly systems: readonly System[]
   readonly selections: Map<SystemID, EmulatorID>
+  readonly versionSelections: Map<SystemID, string | null>
+  readonly installedVersions: Map<EmulatorID, string>
   readonly provisions: DoctorResponse
   readonly userStore: string
   readonly onUserStoreChange: (value: string) => void
   readonly onToggle: (systemId: SystemID, enabled: boolean) => void
+  readonly onVersionChange: (systemId: SystemID, version: string | null) => void
   readonly onApply: () => void
   readonly onCancel: () => void
   readonly onError: (message: string) => void
@@ -24,10 +27,13 @@ export interface SystemsViewProps {
 export function SystemsView({
   systems,
   selections,
+  versionSelections,
+  installedVersions,
   provisions,
   userStore,
   onUserStoreChange,
   onToggle,
+  onVersionChange,
   onApply,
   onCancel,
   onError,
@@ -68,8 +74,11 @@ export function SystemsView({
       <SystemGrid
         systems={systems}
         selections={selections}
+        versionSelections={versionSelections}
+        installedVersions={installedVersions}
         provisions={provisions}
         onToggle={onToggle}
+        onVersionChange={onVersionChange}
       />
 
       <div className="mt-6">
