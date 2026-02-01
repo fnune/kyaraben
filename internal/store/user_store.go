@@ -60,6 +60,9 @@ func (s *UserStore) SystemBiosDir(sys model.SystemID) string {
 func (s *UserStore) SystemSavesDir(sys model.SystemID) string {
 	return filepath.Join(s.SavesDir(), string(sys))
 }
+func (s *UserStore) EmulatorSavesDir(emu model.EmulatorID) string {
+	return filepath.Join(s.SavesDir(), string(emu))
+}
 func (s *UserStore) EmulatorStatesDir(emu model.EmulatorID) string {
 	return filepath.Join(s.StatesDir(), string(emu))
 }
