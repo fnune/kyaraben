@@ -52,14 +52,14 @@ test.describe('Kyaraben App', () => {
   })
 
   test('displays system cards with emulators', async () => {
-    const psxCard = page.getByRole('article').filter({ hasText: 'PlayStation' })
-    await expect(psxCard).toBeVisible({ timeout: 10000 })
-    await expect(psxCard.getByRole('switch')).toBeVisible()
+    const snesCard = page.getByRole('article').filter({ hasText: 'Super Nintendo' })
+    await expect(snesCard).toBeVisible({ timeout: 10000 })
+    await expect(snesCard.getByRole('switch')).toBeVisible()
   })
 
   test('can toggle emulator selection', async () => {
-    const psxCard = page.getByRole('article').filter({ hasText: 'PlayStation' })
-    const toggle = psxCard.getByRole('switch').first()
+    const snesCard = page.getByRole('article').filter({ hasText: 'Super Nintendo' })
+    const toggle = snesCard.getByRole('switch').first()
 
     const wasChecked = (await toggle.getAttribute('aria-checked')) === 'true'
     await toggle.click()
@@ -69,8 +69,8 @@ test.describe('Kyaraben App', () => {
   })
 
   test('shows sticky action bar when changes are made', async () => {
-    const psxCard = page.getByRole('article').filter({ hasText: 'PlayStation' })
-    const toggle = psxCard.getByRole('switch').first()
+    const snesCard = page.getByRole('article').filter({ hasText: 'Super Nintendo' })
+    const toggle = snesCard.getByRole('switch').first()
 
     const wasChecked = (await toggle.getAttribute('aria-checked')) === 'true'
     if (!wasChecked) {
