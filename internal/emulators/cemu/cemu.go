@@ -36,13 +36,20 @@ var configTarget = model.ConfigTarget{
 
 type Config struct{}
 
+// LaunchArgs implements model.LaunchArgsProvider.
+// Cemu's -mlc flag sets the MLC directory which stores saves, updates, and DLC.
+// This is separate from the config file location.
+func (c *Config) LaunchArgs(store model.StoreReader) []string {
+	return []string{"-mlc", store.EmulatorOpaqueDir(model.EmulatorIDCemu)}
+}
+
 func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	// Cemu uses XML config with nested paths
+	// Cemu uses XML config for settings. MLC path is set via -mlc CLI flag,
+	// but we still configure ROM paths via the settings file.
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
 			{Path: []string{"content", "GamePaths", "Entry"}, Value: store.SystemRomsDir(model.SystemIDWiiU)},
-			{Path: []string{"content", "mlc_path"}, Value: store.EmulatorOpaqueDir(model.EmulatorIDCemu)},
 		},
 	}}, nil
 }

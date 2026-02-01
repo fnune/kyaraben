@@ -24,6 +24,7 @@ const (
 	ConfigBaseDirUserConfig ConfigBaseDir = "user_config"
 	ConfigBaseDirUserData   ConfigBaseDir = "user_data"
 	ConfigBaseDirHome       ConfigBaseDir = "home"
+	ConfigBaseDirOpaqueDir  ConfigBaseDir = "opaque_dir"
 )
 
 type ConfigTarget struct {
@@ -36,6 +37,9 @@ func (ct ConfigTarget) Resolve() (string, error) {
 	var baseDir string
 
 	switch ct.BaseDir {
+	case ConfigBaseDirOpaqueDir:
+		return ct.RelPath, nil
+
 	case ConfigBaseDirUserConfig:
 		dir, err := os.UserConfigDir()
 		if err != nil {
