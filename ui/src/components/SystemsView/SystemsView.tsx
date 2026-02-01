@@ -13,7 +13,7 @@ export interface SystemsViewProps {
   readonly provisions: DoctorResponse
   readonly userStore: string
   readonly onUserStoreChange: (value: string) => void
-  readonly onToggle: (systemId: SystemID, enabled: boolean) => void
+  readonly onEnableDefault: (systemId: SystemID) => void
   readonly onEmulatorToggle: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
   readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
   readonly onApply: () => void
@@ -33,7 +33,7 @@ export function SystemsView({
   provisions,
   userStore,
   onUserStoreChange,
-  onToggle,
+  onEnableDefault,
   onEmulatorToggle,
   onVersionChange,
   onApply,
@@ -80,7 +80,7 @@ export function SystemsView({
         installedVersions={installedVersions}
         provisions={provisions}
         userStore={userStore}
-        onToggle={onToggle}
+        onEnableDefault={onEnableDefault}
         onEmulatorToggle={onEmulatorToggle}
         onVersionChange={onVersionChange}
       />

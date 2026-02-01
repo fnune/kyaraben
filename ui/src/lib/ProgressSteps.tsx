@@ -44,10 +44,15 @@ export function ProgressSteps({ steps, error, cancelled }: ProgressStepsProps) {
                 {step.message && <span className="text-sm text-gray-500">{step.message}</span>}
               </div>
               {step.output && step.output.length > 0 && (
-                <div className="mt-1 ml-6 overflow-hidden">
+                <div className="mt-1 ml-6 relative">
                   <pre className="p-2 text-xs font-mono bg-gray-800 text-gray-200 rounded max-h-32 overflow-y-auto whitespace-pre overflow-x-hidden">
                     {step.output.join('\n')}
                   </pre>
+                  {step.status === 'in_progress' && (
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-800 rounded-b overflow-hidden">
+                      <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-blue-500 to-transparent animate-[shimmer_1.5s_infinite]" />
+                    </div>
+                  )}
                 </div>
               )}
             </li>
