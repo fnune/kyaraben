@@ -7,6 +7,7 @@ import (
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/store"
+	"github.com/fnune/kyaraben/internal/versions"
 )
 
 type SystemInfo struct {
@@ -15,9 +16,11 @@ type SystemInfo struct {
 }
 
 type EmulatorInfo struct {
-	ID      model.EmulatorID
-	Name    string
-	Version string
+	ID             model.EmulatorID
+	Name           string
+	Version        string // Installed version
+	PinnedVersion  string // User-pinned version (empty if auto)
+	DefaultVersion string // Latest default version from versions.toml
 }
 
 type Result struct {
@@ -51,6 +54,8 @@ func Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg 
 		result.EnabledSystems = append(result.EnabledSystems, info)
 	}
 
+	vers, _ := versions.Get()
+
 	for _, emu := range manifest.InstalledEmulators {
 		info := EmulatorInfo{
 			ID:      emu.ID,
@@ -60,6 +65,22 @@ func Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg 
 		if e, err := reg.GetEmulator(emu.ID); err == nil {
 			info.Name = e.Name
 		}
+
+		// Check if this emulator is pinned in any system config
+		for _, sysConf := range cfg.Systems {
+			if sysConf.EmulatorID() == emu.ID {
+				info.PinnedVersion = sysConf.EmulatorVersion()
+				break
+			}
+		}
+
+		// Get default version from versions.toml
+		if vers != nil {
+			if spec, ok := vers.GetEmulator(string(emu.ID)); ok {
+				info.DefaultVersion = spec.Default
+			}
+		}
+
 		result.InstalledEmulators = append(result.InstalledEmulators, info)
 	}
 
