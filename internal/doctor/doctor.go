@@ -17,6 +17,7 @@ type ProvisionResult struct {
 	FoundPath    string
 	ActualHash   string
 	ExpectedHash string
+	ImportViaUI  bool
 }
 
 type SystemResult struct {
@@ -63,6 +64,7 @@ func Run(ctx context.Context, cfg *model.KyarabenConfig, reg *registry.Registry,
 					FoundPath:    r.FoundPath,
 					ActualHash:   r.ActualHash,
 					ExpectedHash: r.Provision.MD5Hash,
+					ImportViaUI:  r.Provision.ImportViaUI,
 				}
 				sysResult.Provisions = append(sysResult.Provisions, pr)
 

@@ -34,6 +34,7 @@ type ManagedKey struct {
 }
 
 type ManagedConfig struct {
+	EmulatorID   EmulatorID   `json:"emulator_id"`
 	Target       ConfigTarget `json:"target"`
 	BaselineHash string       `json:"baseline_hash"`
 	LastModified time.Time    `json:"last_modified"`
@@ -140,4 +141,14 @@ func (m *Manifest) GetManagedConfig(target ConfigTarget) (ManagedConfig, bool) {
 		}
 	}
 	return ManagedConfig{}, false
+}
+
+func (m *Manifest) GetManagedConfigsForEmulator(emuID EmulatorID) []ManagedConfig {
+	var configs []ManagedConfig
+	for _, cfg := range m.ManagedConfigs {
+		if cfg.EmulatorID == emuID {
+			configs = append(configs, cfg)
+		}
+	}
+	return configs
 }

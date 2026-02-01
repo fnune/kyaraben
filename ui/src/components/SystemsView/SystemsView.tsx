@@ -16,6 +16,7 @@ export interface SystemsViewProps {
   readonly emulatorVersions: Map<EmulatorID, string | null>
   readonly installedVersions: Map<EmulatorID, string>
   readonly installedExecLines: Map<EmulatorID, string>
+  readonly managedConfigs: Map<EmulatorID, string[]>
   readonly provisions: DoctorResponse
   readonly userStore: string
   readonly onUserStoreChange: (value: string) => void
@@ -57,6 +58,7 @@ export function SystemsView({
   emulatorVersions,
   installedVersions,
   installedExecLines,
+  managedConfigs,
   provisions,
   userStore,
   onUserStoreChange,
@@ -149,6 +151,7 @@ export function SystemsView({
                   emulatorVersions={emulatorVersions}
                   installedVersions={installedVersions}
                   installedExecLines={installedExecLines}
+                  managedConfigs={managedConfigs}
                   provisions={provisions}
                   userStore={userStore}
                   onEmulatorToggle={onEmulatorToggle}

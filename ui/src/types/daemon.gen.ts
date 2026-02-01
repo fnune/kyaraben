@@ -32,6 +32,7 @@ export interface InstalledEmulator {
   id: EmulatorID;
   version: string;
   execLine?: string;
+  managedConfigs?: string[];
 }
 /**
  * DoctorResponse uses map[string] because tygo can't generate valid TypeScript
@@ -46,6 +47,7 @@ export interface ProvisionResult {
   required: boolean;
   status: string;
   foundPath?: string;
+  importViaUI?: boolean;
 }
 export interface ProgressEvent {
   step: string;

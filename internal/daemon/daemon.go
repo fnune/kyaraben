@@ -153,8 +153,9 @@ func (d *Daemon) handleStatus() []Event {
 	installedEmulators := make([]InstalledEmulator, len(result.InstalledEmulators))
 	for i, emu := range result.InstalledEmulators {
 		installed := InstalledEmulator{
-			ID:      emu.ID,
-			Version: emu.Version,
+			ID:             emu.ID,
+			Version:        emu.Version,
+			ManagedConfigs: emu.ManagedConfigs,
 		}
 		if e, err := d.reg.GetEmulator(emu.ID); err == nil && e.Launcher.Binary != "" {
 			installed.ExecLine = fmt.Sprintf("%s/%s", d.launcherManager.BinDir(), e.Launcher.Binary)
@@ -200,6 +201,7 @@ func (d *Daemon) handleDoctor() []Event {
 				Required:    prov.Required,
 				Status:      string(prov.Status),
 				FoundPath:   prov.FoundPath,
+				ImportViaUI: prov.ImportViaUI,
 			}
 		}
 		response[string(sys.EmulatorID)] = provisions

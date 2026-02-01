@@ -31,6 +31,10 @@ type Provision struct {
 	Required    bool
 	MD5Hash     string // Expected hash for verification
 	SHA256Hash  string // Alternative hash
+	// ImportViaUI indicates that this provision must be imported through the
+	// emulator's settings UI rather than being placed in a folder. The emulator
+	// stores the imported files in an internal location that Kyaraben checks.
+	ImportViaUI bool
 }
 
 // ProvisionResult represents the outcome of checking a provision.

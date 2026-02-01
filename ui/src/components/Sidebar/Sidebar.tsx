@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { BugReport } from '@/components/BugReport/BugReport'
+import { SIDEBAR_BOTTOM_PADDING } from '@/lib/BottomBar'
 import { useBottomBar } from '@/lib/BottomBarContext'
 import type { SyncState, SyncStatusResponse } from '@/types/daemon'
 import {
@@ -64,7 +65,7 @@ export function Sidebar({ currentView, onNavigate, syncStatus }: SidebarProps) {
   const syncDotColor = syncDotColors[syncState]
 
   return (
-    <aside className={`bg-gray-800 border-b min-[720px]:border-b-0 min-[720px]:border-r border-gray-700 flex flex-row min-[720px]:flex-col min-[720px]:w-56 ${bottomBarVisible ? 'min-[720px]:pb-20' : ''}`}>
+    <aside className={`bg-gray-800 border-b min-[720px]:border-b-0 min-[720px]:border-r border-gray-700 flex flex-row min-[720px]:flex-col min-[720px]:w-56 ${bottomBarVisible ? SIDEBAR_BOTTOM_PADDING : ''}`}>
       <div className="p-4 border-r min-[720px]:border-r-0 min-[720px]:border-b border-gray-700">
         <h1 className="text-lg font-semibold text-gray-100">Kyaraben</h1>
       </div>
