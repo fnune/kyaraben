@@ -71,3 +71,19 @@ func KyarabenConfigDir() (string, error) {
 	}
 	return filepath.Join(base, "kyaraben"), nil
 }
+
+func RetroArchCoresDir() (string, error) {
+	stateDir, err := KyarabenStateDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(stateDir, "current", "lib", "retroarch", "cores"), nil
+}
+
+func MustRetroArchCoresDir() string {
+	dir, err := RetroArchCoresDir()
+	if err != nil {
+		panic("cannot determine retroarch cores directory: " + err.Error())
+	}
+	return dir
+}

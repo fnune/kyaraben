@@ -13,6 +13,7 @@ import (
 	"github.com/fnune/kyaraben/internal/apply"
 	"github.com/fnune/kyaraben/internal/doctor"
 	"github.com/fnune/kyaraben/internal/emulators"
+	"github.com/fnune/kyaraben/internal/hardware"
 	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/nix"
@@ -306,6 +307,7 @@ func (d *Daemon) handleCancelApply() []Event {
 func (d *Daemon) handleGetSystems() []Event {
 	systems := d.reg.AllSystems()
 	vers, _ := versions.Get()
+	currentArch := hardware.DetectTarget().Arch
 
 	result := make(GetSystemsResponse, 0, len(systems))
 	for _, sys := range systems {
@@ -323,6 +325,14 @@ func (d *Daemon) handleGetSystems() []Event {
 					availableVersions := spec.AvailableVersions()
 					sort.Strings(availableVersions)
 					ref.AvailableVersions = availableVersions
+
+					if entry := spec.GetDefault(); entry != nil {
+						if target := entry.DefaultTargetForArch(currentArch); target != "" {
+							if build := entry.Target(target); build != nil && build.Size > 0 {
+								ref.DownloadSize = versions.FormatSize(build.Size)
+							}
+						}
+					}
 				}
 			}
 

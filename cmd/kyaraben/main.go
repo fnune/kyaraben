@@ -20,6 +20,7 @@ var CLI struct {
 	Daemon        cli.DaemonCmd        `cmd:"" help:"Run in daemon mode for UI communication."`
 	Sync          cli.SyncCmd          `cmd:"" help:"Manage sync settings and status."`
 	ValidateFlake cli.ValidateFlakeCmd `cmd:"" help:"Validate Nix flake for all emulators (CI check)."`
+	CheckDownloads cli.ValidateURLsCmd `cmd:"" help:"Validate download URLs and show sizes (CI check)."`
 
 	Config string `short:"c" help:"Path to config file." type:"path"`
 }
