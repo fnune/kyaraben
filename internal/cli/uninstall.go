@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/paths"
 )
@@ -44,6 +45,11 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 
 	if dirExists(kyarabenStateDir) {
 		fmt.Printf("  %s (nix store, manifest, state)\n", kyarabenStateDir)
+	}
+
+	launcherMgr := launcher.NewManager()
+	if envPath, err := launcherMgr.EnvironmentConfigPath(); err == nil && fileExists(envPath) {
+		fmt.Printf("  %s (shell environment integration)\n", envPath)
 	}
 
 	if len(manifest.ManagedConfigs) > 0 {
@@ -91,6 +97,12 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 				fmt.Printf("  Removed: %s\n", path)
 			}
 		}
+	}
+
+	if err := launcherMgr.RemoveEnvironmentConfig(); err != nil {
+		fmt.Printf("  Warning: could not remove environment config: %v\n", err)
+	} else if envPath, err := launcherMgr.EnvironmentConfigPath(); err == nil {
+		fmt.Printf("  Removed: %s\n", envPath)
 	}
 
 	if dirExists(kyarabenStateDir) {
