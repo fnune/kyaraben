@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ChangeNotch } from '@/components/ChangeNotch/ChangeNotch'
+import { getEmulatorLogo } from '@/components/EmulatorLogo/EmulatorLogo'
 import { PathsModal } from '@/components/PathsModal/PathsModal'
 import { CHANGE_CONFIG, formatBytes, getChangeType } from '@/lib/changeUtils'
 import { CopyIcon, FolderIcon, PlayIcon } from '@/lib/icons'
@@ -32,6 +33,7 @@ function ProvisionItem({
   provision,
   provisionPath,
   emulatorName,
+  disabled,
   onOpenFolder,
   onCopy,
   onLaunch,
@@ -39,6 +41,7 @@ function ProvisionItem({
   readonly provision: ProvisionResult
   readonly provisionPath: string
   readonly emulatorName: string
+  readonly disabled: boolean
   readonly onOpenFolder: (path: string) => void
   readonly onCopy: (text: string) => void
   readonly onLaunch?: () => void
@@ -49,12 +52,14 @@ function ProvisionItem({
   const kindLabel = KIND_LABELS[provision.kind] ?? provision.kind
 
   const handleOpenFolder = () => {
-    onOpenFolder(provisionPath)
+    if (!disabled) onOpenFolder(provisionPath)
   }
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(provision.filename)
-    onCopy(provision.filename)
+    if (!disabled) {
+      navigator.clipboard.writeText(provision.filename)
+      onCopy(provision.filename)
+    }
   }
 
   if (isReady) {
@@ -69,7 +74,7 @@ function ProvisionItem({
   }
 
   const actionButton = provision.importViaUI ? (
-    onLaunch ? (
+    onLaunch && !disabled ? (
       <button
         type="button"
         onClick={onLaunch}
@@ -87,7 +92,8 @@ function ProvisionItem({
     <button
       type="button"
       onClick={handleOpenFolder}
-      className="ml-auto flex items-center gap-1.5 text-blue-400 hover:text-blue-300 hover:underline transition-colors shrink-0"
+      disabled={disabled}
+      className={`ml-auto flex items-center gap-1.5 text-blue-400 transition-colors shrink-0 ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:text-blue-300 hover:underline'}`}
       aria-label={`Open ${provisionPath}`}
     >
       <span className="hidden md:inline">Place in {provisionPath}</span>
@@ -107,7 +113,8 @@ function ProvisionItem({
         <button
           type="button"
           onClick={handleCopy}
-          className="text-gray-600 hover:text-white transition-colors"
+          disabled={disabled}
+          className={`text-gray-600 transition-colors ${disabled ? 'cursor-not-allowed' : 'hover:text-white'}`}
           aria-label={`Copy ${provision.filename}`}
         >
           <CopyIcon />
@@ -169,11 +176,18 @@ export function EmulatorSubcard({
     showToast(`Copied ${text}`)
   }
 
+  const logo = getEmulatorLogo(emulator.id)
+
   return (
     <div className={`rounded-lg overflow-hidden relative ${cardClasses}`}>
       {changeType && <ChangeNotch type={changeType} />}
 
       <div className={`flex items-center gap-4 p-3 ${!enabled ? 'opacity-60' : ''}`}>
+        {logo && (
+          <div className="hidden min-[720px]:flex items-center justify-center w-10 h-10 shrink-0">
+            <img src={logo} alt="" className="w-full h-full object-contain" />
+          </div>
+        )}
         <div className="flex-1 space-y-1">
           <div className="flex items-center gap-2">
             <span className="text-white font-medium text-sm">{emulator.name}</span>
@@ -225,6 +239,7 @@ export function EmulatorSubcard({
               provision={p}
               provisionPath={biosPath}
               emulatorName={emulator.name}
+              disabled={!enabled}
               onOpenFolder={handleOpenFolder}
               onCopy={handleCopy}
               {...(execLine && onLaunch && { onLaunch })}

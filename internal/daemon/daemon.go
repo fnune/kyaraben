@@ -238,7 +238,11 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 	}
 
 	// Acquire exclusive lock to prevent concurrent Apply operations
-	lockPath := filepath.Join(filepath.Dir(manifestPath), "apply.lock")
+	lockDir := filepath.Dir(manifestPath)
+	if err := os.MkdirAll(lockDir, 0755); err != nil {
+		return d.errorResponse(fmt.Sprintf("creating state directory: %v", err))
+	}
+	lockPath := filepath.Join(lockDir, "apply.lock")
 	lockFile, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
 		return d.errorResponse(fmt.Sprintf("creating lock file: %v", err))
