@@ -35,6 +35,13 @@ func (m *Manager) IconsDir() string {
 	return filepath.Join(m.dataDir, "icons", "hicolor", "scalable", "apps")
 }
 
+func (m *Manager) iconsDirForExt(ext string) string {
+	if ext == ".svg" {
+		return filepath.Join(m.dataDir, "icons", "hicolor", "scalable", "apps")
+	}
+	return filepath.Join(m.dataDir, "icons", "hicolor", "256x256", "apps")
+}
+
 func (m *Manager) iconThemeDir() string {
 	return filepath.Join(m.dataDir, "icons", "hicolor")
 }
@@ -191,31 +198,44 @@ func (m *Manager) copyStoreIcon(binary string) (string, error) {
 		return "", fmt.Errorf("reading store icons dir: %w", err)
 	}
 
-	var srcPath string
+	var symlinkPath string
 	var ext string
 	for _, entry := range entries {
 		name := entry.Name()
 		if strings.HasPrefix(name, binary+".") {
-			srcPath = filepath.Join(storeIconsDir, name)
+			symlinkPath = filepath.Join(storeIconsDir, name)
 			ext = filepath.Ext(name)
 			break
 		}
 	}
 
-	if srcPath == "" {
+	if symlinkPath == "" {
 		return "", fmt.Errorf("icon not found for %s", binary)
 	}
 
-	iconData, err := os.ReadFile(srcPath)
+	// Icons in the profile are symlinks to /nix/store/... virtual paths.
+	// On nix-portable systems, we need to convert to the real path.
+	virtualTarget, err := os.Readlink(symlinkPath)
+	if err != nil {
+		return "", fmt.Errorf("reading icon symlink: %w", err)
+	}
+	realPath := m.virtualToRealStorePath(virtualTarget)
+
+	iconData, err := os.ReadFile(realPath)
 	if err != nil {
 		return "", fmt.Errorf("reading source icon: %w", err)
 	}
 
-	destPath := filepath.Join(m.IconsDir(), binary+ext)
+	destDir := m.iconsDirForExt(ext)
+	if err := os.MkdirAll(destDir, 0755); err != nil {
+		return "", fmt.Errorf("creating icons directory: %w", err)
+	}
+
+	destPath := filepath.Join(destDir, binary+ext)
 	if err := os.WriteFile(destPath, iconData, 0644); err != nil {
 		return "", fmt.Errorf("writing icon: %w", err)
 	}
 
-	log.Debug("Copied icon: %s -> %s", srcPath, destPath)
+	log.Debug("Copied icon: %s -> %s", symlinkPath, destPath)
 	return destPath, nil
 }
