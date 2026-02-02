@@ -58,10 +58,7 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
-			// pref-path is redundant with -c but ensures consistency
 			{Path: []string{"pref-path"}, Value: opaqueDir},
 		},
-		// Config lives inside opaque dir (via -c flag), so don't track in manifest
-		Untracked: true,
 	}}, nil
 }

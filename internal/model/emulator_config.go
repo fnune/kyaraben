@@ -98,9 +98,4 @@ func (e ConfigEntry) FullPath() string {
 type ConfigPatch struct {
 	Target  ConfigTarget
 	Entries []ConfigEntry
-	// Untracked indicates this patch should be written but not tracked in
-	// the manifest. Use this for configs inside the emulator's opaque directory
-	// (set via CLI args), which live in the user store and shouldn't be
-	// removed by uninstall.
-	Untracked bool
 }

@@ -79,16 +79,11 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
-			// Screenshots go to system screenshots directory
 			{Path: []string{"UI", "Screenshots\\screenshot_path"}, Value: store.SystemScreenshotsDir(model.SystemIDSwitch)},
-
-			// Game directories - point to ROMs folder
 			{Path: []string{"UI", "Paths\\gamedirs\\size"}, Value: "1"},
 			{Path: []string{"UI", "Paths\\gamedirs\\1\\deep_scan"}, Value: "false"},
 			{Path: []string{"UI", "Paths\\gamedirs\\1\\expanded"}, Value: "true"},
 			{Path: []string{"UI", "Paths\\gamedirs\\1\\path"}, Value: store.SystemRomsDir(model.SystemIDSwitch)},
 		},
-		// Config lives inside opaque dir (via -r flag), so don't track in manifest
-		Untracked: true,
 	}}, nil
 }
