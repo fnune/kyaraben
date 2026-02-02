@@ -24,10 +24,7 @@ const (
 	ConfigBaseDirUserConfig ConfigBaseDir = "user_config"
 	ConfigBaseDirUserData   ConfigBaseDir = "user_data"
 	ConfigBaseDirHome       ConfigBaseDir = "home"
-	// ConfigBaseDirAbsolute indicates RelPath is an absolute path.
-	// Use this when the config location is determined dynamically,
-	// such as when using CLI args to set the emulator's user directory.
-	ConfigBaseDirAbsolute ConfigBaseDir = "absolute"
+	ConfigBaseDirOpaqueDir  ConfigBaseDir = "opaque_dir"
 )
 
 type ConfigTarget struct {
@@ -40,8 +37,7 @@ func (ct ConfigTarget) Resolve() (string, error) {
 	var baseDir string
 
 	switch ct.BaseDir {
-	case ConfigBaseDirAbsolute:
-		// RelPath is already an absolute path
+	case ConfigBaseDirOpaqueDir:
 		return ct.RelPath, nil
 
 	case ConfigBaseDirUserConfig:

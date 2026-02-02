@@ -56,7 +56,7 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 	configTarget := model.ConfigTarget{
 		RelPath: filepath.Join(opaqueDir, "Config", "Dolphin.ini"),
 		Format:  model.ConfigFormatINI,
-		BaseDir: model.ConfigBaseDirAbsolute,
+		BaseDir: model.ConfigBaseDirOpaqueDir,
 	}
 
 	return []model.ConfigPatch{{
