@@ -11,6 +11,8 @@ export interface SystemRowProps {
   readonly provisions: readonly ProvisionResult[]
   readonly enabled: boolean
   readonly userStore: string
+  readonly emulatorSharedWith: readonly string[]
+  readonly emulatorInstalledFor: readonly string[]
   readonly onToggle: (systemId: SystemID, enabled: boolean) => void
   readonly onEmulatorChange: (systemId: SystemID, emulatorId: EmulatorID) => void
   readonly onVersionChange: (systemId: SystemID, version: string | null) => void
@@ -65,16 +67,32 @@ function ProvisionsBadges({
   )
 }
 
-type ActionType = 'will-install' | 'will-update' | 'will-uninstall' | null
+type ActionType =
+  | 'will-install'
+  | 'will-update'
+  | 'will-uninstall'
+  | 'already-installed'
+  | 'shared-uninstall'
+  | null
 
 function getAction(
   enabled: boolean,
   installedVersion: string | null,
   effectiveVersion: string | null,
+  emulatorSharedWith: readonly string[],
+  emulatorInstalledFor: readonly string[],
 ): ActionType {
-  if (!enabled && installedVersion) return 'will-uninstall'
-  if (!enabled) return null
-  if (!installedVersion) return 'will-install'
+  if (!enabled) {
+    if (!installedVersion) return null
+    if (emulatorSharedWith.length > 0) return 'shared-uninstall'
+    return 'will-uninstall'
+  }
+
+  if (!installedVersion) {
+    if (emulatorInstalledFor.length > 0) return 'already-installed'
+    return 'will-install'
+  }
+
   if (effectiveVersion && installedVersion !== effectiveVersion) return 'will-update'
   return null
 }
@@ -82,19 +100,37 @@ function getAction(
 function ActionLabel({
   action,
   installedVersion,
+  emulatorSharedWith,
+  emulatorInstalledFor,
 }: {
   readonly action: ActionType
   readonly installedVersion: string | null
+  readonly emulatorSharedWith: readonly string[]
+  readonly emulatorInstalledFor: readonly string[]
 }) {
   if (!action) return null
 
-  const config = {
+  const formatSystemList = (systems: readonly string[]) => {
+    if (systems.length === 1) return systems[0]
+    if (systems.length === 2) return `${systems[0]} and ${systems[1]}`
+    return `${systems.slice(0, -1).join(', ')}, and ${systems[systems.length - 1]}`
+  }
+
+  const config: Record<NonNullable<ActionType>, { text: string; color: string }> = {
     'will-install': { text: 'Will install', color: 'text-blue-600' },
     'will-update': {
       text: installedVersion ? `Will update from ${installedVersion}` : 'Will update',
       color: 'text-amber-600',
     },
     'will-uninstall': { text: 'Will uninstall', color: 'text-red-600' },
+    'already-installed': {
+      text: `Already installed for ${formatSystemList(emulatorInstalledFor)}`,
+      color: 'text-green-600',
+    },
+    'shared-uninstall': {
+      text: `In use by ${formatSystemList(emulatorSharedWith)}`,
+      color: 'text-gray-500',
+    },
   }
 
   const { text, color } = config[action]
@@ -292,6 +328,8 @@ export function SystemRow({
   provisions,
   enabled,
   userStore,
+  emulatorSharedWith,
+  emulatorInstalledFor,
   onToggle,
   onEmulatorChange,
   onVersionChange,
@@ -299,7 +337,13 @@ export function SystemRow({
   const [dialogOpen, setDialogOpen] = useState(false)
   const emulator = system.emulators.find((e) => e.id === selectedEmulator) ?? system.emulators[0]
   const effectiveVersion = pinnedVersion ?? emulator?.defaultVersion ?? null
-  const action = getAction(enabled, installedVersion, effectiveVersion)
+  const action = getAction(
+    enabled,
+    installedVersion,
+    effectiveVersion,
+    emulatorSharedWith,
+    emulatorInstalledFor,
+  )
 
   const hasMissingRequired = provisions.some((p) => p.required && p.status !== 'found')
   const hasMissingOptional = provisions.some((p) => !p.required && p.status !== 'found')
@@ -362,7 +406,12 @@ export function SystemRow({
           </div>
         </div>
         <div className="flex items-center gap-2 pl-14">
-          <ActionLabel action={action} installedVersion={installedVersion} />
+          <ActionLabel
+            action={action}
+            installedVersion={installedVersion}
+            emulatorSharedWith={emulatorSharedWith}
+            emulatorInstalledFor={emulatorInstalledFor}
+          />
           <ProvisionsBadges provisions={provisions} onClick={() => setDialogOpen(true)} />
         </div>
       </div>
@@ -386,7 +435,12 @@ export function SystemRow({
           <div className="flex-1" />
 
           <div className="flex items-center gap-1">
-            <ActionLabel action={action} installedVersion={installedVersion} />
+            <ActionLabel
+              action={action}
+              installedVersion={installedVersion}
+              emulatorSharedWith={emulatorSharedWith}
+              emulatorInstalledFor={emulatorInstalledFor}
+            />
             <EmulatorSelector
               emulators={system.emulators}
               selected={selectedEmulator}
