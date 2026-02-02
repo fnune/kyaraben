@@ -184,7 +184,7 @@ func (m *Manager) generateDesktopFile(tmpl *template.Template, entry GeneratedDe
 
 // copyStoreIcon copies an icon from the nix store profile to the user's icons directory.
 func (m *Manager) copyStoreIcon(binary string) (string, error) {
-	storeIconsDir := filepath.Join(m.profileDir, "share", "icons")
+	storeIconsDir := filepath.Join(m.CurrentLink(), "share", "icons")
 
 	entries, err := os.ReadDir(storeIconsDir)
 	if err != nil {
