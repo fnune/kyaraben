@@ -9,7 +9,7 @@ func (Definition) Emulator() model.Emulator {
 		ID:      model.EmulatorVita3K,
 		Name:    "Vita3K",
 		Systems: []model.SystemID{model.SystemPSVita},
-		Package: model.VersionedAppImageRef("vita3k"),
+		Package: model.AppImageRef("vita3k"),
 		// PS Vita firmware is downloaded through emulator
 		Provisions: nil,
 		StateKinds: []model.StateKind{

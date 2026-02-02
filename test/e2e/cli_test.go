@@ -13,7 +13,7 @@ func TestCLIInit(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "config.toml")
 	userStore := filepath.Join(tmpDir, "Emulation")
 
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "e2e-test")
+	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "gba")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
@@ -23,8 +23,8 @@ func TestCLIInit(t *testing.T) {
 		t.Errorf("Config file not created: %v", err)
 	}
 
-	if !strings.Contains(string(output), "E2E Test") {
-		t.Errorf("Output doesn't mention E2E Test: %s", output)
+	if !strings.Contains(string(output), "Game Boy Advance") {
+		t.Errorf("Output doesn't mention Game Boy Advance: %s", output)
 	}
 }
 
@@ -85,27 +85,28 @@ func TestCLIDoctor(t *testing.T) {
 	}
 }
 
-func TestCLIDoctorE2ETest(t *testing.T) {
+func TestCLIDoctorGBA(t *testing.T) {
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "config.toml")
 	userStore := filepath.Join(tmpDir, "Emulation")
 
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "e2e-test")
+	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "gba")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
 
-	_ = os.MkdirAll(filepath.Join(userStore, "bios", "e2e-test"), 0755)
+	_ = os.MkdirAll(filepath.Join(userStore, "bios", "gba"), 0755)
 
 	cmd = kyarabenCmd(t, "-c", configPath, "doctor")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("doctor failed for E2E Test: %v\nOutput: %s", err, output)
+		t.Fatalf("doctor failed for GBA: %v\nOutput: %s", err, output)
 	}
 
 	outputStr := string(output)
-	if !strings.Contains(outputStr, "No provisions required") {
-		t.Errorf("Output should indicate no provisions required: %s", outputStr)
+	// GBA BIOS is optional, so doctor should pass (exit 0) but may report optional files missing
+	if strings.Contains(outputStr, "required") && strings.Contains(outputStr, "MISSING") {
+		t.Errorf("No required provisions should be missing for GBA: %s", outputStr)
 	}
 }
 
@@ -114,7 +115,7 @@ func TestCLIApplyDryRun(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "config.toml")
 	userStore := filepath.Join(tmpDir, "Emulation")
 
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "e2e-test")
+	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "gba")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
@@ -162,7 +163,7 @@ func TestCLIInitForce(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "config.toml")
 	userStore := filepath.Join(tmpDir, "Emulation")
 
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "e2e-test")
+	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "gba")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
@@ -223,7 +224,7 @@ func TestCLIUninstall(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "config.toml")
 	userStore := filepath.Join(tmpDir, "Emulation")
 
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "e2e-test")
+	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "gba")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
@@ -248,7 +249,7 @@ func TestCLISyncStatusDisabled(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "config.toml")
 	userStore := filepath.Join(tmpDir, "Emulation")
 
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "e2e-test")
+	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "gba")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}

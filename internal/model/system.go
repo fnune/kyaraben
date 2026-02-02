@@ -18,7 +18,6 @@ const (
 	SystemWiiU      SystemID = "wiiu"
 	System3DS       SystemID = "3ds"
 	SystemSwitch    SystemID = "switch"
-	SystemE2ETest   SystemID = "e2e-test"
 )
 
 // System represents a gaming platform that can be emulated.

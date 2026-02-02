@@ -9,7 +9,7 @@ func (Definition) Emulator() model.Emulator {
 		ID:      model.EmulatorDuckStation,
 		Name:    "DuckStation",
 		Systems: []model.SystemID{model.SystemPSX},
-		Package: model.VersionedAppImageRef("duckstation"),
+		Package: model.AppImageRef("duckstation"),
 		Provisions: []model.Provision{
 			{
 				ID:          "psx-bios-usa",

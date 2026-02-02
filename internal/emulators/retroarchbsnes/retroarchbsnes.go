@@ -12,7 +12,7 @@ func (Definition) Emulator() model.Emulator {
 		ID:      model.EmulatorRetroArchBsnes,
 		Name:    "RetroArch (bsnes)",
 		Systems: []model.SystemID{model.SystemSNES},
-		Package: model.VersionedAppImageRef("retroarch"),
+		Package: model.AppImageRef("retroarch"),
 		Provisions: []model.Provision{},
 		StateKinds: []model.StateKind{
 			model.StateSaves,

@@ -103,9 +103,9 @@ func TestExpandUserStore(t *testing.T) {
 func TestEnabledSystems(t *testing.T) {
 	cfg := &KyarabenConfig{
 		Systems: map[SystemID]SystemConf{
-			SystemSNES:    {Emulator: string(EmulatorRetroArchBsnes)},
-			SystemPSX:     {Emulator: string(EmulatorDuckStation)},
-			SystemE2ETest: {Emulator: string(EmulatorE2ETest)},
+			SystemSNES: {Emulator: string(EmulatorRetroArchBsnes)},
+			SystemPSX:  {Emulator: string(EmulatorDuckStation)},
+			SystemGBA:  {Emulator: string(EmulatorMGBA)},
 		},
 	}
 
@@ -119,7 +119,7 @@ func TestEnabledSystems(t *testing.T) {
 		systemMap[s] = true
 	}
 
-	for _, expected := range []SystemID{SystemSNES, SystemPSX, SystemE2ETest} {
+	for _, expected := range []SystemID{SystemSNES, SystemPSX, SystemGBA} {
 		if !systemMap[expected] {
 			t.Errorf("System %s not found in enabled systems", expected)
 		}

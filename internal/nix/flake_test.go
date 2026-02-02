@@ -122,7 +122,7 @@ func TestFlakeGeneratorCreatesDirectory(t *testing.T) {
 	reg := registry.NewDefault()
 	fg := NewFlakeGenerator(reg)
 
-	genPath, err := fg.Generate(nestedDir, []model.EmulatorID{model.EmulatorE2ETest})
+	genPath, err := fg.Generate(nestedDir, []model.EmulatorID{model.EmulatorMGBA})
 	if err != nil {
 		t.Fatalf("Generate failed: %v", err)
 	}
@@ -153,29 +153,17 @@ func TestPackageInfoFromRef(t *testing.T) {
 		name     string
 		ref      model.PackageRef
 		wantName string
-		wantExpr string
 		wantErr  bool
 	}{
 		{
-			name:     "simple nixpkgs",
-			ref:      model.NixpkgsRef("duckstation"),
-			wantName: "duckstation",
-			wantExpr: "pkgs.duckstation",
-		},
-		{
-			name:     "nixpkgs with overlay",
-			ref:      model.NixpkgsOverlayRef("retroarch-bsnes", "pkgs.wrapRetroArch {}"),
-			wantName: "retroarch-bsnes",
-			wantExpr: "pkgs.wrapRetroArch {}",
-		},
-		{
-			name: "github appimage",
-			ref: model.GitHubAppImageRef(
-				"eden", "owner", "repo", "v1.0",
-				map[string]string{"x86_64": "asset-x64.AppImage", "aarch64": "asset-arm64.AppImage"},
-				map[string]string{"x86_64": "abc123", "aarch64": "def456"},
-			),
+			name:     "appimage",
+			ref:      model.AppImageRef("eden"),
 			wantName: "eden",
+		},
+		{
+			name:     "appimage mgba",
+			ref:      model.AppImageRef("mgba"),
+			wantName: "mgba",
 		},
 	}
 
@@ -193,9 +181,6 @@ func TestPackageInfoFromRef(t *testing.T) {
 			}
 			if info.Name != tt.wantName {
 				t.Errorf("Name = %s, want %s", info.Name, tt.wantName)
-			}
-			if tt.wantExpr != "" && info.Expr != tt.wantExpr {
-				t.Errorf("Expr = %s, want %s", info.Expr, tt.wantExpr)
 			}
 		})
 	}

@@ -120,3 +120,21 @@ func NewDefaultConfig() *KyarabenConfig {
 		Systems: make(map[SystemID]SystemConf),
 	}
 }
+
+// BuildVersionOverrides returns a map from package names to pinned versions
+// based on the emulator versions configured in the systems.
+func (c *KyarabenConfig) BuildVersionOverrides(getEmulator func(EmulatorID) (Emulator, error)) (map[string]string, error) {
+	overrides := make(map[string]string)
+	for _, sysConf := range c.Systems {
+		version := sysConf.EmulatorVersion()
+		if version == "" {
+			continue
+		}
+		emu, err := getEmulator(sysConf.EmulatorID())
+		if err != nil {
+			return nil, fmt.Errorf("unknown emulator %q: %w", sysConf.EmulatorID(), err)
+		}
+		overrides[emu.Package.PackageName()] = version
+	}
+	return overrides, nil
+}

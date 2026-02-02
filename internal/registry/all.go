@@ -5,7 +5,6 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/cemu"
 	"github.com/fnune/kyaraben/internal/emulators/dolphin"
 	"github.com/fnune/kyaraben/internal/emulators/duckstation"
-	"github.com/fnune/kyaraben/internal/emulators/e2etestemu"
 	"github.com/fnune/kyaraben/internal/emulators/eden"
 	"github.com/fnune/kyaraben/internal/emulators/flycast"
 	"github.com/fnune/kyaraben/internal/emulators/melonds"
@@ -17,7 +16,6 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/vita3k"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/systems/dreamcast"
-	"github.com/fnune/kyaraben/internal/systems/e2etest"
 	"github.com/fnune/kyaraben/internal/systems/gamecube"
 	"github.com/fnune/kyaraben/internal/systems/gba"
 	"github.com/fnune/kyaraben/internal/systems/nds"
@@ -50,7 +48,6 @@ func NewDefault() *Registry {
 			wiiu.Definition{},
 			n3ds.Definition{},
 			switchsys.Definition{},
-			e2etest.Definition{},
 		},
 		[]model.EmulatorDefinition{
 			retroarchbsnes.Definition{},
@@ -66,7 +63,6 @@ func NewDefault() *Registry {
 			azahar.Definition{},
 			dolphin.Definition{},
 			eden.Definition{},
-			e2etestemu.Definition{},
 		},
 	)
 }

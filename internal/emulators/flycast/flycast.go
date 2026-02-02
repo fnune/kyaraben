@@ -9,7 +9,7 @@ func (Definition) Emulator() model.Emulator {
 		ID:      model.EmulatorFlycast,
 		Name:    "Flycast",
 		Systems: []model.SystemID{model.SystemDreamcast},
-		Package: model.VersionedAppImageRef("flycast"),
+		Package: model.AppImageRef("flycast"),
 		Provisions: []model.Provision{
 			{
 				ID:          "dc-bios",

@@ -9,7 +9,7 @@ func (Definition) Emulator() model.Emulator {
 		ID:      model.EmulatorRPCS3,
 		Name:    "RPCS3",
 		Systems: []model.SystemID{model.SystemPS3},
-		Package: model.VersionedAppImageRef("rpcs3"),
+		Package: model.AppImageRef("rpcs3"),
 		// PS3 firmware is installed through the emulator
 		Provisions: nil,
 		StateKinds: []model.StateKind{
