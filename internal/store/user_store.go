@@ -119,4 +119,3 @@ func (s *UserStore) IsInitialized() bool {
 	}
 	return true
 }
-

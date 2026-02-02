@@ -6,12 +6,14 @@ type Definition struct{}
 
 func (Definition) System() model.System {
 	return model.System{
-		ID:          model.SystemDreamcast,
-		Name:        "Sega Dreamcast",
-		Description: "Home console by Sega (1998)",
+		ID:           model.SystemIDDreamcast,
+		Name:         "Sega Dreamcast",
+		Description:  "Home console by Sega (1998)",
+		Manufacturer: model.ManufacturerSega,
+		Label:        "DC",
 	}
 }
 
 func (Definition) DefaultEmulatorID() model.EmulatorID {
-	return model.EmulatorFlycast
+	return model.EmulatorIDFlycast
 }

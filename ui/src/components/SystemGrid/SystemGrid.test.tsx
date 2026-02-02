@@ -8,18 +8,24 @@ const mockSystems: System[] = [
     id: 'snes',
     name: 'Super Nintendo',
     description: '16-bit home console by Nintendo (1990)',
+    manufacturer: 'Nintendo',
+    label: 'SNES',
     emulators: [{ id: 'retroarch:bsnes', name: 'RetroArch (bsnes)' }],
   },
   {
     id: 'gba',
     name: 'Game Boy Advance',
     description: '32-bit handheld by Nintendo (2001)',
+    manufacturer: 'Nintendo',
+    label: 'GBA',
     emulators: [{ id: 'mgba', name: 'mGBA' }],
   },
   {
     id: 'psx',
     name: 'PlayStation',
     description: '32-bit home console by Sony (1994)',
+    manufacturer: 'Sony',
+    label: 'PSX',
     emulators: [{ id: 'duckstation', name: 'DuckStation' }],
   },
 ]
@@ -51,6 +57,8 @@ describe('SystemGrid', () => {
         id: 'snes',
         name: 'Super Nintendo',
         description: '16-bit home console by Nintendo (1990)',
+        manufacturer: 'Nintendo',
+        label: 'SNES',
         emulators: [{ id: 'retroarch:bsnes', name: 'RetroArch (bsnes)' }],
       },
     ]

@@ -120,7 +120,7 @@ func TestRetroArchCoresGenerate(t *testing.T) {
 		{
 			name:       "bsnes",
 			gen:        retroarchbsnes.Definition{}.ConfigGenerator(),
-			system:     model.SystemSNES,
+			system:     model.SystemIDSNES,
 			coreName:   "bsnes_libretro",
 			wantRomDir: "/emulation/roms/snes",
 		},

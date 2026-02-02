@@ -6,9 +6,9 @@ type Definition struct{}
 
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
-		ID:      model.EmulatorDolphin,
+		ID:      model.EmulatorIDDolphin,
 		Name:    "Dolphin",
-		Systems: []model.SystemID{model.SystemGameCube, model.SystemWii},
+		Systems: []model.SystemID{model.SystemIDGameCube, model.SystemIDWii},
 		Package: model.AppImageRef("dolphin"),
 		// Wii system menu optional, GameCube IPL optional
 		Provisions: nil,
@@ -42,8 +42,8 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
-			{Path: []string{"General", "ISOPath0"}, Value: store.SystemRomsDir(model.SystemGameCube)},
-			{Path: []string{"General", "ISOPath1"}, Value: store.SystemRomsDir(model.SystemWii)},
+			{Path: []string{"General", "ISOPath0"}, Value: store.SystemRomsDir(model.SystemIDGameCube)},
+			{Path: []string{"General", "ISOPath1"}, Value: store.SystemRomsDir(model.SystemIDWii)},
 			{Path: []string{"General", "ISOPaths"}, Value: "2"},
 		},
 	}}, nil

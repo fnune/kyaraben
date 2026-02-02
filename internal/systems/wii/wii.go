@@ -6,12 +6,14 @@ type Definition struct{}
 
 func (Definition) System() model.System {
 	return model.System{
-		ID:          model.SystemWii,
-		Name:        "Wii",
-		Description: "Home console by Nintendo (2006)",
+		ID:           model.SystemIDWii,
+		Name:         "Wii",
+		Description:  "Home console by Nintendo (2006)",
+		Manufacturer: model.ManufacturerNintendo,
+		Label:        "Wii",
 	}
 }
 
 func (Definition) DefaultEmulatorID() model.EmulatorID {
-	return model.EmulatorDolphin
+	return model.EmulatorIDDolphin
 }

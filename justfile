@@ -5,7 +5,7 @@ default:
 
 # Generate TypeScript types from Go
 generate-types:
-    go run ./scripts/generate-types
+    go run github.com/gzuidhof/tygo@v0.2.20 generate
 
 # Run the Electron app in development mode
 dev: _ensure-ui-deps generate-types _sidecar

@@ -6,9 +6,9 @@ type Definition struct{}
 
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
-		ID:      model.EmulatorVita3K,
+		ID:      model.EmulatorIDVita3K,
 		Name:    "Vita3K",
-		Systems: []model.SystemID{model.SystemPSVita},
+		Systems: []model.SystemID{model.SystemIDPSVita},
 		Package: model.AppImageRef("vita3k"),
 		// PS Vita firmware is downloaded through emulator
 		Provisions: nil,
@@ -41,7 +41,7 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
-			{Path: []string{"pref-path"}, Value: store.EmulatorOpaqueDir(model.EmulatorVita3K)},
+			{Path: []string{"pref-path"}, Value: store.EmulatorOpaqueDir(model.EmulatorIDVita3K)},
 		},
 	}}, nil
 }

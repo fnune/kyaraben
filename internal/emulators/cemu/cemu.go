@@ -6,9 +6,9 @@ type Definition struct{}
 
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
-		ID:      model.EmulatorCemu,
+		ID:      model.EmulatorIDCemu,
 		Name:    "Cemu",
-		Systems: []model.SystemID{model.SystemWiiU},
+		Systems: []model.SystemID{model.SystemIDWiiU},
 		Package: model.AppImageRef("cemu"),
 		// Wii U keys are required but handled separately (not as BIOS files)
 		Provisions: nil,
@@ -41,8 +41,8 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
-			{Path: []string{"content", "GamePaths", "Entry"}, Value: store.SystemRomsDir(model.SystemWiiU)},
-			{Path: []string{"content", "mlc_path"}, Value: store.EmulatorOpaqueDir(model.EmulatorCemu)},
+			{Path: []string{"content", "GamePaths", "Entry"}, Value: store.SystemRomsDir(model.SystemIDWiiU)},
+			{Path: []string{"content", "mlc_path"}, Value: store.EmulatorOpaqueDir(model.EmulatorIDCemu)},
 		},
 	}}, nil
 }

@@ -10,9 +10,9 @@ type Definition struct{}
 
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
-		ID:      model.EmulatorEden,
+		ID:      model.EmulatorIDEden,
 		Name:    "Eden",
-		Systems: []model.SystemID{model.SystemSwitch},
+		Systems: []model.SystemID{model.SystemIDSwitch},
 		Package: model.AppImageRef("eden"),
 		// Eden requires firmware and keys which must be installed via the Eden UI.
 		// Kyaraben can verify their presence but cannot automatically provision them.
@@ -66,7 +66,7 @@ type Config struct{}
 func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
 	// Eden uses an opaque data directory at ~/Emulation/opaque/eden/
 	// Within this, we configure nand/ and sdmc/ subdirectories.
-	opaqueDir := store.EmulatorOpaqueDir(model.EmulatorEden)
+	opaqueDir := store.EmulatorOpaqueDir(model.EmulatorIDEden)
 	nandDir := filepath.Join(opaqueDir, "nand")
 	sdmcDir := filepath.Join(opaqueDir, "sdmc")
 
@@ -80,14 +80,14 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 			{Path: []string{"Data%20Storage", `sdmc_directory\default`}, Value: "false"},
 
 			// UI paths
-			{Path: []string{"UI", "Screenshots\\screenshot_path"}, Value: store.SystemScreenshotsDir(model.SystemSwitch)},
+			{Path: []string{"UI", "Screenshots\\screenshot_path"}, Value: store.SystemScreenshotsDir(model.SystemIDSwitch)},
 
 			// Game directories - point to ROMs folder
 			// Note: Eden uses a complex gamedirs format, this sets the first entry
 			{Path: []string{"UI", "Paths\\gamedirs\\size"}, Value: "1"},
 			{Path: []string{"UI", "Paths\\gamedirs\\1\\deep_scan"}, Value: "false"},
 			{Path: []string{"UI", "Paths\\gamedirs\\1\\expanded"}, Value: "true"},
-			{Path: []string{"UI", "Paths\\gamedirs\\1\\path"}, Value: store.SystemRomsDir(model.SystemSwitch)},
+			{Path: []string{"UI", "Paths\\gamedirs\\1\\path"}, Value: store.SystemRomsDir(model.SystemIDSwitch)},
 		},
 	}}, nil
 }

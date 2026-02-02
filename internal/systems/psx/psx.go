@@ -6,12 +6,14 @@ type Definition struct{}
 
 func (Definition) System() model.System {
 	return model.System{
-		ID:          model.SystemPSX,
-		Name:        "PlayStation",
-		Description: "32-bit home console by Sony (1994)",
+		ID:           model.SystemIDPSX,
+		Name:         "PlayStation",
+		Description:  "32-bit home console by Sony (1994)",
+		Manufacturer: model.ManufacturerSony,
+		Label:        "PSX",
 	}
 }
 
 func (Definition) DefaultEmulatorID() model.EmulatorID {
-	return model.EmulatorDuckStation
+	return model.EmulatorIDDuckStation
 }

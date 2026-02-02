@@ -6,9 +6,9 @@ type Definition struct{}
 
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
-		ID:      model.EmulatorPCSX2,
+		ID:      model.EmulatorIDPCSX2,
 		Name:    "PCSX2",
-		Systems: []model.SystemID{model.SystemPS2},
+		Systems: []model.SystemID{model.SystemIDPS2},
 		Package: model.AppImageRef("pcsx2"),
 		Provisions: []model.Provision{
 			{
@@ -65,11 +65,11 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
-			{Path: []string{"Folders", "Bios"}, Value: store.SystemBiosDir(model.SystemPS2)},
-			{Path: []string{"Folders", "MemoryCards"}, Value: store.SystemSavesDir(model.SystemPS2)},
-			{Path: []string{"Folders", "Savestates"}, Value: store.EmulatorStatesDir(model.EmulatorPCSX2)},
-			{Path: []string{"Folders", "Screenshots"}, Value: store.SystemScreenshotsDir(model.SystemPS2)},
-			{Path: []string{"GameList", "RecursivePaths"}, Value: store.SystemRomsDir(model.SystemPS2)},
+			{Path: []string{"Folders", "Bios"}, Value: store.SystemBiosDir(model.SystemIDPS2)},
+			{Path: []string{"Folders", "MemoryCards"}, Value: store.SystemSavesDir(model.SystemIDPS2)},
+			{Path: []string{"Folders", "Savestates"}, Value: store.EmulatorStatesDir(model.EmulatorIDPCSX2)},
+			{Path: []string{"Folders", "Screenshots"}, Value: store.SystemScreenshotsDir(model.SystemIDPS2)},
+			{Path: []string{"GameList", "RecursivePaths"}, Value: store.SystemRomsDir(model.SystemIDPS2)},
 		},
 	}}, nil
 }
