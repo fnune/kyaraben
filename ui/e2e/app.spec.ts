@@ -43,14 +43,12 @@ test.describe('Kyaraben App', () => {
   })
 
   test('loads and displays available systems', async () => {
-    // Wait for systems to load - TIC-80 should appear
-    await expect(page.getByRole('heading', { name: 'TIC-80' })).toBeVisible({ timeout: 10000 })
+    await expect(page.getByRole('heading', { name: 'PlayStation' })).toBeVisible({ timeout: 10000 })
   })
 
   test('can toggle system selection', async () => {
-    // Find the TIC-80 system card and its checkbox
-    const tic80Card = page.getByRole('article').filter({ hasText: 'TIC-80' })
-    const checkbox = tic80Card.getByRole('checkbox')
+    const psxCard = page.getByRole('article').filter({ hasText: 'PlayStation' })
+    const checkbox = psxCard.getByRole('checkbox')
 
     const wasChecked = await checkbox.isChecked()
     await checkbox.click()
@@ -74,8 +72,7 @@ test.describe('Kyaraben App', () => {
   })
 
   test('displays manufacturer groupings', async () => {
-    // Systems should be grouped by manufacturer
-    await expect(page.getByRole('heading', { level: 2, name: 'Other' })).toBeVisible({
+    await expect(page.getByRole('heading', { level: 2, name: 'Sony' })).toBeVisible({
       timeout: 10000,
     })
   })

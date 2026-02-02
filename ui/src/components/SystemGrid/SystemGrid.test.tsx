@@ -14,7 +14,7 @@ const mockSystems: System[] = [
     id: 'gba',
     name: 'Game Boy Advance',
     description: '32-bit handheld by Nintendo (2001)',
-    emulators: [{ id: 'retroarch:mgba', name: 'RetroArch (mGBA)' }],
+    emulators: [{ id: 'mgba', name: 'mGBA' }],
   },
   {
     id: 'psx',
@@ -30,8 +30,11 @@ describe('SystemGrid', () => {
       <SystemGrid
         systems={mockSystems}
         selections={new Map()}
+        versionSelections={new Map()}
+        installedVersions={new Map()}
         provisions={{}}
         onToggle={vi.fn()}
+        onVersionChange={vi.fn()}
       />,
     )
 
@@ -56,8 +59,11 @@ describe('SystemGrid', () => {
       <SystemGrid
         systems={nintendoOnly}
         selections={new Map()}
+        versionSelections={new Map()}
+        installedVersions={new Map()}
         provisions={{}}
         onToggle={vi.fn()}
+        onVersionChange={vi.fn()}
       />,
     )
 
@@ -70,6 +76,8 @@ describe('SystemGrid', () => {
       <SystemGrid
         systems={mockSystems}
         selections={new Map()}
+        versionSelections={new Map()}
+        installedVersions={new Map()}
         provisions={{
           psx: [
             {
@@ -81,6 +89,7 @@ describe('SystemGrid', () => {
           ],
         }}
         onToggle={vi.fn()}
+        onVersionChange={vi.fn()}
       />,
     )
 

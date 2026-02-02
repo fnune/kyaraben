@@ -15,23 +15,23 @@ default = "v0.1.1"
 
 [eden."v0.1.1".targets.amd64]
 arch = "x86_64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+sha256 = "sha256-g7x10zM/55z2avdETcpRJ56O1oN8cndbzl9UAiOJZF8="
 
 [eden."v0.1.1".targets.legacy]
 arch = "x86_64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+sha256 = "sha256-sArRWvGMEdgJ3JfL/aPXbKbwQS/CE8DSoQS1qu27zsw="
 
 [eden."v0.1.1".targets.steamdeck]
 arch = "x86_64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+sha256 = "sha256-TSqAXu6nZElt6jTyy7NCU6YGmhwlWvucEzDuB5wNShM="
 
 [eden."v0.1.1".targets.rog-ally]
 arch = "x86_64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+sha256 = "sha256-F0dVNkaiDTR/f8T8A2x7Id5pA+vr9EnU9njEERObcPw="
 
 [eden."v0.1.1".targets.aarch64]
 arch = "aarch64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+sha256 = "sha256-6iU5RV5gogxpJUFwWi0p2y4r8IRvAcuxSwcpCIWsG6E="
 
 [eden."v0.1.0".targets.amd64]
 arch = "x86_64"
@@ -98,7 +98,7 @@ default = "v2.6.3"
 
 [pcsx2."v2.6.3".targets.x64]
 arch = "x86_64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+sha256 = "sha256-jOfehhPBewCwECilEt0bgZmLZibrvpOgZ+DrIK7t1b8="
 
 # ============================================================================
 # PPSSPP - PlayStation Portable emulator
@@ -111,7 +111,11 @@ default = "v1.19.3"
 
 [ppsspp."v1.19.3".targets.x86_64]
 arch = "x86_64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+sha256 = "sha256-VA8xfB7WZhiUFn0tziG2IpWFfhqRInSYLacEjPIlZGY="
+
+[ppsspp."v1.19.3".targets.aarch64]
+arch = "aarch64"
+sha256 = "sha256-ugtlnflAX9qOfzlOKCgrcaseFfgp+rHFfB1CPFpQzv4="
 
 # ============================================================================
 # MGBA - Game Boy Advance emulator
@@ -124,11 +128,11 @@ default = "0.10.5"
 
 [mgba."0.10.5".targets.x64]
 arch = "x86_64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+sha256 = "sha256-/fClwViOFgbDgxVzXPSKn53KNXPzKjlH68lW+Cl+hc0="
 
 [mgba."0.10.5".targets.arm64]
 arch = "aarch64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+sha256 = "sha256-3jy/Q3vh1TJMOFO6ug2v6jMRMiojgpNV1YMwiUfgWOg="
 
 # ============================================================================
 # CEMU - Wii U emulator
@@ -141,7 +145,7 @@ default = "2.4"
 
 [cemu."2.4".targets.x64]
 arch = "x86_64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+sha256 = "sha256-kqHwgSMICb0Kwwsij3LG2Meqfqo+Vt9M+K1U1MmScJc="
 
 # ============================================================================
 # AZAHAR - Nintendo 3DS emulator
@@ -150,11 +154,11 @@ sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
 
 [azahar]
 url_template = "https://github.com/azahar-emu/azahar/releases/download/{version}/azahar.AppImage"
-default = "2120.1"
+default = "2124.3"
 
-[azahar."2120.1".targets.x64]
+[azahar."2124.3".targets.x64]
 arch = "x86_64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+sha256 = "sha256-HkmgFkvxmZC/REe8KF8jmXuSMYnzbt18/r/TGO9e2vM="
 
 # ============================================================================
 # DOLPHIN - GameCube/Wii emulator (unofficial AppImage)
@@ -162,7 +166,7 @@ sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
 # ============================================================================
 
 [dolphin]
-url_template = "https://github.com/pkgforge-dev/Dolphin-emu-AppImage/releases/download/{release_tag}/Dolphin_Emulator-{version}-anylinux.dwarfs-{target}.AppImage"
+url_template = "https://github.com/pkgforge-dev/Dolphin-emu-AppImage/releases/download/{release_tag}/Dolphin_Emulator-{version}-anylinux-{target}.AppImage"
 default = "2512"
 
 [dolphin."2512"]
@@ -170,11 +174,11 @@ release_tag = "2512@2026-01-26_1769467304"
 
 [dolphin."2512".targets.x86_64]
 arch = "x86_64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+sha256 = "sha256-+zW7dA5VGPU5vUAaUf6RCGGhAppOAm+8KzD5LH976c4="
 
 [dolphin."2512".targets.aarch64]
 arch = "aarch64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+sha256 = "sha256-dkymxq8mVOkRyFiBXCH9OiqOF7eKRbV9K9s9N2wH3Wo="
 
 # ============================================================================
 # MELONDS - Nintendo DS emulator
@@ -182,13 +186,18 @@ sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
 # ============================================================================
 
 [melonds]
-url_template = "https://github.com/melonDS-emu/melonDS/releases/download/{version}/melonDS_{version}_linux_x64.zip"
-binary_path = "melonDS"
-default = "1.0.0"
+url_template = "https://github.com/melonDS-emu/melonDS/releases/download/{version}/melonDS-{version}-appimage-{target}.zip"
+default = "1.1"
 
-[melonds."1.0.0".targets.x64]
+[melonds."1.1".targets.x86_64]
 arch = "x86_64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+sha256 = "sha256-vzd0IKLpXyzSzdoX1TcrUcJTT4WLA4257G0SlVSHUSQ="
+binary_path = "melonDS-x86_64.AppImage"
+
+[melonds."1.1".targets.aarch64]
+arch = "aarch64"
+sha256 = "sha256-xTeuAY1tzt/p2gMXodXAFj5pIB4jq/oWP6KmPkN6zgk="
+binary_path = "melonDS-aarch64.AppImage"
 
 # ============================================================================
 # VITA3K - PlayStation Vita emulator
@@ -204,7 +213,7 @@ release_tag = "3912"
 
 [vita3k."3912".targets.x86_64]
 arch = "x86_64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+sha256 = "sha256-EEwgm67R4FphMVkCwmL0tCbZtkH25vhneVwZuifh22w="
 
 # ============================================================================
 # RPCS3 - PlayStation 3 emulator
@@ -212,15 +221,15 @@ sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
 # ============================================================================
 
 [rpcs3]
-url_template = "https://github.com/RPCS3/rpcs3-binaries-linux/releases/download/{release_tag}/rpcs3-v{version}-4b6f335a_linux64.AppImage"
-default = "0.0.35-17500"
+url_template = "https://github.com/RPCS3/rpcs3-binaries-linux/releases/download/{release_tag}/rpcs3-v{version}_linux64.AppImage"
+default = "0.0.18-12817-fff0c96b"
 
-[rpcs3."0.0.35-17500"]
-release_tag = "build-4b6f335a46055cc5e2c4e0af8bcea02340a0ab59"
+[rpcs3."0.0.18-12817-fff0c96b"]
+release_tag = "build-fff0c96bf38d1ada075e524c4753a7f263c06449"
 
-[rpcs3."0.0.35-17500".targets.x64]
+[rpcs3."0.0.18-12817-fff0c96b".targets.x64]
 arch = "x86_64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+sha256 = "sha256-dcloGeNbIDVf36GkP6Td4YN/YdwIpw27OoLZb8rYbGk="
 
 # ============================================================================
 # FLYCAST - Sega Dreamcast emulator
@@ -228,17 +237,12 @@ sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
 # ============================================================================
 
 [flycast]
-url_template = "https://github.com/flyinghead/flycast/releases/download/v{version}/flycast-linux-{target}-{version}.tar.gz"
-binary_path = "flycast"
-default = "2.4"
+url_template = "https://github.com/flyinghead/flycast/releases/download/v{version}/flycast-{target}.AppImage"
+default = "2.6"
 
-[flycast."2.4".targets.x86_64]
+[flycast."2.6".targets.x86_64]
 arch = "x86_64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
-
-[flycast."2.4".targets.aarch64]
-arch = "aarch64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
+sha256 = "sha256-upuvtFJ7u3JHxrRg2/nuOauiTGy2nCLpsCH3iG60Cx8="
 
 # ============================================================================
 # RETROARCH - Multi-system emulator frontend
@@ -251,24 +255,6 @@ default = "1.19.1"
 
 [retroarch."1.19.1".targets.x86_64]
 arch = "x86_64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
-binary_path = "RetroArch-Linux-x86_64.AppImage"
+sha256 = "sha256-+Y6VTpmu97SxozNNcQhWuZfD+XxUUdM6+eXIi/YyE/g="
+binary_path = "RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage"
 
-[retroarch."1.19.1".targets.aarch64]
-arch = "aarch64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"
-binary_path = "RetroArch-Linux-aarch64.AppImage"
-
-# ============================================================================
-# TIC-80 - Fantasy console
-# https://github.com/nesbox/TIC-80/releases
-# ============================================================================
-
-[tic80]
-url_template = "https://github.com/nesbox/TIC-80/releases/download/v{version}/tic80-{version}-linux.tar.gz"
-binary_path = "bin/tic80"
-default = "1.1.2837"
-
-[tic80."1.1.2837".targets.x64]
-arch = "x86_64"
-sha256 = "sha256-PLACEHOLDER_COMPUTE_WITH_NIX_PREFETCH_URL"

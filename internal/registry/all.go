@@ -14,7 +14,6 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/ppsspp"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbsnes"
 	"github.com/fnune/kyaraben/internal/emulators/rpcs3"
-	"github.com/fnune/kyaraben/internal/emulators/tic80emu"
 	"github.com/fnune/kyaraben/internal/emulators/vita3k"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/systems/dreamcast"
@@ -30,7 +29,6 @@ import (
 	"github.com/fnune/kyaraben/internal/systems/psx"
 	"github.com/fnune/kyaraben/internal/systems/snes"
 	switchsys "github.com/fnune/kyaraben/internal/systems/switch"
-	"github.com/fnune/kyaraben/internal/systems/tic80"
 	"github.com/fnune/kyaraben/internal/systems/wii"
 	"github.com/fnune/kyaraben/internal/systems/wiiu"
 )
@@ -44,7 +42,6 @@ func NewDefault() *Registry {
 			ps3.Definition{},
 			psvita.Definition{},
 			dreamcast.Definition{},
-			tic80.Definition{},
 			gba.Definition{},
 			nds.Definition{},
 			psp.Definition{},
@@ -68,7 +65,6 @@ func NewDefault() *Registry {
 			cemu.Definition{},
 			azahar.Definition{},
 			dolphin.Definition{},
-			tic80emu.Definition{},
 			eden.Definition{},
 			e2etestemu.Definition{},
 		},

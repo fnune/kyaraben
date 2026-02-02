@@ -16,7 +16,6 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/ppsspp"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbsnes"
 	"github.com/fnune/kyaraben/internal/emulators/rpcs3"
-	"github.com/fnune/kyaraben/internal/emulators/tic80emu"
 	"github.com/fnune/kyaraben/internal/emulators/vita3k"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/systems/dreamcast"
@@ -32,7 +31,6 @@ import (
 	"github.com/fnune/kyaraben/internal/systems/psx"
 	"github.com/fnune/kyaraben/internal/systems/snes"
 	switchsys "github.com/fnune/kyaraben/internal/systems/switch"
-	"github.com/fnune/kyaraben/internal/systems/tic80"
 	"github.com/fnune/kyaraben/internal/systems/wii"
 	"github.com/fnune/kyaraben/internal/systems/wiiu"
 )
@@ -45,7 +43,6 @@ func TestAllDefinitions(t *testing.T) {
 		ps3.Definition{},
 		psvita.Definition{},
 		dreamcast.Definition{},
-		tic80.Definition{},
 		gba.Definition{},
 		nds.Definition{},
 		psp.Definition{},
@@ -70,7 +67,6 @@ func TestAllDefinitions(t *testing.T) {
 		cemu.Definition{},
 		azahar.Definition{},
 		dolphin.Definition{},
-		tic80emu.Definition{},
 		eden.Definition{},
 		e2etestemu.Definition{},
 	}
@@ -175,7 +171,6 @@ func TestRegistryGetEmulator(t *testing.T) {
 		{model.EmulatorCemu, false},
 		{model.EmulatorAzahar, false},
 		{model.EmulatorDolphin, false},
-		{model.EmulatorTIC80, false},
 		{model.EmulatorEden, false},
 		{model.EmulatorID("unknown"), true},
 	}
@@ -208,7 +203,6 @@ func TestRegistryGetEmulatorsForSystem(t *testing.T) {
 		{model.SystemPS3, 1, []model.EmulatorID{model.EmulatorRPCS3}},
 		{model.SystemPSVita, 1, []model.EmulatorID{model.EmulatorVita3K}},
 		{model.SystemDreamcast, 1, []model.EmulatorID{model.EmulatorFlycast}},
-		{model.SystemTIC80, 1, []model.EmulatorID{model.EmulatorTIC80}},
 		{model.SystemGBA, 1, []model.EmulatorID{model.EmulatorMGBA}},
 		{model.SystemNDS, 1, []model.EmulatorID{model.EmulatorMelonDS}},
 		{model.SystemPSP, 1, []model.EmulatorID{model.EmulatorPPSSPP}},
@@ -255,7 +249,6 @@ func TestRegistryGetDefaultEmulator(t *testing.T) {
 		{model.SystemPS3, model.EmulatorRPCS3, false},
 		{model.SystemPSVita, model.EmulatorVita3K, false},
 		{model.SystemDreamcast, model.EmulatorFlycast, false},
-		{model.SystemTIC80, model.EmulatorTIC80, false},
 		{model.SystemGBA, model.EmulatorMGBA, false},
 		{model.SystemNDS, model.EmulatorMelonDS, false},
 		{model.SystemPSP, model.EmulatorPPSSPP, false},
@@ -299,8 +292,8 @@ func TestAllSystems(t *testing.T) {
 	reg := NewDefault()
 
 	systems := reg.AllSystems()
-	if len(systems) < 15 {
-		t.Errorf("Expected at least 15 systems, got %d", len(systems))
+	if len(systems) < 14 {
+		t.Errorf("Expected at least 14 systems, got %d", len(systems))
 	}
 
 	expected := []model.SystemID{
@@ -310,7 +303,6 @@ func TestAllSystems(t *testing.T) {
 		model.SystemPS3,
 		model.SystemPSVita,
 		model.SystemDreamcast,
-		model.SystemTIC80,
 		model.SystemGBA,
 		model.SystemNDS,
 		model.SystemPSP,
@@ -352,7 +344,6 @@ func TestGetConfigGenerator(t *testing.T) {
 		{model.EmulatorCemu, true},
 		{model.EmulatorAzahar, true},
 		{model.EmulatorDolphin, true},
-		{model.EmulatorTIC80, true},
 		{model.EmulatorEden, true},
 		{model.EmulatorID("unknown"), false},
 	}

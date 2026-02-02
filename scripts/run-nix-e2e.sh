@@ -7,8 +7,8 @@ echo "Kyaraben location: $(which kyaraben)"
 echo "Note: Nix is bundled as nix-portable within kyaraben"
 echo ""
 
-echo "1. Initialize with TIC-80..."
-kyaraben init -u ~/Emulation -s tic80 -f
+echo "1. Initialize with e2e-test system..."
+kyaraben init -u ~/Emulation -s e2e-test -f
 echo "   OK"
 echo ""
 
@@ -16,12 +16,11 @@ echo "2. Check status..."
 kyaraben status
 echo ""
 
-echo "3. Run doctor (should show no provisions needed for TIC-80)..."
+echo "3. Run doctor (should show no provisions needed for e2e-test)..."
 kyaraben doctor
 echo ""
 
-echo "4. Apply configuration (this builds TIC-80 via Nix - may take a while)..."
-echo "   This invokes 'nix build' to fetch/build the TIC-80 emulator."
+echo "4. Apply configuration (this builds the e2e-test emulator via Nix)..."
 echo ""
 kyaraben apply
 echo ""
@@ -31,8 +30,7 @@ kyaraben status
 echo ""
 
 echo "6. Verify directory structure was created..."
-# Note: states are per-emulator (states/tic-80), not per-system (states/tic80)
-for dir in roms/tic80 bios/tic80 saves/tic80 screenshots/tic80; do
+for dir in roms/e2e-test bios/e2e-test saves/e2e-test screenshots/e2e-test; do
     if [ -d ~/Emulation/$dir ]; then
         echo "   OK: ~/Emulation/$dir exists"
     else

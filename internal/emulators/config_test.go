@@ -12,7 +12,6 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/retroarch"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbsnes"
 	"github.com/fnune/kyaraben/internal/emulators/rpcs3"
-	"github.com/fnune/kyaraben/internal/emulators/tic80emu"
 	"github.com/fnune/kyaraben/internal/emulators/vita3k"
 	"github.com/fnune/kyaraben/internal/model"
 )
@@ -179,20 +178,6 @@ func collectKeys(entries []model.ConfigEntry) map[string]bool {
 		keys[e.Key()] = true
 	}
 	return keys
-}
-
-func TestTIC80Generate(t *testing.T) {
-	store := &fakeStoreReader{root: "/emulation"}
-	gen := tic80emu.Definition{}.ConfigGenerator()
-
-	patches, err := gen.Generate(store)
-	if err != nil {
-		t.Fatalf("Generate() error = %v", err)
-	}
-
-	if len(patches) != 0 {
-		t.Errorf("expected nil or empty patches for TIC-80, got %d", len(patches))
-	}
 }
 
 func TestMelonDSGenerate(t *testing.T) {
