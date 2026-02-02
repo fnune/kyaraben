@@ -55,7 +55,6 @@ func (pc *ProvisionChecker) checkProvision(prov model.Provision, biosDir string)
 		}
 	}
 
-	// Check if file exists
 	info, err := os.Stat(filePath)
 	if err != nil {
 		if !prov.Required {

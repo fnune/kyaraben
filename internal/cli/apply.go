@@ -47,13 +47,18 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		return err
 	}
 
+	launcherManager, err := launcher.NewManager()
+	if err != nil {
+		return fmt.Errorf("creating launcher manager: %w", err)
+	}
+
 	applier := &apply.Applier{
 		NixClient:       nixClient,
 		FlakeGenerator:  flakeGenerator,
 		ConfigWriter:    configWriter,
 		Registry:        registry,
 		ManifestPath:    manifestPath,
-		LauncherManager: launcher.NewManager(),
+		LauncherManager: launcherManager,
 	}
 
 	fmt.Println("Applying kyaraben configuration...")

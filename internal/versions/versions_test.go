@@ -1,9 +1,17 @@
 package versions
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
+
+func TestMain(m *testing.M) {
+	if err := Init(); err != nil {
+		panic(err)
+	}
+	os.Exit(m.Run())
+}
 
 func TestURLTemplateExpansion(t *testing.T) {
 	v := MustGet()

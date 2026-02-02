@@ -20,13 +20,19 @@ type Manager struct {
 	nixPortableLocation string
 }
 
-func NewManager() *Manager {
-	stateDir, _ := paths.KyarabenStateDir()
-	dataDir, _ := paths.DataDir()
+func NewManager() (*Manager, error) {
+	stateDir, err := paths.KyarabenStateDir()
+	if err != nil {
+		return nil, fmt.Errorf("getting state directory: %w", err)
+	}
+	dataDir, err := paths.DataDir()
+	if err != nil {
+		return nil, fmt.Errorf("getting data directory: %w", err)
+	}
 	return &Manager{
 		profileDir: stateDir,
 		dataDir:    dataDir,
-	}
+	}, nil
 }
 
 func (m *Manager) SetNixPortableBinary(path string) {
