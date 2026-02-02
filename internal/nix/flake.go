@@ -101,12 +101,17 @@ type IconInfo struct {
 
 type GenerationPath string
 
-func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorID) (GenerationPath, error) {
+type GenerateResult struct {
+	Path            GenerationPath
+	SkippedEmulators []model.EmulatorID
+}
+
+func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorID) (*GenerateResult, error) {
 	timestamp := time.Now().Format("2006-01-02T15-04-05")
 	genDir := filepath.Join(baseDir, "generations", timestamp)
 
 	if err := os.MkdirAll(genDir, 0755); err != nil {
-		return "", fmt.Errorf("creating generation directory: %w", err)
+		return nil, fmt.Errorf("creating generation directory: %w", err)
 	}
 
 	v := versions.MustGet()
@@ -117,16 +122,18 @@ func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorI
 	launchers := make([]LauncherTemplateInfo, 0, len(emulatorIDs))
 	icons := make([]IconInfo, 0, len(emulatorIDs))
 	seenIcons := make(map[string]bool)
+	var skippedEmulators []model.EmulatorID
 
 	for _, emuID := range emulatorIDs {
 		emu, err := fg.emulators.GetEmulator(emuID)
 		if err != nil {
-			return "", fmt.Errorf("unknown emulator: %s", emuID)
+			skippedEmulators = append(skippedEmulators, emuID)
+			continue
 		}
 
 		pkg, err := fg.packageInfoFromRef(emu.Package)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		// Only add package once even if multiple emulators share it
@@ -161,13 +168,13 @@ func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorI
 
 	tmpl, err := template.New("flake").Parse(flakeTemplate)
 	if err != nil {
-		return "", fmt.Errorf("parsing template: %w", err)
+		return nil, fmt.Errorf("parsing template: %w", err)
 	}
 
 	flakePath := filepath.Join(genDir, "flake.nix")
 	f, err := os.Create(flakePath)
 	if err != nil {
-		return "", fmt.Errorf("creating flake.nix: %w", err)
+		return nil, fmt.Errorf("creating flake.nix: %w", err)
 	}
 
 	data := struct {
@@ -186,13 +193,16 @@ func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorI
 	closeErr := f.Close()
 
 	if execErr != nil {
-		return "", fmt.Errorf("executing template: %w", execErr)
+		return nil, fmt.Errorf("executing template: %w", execErr)
 	}
 	if closeErr != nil {
-		return "", fmt.Errorf("closing flake.nix: %w", closeErr)
+		return nil, fmt.Errorf("closing flake.nix: %w", closeErr)
 	}
 
-	return GenerationPath(genDir), nil
+	return &GenerateResult{
+		Path:             GenerationPath(genDir),
+		SkippedEmulators: skippedEmulators,
+	}, nil
 }
 
 // getEmulatorVersion returns the version entry and spec for an emulator,

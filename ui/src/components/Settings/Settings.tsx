@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { IconButton } from '@/lib/IconButton'
 import { Input } from '@/lib/Input'
 
@@ -27,6 +27,17 @@ const FolderIcon = (
 
 export function Settings({ userStore, onUserStoreChange, onError }: SettingsProps) {
   const [opening, setOpening] = useState(false)
+  const [folderExists, setFolderExists] = useState(false)
+
+  useEffect(() => {
+    if (!userStore) {
+      setFolderExists(false)
+      return
+    }
+    window.electron.invoke('path_exists', userStore).then((exists) => {
+      setFolderExists(Boolean(exists))
+    })
+  }, [userStore])
 
   const handleOpenFolder = async () => {
     setOpening(true)
@@ -51,8 +62,9 @@ export function Settings({ userStore, onUserStoreChange, onError }: SettingsProp
         </div>
         <IconButton
           icon={FolderIcon}
-          label="Open folder"
+          label={folderExists ? 'Open folder' : 'Folder does not exist'}
           loading={opening}
+          disabled={!folderExists}
           onClick={handleOpenFolder}
         />
       </div>
