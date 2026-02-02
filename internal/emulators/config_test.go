@@ -6,9 +6,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fnune/kyaraben/internal/emulators/dolphin"
 	"github.com/fnune/kyaraben/internal/emulators/duckstation"
 	"github.com/fnune/kyaraben/internal/emulators/flycast"
 	"github.com/fnune/kyaraben/internal/emulators/melonds"
+	"github.com/fnune/kyaraben/internal/emulators/mgba"
 	"github.com/fnune/kyaraben/internal/emulators/retroarch"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbsnes"
 	"github.com/fnune/kyaraben/internal/emulators/rpcs3"
@@ -30,6 +32,10 @@ func (f *fakeStoreReader) SystemBiosDir(sys model.SystemID) string {
 
 func (f *fakeStoreReader) SystemSavesDir(sys model.SystemID) string {
 	return filepath.Join(f.root, "saves", string(sys))
+}
+
+func (f *fakeStoreReader) EmulatorSavesDir(emu model.EmulatorID) string {
+	return filepath.Join(f.root, "saves", string(emu))
 }
 
 func (f *fakeStoreReader) EmulatorStatesDir(emu model.EmulatorID) string {
@@ -248,16 +254,157 @@ func TestFlycastGenerate(t *testing.T) {
 		t.Errorf("expected RelPath to contain 'flycast', got %s", patch.Target.RelPath)
 	}
 
-	foundStorePath := false
+	// Verify Flycast has all required path settings
+	expectedKeys := map[string]bool{
+		"Flycast.DataPath":       false,
+		"Dreamcast.ContentPath":  false,
+		"Dreamcast.SavePath":     false,
+		"SavestatesPath":         false,
+		"ScreenshotsPath":        false,
+	}
+
 	for _, entry := range patch.Entries {
-		if strings.Contains(entry.Value, "/emulation") {
-			foundStorePath = true
-			break
+		if _, ok := expectedKeys[entry.Key()]; ok {
+			expectedKeys[entry.Key()] = true
 		}
 	}
 
-	if !foundStorePath {
-		t.Error("no entry contains the store path")
+	for key, found := range expectedKeys {
+		if !found {
+			t.Errorf("expected key %q not found in entries", key)
+		}
+	}
+}
+
+func TestDolphinGenerate(t *testing.T) {
+	store := &fakeStoreReader{root: "/emulation"}
+	gen := dolphin.Definition{}.ConfigGenerator()
+
+	patches, err := gen.Generate(store)
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	if len(patches) != 1 {
+		t.Fatalf("expected 1 patch, got %d", len(patches))
+	}
+
+	patch := patches[0]
+
+	if patch.Target.Format != model.ConfigFormatINI {
+		t.Errorf("expected INI format, got %s", patch.Target.Format)
+	}
+
+	if !strings.Contains(patch.Target.RelPath, "dolphin-emu") {
+		t.Errorf("expected RelPath to contain 'dolphin-emu', got %s", patch.Target.RelPath)
+	}
+
+	// Verify Dolphin has opaque directory paths for GC/Wii data
+	foundMemcard := false
+	foundNAND := false
+	foundISOPath := false
+	for _, entry := range patch.Entries {
+		if strings.Contains(entry.Key(), "Memcard") {
+			foundMemcard = true
+			if !strings.Contains(entry.Value, "opaque/dolphin") {
+				t.Errorf("Memcard path should use opaque directory, got %s", entry.Value)
+			}
+		}
+		if entry.Key() == "NANDRootPath" {
+			foundNAND = true
+			if !strings.Contains(entry.Value, "opaque/dolphin") {
+				t.Errorf("NANDRootPath should use opaque directory, got %s", entry.Value)
+			}
+		}
+		if entry.Key() == "ISOPath0" {
+			foundISOPath = true
+		}
+	}
+
+	if !foundMemcard {
+		t.Error("expected Memcard path entry not found")
+	}
+	if !foundNAND {
+		t.Error("expected NANDRootPath entry not found")
+	}
+	if !foundISOPath {
+		t.Error("expected ISOPath0 entry not found")
+	}
+}
+
+func TestMGBAGenerate(t *testing.T) {
+	store := &fakeStoreReader{root: "/emulation"}
+	gen := mgba.Definition{}.ConfigGenerator()
+
+	patches, err := gen.Generate(store)
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	if len(patches) != 1 {
+		t.Fatalf("expected 1 patch, got %d", len(patches))
+	}
+
+	patch := patches[0]
+
+	if patch.Target.Format != model.ConfigFormatINI {
+		t.Errorf("expected INI format, got %s", patch.Target.Format)
+	}
+
+	// Verify mGBA has BIOS path configured
+	expectedKeys := map[string]bool{
+		"bios":           false,
+		"savegamePath":   false,
+		"savestatePath":  false,
+		"screenshotPath": false,
+	}
+
+	for _, entry := range patch.Entries {
+		if _, ok := expectedKeys[entry.Key()]; ok {
+			expectedKeys[entry.Key()] = true
+		}
+	}
+
+	for key, found := range expectedKeys {
+		if !found {
+			t.Errorf("expected key %q not found in entries", key)
+		}
+	}
+}
+
+func TestRetroArchPerCoreSaveDirectories(t *testing.T) {
+	store := &fakeStoreReader{root: "/emulation"}
+	gen := retroarchbsnes.Definition{}.ConfigGenerator()
+
+	patches, err := gen.Generate(store)
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	if len(patches) != 2 {
+		t.Fatalf("expected 2 patches (shared + override), got %d", len(patches))
+	}
+
+	// Check the override patch has per-emulator save directory
+	override := patches[1]
+
+	foundSaveDir := false
+	for _, entry := range override.Entries {
+		if entry.Key() == "savefile_directory" {
+			foundSaveDir = true
+			// Should use EmulatorSavesDir (contains emulator ID "retroarch:bsnes"), not SystemSavesDir
+			if !strings.Contains(entry.Value, "retroarch:bsnes") {
+				t.Errorf("savefile_directory should use per-emulator path, got %s", entry.Value)
+			}
+			// Should NOT be system-based (e.g., /saves/snes)
+			if strings.HasSuffix(entry.Value, "/snes") {
+				t.Errorf("savefile_directory should not use system-based path, got %s", entry.Value)
+			}
+		}
+	}
+
+	if !foundSaveDir {
+		t.Error("expected savefile_directory entry not found")
 	}
 }
 
@@ -318,11 +465,13 @@ func TestRPCS3Generate(t *testing.T) {
 		t.Errorf("expected YAML format, got %s", patch.Target.Format)
 	}
 
-	if !strings.Contains(patch.Target.RelPath, "rpcs3") {
-		t.Errorf("expected RelPath to contain 'rpcs3', got %s", patch.Target.RelPath)
+	// RPCS3 uses vfs.yml for Virtual File System path mappings
+	if !strings.Contains(patch.Target.RelPath, "vfs.yml") {
+		t.Errorf("expected RelPath to contain 'vfs.yml', got %s", patch.Target.RelPath)
 	}
 
 	foundEmulatorDir := false
+	foundGamesDir := false
 	for _, entry := range patch.Entries {
 		if strings.Contains(entry.Key(), "EmulatorDir") {
 			foundEmulatorDir = true
@@ -330,10 +479,19 @@ func TestRPCS3Generate(t *testing.T) {
 				t.Errorf("EmulatorDir should contain 'rpcs3', got %s", entry.Value)
 			}
 		}
+		if entry.Key() == "/games/" {
+			foundGamesDir = true
+			if !strings.Contains(entry.Value, "roms/ps3") {
+				t.Errorf("/games/ should point to ps3 roms, got %s", entry.Value)
+			}
+		}
 	}
 
 	if !foundEmulatorDir {
-		t.Error("expected EmulatorDir entry not found")
+		t.Error("expected $(EmulatorDir) entry not found")
+	}
+	if !foundGamesDir {
+		t.Error("expected /games/ entry not found")
 	}
 }
 

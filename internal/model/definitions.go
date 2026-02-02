@@ -4,6 +4,7 @@ type StoreReader interface {
 	BiosDir() string
 	SystemBiosDir(SystemID) string
 	SystemSavesDir(SystemID) string
+	EmulatorSavesDir(EmulatorID) string // Per-emulator saves for cores that need individual sync
 	EmulatorStatesDir(EmulatorID) string
 	SystemScreenshotsDir(SystemID) string
 	SystemRomsDir(SystemID) string
