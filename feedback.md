@@ -1,8 +1,10 @@
 # Feedback
 
-## No installed emulator version display
+## No installed emulator version display (resolved)
 
 We don't show which version of each emulator we've actually installed anywhere: not in the CLI (`kyaraben status`) nor in the electron app UI.
+
+Fixed in 6de53ed (Show emulator version info in CLI and improve frontend UI) and ad97b7b (Fix RetroArch version lookup).
 
 ---
 
@@ -456,3 +458,108 @@ It would be useful to have a programmatic, non-LLM way to check if any emulator 
 3. Provide a quick way to bump versions and remove old versions
 
 This should be a development script (e.g., `scripts/check-versions.go` or a make target) or a CI job that runs periodically and creates PRs when updates are available.
+
+---
+
+## False "update on apply" messages for already-installed versions (resolved)
+
+Both the CLI (`kyaraben status`) and the Electron frontend display "update to vX.Y.Z on apply" for emulators that already have that version installed. Example CLI output:
+
+```
+Managed emulators:
+  Eden                 latest (update to v0.1.1 on apply)
+  Flycast              latest (update to 2.6 on apply)
+  mGBA                 latest (update to 0.10.5 on apply)
+  RetroArch (bsnes)    latest
+  RPCS3                latest (update to 0.0.18-12817-fff0c96b on apply)
+  Azahar               latest (update to 2124.3 on apply)
+  DuckStation          latest (update to v0.1-10655 on apply)
+  melonDS              latest (update to 1.1 on apply)
+  PCSX2                latest (update to v2.6.3 on apply)
+  PPSSPP               latest (update to v1.19.3 on apply)
+  Vita3K               latest (update to 3912 on apply)
+  Cemu                 latest (update to 2.4 on apply)
+  Dolphin              latest (update to 2512 on apply)
+```
+
+All these emulators already have the indicated versions installed. The comparison logic is likely comparing the wrong values, or the installed version isn't being read correctly.
+
+Additionally, displaying "latest" is not useful. The output should show the actual installed version and whether it's pinned. Since most users will use auto-updating, pinned should be the special case:
+- `v0.1.1` for auto-updating emulators (the common case)
+- `v0.1.1 (pinned)` for pinned versions
+
+So the output should look more like:
+```
+Managed emulators:
+  Eden                 v0.1.1
+  Flycast              2.6
+  mGBA                 0.10.5 (pinned)
+  ...
+```
+
+Fixed in 6de53ed (Show emulator version info in CLI and improve frontend UI) and ad97b7b (Fix RetroArch version lookup using package name instead of emulator ID).
+
+---
+
+## Standardize version mode vocabulary across UI and CLI
+
+The UI and CLI should use consistent vocabulary for version modes:
+- Show the actual installed version by default (no "latest" label)
+- Only annotate pinned versions with "(pinned)" since auto-updating is the common case
+- This convention should be applied everywhere: CLI status output, Electron app emulator list, any version-related messaging
+
+---
+
+## Dolphin prompts for autoupdates on launch
+
+Dolphin tries to enable its built-in autoupdate mechanism when it first launches. Since Kyaraben manages emulator updates, we need to preconfigure Dolphin to disable this prompt/feature.
+
+---
+
+## Reconsider flake generations and lock file approach
+
+Each `kyaraben apply` creates a new flake generation directory and a new lock file:
+
+```
+warning: creating lock file '/home/fausto/.local/state/kyaraben/build/flake/generations/2026-02-02T07-55-32/flake.lock'
+```
+
+Questions to consider:
+- Are we keeping these lock files around? It seems like we're just throwing them away.
+- The warning is a bit ugly for users who don't care about nix internals.
+- Should we reconsider the generations system for flake versions?
+
+---
+
+## UI feels frozen during nix flake lock creation
+
+In both the UI and CLI, there's a gap between when "Installing emulators" appears and when nix actually starts producing output (the `warning: creating lock file` message). During this time the interface appears frozen with no indication that work is happening.
+
+The delay occurs because nix is evaluating the flake and creating/updating the lock file before it starts downloading or building anything. This can take several seconds on first run.
+
+We should emit a log message before this phase starts, something like "Resolving package versions..." or "Preparing nix environment...". This would thread through naturally to the UI via the existing log streaming.
+
+---
+
+## Emulator health check for `kyaraben doctor`
+
+Similar to the version checking script, it would be useful to have a way to quickly verify that installed emulators are actually working. This could be part of `kyaraben doctor`.
+
+Challenges:
+- Not all emulators support `--version` or `--help` flags (e.g., flycast, eden just launch the GUI)
+- Spawning a bunch of GUI windows on the user's machine is disruptive
+
+Possible approaches:
+1. For emulators with `--version`/`--help` flags, use those (retroarch, duckstation, pcsx2, ppsspp, mgba, melonds, azahar, dolphin, cemu, vita3k, rpcs3)
+2. For others, check that the binary exists and is executable
+3. Could also verify the wrapper script points to a valid store path
+4. Run `file` on the binary to ensure it's a valid ELF executable
+5. For AppImages, could use `--appimage-extract --appimage-offset` to verify integrity without mounting
+
+The goal is to catch issues like:
+- Broken wrapper scripts (the melonds/vita3k `nix shell` issue)
+- Missing binaries
+- Corrupted downloads
+- FUSE/permissions issues
+
+This would complement the existing version check script by verifying runtime health rather than just version currency.
