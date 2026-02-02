@@ -33,40 +33,41 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 	return &Config{}
 }
 
-var configTarget = model.ConfigTarget{
-	RelPath: "dolphin-emu/Dolphin.ini",
-	Format:  model.ConfigFormatINI,
-	BaseDir: model.ConfigBaseDirUserConfig,
-}
-
 type Config struct{}
 
+// LaunchArgs implements model.LaunchArgsProvider.
+// Dolphin's -u flag sets the user directory, which contains config, saves, and state.
+// This avoids conflicts with system-wide Dolphin installations and allows kyaraben
+// to fully manage Dolphin's data within the opaque directory.
+func (c *Config) LaunchArgs(store model.StoreReader) []string {
+	return []string{"-u", store.EmulatorOpaqueDir(model.EmulatorIDDolphin)}
+}
+
 func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	// Dolphin stores saves in GC memory cards and Wii NAND, both within its data directory.
-	// We use an opaque directory pattern since this structure is complex and tightly coupled.
-	// See: https://dolphin-emu.org/docs/guides/
+	// With -u flag, Dolphin stores everything in the user directory:
+	// - Config at <user_dir>/Config/Dolphin.ini
+	// - GC saves at <user_dir>/GC/
+	// - Wii NAND at <user_dir>/Wii/
+	// - Screenshots at <user_dir>/ScreenShots/
+	//
+	// We only need to configure ROM paths and screenshot location.
 	opaqueDir := store.EmulatorOpaqueDir(model.EmulatorIDDolphin)
+
+	configTarget := model.ConfigTarget{
+		RelPath: filepath.Join(opaqueDir, "Config", "Dolphin.ini"),
+		Format:  model.ConfigFormatINI,
+		BaseDir: model.ConfigBaseDirAbsolute,
+	}
 
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
-			// ROM paths
+			// ROM paths for the file browser
 			{Path: []string{"General", "ISOPath0"}, Value: store.SystemRomsDir(model.SystemIDGameCube)},
 			{Path: []string{"General", "ISOPath1"}, Value: store.SystemRomsDir(model.SystemIDWii)},
 			{Path: []string{"General", "ISOPaths"}, Value: "2"},
 
-			// GC memory cards - Slot A for GameCube saves
-			// Uses per-game memory cards for better organization
-			{Path: []string{"Core", "MemcardAPath"}, Value: filepath.Join(opaqueDir, "GC", "MemoryCardA.USA.raw")},
-			{Path: []string{"Core", "MemcardBPath"}, Value: filepath.Join(opaqueDir, "GC", "MemoryCardB.USA.raw")},
-			{Path: []string{"Core", "GCIFolderAPathOverride"}, Value: filepath.Join(opaqueDir, "GC", "USA", "Card A")},
-			{Path: []string{"Core", "GCIFolderBPathOverride"}, Value: filepath.Join(opaqueDir, "GC", "USA", "Card B")},
-
-			// Wii NAND and SD card paths
-			{Path: []string{"General", "NANDRootPath"}, Value: filepath.Join(opaqueDir, "Wii")},
-			{Path: []string{"General", "WiiSDCardPath"}, Value: filepath.Join(opaqueDir, "Wii", "sd.raw")},
-
-			// Dump paths (screenshots, etc.)
+			// Screenshots go to system screenshots directory
 			{Path: []string{"General", "DumpPath"}, Value: store.SystemScreenshotsDir(model.SystemIDGameCube)},
 		},
 	}}, nil
