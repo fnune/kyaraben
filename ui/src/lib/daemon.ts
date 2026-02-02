@@ -1,4 +1,5 @@
 import type {
+  BugReportInfo,
   ConfigResponse,
   DoctorResponse,
   InstallStatus,
@@ -61,3 +62,5 @@ export const removeSyncDevice = (req: SyncRemoveDeviceRequest) =>
   invoke<SyncRemoveDeviceResponse>('sync_remove_device', req)
 
 export const getUninstallPreview = () => invoke<UninstallPreviewResponse>('uninstall_preview')
+
+export const getBugReportInfo = () => invoke<BugReportInfo>('get_bug_report_info')

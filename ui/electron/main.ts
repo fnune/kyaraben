@@ -402,6 +402,47 @@ Categories=Game;Emulator;
       : pathToCheck
     return fs.existsSync(expandedPath)
   })
+
+  ipcMain.handle('get_bug_report_info', async () => {
+    const os = require('node:os')
+    const fs = require('node:fs')
+    const stateDir = path.join(os.homedir(), '.local', 'state', 'kyaraben')
+
+    const stateInfo = {
+      exists: false,
+      manifestExists: false,
+      flakeExists: false,
+      brokenSymlinks: [] as string[],
+    }
+
+    if (fs.existsSync(stateDir)) {
+      stateInfo.exists = true
+      stateInfo.manifestExists = fs.existsSync(path.join(stateDir, 'build', 'manifest.json'))
+      stateInfo.flakeExists = fs.existsSync(path.join(stateDir, 'build', 'flake'))
+
+      for (const subdir of ['bin', 'desktop', 'icons']) {
+        const dir = path.join(stateDir, subdir)
+        if (fs.existsSync(dir)) {
+          for (const entry of fs.readdirSync(dir)) {
+            const fullPath = path.join(dir, entry)
+            try {
+              fs.statSync(fullPath)
+            } catch {
+              stateInfo.brokenSymlinks.push(path.join(subdir, entry))
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      appVersion: app.getVersion(),
+      platform: process.platform,
+      arch: process.arch,
+      osRelease: os.release(),
+      stateDir: stateInfo,
+    }
+  })
 }
 
 // Window creation
