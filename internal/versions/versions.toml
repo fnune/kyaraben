@@ -275,12 +275,12 @@ sha256 = "sha256-upuvtFJ7u3JHxrRg2/nuOauiTGy2nCLpsCH3iG60Cx8="
 
 [retroarch]
 url_template = "https://buildbot.libretro.com/stable/{version}/linux/{target}/RetroArch.7z"
-default = "1.19.1"
+default = "1.22.2"
 icon_url = "https://raw.githubusercontent.com/libretro/RetroArch/bed2dc3b6cb35173f79e19bbb91a5f9436803f13/media/ico_src/icon.svg"
 icon_sha256 = "sha256-rsb78xEhAOOnBxZbofDFs0O8hiMB2B6SM0kJMK0QJYM="
 
-[retroarch."1.19.1".targets.x86_64]
+[retroarch."1.22.2".targets.x86_64]
 arch = "x86_64"
-sha256 = "sha256-+Y6VTpmu97SxozNNcQhWuZfD+XxUUdM6+eXIi/YyE/g="
+sha256 = "sha256-fWLamiE5fW4blJB4XO2+r9JieBtQEVB2c2++infvMOk="
 binary_path = "RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage"
 
