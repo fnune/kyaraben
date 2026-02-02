@@ -331,6 +331,11 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	}
 
 	for i, patch := range allPatches {
+		// Skip tracking for untracked patches (configs inside opaque dirs)
+		if patch.Untracked {
+			continue
+		}
+
 		managedKeys := make([]model.ManagedKey, len(patch.Entries))
 		for j, entry := range patch.Entries {
 			managedKeys[j] = model.ManagedKey(entry)

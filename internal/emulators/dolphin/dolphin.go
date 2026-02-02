@@ -70,5 +70,7 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 			// Screenshots go to system screenshots directory
 			{Path: []string{"General", "DumpPath"}, Value: store.SystemScreenshotsDir(model.SystemIDGameCube)},
 		},
+		// Config lives inside opaque dir (via -u flag), so don't track in manifest
+		Untracked: true,
 	}}, nil
 }
