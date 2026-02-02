@@ -44,10 +44,10 @@ function NavItem({ label, active, onClick, indicator }: NavItemProps) {
     <button
       type="button"
       onClick={onClick}
-      className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${
+      className={`px-4 py-2 text-sm flex items-center gap-2 ${
         active
-          ? 'bg-blue-50 text-blue-700 border-l-2 border-blue-600'
-          : 'text-gray-700 hover:bg-gray-100 border-l-2 border-transparent'
+          ? 'bg-blue-50 text-blue-700 min-[720px]:border-l-2 min-[720px]:border-blue-600 max-[719px]:border-b-2 max-[719px]:border-blue-600'
+          : 'text-gray-700 hover:bg-gray-100 min-[720px]:border-l-2 max-[719px]:border-b-2 border-transparent'
       }`}
     >
       <span>{label}</span>
@@ -62,12 +62,12 @@ export function Sidebar({ currentView, onNavigate, syncStatus }: SidebarProps) {
   const syncDotColor = syncDotColors[syncState]
 
   return (
-    <aside className="w-56 bg-gray-50 border-r border-gray-200 flex flex-col">
-      <div className="p-4 border-b border-gray-200">
+    <aside className="bg-gray-50 border-b min-[720px]:border-b-0 min-[720px]:border-r border-gray-200 flex flex-row min-[720px]:flex-col min-[720px]:w-56">
+      <div className="p-4 border-r min-[720px]:border-r-0 min-[720px]:border-b border-gray-200">
         <h1 className="text-lg font-semibold text-gray-900">Kyaraben</h1>
       </div>
 
-      <nav className="flex-1 py-2">
+      <nav className="flex-1 flex flex-row min-[720px]:flex-col min-[720px]:py-2">
         <NavItem
           label="Systems"
           active={currentView === 'systems'}
@@ -86,7 +86,7 @@ export function Sidebar({ currentView, onNavigate, syncStatus }: SidebarProps) {
         />
       </nav>
 
-      <div className="p-4 border-t border-gray-200">
+      <div className="hidden min-[720px]:block p-4 border-t border-gray-200">
         <div className="flex items-center justify-between">
           <span className="text-xs text-gray-400">v0.1.0</span>
           <button

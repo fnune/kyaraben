@@ -15,7 +15,7 @@ func (Definition) Emulator() model.Emulator {
 				ID:          "gba-bios",
 				Kind:        model.ProvisionBIOS,
 				Filename:    "gba_bios.bin",
-				Description: "Game Boy Advance BIOS",
+				Description: "BIOS",
 				Required:    false, // mGBA has HLE, BIOS is optional
 				MD5Hash:     "a860e8c0b6d573d191e4ec7db1b1e4f6",
 			},
