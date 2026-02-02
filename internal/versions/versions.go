@@ -26,6 +26,8 @@ type EmulatorSpec struct {
 	URLTemplate string                  // URL template with {version}, {target}, {release_tag}, {arch} placeholders
 	BinaryPath  string                  // Default binary path for archives
 	Default     string                  // Default version string
+	IconURL     string                  // URL to download icon from
+	IconSHA256  string                  // SHA256 hash of icon
 	Versions    map[string]VersionEntry // Map of version string to entry
 }
 
@@ -252,12 +254,20 @@ func parseEmulatorSpec(raw map[string]interface{}) (EmulatorSpec, error) {
 	if v, ok := raw["default"].(string); ok {
 		spec.Default = v
 	}
+	if v, ok := raw["icon_url"].(string); ok {
+		spec.IconURL = v
+	}
+	if v, ok := raw["icon_sha256"].(string); ok {
+		spec.IconSHA256 = v
+	}
 
 	// Everything else is a version entry
 	knownKeys := map[string]bool{
 		"url_template": true,
 		"binary_path":  true,
 		"default":      true,
+		"icon_url":     true,
+		"icon_sha256":  true,
 	}
 
 	for key, value := range raw {

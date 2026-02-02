@@ -54,12 +54,27 @@ const flakeTemplate = `{
 {{- range .Packages }}
         {{ .Name }} = {{ .Expr }};
 {{- end }}
+{{- if .Icons }}
+
+        icons = pkgs.runCommand "kyaraben-icons" {} ''
+          mkdir -p $out/share/icons
+{{- range .Icons }}
+          install -m644 ${pkgs.fetchurl {
+            url = "{{ .URL }}";
+            sha256 = "{{ .SHA256 }}";
+          }} $out/share/icons/{{ .Filename }}
+{{- end }}
+        '';
+{{- end }}
 
         default = pkgs.symlinkJoin {
           name = "kyaraben-profile";
           paths = [
 {{- range .Launchers }}
             self.packages.${system}.{{ .Package }}
+{{- end }}
+{{- if .Icons }}
+            self.packages.${system}.icons
 {{- end }}
           ];
         };
@@ -75,6 +90,13 @@ type PackageInfo struct {
 
 type LauncherTemplateInfo struct {
 	Package string
+}
+
+type IconInfo struct {
+	Name     string // emulator name (e.g., "eden")
+	URL      string
+	SHA256   string
+	Filename string // e.g., "eden.png" or "eden.svg"
 }
 
 type GenerationPath string
@@ -93,6 +115,8 @@ func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorI
 	seenPackages := make(map[string]bool)
 	seenBinaries := make(map[string]bool)
 	launchers := make([]LauncherTemplateInfo, 0, len(emulatorIDs))
+	icons := make([]IconInfo, 0, len(emulatorIDs))
+	seenIcons := make(map[string]bool)
 
 	for _, emuID := range emulatorIDs {
 		emu, err := fg.emulators.GetEmulator(emuID)
@@ -117,6 +141,21 @@ func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorI
 				Package: pkg.Name,
 			})
 		}
+
+		// Collect icon for this emulator's package
+		if !seenIcons[pkg.Name] {
+			spec, ok := v.GetEmulator(pkg.Name)
+			if ok && spec.IconURL != "" && spec.IconSHA256 != "" {
+				seenIcons[pkg.Name] = true
+				ext := filepath.Ext(spec.IconURL)
+				icons = append(icons, IconInfo{
+					Name:     pkg.Name,
+					URL:      spec.IconURL,
+					SHA256:   spec.IconSHA256,
+					Filename: pkg.Name + ext,
+				})
+			}
+		}
 	}
 
 	tmpl, err := template.New("flake").Parse(flakeTemplate)
@@ -134,10 +173,12 @@ func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorI
 		NixpkgsCommit string
 		Packages      []PackageInfo
 		Launchers     []LauncherTemplateInfo
+		Icons         []IconInfo
 	}{
 		NixpkgsCommit: v.Nixpkgs.Commit,
 		Packages:      packages,
 		Launchers:     launchers,
+		Icons:         icons,
 	}
 
 	execErr := tmpl.Execute(f, data)
