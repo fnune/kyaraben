@@ -23,7 +23,10 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 	}
 	flakeGenerator := nix.NewFlakeGenerator(registry)
 	configWriter := emulators.NewConfigWriter()
-	launcherManager := launcher.NewManager()
+	launcherManager, err := launcher.NewManager()
+	if err != nil {
+		return fmt.Errorf("creating launcher manager: %w", err)
+	}
 
 	d := daemon.New(ctx.ConfigPath, registry, nixClient, flakeGenerator, configWriter, launcherManager)
 
