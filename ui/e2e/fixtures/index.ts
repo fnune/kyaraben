@@ -1,15 +1,20 @@
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
-import type { EmulatorID, SystemID } from '../../src/types/model.gen'
-import {
-  EmulatorIDDuckStation,
-  EmulatorIDMGBA,
-  EmulatorIDRetroArchBsnes,
-  SystemIDGBA,
-  SystemIDPSX,
-  SystemIDSNES,
-} from '../../src/types/model.gen'
+
+export const SystemIDSNES = 'snes' as const
+export const SystemIDGBA = 'gba' as const
+export const SystemIDPSX = 'psx' as const
+export const EmulatorIDRetroArchBsnes = 'retroarch:bsnes' as const
+export const EmulatorIDMGBA = 'mgba' as const
+export const EmulatorIDDuckStation = 'duckstation' as const
+
+export type SystemID = typeof SystemIDSNES | typeof SystemIDGBA | typeof SystemIDPSX | string
+export type EmulatorID =
+  | typeof EmulatorIDRetroArchBsnes
+  | typeof EmulatorIDMGBA
+  | typeof EmulatorIDDuckStation
+  | string
 
 export interface TestFixture {
   configDir: string
