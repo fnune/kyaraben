@@ -4,20 +4,29 @@ import type { Manufacturer } from '@/types/model.gen'
 import { MANUFACTURER_ORDER } from '@/types/ui'
 
 const SYSTEM_RELEASE_YEAR: Record<SystemID, number> = {
+  // Nintendo
+  nes: 1983,
   snes: 1990,
-  psx: 1994,
-  dreamcast: 1998,
-  ps2: 2000,
+  n64: 1996,
+  gb: 1989,
+  gbc: 1998,
   gba: 2001,
-  gamecube: 2001,
   nds: 2004,
-  psp: 2004,
-  ps3: 2006,
-  wii: 2006,
   '3ds': 2011,
-  psvita: 2011,
+  gamecube: 2001,
+  wii: 2006,
   wiiu: 2012,
   switch: 2017,
+  // Sony
+  psx: 1994,
+  ps2: 2000,
+  ps3: 2006,
+  psp: 2004,
+  psvita: 2011,
+  // Sega
+  genesis: 1988,
+  saturn: 1994,
+  dreamcast: 1998,
 }
 
 export interface SystemListProps {
