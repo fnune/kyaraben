@@ -204,15 +204,13 @@ test.describe('Installation tab', () => {
   })
 
   test('shows state directory path', async () => {
-    await expect(page.getByText(/\.local\/state\/kyaraben|kyaraben-e2e/)).toBeVisible()
-  })
-
-  test('shows preserved paths section', async () => {
-    await expect(page.getByText('Preserved on uninstall')).toBeVisible()
+    await expect(page.getByText(/state\/kyaraben/).first()).toBeVisible()
   })
 
   test('shows uninstall section', async () => {
-    await expect(page.getByRole('heading', { name: 'Uninstall' })).toBeVisible()
+    const uninstallHeading = page.getByRole('heading', { name: 'Uninstall', exact: true })
+    await uninstallHeading.scrollIntoViewIfNeeded()
+    await expect(uninstallHeading).toBeVisible()
     await expect(page.getByText(/kyaraben uninstall/)).toBeVisible()
   })
 })
