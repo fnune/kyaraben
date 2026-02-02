@@ -17,7 +17,7 @@ func (Definition) Emulator() model.Emulator {
 			model.StateScreenshots,
 		},
 		Launcher: model.LauncherInfo{
-			Binary:      "Vita3K",
+			Binary:      "vita3k",
 			GenericName: "PlayStation Vita Emulator",
 			Categories:  []string{"Game", "Emulator"},
 		},
