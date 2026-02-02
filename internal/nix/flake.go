@@ -428,3 +428,21 @@ func (fg *FlakeGenerator) DefaultFlakeRef(flakeDir string) string {
 	absPath, _ := filepath.Abs(flakeDir)
 	return absPath
 }
+
+func (fg *FlakeGenerator) GetResolvedVersions(emulatorIDs []model.EmulatorID) map[model.EmulatorID]string {
+	result := make(map[model.EmulatorID]string)
+	for _, emuID := range emulatorIDs {
+		emu, err := fg.emulators.GetEmulator(emuID)
+		if err != nil {
+			continue
+		}
+		if pkg, ok := emu.Package.(model.VersionedAppImage); ok {
+			entry, _, err := fg.getEmulatorVersion(pkg.Name)
+			if err != nil {
+				continue
+			}
+			result[emuID] = entry.Version
+		}
+	}
+	return result
+}
