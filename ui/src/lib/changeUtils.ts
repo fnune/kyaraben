@@ -1,44 +1,20 @@
+import * as semver from 'semver'
+
 export type ChangeType = 'install' | 'remove' | 'upgrade' | 'downgrade' | null
 
-function compareSemver(a: string, b: string): number {
-  const partsA = a.split('.').map((p) => parseInt(p, 10))
-  const partsB = b.split('.').map((p) => parseInt(p, 10))
-
-  if (partsA.some(Number.isNaN) || partsB.some(Number.isNaN)) {
-    return NaN
-  }
-
-  const maxLen = Math.max(partsA.length, partsB.length)
-  for (let i = 0; i < maxLen; i++) {
-    const numA = partsA[i] ?? 0
-    const numB = partsB[i] ?? 0
-    if (numA !== numB) {
-      return numA - numB
-    }
-  }
-  return 0
-}
-
-function compareInt(a: string, b: string): number {
-  const numA = parseInt(a, 10)
-  const numB = parseInt(b, 10)
-  if (Number.isNaN(numA) || Number.isNaN(numB)) {
-    return NaN
-  }
-  return numA - numB
-}
-
 function compareVersions(installed: string, declared: string): 'upgrade' | 'downgrade' {
-  // Try semver comparison (e.g., "1.2.3" vs "1.3.0")
-  const semverResult = compareSemver(declared, installed)
-  if (!Number.isNaN(semverResult)) {
-    return semverResult > 0 ? 'upgrade' : 'downgrade'
+  // Try semver comparison (handles "1.2.3", "1.2.3-beta.1", etc.)
+  const semverInstalled = semver.valid(semver.coerce(installed))
+  const semverDeclared = semver.valid(semver.coerce(declared))
+  if (semverInstalled && semverDeclared) {
+    return semver.gt(semverDeclared, semverInstalled) ? 'upgrade' : 'downgrade'
   }
 
   // Try integer comparison (e.g., "24" vs "25")
-  const intResult = compareInt(declared, installed)
-  if (!Number.isNaN(intResult)) {
-    return intResult > 0 ? 'upgrade' : 'downgrade'
+  const numInstalled = parseInt(installed, 10)
+  const numDeclared = parseInt(declared, 10)
+  if (!Number.isNaN(numInstalled) && !Number.isNaN(numDeclared)) {
+    return numDeclared > numInstalled ? 'upgrade' : 'downgrade'
   }
 
   // Fall back to string comparison
