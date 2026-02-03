@@ -7,7 +7,7 @@ import { SystemsView } from '@/components/SystemsView/SystemsView'
 import { ApplyProvider, useApply } from '@/lib/ApplyContext'
 import { BottomBarSlot, BottomBarSlotProvider } from '@/lib/BottomBarSlot'
 import * as daemon from '@/lib/daemon'
-import { ToastProvider } from '@/lib/ToastContext'
+import { ToastProvider, useToast } from '@/lib/ToastContext'
 import type {
   DoctorResponse,
   EmulatorID,
@@ -32,6 +32,7 @@ function AppContent() {
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null)
 
   const { onCompleteRef } = useApply()
+  const { showToast } = useToast()
 
   const refreshAfterApply = useCallback(async () => {
     const [doctorResult, statusResult] = await Promise.all([daemon.runDoctor(), daemon.getStatus()])
@@ -114,6 +115,22 @@ function AppContent() {
         setInstalledVersions(versions)
         setInstalledExecLines(execLines)
         setManagedConfigs(configs)
+
+        if (statusResult.data.healthWarning === 'orphaned_artifacts') {
+          showToast(
+            <span>
+              Installation state may be corrupted.{' '}
+              <button
+                type="button"
+                className="underline hover:no-underline"
+                onClick={() => setCurrentView('installation')}
+              >
+                See details
+              </button>
+            </span>,
+            'error',
+          )
+        }
       }
 
       const [doctorResult, syncResult] = await Promise.all([
@@ -131,7 +148,7 @@ function AppContent() {
     }
 
     init()
-  }, [])
+  }, [showToast])
 
   const handleEmulatorToggle = useCallback(
     (emulatorId: EmulatorID, enabled: boolean) => {
