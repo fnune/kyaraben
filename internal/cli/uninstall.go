@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 
+	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/paths"
 )
@@ -179,7 +178,8 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 	}
 
 	homeDir, _ := os.UserHomeDir()
-	refreshIconCaches(homeDir)
+	iconsDir := filepath.Join(homeDir, ".local", "share", "icons", "hicolor")
+	launcher.UpdateIconCaches(iconsDir)
 
 	fmt.Println()
 	fmt.Println("Done. Kyaraben files have been removed.")
@@ -220,24 +220,3 @@ func forceRemoveAll(path string) error {
 	return os.RemoveAll(path)
 }
 
-func refreshIconCaches(homeDir string) {
-	iconsDir := filepath.Join(homeDir, ".local", "share", "icons", "hicolor")
-
-	runWithTimeout := func(name string, args ...string) {
-		cmd := exec.Command(name, args...)
-		if err := cmd.Start(); err != nil {
-			return
-		}
-		done := make(chan error)
-		go func() { done <- cmd.Wait() }()
-		select {
-		case <-done:
-		case <-time.After(5 * time.Second):
-			_ = cmd.Process.Kill()
-		}
-	}
-
-	runWithTimeout("gtk-update-icon-cache", "-f", "-t", iconsDir)
-	runWithTimeout("kbuildsycoca6")
-	runWithTimeout("kbuildsycoca5")
-}
