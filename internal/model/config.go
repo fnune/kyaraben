@@ -10,10 +10,10 @@ import (
 
 // KyarabenConfig represents the user's kyaraben configuration.
 type KyarabenConfig struct {
-	Global    GlobalConfig                 `toml:"global"`
-	Sync      SyncConfig                   `toml:"sync"`
-	Systems   map[SystemID][]EmulatorID    `toml:"systems"`
-	Emulators map[EmulatorID]EmulatorConf  `toml:"emulators,omitempty"`
+	Global    GlobalConfig                `toml:"global"`
+	Sync      SyncConfig                  `toml:"sync"`
+	Systems   map[SystemID][]EmulatorID   `toml:"systems"`
+	Emulators map[EmulatorID]EmulatorConf `toml:"emulators,omitempty"`
 }
 
 // GlobalConfig holds global settings.

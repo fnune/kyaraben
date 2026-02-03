@@ -1,4 +1,4 @@
-import { SystemRow, EmulatorRow } from '@/components/SystemRow/SystemRow'
+import { EmulatorRow, SystemRow } from '@/components/SystemRow/SystemRow'
 import type { DoctorResponse, EmulatorID, System, SystemID } from '@/types/daemon'
 import type { Manufacturer } from '@/types/model.gen'
 import { MANUFACTURER_ORDER } from '@/types/ui'
