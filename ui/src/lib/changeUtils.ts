@@ -1,5 +1,50 @@
 export type ChangeType = 'install' | 'remove' | 'upgrade' | 'downgrade' | null
 
+function compareSemver(a: string, b: string): number {
+  const partsA = a.split('.').map((p) => parseInt(p, 10))
+  const partsB = b.split('.').map((p) => parseInt(p, 10))
+
+  if (partsA.some(Number.isNaN) || partsB.some(Number.isNaN)) {
+    return NaN
+  }
+
+  const maxLen = Math.max(partsA.length, partsB.length)
+  for (let i = 0; i < maxLen; i++) {
+    const numA = partsA[i] ?? 0
+    const numB = partsB[i] ?? 0
+    if (numA !== numB) {
+      return numA - numB
+    }
+  }
+  return 0
+}
+
+function compareInt(a: string, b: string): number {
+  const numA = parseInt(a, 10)
+  const numB = parseInt(b, 10)
+  if (Number.isNaN(numA) || Number.isNaN(numB)) {
+    return NaN
+  }
+  return numA - numB
+}
+
+function compareVersions(installed: string, declared: string): 'upgrade' | 'downgrade' {
+  // Try semver comparison (e.g., "1.2.3" vs "1.3.0")
+  const semverResult = compareSemver(declared, installed)
+  if (!Number.isNaN(semverResult)) {
+    return semverResult > 0 ? 'upgrade' : 'downgrade'
+  }
+
+  // Try integer comparison (e.g., "24" vs "25")
+  const intResult = compareInt(declared, installed)
+  if (!Number.isNaN(intResult)) {
+    return intResult > 0 ? 'upgrade' : 'downgrade'
+  }
+
+  // Fall back to string comparison
+  return declared > installed ? 'upgrade' : 'downgrade'
+}
+
 export interface ChangeTypeConfig {
   readonly label: string
   readonly icon: string
@@ -69,8 +114,8 @@ export function getChangeType(
       }
     }
 
-    // Fallback: assume upgrade if we can't determine
-    return 'upgrade'
+    // Fallback: compare versions directly
+    return compareVersions(installedVersion, declaredVersion)
   }
 
   // No change

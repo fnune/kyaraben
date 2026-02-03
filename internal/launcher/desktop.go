@@ -120,14 +120,24 @@ func (m *Manager) RemoveDesktopFiles(files *GeneratedFiles) {
 	}
 }
 
-func (m *Manager) updateIconCache() {
-	themeDir := m.iconThemeDir()
+func (m *Manager) updateIconCache() []string {
+	return UpdateIconCaches(m.iconThemeDir())
+}
+
+func (m *Manager) RefreshIconCaches() []string {
+	return UpdateIconCaches(m.iconThemeDir())
+}
+
+func UpdateIconCaches(themeDir string) []string {
+	var refreshed []string
 
 	// GTK-based DEs (GNOME, XFCE, etc.)
 	if _, err := exec.LookPath("gtk-update-icon-cache"); err == nil {
 		cmd := exec.Command("gtk-update-icon-cache", "-f", "-t", themeDir)
 		if err := cmd.Run(); err != nil {
 			log.Debug("gtk-update-icon-cache failed: %v", err)
+		} else {
+			refreshed = append(refreshed, "gtk-update-icon-cache")
 		}
 	}
 
@@ -137,10 +147,14 @@ func (m *Manager) updateIconCache() {
 			cmd := exec.Command(kbuildsycoca)
 			if err := cmd.Run(); err != nil {
 				log.Debug("%s failed: %v", kbuildsycoca, err)
+			} else {
+				refreshed = append(refreshed, kbuildsycoca)
 			}
 			break
 		}
 	}
+
+	return refreshed
 }
 
 func (m *Manager) virtualToRealStorePath(virtualPath string) string {
