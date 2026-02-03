@@ -1,4 +1,4 @@
-import { SystemRow } from '@/components/SystemRow/SystemRow'
+import { SystemRow, EmulatorRow } from '@/components/SystemRow/SystemRow'
 import type { DoctorResponse, EmulatorID, System, SystemID } from '@/types/daemon'
 import type { Manufacturer } from '@/types/model.gen'
 import { MANUFACTURER_ORDER } from '@/types/ui'
@@ -31,14 +31,14 @@ const SYSTEM_RELEASE_YEAR: Record<SystemID, number> = {
 
 export interface SystemListProps {
   readonly systems: readonly System[]
-  readonly selections: ReadonlyMap<SystemID, EmulatorID>
-  readonly versionSelections: ReadonlyMap<SystemID, string | null>
+  readonly systemEmulators: ReadonlyMap<SystemID, EmulatorID[]>
+  readonly emulatorVersions: ReadonlyMap<EmulatorID, string | null>
   readonly installedVersions: ReadonlyMap<EmulatorID, string>
   readonly provisions: DoctorResponse
   readonly userStore: string
   readonly onToggle: (systemId: SystemID, enabled: boolean) => void
-  readonly onEmulatorChange: (systemId: SystemID, emulatorId: EmulatorID) => void
-  readonly onVersionChange: (systemId: SystemID, version: string | null) => void
+  readonly onEmulatorToggle: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
+  readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
 }
 
 function groupByManufacturer(systems: readonly System[]): Map<Manufacturer, System[]> {
@@ -71,7 +71,7 @@ function getPackageName(emulatorId: EmulatorID): string {
 
 function getEmulatorSharingInfo(
   systems: readonly System[],
-  selections: ReadonlyMap<SystemID, EmulatorID>,
+  systemEmulators: ReadonlyMap<SystemID, EmulatorID[]>,
   installedVersions: ReadonlyMap<EmulatorID, string>,
   currentSystemId: SystemID,
   currentEmulatorId: EmulatorID | null,
@@ -87,17 +87,20 @@ function getEmulatorSharingInfo(
   for (const system of systems) {
     if (system.id === currentSystemId) continue
 
-    const selectedEmulator = selections.get(system.id)
-    if (!selectedEmulator) continue
+    const emulators = systemEmulators.get(system.id)
+    if (!emulators) continue
 
-    const selectedPackage = getPackageName(selectedEmulator)
-    if (selectedPackage === currentPackage) {
-      sharedWith.push(system.label)
-      for (const [installedId] of installedVersions) {
-        if (getPackageName(installedId) === currentPackage) {
-          installedFor.push(system.label)
-          break
+    for (const selectedEmulator of emulators) {
+      const selectedPackage = getPackageName(selectedEmulator)
+      if (selectedPackage === currentPackage) {
+        sharedWith.push(system.label)
+        for (const [installedId] of installedVersions) {
+          if (getPackageName(installedId) === currentPackage) {
+            installedFor.push(system.label)
+            break
+          }
         }
+        break
       }
     }
   }
@@ -107,13 +110,13 @@ function getEmulatorSharingInfo(
 
 export function SystemList({
   systems,
-  selections,
-  versionSelections,
+  systemEmulators,
+  emulatorVersions,
   installedVersions,
   provisions,
   userStore,
   onToggle,
-  onEmulatorChange,
+  onEmulatorToggle,
   onVersionChange,
 }: SystemListProps) {
   const grouped = groupByManufacturer(systems)
@@ -133,16 +136,71 @@ export function SystemList({
             </h2>
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               {manufacturerSystems.map((system) => {
-                const selectedEmulator = selections.get(system.id) ?? null
+                const enabledEmulators = systemEmulators.get(system.id) ?? []
+                const isEnabled = enabledEmulators.length > 0
+                const hasMultipleEmulators = enabledEmulators.length > 1
+
+                if (hasMultipleEmulators) {
+                  // Parent row with system + child rows for each emulator
+                  return (
+                    <div key={system.id}>
+                      <SystemRow
+                        system={system}
+                        enabled={isEnabled}
+                        isParentRow={true}
+                        provisions={provisions[system.id] ?? []}
+                        userStore={userStore}
+                        onToggle={onToggle}
+                      />
+                      {enabledEmulators.map((emulatorId, index) => {
+                        const emulator = system.emulators.find((e) => e.id === emulatorId)
+                        if (!emulator) return null
+
+                        const pinnedVersion = emulatorVersions.get(emulatorId) ?? null
+                        const installedVersion = installedVersions.get(emulatorId) ?? null
+
+                        const { sharedWith, installedFor } = getEmulatorSharingInfo(
+                          systems,
+                          systemEmulators,
+                          installedVersions,
+                          system.id,
+                          emulatorId,
+                        )
+
+                        return (
+                          <EmulatorRow
+                            key={emulatorId}
+                            systemId={system.id}
+                            emulator={emulator}
+                            pinnedVersion={pinnedVersion}
+                            installedVersion={installedVersion}
+                            enabled={true}
+                            isLast={index === enabledEmulators.length - 1}
+                            emulatorSharedWith={sharedWith}
+                            emulatorInstalledFor={installedFor}
+                            onToggle={(sysId, emuId, enabled) => onEmulatorToggle(sysId, emuId, enabled)}
+                            onVersionChange={onVersionChange}
+                          />
+                        )
+                      })}
+                    </div>
+                  )
+                }
+
+                // Single row (original behavior) - either disabled or single emulator enabled
+                const selectedEmulator = enabledEmulators[0] ?? null
                 const effectiveEmulator = selectedEmulator ?? system.emulators[0]?.id ?? null
                 const installedEmulator = system.emulators.find((e) => installedVersions.has(e.id))
                 const installedVersion = installedEmulator
                   ? (installedVersions.get(installedEmulator.id) ?? null)
                   : null
+                const pinnedVersion = effectiveEmulator
+                  ? (emulatorVersions.get(effectiveEmulator) ?? null)
+                  : null
 
                 const { sharedWith, installedFor } = getEmulatorSharingInfo(
                   systems,
-                  selections,
+                  systemEmulators,
                   installedVersions,
                   system.id,
                   effectiveEmulator,
@@ -153,15 +211,15 @@ export function SystemList({
                     key={system.id}
                     system={system}
                     selectedEmulator={selectedEmulator}
-                    pinnedVersion={versionSelections.get(system.id) ?? null}
+                    pinnedVersion={pinnedVersion}
                     installedVersion={installedVersion}
                     provisions={provisions[system.id] ?? []}
-                    enabled={selections.has(system.id)}
+                    enabled={isEnabled}
                     userStore={userStore}
                     emulatorSharedWith={sharedWith}
                     emulatorInstalledFor={installedFor}
                     onToggle={onToggle}
-                    onEmulatorChange={onEmulatorChange}
+                    onEmulatorToggle={onEmulatorToggle}
                     onVersionChange={onVersionChange}
                   />
                 )

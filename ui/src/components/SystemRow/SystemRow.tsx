@@ -5,17 +5,33 @@ import type { EmulatorID, EmulatorRef, ProvisionResult, System, SystemID } from 
 
 export interface SystemRowProps {
   readonly system: System
-  readonly selectedEmulator: EmulatorID | null
+  readonly enabled: boolean
+  readonly provisions: readonly ProvisionResult[]
+  readonly userStore: string
+  readonly onToggle: (systemId: SystemID, enabled: boolean) => void
+  // Optional props for single-emulator mode
+  readonly selectedEmulator?: EmulatorID | null
+  readonly pinnedVersion?: string | null
+  readonly installedVersion?: string | null
+  readonly emulatorSharedWith?: readonly string[]
+  readonly emulatorInstalledFor?: readonly string[]
+  readonly onEmulatorToggle?: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
+  readonly onVersionChange?: (emulatorId: EmulatorID, version: string | null) => void
+  // Parent row mode (for multi-emulator systems)
+  readonly isParentRow?: boolean
+}
+
+export interface EmulatorRowProps {
+  readonly systemId: SystemID
+  readonly emulator: EmulatorRef
   readonly pinnedVersion: string | null
   readonly installedVersion: string | null
-  readonly provisions: readonly ProvisionResult[]
   readonly enabled: boolean
-  readonly userStore: string
+  readonly isLast: boolean
   readonly emulatorSharedWith: readonly string[]
   readonly emulatorInstalledFor: readonly string[]
-  readonly onToggle: (systemId: SystemID, enabled: boolean) => void
-  readonly onEmulatorChange: (systemId: SystemID, emulatorId: EmulatorID) => void
-  readonly onVersionChange: (systemId: SystemID, version: string | null) => void
+  readonly onToggle: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
+  readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
 }
 
 function ProvisionsBadges({
@@ -140,13 +156,15 @@ function ActionLabel({
 
 function EmulatorSelector({
   emulators,
-  selected,
-  onChange,
+  enabledEmulators,
+  onToggle,
+  systemId,
   disabled,
 }: {
   readonly emulators: readonly EmulatorRef[]
-  readonly selected: EmulatorID | null
-  readonly onChange: (id: EmulatorID) => void
+  readonly enabledEmulators: EmulatorID[]
+  readonly onToggle: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
+  readonly systemId: SystemID
   readonly disabled: boolean
 }) {
   if (emulators.length <= 1) {
@@ -154,12 +172,23 @@ function EmulatorSelector({
   }
 
   const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    onChange(e.target.value as EmulatorID)
+    const newEmulatorId = e.target.value as EmulatorID
+    // Clear old selection and set new one
+    for (const emu of enabledEmulators) {
+      if (emu !== newEmulatorId) {
+        onToggle(systemId, emu, false)
+      }
+    }
+    if (!enabledEmulators.includes(newEmulatorId)) {
+      onToggle(systemId, newEmulatorId, true)
+    }
   }
+
+  const selectedEmulator = enabledEmulators[0] ?? emulators[0]?.id ?? ''
 
   return (
     <select
-      value={selected ?? emulators[0]?.id ?? ''}
+      value={selectedEmulator}
       onChange={handleChange}
       disabled={disabled}
       onClick={(e) => e.stopPropagation()}
@@ -320,23 +349,23 @@ function ProvisionsDialog({
   )
 }
 
-export function SystemRow({
-  system,
-  selectedEmulator,
+/**
+ * EmulatorRow is a child row for systems with multiple emulators enabled.
+ * It shows an individual emulator with its checkbox, version selector, and action label.
+ */
+export function EmulatorRow({
+  systemId,
+  emulator,
   pinnedVersion,
   installedVersion,
-  provisions,
   enabled,
-  userStore,
+  isLast,
   emulatorSharedWith,
   emulatorInstalledFor,
   onToggle,
-  onEmulatorChange,
   onVersionChange,
-}: SystemRowProps) {
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const emulator = system.emulators.find((e) => e.id === selectedEmulator) ?? system.emulators[0]
-  const effectiveVersion = pinnedVersion ?? emulator?.defaultVersion ?? null
+}: EmulatorRowProps) {
+  const effectiveVersion = pinnedVersion ?? emulator.defaultVersion ?? null
   const action = getAction(
     enabled,
     installedVersion,
@@ -345,16 +374,147 @@ export function SystemRow({
     emulatorInstalledFor,
   )
 
+  const handleCheckboxChange = (e: ChangeEvent<HTMLInputElement>) => {
+    onToggle(systemId, emulator.id, e.target.checked)
+  }
+
+  const handleVersionChange = (version: string | null) => {
+    onVersionChange(emulator.id, version)
+  }
+
+  const getStatusColor = () => {
+    if (!enabled) return 'bg-gray-300'
+    if (action === 'will-install') return 'bg-blue-500'
+    if (action === 'will-update') return 'bg-amber-500'
+    if (installedVersion) return 'bg-green-500'
+    return 'bg-gray-300'
+  }
+  const statusColor = getStatusColor()
+
+  return (
+    <div className={`border-b border-gray-100 ${isLast ? 'last:border-b-0' : ''} relative bg-gray-50/50`}>
+      <div className={`absolute left-0 top-0 bottom-0 w-1 ${statusColor}`} />
+
+      {/* Desktop layout */}
+      <div className="hidden min-[720px]:flex min-h-10 hover:bg-gray-100/50 transition-colors">
+        <label className="w-12 flex items-center justify-center pl-1 cursor-pointer border-r border-gray-200">
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={handleCheckboxChange}
+            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+          />
+        </label>
+
+        <div className="flex-1 flex items-center gap-x-3 py-2 pl-6 pr-3">
+          {/* Indentation to show hierarchy */}
+          <span className="text-gray-400 text-sm">└</span>
+          <span className="text-sm text-gray-700">{emulator.name}</span>
+
+          <div className="flex-1" />
+
+          <div className="flex items-center gap-1">
+            <ActionLabel
+              action={action}
+              installedVersion={installedVersion}
+              emulatorSharedWith={emulatorSharedWith}
+              emulatorInstalledFor={emulatorInstalledFor}
+            />
+            <VersionSelector
+              emulator={emulator}
+              pinnedVersion={pinnedVersion}
+              onChange={handleVersionChange}
+              disabled={!enabled}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile layout */}
+      <div className="min-[720px]:hidden flex flex-col gap-2 pr-3 py-2 hover:bg-gray-100/50 transition-colors">
+        <div className="flex items-center gap-3">
+          <label className="flex items-center justify-center pl-5 pr-3 self-stretch cursor-pointer border-r border-gray-200">
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={handleCheckboxChange}
+              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+            />
+          </label>
+          <span className="text-gray-400 text-sm">└</span>
+          <span className="text-sm text-gray-700">{emulator.name}</span>
+          <div className="flex-1 min-w-0" />
+          <VersionSelector
+            emulator={emulator}
+            pinnedVersion={pinnedVersion}
+            onChange={handleVersionChange}
+            disabled={!enabled}
+          />
+        </div>
+        <div className="flex items-center gap-2 pl-14">
+          <ActionLabel
+            action={action}
+            installedVersion={installedVersion}
+            emulatorSharedWith={emulatorSharedWith}
+            emulatorInstalledFor={emulatorInstalledFor}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * SystemRow displays a system row. It has two modes:
+ * 1. isParentRow=true: A parent row for multi-emulator systems (only shows system, no emulator controls)
+ * 2. isParentRow=false: A full row for single-emulator systems (shows system + emulator controls)
+ */
+export function SystemRow({
+  system,
+  enabled,
+  provisions,
+  userStore,
+  onToggle,
+  selectedEmulator,
+  pinnedVersion,
+  installedVersion,
+  emulatorSharedWith = [],
+  emulatorInstalledFor = [],
+  onEmulatorToggle,
+  onVersionChange,
+  isParentRow = false,
+}: SystemRowProps) {
+  const [dialogOpen, setDialogOpen] = useState(false)
+
   const hasMissingRequired = provisions.some((p) => p.required && p.status !== 'found')
   const hasMissingOptional = provisions.some((p) => !p.required && p.status !== 'found')
 
+  // For single-emulator mode (isParentRow=false with emulator props)
+  const emulator = !isParentRow && selectedEmulator
+    ? system.emulators.find((e) => e.id === selectedEmulator) ?? system.emulators[0]
+    : system.emulators[0]
+
+  const effectiveVersion = !isParentRow ? (pinnedVersion ?? emulator?.defaultVersion ?? null) : null
+
+  const action = !isParentRow
+    ? getAction(
+        enabled,
+        installedVersion ?? null,
+        effectiveVersion,
+        emulatorSharedWith,
+        emulatorInstalledFor,
+      )
+    : null
+
   const getStatusColor = () => {
+    if (!enabled) return 'bg-gray-300'
+    if (isParentRow) return 'bg-blue-500'
     if (action === 'will-uninstall') return 'bg-gray-300'
     if (hasMissingRequired) return 'bg-red-500'
     if (hasMissingOptional) return 'bg-amber-500'
     if (action === 'will-install') return 'bg-blue-500'
     if (action === 'will-update') return 'bg-amber-500'
-    if (enabled && installedVersion) return 'bg-green-500'
+    if (installedVersion) return 'bg-green-500'
     return 'bg-gray-300'
   }
   const statusColor = getStatusColor()
@@ -363,13 +523,73 @@ export function SystemRow({
     onToggle(system.id, e.target.checked)
   }
 
-  const handleEmulatorChange = (emulatorId: EmulatorID) => {
-    onEmulatorChange(system.id, emulatorId)
+  const handleEmulatorToggle = (systemId: SystemID, emulatorId: EmulatorID, enabledState: boolean) => {
+    onEmulatorToggle?.(systemId, emulatorId, enabledState)
   }
 
   const handleVersionChange = (version: string | null) => {
-    onVersionChange(system.id, version)
+    if (emulator && onVersionChange) {
+      onVersionChange(emulator.id, version)
+    }
   }
+
+  // Parent row for multi-emulator systems
+  if (isParentRow) {
+    return (
+      <div className="border-b border-gray-100 last:border-b-0 relative">
+        <div className={`absolute left-0 top-0 bottom-0 w-1 ${statusColor}`} />
+
+        {/* Mobile layout */}
+        <div className="min-[720px]:hidden flex flex-col gap-2 pr-3 py-2 hover:bg-gray-50 transition-colors">
+          <div className="flex items-center gap-3">
+            <label className="flex items-center justify-center pl-5 pr-3 self-stretch cursor-pointer bg-gray-100/50 border-r border-gray-200">
+              <input
+                type="checkbox"
+                checked={enabled}
+                onChange={handleCheckboxChange}
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+              />
+            </label>
+            <SystemLogo systemId={system.id} systemName={system.name} className="flex-shrink-0" />
+            <div className="flex-1 min-w-0" />
+          </div>
+          <div className="flex items-center gap-2 pl-14">
+            <ProvisionsBadges provisions={provisions} onClick={() => setDialogOpen(true)} />
+          </div>
+        </div>
+
+        {/* Desktop layout */}
+        <div className="hidden min-[720px]:flex min-h-12 hover:bg-gray-50 transition-colors">
+          <label className="w-12 flex items-center justify-center pl-1 cursor-pointer bg-gray-100/50 border-r border-gray-200">
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={handleCheckboxChange}
+              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+            />
+          </label>
+
+          <div className="flex-1 flex items-center gap-x-3 py-2 pl-3 pr-3">
+            <SystemLogo systemId={system.id} systemName={system.name} className="flex-shrink-0" />
+            <ProvisionsBadges provisions={provisions} onClick={() => setDialogOpen(true)} />
+            <div className="flex-1" />
+          </div>
+        </div>
+
+        <ProvisionsDialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          systemId={system.id}
+          systemName={system.name}
+          provisions={provisions}
+          userStore={userStore}
+        />
+      </div>
+    )
+  }
+
+  // Regular single-emulator row
+  const enabledEmulators = selectedEmulator ? [selectedEmulator] : []
 
   return (
     <div className="border-b border-gray-100 last:border-b-0 relative">
@@ -391,14 +611,15 @@ export function SystemRow({
           <div className="flex items-center gap-1">
             <EmulatorSelector
               emulators={system.emulators}
-              selected={selectedEmulator}
-              onChange={handleEmulatorChange}
+              enabledEmulators={enabledEmulators}
+              onToggle={handleEmulatorToggle}
+              systemId={system.id}
               disabled={!enabled}
             />
             {emulator && (
               <VersionSelector
                 emulator={emulator}
-                pinnedVersion={pinnedVersion}
+                pinnedVersion={pinnedVersion ?? null}
                 onChange={handleVersionChange}
                 disabled={!enabled}
               />
@@ -408,7 +629,7 @@ export function SystemRow({
         <div className="flex items-center gap-2 pl-14">
           <ActionLabel
             action={action}
-            installedVersion={installedVersion}
+            installedVersion={installedVersion ?? null}
             emulatorSharedWith={emulatorSharedWith}
             emulatorInstalledFor={emulatorInstalledFor}
           />
@@ -437,20 +658,21 @@ export function SystemRow({
           <div className="flex items-center gap-1">
             <ActionLabel
               action={action}
-              installedVersion={installedVersion}
+              installedVersion={installedVersion ?? null}
               emulatorSharedWith={emulatorSharedWith}
               emulatorInstalledFor={emulatorInstalledFor}
             />
             <EmulatorSelector
               emulators={system.emulators}
-              selected={selectedEmulator}
-              onChange={handleEmulatorChange}
+              enabledEmulators={enabledEmulators}
+              onToggle={handleEmulatorToggle}
+              systemId={system.id}
               disabled={!enabled}
             />
             {emulator && (
               <VersionSelector
                 emulator={emulator}
-                pinnedVersion={pinnedVersion}
+                pinnedVersion={pinnedVersion ?? null}
                 onChange={handleVersionChange}
                 disabled={!enabled}
               />
