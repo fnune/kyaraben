@@ -141,7 +141,6 @@ export function SystemList({
                 const hasMultipleEmulators = enabledEmulators.length > 1
 
                 if (hasMultipleEmulators) {
-                  // Parent row with system + child rows for each emulator
                   return (
                     <div key={system.id}>
                       <SystemRow
@@ -187,7 +186,6 @@ export function SystemList({
                   )
                 }
 
-                // Single row (original behavior) - either disabled or single emulator enabled
                 const selectedEmulator = enabledEmulators[0] ?? null
                 const effectiveEmulator = selectedEmulator ?? system.emulators[0]?.id ?? null
                 const installedEmulator = system.emulators.find((e) => installedVersions.has(e.id))
