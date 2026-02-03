@@ -164,3 +164,20 @@ Proposed fix: always show all available emulators when a system is enabled.
 
 Trade-off: more vertical space, but clearer affordance.
 
+---
+
+## RetroArch download size is misleading
+
+The download size shown for RetroArch emulators (e.g., "RetroArch (bsnes)") displays the size of the RetroArch AppImage itself, not:
+- RetroArch + the specific core being enabled
+- Just the core size (since cores come from nix separately)
+
+This is misleading because:
+1. If RetroArch is already installed, enabling a new core only downloads the core (from nix), not RetroArch again
+2. Users might think each RetroArch variant is a separate 170MB download
+
+Possible solutions:
+- Show core size separately (would need to fetch from nix or estimate)
+- Show "RetroArch: 170MB + cores from nix" as a note
+- Don't show size for RetroArch emulators since cores come from nix
+
