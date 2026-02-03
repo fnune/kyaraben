@@ -5,21 +5,20 @@ import type { EmulatorID, EmulatorRef, ProvisionResult, System, SystemID } from 
 
 export interface SystemRowProps {
   readonly system: System
-  readonly enabled: boolean
-  readonly provisions: readonly ProvisionResult[]
-  readonly userStore: string
-  readonly onToggle: (systemId: SystemID, enabled: boolean) => void
+  readonly onEnableDefault: (systemId: SystemID) => void
 }
 
 export interface EmulatorRowProps {
   readonly systemId: SystemID
+  readonly systemName: string
   readonly emulator: EmulatorRef
   readonly pinnedVersion: string | null
   readonly installedVersion: string | null
   readonly enabled: boolean
-  readonly isLast: boolean
   readonly emulatorSharedWith: readonly string[]
   readonly emulatorInstalledFor: readonly string[]
+  readonly provisions: readonly ProvisionResult[]
+  readonly userStore: string
   readonly onToggle: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
   readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
 }
@@ -29,7 +28,7 @@ function ProvisionsBadges({
   onClick,
 }: {
   readonly provisions: readonly ProvisionResult[]
-  readonly onClick: () => void
+  readonly onClick: (e: React.MouseEvent) => void
 }) {
   if (provisions.length === 0) return null
 
@@ -292,16 +291,19 @@ function ProvisionsDialog({
 
 export function EmulatorRow({
   systemId,
+  systemName,
   emulator,
   pinnedVersion,
   installedVersion,
   enabled,
-  isLast,
   emulatorSharedWith,
   emulatorInstalledFor,
+  provisions,
+  userStore,
   onToggle,
   onVersionChange,
 }: EmulatorRowProps) {
+  const [dialogOpen, setDialogOpen] = useState(false)
   const effectiveVersion = pinnedVersion ?? emulator.defaultVersion ?? null
   const action = getAction(
     enabled,
@@ -311,160 +313,68 @@ export function EmulatorRow({
     emulatorInstalledFor,
   )
 
-  const handleCheckboxChange = (e: ChangeEvent<HTMLInputElement>) => {
-    onToggle(systemId, emulator.id, e.target.checked)
-  }
-
-  const handleVersionChange = (version: string | null) => {
-    onVersionChange(emulator.id, version)
-  }
-
-  const getStatusColor = () => {
-    if (!enabled) return 'bg-gray-300'
-    if (action === 'will-install') return 'bg-blue-500'
-    if (action === 'will-update') return 'bg-amber-500'
-    if (installedVersion) return 'bg-green-500'
-    return 'bg-gray-300'
-  }
+  const statusColor = (() => {
+    if (!enabled) return 'border-gray-300'
+    if (action === 'will-install') return 'border-blue-500'
+    if (action === 'will-update') return 'border-amber-500'
+    if (installedVersion) return 'border-green-500'
+    return 'border-gray-300'
+  })()
 
   return (
-    <div
-      className={`border-b border-gray-100 ${isLast ? 'last:border-b-0' : ''} relative bg-gray-50/50`}
-    >
-      <div className={`absolute left-0 top-0 bottom-0 w-1 ${getStatusColor()}`} />
-
-      {/* Desktop */}
-      <div className="hidden min-[720px]:flex min-h-10 hover:bg-gray-100/50 transition-colors">
-        <label className="w-12 flex items-center justify-center pl-1 cursor-pointer border-r border-gray-200">
-          <input
-            type="checkbox"
-            checked={enabled}
-            onChange={handleCheckboxChange}
-            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-          />
-        </label>
-
-        <div className="flex-1 flex items-center gap-x-3 py-2 pl-6 pr-3">
-          <span className="text-gray-400 text-sm">└</span>
-          <span className="text-sm text-gray-700">{emulator.name}</span>
-          <div className="flex-1" />
-          <div className="flex items-center gap-1">
-            <ActionLabel
-              action={action}
-              installedVersion={installedVersion}
-              emulatorSharedWith={emulatorSharedWith}
-              emulatorInstalledFor={emulatorInstalledFor}
-            />
-            <VersionSelector
-              emulator={emulator}
-              pinnedVersion={pinnedVersion}
-              onChange={handleVersionChange}
-              disabled={!enabled}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile */}
-      <div className="min-[720px]:hidden flex flex-col gap-2 pr-3 py-2 hover:bg-gray-100/50 transition-colors">
-        <div className="flex items-center gap-3">
-          <label className="flex items-center justify-center pl-5 pr-3 self-stretch cursor-pointer border-r border-gray-200">
-            <input
-              type="checkbox"
-              checked={enabled}
-              onChange={handleCheckboxChange}
-              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-            />
-          </label>
-          <span className="text-gray-400 text-sm">└</span>
-          <span className="text-sm text-gray-700">{emulator.name}</span>
-          <div className="flex-1 min-w-0" />
-          <VersionSelector
-            emulator={emulator}
-            pinnedVersion={pinnedVersion}
-            onChange={handleVersionChange}
-            disabled={!enabled}
-          />
-        </div>
-        <div className="flex items-center gap-2 pl-14">
-          <ActionLabel
-            action={action}
-            installedVersion={installedVersion}
-            emulatorSharedWith={emulatorSharedWith}
-            emulatorInstalledFor={emulatorInstalledFor}
-          />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-export function SystemRow({ system, enabled, provisions, userStore, onToggle }: SystemRowProps) {
-  const [dialogOpen, setDialogOpen] = useState(false)
-
-  const hasMissingRequired = provisions.some((p) => p.required && p.status !== 'found')
-  const hasMissingOptional = provisions.some((p) => !p.required && p.status !== 'found')
-
-  const getStatusColor = () => {
-    if (!enabled) return 'bg-gray-300'
-    if (hasMissingRequired) return 'bg-red-500'
-    if (hasMissingOptional) return 'bg-amber-500'
-    return 'bg-blue-500'
-  }
-
-  const handleCheckboxChange = (e: ChangeEvent<HTMLInputElement>) => {
-    onToggle(system.id, e.target.checked)
-  }
-
-  return (
-    <div className="border-b border-gray-100 last:border-b-0 relative">
-      <div className={`absolute left-0 top-0 bottom-0 w-1 ${getStatusColor()}`} />
-
-      {/* Desktop */}
-      <div className="hidden min-[720px]:flex min-h-12 hover:bg-gray-50 transition-colors">
-        <label className="w-12 flex items-center justify-center pl-1 cursor-pointer bg-gray-100/50 border-r border-gray-200">
-          <input
-            type="checkbox"
-            checked={enabled}
-            onChange={handleCheckboxChange}
-            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-          />
-        </label>
-
-        <div className="flex-1 flex items-center gap-x-3 py-2 pl-3 pr-3">
-          <SystemLogo systemId={system.id} systemName={system.name} className="flex-shrink-0" />
-          <ProvisionsBadges provisions={provisions} onClick={() => setDialogOpen(true)} />
-          <div className="flex-1" />
-        </div>
-      </div>
-
-      {/* Mobile */}
-      <div className="min-[720px]:hidden flex flex-col gap-2 pr-3 py-2 hover:bg-gray-50 transition-colors">
-        <div className="flex items-center gap-3">
-          <label className="flex items-center justify-center pl-5 pr-3 self-stretch cursor-pointer bg-gray-100/50 border-r border-gray-200">
-            <input
-              type="checkbox"
-              checked={enabled}
-              onChange={handleCheckboxChange}
-              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-            />
-          </label>
-          <SystemLogo systemId={system.id} systemName={system.name} className="flex-shrink-0" />
-          <div className="flex-1 min-w-0" />
-        </div>
-        <div className="flex items-center gap-2 pl-14">
-          <ProvisionsBadges provisions={provisions} onClick={() => setDialogOpen(true)} />
-        </div>
-      </div>
+    <>
+      <label
+        className={`flex flex-wrap items-center gap-x-3 gap-y-1 min-h-10 py-2 px-3 bg-gray-50/50 border-l-4 ${statusColor} hover:bg-gray-100/50 transition-colors cursor-pointer`}
+      >
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(e) => onToggle(systemId, emulator.id, e.target.checked)}
+          className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+        />
+        <span className="text-sm text-gray-700">{emulator.name}</span>
+        <ProvisionsBadges
+          provisions={provisions}
+          onClick={(e) => {
+            e.preventDefault()
+            setDialogOpen(true)
+          }}
+        />
+        <span className="flex-1" />
+        <ActionLabel
+          action={action}
+          installedVersion={installedVersion}
+          emulatorSharedWith={emulatorSharedWith}
+          emulatorInstalledFor={emulatorInstalledFor}
+        />
+        <VersionSelector
+          emulator={emulator}
+          pinnedVersion={pinnedVersion}
+          onChange={(v) => onVersionChange(emulator.id, v)}
+          disabled={!enabled}
+        />
+      </label>
 
       <ProvisionsDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        systemId={system.id}
-        systemName={system.name}
+        systemId={systemId}
+        systemName={systemName}
         provisions={provisions}
         userStore={userStore}
       />
-    </div>
+    </>
+  )
+}
+
+export function SystemRow({ system, onEnableDefault }: SystemRowProps) {
+  return (
+    <button
+      type="button"
+      onClick={() => onEnableDefault(system.id)}
+      className="w-full min-h-12 flex items-center justify-center py-2 px-3 border-l-4 border-gray-300 hover:bg-gray-50 transition-colors"
+    >
+      <SystemLogo systemId={system.id} systemName={system.name} />
+    </button>
   )
 }

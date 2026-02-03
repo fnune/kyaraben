@@ -33,7 +33,7 @@ export interface SystemListProps {
   readonly installedVersions: ReadonlyMap<EmulatorID, string>
   readonly provisions: DoctorResponse
   readonly userStore: string
-  readonly onToggle: (systemId: SystemID, enabled: boolean) => void
+  readonly onEnableDefault: (systemId: SystemID) => void
   readonly onEmulatorToggle: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
   readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
 }
@@ -108,7 +108,7 @@ export function SystemList({
   installedVersions,
   provisions,
   userStore,
-  onToggle,
+  onEnableDefault,
   onEmulatorToggle,
   onVersionChange,
 }: SystemListProps) {
@@ -127,34 +127,17 @@ export function SystemList({
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2 px-3">
               {manufacturer}
             </h2>
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="space-y-2">
               {manufacturerSystems.map((system) => {
                 const enabledEmulators = systemEmulators.get(system.id) ?? []
-                const isEnabled = enabledEmulators.length > 0
-
-                if (!isEnabled) {
-                  return (
-                    <SystemRow
-                      key={system.id}
-                      system={system}
-                      enabled={false}
-                      provisions={provisions[system.id] ?? []}
-                      userStore={userStore}
-                      onToggle={onToggle}
-                    />
-                  )
-                }
 
                 return (
-                  <div key={system.id}>
-                    <SystemRow
-                      system={system}
-                      enabled={true}
-                      provisions={provisions[system.id] ?? []}
-                      userStore={userStore}
-                      onToggle={onToggle}
-                    />
-                    {system.emulators.map((emulator, index) => {
+                  <div
+                    key={system.id}
+                    className="bg-white rounded-lg border border-gray-200 overflow-hidden"
+                  >
+                    <SystemRow system={system} onEnableDefault={onEnableDefault} />
+                    {system.emulators.map((emulator) => {
                       const isEmulatorEnabled = enabledEmulators.includes(emulator.id)
                       const pinnedVersion = emulatorVersions.get(emulator.id) ?? null
                       const installedVersion = installedVersions.get(emulator.id) ?? null
@@ -171,13 +154,15 @@ export function SystemList({
                         <EmulatorRow
                           key={emulator.id}
                           systemId={system.id}
+                          systemName={system.name}
                           emulator={emulator}
                           pinnedVersion={pinnedVersion}
                           installedVersion={installedVersion}
                           enabled={isEmulatorEnabled}
-                          isLast={index === system.emulators.length - 1}
                           emulatorSharedWith={sharedWith}
                           emulatorInstalledFor={installedFor}
+                          provisions={provisions[emulator.id] ?? []}
+                          userStore={userStore}
                           onToggle={onEmulatorToggle}
                           onVersionChange={onVersionChange}
                         />

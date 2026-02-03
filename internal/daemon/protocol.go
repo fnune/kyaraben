@@ -42,8 +42,8 @@ type InstalledEmulator struct {
 }
 
 // DoctorResponse uses map[string] because tygo can't generate valid TypeScript
-// for map[SystemID] (index signatures don't support union types).
-// The TypeScript type is manually defined as Record<SystemID, ProvisionResult[]>.
+// for map[EmulatorID] (index signatures don't support union types).
+// The TypeScript type is manually defined as Record<EmulatorID, ProvisionResult[]>.
 type DoctorResponse map[string][]ProvisionResult
 
 type ProvisionResult struct {

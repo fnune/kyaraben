@@ -196,7 +196,7 @@ func (d *Daemon) handleDoctor() []Event {
 				FoundPath:   prov.FoundPath,
 			}
 		}
-		response[string(sys.SystemID)] = provisions
+		response[string(sys.EmulatorID)] = provisions
 	}
 
 	return []Event{{

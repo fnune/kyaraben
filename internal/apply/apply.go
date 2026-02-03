@@ -222,6 +222,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 			}
 		}
 
+		opts.OnProgress(Progress{Step: "build", Output: "$ nix build " + flakeRef})
 		if err := a.NixClient.BuildWithLink(buildCtx, flakeRef, profileLink); err != nil {
 			return nil, fmt.Errorf("building emulators: %w", err)
 		}
@@ -243,6 +244,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		}
 		storePath = realTarget
 	} else {
+		opts.OnProgress(Progress{Step: "build", Output: "$ nix build " + flakeRef})
 		var err error
 		storePath, err = a.NixClient.Build(buildCtx, flakeRef)
 		if err != nil {
