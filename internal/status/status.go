@@ -2,9 +2,12 @@ package status
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/paths"
 	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/store"
 	"github.com/fnune/kyaraben/internal/versions"
@@ -32,6 +35,7 @@ type Result struct {
 	InstalledEmulators   []EmulatorInfo
 	LastApplied          time.Time
 	MissingRequiredCount int
+	HealthWarning        string // Non-empty if inconsistent state detected
 }
 
 func Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg *registry.Registry, userStore *store.UserStore, manifestPath string) (*Result, error) {
@@ -99,5 +103,38 @@ func Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg 
 		}
 	}
 
+	// Health check: detect if artifacts exist but manifest is empty
+	if warning := checkHealthInconsistency(manifest); warning != "" {
+		result.HealthWarning = warning
+	}
+
 	return result, nil
+}
+
+// checkHealthInconsistency detects when installation artifacts exist but the
+// manifest doesn't track them. This can happen if the manifest was corrupted
+// or deleted.
+func checkHealthInconsistency(manifest *model.Manifest) string {
+	if len(manifest.InstalledEmulators) > 0 {
+		return "" // Manifest has data, no inconsistency
+	}
+
+	stateDir, err := paths.KyarabenStateDir()
+	if err != nil {
+		return ""
+	}
+
+	// Check if wrapper scripts exist
+	binDir := filepath.Join(stateDir, "bin")
+	if entries, err := os.ReadDir(binDir); err == nil && len(entries) > 0 {
+		return "Installation artifacts found but manifest is empty. Your installation state may have been lost. Please report this as a bug and run 'kyaraben apply' to restore."
+	}
+
+	// Check if "current" profile symlink exists
+	currentLink := filepath.Join(stateDir, "current")
+	if _, err := os.Lstat(currentLink); err == nil {
+		return "Installation artifacts found but manifest is empty. Your installation state may have been lost. Please report this as a bug and run 'kyaraben apply' to restore."
+	}
+
+	return ""
 }
