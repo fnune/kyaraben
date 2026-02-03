@@ -298,7 +298,9 @@ test.describe('Apply flow', () => {
   test('clicking Apply shows progress', async () => {
     await page.getByRole('button', { name: 'Apply' }).click()
 
-    await expect(page.getByText(/installing|building|applying/i)).toBeVisible({ timeout: 5000 })
+    await expect(
+      page.getByText(/Installing emulators|Setting up directories|Applying\.\.\./).first(),
+    ).toBeVisible({ timeout: 5000 })
   })
 
   test('progress completes and shows Done button', async () => {
