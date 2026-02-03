@@ -5,8 +5,13 @@ import "github.com/fnune/kyaraben/internal/model"
 // Request types
 
 type SetConfigRequest struct {
-	UserStore string            `json:"userStore"`
-	Systems   map[string]string `json:"systems"`
+	UserStore string                         `json:"userStore"`
+	Systems   map[string][]string            `json:"systems"`
+	Emulators map[string]EmulatorConfRequest `json:"emulators,omitempty"`
+}
+
+type EmulatorConfRequest struct {
+	Version string `json:"version,omitempty"`
 }
 
 type SyncAddDeviceRequest struct {
@@ -84,13 +89,13 @@ type EmulatorRef struct {
 }
 
 type ConfigResponse struct {
-	UserStore string                `json:"userStore"`
-	Systems   map[string]SystemConf `json:"systems"`
+	UserStore string                          `json:"userStore"`
+	Systems   map[string][]model.EmulatorID   `json:"systems"`
+	Emulators map[string]EmulatorConfResponse `json:"emulators,omitempty"`
 }
 
-type SystemConf struct {
-	Emulator      model.EmulatorID `json:"emulator"`
-	PinnedVersion string           `json:"pinnedVersion,omitempty"`
+type EmulatorConfResponse struct {
+	Version string `json:"version,omitempty"`
 }
 
 type SetConfigResponse struct {

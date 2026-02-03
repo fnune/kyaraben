@@ -31,7 +31,6 @@ export type {
   SyncRemoveDeviceResponse,
   SyncState,
   SyncStatusResponse,
-  SystemConf,
   SystemWithEmulators,
   SystemWithEmulators as System,
   UninstallPreviewResponse,

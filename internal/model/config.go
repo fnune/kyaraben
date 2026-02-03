@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/BurntSushi/toml"
 )
 
 // KyarabenConfig represents the user's kyaraben configuration.
 type KyarabenConfig struct {
-	Global  GlobalConfig            `toml:"global"`
-	Sync    SyncConfig              `toml:"sync"`
-	Systems map[SystemID]SystemConf `toml:"systems"`
+	Global    GlobalConfig                `toml:"global"`
+	Sync      SyncConfig                  `toml:"sync"`
+	Systems   map[SystemID][]EmulatorID   `toml:"systems"`
+	Emulators map[EmulatorID]EmulatorConf `toml:"emulators,omitempty"`
 }
 
 // GlobalConfig holds global settings.
@@ -21,23 +21,18 @@ type GlobalConfig struct {
 	UserStore string `toml:"user_store"` // Path to emulation directory
 }
 
-// SystemConf holds per-system configuration.
-type SystemConf struct {
-	Emulator string `toml:"emulator"` // "eden" or "eden@v0.1.0"
+// EmulatorConf holds per-emulator configuration.
+type EmulatorConf struct {
+	Version string `toml:"version,omitempty"`
 }
 
-// EmulatorID returns the emulator ID from the Emulator field.
-func (s SystemConf) EmulatorID() EmulatorID {
-	if idx := strings.Index(s.Emulator, "@"); idx != -1 {
-		return EmulatorID(s.Emulator[:idx])
+// EmulatorVersion returns the configured version for an emulator, or empty for default.
+func (c *KyarabenConfig) EmulatorVersion(id EmulatorID) string {
+	if c.Emulators == nil {
+		return ""
 	}
-	return EmulatorID(s.Emulator)
-}
-
-// EmulatorVersion returns the pinned version, or empty string for default.
-func (s SystemConf) EmulatorVersion() string {
-	if idx := strings.Index(s.Emulator, "@"); idx != -1 {
-		return s.Emulator[idx+1:]
+	if conf, ok := c.Emulators[id]; ok {
+		return conf.Version
 	}
 	return ""
 }
@@ -104,10 +99,46 @@ func (c *KyarabenConfig) ExpandUserStore() (string, error) {
 
 func (c *KyarabenConfig) EnabledSystems() []SystemID {
 	systems := make([]SystemID, 0, len(c.Systems))
-	for id := range c.Systems {
-		systems = append(systems, id)
+	for id, emulators := range c.Systems {
+		if len(emulators) > 0 {
+			systems = append(systems, id)
+		}
 	}
 	return systems
+}
+
+// EnabledEmulators returns a deduplicated list of all enabled emulator IDs.
+func (c *KyarabenConfig) EnabledEmulators() []EmulatorID {
+	seen := make(map[EmulatorID]bool)
+	var result []EmulatorID
+	for _, emulators := range c.Systems {
+		for _, eid := range emulators {
+			if !seen[eid] {
+				seen[eid] = true
+				result = append(result, eid)
+			}
+		}
+	}
+	return result
+}
+
+// EmulatorsForSystem returns the emulators enabled for a specific system.
+func (c *KyarabenConfig) EmulatorsForSystem(sys SystemID) []EmulatorID {
+	return c.Systems[sys]
+}
+
+// SystemsForEmulator returns all systems that have the given emulator enabled.
+func (c *KyarabenConfig) SystemsForEmulator(emu EmulatorID) []SystemID {
+	var result []SystemID
+	for sys, emulators := range c.Systems {
+		for _, eid := range emulators {
+			if eid == emu {
+				result = append(result, sys)
+				break
+			}
+		}
+	}
+	return result
 }
 
 // NewDefaultConfig creates a new config with default values.
@@ -116,25 +147,25 @@ func NewDefaultConfig() *KyarabenConfig {
 		Global: GlobalConfig{
 			UserStore: DefaultUserStore(),
 		},
-		Sync:    DefaultSyncConfig(),
-		Systems: make(map[SystemID]SystemConf),
+		Sync:      DefaultSyncConfig(),
+		Systems:   make(map[SystemID][]EmulatorID),
+		Emulators: make(map[EmulatorID]EmulatorConf),
 	}
 }
 
 // BuildVersionOverrides returns a map from package names to pinned versions
-// based on the emulator versions configured in the systems.
+// based on the emulator versions configured in the emulators section.
 func (c *KyarabenConfig) BuildVersionOverrides(getEmulator func(EmulatorID) (Emulator, error)) (map[string]string, error) {
 	overrides := make(map[string]string)
-	for _, sysConf := range c.Systems {
-		version := sysConf.EmulatorVersion()
-		if version == "" {
+	for emuID, emuConf := range c.Emulators {
+		if emuConf.Version == "" {
 			continue
 		}
-		emu, err := getEmulator(sysConf.EmulatorID())
+		emu, err := getEmulator(emuID)
 		if err != nil {
-			return nil, fmt.Errorf("unknown emulator %q: %w", sysConf.EmulatorID(), err)
+			return nil, fmt.Errorf("unknown emulator %q: %w", emuID, err)
 		}
-		overrides[emu.Package.PackageName()] = version
+		overrides[emu.Package.PackageName()] = emuConf.Version
 	}
 	return overrides, nil
 }

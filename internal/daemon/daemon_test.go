@@ -3,8 +3,6 @@ package daemon
 import (
 	"encoding/json"
 	"testing"
-
-	"github.com/fnune/kyaraben/internal/model"
 )
 
 func TestSetConfigCommandParsing(t *testing.T) {
@@ -13,8 +11,11 @@ func TestSetConfigCommandParsing(t *testing.T) {
 		"data": {
 			"userStore": "~/Emulation",
 			"systems": {
-				"switch": "eden@v0.1.0",
-				"psx": "duckstation"
+				"switch": ["eden"],
+				"psx": ["duckstation"]
+			},
+			"emulators": {
+				"eden": {"version": "v0.1.0"}
 			}
 		}
 	}`
@@ -36,22 +37,29 @@ func TestSetConfigCommandParsing(t *testing.T) {
 		t.Errorf("expected 2 systems, got %d", len(cmd.Data.Systems))
 	}
 
-	if cmd.Data.Systems["switch"] != "eden@v0.1.0" {
-		t.Errorf("expected switch emulator %q, got %q", "eden@v0.1.0", cmd.Data.Systems["switch"])
+	switchEmulators := cmd.Data.Systems["switch"]
+	if len(switchEmulators) != 1 || switchEmulators[0] != "eden" {
+		t.Errorf("expected switch emulators [eden], got %v", switchEmulators)
 	}
 
-	if cmd.Data.Systems["psx"] != "duckstation" {
-		t.Errorf("expected psx emulator %q, got %q", "duckstation", cmd.Data.Systems["psx"])
+	psxEmulators := cmd.Data.Systems["psx"]
+	if len(psxEmulators) != 1 || psxEmulators[0] != "duckstation" {
+		t.Errorf("expected psx emulators [duckstation], got %v", psxEmulators)
+	}
+
+	edenConf := cmd.Data.Emulators["eden"]
+	if edenConf.Version != "v0.1.0" {
+		t.Errorf("expected eden version v0.1.0, got %s", edenConf.Version)
 	}
 }
 
-func TestSetConfigCommandParsingPreservesVersionPin(t *testing.T) {
+func TestSetConfigCommandParsingWithMultipleEmulators(t *testing.T) {
 	jsonData := `{
 		"type": "set_config",
 		"data": {
 			"userStore": "~/Games",
 			"systems": {
-				"switch": "eden@v0.1.0"
+				"psx": ["duckstation", "retroarch:mednafen_psx"]
 			}
 		}
 	}`
@@ -61,18 +69,17 @@ func TestSetConfigCommandParsingPreservesVersionPin(t *testing.T) {
 		t.Fatalf("failed to unmarshal: %v", err)
 	}
 
-	emulatorStr := cmd.Data.Systems["switch"]
-	if emulatorStr != "eden@v0.1.0" {
-		t.Errorf("version pin lost: expected %q, got %q", "eden@v0.1.0", emulatorStr)
+	psxEmulators := cmd.Data.Systems["psx"]
+	if len(psxEmulators) != 2 {
+		t.Errorf("expected 2 psx emulators, got %d", len(psxEmulators))
 	}
 
-	// Verify the model can parse this correctly
-	sysConf := model.SystemConf{Emulator: emulatorStr}
-	if sysConf.EmulatorID() != model.EmulatorIDEden {
-		t.Errorf("expected emulator ID %q, got %q", model.EmulatorIDEden, sysConf.EmulatorID())
+	if psxEmulators[0] != "duckstation" {
+		t.Errorf("expected first emulator duckstation, got %s", psxEmulators[0])
 	}
-	if sysConf.EmulatorVersion() != "v0.1.0" {
-		t.Errorf("expected version %q, got %q", "v0.1.0", sysConf.EmulatorVersion())
+
+	if psxEmulators[1] != "retroarch:mednafen_psx" {
+		t.Errorf("expected second emulator retroarch:mednafen_psx, got %s", psxEmulators[1])
 	}
 }
 
@@ -130,7 +137,7 @@ func TestBasicCommandDoesNotCaptureData(t *testing.T) {
 		"type": "set_config",
 		"data": {
 			"userStore": "~/Emulation",
-			"systems": {"switch": "eden"}
+			"systems": {"switch": ["eden"]}
 		}
 	}`
 
