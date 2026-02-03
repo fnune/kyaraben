@@ -27,6 +27,7 @@ export interface StatusResponse {
   enabledSystems: SystemID[];
   installedEmulators: InstalledEmulator[];
   lastApplied: string;
+  healthWarning?: string;
 }
 export interface InstalledEmulator {
   id: EmulatorID;
