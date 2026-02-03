@@ -108,11 +108,7 @@ func (d *Daemon) loadConfig() (*model.KyarabenConfig, error) {
 			return nil, err
 		}
 	}
-	return model.LoadConfig(path)
-}
-
-func (d *Daemon) loadConfigOrDefault() (*model.KyarabenConfig, error) {
-	cfg, err := d.loadConfig()
+	cfg, err := model.LoadConfig(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return model.NewDefaultConfig(), nil
@@ -350,7 +346,7 @@ func (d *Daemon) handleGetSystems() []Event {
 }
 
 func (d *Daemon) handleGetConfig() []Event {
-	cfg, err := d.loadConfigOrDefault()
+	cfg, err := d.loadConfig()
 	if err != nil {
 		return d.errorResponse(fmt.Sprintf("loading config: %v", err))
 	}
@@ -380,7 +376,7 @@ func (d *Daemon) handleGetConfig() []Event {
 }
 
 func (d *Daemon) handleSetConfig(data *SetConfigRequest) []Event {
-	cfg, err := d.loadConfigOrDefault()
+	cfg, err := d.loadConfig()
 	if err != nil {
 		return d.errorResponse(fmt.Sprintf("loading config: %v", err))
 	}
@@ -592,7 +588,7 @@ func (d *Daemon) handleUninstallPreview() []Event {
 
 	manifest, _ := model.LoadManifest(manifestPath)
 
-	cfg, _ := d.loadConfigOrDefault()
+	cfg, _ := d.loadConfig()
 	userStore := cfg.Global.UserStore
 
 	configDir, _ := paths.KyarabenConfigDir()
