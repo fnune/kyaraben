@@ -38,8 +38,9 @@ const flakeTemplate = `{
   description = "Kyaraben-managed emulator environment";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/{{ .NixpkgsCommit }}";
+  inputs.retroarch-cores.url = "github:NixOS/nixpkgs/{{ .RetroArchCoresCommit }}";
 
-  outputs = { self, nixpkgs }:
+  outputs = { self, nixpkgs, retroarch-cores }:
     let
       forAllSystems = f: nixpkgs.lib.genAttrs [ "x86_64-linux" "aarch64-linux" ] (system: f {
         inherit system;
@@ -47,10 +48,14 @@ const flakeTemplate = `{
           inherit system;
           config.allowUnfree = true;
         };
+        pkgs-rac = import retroarch-cores {
+          inherit system;
+          config.allowUnfree = true;
+        };
         arch = if system == "x86_64-linux" then "x86_64" else "aarch64";
       });
     in {
-      packages = forAllSystems ({ system, pkgs, arch }: {
+      packages = forAllSystems ({ system, pkgs, pkgs-rac, arch }: {
 {{- range .Packages }}
         {{ .Name }} = {{ .Expr }};
 {{- end }}
@@ -66,6 +71,17 @@ const flakeTemplate = `{
 {{- end }}
         '';
 {{- end }}
+{{- if .RetroArchCores }}
+
+        retroarch-cores = pkgs.symlinkJoin {
+          name = "kyaraben-retroarch-cores";
+          paths = [
+{{- range .RetroArchCores }}
+            pkgs-rac.libretro.{{ . }}
+{{- end }}
+          ];
+        };
+{{- end }}
 
         default = pkgs.symlinkJoin {
           name = "kyaraben-profile";
@@ -75,6 +91,9 @@ const flakeTemplate = `{
 {{- end }}
 {{- if .Icons }}
             self.packages.${system}.icons
+{{- end }}
+{{- if .RetroArchCores }}
+            self.packages.${system}.retroarch-cores
 {{- end }}
           ];
         };
@@ -106,6 +125,19 @@ type GenerateResult struct {
 	SkippedEmulators []model.EmulatorID
 }
 
+var retroArchCoreMapping = map[model.EmulatorID]string{
+	model.EmulatorIDRetroArchBsnes:         "bsnes",
+	model.EmulatorIDRetroArchMesen:         "mesen",
+	model.EmulatorIDRetroArchGenesisPlusGX: "genesis-plus-gx",
+	model.EmulatorIDRetroArchMupen64Plus:   "mupen64plus",
+	model.EmulatorIDRetroArchBeetleSaturn:  "beetle-saturn",
+}
+
+func retroArchCorePackage(emuID model.EmulatorID) (string, bool) {
+	pkg, ok := retroArchCoreMapping[emuID]
+	return pkg, ok
+}
+
 func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorID) (*GenerateResult, error) {
 	timestamp := time.Now().Format("2006-01-02T15-04-05")
 	genDir := filepath.Join(baseDir, "generations", timestamp)
@@ -122,6 +154,8 @@ func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorI
 	launchers := make([]LauncherTemplateInfo, 0, len(emulatorIDs))
 	icons := make([]IconInfo, 0, len(emulatorIDs))
 	seenIcons := make(map[string]bool)
+	retroArchCores := make([]string, 0)
+	seenCores := make(map[string]bool)
 	var skippedEmulators []model.EmulatorID
 
 	for _, emuID := range emulatorIDs {
@@ -129,6 +163,13 @@ func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorI
 		if err != nil {
 			skippedEmulators = append(skippedEmulators, emuID)
 			continue
+		}
+
+		if corePkg, ok := retroArchCorePackage(emuID); ok {
+			if !seenCores[corePkg] {
+				seenCores[corePkg] = true
+				retroArchCores = append(retroArchCores, corePkg)
+			}
 		}
 
 		pkg, err := fg.packageInfoFromRef(emu.Package)
@@ -178,15 +219,19 @@ func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorI
 	}
 
 	data := struct {
-		NixpkgsCommit string
-		Packages      []PackageInfo
-		Launchers     []LauncherTemplateInfo
-		Icons         []IconInfo
+		NixpkgsCommit        string
+		RetroArchCoresCommit string
+		Packages             []PackageInfo
+		Launchers            []LauncherTemplateInfo
+		Icons                []IconInfo
+		RetroArchCores       []string
 	}{
-		NixpkgsCommit: v.Nixpkgs.Commit,
-		Packages:      packages,
-		Launchers:     launchers,
-		Icons:         icons,
+		NixpkgsCommit:        v.Nixpkgs.Commit,
+		RetroArchCoresCommit: v.RetroArchCores.Commit,
+		Packages:             packages,
+		Launchers:            launchers,
+		Icons:                icons,
+		RetroArchCores:       retroArchCores,
 	}
 
 	execErr := tmpl.Execute(f, data)

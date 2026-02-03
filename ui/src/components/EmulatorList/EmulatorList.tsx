@@ -20,6 +20,7 @@ interface EmulatorWithSystems {
   systems: { id: SystemID; name: string; label: string }[]
   defaultVersion: string | undefined
   availableVersions: string[] | undefined
+  downloadSize: string | undefined
 }
 
 function buildEmulatorList(systems: readonly System[]): EmulatorWithSystems[] {
@@ -37,6 +38,7 @@ function buildEmulatorList(systems: readonly System[]): EmulatorWithSystems[] {
           systems: [{ id: system.id, name: system.name, label: system.label }],
           defaultVersion: emu.defaultVersion,
           availableVersions: emu.availableVersions,
+          downloadSize: emu.downloadSize,
         })
       }
     }
@@ -304,6 +306,10 @@ function EmulatorRow({
         <div className="flex-1" />
 
         <ProvisionsBadges provisions={provisions} onClick={() => setDialogOpen(true)} />
+
+        {emulator.downloadSize && action === 'will-install' && (
+          <span className="text-xs text-gray-400">{emulator.downloadSize}</span>
+        )}
 
         <ActionLabel action={action} installedVersion={installedVersion} />
 

@@ -13,8 +13,9 @@ var versionsData string
 
 // Versions holds all version information parsed from versions.toml.
 type Versions struct {
-	Nixpkgs   NixpkgsVersion          `toml:"nixpkgs"`
-	Emulators map[string]EmulatorSpec // Populated after parsing
+	Nixpkgs        NixpkgsVersion          `toml:"nixpkgs"`
+	RetroArchCores NixpkgsVersion          `toml:"retroarch-cores"`
+	Emulators      map[string]EmulatorSpec // Populated after parsing
 }
 
 type NixpkgsVersion struct {
@@ -144,6 +145,7 @@ type TargetBuild struct {
 	Arch       string `toml:"arch"`
 	SHA256     string `toml:"sha256"`
 	BinaryPath string `toml:"binary_path"`
+	Size       int64  `toml:"size"`
 }
 
 // Known emulator names for parsing
@@ -219,6 +221,12 @@ func parse(data string) (*Versions, error) {
 	if nixpkgsRaw, ok := raw["nixpkgs"].(map[string]interface{}); ok {
 		if commit, ok := nixpkgsRaw["commit"].(string); ok {
 			v.Nixpkgs.Commit = commit
+		}
+	}
+
+	if racRaw, ok := raw["retroarch-cores"].(map[string]interface{}); ok {
+		if commit, ok := racRaw["commit"].(string); ok {
+			v.RetroArchCores.Commit = commit
 		}
 	}
 
@@ -329,6 +337,9 @@ func parseVersionEntry(version string, raw map[string]interface{}) (VersionEntry
 			}
 			if v, ok := targetRaw["binary_path"].(string); ok {
 				target.BinaryPath = v
+			}
+			if v, ok := targetRaw["size"].(int64); ok {
+				target.Size = v
 			}
 
 			entry.Targets[targetName] = target

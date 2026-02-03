@@ -4,7 +4,10 @@
 // See: https://docs.libretro.com/guides/change-directories/
 package retroarch
 
-import "github.com/fnune/kyaraben/internal/model"
+import (
+	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/paths"
+)
 
 var SharedLauncher = model.LauncherInfo{
 	Binary:      "retroarch",
@@ -23,15 +26,11 @@ var MainConfigTarget = model.ConfigTarget{
 // Sets up common directories used by all cores. Per-core path settings are in core overrides.
 // See: https://docs.libretro.com/guides/change-directories/
 func SharedConfig(store model.StoreReader) model.ConfigPatch {
-	// Use shared RetroArch data directory for cores and assets
-	raDataDir := store.EmulatorOpaqueDir(model.EmulatorIDRetroArch)
 	return model.ConfigPatch{
 		Target: MainConfigTarget,
 		Entries: []model.ConfigEntry{
 			{Path: []string{"system_directory"}, Value: store.BiosDir()},
-			{Path: []string{"libretro_directory"}, Value: raDataDir + "/cores"},
-			{Path: []string{"assets_directory"}, Value: raDataDir + "/assets"},
-			{Path: []string{"core_assets_directory"}, Value: raDataDir + "/downloads"},
+			{Path: []string{"libretro_directory"}, Value: paths.MustRetroArchCoresDir()},
 		},
 	}
 }
