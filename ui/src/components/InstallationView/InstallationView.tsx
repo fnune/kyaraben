@@ -99,8 +99,8 @@ export function InstallationView() {
             empty. This can happen if files were manually deleted or corrupted.
           </p>
           <p className="text-sm text-red-200/80">
-            To fix this, run <code className="bg-red-900/50 px-1 rounded">kyaraben apply</code> to
-            restore the installation state. Please also consider{' '}
+            To fix this, click Apply in the Systems tab to restore the installation state. Please
+            also consider{' '}
             <a
               href="https://github.com/fnune/kyaraben/issues"
               target="_blank"
