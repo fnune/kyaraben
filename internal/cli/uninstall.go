@@ -3,7 +3,6 @@ package cli
 import (
 	"bufio"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -201,22 +200,45 @@ func fileExists(path string) bool {
 }
 
 // forceRemoveAll removes a directory tree, even if it contains read-only files
-// (like nix store paths). It works by making all files and directories writable.
+// (like nix store paths). It works by recursively fixing permissions before
+// descending into directories, which is necessary because WalkDir can't enter
+// directories without execute permission.
 func forceRemoveAll(path string) error {
-	err := filepath.WalkDir(path, func(p string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return nil
-		}
-		if d.IsDir() {
-			_ = os.Chmod(p, 0755)
-		} else {
-			_ = os.Chmod(p, 0644)
-		}
-		return nil
-	})
-	if err != nil {
+	if err := forceChmodRecursive(path); err != nil {
 		return err
 	}
 	return os.RemoveAll(path)
+}
+
+func forceChmodRecursive(path string) error {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return err
+	}
+
+	if info.Mode()&os.ModeSymlink != 0 {
+		return nil
+	}
+
+	if !info.IsDir() {
+		return os.Chmod(path, 0644)
+	}
+
+	if err := os.Chmod(path, 0755); err != nil {
+		return err
+	}
+
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		if err := forceChmodRecursive(filepath.Join(path, entry.Name())); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
