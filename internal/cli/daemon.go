@@ -10,7 +10,9 @@ import (
 	"github.com/fnune/kyaraben/internal/daemon"
 	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/launcher"
+	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/nix"
+	"github.com/fnune/kyaraben/internal/paths"
 )
 
 type DaemonCmd struct{}
@@ -28,7 +30,16 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 		return fmt.Errorf("creating launcher manager: %w", err)
 	}
 
-	d := daemon.New(ctx.ConfigPath, registry, nixClient, flakeGenerator, configWriter, launcherManager)
+	stateDir, err := paths.KyarabenStateDir()
+	if err != nil {
+		return fmt.Errorf("getting state dir: %w", err)
+	}
+	manifestPath, err := model.DefaultManifestPath()
+	if err != nil {
+		return fmt.Errorf("getting manifest path: %w", err)
+	}
+
+	d := daemon.New(ctx.ConfigPath, stateDir, manifestPath, registry, nixClient, flakeGenerator, configWriter, launcherManager)
 
 	scanner := bufio.NewScanner(os.Stdin)
 	encoder := json.NewEncoder(os.Stdout)
