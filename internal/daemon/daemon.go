@@ -119,13 +119,9 @@ func (d *Daemon) errorResponse(msg string) []Event {
 	}}
 }
 
-// loadManifest loads the manifest, returning a descriptive error if corrupted.
-// Returns a fresh manifest if the file doesn't exist (not an error).
 func (d *Daemon) loadManifest() (*model.Manifest, error) {
 	manifest, err := model.LoadManifest(d.manifestPath)
 	if err != nil {
-		// LoadManifest only returns errors for actual corruption (parse errors),
-		// not for missing files. This is unexpected state that should be reported.
 		return nil, fmt.Errorf("manifest data appears corrupted: %w. Please report this as a bug and run 'kyaraben apply' to restore your configuration", err)
 	}
 	return manifest, nil
