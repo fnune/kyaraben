@@ -79,14 +79,15 @@ export function getChangeType(
   // Enabled and installed: check for version change
   if (declaredVersion && installedVersion !== declaredVersion) {
     // Determine if upgrade or downgrade based on version order
-    // availableVersions is ordered newest first, so lower index = newer
+    // availableVersions is sorted ascending (oldest first via sort.Strings in Go)
     if (availableVersions && availableVersions.length > 0) {
       const installedIdx = availableVersions.indexOf(installedVersion)
       const declaredIdx = availableVersions.indexOf(declaredVersion)
 
       // If both versions are in the list, compare indices
+      // Higher index = newer version (ascending sort)
       if (installedIdx >= 0 && declaredIdx >= 0) {
-        return declaredIdx < installedIdx ? 'upgrade' : 'downgrade'
+        return declaredIdx > installedIdx ? 'upgrade' : 'downgrade'
       }
     }
 
