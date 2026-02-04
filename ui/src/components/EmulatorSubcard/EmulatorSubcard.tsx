@@ -206,7 +206,12 @@ export function EmulatorSubcard({
               <>
                 {execLine && (
                   <>
-                    <button type="button" onClick={handleLaunch} className="hover:text-white">
+                    <button
+                      type="button"
+                      onClick={handleLaunch}
+                      disabled={!enabled}
+                      className={enabled ? 'hover:text-white' : 'cursor-not-allowed'}
+                    >
                       Launch
                     </button>
                     <span className="text-gray-600">·</span>
@@ -215,7 +220,8 @@ export function EmulatorSubcard({
                 <button
                   type="button"
                   onClick={() => setPathsOpen(true)}
-                  className="hover:text-white"
+                  disabled={!enabled}
+                  className={enabled ? 'hover:text-white' : 'cursor-not-allowed'}
                 >
                   Paths
                 </button>

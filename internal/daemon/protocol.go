@@ -34,6 +34,7 @@ type StatusResponse struct {
 	EnabledSystems     []model.SystemID    `json:"enabledSystems"`
 	InstalledEmulators []InstalledEmulator `json:"installedEmulators"`
 	LastApplied        string              `json:"lastApplied"`
+	HealthWarning      string              `json:"healthWarning,omitempty"`
 }
 
 type InstalledEmulator struct {

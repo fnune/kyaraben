@@ -350,9 +350,9 @@ func TestLineCallbackWriter(t *testing.T) {
 		},
 	}
 
-	w.Write([]byte("line1\nline2\n"))
-	w.Write([]byte("partial"))
-	w.Write([]byte(" continued\n"))
+	_, _ = w.Write([]byte("line1\nline2\n"))
+	_, _ = w.Write([]byte("partial"))
+	_, _ = w.Write([]byte(" continued\n"))
 
 	want := []string{"line1", "line2", "partial continued"}
 	if len(lines) != len(want) {
@@ -373,7 +373,7 @@ func TestLineCallbackWriter_WithReplacement(t *testing.T) {
 		replaceTo:   "~/.local/state/",
 	}
 
-	w.Write([]byte("copying /nix/store/abc123 to output\n"))
+	_, _ = w.Write([]byte("copying /nix/store/abc123 to output\n"))
 
 	if len(lines) != 1 {
 		t.Fatalf("got %d lines, want 1", len(lines))

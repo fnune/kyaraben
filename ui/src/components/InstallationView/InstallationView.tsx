@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/lib/Button'
-import { getInstallStatus, getUninstallPreview, installApp } from '@/lib/daemon'
+import { getInstallStatus, getStatus, getUninstallPreview, installApp } from '@/lib/daemon'
 import type { InstallStatus, UninstallPreviewResponse } from '@/types/daemon'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -31,6 +31,7 @@ function EmptyState({ message }: { message: string }) {
 export function InstallationView() {
   const [preview, setPreview] = useState<UninstallPreviewResponse | null>(null)
   const [installStatus, setInstallStatus] = useState<InstallStatus | null>(null)
+  const [healthWarning, setHealthWarning] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [installing, setInstalling] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -38,8 +39,8 @@ export function InstallationView() {
   useEffect(() => {
     setLoading(true)
     setError(null)
-    Promise.all([getUninstallPreview(), getInstallStatus()]).then(
-      ([previewResult, installResult]) => {
+    Promise.all([getUninstallPreview(), getInstallStatus(), getStatus()]).then(
+      ([previewResult, installResult, statusResult]) => {
         if (previewResult.ok) {
           setPreview(previewResult.data)
         } else {
@@ -47,6 +48,9 @@ export function InstallationView() {
         }
         if (installResult.ok) {
           setInstallStatus(installResult.data)
+        }
+        if (statusResult.ok && statusResult.data.healthWarning) {
+          setHealthWarning(statusResult.data.healthWarning)
         }
         setLoading(false)
       },
@@ -87,6 +91,29 @@ export function InstallationView() {
 
   return (
     <div className="p-6 space-y-6">
+      {healthWarning === 'orphaned_artifacts' && (
+        <div className="p-4 bg-red-900/30 border border-red-700/50 rounded-lg">
+          <h3 className="text-sm font-medium text-red-300 mb-2">Installation state corrupted</h3>
+          <p className="text-sm text-red-200/80 mb-3">
+            Kyaraben found installation artifacts but the manifest tracking them is missing or
+            empty. This can happen if files were manually deleted or corrupted.
+          </p>
+          <p className="text-sm text-red-200/80">
+            To fix this, click Apply in the Systems tab to restore the installation state. Please
+            also consider{' '}
+            <a
+              href="https://github.com/fnune/kyaraben/issues"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:no-underline"
+            >
+              reporting this issue
+            </a>
+            .
+          </p>
+        </div>
+      )}
+
       <Section title="Kyaraben">
         {installStatus?.installed ? (
           <div className="space-y-2">
