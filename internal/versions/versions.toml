@@ -5,7 +5,7 @@
 commit = "fa83fd837f3098e3e678e6cf017b2b36102c7211" # https://github.com/NixOS/nixpkgs/commits/nixos-25.11
 
 [retroarch-cores]
-commit = "fa83fd837f3098e3e678e6cf017b2b36102c7211"
+commit = "d03088749a110d52a4739348f39a63f84bb0be14" # hydra-cached libretro cores
 
 # ============================================================================
 # EDEN - Nintendo Switch emulator (pilot for multi-version support)
