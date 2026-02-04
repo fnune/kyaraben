@@ -152,10 +152,14 @@ func (d *Daemon) handleStatus() []Event {
 
 	installedEmulators := make([]InstalledEmulator, len(result.InstalledEmulators))
 	for i, emu := range result.InstalledEmulators {
-		installedEmulators[i] = InstalledEmulator{
+		installed := InstalledEmulator{
 			ID:      emu.ID,
 			Version: emu.Version,
 		}
+		if e, err := d.reg.GetEmulator(emu.ID); err == nil && e.Launcher.Binary != "" {
+			installed.ExecLine = fmt.Sprintf("%s/%s", d.launcherManager.BinDir(), e.Launcher.Binary)
+		}
+		installedEmulators[i] = installed
 	}
 
 	return []Event{{
@@ -191,6 +195,7 @@ func (d *Daemon) handleDoctor() []Event {
 		for i, prov := range sys.Provisions {
 			provisions[i] = ProvisionResult{
 				Filename:    prov.Filename,
+				Kind:        string(prov.Kind),
 				Description: prov.Description,
 				Required:    prov.Required,
 				Status:      string(prov.Status),
@@ -329,7 +334,7 @@ func (d *Daemon) handleGetSystems() []Event {
 					if entry := spec.GetDefault(); entry != nil {
 						if target := entry.DefaultTargetForArch(currentArch); target != "" {
 							if build := entry.Target(target); build != nil && build.Size > 0 {
-								ref.DownloadSize = versions.FormatSize(build.Size)
+								ref.DownloadBytes = build.Size
 							}
 						}
 					}

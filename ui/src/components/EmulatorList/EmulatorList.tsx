@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { SystemLogo } from '@/components/SystemLogo/SystemLogo'
+import { formatBytes } from '@/lib/changeUtils'
 import { Modal } from '@/lib/Modal'
 import type { DoctorResponse, EmulatorID, ProvisionResult, System, SystemID } from '@/types/daemon'
 
@@ -20,7 +21,7 @@ interface EmulatorWithSystems {
   systems: { id: SystemID; name: string; label: string }[]
   defaultVersion: string | undefined
   availableVersions: string[] | undefined
-  downloadSize: string | undefined
+  downloadBytes: number | undefined
 }
 
 function buildEmulatorList(systems: readonly System[]): EmulatorWithSystems[] {
@@ -38,7 +39,7 @@ function buildEmulatorList(systems: readonly System[]): EmulatorWithSystems[] {
           systems: [{ id: system.id, name: system.name, label: system.label }],
           defaultVersion: emu.defaultVersion,
           availableVersions: emu.availableVersions,
-          downloadSize: emu.downloadSize,
+          downloadBytes: emu.downloadBytes,
         })
       }
     }
@@ -307,8 +308,8 @@ function EmulatorRow({
 
         <ProvisionsBadges provisions={provisions} onClick={() => setDialogOpen(true)} />
 
-        {emulator.downloadSize && (
-          <span className="text-xs text-gray-400">{emulator.downloadSize}</span>
+        {emulator.downloadBytes && (
+          <span className="text-xs text-gray-400">{formatBytes(emulator.downloadBytes)}</span>
         )}
 
         <ActionLabel action={action} installedVersion={installedVersion} />

@@ -4,8 +4,8 @@ import type { UninstallPreviewResponse } from '@/types/daemon'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="p-4 bg-gray-50 rounded-lg">
-      <h3 className="text-sm font-medium text-gray-900 mb-3">{title}</h3>
+    <div className="p-4 bg-gray-800 rounded-lg">
+      <h3 className="text-sm font-medium text-gray-100 mb-3">{title}</h3>
       {children}
     </div>
   )
@@ -18,8 +18,9 @@ function PathItem({
   path: string
   variant?: 'default' | 'preserved'
 }) {
-  const bgColor = variant === 'preserved' ? 'bg-green-50' : 'bg-gray-100'
-  return <li className={`font-mono text-xs ${bgColor} px-2 py-1 rounded`}>{path}</li>
+  const bgColor = variant === 'preserved' ? 'bg-green-500/10' : 'bg-gray-700'
+  const textColor = variant === 'preserved' ? 'text-green-300' : 'text-gray-300'
+  return <li className={`font-mono text-xs ${bgColor} ${textColor} px-2 py-1 rounded`}>{path}</li>
 }
 
 function EmptyState({ message }: { message: string }) {
@@ -47,7 +48,7 @@ export function InstallationView() {
   if (loading) {
     return (
       <div className="p-6">
-        <p className="text-gray-600">Loading installation info...</p>
+        <p className="text-gray-400">Loading installation info...</p>
       </div>
     )
   }
@@ -55,7 +56,7 @@ export function InstallationView() {
   if (error || !preview) {
     return (
       <div className="p-6">
-        <p className="text-red-600">Failed to load installation info: {error ?? 'Unknown error'}</p>
+        <p className="text-red-400">Failed to load installation info: {error ?? 'Unknown error'}</p>
       </div>
     )
   }
@@ -113,7 +114,7 @@ export function InstallationView() {
       </Section>
 
       <Section title="Preserved on uninstall">
-        <p className="text-sm text-gray-600 mb-2">
+        <p className="text-sm text-gray-400 mb-2">
           These directories will not be removed when uninstalling:
         </p>
         <ul className="space-y-1">
@@ -125,13 +126,13 @@ export function InstallationView() {
         </ul>
       </Section>
 
-      <div className="border-t border-gray-200 pt-6">
-        <h3 className="text-sm font-medium text-gray-900 mb-2">Uninstall</h3>
-        <p className="text-sm text-gray-600 mb-3">
+      <div className="border-t border-gray-700 pt-6">
+        <h3 className="text-sm font-medium text-gray-100 mb-2">Uninstall</h3>
+        <p className="text-sm text-gray-400 mb-3">
           To remove Kyaraben and all managed files (except preserved data), run:
         </p>
-        <code className="block bg-gray-100 px-3 py-2 rounded text-sm font-mono">
-          kyaraben uninstall
+        <code className="block bg-gray-700 text-gray-300 px-3 py-2 rounded text-sm font-mono">
+          {preview.stateDir}/bin/kyaraben uninstall
         </code>
       </div>
     </div>

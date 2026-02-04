@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react'
 import { IconButton } from '@/lib/IconButton'
 import { Input } from '@/lib/Input'
+import { useToast } from '@/lib/ToastContext'
 
 export interface SettingsProps {
   readonly userStore: string
   readonly onUserStoreChange: (value: string) => void
-  readonly onError?: (message: string) => void
 }
 
 const FolderIcon = (
   <svg
-    className="w-5 h-5 text-gray-600"
+    className="w-5 h-5 text-gray-400"
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
@@ -25,9 +25,10 @@ const FolderIcon = (
   </svg>
 )
 
-export function Settings({ userStore, onUserStoreChange, onError }: SettingsProps) {
+export function Settings({ userStore, onUserStoreChange }: SettingsProps) {
   const [opening, setOpening] = useState(false)
   const [folderExists, setFolderExists] = useState(false)
+  const { showToast } = useToast()
 
   useEffect(() => {
     if (!userStore) {
@@ -44,7 +45,9 @@ export function Settings({ userStore, onUserStoreChange, onError }: SettingsProp
     try {
       const error = await window.electron.invoke('open_path', userStore)
       if (error) {
-        onError?.(`Could not open folder: ${error}`)
+        showToast(`Could not open folder: ${error}`, 'error')
+      } else {
+        showToast(`Opening ${userStore}`)
       }
     } finally {
       setOpening(false)
@@ -52,8 +55,8 @@ export function Settings({ userStore, onUserStoreChange, onError }: SettingsProp
   }
 
   return (
-    <div className="p-4 bg-gray-50 rounded-lg mb-6">
-      <span id="user-store-label" className="text-sm font-medium text-gray-700 block">
+    <div>
+      <span id="user-store-label" className="text-sm font-medium text-gray-300 block">
         Emulation folder
       </span>
       <div className="mt-1 flex gap-2">

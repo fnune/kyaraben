@@ -21,6 +21,7 @@ describe('SystemCard', () => {
         enabledEmulators={new Set<EmulatorID>()}
         emulatorVersions={new Map()}
         installedVersions={new Map()}
+        installedExecLines={new Map()}
         provisions={{}}
         userStore="~/Emulation"
         onEmulatorToggle={vi.fn()}
@@ -39,6 +40,7 @@ describe('SystemCard', () => {
         enabledEmulators={new Set<EmulatorID>(['retroarch:bsnes'])}
         emulatorVersions={new Map()}
         installedVersions={new Map()}
+        installedExecLines={new Map()}
         provisions={{}}
         userStore="~/Emulation"
         onEmulatorToggle={vi.fn()}
@@ -60,6 +62,7 @@ describe('SystemCard', () => {
         enabledEmulators={new Set<EmulatorID>()}
         emulatorVersions={new Map()}
         installedVersions={new Map()}
+        installedExecLines={new Map()}
         provisions={{}}
         userStore="~/Emulation"
         onEmulatorToggle={onEmulatorToggle}
@@ -76,7 +79,8 @@ describe('SystemCard', () => {
       'retroarch:bsnes': [
         {
           filename: 'bios.bin',
-          description: 'System BIOS',
+          kind: 'bios',
+          description: 'USA',
           required: true,
           status: 'missing',
         },
@@ -89,6 +93,7 @@ describe('SystemCard', () => {
         enabledEmulators={new Set<EmulatorID>()}
         emulatorVersions={new Map()}
         installedVersions={new Map()}
+        installedExecLines={new Map()}
         provisions={provisions}
         userStore="~/Emulation"
         onEmulatorToggle={vi.fn()}
@@ -96,7 +101,7 @@ describe('SystemCard', () => {
       />,
     )
 
-    expect(screen.getByText('System BIOS')).toBeInTheDocument()
+    expect(screen.getByText(/BIOS \(USA\)/)).toBeInTheDocument()
   })
 
   it('shows manufacturer and year in header', () => {
@@ -106,6 +111,7 @@ describe('SystemCard', () => {
         enabledEmulators={new Set<EmulatorID>()}
         emulatorVersions={new Map()}
         installedVersions={new Map()}
+        installedExecLines={new Map()}
         provisions={{}}
         userStore="~/Emulation"
         onEmulatorToggle={vi.fn()}

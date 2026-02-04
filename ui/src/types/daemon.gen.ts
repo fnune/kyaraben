@@ -31,6 +31,7 @@ export interface StatusResponse {
 export interface InstalledEmulator {
   id: EmulatorID;
   version: string;
+  execLine?: string;
 }
 /**
  * DoctorResponse uses map[string] because tygo can't generate valid TypeScript
@@ -40,6 +41,7 @@ export interface InstalledEmulator {
 export type DoctorResponse = { [key: string]: ProvisionResult[]};
 export interface ProvisionResult {
   filename: string;
+  kind: string;
   description: string;
   required: boolean;
   status: string;
@@ -72,7 +74,7 @@ export interface EmulatorRef {
   name: string;
   defaultVersion?: string;
   availableVersions?: string[];
-  downloadSize?: string;
+  downloadBytes?: number /* int64 */;
 }
 export interface ConfigResponse {
   userStore: string;

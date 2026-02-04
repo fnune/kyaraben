@@ -10,6 +10,7 @@ import (
 
 type ProvisionResult struct {
 	Filename     string
+	Kind         model.ProvisionKind
 	Description  string
 	Required     bool
 	Status       model.ProvisionStatus
@@ -55,6 +56,7 @@ func Run(ctx context.Context, cfg *model.KyarabenConfig, reg *registry.Registry,
 			for _, r := range provResults {
 				pr := ProvisionResult{
 					Filename:     r.Provision.Filename,
+					Kind:         r.Provision.Kind,
 					Description:  r.Provision.Description,
 					Required:     r.Provision.Required,
 					Status:       r.Status,

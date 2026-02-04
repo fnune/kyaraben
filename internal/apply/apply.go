@@ -201,7 +201,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	})
 	defer a.NixClient.SetOutputCallback(nil)
 
-	opts.OnProgress(Progress{Step: "build", Message: "Resolving package versions..."})
+	opts.OnProgress(Progress{Step: "build", Message: "Building packages..."})
 
 	buildCtx, cancel := context.WithTimeout(ctx, nixBuildTimeout)
 	defer cancel()

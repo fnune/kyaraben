@@ -1,5 +1,6 @@
 import { type ChangeEvent, useState } from 'react'
 import { SystemLogo } from '@/components/SystemLogo/SystemLogo'
+import { formatBytes } from '@/lib/changeUtils'
 import { Modal } from '@/lib/Modal'
 import type { EmulatorID, EmulatorRef, ProvisionResult, System, SystemID } from '@/types/daemon'
 
@@ -341,8 +342,8 @@ export function EmulatorRow({
           }}
         />
         <span className="flex-1" />
-        {emulator.downloadSize && (
-          <span className="text-xs text-gray-400">{emulator.downloadSize}</span>
+        {emulator.downloadBytes && (
+          <span className="text-xs text-gray-400">{formatBytes(emulator.downloadBytes)}</span>
         )}
         <ActionLabel
           action={action}
