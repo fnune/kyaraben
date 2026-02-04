@@ -78,7 +78,9 @@
     "vitest": "^3"
   },
   "dependencies": {
+    "@types/semver": "^7.7.1",
     "react": "^19",
-    "react-dom": "^19"
+    "react-dom": "^19",
+    "semver": "^7.7.3"
   }
 }
