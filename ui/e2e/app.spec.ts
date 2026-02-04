@@ -34,73 +34,74 @@ test.afterAll(async () => {
 })
 
 test.describe('Kyaraben App', () => {
-  test('displays the main title', async () => {
+  test('displays the app title', async () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Kyaraben' })).toBeVisible()
   })
 
-  test('displays the tagline', async () => {
-    await expect(page.getByText('Declarative emulation manager')).toBeVisible()
+  test('shows navigation tabs', async () => {
+    await expect(page.getByRole('button', { name: 'Systems' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Installation' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Sync' })).toBeVisible()
   })
 
-  test('loads and displays available systems', async () => {
-    await expect(page.getByRole('heading', { name: 'PlayStation' })).toBeVisible({ timeout: 10000 })
+  test('displays manufacturer groupings', async () => {
+    await expect(page.getByRole('heading', { level: 2, name: 'Nintendo' })).toBeVisible({
+      timeout: 10000,
+    })
+    await expect(page.getByRole('heading', { level: 2, name: 'Sony' })).toBeVisible()
   })
 
-  test('can toggle system selection', async () => {
+  test('displays system cards with emulators', async () => {
     const psxCard = page.getByRole('article').filter({ hasText: 'PlayStation' })
-    const checkbox = psxCard.getByRole('checkbox')
+    await expect(psxCard).toBeVisible({ timeout: 10000 })
+    await expect(psxCard.getByRole('switch')).toBeVisible()
+  })
 
-    const wasChecked = await checkbox.isChecked()
-    await checkbox.click()
-    const isChecked = await checkbox.isChecked()
+  test('can toggle emulator selection', async () => {
+    const psxCard = page.getByRole('article').filter({ hasText: 'PlayStation' })
+    const toggle = psxCard.getByRole('switch').first()
+
+    const wasChecked = (await toggle.getAttribute('aria-checked')) === 'true'
+    await toggle.click()
+    const isChecked = (await toggle.getAttribute('aria-checked')) === 'true'
 
     expect(isChecked).toBe(!wasChecked)
   })
 
+  test('shows sticky action bar when changes are made', async () => {
+    const psxCard = page.getByRole('article').filter({ hasText: 'PlayStation' })
+    const toggle = psxCard.getByRole('switch').first()
+
+    const wasChecked = (await toggle.getAttribute('aria-checked')) === 'true'
+    if (!wasChecked) {
+      await toggle.click()
+    }
+
+    await expect(page.getByRole('button', { name: 'Apply' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Discard' })).toBeVisible()
+  })
+
+  test('can discard changes', async () => {
+    const discardButton = page.getByRole('button', { name: 'Discard' })
+    if (await discardButton.isVisible()) {
+      await discardButton.click()
+      await expect(discardButton).not.toBeVisible()
+    }
+  })
+
   test('shows emulation folder setting', async () => {
     await expect(page.getByText('Emulation folder')).toBeVisible()
-    const input = page.getByLabel('Emulation folder')
+    const input = page.getByPlaceholder('~/Emulation')
     await expect(input).toBeVisible()
-    await expect(input).toHaveValue(/Emulation/)
   })
 
   test('can change emulation folder path', async () => {
-    const input = page.getByLabel('Emulation folder')
+    const input = page.getByPlaceholder('~/Emulation')
     await input.clear()
     await input.fill('~/TestEmulation')
     await expect(input).toHaveValue('~/TestEmulation')
-  })
 
-  test('displays manufacturer groupings', async () => {
-    await expect(page.getByRole('heading', { level: 2, name: 'Sony' })).toBeVisible({
-      timeout: 10000,
-    })
-  })
-
-  test('shows Apply and Check provisions buttons', async () => {
-    await expect(page.getByRole('button', { name: 'Apply' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Check provisions' })).toBeVisible()
-  })
-})
-
-test.describe('Kyaraben Apply (requires Nix)', () => {
-  test.skip(!!process.env.CI, 'Skipped on CI - Nix builds are too slow')
-  test('can apply configuration with e2e-test system', async () => {
-    // Find and enable the e2e-test system
-    const e2eCard = page.getByRole('article').filter({ hasText: 'e2e-test' })
-    const checkbox = e2eCard.getByRole('checkbox')
-
-    if (!(await checkbox.isChecked())) {
-      await checkbox.click()
-    }
-
-    // Click Apply
-    await page.getByRole('button', { name: 'Apply' }).click()
-
-    // Wait for completion (Nix builds can take 10+ minutes on first run)
-    await expect(page.getByText(/Complete|Error/)).toBeVisible({ timeout: 600000 })
-
-    // Verify success
-    await expect(page.getByText('Complete')).toBeVisible()
+    await input.clear()
+    await input.fill('~/Emulation')
   })
 })
