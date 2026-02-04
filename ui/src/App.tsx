@@ -3,8 +3,8 @@ import { InstallationView } from '@/components/InstallationView/InstallationView
 import { Sidebar } from '@/components/Sidebar/Sidebar'
 import { SyncView } from '@/components/SyncView/SyncView'
 import { SystemsView } from '@/components/SystemsView/SystemsView'
-import * as daemon from '@/lib/daemon'
 import { BottomBarProvider } from '@/lib/BottomBarContext'
+import * as daemon from '@/lib/daemon'
 import { ToastProvider } from '@/lib/ToastContext'
 import type {
   DoctorResponse,
@@ -38,7 +38,6 @@ function AppContent() {
   const [progressSteps, setProgressSteps] = useState<readonly ProgressStep[]>([])
   const [error, setError] = useState<string | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null)
-
 
   useEffect(() => {
     async function init() {
