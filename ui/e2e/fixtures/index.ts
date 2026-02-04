@@ -1,6 +1,15 @@
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
+import type { EmulatorID, SystemID } from '../../src/types/model.gen'
+import {
+  EmulatorIDDuckStation,
+  EmulatorIDMGBA,
+  EmulatorIDRetroArchBsnes,
+  SystemIDGBA,
+  SystemIDPSX,
+  SystemIDSNES,
+} from '../../src/types/model.gen'
 
 export interface TestFixture {
   configDir: string
@@ -12,8 +21,8 @@ export interface TestFixture {
 
 export interface ConfigFixture {
   userStore?: string
-  systems?: Record<string, string[]>
-  emulators?: Record<string, { version?: string }>
+  systems?: Partial<Record<SystemID, EmulatorID[]>>
+  emulators?: Partial<Record<EmulatorID, { version?: string }>>
   sync?: {
     enabled?: boolean
     mode?: 'primary' | 'secondary'
@@ -21,20 +30,19 @@ export interface ConfigFixture {
   }
 }
 
+export interface InstalledEmulatorFixture {
+  id: EmulatorID
+  version: string
+  storePath: string
+  installed: string
+}
+
 export interface ManifestFixture {
   version?: number
   lastApplied?: string
-  installedEmulators?: Record<
-    string,
-    {
-      id: string
-      version: string
-      storePath: string
-      installed: string
-    }
-  >
+  installedEmulators?: Partial<Record<EmulatorID, InstalledEmulatorFixture>>
   managedConfigs?: Array<{
-    emulatorId: string
+    emulatorId: EmulatorID
     target: { type: string; path?: string }
     baselineHash: string
     lastModified: string
@@ -125,19 +133,23 @@ function generateConfigToml(config: ConfigFixture, defaultUserStore: string): st
   if (config.systems) {
     lines.push('[systems]')
     for (const [system, emulators] of Object.entries(config.systems)) {
-      const emuList = emulators.map((e) => `"${e}"`).join(', ')
-      lines.push(`${system} = [${emuList}]`)
+      if (emulators) {
+        const emuList = emulators.map((e) => `"${e}"`).join(', ')
+        lines.push(`${system} = [${emuList}]`)
+      }
     }
     lines.push('')
   }
 
   if (config.emulators) {
     for (const [emuId, emuConfig] of Object.entries(config.emulators)) {
-      lines.push(`[emulators.${emuId}]`)
-      if (emuConfig.version) {
-        lines.push(`version = "${emuConfig.version}"`)
+      if (emuConfig) {
+        lines.push(`[emulators."${emuId}"]`)
+        if (emuConfig.version) {
+          lines.push(`version = "${emuConfig.version}"`)
+        }
+        lines.push('')
       }
-      lines.push('')
     }
   }
 
@@ -167,7 +179,7 @@ export function setupFakeNixPortable(fixture: TestFixture): void {
   fixture.env.FAKE_NIX_PROGRESS = '1'
 }
 
-export function createBiosDirectory(fixture: TestFixture, systemId: string): string {
+export function createBiosDirectory(fixture: TestFixture, systemId: SystemID): string {
   const biosDir = path.join(fixture.userStore, 'bios', systemId)
   fs.mkdirSync(biosDir, { recursive: true })
   return biosDir
@@ -187,8 +199,8 @@ export const presets = {
   systemsEnabledNotInstalled: (): { config: ConfigFixture; manifest: ManifestFixture } => ({
     config: {
       systems: {
-        snes: ['bsnes'],
-        psx: ['duckstation'],
+        [SystemIDSNES]: [EmulatorIDRetroArchBsnes],
+        [SystemIDPSX]: [EmulatorIDDuckStation],
       },
     },
     manifest: {
@@ -199,21 +211,21 @@ export const presets = {
   emulatorsInstalled: (): { config: ConfigFixture; manifest: ManifestFixture } => ({
     config: {
       systems: {
-        snes: ['bsnes'],
-        gba: ['mgba'],
+        [SystemIDSNES]: [EmulatorIDRetroArchBsnes],
+        [SystemIDGBA]: [EmulatorIDMGBA],
       },
     },
     manifest: {
       lastApplied: new Date().toISOString(),
       installedEmulators: {
-        bsnes: {
-          id: 'bsnes',
+        [EmulatorIDRetroArchBsnes]: {
+          id: EmulatorIDRetroArchBsnes,
           version: '115.0.0',
           storePath: '/nix/store/fake-hash-bsnes',
           installed: new Date().toISOString(),
         },
-        mgba: {
-          id: 'mgba',
+        [EmulatorIDMGBA]: {
+          id: EmulatorIDMGBA,
           version: '0.10.3',
           storePath: '/nix/store/fake-hash-mgba',
           installed: new Date().toISOString(),
@@ -221,7 +233,7 @@ export const presets = {
       },
       managedConfigs: [
         {
-          emulatorId: 'bsnes',
+          emulatorId: EmulatorIDRetroArchBsnes,
           target: { type: 'xdg_config', path: 'bsnes/settings.bml' },
           baselineHash: 'abc123',
           lastModified: new Date().toISOString(),
@@ -234,7 +246,7 @@ export const presets = {
   syncEnabled: (): { config: ConfigFixture; manifest: ManifestFixture } => ({
     config: {
       systems: {
-        snes: ['bsnes'],
+        [SystemIDSNES]: [EmulatorIDRetroArchBsnes],
       },
       sync: {
         enabled: true,
@@ -250,16 +262,16 @@ export const presets = {
   versionPinned: (): { config: ConfigFixture; manifest: ManifestFixture } => ({
     config: {
       systems: {
-        snes: ['bsnes'],
+        [SystemIDSNES]: [EmulatorIDRetroArchBsnes],
       },
       emulators: {
-        bsnes: { version: '115.0.0' },
+        [EmulatorIDRetroArchBsnes]: { version: '115.0.0' },
       },
     },
     manifest: {
       installedEmulators: {
-        bsnes: {
-          id: 'bsnes',
+        [EmulatorIDRetroArchBsnes]: {
+          id: EmulatorIDRetroArchBsnes,
           version: '114.0.0',
           storePath: '/nix/store/fake-hash-bsnes-old',
           installed: new Date(Date.now() - 86400000).toISOString(),

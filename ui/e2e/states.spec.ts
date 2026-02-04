@@ -5,6 +5,7 @@ import {
   type Page,
   test,
 } from '@playwright/test'
+import { EmulatorIDRetroArchBsnes, SystemIDSNES } from '../src/types/model.gen'
 import { createFixture, presets, setupFakeNixPortable, type TestFixture } from './fixtures'
 
 async function launchWithFixture(
@@ -205,7 +206,10 @@ test.describe('Sync disabled', () => {
   let page: Page
 
   test.beforeAll(async () => {
-    fixture = createFixture({ systems: { snes: ['bsnes'] } }, { installedEmulators: {} })
+    fixture = createFixture(
+      { systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] } },
+      { installedEmulators: {} },
+    )
     const result = await launchWithFixture(fixture, getAppImagePath())
     app = result.app
     page = result.page
