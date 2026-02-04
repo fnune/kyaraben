@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/fnune/kyaraben/internal/apply"
@@ -234,6 +236,19 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
+
+	// Acquire exclusive lock to prevent concurrent Apply operations
+	lockPath := filepath.Join(filepath.Dir(manifestPath), "apply.lock")
+	lockFile, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		return d.errorResponse(fmt.Sprintf("creating lock file: %v", err))
+	}
+	defer lockFile.Close()
+
+	if err := syscall.Flock(int(lockFile.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
+		return d.errorResponse("another installation is already in progress")
+	}
+	defer syscall.Flock(int(lockFile.Fd()), syscall.LOCK_UN)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	d.mu.Lock()
