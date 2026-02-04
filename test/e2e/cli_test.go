@@ -282,6 +282,44 @@ func TestCLIUninstall(t *testing.T) {
 	}
 }
 
+func TestCLIUninstallCorruptedManifest(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.toml")
+	userStore := filepath.Join(tmpDir, "Emulation")
+
+	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "gba")
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("init failed: %v\nOutput: %s", err, output)
+	}
+
+	stateDir := filepath.Join(tmpDir, "state")
+	manifestDir := filepath.Join(stateDir, "kyaraben", "build")
+	manifestPath := filepath.Join(manifestDir, "manifest.json")
+	_ = os.MkdirAll(manifestDir, 0755)
+	_ = os.WriteFile(manifestPath, []byte("not valid json {{{"), 0644)
+
+	cmd = kyarabenCmdWith(t, nil, "-c", configPath, "uninstall", "-n")
+	cmd.Env = append(cmd.Env, "XDG_STATE_HOME="+stateDir)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("uninstall failed: %v\nOutput: %s", err, output)
+	}
+
+	outputStr := string(output)
+	if !strings.Contains(outputStr, "Warning: could not load manifest") {
+		t.Errorf("Output should warn about corrupted manifest: %s", outputStr)
+	}
+	if !strings.Contains(outputStr, "Some files may not be listed") {
+		t.Errorf("Output should mention files may not be listed: %s", outputStr)
+	}
+	if !strings.Contains(outputStr, "Manifest path:") {
+		t.Errorf("Output should show manifest path: %s", outputStr)
+	}
+	if !strings.Contains(outputStr, "not valid json") {
+		t.Errorf("Output should show manifest contents: %s", outputStr)
+	}
+}
+
 func TestCLISyncStatusDisabled(t *testing.T) {
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "config.toml")

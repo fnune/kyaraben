@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/fnune/kyaraben/internal/fileutil"
 	"github.com/fnune/kyaraben/internal/paths"
 )
 
@@ -83,9 +84,13 @@ func LoadManifest(path string) (*Manifest, error) {
 	return &m, nil
 }
 
-// Save writes the manifest to a file atomically.
-// It writes to a temporary file first, syncs it, then renames to the target path.
-// This prevents corruption if the process crashes during write.
+func (m *Manifest) SaveWithBackup(path string) error {
+	if _, err := os.Stat(path); err == nil {
+		_, _ = fileutil.BackupWithTimestamp(path)
+	}
+	return m.Save(path)
+}
+
 func (m *Manifest) Save(path string) error {
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0755); err != nil {

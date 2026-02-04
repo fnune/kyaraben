@@ -9,11 +9,11 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/beevik/etree"
 	"gopkg.in/yaml.v3"
 
+	"github.com/fnune/kyaraben/internal/fileutil"
 	"github.com/fnune/kyaraben/internal/model"
 )
 
@@ -50,19 +50,7 @@ func (w *ConfigWriter) NeedsBackup(patch model.ConfigPatch) (string, bool, error
 }
 
 func (w *ConfigWriter) createBackup(path string) (string, error) {
-	timestamp := time.Now().Format("20060102-150405")
-	backupPath := fmt.Sprintf("%s.%s.bak", path, timestamp)
-
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return "", fmt.Errorf("reading file for backup: %w", err)
-	}
-
-	if err := os.WriteFile(backupPath, data, 0644); err != nil {
-		return "", fmt.Errorf("writing backup file: %w", err)
-	}
-
-	return backupPath, nil
+	return fileutil.BackupWithTimestamp(path)
 }
 
 func (w *ConfigWriter) Apply(patch model.ConfigPatch) (ApplyResult, error) {
