@@ -156,6 +156,11 @@ export interface InstallStatusResponse {
 export interface RefreshIconCachesResponse {
   refreshed: string[];
 }
+export interface UninstallResponse {
+  success: boolean;
+  removedFiles: string[];
+  errors?: string[];
+}
 
 //////////
 // source: types.go
@@ -176,10 +181,11 @@ export const CommandTypeSyncStatus = "sync_status";
 export const CommandTypeSyncAddDevice = "sync_add_device";
 export const CommandTypeSyncRemoveDevice = "sync_remove_device";
 export const CommandTypeUninstallPreview = "uninstall_preview";
+export const CommandTypeUninstall = "uninstall";
 export const CommandTypeInstallKyaraben = "install_kyaraben";
 export const CommandTypeInstallStatus = "install_status";
 export const CommandTypeRefreshIconCaches = "refresh_icon_caches";
-export type CommandType = typeof CommandTypeStatus | typeof CommandTypeDoctor | typeof CommandTypeApply | typeof CommandTypeCancelApply | typeof CommandTypeGetSystems | typeof CommandTypeGetConfig | typeof CommandTypeSetConfig | typeof CommandTypeSyncStatus | typeof CommandTypeSyncAddDevice | typeof CommandTypeSyncRemoveDevice | typeof CommandTypeUninstallPreview | typeof CommandTypeInstallKyaraben | typeof CommandTypeInstallStatus | typeof CommandTypeRefreshIconCaches;
+export type CommandType = typeof CommandTypeStatus | typeof CommandTypeDoctor | typeof CommandTypeApply | typeof CommandTypeCancelApply | typeof CommandTypeGetSystems | typeof CommandTypeGetConfig | typeof CommandTypeSetConfig | typeof CommandTypeSyncStatus | typeof CommandTypeSyncAddDevice | typeof CommandTypeSyncRemoveDevice | typeof CommandTypeUninstallPreview | typeof CommandTypeUninstall | typeof CommandTypeInstallKyaraben | typeof CommandTypeInstallStatus | typeof CommandTypeRefreshIconCaches;
 /**
  * Command represents a command from the UI.
  */

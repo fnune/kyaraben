@@ -34,6 +34,7 @@ export type {
   SystemWithEmulators,
   SystemWithEmulators as System,
   UninstallPreviewResponse,
+  UninstallResponse,
 } from './daemon.gen'
 export {
   CommandTypeApply,

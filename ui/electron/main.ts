@@ -334,6 +334,11 @@ function setupIpcHandlers(): void {
     return event.data
   })
 
+  ipcMain.handle('uninstall', async () => {
+    const event = await sendCommand({ type: 'uninstall' })
+    return event.data
+  })
+
   ipcMain.handle('refresh_icon_caches', async () => {
     const event = await sendCommand({ type: 'refresh_icon_caches' })
     return event.data
