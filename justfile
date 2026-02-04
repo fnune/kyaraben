@@ -67,11 +67,7 @@ clean-sandbox:
 # --- Internal targets (prefixed with _) ---
 
 _ensure-ui-deps:
-    #!/usr/bin/env bash
-    if [ ! -d ui/node_modules ]; then
-        echo "Installing UI dependencies..."
-        cd ui && npm ci
-    fi
+    cd ui && npm ci
 
 _sidecar:
     ./scripts/build-sidecar.sh
