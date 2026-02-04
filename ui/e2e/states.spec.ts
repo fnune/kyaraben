@@ -5,8 +5,14 @@ import {
   type Page,
   test,
 } from '@playwright/test'
-import { EmulatorIDRetroArchBsnes, SystemIDSNES } from '../src/types/model.gen'
-import { createFixture, presets, setupFakeNixPortable, type TestFixture } from './fixtures'
+import {
+  createFixture,
+  EmulatorIDRetroArchBsnes,
+  presets,
+  SystemIDSNES,
+  setupFakeNixPortable,
+  type TestFixture,
+} from './fixtures'
 
 async function launchWithFixture(
   fixture: TestFixture,
