@@ -20,7 +20,7 @@ import wii from '@/assets/systems/wii.svg'
 import wiiu from '@/assets/systems/wiiu.svg'
 import type { SystemID } from '@/types/daemon'
 
-const SYSTEM_LOGOS: Record<SystemID, string> = {
+export const SYSTEM_LOGOS: Record<SystemID, string> = {
   // Nintendo
   nes,
   snes,

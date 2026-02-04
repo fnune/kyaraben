@@ -303,6 +303,40 @@ export function App() {
     setError(null)
   }, [])
 
+  const handleDiscard = useCallback(async () => {
+    const [configResult, statusResult] = await Promise.all([daemon.getConfig(), daemon.getStatus()])
+
+    if (configResult.ok) {
+      const newSystemEmulators = new Map<SystemID, EmulatorID[]>()
+      const newEmulatorVersions = new Map<EmulatorID, string | null>()
+
+      for (const [sysId, emulatorIds] of Object.entries(configResult.data.systems)) {
+        if (emulatorIds && emulatorIds.length > 0) {
+          newSystemEmulators.set(sysId as SystemID, emulatorIds as EmulatorID[])
+        }
+      }
+
+      if (configResult.data.emulators) {
+        for (const [emuId, conf] of Object.entries(configResult.data.emulators)) {
+          if (conf.version) {
+            newEmulatorVersions.set(emuId as EmulatorID, conf.version)
+          }
+        }
+      }
+
+      setSystemEmulators(newSystemEmulators)
+      setEmulatorVersions(newEmulatorVersions)
+    }
+
+    if (statusResult.ok) {
+      const versions = new Map<EmulatorID, string>()
+      for (const emu of statusResult.data.installedEmulators) {
+        versions.set(emu.id, emu.version)
+      }
+      setInstalledVersions(versions)
+    }
+  }, [])
+
   const renderView = () => {
     switch (currentView) {
       case 'systems':
@@ -324,6 +358,7 @@ export function App() {
             progressSteps={progressSteps}
             error={error}
             onReset={handleReset}
+            onDiscard={handleDiscard}
           />
         )
       case 'installation':
