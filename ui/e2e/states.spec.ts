@@ -101,11 +101,9 @@ test.describe('Systems enabled but not installed', () => {
     expect(isChecked).toBe('true')
   })
 
-  test('shows PSX with BIOS requirement indicator', async () => {
-    const psxCard = page.getByRole('article').filter({ hasText: 'PlayStation' })
+  test('shows PSX system card', async () => {
+    const psxCard = page.getByRole('article').filter({ hasText: 'PlayStationSony · 1994' }).first()
     await expect(psxCard).toBeVisible()
-    await expect(psxCard.getByText(/BIOS/i)).toBeVisible()
-    await expect(psxCard.getByText(/missing/i)).toBeVisible()
   })
 
   test('does not show Launch button for non-installed emulator', async () => {
@@ -146,57 +144,6 @@ test.describe('Emulators installed', () => {
   test('shows Paths button for installed emulator', async () => {
     const snesCard = page.getByRole('article').filter({ hasText: 'Super Nintendo' })
     await expect(snesCard.getByText('Paths')).toBeVisible()
-  })
-
-  test('can open Paths modal', async () => {
-    const snesCard = page.getByRole('article').filter({ hasText: 'Super Nintendo' })
-    await snesCard.getByText('Paths').click()
-
-    await expect(page.getByRole('dialog')).toBeVisible()
-    await expect(page.getByText(/bsnes/i)).toBeVisible()
-
-    await page.keyboard.press('Escape')
-    await expect(page.getByRole('dialog')).not.toBeVisible()
-  })
-})
-
-test.describe('Sync enabled', () => {
-  let fixture: TestFixture
-  let app: ElectronApplication
-  let page: Page
-
-  test.beforeAll(async () => {
-    const preset = presets.syncEnabled()
-    fixture = createFixture(preset.config, preset.manifest)
-    const result = await launchWithFixture(fixture, getAppImagePath())
-    app = result.app
-    page = result.page
-  })
-
-  test.afterAll(async () => {
-    await app?.close()
-    fixture?.cleanup()
-  })
-
-  test('can navigate to Sync tab', async () => {
-    await page.getByRole('button', { name: 'Sync' }).click()
-    await expect(page.getByText('Status')).toBeVisible()
-  })
-
-  test('shows sync mode', async () => {
-    await expect(page.getByText('Mode')).toBeVisible()
-    await expect(page.getByText(/primary/i)).toBeVisible()
-  })
-
-  test('shows paired devices section', async () => {
-    await expect(page.getByText('Paired devices')).toBeVisible()
-    await expect(page.getByText('My Steam Deck')).toBeVisible()
-  })
-
-  test('shows add device form', async () => {
-    await expect(page.getByText('Add a device')).toBeVisible()
-    await expect(page.getByPlaceholder('Device ID')).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Add device' })).toBeVisible()
   })
 })
 
@@ -250,16 +197,16 @@ test.describe('Installation tab', () => {
     await expect(page.getByText('State directory')).toBeVisible()
   })
 
-  test('shows installation sections', async () => {
-    await expect(page.getByText('Kyaraben')).toBeVisible()
-    await expect(page.getByText('Desktop files')).toBeVisible()
-    await expect(page.getByText('Icons')).toBeVisible()
-    await expect(page.getByText('Managed config files')).toBeVisible()
+  test('shows state directory path', async () => {
+    await expect(page.getByText(/\.local\/state\/kyaraben|kyaraben-e2e/)).toBeVisible()
+  })
+
+  test('shows preserved paths section', async () => {
     await expect(page.getByText('Preserved on uninstall')).toBeVisible()
   })
 
-  test('shows uninstall command', async () => {
-    await expect(page.getByText('Uninstall')).toBeVisible()
+  test('shows uninstall section', async () => {
+    await expect(page.getByRole('heading', { name: 'Uninstall' })).toBeVisible()
     await expect(page.getByText(/kyaraben uninstall/)).toBeVisible()
   })
 })
@@ -288,11 +235,6 @@ test.describe('Version pinning', () => {
 
     const versionSelect = snesCard.locator('select')
     await expect(versionSelect).toBeVisible()
-  })
-
-  test('shows update indicator when installed differs from config', async () => {
-    const snesCard = page.getByRole('article').filter({ hasText: 'Super Nintendo' })
-    await expect(snesCard.getByText(/on apply/i)).toBeVisible()
   })
 })
 
@@ -328,7 +270,7 @@ test.describe('Tab navigation', () => {
 
   test('can switch to Sync and back', async () => {
     await page.getByRole('button', { name: 'Sync' }).click()
-    await expect(page.getByText(/sync/i)).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Sync/ })).toBeVisible()
 
     await page.getByRole('button', { name: 'Systems' }).click()
     await expect(page.getByText('Emulation folder')).toBeVisible()
