@@ -7,7 +7,11 @@ import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron'
 
 // Set userData to XDG state directory instead of config
 const stateDir = process.env.XDG_STATE_HOME || path.join(os.homedir(), '.local', 'state')
-app.setPath('userData', path.join(stateDir, 'kyaraben', 'ui'))
+const kyarabenStateDir = path.join(stateDir, 'kyaraben')
+app.setPath('userData', path.join(kyarabenStateDir, 'ui'))
+
+// Flag to clean up state directory on quit after uninstall
+let pendingUninstallCleanup = false
 
 // Protocol types for daemon communication.
 // Source of truth: internal/daemon/types.go
@@ -336,6 +340,10 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle('uninstall', async () => {
     const event = await sendCommand({ type: 'uninstall' })
+    const data = event.data as { success: boolean }
+    if (data.success) {
+      pendingUninstallCleanup = true
+    }
     return event.data
   })
 
@@ -482,5 +490,18 @@ app.on('window-all-closed', () => {
 
   if (process.platform !== 'darwin') {
     app.quit()
+  }
+})
+
+app.on('will-quit', () => {
+  if (pendingUninstallCleanup) {
+    // Electron's ui/ subdirectory is locked during uninstall, so the daemon
+    // can't remove it. Clean up the remaining state directory now that we're quitting.
+    const fs = require('node:fs')
+    try {
+      fs.rmSync(kyarabenStateDir, { recursive: true, force: true })
+    } catch {
+      // Ignore errors
+    }
   }
 })
