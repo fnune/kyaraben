@@ -265,10 +265,13 @@ func (m *Manager) InstallKyaraben(appImagePath, sidecarPath string) (*InstallRes
 			return nil, fmt.Errorf("resolving executable symlinks: %w", err)
 		}
 
-		if err := os.Symlink(currentExe, result.CLIPath); err != nil {
-			return nil, fmt.Errorf("creating CLI symlink: %w", err)
+		if err := copyFile(currentExe, result.CLIPath); err != nil {
+			return nil, fmt.Errorf("copying CLI: %w", err)
 		}
-		log.Info("Installed CLI: %s -> %s", result.CLIPath, currentExe)
+		if err := os.Chmod(result.CLIPath, 0755); err != nil {
+			return nil, fmt.Errorf("making CLI executable: %w", err)
+		}
+		log.Info("Installed CLI: %s (copied from %s)", result.CLIPath, currentExe)
 	}
 
 	tmpl, err := template.New("desktop").Parse(kyarabenDesktopTemplate)
