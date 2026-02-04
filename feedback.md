@@ -199,3 +199,64 @@ We need a way for Kyaraben to run garbage collection using nix-portable to free 
 
 This is important because the nix store can grow significantly over time with updates.
 
+---
+
+## Spurious `internal/apply/generations/` directories
+
+During development, `internal/apply/generations/` directories appeared in the repository. This is unexpected since generations should only be created in the user's state directory (`~/.local/state/kyaraben/build/flake/generations/`), not in the source tree.
+
+This needs investigation:
+1. Find the root cause (why are generations being created in the working directory?)
+2. Clean up any existing spurious directories
+3. Add `.gitignore` entries if needed as a safeguard
+4. Fix the code to always use the proper state directory path
+
+---
+
+## CRITICAL: manifest.json disappearing, losing track of installed emulators
+
+Sometimes on a fresh launch, kyaraben loses track of all installed emulators and thinks everything needs to be installed again. The manifest.json file appears to be disappearing or getting corrupted.
+
+Possible causes to investigate:
+1. Race condition on app close (manifest written while app is shutting down?)
+2. Cancelling an installation mid-way corrupts or deletes the manifest
+3. Concurrent writes to manifest from multiple goroutines
+4. File not being flushed/synced before process exits
+5. Error during manifest write silently failing
+
+This is a core failure mode that makes kyaraben unreliable. Users should never lose their installation state. Priority fixes:
+
+1. Add atomic writes for manifest (write to temp file, then rename)
+2. Add manifest backup before any modification
+3. Log all manifest reads/writes for debugging
+4. Verify manifest integrity on load
+5. Handle cancellation gracefully (don't modify manifest until operation succeeds)
+6. Consider keeping manifest history/versions for recovery
+
+---
+
+## "Discard changes" button shown when config differs from manifest
+
+When the user uninstalls everything via CLI and then opens the UI, the config.toml still expects emulators to be installed. The UI correctly shows the diff (e.g., "1.2GB to download"), but it also shows a "Discard changes" button.
+
+This is confusing because:
+1. The user didn't make any changes in the UI
+2. The config.toml is the source of truth for what should be installed
+3. "Discard changes" implies reverting user actions, but there were none
+
+The real situation is: "config wants X installed, but X is not installed yet." The action isn't "discard my changes" but rather "sync config to match current state" or "I don't want these emulators anymore."
+
+Possible solutions:
+1. Rename button to "Reset to installed state" or "Clear pending installs"
+2. Only show "Discard changes" when the user has made UI modifications in this session
+3. Track whether changes came from config vs UI and show different messaging
+4. Show "Config expects: X, Y, Z. Currently installed: none. [Apply] [Edit config]"
+
+---
+
+## Provision links clickable when emulator is disabled
+
+In EmulatorSubcard, the provision items (folder buttons, copy buttons, launch buttons) remain interactive even when the emulator card is disabled (e.g., slated for removal). This is inconsistent - if the emulator is disabled, interacting with its provisions doesn't make sense.
+
+Fix: Disable or hide provision action buttons when the emulator is disabled (`enabled={false}`).
+

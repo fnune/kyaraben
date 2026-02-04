@@ -25,6 +25,7 @@ func TestMain(m *testing.M) {
 
 type mockNixClient struct {
 	storePath string
+	flakePath string
 }
 
 func (m *mockNixClient) IsAvailable() bool { return true }
@@ -43,7 +44,7 @@ func (m *mockNixClient) Eval(ctx context.Context, expr string) (json.RawMessage,
 func (m *mockNixClient) FlakeUpdate(ctx context.Context, flakePath string) error { return nil }
 func (m *mockNixClient) GetVersion(ctx context.Context) (string, error)          { return "2.18.0", nil }
 func (m *mockNixClient) EnsureFlakeDir() error                                   { return nil }
-func (m *mockNixClient) GetFlakePath() string                                    { return "" }
+func (m *mockNixClient) GetFlakePath() string                                    { return m.flakePath }
 func (m *mockNixClient) FlakeCheck(ctx context.Context, flakePath string) error  { return nil }
 func (m *mockNixClient) SetOutputCallback(cb func(string))                       {}
 func (m *mockNixClient) EnsurePersistentNixPortable() (string, error)            { return "", nil }
@@ -103,7 +104,7 @@ func TestApplyRemovesUnenabledEmulatorsFromManifest(t *testing.T) {
 	configWriter := emulators.NewConfigWriter()
 
 	applier := &Applier{
-		NixClient:       &mockNixClient{storePath: "/nix/store/new-path"},
+		NixClient:       &mockNixClient{storePath: "/nix/store/new-path", flakePath: flakePath},
 		FlakeGenerator:  flakeGen,
 		ConfigWriter:    configWriter,
 		Registry:        reg,

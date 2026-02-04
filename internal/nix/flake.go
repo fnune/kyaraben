@@ -139,6 +139,9 @@ func retroArchCorePackage(emuID model.EmulatorID) (string, bool) {
 }
 
 func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorID) (*GenerateResult, error) {
+	if baseDir == "" {
+		return nil, fmt.Errorf("baseDir cannot be empty")
+	}
 	timestamp := time.Now().Format("2006-01-02T15-04-05")
 	genDir := filepath.Join(baseDir, "generations", timestamp)
 

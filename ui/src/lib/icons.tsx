@@ -1,6 +1,12 @@
 export function FolderIcon({ className = 'w-4 h-4' }: { readonly className?: string }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -13,7 +19,13 @@ export function FolderIcon({ className = 'w-4 h-4' }: { readonly className?: str
 
 export function CopyIcon({ className = 'w-3.5 h-3.5' }: { readonly className?: string }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -26,7 +38,13 @@ export function CopyIcon({ className = 'w-3.5 h-3.5' }: { readonly className?: s
 
 export function PlayIcon({ className = 'w-4 h-4' }: { readonly className?: string }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
