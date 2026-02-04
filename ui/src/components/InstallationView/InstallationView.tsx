@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { getUninstallPreview } from '@/lib/daemon'
-import type { UninstallPreviewResponse } from '@/types/daemon'
+import { Button } from '@/lib/Button'
+import { getInstallStatus, getUninstallPreview, installApp } from '@/lib/daemon'
+import type { InstallStatus, UninstallPreviewResponse } from '@/types/daemon'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -29,21 +30,40 @@ function EmptyState({ message }: { message: string }) {
 
 export function InstallationView() {
   const [preview, setPreview] = useState<UninstallPreviewResponse | null>(null)
+  const [installStatus, setInstallStatus] = useState<InstallStatus | null>(null)
   const [loading, setLoading] = useState(true)
+  const [installing, setInstalling] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     setLoading(true)
     setError(null)
-    getUninstallPreview().then((result) => {
-      if (result.ok) {
-        setPreview(result.data)
-      } else {
-        setError(result.error.message)
-      }
-      setLoading(false)
-    })
+    Promise.all([getUninstallPreview(), getInstallStatus()]).then(
+      ([previewResult, installResult]) => {
+        if (previewResult.ok) {
+          setPreview(previewResult.data)
+        } else {
+          setError(previewResult.error.message)
+        }
+        if (installResult.ok) {
+          setInstallStatus(installResult.data)
+        }
+        setLoading(false)
+      },
+    )
   }, [])
+
+  const handleInstall = async () => {
+    setInstalling(true)
+    const result = await installApp()
+    if (result.ok) {
+      const statusResult = await getInstallStatus()
+      if (statusResult.ok) {
+        setInstallStatus(statusResult.data)
+      }
+    }
+    setInstalling(false)
+  }
 
   if (loading) {
     return (
@@ -67,6 +87,29 @@ export function InstallationView() {
 
   return (
     <div className="p-6 space-y-6">
+      <Section title="Kyaraben">
+        {installStatus?.installed ? (
+          <div className="space-y-2">
+            <p className="text-sm text-green-400">Installed</p>
+            <ul className="space-y-1">
+              {installStatus.appPath && <PathItem path={installStatus.appPath} />}
+              {installStatus.cliPath && <PathItem path={installStatus.cliPath} />}
+              {installStatus.desktopPath && <PathItem path={installStatus.desktopPath} />}
+            </ul>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-gray-400">
+              Install Kyaraben to your applications menu and add the CLI to your{' '}
+              <code className="text-gray-300">$PATH</code>.
+            </p>
+            <Button onClick={handleInstall} disabled={installing}>
+              {installing ? 'Installing...' : 'Install'}
+            </Button>
+          </div>
+        )}
+      </Section>
+
       <Section title="State directory">
         {preview.stateDirExists ? (
           <ul className="space-y-1">

@@ -38,7 +38,7 @@ function generateMarkdown(
     lines.push(
       `- Enabled systems: ${status.enabledSystems.length > 0 ? status.enabledSystems.join(', ') : 'none'}`,
     )
-    const emulators = status.installedEmulators.map((e) => `${e.id} (${e.version})`)
+    const emulators = (status.installedEmulators ?? []).map((e) => `${e.id} (${e.version})`)
     lines.push(`- Installed emulators: ${emulators.length > 0 ? emulators.join(', ') : 'none'}`)
   } else {
     lines.push('- Unable to fetch configuration')

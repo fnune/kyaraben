@@ -1,7 +1,5 @@
 import { useState } from 'react'
 import { BugReport } from '@/components/BugReport/BugReport'
-import { SIDEBAR_BOTTOM_PADDING } from '@/lib/BottomBar'
-import { useBottomBar } from '@/lib/BottomBarContext'
 import type { SyncState, SyncStatusResponse } from '@/types/daemon'
 import {
   SyncStateConflict,
@@ -60,14 +58,11 @@ function NavItem({ label, active, onClick, indicator }: NavItemProps) {
 
 export function Sidebar({ currentView, onNavigate, syncStatus }: SidebarProps) {
   const [bugReportOpen, setBugReportOpen] = useState(false)
-  const { isVisible: bottomBarVisible } = useBottomBar()
   const syncState = getSyncState(syncStatus)
   const syncDotColor = syncDotColors[syncState]
 
   return (
-    <aside
-      className={`bg-gray-800 border-b min-[720px]:border-b-0 min-[720px]:border-r border-gray-700 flex flex-row min-[720px]:flex-col min-[720px]:w-56 ${bottomBarVisible ? SIDEBAR_BOTTOM_PADDING : ''}`}
-    >
+    <aside className="bg-gray-800 border-b min-[720px]:border-b-0 min-[720px]:border-r border-gray-700 flex flex-row min-[720px]:flex-col min-[720px]:w-56">
       <div className="p-4 border-r min-[720px]:border-r-0 min-[720px]:border-b border-gray-700">
         <h1 className="text-lg font-semibold text-gray-100">Kyaraben</h1>
       </div>

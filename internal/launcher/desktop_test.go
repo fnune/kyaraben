@@ -87,21 +87,21 @@ func TestGenerateDesktopFiles(t *testing.T) {
 	if !strings.Contains(contentStr, "GenericName=Nintendo Switch Emulator") {
 		t.Errorf("eden.desktop should contain GenericName, got:\n%s", contentStr)
 	}
-	if !strings.Contains(contentStr, "Icon=eden") {
-		t.Errorf("eden.desktop should contain Icon=eden, got:\n%s", contentStr)
+	if !strings.Contains(contentStr, "Icon=kyaraben-eden") {
+		t.Errorf("eden.desktop should contain Icon=kyaraben-eden, got:\n%s", contentStr)
 	}
 	if !strings.Contains(contentStr, "Categories=Game;Emulator;") {
 		t.Errorf("eden.desktop should contain Categories, got:\n%s", contentStr)
 	}
 
-	edenIconPath := filepath.Join(m.iconsDirForExt(".svg"), "eden.svg")
+	edenIconPath := filepath.Join(m.iconsDirForExt(".svg"), "kyaraben-eden.svg")
 	if _, err := os.Stat(edenIconPath); err != nil {
-		t.Errorf("eden.svg should exist in scalable/apps: %v", err)
+		t.Errorf("kyaraben-eden.svg should exist in scalable/apps: %v", err)
 	}
 
-	duckstationIconPath := filepath.Join(m.iconsDirForExt(".png"), "duckstation.png")
+	duckstationIconPath := filepath.Join(m.iconsDirForExt(".png"), "kyaraben-duckstation.png")
 	if _, err := os.Stat(duckstationIconPath); err != nil {
-		t.Errorf("duckstation.png should exist in 256x256/apps: %v", err)
+		t.Errorf("kyaraben-duckstation.png should exist in 256x256/apps: %v", err)
 	}
 }
 
@@ -132,5 +132,187 @@ func TestVirtualToRealStorePath(t *testing.T) {
 				t.Errorf("got %s, expected %s", result, tt.expected)
 			}
 		})
+	}
+}
+
+func TestInstallKyarabenWithAppImage(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	homeDir := filepath.Join(tmpDir, "home")
+	binDir := filepath.Join(homeDir, ".local", "bin")
+	appsDir := filepath.Join(homeDir, ".local", "share", "applications")
+
+	t.Setenv("HOME", homeDir)
+
+	m := &Manager{profileDir: filepath.Join(tmpDir, "kyaraben")}
+
+	appImagePath := filepath.Join(tmpDir, "Kyaraben.AppImage")
+	if err := os.WriteFile(appImagePath, []byte("fake appimage content"), 0755); err != nil {
+		t.Fatalf("creating fake AppImage: %v", err)
+	}
+
+	result, err := m.InstallKyaraben(appImagePath, "")
+	if err != nil {
+		t.Fatalf("InstallKyaraben() error = %v", err)
+	}
+
+	if result.AppPath != filepath.Join(binDir, "kyaraben-ui") {
+		t.Errorf("AppPath = %s, want %s", result.AppPath, filepath.Join(binDir, "kyaraben-ui"))
+	}
+	if result.CLIPath != filepath.Join(binDir, "kyaraben") {
+		t.Errorf("CLIPath = %s, want %s", result.CLIPath, filepath.Join(binDir, "kyaraben"))
+	}
+	if result.DesktopPath != filepath.Join(appsDir, "kyaraben.desktop") {
+		t.Errorf("DesktopPath = %s, want %s", result.DesktopPath, filepath.Join(appsDir, "kyaraben.desktop"))
+	}
+
+	if _, err := os.Stat(result.AppPath); err != nil {
+		t.Errorf("AppImage not copied: %v", err)
+	}
+
+	content, err := os.ReadFile(result.DesktopPath)
+	if err != nil {
+		t.Fatalf("reading desktop file: %v", err)
+	}
+	if !strings.Contains(string(content), "Exec="+result.AppPath) {
+		t.Errorf("desktop file should exec AppImage, got:\n%s", content)
+	}
+}
+
+func TestInstallKyarabenWithSidecar(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	homeDir := filepath.Join(tmpDir, "home")
+	binDir := filepath.Join(homeDir, ".local", "bin")
+
+	t.Setenv("HOME", homeDir)
+
+	m := &Manager{profileDir: filepath.Join(tmpDir, "kyaraben")}
+
+	appImagePath := filepath.Join(tmpDir, "Kyaraben.AppImage")
+	if err := os.WriteFile(appImagePath, []byte("fake appimage"), 0755); err != nil {
+		t.Fatalf("creating fake AppImage: %v", err)
+	}
+
+	sidecarPath := filepath.Join(tmpDir, "kyaraben-sidecar")
+	if err := os.WriteFile(sidecarPath, []byte("fake sidecar binary"), 0755); err != nil {
+		t.Fatalf("creating fake sidecar: %v", err)
+	}
+
+	result, err := m.InstallKyaraben(appImagePath, sidecarPath)
+	if err != nil {
+		t.Fatalf("InstallKyaraben() error = %v", err)
+	}
+
+	cliContent, err := os.ReadFile(result.CLIPath)
+	if err != nil {
+		t.Fatalf("reading CLI: %v", err)
+	}
+	if string(cliContent) != "fake sidecar binary" {
+		t.Errorf("CLI should be a copy of sidecar, got: %s", cliContent)
+	}
+
+	info, err := os.Lstat(result.CLIPath)
+	if err != nil {
+		t.Fatalf("stat CLI: %v", err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		t.Error("CLI should be a file, not a symlink, when sidecarPath provided")
+	}
+
+	if result.AppPath != filepath.Join(binDir, "kyaraben-ui") {
+		t.Errorf("AppPath = %s, want %s", result.AppPath, filepath.Join(binDir, "kyaraben-ui"))
+	}
+}
+
+func TestInstallKyarabenCLIOnly(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	homeDir := filepath.Join(tmpDir, "home")
+	binDir := filepath.Join(homeDir, ".local", "bin")
+	appsDir := filepath.Join(homeDir, ".local", "share", "applications")
+
+	t.Setenv("HOME", homeDir)
+
+	m := &Manager{profileDir: filepath.Join(tmpDir, "kyaraben")}
+
+	result, err := m.InstallKyaraben("", "")
+	if err != nil {
+		t.Fatalf("InstallKyaraben() error = %v", err)
+	}
+
+	if result.AppPath != "" {
+		t.Errorf("AppPath should be empty for CLI-only install, got %s", result.AppPath)
+	}
+	if result.CLIPath != filepath.Join(binDir, "kyaraben") {
+		t.Errorf("CLIPath = %s, want %s", result.CLIPath, filepath.Join(binDir, "kyaraben"))
+	}
+	if result.DesktopPath != filepath.Join(appsDir, "kyaraben.desktop") {
+		t.Errorf("DesktopPath = %s, want %s", result.DesktopPath, filepath.Join(appsDir, "kyaraben.desktop"))
+	}
+
+	linkTarget, err := os.Readlink(result.CLIPath)
+	if err != nil {
+		t.Fatalf("reading CLI symlink: %v", err)
+	}
+	if linkTarget == "" {
+		t.Error("CLI symlink should point to current executable")
+	}
+
+	content, err := os.ReadFile(result.DesktopPath)
+	if err != nil {
+		t.Fatalf("reading desktop file: %v", err)
+	}
+	if !strings.Contains(string(content), "Exec="+result.CLIPath) {
+		t.Errorf("desktop file should exec CLI, got:\n%s", content)
+	}
+}
+
+func TestGetInstallStatus(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	homeDir := filepath.Join(tmpDir, "home")
+	binDir := filepath.Join(homeDir, ".local", "bin")
+	appsDir := filepath.Join(homeDir, ".local", "share", "applications")
+
+	t.Setenv("HOME", homeDir)
+
+	m := &Manager{profileDir: filepath.Join(tmpDir, "kyaraben")}
+
+	status := m.GetInstallStatus()
+	if status.AppPath != "" || status.CLIPath != "" || status.DesktopPath != "" {
+		t.Error("GetInstallStatus should return empty paths when nothing installed")
+	}
+
+	if err := os.MkdirAll(binDir, 0755); err != nil {
+		t.Fatalf("creating bin dir: %v", err)
+	}
+	if err := os.MkdirAll(appsDir, 0755); err != nil {
+		t.Fatalf("creating apps dir: %v", err)
+	}
+
+	appPath := filepath.Join(binDir, "kyaraben-ui")
+	cliPath := filepath.Join(binDir, "kyaraben")
+	desktopPath := filepath.Join(appsDir, "kyaraben.desktop")
+
+	if err := os.WriteFile(appPath, []byte("fake"), 0755); err != nil {
+		t.Fatalf("creating app: %v", err)
+	}
+	if err := os.WriteFile(cliPath, []byte("fake"), 0755); err != nil {
+		t.Fatalf("creating cli: %v", err)
+	}
+	if err := os.WriteFile(desktopPath, []byte("fake"), 0644); err != nil {
+		t.Fatalf("creating desktop: %v", err)
+	}
+
+	status = m.GetInstallStatus()
+	if status.AppPath != appPath {
+		t.Errorf("AppPath = %s, want %s", status.AppPath, appPath)
+	}
+	if status.CLIPath != cliPath {
+		t.Errorf("CLIPath = %s, want %s", status.CLIPath, cliPath)
+	}
+	if status.DesktopPath != desktopPath {
+		t.Errorf("DesktopPath = %s, want %s", status.DesktopPath, desktopPath)
 	}
 }

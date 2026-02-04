@@ -61,7 +61,7 @@ export {
 } from './daemon.gen'
 export type { EmulatorID, Manufacturer, SystemID } from './model.gen'
 
-export type ElectronOnlyCommand = 'get_install_status' | 'install_app' | 'uninstall_app'
+export type ElectronOnlyCommand = 'get_install_status' | 'install_app'
 export type DaemonCommandType = CommandType | ElectronOnlyCommand
 
 export type ProvisionKind = 'bios' | 'keys' | 'firmware'
@@ -70,6 +70,8 @@ export type ProvisionStatus = 'found' | 'missing' | 'invalid' | 'optional'
 export interface InstallStatus {
   readonly installed: boolean
   readonly appPath?: string
+  readonly desktopPath?: string
+  readonly cliPath?: string
 }
 
 export type SyncMode = 'primary' | 'secondary'

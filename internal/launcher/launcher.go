@@ -192,3 +192,142 @@ func realToVirtualStorePath(realPath string) (string, error) {
 	}
 	return realPath[idx:], nil
 }
+
+const kyarabenDesktopTemplate = `[Desktop Entry]
+Type=Application
+Name=Kyaraben
+Comment=Declarative emulation manager
+Exec={{.ExecPath}}
+Icon=applications-games
+Terminal=false
+Categories=Game;Emulator;
+`
+
+type InstallResult struct {
+	AppPath     string
+	DesktopPath string
+	CLIPath     string
+}
+
+func (m *Manager) InstallKyaraben(appImagePath, sidecarPath string) (*InstallResult, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("getting home directory: %w", err)
+	}
+
+	binDir := filepath.Join(homeDir, ".local", "bin")
+	appsDir := filepath.Join(homeDir, ".local", "share", "applications")
+
+	if err := os.MkdirAll(binDir, 0755); err != nil {
+		return nil, fmt.Errorf("creating bin directory: %w", err)
+	}
+	if err := os.MkdirAll(appsDir, 0755); err != nil {
+		return nil, fmt.Errorf("creating applications directory: %w", err)
+	}
+
+	result := &InstallResult{
+		CLIPath:     filepath.Join(binDir, "kyaraben"),
+		DesktopPath: filepath.Join(appsDir, "kyaraben.desktop"),
+	}
+
+	if appImagePath != "" {
+		result.AppPath = filepath.Join(binDir, "kyaraben-ui")
+		if err := copyFile(appImagePath, result.AppPath); err != nil {
+			return nil, fmt.Errorf("copying AppImage: %w", err)
+		}
+		if err := os.Chmod(result.AppPath, 0755); err != nil {
+			return nil, fmt.Errorf("making AppImage executable: %w", err)
+		}
+		log.Info("Installed UI: %s", result.AppPath)
+	}
+
+	if _, err := os.Lstat(result.CLIPath); err == nil {
+		if err := os.Remove(result.CLIPath); err != nil {
+			return nil, fmt.Errorf("removing old CLI: %w", err)
+		}
+	}
+
+	if sidecarPath != "" {
+		if err := copyFile(sidecarPath, result.CLIPath); err != nil {
+			return nil, fmt.Errorf("copying CLI: %w", err)
+		}
+		if err := os.Chmod(result.CLIPath, 0755); err != nil {
+			return nil, fmt.Errorf("making CLI executable: %w", err)
+		}
+		log.Info("Installed CLI: %s (copied from %s)", result.CLIPath, sidecarPath)
+	} else {
+		currentExe, err := os.Executable()
+		if err != nil {
+			return nil, fmt.Errorf("getting current executable: %w", err)
+		}
+		currentExe, err = filepath.EvalSymlinks(currentExe)
+		if err != nil {
+			return nil, fmt.Errorf("resolving executable symlinks: %w", err)
+		}
+
+		if err := os.Symlink(currentExe, result.CLIPath); err != nil {
+			return nil, fmt.Errorf("creating CLI symlink: %w", err)
+		}
+		log.Info("Installed CLI: %s -> %s", result.CLIPath, currentExe)
+	}
+
+	tmpl, err := template.New("desktop").Parse(kyarabenDesktopTemplate)
+	if err != nil {
+		return nil, fmt.Errorf("parsing desktop template: %w", err)
+	}
+
+	execPath := result.CLIPath
+	if result.AppPath != "" {
+		execPath = result.AppPath
+	}
+
+	f, err := os.Create(result.DesktopPath)
+	if err != nil {
+		return nil, fmt.Errorf("creating desktop file: %w", err)
+	}
+	defer f.Close()
+
+	if err := tmpl.Execute(f, struct{ ExecPath string }{ExecPath: execPath}); err != nil {
+		return nil, fmt.Errorf("writing desktop file: %w", err)
+	}
+	log.Info("Installed desktop file: %s", result.DesktopPath)
+
+	return result, nil
+}
+
+func (m *Manager) GetInstallStatus() *InstallResult {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return nil
+	}
+
+	binDir := filepath.Join(homeDir, ".local", "bin")
+	appsDir := filepath.Join(homeDir, ".local", "share", "applications")
+
+	result := &InstallResult{}
+
+	appPath := filepath.Join(binDir, "kyaraben-ui")
+	if _, err := os.Stat(appPath); err == nil {
+		result.AppPath = appPath
+	}
+
+	cliPath := filepath.Join(binDir, "kyaraben")
+	if _, err := os.Stat(cliPath); err == nil {
+		result.CLIPath = cliPath
+	}
+
+	desktopPath := filepath.Join(appsDir, "kyaraben.desktop")
+	if _, err := os.Stat(desktopPath); err == nil {
+		result.DesktopPath = desktopPath
+	}
+
+	return result
+}
+
+func copyFile(src, dst string) error {
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(dst, data, 0644)
+}

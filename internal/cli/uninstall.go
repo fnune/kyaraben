@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/paths"
@@ -41,11 +43,31 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 		userStore = cfg.Global.UserStore
 	}
 
+	homeDir, _ := os.UserHomeDir()
+	kyarabenAppImage := filepath.Join(homeDir, ".local", "bin", "kyaraben.AppImage")
+	kyarabenCLI := filepath.Join(homeDir, ".local", "bin", "kyaraben")
+	kyarabenDesktop := filepath.Join(homeDir, ".local", "share", "applications", "kyaraben", "kyaraben.desktop")
+	kyarabenDesktopDir := filepath.Join(homeDir, ".local", "share", "applications", "kyaraben")
+
 	fmt.Println("This will remove:")
 	fmt.Println()
 
 	if dirExists(kyarabenStateDir) {
 		fmt.Printf("  %s (nix store, manifest, state)\n", kyarabenStateDir)
+	}
+
+	if fileExists(kyarabenAppImage) || fileExists(kyarabenCLI) || fileExists(kyarabenDesktop) {
+		fmt.Println()
+		fmt.Println("  Kyaraben installation:")
+		if fileExists(kyarabenAppImage) {
+			fmt.Printf("    %s\n", kyarabenAppImage)
+		}
+		if fileExists(kyarabenCLI) {
+			fmt.Printf("    %s\n", kyarabenCLI)
+		}
+		if fileExists(kyarabenDesktop) {
+			fmt.Printf("    %s\n", kyarabenDesktop)
+		}
 	}
 
 	if len(manifest.DesktopFiles) > 0 {
@@ -104,6 +126,23 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 	fmt.Println()
 	fmt.Println("Removing kyaraben files...")
 
+	for _, path := range []string{kyarabenAppImage, kyarabenCLI, kyarabenDesktop} {
+		if fileExists(path) {
+			if err := os.Remove(path); err != nil {
+				fmt.Printf("  Warning: could not remove %s: %v\n", path, err)
+			} else {
+				fmt.Printf("  Removed: %s\n", path)
+			}
+		}
+	}
+	if dirExists(kyarabenDesktopDir) {
+		if err := os.RemoveAll(kyarabenDesktopDir); err != nil {
+			fmt.Printf("  Warning: could not remove %s: %v\n", kyarabenDesktopDir, err)
+		} else {
+			fmt.Printf("  Removed: %s\n", kyarabenDesktopDir)
+		}
+	}
+
 	for _, cfg := range manifest.ManagedConfigs {
 		path, err := cfg.Target.Resolve()
 		if err != nil {
@@ -146,6 +185,8 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 		}
 	}
 
+	refreshIconCaches(homeDir)
+
 	fmt.Println()
 	fmt.Println("Done. Kyaraben files have been removed.")
 	fmt.Println()
@@ -182,4 +223,26 @@ func forceRemoveAll(path string) error {
 		return err
 	}
 	return os.RemoveAll(path)
+}
+
+func refreshIconCaches(homeDir string) {
+	iconsDir := filepath.Join(homeDir, ".local", "share", "icons", "hicolor")
+
+	runWithTimeout := func(name string, args ...string) {
+		cmd := exec.Command(name, args...)
+		if err := cmd.Start(); err != nil {
+			return
+		}
+		done := make(chan error)
+		go func() { done <- cmd.Wait() }()
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			cmd.Process.Kill()
+		}
+	}
+
+	runWithTimeout("gtk-update-icon-cache", "-f", "-t", iconsDir)
+	runWithTimeout("kbuildsycoca6")
+	runWithTimeout("kbuildsycoca5")
 }

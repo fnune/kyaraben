@@ -58,7 +58,7 @@ export function PathsModal({
               {managedConfigs.map((configPath) => (
                 <code
                   key={configPath}
-                  className="block text-xs bg-gray-700 px-2 py-1.5 rounded text-gray-400 select-all truncate"
+                  className="block text-sm bg-gray-700 px-2 py-1.5 rounded text-gray-300 select-all overflow-x-auto whitespace-nowrap"
                 >
                   {configPath}
                 </code>
