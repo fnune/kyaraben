@@ -18,9 +18,10 @@ type SystemInfo struct {
 type EmulatorInfo struct {
 	ID             model.EmulatorID
 	Name           string
-	Version        string // Installed version
-	PinnedVersion  string // User-pinned version (empty if auto)
-	DefaultVersion string // Latest default version from versions.toml
+	Version        string   // Installed version
+	PinnedVersion  string   // User-pinned version (empty if auto)
+	DefaultVersion string   // Latest default version from versions.toml
+	ManagedConfigs []string // Paths to config files managed by kyaraben
 }
 
 type Result struct {
@@ -72,6 +73,12 @@ func Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg 
 				if spec, ok := vers.GetEmulator(e.Package.PackageName()); ok {
 					info.DefaultVersion = spec.Default
 				}
+			}
+		}
+
+		for _, cfg := range manifest.GetManagedConfigsForEmulator(emu.ID) {
+			if path, err := cfg.Target.Resolve(); err == nil {
+				info.ManagedConfigs = append(info.ManagedConfigs, path)
 			}
 		}
 

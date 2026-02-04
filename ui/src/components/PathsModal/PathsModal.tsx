@@ -1,3 +1,4 @@
+import { FolderIcon } from '@/lib/icons'
 import { Modal } from '@/lib/Modal'
 
 export interface PathsModalProps {
@@ -41,9 +42,10 @@ export function PathsModal({
               <button
                 type="button"
                 onClick={() => handleOpenFolder(path)}
-                className="px-3 py-1.5 text-sm bg-gray-600 hover:bg-gray-500 text-gray-300 rounded transition-colors flex-shrink-0"
+                className="p-1.5 bg-gray-600 hover:bg-gray-500 text-gray-300 rounded transition-colors flex-shrink-0"
+                aria-label={`Open ${label} folder`}
               >
-                Open
+                <FolderIcon />
               </button>
             </div>
           </div>

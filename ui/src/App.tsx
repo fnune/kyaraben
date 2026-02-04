@@ -31,6 +31,7 @@ function AppContent() {
   )
   const [installedVersions, setInstalledVersions] = useState<Map<EmulatorID, string>>(new Map())
   const [installedExecLines, setInstalledExecLines] = useState<Map<EmulatorID, string>>(new Map())
+  const [managedConfigs, setManagedConfigs] = useState<Map<EmulatorID, string[]>>(new Map())
   const [provisions, setProvisions] = useState<DoctorResponse>({})
   const [userStore, setUserStore] = useState('~/Emulation')
   const [applyStatus, setApplyStatus] = useState<ApplyStatus>('idle')
@@ -77,14 +78,19 @@ function AppContent() {
       if (statusResult.ok) {
         const versions = new Map<EmulatorID, string>()
         const execLines = new Map<EmulatorID, string>()
+        const configs = new Map<EmulatorID, string[]>()
         for (const emu of statusResult.data.installedEmulators) {
           versions.set(emu.id, emu.version)
           if (emu.execLine) {
             execLines.set(emu.id, emu.execLine)
           }
+          if (emu.managedConfigs) {
+            configs.set(emu.id, emu.managedConfigs)
+          }
         }
         setInstalledVersions(versions)
         setInstalledExecLines(execLines)
+        setManagedConfigs(configs)
       }
 
       const [doctorResult, syncResult] = await Promise.all([
@@ -254,14 +260,19 @@ function AppContent() {
       if (statusResult.ok) {
         const versions = new Map<EmulatorID, string>()
         const execLines = new Map<EmulatorID, string>()
+        const configs = new Map<EmulatorID, string[]>()
         for (const emu of statusResult.data.installedEmulators) {
           versions.set(emu.id, emu.version)
           if (emu.execLine) {
             execLines.set(emu.id, emu.execLine)
           }
+          if (emu.managedConfigs) {
+            configs.set(emu.id, emu.managedConfigs)
+          }
         }
         setInstalledVersions(versions)
         setInstalledExecLines(execLines)
+        setManagedConfigs(configs)
       }
     } catch (err) {
       console.error('Apply failed:', err)
@@ -334,14 +345,19 @@ function AppContent() {
     if (statusResult.ok) {
       const versions = new Map<EmulatorID, string>()
       const execLines = new Map<EmulatorID, string>()
+      const configs = new Map<EmulatorID, string[]>()
       for (const emu of statusResult.data.installedEmulators) {
         versions.set(emu.id, emu.version)
         if (emu.execLine) {
           execLines.set(emu.id, emu.execLine)
         }
+        if (emu.managedConfigs) {
+          configs.set(emu.id, emu.managedConfigs)
+        }
       }
       setInstalledVersions(versions)
       setInstalledExecLines(execLines)
+      setManagedConfigs(configs)
     }
   }, [])
 
@@ -355,6 +371,7 @@ function AppContent() {
             emulatorVersions={emulatorVersions}
             installedVersions={installedVersions}
             installedExecLines={installedExecLines}
+            managedConfigs={managedConfigs}
             provisions={provisions}
             userStore={userStore}
             onUserStoreChange={setUserStore}

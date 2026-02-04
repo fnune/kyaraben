@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ChangeNotch } from '@/components/ChangeNotch/ChangeNotch'
 import { PathsModal } from '@/components/PathsModal/PathsModal'
 import { CHANGE_CONFIG, formatBytes, getChangeType } from '@/lib/changeUtils'
+import { CopyIcon, FolderIcon, PlayIcon } from '@/lib/icons'
 import { useToast } from '@/lib/ToastContext'
 import { ToggleSwitch } from '@/lib/ToggleSwitch'
 import type { EmulatorRef, ProvisionResult, SystemID } from '@/types/daemon'
@@ -13,6 +14,7 @@ export interface EmulatorSubcardProps {
   readonly pinnedVersion: string | null
   readonly installedVersion: string | null
   readonly provisions: readonly ProvisionResult[]
+  readonly managedConfigs?: readonly string[]
   readonly userStore: string
   readonly execLine?: string
   readonly onToggle: (enabled: boolean) => void
@@ -29,13 +31,17 @@ const KIND_LABELS: Record<string, string> = {
 function ProvisionItem({
   provision,
   provisionPath,
+  emulatorName,
   onOpenFolder,
   onCopy,
+  onLaunch,
 }: {
   readonly provision: ProvisionResult
   readonly provisionPath: string
+  readonly emulatorName: string
   readonly onOpenFolder: (path: string) => void
   readonly onCopy: (text: string) => void
+  readonly onLaunch?: () => void
 }) {
   const isReady = provision.status === 'found'
   const isOptional = !provision.required
@@ -62,6 +68,33 @@ function ProvisionItem({
     )
   }
 
+  const actionButton = provision.importViaUI ? (
+    onLaunch ? (
+      <button
+        type="button"
+        onClick={onLaunch}
+        className="ml-auto flex items-center gap-1.5 text-blue-400 hover:text-blue-300 hover:underline transition-colors shrink-0"
+      >
+        <span className="hidden md:inline">Import in {emulatorName}</span>
+        <PlayIcon />
+      </button>
+    ) : (
+      <span className="ml-auto text-gray-500 text-xs shrink-0">
+        <span className="hidden md:inline">Import in {emulatorName} after install</span>
+      </span>
+    )
+  ) : (
+    <button
+      type="button"
+      onClick={handleOpenFolder}
+      className="ml-auto flex items-center gap-1.5 text-blue-400 hover:text-blue-300 hover:underline transition-colors shrink-0"
+      aria-label={`Open ${provisionPath}`}
+    >
+      <span className="hidden md:inline">Place in {provisionPath}</span>
+      <FolderIcon />
+    </button>
+  )
+
   return (
     <div className="flex items-center text-xs px-3 py-1.5 gap-2">
       <span className={statusColor}>✗</span>
@@ -77,38 +110,10 @@ function ProvisionItem({
           className="text-gray-600 hover:text-white transition-colors"
           aria-label={`Copy ${provision.filename}`}
         >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-            />
-          </svg>
+          <CopyIcon />
         </button>
       </span>
-      <button
-        type="button"
-        onClick={handleOpenFolder}
-        className="ml-auto flex items-center gap-1.5 text-blue-400 hover:text-blue-300 hover:underline transition-colors shrink-0"
-      >
-        <span className="hidden md:inline">Place in {provisionPath}</span>
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          aria-label={`Open ${provisionPath}`}
-          role="img"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"
-          />
-        </svg>
-      </button>
+      {actionButton}
     </div>
   )
 }
@@ -120,6 +125,7 @@ export function EmulatorSubcard({
   pinnedVersion,
   installedVersion,
   provisions,
+  managedConfigs,
   userStore,
   execLine,
   onToggle,
@@ -150,6 +156,7 @@ export function EmulatorSubcard({
   const handleLaunch = () => {
     if (onLaunch) {
       onLaunch()
+      showToast(`Launching ${emulator.name}`)
     }
   }
 
@@ -217,8 +224,10 @@ export function EmulatorSubcard({
               key={p.filename}
               provision={p}
               provisionPath={biosPath}
+              emulatorName={emulator.name}
               onOpenFolder={handleOpenFolder}
               onCopy={handleCopy}
+              {...(execLine && onLaunch && { onLaunch })}
             />
           ))}
         </div>
@@ -230,6 +239,7 @@ export function EmulatorSubcard({
         emulatorName={emulator.name}
         emulatorId={emulator.id}
         userStore={userStore}
+        {...(managedConfigs && { managedConfigs })}
       />
     </div>
   )
@@ -261,16 +271,16 @@ function VersionSelector({
       disabled={disabled}
       className={`
         bg-gray-700 rounded px-2 py-1 text-xs text-gray-200
-        outline-none focus:ring-1 focus:ring-blue-400
-        ${isPinned ? 'ring-1 ring-amber-500' : 'border border-gray-600'}
+        outline-2 outline-offset-1 focus:outline focus:outline-blue-400
+        ${isPinned ? 'ring-2 ring-amber-500' : 'border border-gray-600'}
         ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
         tabular-nums
       `}
     >
-      <option value="">{defaultVersion}</option>
+      <option value="">{defaultVersion} (auto)</option>
       {availableVersions.map((v) => (
         <option key={v} value={v}>
-          {v}
+          {v} (pin)
         </option>
       ))}
     </select>

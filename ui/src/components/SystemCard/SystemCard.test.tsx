@@ -1,8 +1,13 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
+import { ToastProvider } from '@/lib/ToastContext'
 import type { DoctorResponse, EmulatorID, System } from '@/types/daemon'
 import { SystemCard } from './SystemCard'
+
+function renderWithProviders(ui: React.ReactElement) {
+  return render(<ToastProvider>{ui}</ToastProvider>)
+}
 
 const mockSystem: System = {
   id: 'snes',
@@ -15,13 +20,14 @@ const mockSystem: System = {
 
 describe('SystemCard', () => {
   it('renders system name and emulator', () => {
-    render(
+    renderWithProviders(
       <SystemCard
         system={mockSystem}
         enabledEmulators={new Set<EmulatorID>()}
         emulatorVersions={new Map()}
         installedVersions={new Map()}
         installedExecLines={new Map()}
+        managedConfigs={new Map()}
         provisions={{}}
         userStore="~/Emulation"
         onEmulatorToggle={vi.fn()}
@@ -34,13 +40,14 @@ describe('SystemCard', () => {
   })
 
   it('shows toggle as enabled when emulator is enabled', () => {
-    render(
+    renderWithProviders(
       <SystemCard
         system={mockSystem}
         enabledEmulators={new Set<EmulatorID>(['retroarch:bsnes'])}
         emulatorVersions={new Map()}
         installedVersions={new Map()}
         installedExecLines={new Map()}
+        managedConfigs={new Map()}
         provisions={{}}
         userStore="~/Emulation"
         onEmulatorToggle={vi.fn()}
@@ -56,13 +63,14 @@ describe('SystemCard', () => {
     const user = userEvent.setup()
     const onEmulatorToggle = vi.fn()
 
-    render(
+    renderWithProviders(
       <SystemCard
         system={mockSystem}
         enabledEmulators={new Set<EmulatorID>()}
         emulatorVersions={new Map()}
         installedVersions={new Map()}
         installedExecLines={new Map()}
+        managedConfigs={new Map()}
         provisions={{}}
         userStore="~/Emulation"
         onEmulatorToggle={onEmulatorToggle}
@@ -87,13 +95,14 @@ describe('SystemCard', () => {
       ],
     }
 
-    render(
+    renderWithProviders(
       <SystemCard
         system={mockSystem}
         enabledEmulators={new Set<EmulatorID>()}
         emulatorVersions={new Map()}
         installedVersions={new Map()}
         installedExecLines={new Map()}
+        managedConfigs={new Map()}
         provisions={provisions}
         userStore="~/Emulation"
         onEmulatorToggle={vi.fn()}
@@ -105,13 +114,14 @@ describe('SystemCard', () => {
   })
 
   it('shows manufacturer and year in header', () => {
-    render(
+    renderWithProviders(
       <SystemCard
         system={mockSystem}
         enabledEmulators={new Set<EmulatorID>()}
         emulatorVersions={new Map()}
         installedVersions={new Map()}
         installedExecLines={new Map()}
+        managedConfigs={new Map()}
         provisions={{}}
         userStore="~/Emulation"
         onEmulatorToggle={vi.fn()}

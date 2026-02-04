@@ -133,6 +133,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	enabledEmulators := a.collectEnabledEmulators(cfg)
 	emulatorsToInstall := make([]model.EmulatorID, 0, len(enabledEmulators))
 	allPatches := make([]model.ConfigPatch, 0)
+	patchEmulators := make([]model.EmulatorID, 0)
 
 	for emuID := range enabledEmulators {
 		emulatorsToInstall = append(emulatorsToInstall, emuID)
@@ -145,6 +146,9 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		patches, err := gen.Generate(userStore)
 		if err != nil {
 			return nil, fmt.Errorf("generating config for %s: %w", emuID, err)
+		}
+		for range patches {
+			patchEmulators = append(patchEmulators, emuID)
 		}
 		allPatches = append(allPatches, patches...)
 	}
@@ -186,8 +190,6 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 
 	resolvedVersions := a.FlakeGenerator.GetResolvedVersions(emulatorsToInstall)
 
-	opts.OnProgress(Progress{Step: "build", Message: "This may take a few minutes on first run"})
-
 	netMon := NewNetMonitor(func(bytesPerSec int64) {
 		if bytesPerSec > 1024 { // Only report if >1 KB/s
 			opts.OnProgress(Progress{Step: "build", Speed: formatSpeed(bytesPerSec)})
@@ -201,7 +203,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	})
 	defer a.NixClient.SetOutputCallback(nil)
 
-	opts.OnProgress(Progress{Step: "build", Message: "Building packages..."})
+	opts.OnProgress(Progress{Step: "build", Message: "This may take a while on first run"})
 
 	buildCtx, cancel := context.WithTimeout(ctx, nixBuildTimeout)
 	defer cancel()
@@ -345,6 +347,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		}
 
 		manifest.AddManagedConfig(model.ManagedConfig{
+			EmulatorID:   patchEmulators[i],
 			Target:       patch.Target,
 			BaselineHash: configResults[i].BaselineHash,
 			LastModified: time.Now(),

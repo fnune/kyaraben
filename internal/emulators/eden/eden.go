@@ -24,6 +24,7 @@ func (Definition) Emulator() model.Emulator {
 				Filename:    "prod.keys",
 				Description: "Keys",
 				Required:    true,
+				ImportViaUI: true,
 			},
 			{
 				ID:          "switch-firmware",
@@ -31,6 +32,7 @@ func (Definition) Emulator() model.Emulator {
 				Filename:    "firmware",
 				Description: "Firmware",
 				Required:    false,
+				ImportViaUI: true,
 			},
 		},
 		StateKinds: []model.StateKind{

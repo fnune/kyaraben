@@ -32,6 +32,7 @@ export interface SystemCardProps {
   readonly emulatorVersions: ReadonlyMap<EmulatorID, string | null>
   readonly installedVersions: ReadonlyMap<EmulatorID, string>
   readonly installedExecLines: ReadonlyMap<EmulatorID, string>
+  readonly managedConfigs: ReadonlyMap<EmulatorID, string[]>
   readonly provisions: DoctorResponse
   readonly userStore: string
   readonly onEmulatorToggle: (emulatorId: EmulatorID, enabled: boolean) => void
@@ -44,6 +45,7 @@ export function SystemCard({
   emulatorVersions,
   installedVersions,
   installedExecLines,
+  managedConfigs,
   provisions,
   userStore,
   onEmulatorToggle,
@@ -75,6 +77,7 @@ export function SystemCard({
       <div className="p-2 space-y-2 bg-gray-900">
         {system.emulators.map((emulator) => {
           const execLine = installedExecLines.get(emulator.id)
+          const emuManagedConfigs = managedConfigs.get(emulator.id)
           return (
             <EmulatorSubcard
               key={emulator.id}
@@ -87,6 +90,7 @@ export function SystemCard({
               userStore={userStore}
               onToggle={(enabled) => onEmulatorToggle(emulator.id, enabled)}
               onVersionChange={(version) => onVersionChange(emulator.id, version)}
+              {...(emuManagedConfigs && { managedConfigs: emuManagedConfigs })}
               {...(execLine && {
                 execLine,
                 onLaunch: () => launchEmulator(execLine),
