@@ -213,7 +213,7 @@ func (c *Client) Build(ctx context.Context, flakeRef string) (string, error) {
 	}
 
 	var stderr bytes.Buffer
-	opts.Stderr = io.MultiWriter(&stderr, os.Stderr)
+	opts.Stderr = io.MultiWriter(&stderr, os.Stderr, logging.Writer())
 
 	log.Info("Executing nix build (this may take a while on first run)...")
 	stdout, err := c.runner.Output(ctx, c.NixPortableBinary, fullArgs, opts)
@@ -259,7 +259,7 @@ func (c *Client) BuildWithLink(ctx context.Context, flakeRef string, outLink str
 	}
 
 	var stderr bytes.Buffer
-	writers := []io.Writer{&stderr, os.Stderr}
+	writers := []io.Writer{&stderr, os.Stderr, logging.Writer()}
 	if c.outputCallback != nil {
 		writers = append(writers, &lineCallbackWriter{
 			callback:    c.outputCallback,
