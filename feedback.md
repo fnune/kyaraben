@@ -201,18 +201,6 @@ This is important because the nix store can grow significantly over time with up
 
 ---
 
-## Spurious `internal/apply/generations/` directories
-
-During development, `internal/apply/generations/` directories appeared in the repository. This is unexpected since generations should only be created in the user's state directory (`~/.local/state/kyaraben/build/flake/generations/`), not in the source tree.
-
-This needs investigation:
-1. Find the root cause (why are generations being created in the working directory?)
-2. Clean up any existing spurious directories
-3. Add `.gitignore` entries if needed as a safeguard
-4. Fix the code to always use the proper state directory path
-
----
-
 ## "Discard changes" button shown when config differs from manifest
 
 When the user uninstalls everything via CLI and then opens the UI, the config.toml still expects emulators to be installed. The UI correctly shows the diff (e.g., "1.2GB to download"), but it also shows a "Discard changes" button.
@@ -229,29 +217,6 @@ Possible solutions:
 2. Only show "Discard changes" when the user has made UI modifications in this session
 3. Track whether changes came from config vs UI and show different messaging
 4. Show "Config expects: X, Y, Z. Currently installed: none. [Apply] [Edit config]"
-
----
-
-## Provision links clickable when emulator is disabled
-
-In EmulatorSubcard, the provision items (folder buttons, copy buttons, launch buttons) remain interactive even when the emulator card is disabled (e.g., slated for removal). This is inconsistent - if the emulator is disabled, interacting with its provisions doesn't make sense.
-
-Fix: Disable or hide provision action buttons when the emulator is disabled (`enabled={false}`).
-
----
-
-## Use kyaraben-specific subdirectories for generated files [DONE]
-
-Kyaraben now uses kyaraben-specific locations for generated files:
-
-- Desktop files: `~/.local/share/applications/kyaraben/*.desktop`
-- Icons: `~/.local/share/icons/hicolor/*/apps/kyaraben-*.{svg,png}` (prefixed rather than subdirectory, since hicolor icon theme requires standard structure)
-
-Benefits:
-1. Easier to uninstall - desktop files can be removed by deleting the subdirectory
-2. Icons are easily identifiable by their `kyaraben-` prefix
-3. Avoids filename clashes with other applications
-4. Migration from old paths happens automatically on next `kyaraben apply`
 
 ---
 
@@ -278,25 +243,6 @@ The manifest has been a source of bugs (disappearing, corruption). Reducing its 
 
 ---
 
-## Daemon protocol request/response correlation [DONE]
-
-Added UUID-based request IDs to the daemon protocol for proper request/response matching. Previously, the Electron handler used FIFO matching which broke when commands were sent during apply (their responses got matched to the wrong handler).
-
----
-
-## Electron user data location [DONE]
-
-Moved Electron's user data from `~/.config/kyaraben-ui/` to `~/.local/state/kyaraben/ui/` following XDG conventions. Cache, cookies, session storage is state, not config.
-
----
-
-## RetroArch cores building from source [DONE]
-
-Pinned `retroarch-cores` in versions.toml to a hydra-cached nixpkgs commit to avoid building libretro cores from source on every apply.
-
----
-
 ## Vita3K opaque config location
 
 Vita3K config lives in `~/Emulation/opaque/vita3k/config.yml` because the emulator takes a single `-c` path for its entire user directory. We can't separate config from data with Vita3K's current architecture. This is intentional - same pattern as Dolphin and Eden.
-
