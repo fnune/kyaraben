@@ -72,3 +72,5 @@ export const launchEmulator = (execLine: string) =>
 export const openPath = (path: string) => invoke<string>('open_path', path)
 
 export const readFile = (path: string) => invoke<string>('read_file', path)
+
+export const openLogTail = () => invoke<{ success: boolean; error?: string }>('open_log_tail')

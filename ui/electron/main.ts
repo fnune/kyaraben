@@ -386,6 +386,35 @@ function setupIpcHandlers(): void {
     return { success: true }
   })
 
+  ipcMain.handle('open_log_tail', () => {
+    const { spawn, execSync } = require('node:child_process')
+    const logPath = path.join(kyarabenStateDir, 'kyaraben.log')
+
+    // Try to find a terminal emulator
+    const terminals = [
+      { cmd: 'x-terminal-emulator', args: ['-e', `tail -f "${logPath}"`] },
+      { cmd: 'gnome-terminal', args: ['--', 'tail', '-f', logPath] },
+      { cmd: 'konsole', args: ['-e', 'tail', '-f', logPath] },
+      { cmd: 'xfce4-terminal', args: ['-e', `tail -f "${logPath}"`] },
+      { cmd: 'xterm', args: ['-e', `tail -f "${logPath}"`] },
+    ]
+
+    for (const term of terminals) {
+      try {
+        execSync(`which ${term.cmd}`, { stdio: 'ignore' })
+        spawn(term.cmd, term.args, {
+          detached: true,
+          stdio: 'ignore',
+        }).unref()
+        return { success: true }
+      } catch {
+        // Terminal not found, try next
+      }
+    }
+
+    return { success: false, error: 'No terminal emulator found' }
+  })
+
   ipcMain.handle('get_bug_report_info', async () => {
     const os = require('node:os')
     const fs = require('node:fs')

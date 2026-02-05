@@ -1,6 +1,7 @@
 import { useApply } from '@/lib/ApplyContext'
 import { BOTTOM_BAR_HEIGHT } from '@/lib/BottomBar'
 import { BottomBarPortal } from '@/lib/BottomBarSlot'
+import { openLogTail } from '@/lib/daemon'
 
 export interface ApplyProgressBarProps {
   readonly currentView: string
@@ -31,6 +32,13 @@ export function ApplyProgressBar({ currentView, onNavigateToSystems }: ApplyProg
             </span>
           </div>
           <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => openLogTail()}
+              className="text-gray-400 hover:text-gray-300 hover:underline text-sm"
+            >
+              View log
+            </button>
             <button
               type="button"
               onClick={cancel}
