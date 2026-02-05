@@ -37,6 +37,7 @@
             gopls
             gotools
             go-tools
+            golangci-lint
             delve
 
             # Nix tools
@@ -48,6 +49,7 @@
             jq
             just
             podman
+            prek
           ];
 
           shellHook = ''
