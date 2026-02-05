@@ -12,20 +12,20 @@ package daemon
 type CommandType string
 
 const (
-	CommandTypeStatus           CommandType = "status"
-	CommandTypeDoctor           CommandType = "doctor"
-	CommandTypeApply            CommandType = "apply"
-	CommandTypeCancelApply      CommandType = "cancel_apply"
-	CommandTypeGetSystems       CommandType = "get_systems"
-	CommandTypeGetConfig        CommandType = "get_config"
-	CommandTypeSetConfig        CommandType = "set_config"
-	CommandTypeSyncStatus       CommandType = "sync_status"
-	CommandTypeSyncAddDevice    CommandType = "sync_add_device"
-	CommandTypeSyncRemoveDevice CommandType = "sync_remove_device"
-	CommandTypeUninstallPreview   CommandType = "uninstall_preview"
-	CommandTypeInstallKyaraben    CommandType = "install_kyaraben"
-	CommandTypeInstallStatus      CommandType = "install_status"
-	CommandTypeRefreshIconCaches  CommandType = "refresh_icon_caches"
+	CommandTypeStatus            CommandType = "status"
+	CommandTypeDoctor            CommandType = "doctor"
+	CommandTypeApply             CommandType = "apply"
+	CommandTypeCancelApply       CommandType = "cancel_apply"
+	CommandTypeGetSystems        CommandType = "get_systems"
+	CommandTypeGetConfig         CommandType = "get_config"
+	CommandTypeSetConfig         CommandType = "set_config"
+	CommandTypeSyncStatus        CommandType = "sync_status"
+	CommandTypeSyncAddDevice     CommandType = "sync_add_device"
+	CommandTypeSyncRemoveDevice  CommandType = "sync_remove_device"
+	CommandTypeUninstallPreview  CommandType = "uninstall_preview"
+	CommandTypeInstallKyaraben   CommandType = "install_kyaraben"
+	CommandTypeInstallStatus     CommandType = "install_status"
+	CommandTypeRefreshIconCaches CommandType = "refresh_icon_caches"
 )
 
 // Command represents a command from the UI.
