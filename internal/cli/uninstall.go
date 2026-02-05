@@ -33,7 +33,19 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 	if err != nil {
 		return err
 	}
-	manifest, _ := model.LoadManifest(manifestPath)
+	manifest, err := model.LoadManifest(manifestPath)
+	if err != nil {
+		fmt.Printf("Warning: could not load manifest: %v\n", err)
+		fmt.Println("Some files may not be listed for removal.")
+		fmt.Println()
+		fmt.Printf("Manifest path: %s\n", manifestPath)
+		if data, readErr := os.ReadFile(manifestPath); readErr == nil {
+			fmt.Println("Manifest contents:")
+			fmt.Println(string(data))
+		}
+		fmt.Println()
+		manifest = model.NewManifest()
+	}
 
 	cfg, _ := ctx.LoadConfig()
 	userStore := "~/Emulation"
