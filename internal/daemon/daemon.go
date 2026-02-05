@@ -387,13 +387,19 @@ func (d *Daemon) handleGetSystems() []Event {
 			emuList = append(emuList, ref)
 		}
 
+		var defaultEmuID model.EmulatorID
+		if defaultEmu, err := d.reg.GetDefaultEmulator(sys.ID); err == nil {
+			defaultEmuID = defaultEmu.ID
+		}
+
 		result = append(result, SystemWithEmulators{
-			ID:           sys.ID,
-			Name:         sys.Name,
-			Description:  sys.Description,
-			Manufacturer: sys.Manufacturer,
-			Label:        sys.Label,
-			Emulators:    emuList,
+			ID:                sys.ID,
+			Name:              sys.Name,
+			Description:       sys.Description,
+			Manufacturer:      sys.Manufacturer,
+			Label:             sys.Label,
+			DefaultEmulatorID: defaultEmuID,
+			Emulators:         emuList,
 		})
 	}
 

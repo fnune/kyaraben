@@ -13,7 +13,7 @@ dev: _ensure-ui-deps generate-types _sidecar
 
 # Run all checks (lint + test)
 check: lint test
-    cd ui && npm run lint
+    cd ui && npm run typecheck && npm run lint
 
 # Run Go tests
 test:
