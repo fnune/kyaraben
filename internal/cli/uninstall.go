@@ -4,8 +4,11 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/model"
@@ -13,11 +16,17 @@ import (
 )
 
 type UninstallCmd struct {
-	Force  bool `short:"f" help:"Skip confirmation prompt."`
-	DryRun bool `short:"n" help:"Show what would be removed without doing anything."`
+	Force   bool `short:"f" help:"Skip confirmation prompt."`
+	DryRun  bool `short:"n" help:"Show what would be removed without doing anything."`
+	WaitPID int  `help:"Wait for this process to exit before uninstalling."`
+	Notify  bool `help:"Show a desktop notification when done."`
 }
 
 func (cmd *UninstallCmd) Run(ctx *Context) error {
+	if cmd.WaitPID > 0 {
+		waitForProcess(cmd.WaitPID)
+	}
+
 	kyarabenStateDir, err := paths.KyarabenStateDir()
 	if err != nil {
 		return err
@@ -198,6 +207,10 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 	fmt.Printf("To fully uninstall, also remove:\n")
 	fmt.Printf("  %s (your config)\n", configDir)
 
+	if cmd.Notify {
+		sendNotification("Kyaraben uninstalled", "All managed files have been removed.")
+	}
+
 	return nil
 }
 
@@ -252,4 +265,17 @@ func forceChmodRecursive(path string) error {
 	}
 
 	return nil
+}
+
+func waitForProcess(pid int) {
+	for {
+		if err := syscall.Kill(pid, 0); err != nil {
+			return
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
+func sendNotification(title, body string) {
+	_ = exec.Command("notify-send", title, body).Run()
 }
