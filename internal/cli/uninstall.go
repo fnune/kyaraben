@@ -208,7 +208,12 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 	fmt.Printf("  %s (your config)\n", configDir)
 
 	if cmd.Notify {
-		sendNotification("Kyaraben uninstalled", "All managed files have been removed.")
+		pathEnv := os.Getenv("PATH")
+		if err := sendNotification("Kyaraben uninstalled", "All managed files have been removed."); err != nil {
+			_ = os.WriteFile("/tmp/kyaraben-uninstall-debug.txt", []byte(fmt.Sprintf("notification failed: %v\nPATH=%s\n", err, pathEnv)), 0644)
+		} else {
+			_ = os.WriteFile("/tmp/kyaraben-uninstall-debug.txt", []byte("notification sent successfully\n"), 0644)
+		}
 	}
 
 	return nil
@@ -276,6 +281,6 @@ func waitForProcess(pid int) {
 	}
 }
 
-func sendNotification(title, body string) {
-	_ = exec.Command("notify-send", title, body).Run()
+func sendNotification(title, body string) error {
+	return exec.Command("/usr/bin/env", "notify-send", title, body).Run()
 }
