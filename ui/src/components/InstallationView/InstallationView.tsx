@@ -36,6 +36,19 @@ function EmptyState({ message }: { message: string }) {
   return <p className="text-sm text-gray-500 italic">{message}</p>
 }
 
+function UninstallPendingOverlay() {
+  return (
+    <div className="fixed inset-0 bg-gray-900 flex items-center justify-center z-50">
+      <div className="text-center max-w-md px-6">
+        <div className="text-6xl mb-6">👋</div>
+        <h1 className="text-2xl font-medium text-gray-100 mb-4">Ready to uninstall</h1>
+        <p className="text-gray-400 mb-2">Kyaraben will uninstall when you close this window.</p>
+        <p className="text-gray-500 text-sm">You'll receive a notification when it's done.</p>
+      </div>
+    </div>
+  )
+}
+
 export function InstallationView() {
   const [preview, setPreview] = useState<UninstallPreviewResponse | null>(null)
   const [installStatus, setInstallStatus] = useState<InstallStatus | null>(null)
@@ -44,6 +57,7 @@ export function InstallationView() {
   const [configPath, setConfigPath] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [installing, setInstalling] = useState(false)
+  const [uninstallPending, setUninstallPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -98,7 +112,13 @@ export function InstallationView() {
       setError(result.error.message)
     } else if (!result.data.success) {
       setError(result.data.error ?? 'Failed to launch uninstaller')
+    } else {
+      setUninstallPending(true)
     }
+  }
+
+  if (uninstallPending) {
+    return <UninstallPendingOverlay />
   }
 
   if (loading) {
