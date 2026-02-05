@@ -408,9 +408,9 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle('launch_cli_uninstall', () => {
     const sidecarPath = findSidecarPath()
-    const result = spawnInTerminal(`"${sidecarPath}" uninstall`)
+    const command = `"${sidecarPath}" uninstall --force; echo; read -p "Press Enter to close..."`
+    const result = spawnInTerminal(command)
     if (result.success) {
-      // Give the terminal a moment to start, then quit
       setTimeout(() => app.quit(), 500)
     }
     return result
