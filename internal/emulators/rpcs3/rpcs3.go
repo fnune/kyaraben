@@ -21,6 +21,7 @@ func (Definition) Emulator() model.Emulator {
 			Binary:      "rpcs3",
 			GenericName: "PlayStation 3 Emulator",
 			Categories:  []string{"Game", "Emulator"},
+			RomCommand:  model.PositionalRomCommand,
 		},
 	}
 }

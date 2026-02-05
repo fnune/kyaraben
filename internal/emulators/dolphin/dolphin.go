@@ -25,7 +25,9 @@ func (Definition) Emulator() model.Emulator {
 			Binary:      "dolphin",
 			GenericName: "GameCube/Wii Emulator",
 			Categories:  []string{"Game", "Emulator"},
-			RomArgs:     "-e %ROM%",
+			RomCommand: func(opts model.RomLaunchOptions) string {
+				return opts.BinaryPath + " -e %ROM%"
+			},
 		},
 	}
 }

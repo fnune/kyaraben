@@ -45,6 +45,7 @@ func (Definition) Emulator() model.Emulator {
 			Binary:      "pcsx2",
 			GenericName: "PlayStation 2 Emulator",
 			Categories:  []string{"Game", "Emulator"},
+			RomCommand:  model.PositionalRomCommand,
 		},
 	}
 }

@@ -45,6 +45,7 @@ func (Definition) Emulator() model.Emulator {
 			Binary:      "duckstation",
 			GenericName: "PlayStation Emulator",
 			Categories:  []string{"Game", "Emulator"},
+			RomCommand:  model.PositionalRomCommand,
 		},
 	}
 }
