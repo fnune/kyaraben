@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld('electron', {
       'refresh_icon_caches',
       'open_path',
       'path_exists',
+      'read_file',
       'get_bug_report_info',
       'launch_emulator',
     ]

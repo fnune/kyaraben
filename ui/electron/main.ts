@@ -355,6 +355,14 @@ function setupIpcHandlers(): void {
     return fs.existsSync(expandedPath)
   })
 
+  ipcMain.handle('read_file', async (_, filePath: string) => {
+    const fs = require('node:fs')
+    const expandedPath = filePath.startsWith('~')
+      ? filePath.replace('~', app.getPath('home'))
+      : filePath
+    return fs.readFileSync(expandedPath, 'utf-8')
+  })
+
   ipcMain.handle('launch_emulator', (_, execLine: string) => {
     const { spawn } = require('node:child_process')
     spawn(execLine, [], {
