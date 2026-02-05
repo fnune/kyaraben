@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -24,6 +23,7 @@ type Client struct {
 	NixPortableLocation string // passed via NP_LOCATION env var
 	FlakePath           string
 	outputCallback      func(line string)
+	runner              CommandRunner
 }
 
 func (c *Client) SetOutputCallback(fn func(line string)) {
@@ -81,6 +81,7 @@ func NewClient() (*Client, error) {
 		NixPortableBinary:   nixPortable,
 		NixPortableLocation: filepath.Join(buildDir, "nix"),
 		FlakePath:           filepath.Join(buildDir, "flake"),
+		runner:              &ExecRunner{},
 	}, nil
 }
 
@@ -158,26 +159,25 @@ func (c *Client) IsAvailable() bool {
 	return err == nil
 }
 
-func (c *Client) runNix(ctx context.Context, args []string) (*exec.Cmd, error) {
+func (c *Client) prepareNixRun(args []string) (fullArgs []string, baseOpts RunOpts, err error) {
 	if !c.IsAvailable() {
 		log.Error("nix-portable not available at: %s", c.NixPortableBinary)
-		return nil, fmt.Errorf("nix-portable is not available (bundled binary not found)")
+		return nil, RunOpts{}, fmt.Errorf("nix-portable is not available (bundled binary not found)")
 	}
 
 	if err := c.EnsureNixPortableDir(); err != nil {
-		return nil, fmt.Errorf("creating nix-portable data directory: %w", err)
+		return nil, RunOpts{}, fmt.Errorf("creating nix-portable data directory: %w", err)
 	}
 
-	// nix-portable wraps nix, so we call: nix-portable nix <args>
-	fullArgs := append([]string{"nix"}, args...)
-	cmd := exec.CommandContext(ctx, c.NixPortableBinary, fullArgs...)
-
-	cmd.Env = append(os.Environ(), "NP_LOCATION="+c.NixPortableLocation)
+	fullArgs = append([]string{"nix"}, args...)
+	baseOpts = RunOpts{
+		Env: append(os.Environ(), "NP_LOCATION="+c.NixPortableLocation),
+	}
 
 	log.Debug("Running: %s %v", c.NixPortableBinary, fullArgs)
 	log.Debug("NP_LOCATION=%s", c.NixPortableLocation)
 
-	return cmd, nil
+	return fullArgs, baseOpts, nil
 }
 
 func (c *Client) EnsureNixPortableDir() error {
@@ -199,21 +199,22 @@ func (c *Client) Build(ctx context.Context, flakeRef string) (string, error) {
 		args = append(args, "--option", "sandbox", "false")
 	}
 
-	cmd, err := c.runNix(ctx, args)
+	fullArgs, opts, err := c.prepareNixRun(args)
 	if err != nil {
 		return "", err
 	}
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = io.MultiWriter(&stderr, os.Stderr)
+
+	var stderr bytes.Buffer
+	opts.Stderr = io.MultiWriter(&stderr, os.Stderr)
 
 	log.Info("Executing nix build (this may take a while on first run)...")
-	if err := cmd.Run(); err != nil {
+	stdout, err := c.runner.Output(ctx, c.NixPortableBinary, fullArgs, opts)
+	if err != nil {
 		log.Error("nix build FAILED: %v", err)
 		return "", fmt.Errorf("nix build failed: %w\nstderr: %s", err, stderr.String())
 	}
 
-	storePath := strings.TrimSpace(stdout.String())
+	storePath := strings.TrimSpace(string(stdout))
 	if storePath == "" {
 		log.Error("nix build produced no output")
 		return "", fmt.Errorf("nix build produced no output")
@@ -244,7 +245,7 @@ func (c *Client) BuildWithLink(ctx context.Context, flakeRef string, outLink str
 		args = append(args, "--option", "sandbox", "false")
 	}
 
-	cmd, err := c.runNix(ctx, args)
+	fullArgs, opts, err := c.prepareNixRun(args)
 	if err != nil {
 		return err
 	}
@@ -258,10 +259,10 @@ func (c *Client) BuildWithLink(ctx context.Context, flakeRef string, outLink str
 			replaceTo:   "~/.local/state/kyaraben/",
 		})
 	}
-	cmd.Stderr = io.MultiWriter(writers...)
+	opts.Stderr = io.MultiWriter(writers...)
 
 	log.Info("Executing nix build (this may take a while on first run)...")
-	if err := cmd.Run(); err != nil {
+	if err := c.runner.Run(ctx, c.NixPortableBinary, fullArgs, opts); err != nil {
 		log.Error("nix build FAILED: %v", err)
 		return fmt.Errorf("nix build failed: %w\nstderr: %s", err, stderr.String())
 	}
@@ -291,19 +292,20 @@ func (c *Client) Eval(ctx context.Context, expr string) (json.RawMessage, error)
 		"--expr", expr,
 	}
 
-	cmd, err := c.runNix(ctx, args)
+	fullArgs, opts, err := c.prepareNixRun(args)
 	if err != nil {
 		return nil, err
 	}
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
 
-	if err := cmd.Run(); err != nil {
+	var stderr bytes.Buffer
+	opts.Stderr = &stderr
+
+	stdout, err := c.runner.Output(ctx, c.NixPortableBinary, fullArgs, opts)
+	if err != nil {
 		return nil, fmt.Errorf("nix eval failed: %w\nstderr: %s", err, stderr.String())
 	}
 
-	return json.RawMessage(stdout.Bytes()), nil
+	return json.RawMessage(stdout), nil
 }
 
 func (c *Client) FlakeUpdate(ctx context.Context, flakePath string) error {
@@ -312,15 +314,16 @@ func (c *Client) FlakeUpdate(ctx context.Context, flakePath string) error {
 		"update",
 	}
 
-	cmd, err := c.runNix(ctx, args)
+	fullArgs, opts, err := c.prepareNixRun(args)
 	if err != nil {
 		return err
 	}
-	cmd.Dir = flakePath
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
 
-	if err := cmd.Run(); err != nil {
+	opts.Dir = flakePath
+	var stderr bytes.Buffer
+	opts.Stderr = &stderr
+
+	if err := c.runner.Run(ctx, c.NixPortableBinary, fullArgs, opts); err != nil {
 		return fmt.Errorf("nix flake update failed: %w\nstderr: %s", err, stderr.String())
 	}
 
@@ -328,18 +331,17 @@ func (c *Client) FlakeUpdate(ctx context.Context, flakePath string) error {
 }
 
 func (c *Client) GetVersion(ctx context.Context) (string, error) {
-	cmd, err := c.runNix(ctx, []string{"--version"})
+	fullArgs, opts, err := c.prepareNixRun([]string{"--version"})
 	if err != nil {
 		return "", err
 	}
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
 
-	if err := cmd.Run(); err != nil {
+	stdout, err := c.runner.Output(ctx, c.NixPortableBinary, fullArgs, opts)
+	if err != nil {
 		return "", fmt.Errorf("getting nix version: %w", err)
 	}
 
-	return strings.TrimSpace(stdout.String()), nil
+	return strings.TrimSpace(string(stdout)), nil
 }
 
 func (c *Client) EnsureFlakeDir() error {
@@ -417,7 +419,6 @@ func (c *Client) GetNixPortableLocation() string {
 }
 
 func (c *Client) FlakeCheck(ctx context.Context, flakePath string) error {
-	// Use 'nix flake show' which evaluates the flake structure without building
 	args := []string{
 		"flake",
 		"show",
@@ -425,14 +426,15 @@ func (c *Client) FlakeCheck(ctx context.Context, flakePath string) error {
 		flakePath,
 	}
 
-	cmd, err := c.runNix(ctx, args)
+	fullArgs, opts, err := c.prepareNixRun(args)
 	if err != nil {
 		return err
 	}
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
 
-	if err := cmd.Run(); err != nil {
+	var stderr bytes.Buffer
+	opts.Stderr = &stderr
+
+	if err := c.runner.Run(ctx, c.NixPortableBinary, fullArgs, opts); err != nil {
 		return fmt.Errorf("nix flake show failed: %w\nstderr: %s", err, stderr.String())
 	}
 
