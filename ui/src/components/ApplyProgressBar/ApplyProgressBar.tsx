@@ -14,6 +14,14 @@ export function ApplyProgressBar({ currentView, onNavigateToSystems }: ApplyProg
   const { status, progressSteps, cancel } = useApply()
   const { showToast } = useToast()
   const [confirmingCancel, setConfirmingCancel] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+
+  useEffect(() => {
+    if (status !== 'applying') {
+      setCancelling(false)
+      setConfirmingCancel(false)
+    }
+  }, [status])
 
   useEffect(() => {
     if (!confirmingCancel) return
@@ -33,9 +41,11 @@ export function ApplyProgressBar({ currentView, onNavigateToSystems }: ApplyProg
   }
 
   const handleCancel = () => {
+    if (cancelling) return
     if (confirmingCancel) {
-      cancel()
+      setCancelling(true)
       setConfirmingCancel(false)
+      cancel()
     } else {
       setConfirmingCancel(true)
     }
@@ -72,9 +82,10 @@ export function ApplyProgressBar({ currentView, onNavigateToSystems }: ApplyProg
             <button
               type="button"
               onClick={handleCancel}
-              className={`hover:underline text-sm ${confirmingCancel ? 'text-red-400 hover:text-red-300' : 'text-gray-400 hover:text-gray-300'}`}
+              disabled={cancelling}
+              className={`text-sm ${cancelling ? 'text-gray-500 cursor-not-allowed' : confirmingCancel ? 'text-red-400 hover:text-red-300 hover:underline' : 'text-gray-400 hover:text-gray-300 hover:underline'}`}
             >
-              {confirmingCancel ? 'Confirm cancel' : 'Cancel'}
+              {cancelling ? 'Canceling...' : confirmingCancel ? 'Confirm cancel' : 'Cancel'}
             </button>
             {showViewProgress && (
               <button
