@@ -108,7 +108,7 @@ test.describe('Systems enabled but not installed', () => {
   })
 
   test('shows PSX system card', async () => {
-    const psxCard = page.getByRole('article').filter({ hasText: 'PlayStationSony · 1994' }).first()
+    const psxCard = page.getByRole('article').filter({ hasText: /PlayStation.*Sony · 1994/ }).first()
     await expect(psxCard).toBeVisible()
   })
 
@@ -372,10 +372,10 @@ test.describe('Enable all flow', () => {
     const snesCard = page.getByRole('article').filter({ hasText: 'Super Nintendo' })
     await expect(snesCard.getByText('Launch')).toBeVisible({ timeout: 5000 })
 
-    const nesCard = page.getByRole('article').filter({ hasText: 'NESNintendo' })
+    const nesCard = page.getByRole('article').filter({ hasText: 'Nintendo Entertainment System' })
     await expect(nesCard.getByText('Launch')).toBeVisible()
 
-    const psxCard = page.getByRole('article').filter({ hasText: 'PlayStationSony · 1994' }).first()
+    const psxCard = page.getByRole('article').filter({ hasText: /PlayStation.*Sony · 1994/ }).first()
     await expect(psxCard.getByText('Launch')).toBeVisible()
   })
 })
