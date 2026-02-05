@@ -5,10 +5,9 @@ import {
   getStatus,
   getUninstallPreview,
   installApp,
-  openLogTail,
+  launchCliUninstall,
   openPath,
   readFile,
-  uninstall,
 } from '@/lib/daemon'
 import type { InstallStatus, UninstallPreviewResponse } from '@/types/daemon'
 
@@ -37,41 +36,6 @@ function EmptyState({ message }: { message: string }) {
   return <p className="text-sm text-gray-500 italic">{message}</p>
 }
 
-function UninstallingOverlay() {
-  return (
-    <div className="fixed inset-0 bg-gray-900 flex items-center justify-center z-50">
-      <div className="text-center max-w-md px-6">
-        <div className="w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-6" />
-        <h1 className="text-2xl font-medium text-gray-100 mb-4">Uninstalling Kyaraben...</h1>
-        <p className="text-gray-400 mb-6">Removing managed files and emulators.</p>
-        <button
-          type="button"
-          onClick={() => openLogTail()}
-          className="text-gray-500 hover:text-gray-400 hover:underline text-sm"
-        >
-          View log
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function UninstallSuccessOverlay() {
-  return (
-    <div className="fixed inset-0 bg-gray-900 flex items-center justify-center z-50">
-      <div className="text-center max-w-md px-6">
-        <div className="text-6xl mb-6">👋</div>
-        <h1 className="text-2xl font-medium text-gray-100 mb-4">Kyaraben uninstalled</h1>
-        <p className="text-gray-400 mb-6">
-          All managed files have been removed. Your ROMs, saves, and configuration have been
-          preserved.
-        </p>
-        <p className="text-gray-500 text-sm">You can now close this window.</p>
-      </div>
-    </div>
-  )
-}
-
 export function InstallationView() {
   const [preview, setPreview] = useState<UninstallPreviewResponse | null>(null)
   const [installStatus, setInstallStatus] = useState<InstallStatus | null>(null)
@@ -80,8 +44,6 @@ export function InstallationView() {
   const [configPath, setConfigPath] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [installing, setInstalling] = useState(false)
-  const [uninstalling, setUninstalling] = useState(false)
-  const [uninstalled, setUninstalled] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -131,24 +93,12 @@ export function InstallationView() {
     ) {
       return
     }
-    setUninstalling(true)
-    const result = await uninstall()
-    if (result.ok && result.data.success) {
-      setUninstalled(true)
-    } else {
-      setError(
-        result.ok ? (result.data.errors?.join(', ') ?? 'Uninstall failed') : result.error.message,
-      )
+    const result = await launchCliUninstall()
+    if (!result.ok) {
+      setError(result.error.message)
+    } else if (!result.data.success) {
+      setError(result.data.error ?? 'Failed to launch uninstaller')
     }
-    setUninstalling(false)
-  }
-
-  if (uninstalling) {
-    return <UninstallingOverlay />
-  }
-
-  if (uninstalled) {
-    return <UninstallSuccessOverlay />
   }
 
   if (loading) {
@@ -229,8 +179,8 @@ export function InstallationView() {
                 Remove all managed files (preserves ROMs and saves)
               </p>
             </div>
-            <Button variant="secondary" onClick={handleUninstall} disabled={uninstalling}>
-              {uninstalling ? 'Uninstalling...' : 'Uninstall'}
+            <Button variant="secondary" onClick={handleUninstall}>
+              Uninstall
             </Button>
           </div>
         </div>

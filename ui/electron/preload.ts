@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld('electron', {
       'get_bug_report_info',
       'launch_emulator',
       'open_log_tail',
+      'launch_cli_uninstall',
     ]
 
     if (validChannels.includes(channel)) {
