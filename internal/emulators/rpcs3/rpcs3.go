@@ -21,7 +21,14 @@ func (Definition) Emulator() model.Emulator {
 			Binary:      "rpcs3",
 			GenericName: "PlayStation 3 Emulator",
 			Categories:  []string{"Game", "Emulator"},
-			RomCommand:  model.PositionalRomCommand,
+			RomCommand: func(opts model.RomLaunchOptions) string {
+				cmd := opts.BinaryPath
+				if opts.Fullscreen {
+					cmd += " --fullscreen"
+				}
+				cmd += " %ROM%"
+				return cmd
+			},
 		},
 	}
 }

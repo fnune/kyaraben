@@ -26,7 +26,12 @@ func (Definition) Emulator() model.Emulator {
 			GenericName: "GameCube/Wii Emulator",
 			Categories:  []string{"Game", "Emulator"},
 			RomCommand: func(opts model.RomLaunchOptions) string {
-				return opts.BinaryPath + " -e %ROM%"
+				cmd := opts.BinaryPath
+				if opts.Fullscreen {
+					cmd += " -C Dolphin.Display.Fullscreen=True"
+				}
+				cmd += " -e %ROM%"
+				return cmd
 			},
 		},
 	}

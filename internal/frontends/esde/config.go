@@ -167,6 +167,7 @@ func (c *Config) buildCommand(ctx model.FrontendContext, emuID model.EmulatorID)
 
 	return emu.Launcher.RomCommand(model.RomLaunchOptions{
 		BinaryPath: filepath.Join(ctx.BinDir, emu.Launcher.Binary),
+		Fullscreen: true,
 	})
 }
 

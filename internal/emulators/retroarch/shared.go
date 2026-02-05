@@ -21,7 +21,12 @@ var SharedLauncher = model.LauncherInfo{
 func LauncherWithCore(coreName string) model.LauncherInfo {
 	l := SharedLauncher
 	l.RomCommand = func(opts model.RomLaunchOptions) string {
-		return opts.BinaryPath + " -L " + coreName + " %ROM%"
+		cmd := opts.BinaryPath
+		if opts.Fullscreen {
+			cmd += " -f"
+		}
+		cmd += " -L " + coreName + " %ROM%"
+		return cmd
 	}
 	return l
 }

@@ -21,7 +21,12 @@ func (Definition) Emulator() model.Emulator {
 			GenericName: "Wii U Emulator",
 			Categories:  []string{"Game", "Emulator"},
 			RomCommand: func(opts model.RomLaunchOptions) string {
-				return opts.BinaryPath + " -g %ROM%"
+				cmd := opts.BinaryPath
+				if opts.Fullscreen {
+					cmd += " -f"
+				}
+				cmd += " -g %ROM%"
+				return cmd
 			},
 		},
 	}
