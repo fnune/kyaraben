@@ -1,0 +1,317 @@
+package model
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+	"time"
+)
+
+func TestNewManifest(t *testing.T) {
+	m := NewManifest()
+
+	if m.Version != 1 {
+		t.Errorf("Version = %d, want 1", m.Version)
+	}
+	if m.InstalledEmulators == nil {
+		t.Error("InstalledEmulators is nil, want empty map")
+	}
+	if len(m.InstalledEmulators) != 0 {
+		t.Errorf("InstalledEmulators has %d entries, want 0", len(m.InstalledEmulators))
+	}
+	if m.ManagedConfigs == nil {
+		t.Error("ManagedConfigs is nil, want empty slice")
+	}
+	if len(m.ManagedConfigs) != 0 {
+		t.Errorf("ManagedConfigs has %d entries, want 0", len(m.ManagedConfigs))
+	}
+}
+
+func TestLoadManifest_NonExistent(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "nonexistent.json")
+
+	m, err := LoadManifest(path)
+	if err != nil {
+		t.Fatalf("LoadManifest() error = %v", err)
+	}
+
+	if m.Version != 1 {
+		t.Errorf("Version = %d, want 1", m.Version)
+	}
+}
+
+func TestLoadManifest_Existing(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "manifest.json")
+
+	content := `{
+  "version": 2,
+  "last_applied": "2024-01-15T10:30:00Z",
+  "installed_emulators": {
+    "duckstation": {
+      "id": "duckstation",
+      "version": "1.0.0",
+      "store_path": "/nix/store/abc-duckstation",
+      "installed": "2024-01-15T10:00:00Z"
+    }
+  },
+  "managed_configs": [
+    {
+      "emulator_id": "duckstation",
+      "target": {
+        "rel_path": "duckstation/settings.ini",
+        "format": "ini",
+        "base_dir": "config"
+      },
+      "baseline_hash": "abc123",
+      "last_modified": "2024-01-15T10:00:00Z",
+      "managed_keys": []
+    }
+  ]
+}`
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatalf("failed to write test file: %v", err)
+	}
+
+	m, err := LoadManifest(path)
+	if err != nil {
+		t.Fatalf("LoadManifest() error = %v", err)
+	}
+
+	if m.Version != 2 {
+		t.Errorf("Version = %d, want 2", m.Version)
+	}
+	if len(m.InstalledEmulators) != 1 {
+		t.Errorf("InstalledEmulators has %d entries, want 1", len(m.InstalledEmulators))
+	}
+	emu, ok := m.InstalledEmulators["duckstation"]
+	if !ok {
+		t.Fatal("missing duckstation emulator")
+	}
+	if emu.Version != "1.0.0" {
+		t.Errorf("emulator version = %q, want %q", emu.Version, "1.0.0")
+	}
+	if len(m.ManagedConfigs) != 1 {
+		t.Errorf("ManagedConfigs has %d entries, want 1", len(m.ManagedConfigs))
+	}
+}
+
+func TestLoadManifest_InvalidJSON(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "manifest.json")
+
+	if err := os.WriteFile(path, []byte("not valid json"), 0644); err != nil {
+		t.Fatalf("failed to write test file: %v", err)
+	}
+
+	_, err := LoadManifest(path)
+	if err == nil {
+		t.Error("LoadManifest() expected error for invalid JSON")
+	}
+}
+
+func TestManifest_Save_CreatesParentDirs(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "nested", "deep", "manifest.json")
+
+	m := NewManifest()
+	if err := m.Save(path); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		t.Error("manifest file was not created")
+	}
+}
+
+func TestManifest_Save_WritesValidJSON(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "manifest.json")
+
+	m := NewManifest()
+	m.AddEmulator(InstalledEmulator{
+		ID:        "test-emu",
+		Version:   "2.0.0",
+		StorePath: "/nix/store/xyz",
+		Installed: time.Date(2024, 1, 15, 10, 0, 0, 0, time.UTC),
+	})
+
+	if err := m.Save(path); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	loaded, err := LoadManifest(path)
+	if err != nil {
+		t.Fatalf("LoadManifest() error = %v", err)
+	}
+
+	emu, ok := loaded.InstalledEmulators["test-emu"]
+	if !ok {
+		t.Fatal("missing test-emu after round-trip")
+	}
+	if emu.Version != "2.0.0" {
+		t.Errorf("version = %q, want %q", emu.Version, "2.0.0")
+	}
+}
+
+func TestManifest_AddEmulator(t *testing.T) {
+	m := NewManifest()
+
+	emu1 := InstalledEmulator{
+		ID:        "emu1",
+		Version:   "1.0.0",
+		StorePath: "/nix/store/a",
+	}
+	m.AddEmulator(emu1)
+
+	if len(m.InstalledEmulators) != 1 {
+		t.Fatalf("InstalledEmulators has %d entries, want 1", len(m.InstalledEmulators))
+	}
+
+	got, ok := m.InstalledEmulators["emu1"]
+	if !ok {
+		t.Fatal("emu1 not found")
+	}
+	if got.Version != "1.0.0" {
+		t.Errorf("version = %q, want %q", got.Version, "1.0.0")
+	}
+}
+
+func TestManifest_AddEmulator_Overwrites(t *testing.T) {
+	m := NewManifest()
+
+	m.AddEmulator(InstalledEmulator{ID: "emu", Version: "1.0.0"})
+	m.AddEmulator(InstalledEmulator{ID: "emu", Version: "2.0.0"})
+
+	if len(m.InstalledEmulators) != 1 {
+		t.Fatalf("InstalledEmulators has %d entries, want 1", len(m.InstalledEmulators))
+	}
+
+	got := m.InstalledEmulators["emu"]
+	if got.Version != "2.0.0" {
+		t.Errorf("version = %q, want %q", got.Version, "2.0.0")
+	}
+}
+
+func TestManifest_GetEmulator(t *testing.T) {
+	m := NewManifest()
+	m.AddEmulator(InstalledEmulator{ID: "existing", Version: "1.0.0"})
+
+	emu, ok := m.GetEmulator("existing")
+	if !ok {
+		t.Error("GetEmulator returned false for existing emulator")
+	}
+	if emu.Version != "1.0.0" {
+		t.Errorf("version = %q, want %q", emu.Version, "1.0.0")
+	}
+
+	_, ok = m.GetEmulator("missing")
+	if ok {
+		t.Error("GetEmulator returned true for missing emulator")
+	}
+}
+
+func TestManifest_AddManagedConfig(t *testing.T) {
+	m := NewManifest()
+
+	cfg := ManagedConfig{
+		EmulatorID:   "emu1",
+		Target:       ConfigTarget{RelPath: "config.ini"},
+		BaselineHash: "hash1",
+	}
+	m.AddManagedConfig(cfg)
+
+	if len(m.ManagedConfigs) != 1 {
+		t.Fatalf("ManagedConfigs has %d entries, want 1", len(m.ManagedConfigs))
+	}
+
+	if m.ManagedConfigs[0].BaselineHash != "hash1" {
+		t.Errorf("BaselineHash = %q, want %q", m.ManagedConfigs[0].BaselineHash, "hash1")
+	}
+}
+
+func TestManifest_AddManagedConfig_UpdatesExisting(t *testing.T) {
+	m := NewManifest()
+	target := ConfigTarget{RelPath: "config.ini", BaseDir: ConfigBaseDirUserConfig}
+
+	m.AddManagedConfig(ManagedConfig{
+		EmulatorID:   "emu1",
+		Target:       target,
+		BaselineHash: "hash1",
+	})
+	m.AddManagedConfig(ManagedConfig{
+		EmulatorID:   "emu1",
+		Target:       target,
+		BaselineHash: "hash2",
+	})
+
+	if len(m.ManagedConfigs) != 1 {
+		t.Fatalf("ManagedConfigs has %d entries, want 1", len(m.ManagedConfigs))
+	}
+
+	if m.ManagedConfigs[0].BaselineHash != "hash2" {
+		t.Errorf("BaselineHash = %q, want %q", m.ManagedConfigs[0].BaselineHash, "hash2")
+	}
+}
+
+func TestManifest_GetManagedConfig(t *testing.T) {
+	m := NewManifest()
+	target := ConfigTarget{RelPath: "config.ini", BaseDir: ConfigBaseDirUserConfig}
+
+	m.AddManagedConfig(ManagedConfig{
+		EmulatorID:   "emu1",
+		Target:       target,
+		BaselineHash: "hash1",
+	})
+
+	cfg, ok := m.GetManagedConfig(target)
+	if !ok {
+		t.Error("GetManagedConfig returned false for existing config")
+	}
+	if cfg.BaselineHash != "hash1" {
+		t.Errorf("BaselineHash = %q, want %q", cfg.BaselineHash, "hash1")
+	}
+
+	_, ok = m.GetManagedConfig(ConfigTarget{RelPath: "other.ini"})
+	if ok {
+		t.Error("GetManagedConfig returned true for missing config")
+	}
+}
+
+func TestManifest_GetManagedConfigsForEmulator(t *testing.T) {
+	m := NewManifest()
+
+	configs := m.GetManagedConfigsForEmulator("emu1")
+	if len(configs) != 0 {
+		t.Errorf("expected empty slice, got %d configs", len(configs))
+	}
+
+	m.AddManagedConfig(ManagedConfig{
+		EmulatorID: "emu1",
+		Target:     ConfigTarget{RelPath: "config1.ini"},
+	})
+	m.AddManagedConfig(ManagedConfig{
+		EmulatorID: "emu1",
+		Target:     ConfigTarget{RelPath: "config2.ini"},
+	})
+	m.AddManagedConfig(ManagedConfig{
+		EmulatorID: "emu2",
+		Target:     ConfigTarget{RelPath: "other.ini"},
+	})
+
+	configs = m.GetManagedConfigsForEmulator("emu1")
+	if len(configs) != 2 {
+		t.Fatalf("expected 2 configs for emu1, got %d", len(configs))
+	}
+
+	configs = m.GetManagedConfigsForEmulator("emu2")
+	if len(configs) != 1 {
+		t.Fatalf("expected 1 config for emu2, got %d", len(configs))
+	}
+
+	configs = m.GetManagedConfigsForEmulator("emu3")
+	if len(configs) != 0 {
+		t.Errorf("expected 0 configs for emu3, got %d", len(configs))
+	}
+}
