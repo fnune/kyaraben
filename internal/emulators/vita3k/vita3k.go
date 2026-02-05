@@ -24,6 +24,14 @@ func (Definition) Emulator() model.Emulator {
 			Binary:      "vita3k",
 			GenericName: "PlayStation Vita Emulator",
 			Categories:  []string{"Game", "Emulator"},
+			RomCommand: func(opts model.RomLaunchOptions) string {
+				cmd := opts.BinaryPath
+				if opts.Fullscreen {
+					cmd += " -F"
+				}
+				cmd += " -r %ROM%"
+				return cmd
+			},
 		},
 	}
 }

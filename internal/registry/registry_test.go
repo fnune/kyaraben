@@ -115,6 +115,9 @@ func TestAllDefinitions(t *testing.T) {
 		if def.ConfigGenerator() == nil {
 			t.Errorf("emulator %q: ConfigGenerator is nil", emu.ID)
 		}
+		if emu.Launcher.RomCommand == nil {
+			t.Errorf("emulator %q: Launcher.RomCommand is nil", emu.ID)
+		}
 	}
 
 	for _, def := range systemDefs {
