@@ -4,7 +4,7 @@
 # Build: podman build -t kyaraben-electron-e2e -f Containerfile.electron-e2e .
 # Run:   podman run --ipc=host --rm kyaraben-electron-e2e
 
-FROM mcr.microsoft.com/playwright:v1.49.1-noble AS builder
+FROM mcr.microsoft.com/playwright:v1.58.1-noble AS builder
 
 # Install Go and rpm (needed for electron-builder)
 RUN apt-get update && apt-get install -y --no-install-recommends rpm \
@@ -35,7 +35,7 @@ RUN --mount=type=cache,target=/root/.cache/electron \
     cd ui && npm run build && npm run build:electron && npm run electron:build -- --linux AppImage
 
 # Final stage - minimal image for testing
-FROM mcr.microsoft.com/playwright:v1.49.1-noble
+FROM mcr.microsoft.com/playwright:v1.58.1-noble
 
 # Set up XDG directories
 RUN mkdir -p /root/.local/share/kyaraben \

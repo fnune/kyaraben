@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react'
 import { useApply } from '@/lib/ApplyContext'
 import { BOTTOM_BAR_HEIGHT } from '@/lib/BottomBar'
 import { BottomBarPortal } from '@/lib/BottomBarSlot'
 import { openLogTail } from '@/lib/daemon'
+import { useToast } from '@/lib/ToastContext'
 
 export interface ApplyProgressBarProps {
   readonly currentView: string
@@ -10,6 +12,34 @@ export interface ApplyProgressBarProps {
 
 export function ApplyProgressBar({ currentView, onNavigateToSystems }: ApplyProgressBarProps) {
   const { status, progressSteps, cancel } = useApply()
+  const { showToast } = useToast()
+  const [confirmingCancel, setConfirmingCancel] = useState(false)
+
+  useEffect(() => {
+    if (!confirmingCancel) return
+    const timer = setTimeout(() => setConfirmingCancel(false), 3000)
+    return () => clearTimeout(timer)
+  }, [confirmingCancel])
+
+  const handleOpenLog = async () => {
+    const result = await openLogTail()
+    if (!result.ok) {
+      showToast('Failed to open log', 'error')
+      return
+    }
+    if (!result.data.success && result.data.command) {
+      showToast(`No terminal found. Run manually: ${result.data.command}`, 'info', 10000)
+    }
+  }
+
+  const handleCancel = () => {
+    if (confirmingCancel) {
+      cancel()
+      setConfirmingCancel(false)
+    } else {
+      setConfirmingCancel(true)
+    }
+  }
 
   if (status !== 'applying') return null
 
@@ -21,7 +51,7 @@ export function ApplyProgressBar({ currentView, onNavigateToSystems }: ApplyProg
   return (
     <BottomBarPortal>
       <div
-        className={`bg-gray-800/95 backdrop-blur border-t border-gray-700 px-6 ${BOTTOM_BAR_HEIGHT} flex items-center`}
+        className={`bg-gray-800/95 backdrop-blur-sm border-t border-gray-700 px-6 ${BOTTOM_BAR_HEIGHT} flex items-center`}
       >
         <div className="flex-1 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -34,17 +64,17 @@ export function ApplyProgressBar({ currentView, onNavigateToSystems }: ApplyProg
           <div className="flex items-center gap-4">
             <button
               type="button"
-              onClick={() => openLogTail()}
+              onClick={handleOpenLog}
               className="text-gray-400 hover:text-gray-300 hover:underline text-sm"
             >
-              View log
+              Open log in terminal
             </button>
             <button
               type="button"
-              onClick={cancel}
+              onClick={handleCancel}
               className="text-gray-400 hover:text-gray-300 hover:underline text-sm"
             >
-              Cancel
+              {confirmingCancel ? 'Click again to confirm' : 'Cancel'}
             </button>
             {showViewProgress && (
               <button

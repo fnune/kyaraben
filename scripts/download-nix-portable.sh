@@ -42,14 +42,24 @@ if [ -z "$TARGET_TRIPLE" ]; then
     exit 0
 fi
 
-# Output location - same as sidecar binaries
 OUTPUT_DIR="${1:-$PROJECT_ROOT/ui/binaries}"
 OUTPUT_NAME="nix-portable-$TARGET_TRIPLE"
+OUTPUT_PATH="$OUTPUT_DIR/$OUTPUT_NAME"
+VERSION_FILE="$OUTPUT_DIR/.nix-portable-version"
 
 mkdir -p "$OUTPUT_DIR"
 
-echo "Downloading nix-portable ${NIX_PORTABLE_VERSION} for $(uname -m)..."
-curl -fsSL "$NIX_PORTABLE_URL" -o "$OUTPUT_DIR/$OUTPUT_NAME"
-chmod +x "$OUTPUT_DIR/$OUTPUT_NAME"
+if [ -f "$OUTPUT_PATH" ] && [ -f "$VERSION_FILE" ]; then
+    CACHED_VERSION=$(cat "$VERSION_FILE")
+    if [ "$CACHED_VERSION" = "$NIX_PORTABLE_VERSION" ]; then
+        echo "nix-portable ${NIX_PORTABLE_VERSION} already cached at $OUTPUT_PATH"
+        exit 0
+    fi
+fi
 
-echo "Downloaded: $OUTPUT_DIR/$OUTPUT_NAME"
+echo "Downloading nix-portable ${NIX_PORTABLE_VERSION} for $(uname -m)..."
+curl -fsSL "$NIX_PORTABLE_URL" -o "$OUTPUT_PATH"
+chmod +x "$OUTPUT_PATH"
+echo "$NIX_PORTABLE_VERSION" > "$VERSION_FILE"
+
+echo "Downloaded: $OUTPUT_PATH"

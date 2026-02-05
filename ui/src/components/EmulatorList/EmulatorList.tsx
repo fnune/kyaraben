@@ -51,7 +51,7 @@ function buildEmulatorList(systems: readonly System[]): EmulatorWithSystems[] {
 function SystemBadge({ id, name }: { readonly id: SystemID; readonly name: string }) {
   return (
     <div className="w-8 h-6 flex items-center justify-center" title={name}>
-      <SystemLogo systemId={id} systemName={name} className="!w-8" />
+      <SystemLogo systemId={id} systemName={name} className="w-8!" />
     </div>
   )
 }
@@ -73,7 +73,7 @@ function ProvisionsBadges({
       <button
         type="button"
         onClick={onClick}
-        className="px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
+        className="px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded-sm hover:bg-green-200 transition-colors"
       >
         {provisions.length} file{provisions.length > 1 ? 's' : ''} ready
       </button>
@@ -89,7 +89,7 @@ function ProvisionsBadges({
     <button
       type="button"
       onClick={onClick}
-      className={`px-1.5 py-0.5 text-xs ${bgColor} ${textColor} rounded transition-colors`}
+      className={`px-1.5 py-0.5 text-xs ${bgColor} ${textColor} rounded-sm transition-colors`}
     >
       {missing.length} file{missing.length > 1 ? 's' : ''} needed
     </button>
@@ -128,13 +128,13 @@ function ProvisionsDialog({
           <div className="bg-gray-50 rounded-lg p-3">
             <p className="text-sm text-gray-600 mb-2">Place files in:</p>
             <div className="flex items-center gap-2">
-              <code className="text-sm bg-gray-100 px-2 py-1 rounded flex-1 truncate">
+              <code className="text-sm bg-gray-100 px-2 py-1 rounded-sm flex-1 truncate">
                 {biosPath}
               </code>
               <button
                 type="button"
                 onClick={handleOpenFolder}
-                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex-shrink-0"
+                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-sm hover:bg-blue-700 transition-colors shrink-0"
               >
                 Open folder
               </button>
@@ -151,7 +151,7 @@ function ProvisionsDialog({
                 <span className="text-amber-500 text-lg">○</span>
               )}
               <div>
-                <code className="text-sm font-medium text-gray-900 bg-gray-100 px-1.5 py-0.5 rounded">
+                <code className="text-sm font-medium text-gray-900 bg-gray-100 px-1.5 py-0.5 rounded-sm">
                   {p.filename}
                 </code>
                 {p.required ? (
@@ -167,7 +167,7 @@ function ProvisionsDialog({
             <li key={p.filename} className="flex items-start gap-3">
               <span className="text-green-500 text-lg">✓</span>
               <div>
-                <code className="text-sm text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
+                <code className="text-sm text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded-sm">
                   {p.filename}
                 </code>
                 <p className="text-sm text-gray-500 mt-1">{p.description}</p>
@@ -202,7 +202,7 @@ function VersionSelector({
       value={pinnedVersion ?? ''}
       onChange={(e) => onChange(e.target.value === '' ? null : e.target.value)}
       disabled={disabled}
-      className="text-xs bg-transparent border-none text-gray-500 focus:outline-none focus:ring-0 cursor-pointer disabled:cursor-default disabled:opacity-50 tabular-nums"
+      className="text-xs bg-transparent border-none text-gray-500 focus:outline-hidden focus:ring-0 cursor-pointer disabled:cursor-default disabled:opacity-50 tabular-nums"
     >
       <option value="">{defaultVersion}</option>
       {availableVersions.map((v) => (
@@ -293,7 +293,7 @@ function EmulatorRow({
           type="checkbox"
           checked={enabled}
           onChange={(e) => onToggle(e.target.checked)}
-          className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer flex-shrink-0"
+          className="w-4 h-4 rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer shrink-0"
         />
 
         <span className="font-medium text-sm text-gray-900 min-w-[120px]">{emulator.name}</span>
