@@ -287,6 +287,21 @@ export function InstallationView() {
           <EmptyState message="No config files managed" />
         )}
       </Section>
+
+      {preview.retroArchCoresDir && (
+        <Section title="RetroArch cores">
+          <ul className="space-y-1">
+            <PathItem path={preview.retroArchCoresDir} />
+          </ul>
+          {preview.retroArchCoreFiles && preview.retroArchCoreFiles.length > 0 && (
+            <div className="mt-2 text-xs text-gray-400">
+              {preview.retroArchCoreFiles.length} core
+              {preview.retroArchCoreFiles.length !== 1 ? 's' : ''} installed:{' '}
+              {preview.retroArchCoreFiles.map((f) => f.replace('_libretro.so', '')).join(', ')}
+            </div>
+          )}
+        </Section>
+      )}
     </div>
   )
 }

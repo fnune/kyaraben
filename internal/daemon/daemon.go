@@ -363,8 +363,9 @@ func (d *Daemon) handleGetSystems() []Event {
 		emuList := make([]EmulatorRef, 0, len(emus))
 		for _, emu := range emus {
 			ref := EmulatorRef{
-				ID:   emu.ID,
-				Name: emu.Name,
+				ID:          emu.ID,
+				Name:        emu.Name,
+				PackageName: emu.Package.PackageName(),
 			}
 
 			if vers != nil {
@@ -381,6 +382,10 @@ func (d *Daemon) handleGetSystems() []Event {
 							}
 						}
 					}
+				}
+
+				if coreName := retroArchCoreName(emu.ID); coreName != "" {
+					ref.CoreBytes = vers.GetCoreSize(coreName)
 				}
 			}
 
@@ -702,15 +707,29 @@ func (d *Daemon) handleUninstallPreview() []Event {
 		}
 	}
 
+	var retroArchCoresDir string
+	var retroArchCoreFiles []string
+	if coresDir, err := paths.RetroArchCoresDir(); err == nil && dirExists(coresDir) {
+		retroArchCoresDir = coresDir
+		entries, _ := os.ReadDir(coresDir)
+		for _, entry := range entries {
+			if !entry.IsDir() && strings.HasSuffix(entry.Name(), "_libretro.so") {
+				retroArchCoreFiles = append(retroArchCoreFiles, entry.Name())
+			}
+		}
+	}
+
 	return []Event{{
 		Type: EventTypeResult,
 		Data: UninstallPreviewResponse{
-			StateDir:       d.stateDir,
-			StateDirExists: dirExists(d.stateDir),
-			DesktopFiles:   desktopFiles,
-			IconFiles:      iconFiles,
-			ConfigFiles:    configFiles,
-			KyarabenFiles:  kyarabenFiles,
+			StateDir:           d.stateDir,
+			StateDirExists:     dirExists(d.stateDir),
+			RetroArchCoresDir:  retroArchCoresDir,
+			RetroArchCoreFiles: retroArchCoreFiles,
+			DesktopFiles:       desktopFiles,
+			IconFiles:          iconFiles,
+			ConfigFiles:        configFiles,
+			KyarabenFiles:      kyarabenFiles,
 			Preserved: PreservedPaths{
 				UserStore: userStore,
 				ConfigDir: configDir,
@@ -946,4 +965,11 @@ func (d *Daemon) handleRefreshIconCaches() []Event {
 		Type: EventTypeResult,
 		Data: RefreshIconCachesResponse{Refreshed: refreshed},
 	}}
+}
+
+func retroArchCoreName(id model.EmulatorID) string {
+	if !strings.HasPrefix(string(id), "retroarch:") {
+		return ""
+	}
+	return strings.TrimPrefix(string(id), "retroarch:")
 }
