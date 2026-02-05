@@ -66,17 +66,6 @@ This would complement the existing version check script by verifying runtime hea
 
 ---
 
-## RetroArch missing assets and fonts
-
-RetroArch launches with no icons and uses an ugly bitmap font because the AppImage doesn't include assets. Users need to manually download them via RetroArch's Online Updater (Main Menu > Online Updater > Update Assets).
-
-Options:
-1. Document this as a required post-install step
-2. Bundle RetroArch assets as a separate nix package
-3. Pre-configure RetroArch to use a simpler menu that doesn't need assets (e.g., rgui instead of ozone/xmb)
-
----
-
 ## Consider backend preview command for apply status
 
 The UI now shows appropriate messages for shared emulators ("Already installed for X", "In use by X"), but this logic lives in the frontend and duplicates knowledge about package sharing.
