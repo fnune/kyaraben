@@ -17,14 +17,21 @@ type EmulatorLookup interface {
 	GetEmulator(id model.EmulatorID) (model.Emulator, error)
 }
 
-type FlakeGenerator struct {
-	emulators        EmulatorLookup
-	versionOverrides map[string]string // emulator name -> pinned version
+// FrontendLookup provides access to frontend definitions.
+type FrontendLookup interface {
+	GetFrontend(id model.FrontendID) (model.Frontend, error)
 }
 
-func NewFlakeGenerator(emulators EmulatorLookup) *FlakeGenerator {
+type FlakeGenerator struct {
+	emulators        EmulatorLookup
+	frontends        FrontendLookup
+	versionOverrides map[string]string // package name -> pinned version
+}
+
+func NewFlakeGenerator(emulators EmulatorLookup, frontends FrontendLookup) *FlakeGenerator {
 	return &FlakeGenerator{
 		emulators:        emulators,
+		frontends:        frontends,
 		versionOverrides: make(map[string]string),
 	}
 }
@@ -123,6 +130,7 @@ type GenerationPath string
 type GenerateResult struct {
 	Path             GenerationPath
 	SkippedEmulators []model.EmulatorID
+	SkippedFrontends []model.FrontendID
 }
 
 var retroArchCoreMapping = map[model.EmulatorID]string{
@@ -138,7 +146,7 @@ func retroArchCorePackage(emuID model.EmulatorID) (string, bool) {
 	return pkg, ok
 }
 
-func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorID) (*GenerateResult, error) {
+func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorID, frontendIDs []model.FrontendID) (*GenerateResult, error) {
 	if baseDir == "" {
 		return nil, fmt.Errorf("baseDir cannot be empty")
 	}
@@ -151,15 +159,16 @@ func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorI
 
 	v := versions.MustGet()
 
-	packages := make([]PackageInfo, 0, len(emulatorIDs))
+	packages := make([]PackageInfo, 0, len(emulatorIDs)+len(frontendIDs))
 	seenPackages := make(map[string]bool)
 	seenBinaries := make(map[string]bool)
-	launchers := make([]LauncherTemplateInfo, 0, len(emulatorIDs))
-	icons := make([]IconInfo, 0, len(emulatorIDs))
+	launchers := make([]LauncherTemplateInfo, 0, len(emulatorIDs)+len(frontendIDs))
+	icons := make([]IconInfo, 0, len(emulatorIDs)+len(frontendIDs))
 	seenIcons := make(map[string]bool)
 	retroArchCores := make([]string, 0)
 	seenCores := make(map[string]bool)
 	var skippedEmulators []model.EmulatorID
+	var skippedFrontends []model.FrontendID
 
 	for _, emuID := range emulatorIDs {
 		emu, err := fg.emulators.GetEmulator(emuID)
@@ -180,7 +189,6 @@ func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorI
 			return nil, err
 		}
 
-		// Only add package once even if multiple emulators share it
 		if !seenPackages[pkg.Name] {
 			seenPackages[pkg.Name] = true
 			packages = append(packages, pkg)
@@ -193,8 +201,51 @@ func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorI
 			})
 		}
 
-		// Collect icon for this emulator, named after the binary for desktop file lookup
 		binaryName := emu.Launcher.Binary
+		if binaryName != "" && !seenIcons[binaryName] {
+			spec, ok := v.GetEmulator(pkg.Name)
+			if ok && spec.IconURL != "" && spec.IconSHA256 != "" {
+				seenIcons[binaryName] = true
+				ext := filepath.Ext(spec.IconURL)
+				icons = append(icons, IconInfo{
+					Name:     binaryName,
+					URL:      spec.IconURL,
+					SHA256:   spec.IconSHA256,
+					Filename: binaryName + ext,
+				})
+			}
+		}
+	}
+
+	for _, feID := range frontendIDs {
+		if fg.frontends == nil {
+			skippedFrontends = append(skippedFrontends, feID)
+			continue
+		}
+		fe, err := fg.frontends.GetFrontend(feID)
+		if err != nil {
+			skippedFrontends = append(skippedFrontends, feID)
+			continue
+		}
+
+		pkg, err := fg.packageInfoFromRef(fe.Package)
+		if err != nil {
+			return nil, err
+		}
+
+		if !seenPackages[pkg.Name] {
+			seenPackages[pkg.Name] = true
+			packages = append(packages, pkg)
+		}
+
+		if fe.Launcher.Binary != "" && !seenBinaries[fe.Launcher.Binary] {
+			seenBinaries[fe.Launcher.Binary] = true
+			launchers = append(launchers, LauncherTemplateInfo{
+				Package: pkg.Name,
+			})
+		}
+
+		binaryName := fe.Launcher.Binary
 		if binaryName != "" && !seenIcons[binaryName] {
 			spec, ok := v.GetEmulator(pkg.Name)
 			if ok && spec.IconURL != "" && spec.IconSHA256 != "" {
@@ -250,6 +301,7 @@ func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorI
 	return &GenerateResult{
 		Path:             GenerationPath(genDir),
 		SkippedEmulators: skippedEmulators,
+		SkippedFrontends: skippedFrontends,
 	}, nil
 }
 
@@ -489,6 +541,22 @@ func (fg *FlakeGenerator) GetResolvedVersions(emulatorIDs []model.EmulatorID) ma
 			continue
 		}
 		result[emuID] = entry.Version
+	}
+	return result
+}
+
+func (fg *FlakeGenerator) GetResolvedFrontendVersions(frontendIDs []model.FrontendID) map[model.FrontendID]string {
+	result := make(map[model.FrontendID]string)
+	for _, feID := range frontendIDs {
+		fe, err := fg.frontends.GetFrontend(feID)
+		if err != nil {
+			continue
+		}
+		entry, _, err := fg.getEmulatorVersion(fe.Package.PackageName())
+		if err != nil {
+			continue
+		}
+		result[feID] = entry.Version
 	}
 	return result
 }

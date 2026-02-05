@@ -23,7 +23,7 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 	if err != nil {
 		return fmt.Errorf("creating nix client: %w", err)
 	}
-	flakeGenerator := nix.NewFlakeGenerator(registry)
+	flakeGenerator := nix.NewFlakeGenerator(registry, registry)
 	configWriter := emulators.NewConfigWriter(model.OSBaseDirResolver{})
 	launcherManager, err := launcher.NewManager()
 	if err != nil {

@@ -11,6 +11,7 @@ func (Definition) System() model.System {
 		Description:  "Handheld console by Nintendo (2011)",
 		Manufacturer: model.ManufacturerNintendo,
 		Label:        "3DS",
+		Extensions:   []string{".3ds", ".3dsx", ".cia", ".cxi"},
 	}
 }
 

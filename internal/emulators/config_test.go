@@ -24,6 +24,10 @@ type fakeStoreReader struct {
 	root string
 }
 
+func (f *fakeStoreReader) RomsDir() string {
+	return filepath.Join(f.root, "roms")
+}
+
 func (f *fakeStoreReader) BiosDir() string {
 	return filepath.Join(f.root, "bios")
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmupen64plus"
 	"github.com/fnune/kyaraben/internal/emulators/rpcs3"
 	"github.com/fnune/kyaraben/internal/emulators/vita3k"
+	"github.com/fnune/kyaraben/internal/frontends/esde"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/systems/dreamcast"
 	"github.com/fnune/kyaraben/internal/systems/gamecube"
@@ -86,6 +87,9 @@ func NewDefault() *Registry {
 			azahar.Definition{},
 			dolphin.Definition{},
 			eden.Definition{},
+		},
+		[]model.FrontendDefinition{
+			esde.Definition{},
 		},
 	)
 }

@@ -11,6 +11,7 @@ func (Definition) System() model.System {
 		Description:  "64-bit home console by Nintendo (1996)",
 		Manufacturer: model.ManufacturerNintendo,
 		Label:        "N64",
+		Extensions:   []string{".n64", ".v64", ".z64"},
 	}
 }
 

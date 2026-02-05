@@ -13,6 +13,10 @@ export type {
   ErrorResponse,
   Event,
   EventType,
+  FrontendConfRequest,
+  FrontendConfResponse,
+  FrontendRef,
+  GetFrontendsResponse,
   GetSystemsResponse,
   InstalledEmulator,
   PreservedPaths,
@@ -41,6 +45,7 @@ export {
   CommandTypeCancelApply,
   CommandTypeDoctor,
   CommandTypeGetConfig,
+  CommandTypeGetFrontends,
   CommandTypeGetSystems,
   CommandTypeSetConfig,
   CommandTypeStatus,
@@ -60,7 +65,8 @@ export {
   SyncStateSynced,
   SyncStateSyncing,
 } from './daemon.gen'
-export type { EmulatorID, Manufacturer, SystemID } from './model.gen'
+export type { EmulatorID, FrontendID, Manufacturer, SystemID } from './model.gen'
+export { FrontendIDESDE } from './model.gen'
 
 export type ElectronOnlyCommand = 'get_install_status' | 'install_app'
 export type DaemonCommandType = CommandType | ElectronOnlyCommand

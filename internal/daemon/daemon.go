@@ -73,6 +73,8 @@ func (d *Daemon) HandleWithEmit(cmd Command, emit func(Event)) []Event {
 		return d.handleCancelApply()
 	case CommandTypeGetSystems:
 		return d.handleGetSystems()
+	case CommandTypeGetFrontends:
+		return d.handleGetFrontends()
 	case CommandTypeGetConfig:
 		return d.handleGetConfig()
 	case CommandTypeSetConfig:
@@ -187,12 +189,21 @@ func (d *Daemon) handleStatus() []Event {
 		installedEmulators[i] = installed
 	}
 
+	installedFrontends := make([]InstalledFrontend, len(result.InstalledFrontends))
+	for i, fe := range result.InstalledFrontends {
+		installedFrontends[i] = InstalledFrontend{
+			ID:      fe.ID,
+			Version: fe.Version,
+		}
+	}
+
 	return []Event{{
 		Type: EventTypeResult,
 		Data: StatusResponse{
 			UserStore:          result.UserStorePath,
 			EnabledSystems:     systems,
 			InstalledEmulators: installedEmulators,
+			InstalledFrontends: installedFrontends,
 			LastApplied:        result.LastApplied.Format(time.RFC3339),
 			HealthWarning:      result.HealthWarning,
 		},
@@ -414,6 +425,44 @@ func (d *Daemon) handleGetSystems() []Event {
 	}}
 }
 
+func (d *Daemon) handleGetFrontends() []Event {
+	frontends := d.reg.AllFrontends()
+	vers, _ := versions.Get()
+	currentArch := hardware.DetectTarget().Arch
+
+	result := make(GetFrontendsResponse, 0, len(frontends))
+	for _, fe := range frontends {
+		ref := FrontendRef{
+			ID:   fe.ID,
+			Name: fe.Name,
+		}
+
+		if vers != nil {
+			if spec, ok := vers.GetEmulator(fe.Package.PackageName()); ok {
+				ref.DefaultVersion = spec.Default
+				availableVersions := spec.AvailableVersions()
+				sort.Strings(availableVersions)
+				ref.AvailableVersions = availableVersions
+
+				if entry := spec.GetDefault(); entry != nil {
+					if target := entry.DefaultTargetForArch(currentArch); target != "" {
+						if build := entry.Target(target); build != nil && build.Size > 0 {
+							ref.DownloadBytes = build.Size
+						}
+					}
+				}
+			}
+		}
+
+		result = append(result, ref)
+	}
+
+	return []Event{{
+		Type: EventTypeResult,
+		Data: result,
+	}}
+}
+
 func (d *Daemon) handleGetConfig() []Event {
 	cfg, err := d.loadConfig()
 	if err != nil {
@@ -434,12 +483,21 @@ func (d *Daemon) handleGetConfig() []Event {
 		}
 	}
 
+	frontends := make(map[string]FrontendConfResponse)
+	for feID, feConf := range cfg.Frontends {
+		frontends[string(feID)] = FrontendConfResponse{
+			Enabled: feConf.Enabled,
+			Version: feConf.Version,
+		}
+	}
+
 	return []Event{{
 		Type: EventTypeResult,
 		Data: ConfigResponse{
 			UserStore: cfg.Global.UserStore,
 			Systems:   systems,
 			Emulators: emulators,
+			Frontends: frontends,
 		},
 	}}
 }
@@ -471,6 +529,16 @@ func (d *Daemon) handleSetConfig(data *SetConfigRequest) []Event {
 			for emuStr, emuConf := range data.Emulators {
 				cfg.Emulators[model.EmulatorID(emuStr)] = model.EmulatorConf{
 					Version: emuConf.Version,
+				}
+			}
+		}
+
+		if data.Frontends != nil {
+			cfg.Frontends = make(map[model.FrontendID]model.FrontendConfig)
+			for feStr, feConf := range data.Frontends {
+				cfg.Frontends[model.FrontendID(feStr)] = model.FrontendConfig{
+					Enabled: feConf.Enabled,
+					Version: feConf.Version,
 				}
 			}
 		}

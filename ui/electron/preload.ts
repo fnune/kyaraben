@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('electron', {
   invoke: (channel: string, ...args: unknown[]) => {
     const validChannels = [
       'get_systems',
+      'get_frontends',
       'get_config',
       'set_config',
       'status',

@@ -8,6 +8,12 @@ type SetConfigRequest struct {
 	UserStore string                         `json:"userStore"`
 	Systems   map[string][]string            `json:"systems"`
 	Emulators map[string]EmulatorConfRequest `json:"emulators,omitempty"`
+	Frontends map[string]FrontendConfRequest `json:"frontends,omitempty"`
+}
+
+type FrontendConfRequest struct {
+	Enabled bool   `json:"enabled"`
+	Version string `json:"version,omitempty"`
 }
 
 type EmulatorConfRequest struct {
@@ -33,6 +39,7 @@ type StatusResponse struct {
 	UserStore          string              `json:"userStore"`
 	EnabledSystems     []model.SystemID    `json:"enabledSystems"`
 	InstalledEmulators []InstalledEmulator `json:"installedEmulators"`
+	InstalledFrontends []InstalledFrontend `json:"installedFrontends"`
 	LastApplied        string              `json:"lastApplied"`
 	HealthWarning      string              `json:"healthWarning,omitempty"`
 }
@@ -43,6 +50,11 @@ type InstalledEmulator struct {
 	ExecLine       string           `json:"execLine,omitempty"`
 	ManagedConfigs []string         `json:"managedConfigs,omitempty"`
 	IconPath       string           `json:"iconPath,omitempty"`
+}
+
+type InstalledFrontend struct {
+	ID      model.FrontendID `json:"id"`
+	Version string           `json:"version"`
 }
 
 // DoctorResponse uses map[string] because tygo can't generate valid TypeScript
@@ -102,10 +114,26 @@ type ConfigResponse struct {
 	UserStore string                          `json:"userStore"`
 	Systems   map[string][]model.EmulatorID   `json:"systems"`
 	Emulators map[string]EmulatorConfResponse `json:"emulators,omitempty"`
+	Frontends map[string]FrontendConfResponse `json:"frontends,omitempty"`
 }
 
 type EmulatorConfResponse struct {
 	Version string `json:"version,omitempty"`
+}
+
+type FrontendConfResponse struct {
+	Enabled bool   `json:"enabled"`
+	Version string `json:"version,omitempty"`
+}
+
+type GetFrontendsResponse []FrontendRef
+
+type FrontendRef struct {
+	ID                model.FrontendID `json:"id"`
+	Name              string           `json:"name"`
+	DefaultVersion    string           `json:"defaultVersion,omitempty"`
+	AvailableVersions []string         `json:"availableVersions,omitempty"`
+	DownloadBytes     int64            `json:"downloadBytes,omitempty"`
 }
 
 type SetConfigResponse struct {

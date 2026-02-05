@@ -94,7 +94,7 @@ func TestUnmanagedEntriesExcludedFromManifest(t *testing.T) {
 		t.Fatalf("Failed to create user store: %v", err)
 	}
 
-	flakeGen := nix.NewFlakeGenerator(reg)
+	flakeGen := nix.NewFlakeGenerator(reg, reg)
 	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
 
 	applier := &Applier{
@@ -186,7 +186,7 @@ func TestApplyRemovesUnenabledEmulatorsFromManifest(t *testing.T) {
 		t.Fatalf("Failed to create user store: %v", err)
 	}
 
-	flakeGen := nix.NewFlakeGenerator(reg)
+	flakeGen := nix.NewFlakeGenerator(reg, reg)
 	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
 
 	applier := &Applier{

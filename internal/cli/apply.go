@@ -35,7 +35,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	if err != nil {
 		return fmt.Errorf("creating nix client: %w", err)
 	}
-	flakeGenerator := nix.NewFlakeGenerator(registry)
+	flakeGenerator := nix.NewFlakeGenerator(registry, registry)
 	versionOverrides, err := cfg.BuildVersionOverrides(registry.GetEmulator)
 	if err != nil {
 		return err

@@ -11,6 +11,7 @@ func (Definition) System() model.System {
 		Description:  "Dual-screen handheld by Nintendo (2004)",
 		Manufacturer: model.ManufacturerNintendo,
 		Label:        "NDS",
+		Extensions:   []string{".nds", ".dsi"},
 	}
 }
 

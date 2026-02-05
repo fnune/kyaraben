@@ -12,10 +12,17 @@ import (
 
 // KyarabenConfig represents the user's kyaraben configuration.
 type KyarabenConfig struct {
-	Global    GlobalConfig                `toml:"global"`
-	Sync      SyncConfig                  `toml:"sync"`
-	Systems   map[SystemID][]EmulatorID   `toml:"systems"`
-	Emulators map[EmulatorID]EmulatorConf `toml:"emulators,omitempty"`
+	Global    GlobalConfig                  `toml:"global"`
+	Sync      SyncConfig                    `toml:"sync"`
+	Systems   map[SystemID][]EmulatorID     `toml:"systems"`
+	Emulators map[EmulatorID]EmulatorConf   `toml:"emulators,omitempty"`
+	Frontends map[FrontendID]FrontendConfig `toml:"frontends,omitempty"`
+}
+
+// FrontendConfig holds per-frontend configuration.
+type FrontendConfig struct {
+	Enabled bool   `toml:"enabled"`
+	Version string `toml:"version,omitempty"`
 }
 
 // GlobalConfig holds global settings.
@@ -168,6 +175,46 @@ func (c *KyarabenConfig) BuildVersionOverrides(getEmulator func(EmulatorID) (Emu
 			return nil, fmt.Errorf("unknown emulator %q: %w", emuID, err)
 		}
 		overrides[emu.Package.PackageName()] = emuConf.Version
+	}
+	return overrides, nil
+}
+
+// EnabledFrontends returns a list of frontend IDs that are enabled.
+func (c *KyarabenConfig) EnabledFrontends() []FrontendID {
+	var result []FrontendID
+	for id, conf := range c.Frontends {
+		if conf.Enabled {
+			result = append(result, id)
+		}
+	}
+	return result
+}
+
+// FrontendVersion returns the configured version for a frontend, or empty for default.
+func (c *KyarabenConfig) FrontendVersion(id FrontendID) string {
+	if c.Frontends == nil {
+		return ""
+	}
+	if conf, ok := c.Frontends[id]; ok {
+		return conf.Version
+	}
+	return ""
+}
+
+// BuildFrontendVersionOverrides returns a map from package names to pinned versions
+// based on frontend versions.
+func (c *KyarabenConfig) BuildFrontendVersionOverrides(getFrontend func(FrontendID) (Frontend, error)) (map[string]string, error) {
+	overrides := make(map[string]string)
+	for _, frontendID := range c.EnabledFrontends() {
+		version := c.FrontendVersion(frontendID)
+		if version == "" {
+			continue
+		}
+		frontend, err := getFrontend(frontendID)
+		if err != nil {
+			return nil, fmt.Errorf("unknown frontend %q: %w", frontendID, err)
+		}
+		overrides[frontend.Package.PackageName()] = version
 	}
 	return overrides, nil
 }

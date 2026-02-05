@@ -1,0 +1,117 @@
+package esde
+
+import "github.com/fnune/kyaraben/internal/model"
+
+type SystemMapping struct {
+	Name     string
+	FullName string
+	Platform string
+}
+
+var systemMappings = map[model.SystemID]SystemMapping{
+	model.SystemIDNES: {
+		Name:     "nes",
+		FullName: "Nintendo Entertainment System",
+		Platform: "nes",
+	},
+	model.SystemIDSNES: {
+		Name:     "snes",
+		FullName: "Super Nintendo Entertainment System",
+		Platform: "snes",
+	},
+	model.SystemIDN64: {
+		Name:     "n64",
+		FullName: "Nintendo 64",
+		Platform: "n64",
+	},
+	model.SystemIDGB: {
+		Name:     "gb",
+		FullName: "Nintendo Game Boy",
+		Platform: "gb",
+	},
+	model.SystemIDGBC: {
+		Name:     "gbc",
+		FullName: "Nintendo Game Boy Color",
+		Platform: "gbc",
+	},
+	model.SystemIDGBA: {
+		Name:     "gba",
+		FullName: "Nintendo Game Boy Advance",
+		Platform: "gba",
+	},
+	model.SystemIDNDS: {
+		Name:     "nds",
+		FullName: "Nintendo DS",
+		Platform: "nds",
+	},
+	model.SystemID3DS: {
+		Name:     "3ds",
+		FullName: "Nintendo 3DS",
+		Platform: "3ds",
+	},
+	model.SystemIDGameCube: {
+		Name:     "gc",
+		FullName: "Nintendo GameCube",
+		Platform: "gc",
+	},
+	model.SystemIDWii: {
+		Name:     "wii",
+		FullName: "Nintendo Wii",
+		Platform: "wii",
+	},
+	model.SystemIDWiiU: {
+		Name:     "wiiu",
+		FullName: "Nintendo Wii U",
+		Platform: "wiiu",
+	},
+	model.SystemIDSwitch: {
+		Name:     "switch",
+		FullName: "Nintendo Switch",
+		Platform: "switch",
+	},
+	model.SystemIDPSX: {
+		Name:     "psx",
+		FullName: "Sony PlayStation",
+		Platform: "psx",
+	},
+	model.SystemIDPS2: {
+		Name:     "ps2",
+		FullName: "Sony PlayStation 2",
+		Platform: "ps2",
+	},
+	model.SystemIDPS3: {
+		Name:     "ps3",
+		FullName: "Sony PlayStation 3",
+		Platform: "ps3",
+	},
+	model.SystemIDPSP: {
+		Name:     "psp",
+		FullName: "Sony PlayStation Portable",
+		Platform: "psp",
+	},
+	model.SystemIDPSVita: {
+		Name:     "psvita",
+		FullName: "Sony PlayStation Vita",
+		Platform: "psvita",
+	},
+	model.SystemIDGenesis: {
+		Name:     "genesis",
+		FullName: "Sega Genesis",
+		Platform: "genesis",
+	},
+	model.SystemIDSaturn: {
+		Name:     "saturn",
+		FullName: "Sega Saturn",
+		Platform: "saturn",
+	},
+	model.SystemIDDreamcast: {
+		Name:     "dreamcast",
+		FullName: "Sega Dreamcast",
+		Platform: "dreamcast",
+	},
+}
+
+func GetSystemMapping(id model.SystemID) (SystemMapping, bool) {
+	m, ok := systemMappings[id]
+	return m, ok
+}

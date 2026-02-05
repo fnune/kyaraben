@@ -46,4 +46,5 @@ type System struct {
 	Description  string       `json:"description"`
 	Manufacturer Manufacturer `json:"manufacturer"`
 	Label        string       `json:"label"`
+	Extensions   []string     `json:"extensions"`
 }
