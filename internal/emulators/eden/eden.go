@@ -45,6 +45,7 @@ func (Definition) Emulator() model.Emulator {
 			Binary:      "eden",
 			GenericName: "Nintendo Switch Emulator",
 			Categories:  []string{"Game", "Emulator"},
+			RomArgs:     "-g %ROM%",
 		},
 	}
 }

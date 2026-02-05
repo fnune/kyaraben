@@ -20,6 +20,7 @@ func (Definition) Emulator() model.Emulator {
 			Binary:      "cemu",
 			GenericName: "Wii U Emulator",
 			Categories:  []string{"Game", "Emulator"},
+			RomArgs:     "-g %ROM%",
 		},
 	}
 }

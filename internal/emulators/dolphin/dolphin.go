@@ -25,6 +25,7 @@ func (Definition) Emulator() model.Emulator {
 			Binary:      "dolphin",
 			GenericName: "GameCube/Wii Emulator",
 			Categories:  []string{"Game", "Emulator"},
+			RomArgs:     "-e %ROM%",
 		},
 	}
 }
