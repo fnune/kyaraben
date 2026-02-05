@@ -85,6 +85,8 @@ func (d *Daemon) HandleWithEmit(cmd Command, emit func(Event)) []Event {
 		return d.handleSyncRemoveDevice(nil)
 	case CommandTypeUninstallPreview:
 		return d.handleUninstallPreview()
+	case CommandTypeUninstall:
+		return d.handleUninstall()
 	case CommandTypeInstallKyaraben:
 		return d.handleInstallKyaraben(nil)
 	case CommandTypeInstallStatus:
@@ -709,6 +711,124 @@ func (d *Daemon) handleUninstallPreview() []Event {
 			},
 		},
 	}}
+}
+
+func (d *Daemon) handleUninstall() []Event {
+	manifest, err := model.LoadManifest(d.manifestPath)
+	if err != nil {
+		log.Error("Failed to load manifest for uninstall: %v", err)
+		manifest = model.NewManifest()
+	}
+
+	var removedFiles []string
+	var errors []string
+
+	if manifest.KyarabenInstall != nil {
+		ki := manifest.KyarabenInstall
+		for _, path := range []string{ki.AppPath, ki.CLIPath, ki.DesktopPath} {
+			if path != "" && fileExists(path) {
+				if err := os.Remove(path); err != nil {
+					errors = append(errors, fmt.Sprintf("could not remove %s: %v", path, err))
+				} else {
+					removedFiles = append(removedFiles, path)
+				}
+			}
+		}
+	}
+
+	for _, cfg := range manifest.ManagedConfigs {
+		path, err := cfg.Target.Resolve()
+		if err != nil {
+			continue
+		}
+		if fileExists(path) {
+			if err := os.Remove(path); err != nil {
+				errors = append(errors, fmt.Sprintf("could not remove %s: %v", path, err))
+			} else {
+				removedFiles = append(removedFiles, path)
+			}
+		}
+	}
+
+	for _, f := range manifest.DesktopFiles {
+		if fileExists(f) {
+			if err := os.Remove(f); err != nil {
+				errors = append(errors, fmt.Sprintf("could not remove %s: %v", f, err))
+			} else {
+				removedFiles = append(removedFiles, f)
+			}
+		}
+	}
+
+	for _, f := range manifest.IconFiles {
+		if fileExists(f) {
+			if err := os.Remove(f); err != nil {
+				errors = append(errors, fmt.Sprintf("could not remove %s: %v", f, err))
+			} else {
+				removedFiles = append(removedFiles, f)
+			}
+		}
+	}
+
+	if dirExists(d.stateDir) {
+		if err := forceRemoveAll(d.stateDir); err != nil {
+			errors = append(errors, fmt.Sprintf("could not remove %s: %v", d.stateDir, err))
+		} else {
+			removedFiles = append(removedFiles, d.stateDir)
+		}
+	}
+
+	homeDir, _ := os.UserHomeDir()
+	iconsDir := filepath.Join(homeDir, ".local", "share", "icons", "hicolor")
+	launcher.UpdateIconCaches(iconsDir)
+
+	return []Event{{
+		Type: EventTypeResult,
+		Data: UninstallResponse{
+			Success:      len(errors) == 0,
+			RemovedFiles: removedFiles,
+			Errors:       errors,
+		},
+	}}
+}
+
+func forceRemoveAll(path string) error {
+	if err := forceChmodRecursive(path); err != nil {
+		return err
+	}
+	return os.RemoveAll(path)
+}
+
+func forceChmodRecursive(path string) error {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return err
+	}
+
+	if info.Mode()&os.ModeSymlink != 0 {
+		return nil
+	}
+
+	if !info.IsDir() {
+		return os.Chmod(path, 0644)
+	}
+
+	if err := os.Chmod(path, 0755); err != nil {
+		return err
+	}
+
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		if err := forceChmodRecursive(filepath.Join(path, entry.Name())); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func fileExists(path string) bool {

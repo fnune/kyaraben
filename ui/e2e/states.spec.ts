@@ -207,11 +207,17 @@ test.describe('Installation tab', () => {
     await expect(page.getByText(/state\/kyaraben/).first()).toBeVisible()
   })
 
-  test('shows uninstall section', async () => {
-    const uninstallHeading = page.getByRole('heading', { name: 'Uninstall', exact: true })
-    await uninstallHeading.scrollIntoViewIfNeeded()
-    await expect(uninstallHeading).toBeVisible()
-    await expect(page.getByText(/kyaraben uninstall/)).toBeVisible()
+  test('shows actions section with uninstall button', async () => {
+    await expect(page.getByText('Uninstall Kyaraben')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Uninstall' })).toBeVisible()
+  })
+
+  test('shows configuration section', async () => {
+    await expect(page.getByRole('heading', { name: 'Configuration' })).toBeVisible()
+  })
+
+  test('shows open config button', async () => {
+    await expect(page.getByRole('button', { name: 'Open' })).toBeVisible()
   })
 })
 
