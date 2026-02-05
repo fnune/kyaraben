@@ -3,7 +3,6 @@ package paths
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -123,11 +122,9 @@ func TestRetroArchCoresDir(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RetroArchCoresDir() error = %v", err)
 	}
-	if !strings.HasPrefix(dir, "/test/state/kyaraben") {
-		t.Errorf("RetroArchCoresDir() = %q, should be under kyaraben state dir", dir)
-	}
-	if !strings.HasSuffix(dir, filepath.Join("lib", "retroarch", "cores")) {
-		t.Errorf("RetroArchCoresDir() = %q, should end with lib/retroarch/cores", dir)
+	expected := "/test/state/kyaraben/cores"
+	if dir != expected {
+		t.Errorf("RetroArchCoresDir() = %q, want %q", dir, expected)
 	}
 }
 
@@ -135,7 +132,7 @@ func TestMustRetroArchCoresDir(t *testing.T) {
 	t.Setenv("XDG_STATE_HOME", "/test/state")
 
 	dir := MustRetroArchCoresDir()
-	expected := "/test/state/kyaraben/current/lib/retroarch/cores"
+	expected := "/test/state/kyaraben/cores"
 	if dir != expected {
 		t.Errorf("MustRetroArchCoresDir() = %q, want %q", dir, expected)
 	}
