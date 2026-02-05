@@ -33,7 +33,22 @@ type ConfigTarget struct {
 	BaseDir ConfigBaseDir
 }
 
-func (ct ConfigTarget) Resolve() (string, error) {
+type BaseDirResolver interface {
+	UserConfigDir() (string, error)
+	UserHomeDir() (string, error)
+}
+
+type OSBaseDirResolver struct{}
+
+func (OSBaseDirResolver) UserConfigDir() (string, error) {
+	return os.UserConfigDir()
+}
+
+func (OSBaseDirResolver) UserHomeDir() (string, error) {
+	return os.UserHomeDir()
+}
+
+func (ct ConfigTarget) ResolveWith(resolver BaseDirResolver) (string, error) {
 	var baseDir string
 
 	switch ct.BaseDir {
@@ -41,21 +56,21 @@ func (ct ConfigTarget) Resolve() (string, error) {
 		return ct.RelPath, nil
 
 	case ConfigBaseDirUserConfig:
-		dir, err := os.UserConfigDir()
+		dir, err := resolver.UserConfigDir()
 		if err != nil {
 			return "", fmt.Errorf("getting user config dir: %w", err)
 		}
 		baseDir = dir
 
 	case ConfigBaseDirUserData:
-		home, err := os.UserHomeDir()
+		home, err := resolver.UserHomeDir()
 		if err != nil {
 			return "", fmt.Errorf("getting home dir: %w", err)
 		}
 		baseDir = filepath.Join(home, ".local", "share")
 
 	case ConfigBaseDirHome:
-		home, err := os.UserHomeDir()
+		home, err := resolver.UserHomeDir()
 		if err != nil {
 			return "", fmt.Errorf("getting home dir: %w", err)
 		}
@@ -66,6 +81,10 @@ func (ct ConfigTarget) Resolve() (string, error) {
 	}
 
 	return filepath.Join(baseDir, ct.RelPath), nil
+}
+
+func (ct ConfigTarget) Resolve() (string, error) {
+	return ct.ResolveWith(OSBaseDirResolver{})
 }
 
 type ConfigEntry struct {

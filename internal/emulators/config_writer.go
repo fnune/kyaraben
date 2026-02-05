@@ -17,10 +17,16 @@ import (
 	"github.com/fnune/kyaraben/internal/model"
 )
 
-type ConfigWriter struct{}
+type ConfigWriter struct {
+	resolver model.BaseDirResolver
+}
 
-func NewConfigWriter() *ConfigWriter {
-	return &ConfigWriter{}
+func NewConfigWriter(resolver model.BaseDirResolver) *ConfigWriter {
+	return &ConfigWriter{resolver: resolver}
+}
+
+func (w *ConfigWriter) resolvePath(target model.ConfigTarget) (string, error) {
+	return target.ResolveWith(w.resolver)
 }
 
 type ApplyResult struct {
@@ -34,7 +40,7 @@ type ApplyOptions struct {
 }
 
 func (w *ConfigWriter) NeedsBackup(patch model.ConfigPatch) (string, bool, error) {
-	path, err := patch.Target.Resolve()
+	path, err := w.resolvePath(patch.Target)
 	if err != nil {
 		return "", false, fmt.Errorf("resolving config path: %w", err)
 	}
@@ -58,7 +64,7 @@ func (w *ConfigWriter) Apply(patch model.ConfigPatch) (ApplyResult, error) {
 }
 
 func (w *ConfigWriter) ApplyWithOptions(patch model.ConfigPatch, opts ApplyOptions) (ApplyResult, error) {
-	path, err := patch.Target.Resolve()
+	path, err := w.resolvePath(patch.Target)
 	if err != nil {
 		return ApplyResult{}, fmt.Errorf("resolving config path: %w", err)
 	}
