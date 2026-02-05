@@ -58,7 +58,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.11",
-    "@playwright/test": "^1",
+    "@playwright/test": "^1.58",
+    "@tailwindcss/vite": "^4",
     "@testing-library/dom": "^10",
     "@testing-library/jest-dom": "^6",
     "@testing-library/react": "^16",
@@ -67,15 +68,13 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4",
-    "autoprefixer": "^10",
     "electron": "^40",
-    "electron-builder": "^25",
-    "jsdom": "^26",
-    "postcss": "^8",
-    "tailwindcss": "^3",
+    "electron-builder": "^26",
+    "jsdom": "^27",
+    "tailwindcss": "^4",
     "typescript": "^5",
-    "vite": "^5",
-    "vitest": "^3"
+    "vite": "^7",
+    "vitest": "^4"
   },
   "dependencies": {
     "@types/semver": "^7.7.1",

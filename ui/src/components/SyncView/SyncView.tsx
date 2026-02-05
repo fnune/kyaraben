@@ -53,7 +53,7 @@ function DisabledState() {
     <div className="p-6">
       <Section title="Sync is not enabled">
         <p className="text-sm text-gray-400 mb-4">Enable sync in your config.toml:</p>
-        <pre className="bg-gray-700 text-gray-300 p-3 rounded text-sm font-mono">
+        <pre className="bg-gray-700 text-gray-300 p-3 rounded-sm text-sm font-mono">
           {`[sync]
 enabled = true
 mode = "primary"  # or "secondary"`}
@@ -121,7 +121,7 @@ export function SyncView({ status, onAddDevice, onRemoveDevice }: SyncViewProps)
       {status.deviceId && (
         <Section title="This device ID">
           <div className="flex items-center gap-2">
-            <code className="flex-1 bg-gray-700 text-gray-300 px-3 py-2 rounded text-xs break-all font-mono">
+            <code className="flex-1 bg-gray-700 text-gray-300 px-3 py-2 rounded-sm text-xs break-all font-mono">
               {status.deviceId}
             </code>
             <button
@@ -131,7 +131,7 @@ export function SyncView({ status, onAddDevice, onRemoveDevice }: SyncViewProps)
                   navigator.clipboard.writeText(status.deviceId)
                 }
               }}
-              className="px-3 py-2 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600"
+              className="px-3 py-2 text-xs bg-gray-700 text-gray-300 rounded-sm hover:bg-gray-600"
             >
               Copy
             </button>

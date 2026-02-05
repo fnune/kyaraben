@@ -63,7 +63,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
         return false
       }
 
-      const MAX_OUTPUT_LINES = 5
+      const MAX_OUTPUT_LINES = 10000
 
       const progressHandler = (...args: unknown[]) => {
         const data = args[0] as { step: string; message: string; output?: string }

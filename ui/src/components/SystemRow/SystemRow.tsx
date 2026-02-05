@@ -60,7 +60,7 @@ function ProvisionsBadges({
         return (
           <span
             key={p.filename}
-            className={`inline-flex flex-col px-1.5 py-0.5 rounded border ${bgColor}`}
+            className={`inline-flex flex-col px-1.5 py-0.5 rounded-sm border ${bgColor}`}
           >
             <span className={`text-[10px] font-medium font-mono leading-tight ${textColor}`}>
               {p.filename}
@@ -170,7 +170,7 @@ function VersionSelector({
       onChange={handleChange}
       disabled={disabled}
       onClick={(e) => e.stopPropagation()}
-      className="text-sm bg-transparent border-none text-gray-500 focus:outline-none focus:ring-0 cursor-pointer disabled:cursor-default disabled:opacity-50 tabular-nums"
+      className="text-sm bg-transparent border-none text-gray-500 focus:outline-hidden focus:ring-0 cursor-pointer disabled:cursor-default disabled:opacity-50 tabular-nums"
     >
       <option value="">{emulator.defaultVersion}</option>
       {emulator.availableVersions.map((v) => (
@@ -214,13 +214,13 @@ function ProvisionsDialog({
           <div className="bg-gray-50 rounded-lg p-3">
             <p className="text-sm text-gray-600 mb-2">Place files in:</p>
             <div className="flex items-center gap-2">
-              <code className="text-sm bg-gray-100 px-2 py-1 rounded flex-1 truncate">
+              <code className="text-sm bg-gray-100 px-2 py-1 rounded-sm flex-1 truncate">
                 {biosPath}
               </code>
               <button
                 type="button"
                 onClick={handleOpenFolder}
-                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex-shrink-0"
+                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-sm hover:bg-blue-700 transition-colors shrink-0"
               >
                 Open folder
               </button>
@@ -233,7 +233,7 @@ function ProvisionsDialog({
             <li key={p.filename} className="flex items-start gap-3">
               {p.required ? (
                 <svg
-                  className="w-6 h-6 text-red-500 flex-shrink-0"
+                  className="w-6 h-6 text-red-500 shrink-0"
                   viewBox="0 0 24 24"
                   fill="currentColor"
                   role="img"
@@ -243,7 +243,7 @@ function ProvisionsDialog({
                 </svg>
               ) : (
                 <svg
-                  className="w-6 h-6 text-amber-500 flex-shrink-0"
+                  className="w-6 h-6 text-amber-500 shrink-0"
                   viewBox="0 0 24 24"
                   fill="currentColor"
                   role="img"
@@ -253,7 +253,7 @@ function ProvisionsDialog({
                 </svg>
               )}
               <div>
-                <code className="text-sm font-medium text-gray-900 bg-gray-100 px-1.5 py-0.5 rounded">
+                <code className="text-sm font-medium text-gray-900 bg-gray-100 px-1.5 py-0.5 rounded-sm">
                   {p.filename}
                 </code>
                 {p.required ? (
@@ -268,7 +268,7 @@ function ProvisionsDialog({
           {found.map((p) => (
             <li key={p.filename} className="flex items-start gap-3">
               <svg
-                className="w-6 h-6 text-green-500 flex-shrink-0"
+                className="w-6 h-6 text-green-500 shrink-0"
                 viewBox="0 0 24 24"
                 fill="currentColor"
                 role="img"
@@ -277,7 +277,7 @@ function ProvisionsDialog({
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
               </svg>
               <div>
-                <code className="text-sm text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
+                <code className="text-sm text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded-sm">
                   {p.filename}
                 </code>
                 <p className="text-sm text-gray-500 mt-1">{p.description}</p>
@@ -331,7 +331,7 @@ export function EmulatorRow({
           type="checkbox"
           checked={enabled}
           onChange={(e) => onToggle(systemId, emulator.id, e.target.checked)}
-          className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+          className="w-4 h-4 rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
         />
         <span className="text-sm text-gray-700">{emulator.name}</span>
         <ProvisionsBadges

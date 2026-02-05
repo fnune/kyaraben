@@ -29,7 +29,9 @@ function PathItem({
 }) {
   const bgColor = variant === 'preserved' ? 'bg-green-500/10' : 'bg-gray-700'
   const textColor = variant === 'preserved' ? 'text-green-300' : 'text-gray-300'
-  return <li className={`font-mono text-xs ${bgColor} ${textColor} px-2 py-1 rounded`}>{path}</li>
+  return (
+    <li className={`font-mono text-xs ${bgColor} ${textColor} px-2 py-1 rounded-sm`}>{path}</li>
+  )
 }
 
 function EmptyState({ message }: { message: string }) {
@@ -208,7 +210,7 @@ export function InstallationView() {
 
       <Section title="Configuration">
         {configContent ? (
-          <pre className="bg-gray-900 text-gray-300 text-xs font-mono p-3 rounded overflow-x-auto max-h-64 overflow-y-auto">
+          <pre className="bg-gray-900 text-gray-300 text-xs font-mono p-3 rounded-sm overflow-x-auto max-h-64 overflow-y-auto">
             {configContent}
           </pre>
         ) : (

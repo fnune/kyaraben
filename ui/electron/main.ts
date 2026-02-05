@@ -83,31 +83,82 @@ function findSidecarPath(): string {
   throw new Error(`Sidecar binary '${sidecarName}' not found. Searched: ${searchPaths.join(', ')}`)
 }
 
-function spawnInTerminal(command: string): { success: boolean; error?: string } {
+function spawnInTerminal(command: string): { success: boolean; error?: string; command?: string } {
   const { spawn: spawnProcess, execSync } = require('node:child_process')
 
-  const terminals = [
-    { cmd: 'x-terminal-emulator', args: ['-e', command] },
-    { cmd: 'gnome-terminal', args: ['--', 'sh', '-c', command] },
-    { cmd: 'konsole', args: ['-e', 'sh', '-c', command] },
-    { cmd: 'xfce4-terminal', args: ['-e', command] },
-    { cmd: 'xterm', args: ['-e', command] },
-  ]
-
-  for (const term of terminals) {
+  function trySpawn(cmd: string, args: string[]): boolean {
     try {
-      execSync(`which ${term.cmd}`, { stdio: 'ignore' })
-      spawnProcess(term.cmd, term.args, {
-        detached: true,
-        stdio: 'ignore',
-      }).unref()
-      return { success: true }
+      execSync(`which ${cmd}`, { stdio: 'ignore' })
+      spawnProcess(cmd, args, { detached: true, stdio: 'ignore' }).unref()
+      return true
     } catch {
-      // Terminal not found, try next
+      return false
     }
   }
 
-  return { success: false, error: 'No terminal emulator found' }
+  const userTerminal = process.env.TERMINAL
+  if (userTerminal && trySpawn(userTerminal, ['-e', 'sh', '-c', command])) {
+    console.error(`[kyaraben] Opened terminal: ${userTerminal} (from $TERMINAL)`)
+    return { success: true }
+  }
+
+  if (trySpawn('xdg-terminal-exec', [command])) {
+    console.error('[kyaraben] Opened terminal: xdg-terminal-exec (freedesktop default)')
+    return { success: true }
+  }
+
+  const desktop = process.env.XDG_CURRENT_DESKTOP?.toLowerCase() ?? ''
+
+  if (desktop.includes('gnome')) {
+    try {
+      const gsettingsOutput = execSync(
+        'gsettings get org.gnome.desktop.default-applications.terminal exec',
+        { encoding: 'utf8' },
+      ).trim()
+      const gnomeTerminal = gsettingsOutput.replace(/^'|'$/g, '')
+      if (gnomeTerminal && trySpawn(gnomeTerminal, ['--', 'sh', '-c', command])) {
+        console.error(`[kyaraben] Opened terminal: ${gnomeTerminal} (GNOME default from gsettings)`)
+        return { success: true }
+      }
+    } catch {
+      /* gsettings unavailable */
+    }
+  }
+
+  if (desktop.includes('kde') && trySpawn('konsole', ['-e', 'sh', '-c', command])) {
+    console.error('[kyaraben] Opened terminal: konsole (KDE default)')
+    return { success: true }
+  }
+
+  const fallbacks = [
+    { cmd: 'x-terminal-emulator', args: ['-e', command] },
+    { cmd: 'kitty', args: ['sh', '-c', command] },
+    { cmd: 'alacritty', args: ['-e', 'sh', '-c', command] },
+    { cmd: 'wezterm', args: ['start', '--', 'sh', '-c', command] },
+    { cmd: 'foot', args: ['sh', '-c', command] },
+    { cmd: 'gnome-terminal', args: ['--', 'sh', '-c', command] },
+    { cmd: 'konsole', args: ['-e', 'sh', '-c', command] },
+    { cmd: 'tilix', args: ['-e', command] },
+    { cmd: 'terminator', args: ['-e', command] },
+    { cmd: 'xfce4-terminal', args: ['-e', command] },
+    { cmd: 'mate-terminal', args: ['-e', command] },
+    { cmd: 'lxterminal', args: ['-e', command] },
+    { cmd: 'sakura', args: ['-e', command] },
+    { cmd: 'terminology', args: ['-e', command] },
+    { cmd: 'urxvt', args: ['-e', 'sh', '-c', command] },
+    { cmd: 'st', args: ['-e', 'sh', '-c', command] },
+    { cmd: 'xterm', args: ['-e', command] },
+  ]
+
+  for (const term of fallbacks) {
+    if (trySpawn(term.cmd, term.args)) {
+      console.error(`[kyaraben] Opened terminal: ${term.cmd} (fallback)`)
+      return { success: true }
+    }
+  }
+
+  console.error('[kyaraben] No terminal emulator found')
+  return { success: false, error: 'No terminal emulator found', command }
 }
 
 async function ensureDaemon(): Promise<void> {
