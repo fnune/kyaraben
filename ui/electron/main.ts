@@ -10,9 +10,6 @@ const stateDir = process.env.XDG_STATE_HOME || path.join(os.homedir(), '.local',
 const kyarabenStateDir = path.join(stateDir, 'kyaraben')
 app.setPath('userData', path.join(kyarabenStateDir, 'ui'))
 
-// Flag to clean up state directory on quit after uninstall
-let pendingUninstallCleanup = false
-
 // Protocol types for daemon communication.
 // Source of truth: internal/daemon/types.go
 // Keep these in sync when modifying the protocol.
@@ -365,15 +362,6 @@ function setupIpcHandlers(): void {
     return event.data
   })
 
-  ipcMain.handle('uninstall', async () => {
-    const event = await sendCommand({ type: 'uninstall' })
-    const data = event.data as { success: boolean }
-    if (data.success) {
-      pendingUninstallCleanup = true
-    }
-    return event.data
-  })
-
   ipcMain.handle('refresh_icon_caches', async () => {
     const event = await sendCommand({ type: 'refresh_icon_caches' })
     return event.data
@@ -532,19 +520,5 @@ app.on('window-all-closed', () => {
 
   if (process.platform !== 'darwin') {
     app.quit()
-  }
-})
-
-app.on('quit', () => {
-  if (pendingUninstallCleanup) {
-    // Electron recreates storage files during shutdown even after clearStorageData().
-    // Spawn a detached process that waits for Electron to fully exit, then removes the directory.
-    const { spawn } = require('node:child_process')
-    const pid = process.pid
-    spawn(
-      'sh',
-      ['-c', `while kill -0 ${pid} 2>/dev/null; do sleep 0.1; done; rm -rf "${kyarabenStateDir}"`],
-      { detached: true, stdio: 'ignore' },
-    ).unref()
   }
 })
