@@ -607,6 +607,10 @@ func (f fakeBaseDirResolver) UserHomeDir() (string, error) {
 	return f.root, nil
 }
 
+func (f fakeBaseDirResolver) UserDataDir() (string, error) {
+	return filepath.Join(f.root, ".local", "share"), nil
+}
+
 func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
 	tmpDir := t.TempDir()
 	writer := NewConfigWriter(fakeBaseDirResolver{root: tmpDir})

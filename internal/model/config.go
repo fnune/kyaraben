@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
+
+	"github.com/fnune/kyaraben/internal/paths"
 )
 
 // KyarabenConfig represents the user's kyaraben configuration.
@@ -38,11 +40,11 @@ func (c *KyarabenConfig) EmulatorVersion(id EmulatorID) string {
 }
 
 func DefaultConfigPath() (string, error) {
-	configDir, err := os.UserConfigDir()
+	configDir, err := paths.KyarabenConfigDir()
 	if err != nil {
 		return "", fmt.Errorf("getting config directory: %w", err)
 	}
-	return filepath.Join(configDir, "kyaraben", "config.toml"), nil
+	return filepath.Join(configDir, "config.toml"), nil
 }
 
 func DefaultUserStore() string {
