@@ -2,6 +2,9 @@
 .git
 .gitignore
 
+# Sandbox (local testing, can be huge)
+.sandbox
+
 # CI cache directories (restored before docker build, can be huge)
 kyaraben-data-cache
 kyaraben-state-cache

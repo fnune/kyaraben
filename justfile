@@ -33,9 +33,20 @@ fmt:
 build: _ensure-ui-deps generate-types _sidecar
     cd ui && npm run electron:build
 
-# Run e2e tests in container
+# Run CLI e2e tests in container (nix builds)
 e2e: _container-e2e-build
     podman run -it --rm kyaraben-nix-e2e
+
+# Run Playwright UI e2e tests in container (headless)
+ui-e2e: _container-electron-e2e-build
+    podman run --ipc=host --rm kyaraben-electron-e2e
+
+# Run Playwright UI e2e tests with interactive UI (run 'just build' first)
+ui-e2e-ui: _extract-appimage
+    #!/usr/bin/env bash
+    cd ui && KYARABEN_APPIMAGE="$(pwd)/../.sandbox/app/kyaraben-ui" \
+        APPDIR="$(pwd)/../.sandbox/app" \
+        npx playwright test --ui
 
 # Run app in sandbox container for manual testing (persistent state)
 sandbox: build _container-sandbox-build _extract-appimage
@@ -74,6 +85,9 @@ _sidecar:
 
 _container-e2e-build:
     podman build -t kyaraben-nix-e2e -f Containerfile.nix-e2e .
+
+_container-electron-e2e-build:
+    podman build -t kyaraben-electron-e2e -f Containerfile.electron-e2e .
 
 _container-sandbox-build:
     podman build -t kyaraben-sandbox -f Containerfile.sandbox \
