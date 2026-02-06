@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('electron', {
       'set_config',
       'status',
       'doctor',
+      'preflight',
       'apply',
       'cancel_apply',
       'get_install_status',

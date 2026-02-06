@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"bytes"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,7 +14,7 @@ func TestCLIInit(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "config.toml")
 	userStore := filepath.Join(tmpDir, "Emulation")
 
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "gba")
+	cmd := kyarabenCmd(t, tmpDir, "-c", configPath, "init", "-u", userStore, "-s", "gba")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
@@ -34,13 +35,13 @@ func TestCLIStatus(t *testing.T) {
 	userStore := filepath.Join(tmpDir, "Emulation")
 
 	// First init
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "snes", "-s", "psx")
+	cmd := kyarabenCmd(t, tmpDir, "-c", configPath, "init", "-u", userStore, "-s", "snes", "-s", "psx")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
 
 	// Run status command
-	cmd = kyarabenCmd(t, "-c", configPath, "status")
+	cmd = kyarabenCmd(t, tmpDir, "-c", configPath, "status")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("status failed: %v\nOutput: %s", err, output)
@@ -62,7 +63,7 @@ func TestCLIDoctor(t *testing.T) {
 	userStore := filepath.Join(tmpDir, "Emulation")
 
 	// Initialize with PSX (which has BIOS requirements)
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "psx")
+	cmd := kyarabenCmd(t, tmpDir, "-c", configPath, "init", "-u", userStore, "-s", "psx")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
@@ -70,7 +71,7 @@ func TestCLIDoctor(t *testing.T) {
 	_ = os.MkdirAll(filepath.Join(userStore, "bios", "psx"), 0755)
 
 	// Run doctor command - should report missing BIOS
-	cmd = kyarabenCmd(t, "-c", configPath, "doctor")
+	cmd = kyarabenCmd(t, tmpDir, "-c", configPath, "doctor")
 	output, _ := cmd.CombinedOutput() // Doctor exits with non-zero when files missing
 
 	outputStr := string(output)
@@ -90,14 +91,14 @@ func TestCLIDoctorGBA(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "config.toml")
 	userStore := filepath.Join(tmpDir, "Emulation")
 
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "gba")
+	cmd := kyarabenCmd(t, tmpDir, "-c", configPath, "init", "-u", userStore, "-s", "gba")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
 
 	_ = os.MkdirAll(filepath.Join(userStore, "bios", "gba"), 0755)
 
-	cmd = kyarabenCmd(t, "-c", configPath, "doctor")
+	cmd = kyarabenCmd(t, tmpDir, "-c", configPath, "doctor")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("doctor failed for GBA: %v\nOutput: %s", err, output)
@@ -115,12 +116,12 @@ func TestCLIApplyDryRun(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "config.toml")
 	userStore := filepath.Join(tmpDir, "Emulation")
 
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "gba")
+	cmd := kyarabenCmd(t, tmpDir, "-c", configPath, "init", "-u", userStore, "-s", "gba")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
 
-	cmd = kyarabenCmd(t, "-c", configPath, "apply", "--dry-run")
+	cmd = kyarabenCmd(t, tmpDir, "-c", configPath, "apply", "--dry-run")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("apply --dry-run failed: %v\nOutput: %s", err, output)
@@ -140,7 +141,8 @@ func TestCLIApplyDryRun(t *testing.T) {
 }
 
 func TestCLIHelp(t *testing.T) {
-	cmd := kyarabenCmd(t, "--help")
+	tmpDir := t.TempDir()
+	cmd := kyarabenCmd(t, tmpDir, "--help")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("help failed: %v\nOutput: %s", err, output)
@@ -163,12 +165,12 @@ func TestCLIInitForce(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "config.toml")
 	userStore := filepath.Join(tmpDir, "Emulation")
 
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "gba")
+	cmd := kyarabenCmd(t, tmpDir, "-c", configPath, "init", "-u", userStore, "-s", "gba")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
 
-	cmd = kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "snes")
+	cmd = kyarabenCmd(t, tmpDir, "-c", configPath, "init", "-u", userStore, "-s", "snes")
 	output, err := cmd.CombinedOutput()
 	if err == nil {
 		t.Errorf("init without --force should fail when config exists")
@@ -177,7 +179,7 @@ func TestCLIInitForce(t *testing.T) {
 		t.Errorf("Error message should mention config already exists: %s", output)
 	}
 
-	cmd = kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "snes", "-f")
+	cmd = kyarabenCmd(t, tmpDir, "-c", configPath, "init", "-u", userStore, "-s", "snes", "-f")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("init --force failed: %v\nOutput: %s", err, output)
 	}
@@ -214,11 +216,11 @@ func withFakeNixFail(storeDir string) cmdOption {
 	}
 }
 
-func kyarabenCmd(t *testing.T, args ...string) *exec.Cmd {
-	return kyarabenCmdWith(t, nil, args...)
+func kyarabenCmd(t *testing.T, tmpDir string, args ...string) *exec.Cmd {
+	return kyarabenCmdWith(t, tmpDir, nil, args...)
 }
 
-func kyarabenCmdWith(t *testing.T, opts []cmdOption, args ...string) *exec.Cmd {
+func kyarabenCmdWith(t *testing.T, tmpDir string, opts []cmdOption, args ...string) *exec.Cmd {
 	t.Helper()
 
 	binary := filepath.Join(projectRoot(t), "kyaraben")
@@ -228,6 +230,12 @@ func kyarabenCmdWith(t *testing.T, opts []cmdOption, args ...string) *exec.Cmd {
 
 	cmd := exec.Command(binary, args...)
 	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env,
+		"HOME="+tmpDir,
+		"XDG_CONFIG_HOME="+filepath.Join(tmpDir, "xdg-config"),
+		"XDG_STATE_HOME="+filepath.Join(tmpDir, "xdg-state"),
+		"XDG_DATA_HOME="+filepath.Join(tmpDir, "xdg-data"),
+	)
 
 	for _, opt := range opts {
 		opt(cmd, t)
@@ -262,12 +270,12 @@ func TestCLIUninstall(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "config.toml")
 	userStore := filepath.Join(tmpDir, "Emulation")
 
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "gba")
+	cmd := kyarabenCmd(t, tmpDir, "-c", configPath, "init", "-u", userStore, "-s", "gba")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
 
-	cmd = kyarabenCmd(t, "-c", configPath, "uninstall", "-f")
+	cmd = kyarabenCmd(t, tmpDir, "-c", configPath, "uninstall", "-f")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("uninstall failed: %v\nOutput: %s", err, output)
@@ -287,19 +295,19 @@ func TestCLIUninstallCorruptedManifest(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "config.toml")
 	userStore := filepath.Join(tmpDir, "Emulation")
 
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "gba")
+	cmd := kyarabenCmd(t, tmpDir, "-c", configPath, "init", "-u", userStore, "-s", "gba")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
 
-	stateDir := filepath.Join(tmpDir, "state")
+	// Write corrupted manifest to the isolated XDG_STATE_HOME
+	stateDir := filepath.Join(tmpDir, "xdg-state")
 	manifestDir := filepath.Join(stateDir, "kyaraben", "build")
 	manifestPath := filepath.Join(manifestDir, "manifest.json")
 	_ = os.MkdirAll(manifestDir, 0755)
 	_ = os.WriteFile(manifestPath, []byte("not valid json {{{"), 0644)
 
-	cmd = kyarabenCmdWith(t, nil, "-c", configPath, "uninstall", "-n")
-	cmd.Env = append(cmd.Env, "XDG_STATE_HOME="+stateDir)
+	cmd = kyarabenCmd(t, tmpDir, "-c", configPath, "uninstall", "-n")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("uninstall failed: %v\nOutput: %s", err, output)
@@ -325,12 +333,12 @@ func TestCLISyncStatusDisabled(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "config.toml")
 	userStore := filepath.Join(tmpDir, "Emulation")
 
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "gba")
+	cmd := kyarabenCmd(t, tmpDir, "-c", configPath, "init", "-u", userStore, "-s", "gba")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
 
-	cmd = kyarabenCmd(t, "-c", configPath, "sync", "status")
+	cmd = kyarabenCmd(t, tmpDir, "-c", configPath, "sync", "status")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("sync status failed: %v\nOutput: %s", err, output)
@@ -346,7 +354,8 @@ func TestCLISyncStatusDisabled(t *testing.T) {
 }
 
 func TestCLISyncHelp(t *testing.T) {
-	cmd := kyarabenCmd(t, "sync", "--help")
+	tmpDir := t.TempDir()
+	cmd := kyarabenCmd(t, tmpDir, "sync", "--help")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("sync help failed: %v\nOutput: %s", err, output)
@@ -368,7 +377,7 @@ func TestCLIStatusNoConfig(t *testing.T) {
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "nonexistent", "config.toml")
 
-	cmd := kyarabenCmd(t, "-c", configPath, "status")
+	cmd := kyarabenCmd(t, tmpDir, "-c", configPath, "status")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("status command failed unexpectedly: %v\nOutput: %s", err, output)
@@ -387,7 +396,7 @@ func TestCLIDoctorNoConfig(t *testing.T) {
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "nonexistent", "config.toml")
 
-	cmd := kyarabenCmd(t, "-c", configPath, "doctor")
+	cmd := kyarabenCmd(t, tmpDir, "-c", configPath, "doctor")
 	output, err := cmd.CombinedOutput()
 	if err == nil {
 		t.Errorf("doctor without config should fail")
@@ -404,7 +413,7 @@ func TestCLIInitInvalidSystem(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "config.toml")
 	userStore := filepath.Join(tmpDir, "Emulation")
 
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "nonexistent-system")
+	cmd := kyarabenCmd(t, tmpDir, "-c", configPath, "init", "-u", userStore, "-s", "nonexistent-system")
 	output, err := cmd.CombinedOutput()
 	if err == nil {
 		t.Errorf("init with invalid system should fail")
@@ -421,14 +430,14 @@ func TestCLIDoctorAllProvisionsSatisfied(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "config.toml")
 	userStore := filepath.Join(tmpDir, "Emulation")
 
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "snes")
+	cmd := kyarabenCmd(t, tmpDir, "-c", configPath, "init", "-u", userStore, "-s", "snes")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
 
 	_ = os.MkdirAll(filepath.Join(userStore, "bios", "snes"), 0755)
 
-	cmd = kyarabenCmd(t, "-c", configPath, "doctor")
+	cmd = kyarabenCmd(t, tmpDir, "-c", configPath, "doctor")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("doctor failed: %v\nOutput: %s", err, output)
@@ -446,12 +455,12 @@ func TestCLIApply(t *testing.T) {
 	userStore := filepath.Join(tmpDir, "Emulation")
 	fakeStore := filepath.Join(tmpDir, "fake-store")
 
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "snes")
+	cmd := kyarabenCmd(t, tmpDir, "-c", configPath, "init", "-u", userStore, "-s", "snes")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
 
-	cmd = kyarabenCmdWith(t, []cmdOption{withFakeNix(fakeStore)},
+	cmd = kyarabenCmdWith(t, tmpDir, []cmdOption{withFakeNix(fakeStore)},
 		"-c", configPath, "apply", "--no-show-diff")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -477,12 +486,12 @@ func TestCLIApplyBuildFailure(t *testing.T) {
 	userStore := filepath.Join(tmpDir, "Emulation")
 	fakeStore := filepath.Join(tmpDir, "fake-store")
 
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "snes")
+	cmd := kyarabenCmd(t, tmpDir, "-c", configPath, "init", "-u", userStore, "-s", "snes")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
 
-	cmd = kyarabenCmdWith(t, []cmdOption{withFakeNixFail(fakeStore)},
+	cmd = kyarabenCmdWith(t, tmpDir, []cmdOption{withFakeNixFail(fakeStore)},
 		"-c", configPath, "apply", "--no-show-diff")
 	output, err := cmd.CombinedOutput()
 	if err == nil {
@@ -501,12 +510,12 @@ func TestCLIApplyMultipleSystems(t *testing.T) {
 	userStore := filepath.Join(tmpDir, "Emulation")
 	fakeStore := filepath.Join(tmpDir, "fake-store")
 
-	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "snes", "-s", "gba")
+	cmd := kyarabenCmd(t, tmpDir, "-c", configPath, "init", "-u", userStore, "-s", "snes", "-s", "gba")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
 
-	cmd = kyarabenCmdWith(t, []cmdOption{withFakeNix(fakeStore)},
+	cmd = kyarabenCmdWith(t, tmpDir, []cmdOption{withFakeNix(fakeStore)},
 		"-c", configPath, "apply", "--no-show-diff")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -518,5 +527,101 @@ func TestCLIApplyMultipleSystems(t *testing.T) {
 		if _, err := os.Stat(romDir); err != nil {
 			t.Errorf("ROM directory for %s not created: %v", system, err)
 		}
+	}
+}
+
+func TestCLIApplyPromptsOnUserModifiedKeys(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.toml")
+	userStore := filepath.Join(tmpDir, "Emulation")
+	fakeStore := filepath.Join(tmpDir, "fake-store")
+
+	// Init with GBA (uses mGBA which has managed config keys)
+	cmd := kyarabenCmd(t, tmpDir, "-c", configPath, "init", "-u", userStore, "-s", "gba")
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("init failed: %v\nOutput: %s", err, output)
+	}
+
+	// First apply to create baseline config and manifest
+	cmd = kyarabenCmdWith(t, tmpDir, []cmdOption{withFakeNix(fakeStore)},
+		"-c", configPath, "apply", "--no-show-diff")
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("first apply failed: %v\nOutput: %s", err, output)
+	}
+
+	// Modify a managed config key (mGBA config at XDG_CONFIG_HOME/mgba/config.ini)
+	mgbaConfig := filepath.Join(tmpDir, "xdg-config", "mgba", "config.ini")
+	data, err := os.ReadFile(mgbaConfig)
+	if err != nil {
+		t.Fatalf("reading mGBA config: %v", err)
+	}
+
+	// Change the value of the "bios" managed key
+	lines := strings.Split(string(data), "\n")
+	found := false
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "bios") && strings.Contains(trimmed, "=") {
+			lines[i] = "bios = /user/modified/path"
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("could not find bios key in mGBA config:\n%s", string(data))
+	}
+	if err := os.WriteFile(mgbaConfig, []byte(strings.Join(lines, "\n")), 0644); err != nil {
+		t.Fatalf("modifying mGBA config: %v", err)
+	}
+
+	// Run apply again with "n" to decline the overwrite prompt
+	cmd = kyarabenCmdWith(t, tmpDir, []cmdOption{withFakeNix(fakeStore)},
+		"-c", configPath, "apply")
+	cmd.Stdin = bytes.NewReader([]byte("n\n"))
+	output, err := cmd.CombinedOutput()
+	// The command exits cleanly on cancel (no error), but check just in case
+	_ = err
+
+	outputStr := string(output)
+	if !strings.Contains(outputStr, "managed keys will be overwritten") {
+		t.Errorf("expected overwrite prompt, got:\n%s", outputStr)
+	}
+	if !strings.Contains(outputStr, "Cancelled") {
+		t.Errorf("expected cancellation message, got:\n%s", outputStr)
+	}
+}
+
+func TestCLIApplyNoPromptWithoutUserChanges(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.toml")
+	userStore := filepath.Join(tmpDir, "Emulation")
+	fakeStore := filepath.Join(tmpDir, "fake-store")
+
+	// Init and first apply with GBA
+	cmd := kyarabenCmd(t, tmpDir, "-c", configPath, "init", "-u", userStore, "-s", "gba")
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("init failed: %v\nOutput: %s", err, output)
+	}
+
+	cmd = kyarabenCmdWith(t, tmpDir, []cmdOption{withFakeNix(fakeStore)},
+		"-c", configPath, "apply", "--no-show-diff")
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("first apply failed: %v\nOutput: %s", err, output)
+	}
+
+	// Apply again without modifying any files - should NOT prompt
+	cmd = kyarabenCmdWith(t, tmpDir, []cmdOption{withFakeNix(fakeStore)},
+		"-c", configPath, "apply", "--no-show-diff")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("second apply failed: %v\nOutput: %s", err, output)
+	}
+
+	outputStr := string(output)
+	if strings.Contains(outputStr, "managed keys will be overwritten") {
+		t.Errorf("should not prompt when no user changes, got:\n%s", outputStr)
+	}
+	if !strings.Contains(outputStr, "Done!") {
+		t.Errorf("expected completion, got:\n%s", outputStr)
 	}
 }
