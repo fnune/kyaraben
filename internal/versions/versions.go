@@ -14,12 +14,17 @@ var versionsData string
 // Versions holds all version information parsed from versions.toml.
 type Versions struct {
 	Nixpkgs        NixpkgsVersion          `toml:"nixpkgs"`
-	RetroArchCores NixpkgsVersion          `toml:"retroarch-cores"`
+	RetroArchCores RetroArchCoresSpec      `toml:"retroarch-cores"`
 	Emulators      map[string]EmulatorSpec // Populated after parsing
 }
 
 type NixpkgsVersion struct {
 	Commit string `toml:"commit"`
+}
+
+type RetroArchCoresSpec struct {
+	Commit string           `toml:"commit"`
+	Sizes  map[string]int64 `toml:"sizes"`
 }
 
 // EmulatorSpec describes all available versions of an emulator.
@@ -175,6 +180,14 @@ func (v *Versions) GetEmulator(name string) (*EmulatorSpec, bool) {
 	return &spec, true
 }
 
+// GetCoreSize returns the size in bytes for a RetroArch core, or 0 if not found.
+func (v *Versions) GetCoreSize(coreName string) int64 {
+	if v.RetroArchCores.Sizes == nil {
+		return 0
+	}
+	return v.RetroArchCores.Sizes[coreName]
+}
+
 var parsed *Versions
 
 // Init parses and caches version data. Call from main.go at startup.
@@ -227,6 +240,14 @@ func parse(data string) (*Versions, error) {
 	if racRaw, ok := raw["retroarch-cores"].(map[string]interface{}); ok {
 		if commit, ok := racRaw["commit"].(string); ok {
 			v.RetroArchCores.Commit = commit
+		}
+		if sizesRaw, ok := racRaw["sizes"].(map[string]interface{}); ok {
+			v.RetroArchCores.Sizes = make(map[string]int64)
+			for name, size := range sizesRaw {
+				if s, ok := size.(int64); ok {
+					v.RetroArchCores.Sizes[name] = s
+				}
+			}
 		}
 	}
 

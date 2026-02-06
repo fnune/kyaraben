@@ -94,6 +94,8 @@ type EmulatorRef struct {
 	DefaultVersion    string           `json:"defaultVersion,omitempty"`
 	AvailableVersions []string         `json:"availableVersions,omitempty"`
 	DownloadBytes     int64            `json:"downloadBytes,omitempty"`
+	CoreBytes         int64            `json:"coreBytes,omitempty"`
+	PackageName       string           `json:"packageName,omitempty"`
 }
 
 type ConfigResponse struct {
@@ -153,13 +155,15 @@ type SyncRemoveDeviceResponse struct {
 }
 
 type UninstallPreviewResponse struct {
-	StateDir       string         `json:"stateDir"`
-	StateDirExists bool           `json:"stateDirExists"`
-	DesktopFiles   []string       `json:"desktopFiles"`
-	IconFiles      []string       `json:"iconFiles"`
-	ConfigFiles    []string       `json:"configFiles"`
-	KyarabenFiles  []string       `json:"kyarabenFiles"`
-	Preserved      PreservedPaths `json:"preserved"`
+	StateDir           string         `json:"stateDir"`
+	StateDirExists     bool           `json:"stateDirExists"`
+	RetroArchCoresDir  string         `json:"retroArchCoresDir,omitempty"`
+	RetroArchCoreFiles []string       `json:"retroArchCoreFiles,omitempty"`
+	DesktopFiles       []string       `json:"desktopFiles"`
+	IconFiles          []string       `json:"iconFiles"`
+	ConfigFiles        []string       `json:"configFiles"`
+	KyarabenFiles      []string       `json:"kyarabenFiles"`
+	Preserved          PreservedPaths `json:"preserved"`
 }
 
 type PreservedPaths struct {

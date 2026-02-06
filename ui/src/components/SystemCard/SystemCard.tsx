@@ -35,6 +35,7 @@ export interface SystemCardProps {
   readonly managedConfigs: ReadonlyMap<EmulatorID, string[]>
   readonly provisions: DoctorResponse
   readonly userStore: string
+  readonly sharedPackages: ReadonlySet<string>
   readonly onEmulatorToggle: (emulatorId: EmulatorID, enabled: boolean) => void
   readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
 }
@@ -48,6 +49,7 @@ export function SystemCard({
   managedConfigs,
   provisions,
   userStore,
+  sharedPackages,
   onEmulatorToggle,
   onVersionChange,
 }: SystemCardProps) {
@@ -65,7 +67,9 @@ export function SystemCard({
         />
         <div
           className="relative z-10 pl-4 pr-12"
-          style={{ background: 'linear-gradient(to right, rgb(31 41 55) 70%, transparent)' }}
+          style={{
+            background: 'linear-gradient(to right, rgb(31 41 55) 70%, transparent)',
+          }}
         >
           <h3 className="text-base font-semibold text-white whitespace-nowrap">{system.name}</h3>
           <p className="text-xs text-gray-400 whitespace-nowrap">
@@ -78,6 +82,8 @@ export function SystemCard({
         {system.emulators.map((emulator) => {
           const execLine = installedExecLines.get(emulator.id)
           const emuManagedConfigs = managedConfigs.get(emulator.id)
+          const packageName = emulator.packageName ?? emulator.id
+          const isSharedPackage = sharedPackages.has(packageName)
           return (
             <EmulatorSubcard
               key={emulator.id}
@@ -88,6 +94,7 @@ export function SystemCard({
               installedVersion={installedVersions.get(emulator.id) ?? null}
               provisions={provisions[emulator.id] ?? []}
               userStore={userStore}
+              sharedPackage={isSharedPackage}
               onToggle={(enabled) => onEmulatorToggle(emulator.id, enabled)}
               onVersionChange={(version) => onVersionChange(emulator.id, version)}
               {...(emuManagedConfigs && { managedConfigs: emuManagedConfigs })}

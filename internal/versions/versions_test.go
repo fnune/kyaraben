@@ -268,3 +268,20 @@ func TestGetEmulator(t *testing.T) {
 		t.Error("GetEmulator(nonexistent) should return false")
 	}
 }
+
+func TestGetCoreSize(t *testing.T) {
+	v := MustGet()
+
+	knownCores := []string{"bsnes", "mesen", "genesis_plus_gx", "mupen64plus_next", "mednafen_saturn"}
+	for _, core := range knownCores {
+		size := v.GetCoreSize(core)
+		if size <= 0 {
+			t.Errorf("GetCoreSize(%s) = %d, want > 0", core, size)
+		}
+	}
+
+	unknownSize := v.GetCoreSize("nonexistent_core")
+	if unknownSize != 0 {
+		t.Errorf("GetCoreSize(nonexistent_core) = %d, want 0", unknownSize)
+	}
+}

@@ -88,6 +88,7 @@
       },
       "style": {
         "noDefaultExport": "error",
+        "noNonNullAssertion": "error",
         "useConst": "error"
       },
       "suspicious": {

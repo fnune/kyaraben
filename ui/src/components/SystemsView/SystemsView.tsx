@@ -93,6 +93,7 @@ export function SystemsView({
   const changes = useMemo(() => {
     let summary = emptyChangeSummary()
     const seenEmulators = new Set<EmulatorID>()
+    const seenPackages = new Set<string>()
 
     for (const system of systems) {
       for (const emulator of system.emulators) {
@@ -111,7 +112,15 @@ export function SystemsView({
           emulator.availableVersions,
         )
 
-        summary = addChange(summary, changeType, emulator.downloadBytes)
+        const packageName = emulator.packageName ?? emulator.id
+        const isNewPackage = !seenPackages.has(packageName)
+        if (isNewPackage && (changeType === 'install' || changeType === 'upgrade')) {
+          seenPackages.add(packageName)
+        }
+
+        const packageBytes = isNewPackage ? (emulator.downloadBytes ?? 0) : 0
+        const coreBytes = emulator.coreBytes ?? 0
+        summary = addChange(summary, changeType, packageBytes + coreBytes)
       }
     }
 
@@ -119,6 +128,27 @@ export function SystemsView({
   }, [systems, enabledEmulators, emulatorVersions, installedVersions])
 
   const groupedSystems = useMemo(() => groupSystemsByManufacturer(systems), [systems])
+
+  const sharedPackages = useMemo(() => {
+    const packageSystems = new Map<string, Set<string>>()
+
+    for (const system of systems) {
+      for (const emulator of system.emulators) {
+        if (!enabledEmulators.has(emulator.id)) continue
+
+        const packageName = emulator.packageName ?? emulator.id
+        const systemIds = packageSystems.get(packageName) ?? new Set<string>()
+        systemIds.add(system.id)
+        packageSystems.set(packageName, systemIds)
+      }
+    }
+
+    const shared = new Set<string>()
+    for (const [pkg, systemIds] of packageSystems) {
+      if (systemIds.size > 1) shared.add(pkg)
+    }
+    return shared
+  }, [systems, enabledEmulators])
 
   if (showProgress) {
     const errorMessage = applyStatus === 'error' && error ? error : undefined
@@ -185,6 +215,7 @@ export function SystemsView({
                   managedConfigs={managedConfigs}
                   provisions={provisions}
                   userStore={userStore}
+                  sharedPackages={sharedPackages}
                   onEmulatorToggle={onEmulatorToggle}
                   onVersionChange={onVersionChange}
                 />
