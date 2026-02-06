@@ -214,6 +214,15 @@ function AppContent() {
     }
   }, [])
 
+  const handleEnableAll = useCallback(() => {
+    const newMap = new Map<SystemID, EmulatorID[]>()
+    for (const sys of systems) {
+      newMap.set(sys.id, [sys.defaultEmulatorId])
+    }
+    setSystemEmulators(newMap)
+    showToast('All systems enabled. Use "Discard changes" to undo.', 'success')
+  }, [systems, showToast])
+
   const handleDiscard = useCallback(async () => {
     const [configResult, statusResult] = await Promise.all([daemon.getConfig(), daemon.getStatus()])
 
@@ -276,6 +285,7 @@ function AppContent() {
             onEmulatorToggle={handleEmulatorToggle}
             onVersionChange={handleVersionChange}
             onDiscard={handleDiscard}
+            onEnableAll={handleEnableAll}
           />
         )
       case 'installation':

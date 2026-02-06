@@ -9,6 +9,7 @@
     "build": "tsc -b && vite build",
     "build:electron": "tsc -p electron/tsconfig.json",
     "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "test": "vitest run",

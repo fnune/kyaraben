@@ -15,6 +15,7 @@ const mockSystem: System = {
   description: '16-bit home console by Nintendo (1990)',
   manufacturer: 'Nintendo',
   label: 'SNES',
+  defaultEmulatorId: 'retroarch:bsnes',
   emulators: [{ id: 'retroarch:bsnes', name: 'RetroArch (bsnes)' }],
 }
 

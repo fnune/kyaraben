@@ -7,6 +7,7 @@ import { BottomBar } from '@/lib/BottomBar'
 import { Button } from '@/lib/Button'
 import { addChange, emptyChangeSummary, getChangeType } from '@/lib/changeUtils'
 import { ProgressSteps } from '@/lib/ProgressSteps'
+import { useOpenLog } from '@/lib/useOpenLog'
 import type { DoctorResponse, EmulatorID, System, SystemID } from '@/types/daemon'
 import { MANUFACTURER_ORDER } from '@/types/ui'
 
@@ -24,6 +25,7 @@ export interface SystemsViewProps {
   readonly onEmulatorToggle: (emulatorId: EmulatorID, enabled: boolean) => void
   readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
   readonly onDiscard: () => void
+  readonly onEnableAll: () => void
 }
 
 function groupSystemsByManufacturer(systems: readonly System[]) {
@@ -61,8 +63,10 @@ export function SystemsView({
   onEmulatorToggle,
   onVersionChange,
   onDiscard,
+  onEnableAll,
 }: SystemsViewProps) {
   const { status: applyStatus, progressSteps, error, apply, reset } = useApply()
+  const handleOpenLog = useOpenLog()
   const isApplying = applyStatus === 'applying'
   const showProgress = applyStatus !== 'idle'
 
@@ -131,7 +135,16 @@ export function SystemsView({
         {isDone && (
           <BottomBar>
             <span />
-            <Button onClick={reset}>Done</Button>
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={handleOpenLog}
+                className="text-gray-400 hover:text-gray-300 hover:underline text-sm"
+              >
+                Open log in terminal
+              </button>
+              <Button onClick={reset}>Done</Button>
+            </div>
           </BottomBar>
         )}
       </div>
@@ -141,6 +154,18 @@ export function SystemsView({
   return (
     <div className="p-6 pb-24">
       <Settings userStore={userStore} onUserStoreChange={onUserStoreChange} />
+
+      <div className="mt-6 flex items-center justify-between">
+        <span className="text-sm font-medium text-gray-300">Emulators</span>
+        <button
+          type="button"
+          onClick={onEnableAll}
+          className="text-sm text-blue-400 hover:text-blue-300"
+          title="Enable all systems with their default emulators"
+        >
+          Enable all
+        </button>
+      </div>
 
       <div className="space-y-8 mt-6">
         {groupedSystems.map(([manufacturer, manufacturerSystems]) => (

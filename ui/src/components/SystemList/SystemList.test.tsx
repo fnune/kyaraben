@@ -51,6 +51,7 @@ const mockSystems: System[] = [
     description: '',
     manufacturer: 'Nintendo',
     label: 'NES',
+    defaultEmulatorId: 'retroarch:mesen',
     emulators: [
       {
         id: 'retroarch:mesen',
@@ -66,6 +67,7 @@ const mockSystems: System[] = [
     description: '',
     manufacturer: 'Nintendo',
     label: 'SNES',
+    defaultEmulatorId: 'retroarch:bsnes',
     emulators: [
       {
         id: 'retroarch:bsnes',
@@ -81,6 +83,7 @@ const mockSystems: System[] = [
     description: '',
     manufacturer: 'Sega',
     label: 'Genesis',
+    defaultEmulatorId: 'retroarch:genesis_plus_gx',
     emulators: [
       {
         id: 'retroarch:genesis_plus_gx',
@@ -96,6 +99,7 @@ const mockSystems: System[] = [
     description: '',
     manufacturer: 'Nintendo',
     label: 'GB',
+    defaultEmulatorId: 'mgba',
     emulators: [{ id: 'mgba', name: 'mGBA', defaultVersion: '0.10.5', availableVersions: [] }],
   },
   {
@@ -104,6 +108,7 @@ const mockSystems: System[] = [
     description: '',
     manufacturer: 'Nintendo',
     label: 'GBC',
+    defaultEmulatorId: 'mgba',
     emulators: [{ id: 'mgba', name: 'mGBA', defaultVersion: '0.10.5', availableVersions: [] }],
   },
   {
@@ -112,6 +117,7 @@ const mockSystems: System[] = [
     description: '',
     manufacturer: 'Nintendo',
     label: 'GBA',
+    defaultEmulatorId: 'mgba',
     emulators: [{ id: 'mgba', name: 'mGBA', defaultVersion: '0.10.5', availableVersions: [] }],
   },
 ]

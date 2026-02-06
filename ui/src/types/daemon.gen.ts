@@ -71,6 +71,7 @@ export interface SystemWithEmulators {
   description: string;
   manufacturer: Manufacturer;
   label: string;
+  defaultEmulatorId: EmulatorID;
   emulators: EmulatorRef[];
 }
 export interface EmulatorRef {
