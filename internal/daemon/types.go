@@ -28,7 +28,7 @@ const (
 	CommandTypeInstallKyaraben   CommandType = "install_kyaraben"
 	CommandTypeInstallStatus     CommandType = "install_status"
 	CommandTypeRefreshIconCaches CommandType = "refresh_icon_caches"
-	CommandTypePreflight        CommandType = "preflight"
+	CommandTypePreflight         CommandType = "preflight"
 )
 
 // Command represents a command from the UI.
