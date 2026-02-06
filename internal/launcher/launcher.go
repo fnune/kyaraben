@@ -150,6 +150,9 @@ func (m *Manager) GenerateWrappers(emulators []EmulatorPackageInfo) error {
 		if strings.HasPrefix(binaryName, ".") {
 			continue
 		}
+		if strings.HasPrefix(binaryName, "retroarch-") {
+			continue
+		}
 		wrapperPath := filepath.Join(binDir, binaryName)
 
 		f, err := os.Create(wrapperPath)
@@ -181,6 +184,64 @@ func (m *Manager) GenerateWrappers(emulators []EmulatorPackageInfo) error {
 	}
 
 	log.Info("Generated %d wrapper scripts in %s", len(entries), binDir)
+	return nil
+}
+
+func (m *Manager) GenerateCoreSymlinks() error {
+	profileCoresDir := filepath.Join(m.CurrentLink(), "lib", "retroarch", "cores")
+
+	if _, err := os.Stat(profileCoresDir); os.IsNotExist(err) {
+		log.Info("No cores directory in profile, skipping core symlink generation")
+		return nil
+	}
+
+	coresDir, err := paths.RetroArchCoresDir()
+	if err != nil {
+		return fmt.Errorf("getting cores directory: %w", err)
+	}
+
+	if err := os.RemoveAll(coresDir); err != nil {
+		return fmt.Errorf("removing old cores directory: %w", err)
+	}
+
+	if err := os.MkdirAll(coresDir, 0755); err != nil {
+		return fmt.Errorf("creating cores directory: %w", err)
+	}
+
+	entries, err := os.ReadDir(profileCoresDir)
+	if err != nil {
+		return fmt.Errorf("reading profile cores directory: %w", err)
+	}
+
+	count := 0
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		name := entry.Name()
+		if !strings.HasSuffix(name, "_libretro.so") {
+			continue
+		}
+
+		symlinkPath := filepath.Join(profileCoresDir, name)
+		virtualTarget, err := os.Readlink(symlinkPath)
+		if err != nil {
+			return fmt.Errorf("reading symlink for %s: %w", name, err)
+		}
+
+		realPath := m.virtualToRealStorePath(virtualTarget)
+		destPath := filepath.Join(coresDir, name)
+
+		if err := os.Symlink(realPath, destPath); err != nil {
+			return fmt.Errorf("creating symlink for %s: %w", name, err)
+		}
+
+		log.Debug("Created core symlink: %s -> %s", destPath, realPath)
+		count++
+	}
+
+	log.Info("Generated %d core symlinks in %s", count, coresDir)
 	return nil
 }
 

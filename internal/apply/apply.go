@@ -285,6 +285,9 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		if err := a.LauncherManager.GenerateWrappers(packageInfo); err != nil {
 			return nil, fmt.Errorf("generating launcher wrappers: %w", err)
 		}
+		if err := a.LauncherManager.GenerateCoreSymlinks(); err != nil {
+			return nil, fmt.Errorf("generating core symlinks: %w", err)
+		}
 
 		previousFiles := &launcher.GeneratedFiles{
 			DesktopFiles: manifest.DesktopFiles,
