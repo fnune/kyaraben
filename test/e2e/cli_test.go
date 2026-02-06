@@ -183,10 +183,44 @@ func TestCLIInitForce(t *testing.T) {
 	}
 }
 
+type cmdOption func(*exec.Cmd, *testing.T)
+
+func withFakeNix(storeDir string) cmdOption {
+	return func(cmd *exec.Cmd, t *testing.T) {
+		t.Helper()
+		fakeNixPath := filepath.Join(projectRoot(t), "ui", "e2e", "fixtures", "fake-nix-portable")
+		if _, err := os.Stat(fakeNixPath); err != nil {
+			t.Fatalf("fake-nix-portable not found at %s", fakeNixPath)
+		}
+		cmd.Env = append(cmd.Env,
+			"KYARABEN_NIX_PORTABLE_PATH="+fakeNixPath,
+			"FAKE_NIX_STORE="+storeDir,
+		)
+	}
+}
+
+func withFakeNixFail(storeDir string) cmdOption {
+	return func(cmd *exec.Cmd, t *testing.T) {
+		t.Helper()
+		fakeNixPath := filepath.Join(projectRoot(t), "ui", "e2e", "fixtures", "fake-nix-portable")
+		if _, err := os.Stat(fakeNixPath); err != nil {
+			t.Fatalf("fake-nix-portable not found at %s", fakeNixPath)
+		}
+		cmd.Env = append(cmd.Env,
+			"KYARABEN_NIX_PORTABLE_PATH="+fakeNixPath,
+			"FAKE_NIX_STORE="+storeDir,
+			"FAKE_NIX_FAIL=1",
+		)
+	}
+}
+
 func kyarabenCmd(t *testing.T, args ...string) *exec.Cmd {
+	return kyarabenCmdWith(t, nil, args...)
+}
+
+func kyarabenCmdWith(t *testing.T, opts []cmdOption, args ...string) *exec.Cmd {
 	t.Helper()
 
-	// Find the binary - look in project root first
 	binary := filepath.Join(projectRoot(t), "kyaraben")
 	if _, err := os.Stat(binary); err != nil {
 		t.Fatalf("kyaraben binary not found at %s. Run 'go build -o ./kyaraben ./cmd/kyaraben' first", binary)
@@ -194,6 +228,10 @@ func kyarabenCmd(t *testing.T, args ...string) *exec.Cmd {
 
 	cmd := exec.Command(binary, args...)
 	cmd.Env = os.Environ()
+
+	for _, opt := range opts {
+		opt(cmd, t)
+	}
 
 	return cmd
 }
@@ -361,5 +399,86 @@ func TestCLIDoctorAllProvisionsSatisfied(t *testing.T) {
 	outputStr := string(output)
 	if !strings.Contains(outputStr, "No provisions required") {
 		t.Errorf("Output should show no provisions required for SNES: %s", outputStr)
+	}
+}
+
+func TestCLIApply(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.toml")
+	userStore := filepath.Join(tmpDir, "Emulation")
+	fakeStore := filepath.Join(tmpDir, "fake-store")
+
+	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "snes")
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("init failed: %v\nOutput: %s", err, output)
+	}
+
+	cmd = kyarabenCmdWith(t, []cmdOption{withFakeNix(fakeStore)},
+		"-c", configPath, "apply", "--no-show-diff")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("apply failed: %v\nOutput: %s", err, output)
+	}
+
+	outputStr := string(output)
+	if !strings.Contains(outputStr, "Applying kyaraben configuration") {
+		t.Errorf("Output doesn't show apply started: %s", outputStr)
+	}
+	if !strings.Contains(outputStr, "Done!") {
+		t.Errorf("Output doesn't show completion: %s", outputStr)
+	}
+
+	if _, err := os.Stat(filepath.Join(userStore, "roms", "snes")); err != nil {
+		t.Errorf("ROM directory not created: %v", err)
+	}
+}
+
+func TestCLIApplyBuildFailure(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.toml")
+	userStore := filepath.Join(tmpDir, "Emulation")
+	fakeStore := filepath.Join(tmpDir, "fake-store")
+
+	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "snes")
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("init failed: %v\nOutput: %s", err, output)
+	}
+
+	cmd = kyarabenCmdWith(t, []cmdOption{withFakeNixFail(fakeStore)},
+		"-c", configPath, "apply", "--no-show-diff")
+	output, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Errorf("apply should fail when nix build fails")
+	}
+
+	outputStr := string(output)
+	if !strings.Contains(outputStr, "failed") {
+		t.Errorf("Output should mention build failure: %s", outputStr)
+	}
+}
+
+func TestCLIApplyMultipleSystems(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.toml")
+	userStore := filepath.Join(tmpDir, "Emulation")
+	fakeStore := filepath.Join(tmpDir, "fake-store")
+
+	cmd := kyarabenCmd(t, "-c", configPath, "init", "-u", userStore, "-s", "snes", "-s", "gba")
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("init failed: %v\nOutput: %s", err, output)
+	}
+
+	cmd = kyarabenCmdWith(t, []cmdOption{withFakeNix(fakeStore)},
+		"-c", configPath, "apply", "--no-show-diff")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("apply failed: %v\nOutput: %s", err, output)
+	}
+
+	for _, system := range []string{"snes", "gba"} {
+		romDir := filepath.Join(userStore, "roms", system)
+		if _, err := os.Stat(romDir); err != nil {
+			t.Errorf("ROM directory for %s not created: %v", system, err)
+		}
 	}
 }
