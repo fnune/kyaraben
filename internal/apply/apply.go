@@ -153,6 +153,19 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		allPatches = append(allPatches, patches...)
 	}
 
+	if len(emulatorsToInstall) > 0 {
+		var emulatorNames []string
+		for _, emuID := range emulatorsToInstall {
+			if emu, err := a.Registry.GetEmulator(emuID); err == nil {
+				emulatorNames = append(emulatorNames, emu.Name)
+			}
+		}
+		opts.OnProgress(Progress{
+			Step:    "summary",
+			Message: "Enabling " + strings.Join(emulatorNames, ", "),
+		})
+	}
+
 	if opts.DryRun {
 		return &Result{Patches: allPatches}, nil
 	}
