@@ -369,6 +369,11 @@ function setupIpcHandlers(): void {
     return event.data
   })
 
+  ipcMain.handle('preflight', async () => {
+    const event = await sendCommand({ type: 'preflight' })
+    return event.data
+  })
+
   ipcMain.handle('apply', async () => {
     try {
       return await applyCommand()

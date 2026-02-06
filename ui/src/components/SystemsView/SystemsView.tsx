@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react'
+import { ConfigDiffReview } from '@/components/ConfigDiffReview/ConfigDiffReview'
 import { FrontendCard } from '@/components/FrontendCard/FrontendCard'
 import { Settings } from '@/components/Settings/Settings'
 import { StickyActionBar } from '@/components/StickyActionBar/StickyActionBar'
@@ -85,10 +86,18 @@ export function SystemsView({
   onDiscard,
   onEnableAll,
 }: SystemsViewProps) {
-  const { status: applyStatus, progressSteps, error, apply, reset } = useApply()
+  const {
+    status: applyStatus,
+    progressSteps,
+    error,
+    preflightData,
+    apply,
+    confirmApply,
+    reset,
+  } = useApply()
   const handleOpenLog = useOpenLog()
   const isApplying = applyStatus === 'applying'
-  const showProgress = applyStatus !== 'idle'
+  const showProgress = applyStatus !== 'idle' && applyStatus !== 'reviewing'
 
   const handleApply = useCallback(async () => {
     const systemsConfig: Record<string, string[]> = {}
@@ -202,6 +211,10 @@ export function SystemsView({
     }
     return shared
   }, [systems, enabledEmulators])
+
+  if (applyStatus === 'reviewing' && preflightData) {
+    return <ConfigDiffReview data={preflightData} onConfirm={confirmApply} onCancel={reset} />
+  }
 
   if (showProgress) {
     const errorMessage = applyStatus === 'error' && error ? error : undefined

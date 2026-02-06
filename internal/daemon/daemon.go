@@ -95,6 +95,8 @@ func (d *Daemon) HandleWithEmit(cmd Command, emit func(Event)) []Event {
 		return d.handleInstallStatus()
 	case CommandTypeRefreshIconCaches:
 		return d.handleRefreshIconCaches()
+	case CommandTypePreflight:
+		return d.handlePreflight()
 	default:
 		return d.errorResponse(fmt.Sprintf("unknown command: %s", cmd.Type))
 	}
@@ -340,6 +342,93 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 		Data: ApplyResult{
 			Success:   true,
 			StorePath: result.StorePath,
+		},
+	}}
+}
+
+func (d *Daemon) handlePreflight() []Event {
+	cfg, err := d.loadConfig()
+	if err != nil {
+		return d.errorResponse(err.Error())
+	}
+
+	userStore, err := store.NewUserStore(cfg.Global.UserStore)
+	if err != nil {
+		return d.errorResponse(err.Error())
+	}
+
+	applier := &apply.Applier{
+		NixClient:       d.nixClient,
+		FlakeGenerator:  d.flakeGenerator,
+		ConfigWriter:    d.configWriter,
+		Registry:        d.reg,
+		ManifestPath:    d.manifestPath,
+		LauncherManager: d.launcherManager,
+	}
+
+	preflight, err := applier.Preflight(context.Background(), cfg, userStore)
+	if err != nil {
+		return d.errorResponse(fmt.Sprintf("preflight check: %v", err))
+	}
+
+	manifest, err := model.LoadManifest(d.manifestPath)
+	if err != nil {
+		return d.errorResponse(fmt.Sprintf("loading manifest: %v", err))
+	}
+
+	var diffs []ConfigFileDiff
+	for _, patch := range preflight.Patches {
+		baseline, found := manifest.GetManagedConfig(patch.Target)
+		var baselinePtr *model.ManagedConfig
+		if found {
+			baselinePtr = &baseline
+		}
+
+		diff, err := emulators.ComputeDiffWithBaseline(patch, baselinePtr)
+		if err != nil {
+			continue
+		}
+
+		fileDiff := ConfigFileDiff{
+			Path:         diff.Path,
+			IsNewFile:    diff.IsNewFile,
+			HasChanges:   diff.HasChanges(),
+			UserModified: diff.UserModified,
+		}
+
+		for _, uc := range diff.UserChanges {
+			fileDiff.UserChanges = append(fileDiff.UserChanges, UserChangeDetail{
+				Key:           uc.Path[len(uc.Path)-1],
+				BaselineValue: uc.BaselineValue,
+				CurrentValue:  uc.CurrentValue,
+			})
+		}
+
+		for _, c := range diff.Changes {
+			changeType := "add"
+			switch c.Type {
+			case emulators.ChangeModify:
+				changeType = "modify"
+			case emulators.ChangeRemove:
+				changeType = "remove"
+			}
+			fileDiff.Changes = append(fileDiff.Changes, ConfigChangeDetail{
+				Type:     changeType,
+				Key:      c.Key(),
+				Section:  c.Section(),
+				OldValue: c.OldValue,
+				NewValue: c.NewValue,
+			})
+		}
+
+		diffs = append(diffs, fileDiff)
+	}
+
+	return []Event{{
+		Type: EventTypeResult,
+		Data: PreflightResponse{
+			Diffs:         diffs,
+			FilesToBackup: preflight.FilesToBackup,
 		},
 	}}
 }

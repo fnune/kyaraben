@@ -189,6 +189,30 @@ export interface UninstallResponse {
   removedFiles: string[];
   errors?: string[];
 }
+export interface PreflightResponse {
+  diffs: ConfigFileDiff[];
+  filesToBackup: string[];
+}
+export interface ConfigFileDiff {
+  path: string;
+  isNewFile: boolean;
+  hasChanges: boolean;
+  userModified: boolean;
+  userChanges?: UserChangeDetail[];
+  changes?: ConfigChangeDetail[];
+}
+export interface UserChangeDetail {
+  key: string;
+  baselineValue: string;
+  currentValue: string;
+}
+export interface ConfigChangeDetail {
+  type: string;
+  key: string;
+  section?: string;
+  oldValue?: string;
+  newValue?: string;
+}
 
 //////////
 // source: types.go
@@ -214,7 +238,8 @@ export const CommandTypeUninstall = "uninstall";
 export const CommandTypeInstallKyaraben = "install_kyaraben";
 export const CommandTypeInstallStatus = "install_status";
 export const CommandTypeRefreshIconCaches = "refresh_icon_caches";
-export type CommandType = typeof CommandTypeStatus | typeof CommandTypeDoctor | typeof CommandTypeApply | typeof CommandTypeCancelApply | typeof CommandTypeGetSystems | typeof CommandTypeGetFrontends | typeof CommandTypeGetConfig | typeof CommandTypeSetConfig | typeof CommandTypeSyncStatus | typeof CommandTypeSyncAddDevice | typeof CommandTypeSyncRemoveDevice | typeof CommandTypeUninstallPreview | typeof CommandTypeUninstall | typeof CommandTypeInstallKyaraben | typeof CommandTypeInstallStatus | typeof CommandTypeRefreshIconCaches;
+export const CommandTypePreflight = "preflight";
+export type CommandType = typeof CommandTypeStatus | typeof CommandTypeDoctor | typeof CommandTypeApply | typeof CommandTypeCancelApply | typeof CommandTypeGetSystems | typeof CommandTypeGetFrontends | typeof CommandTypeGetConfig | typeof CommandTypeSetConfig | typeof CommandTypeSyncStatus | typeof CommandTypeSyncAddDevice | typeof CommandTypeSyncRemoveDevice | typeof CommandTypeUninstallPreview | typeof CommandTypeUninstall | typeof CommandTypeInstallKyaraben | typeof CommandTypeInstallStatus | typeof CommandTypeRefreshIconCaches | typeof CommandTypePreflight;
 /**
  * Command represents a command from the UI.
  */

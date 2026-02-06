@@ -107,54 +107,65 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		},
 	}
 
+	dryOpts := apply.Options{DryRun: true}
+	dryResult, err := applier.Apply(context.Background(), cfg, userStore, dryOpts)
+	if err != nil {
+		return err
+	}
+
+	manifest, err := model.LoadManifest(manifestPath)
+	if err != nil {
+		return fmt.Errorf("loading manifest: %w", err)
+	}
+
+	var totalAdds, totalModifies, totalRemoves int
+	var filesCreated, filesModified, filesUnchanged int
+	var hasOverwrittenUserChanges bool
+
+	diffs := make([]*emulators.ConfigDiff, 0, len(dryResult.Patches))
+	for _, patch := range dryResult.Patches {
+		baseline, found := manifest.GetManagedConfig(patch.Target)
+		var baselinePtr *model.ManagedConfig
+		if found {
+			baselinePtr = &baseline
+		}
+
+		diff, err := emulators.ComputeDiffWithBaseline(patch, baselinePtr)
+		if err != nil {
+			if cmd.ShowDiff || cmd.DryRun {
+				fmt.Printf("  Warning: could not compute diff: %v\n", err)
+			}
+			continue
+		}
+
+		diffs = append(diffs, diff)
+
+		adds, modifies, removes := diff.Stats()
+		totalAdds += adds
+		totalModifies += modifies
+		totalRemoves += removes
+
+		if diff.IsNewFile {
+			filesCreated++
+		} else if diff.HasChanges() {
+			filesModified++
+		} else {
+			filesUnchanged++
+		}
+
+		if diff.UserModified && len(diff.UserChanges) > 0 && diff.HasChanges() {
+			hasOverwrittenUserChanges = true
+		}
+	}
+
 	if cmd.DryRun || cmd.ShowDiff {
-		dryOpts := apply.Options{DryRun: true}
-		dryResult, err := applier.Apply(context.Background(), cfg, userStore, dryOpts)
-		if err != nil {
-			return err
-		}
-
-		manifest, err := model.LoadManifest(manifestPath)
-		if err != nil {
-			return fmt.Errorf("loading manifest: %w", err)
-		}
-
 		fmt.Println("Config changes:")
 		fmt.Println()
 
-		var totalAdds, totalModifies, totalRemoves int
-		var filesCreated, filesModified, filesUnchanged int
-
-		for _, patch := range dryResult.Patches {
-			baseline, found := manifest.GetManagedConfig(patch.Target)
-			var baselinePtr *model.ManagedConfig
-			if found {
-				baselinePtr = &baseline
-			}
-
-			diff, err := emulators.ComputeDiffWithBaseline(patch, baselinePtr)
-			if err != nil {
-				fmt.Printf("  Warning: could not compute diff: %v\n", err)
-				continue
-			}
-
+		for _, diff := range diffs {
 			fmt.Print(diff.Format())
-
-			adds, modifies, removes := diff.Stats()
-			totalAdds += adds
-			totalModifies += modifies
-			totalRemoves += removes
-
-			if diff.IsNewFile {
-				filesCreated++
-			} else if diff.HasChanges() {
-				filesModified++
-			} else {
-				filesUnchanged++
-			}
 		}
 
-		// Summary
 		fmt.Println()
 		fmt.Printf("  Summary: %d file(s) to create, %d to modify, %d unchanged\n",
 			filesCreated, filesModified, filesUnchanged)
@@ -168,6 +179,18 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 			fmt.Println("Dry run - no changes applied.")
 			return nil
 		}
+	}
+
+	if hasOverwrittenUserChanges {
+		fmt.Print("Proceed? Your changes to managed keys will be overwritten. [Y/n] ")
+		reader := bufio.NewReader(os.Stdin)
+		response, _ := reader.ReadString('\n')
+		response = strings.TrimSpace(strings.ToLower(response))
+		if response != "" && response != "y" && response != "yes" {
+			fmt.Println("Cancelled.")
+			return nil
+		}
+		fmt.Println()
 	}
 
 	result, err := applier.Apply(context.Background(), cfg, userStore, opts)

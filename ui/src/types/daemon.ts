@@ -7,6 +7,8 @@ export type {
   CancelledResponse,
   Command,
   CommandType,
+  ConfigChangeDetail,
+  ConfigFileDiff,
   ConfigResponse,
   DoctorResponse,
   EmulatorRef,
@@ -19,6 +21,7 @@ export type {
   GetFrontendsResponse,
   GetSystemsResponse,
   InstalledEmulator,
+  PreflightResponse,
   PreservedPaths,
   ProgressEvent,
   ProvisionResult,
@@ -39,6 +42,7 @@ export type {
   SystemWithEmulators as System,
   UninstallPreviewResponse,
   UninstallResponse,
+  UserChangeDetail,
 } from './daemon.gen'
 export {
   CommandTypeApply,
@@ -47,6 +51,7 @@ export {
   CommandTypeGetConfig,
   CommandTypeGetFrontends,
   CommandTypeGetSystems,
+  CommandTypePreflight,
   CommandTypeSetConfig,
   CommandTypeStatus,
   CommandTypeSyncAddDevice,

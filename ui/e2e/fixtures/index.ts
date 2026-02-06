@@ -92,9 +92,13 @@ export function createFixture(config?: ConfigFixture, manifest?: ManifestFixture
     )
   }
 
+  const dataDir = path.join(tmpDir, 'data')
+  fs.mkdirSync(dataDir, { recursive: true })
+
   const env: Record<string, string> = {
     XDG_CONFIG_HOME: configDir,
     XDG_STATE_HOME: stateDir,
+    XDG_DATA_HOME: dataDir,
     HOME: tmpDir,
   }
 
