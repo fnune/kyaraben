@@ -1,3 +1,4 @@
+import type { InvokeChannel } from '@electron/channels'
 import type {
   BugReportInfo,
   ConfigResponse,
@@ -24,7 +25,7 @@ export type DaemonResult<T> =
   | { readonly ok: true; readonly data: T }
   | { readonly ok: false; readonly error: DaemonError }
 
-async function invoke<T>(command: string, data?: unknown): Promise<DaemonResult<T>> {
+async function invoke<T>(command: InvokeChannel, data?: unknown): Promise<DaemonResult<T>> {
   try {
     const result = (await window.electron.invoke(command, data)) as T
     return { ok: true, data: result }
