@@ -86,6 +86,33 @@ function findSidecarPath(): string {
   throw new Error(`Sidecar binary '${sidecarName}' not found. Searched: ${searchPaths.join(', ')}`)
 }
 
+function spawnInTerminal(command: string): { success: boolean; error?: string } {
+  const { spawn: spawnProcess, execSync } = require('node:child_process')
+
+  const terminals = [
+    { cmd: 'x-terminal-emulator', args: ['-e', command] },
+    { cmd: 'gnome-terminal', args: ['--', 'sh', '-c', command] },
+    { cmd: 'konsole', args: ['-e', 'sh', '-c', command] },
+    { cmd: 'xfce4-terminal', args: ['-e', command] },
+    { cmd: 'xterm', args: ['-e', command] },
+  ]
+
+  for (const term of terminals) {
+    try {
+      execSync(`which ${term.cmd}`, { stdio: 'ignore' })
+      spawnProcess(term.cmd, term.args, {
+        detached: true,
+        stdio: 'ignore',
+      }).unref()
+      return { success: true }
+    } catch {
+      // Terminal not found, try next
+    }
+  }
+
+  return { success: false, error: 'No terminal emulator found' }
+}
+
 async function ensureDaemon(): Promise<void> {
   if (daemon) return
 
@@ -387,32 +414,18 @@ function setupIpcHandlers(): void {
   })
 
   ipcMain.handle('open_log_tail', () => {
-    const { spawn, execSync } = require('node:child_process')
     const logPath = path.join(kyarabenStateDir, 'kyaraben.log')
+    return spawnInTerminal(`tail -f "${logPath}"`)
+  })
 
-    // Try to find a terminal emulator
-    const terminals = [
-      { cmd: 'x-terminal-emulator', args: ['-e', `tail -f "${logPath}"`] },
-      { cmd: 'gnome-terminal', args: ['--', 'tail', '-f', logPath] },
-      { cmd: 'konsole', args: ['-e', 'tail', '-f', logPath] },
-      { cmd: 'xfce4-terminal', args: ['-e', `tail -f "${logPath}"`] },
-      { cmd: 'xterm', args: ['-e', `tail -f "${logPath}"`] },
-    ]
-
-    for (const term of terminals) {
-      try {
-        execSync(`which ${term.cmd}`, { stdio: 'ignore' })
-        spawn(term.cmd, term.args, {
-          detached: true,
-          stdio: 'ignore',
-        }).unref()
-        return { success: true }
-      } catch {
-        // Terminal not found, try next
-      }
+  ipcMain.handle('launch_cli_uninstall', () => {
+    const sidecarPath = findSidecarPath()
+    const result = spawnInTerminal(`"${sidecarPath}" uninstall`)
+    if (result.success) {
+      // Give the terminal a moment to start, then quit
+      setTimeout(() => app.quit(), 500)
     }
-
-    return { success: false, error: 'No terminal emulator found' }
+    return result
   })
 
   ipcMain.handle('get_bug_report_info', async () => {
