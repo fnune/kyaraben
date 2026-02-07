@@ -42,8 +42,7 @@ func coreOverrideConfig(store model.StoreReader) model.ConfigPatch {
 	return model.ConfigPatch{
 		Target: retroarch.CoreOverrideTarget(coreName),
 		Entries: []model.ConfigEntry{
-			// Per-core save directory for individual sync capability
-			{Path: []string{"savefile_directory"}, Value: store.EmulatorSavesDir(model.EmulatorIDRetroArchBsnes)},
+			{Path: []string{"savefile_directory"}, Value: store.SystemSavesDir(model.SystemIDSNES)},
 			{Path: []string{"savestate_directory"}, Value: store.EmulatorStatesDir(model.EmulatorIDRetroArchBsnes)},
 			{Path: []string{"screenshot_directory"}, Value: store.SystemScreenshotsDir(model.SystemIDSNES)},
 			{Path: []string{"rgui_browser_directory"}, Value: store.SystemRomsDir(model.SystemIDSNES)},

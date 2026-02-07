@@ -45,11 +45,31 @@ type StatusResponse struct {
 }
 
 type InstalledEmulator struct {
-	ID             model.EmulatorID `json:"id"`
-	Version        string           `json:"version"`
-	ExecLine       string           `json:"execLine,omitempty"`
-	ManagedConfigs []string         `json:"managedConfigs,omitempty"`
-	IconPath       string           `json:"iconPath,omitempty"`
+	ID             model.EmulatorID         `json:"id"`
+	Version        string                   `json:"version"`
+	ExecLine       string                   `json:"execLine,omitempty"`
+	ManagedConfigs []ManagedConfigInfo      `json:"managedConfigs,omitempty"`
+	IconPath       string                   `json:"iconPath,omitempty"`
+	Paths          map[string]EmulatorPaths `json:"paths,omitempty"`
+}
+
+type ManagedConfigInfo struct {
+	Path string           `json:"path"`
+	Keys []ManagedKeyInfo `json:"keys"`
+}
+
+type ManagedKeyInfo struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+type EmulatorPaths struct {
+	Roms        string `json:"roms"`
+	Bios        string `json:"bios"`
+	Saves       string `json:"saves"`
+	Savestates  string `json:"states"`
+	Screenshots string `json:"screenshots"`
+	Opaque      string `json:"opaque,omitempty"`
 }
 
 type InstalledFrontend struct {
@@ -63,13 +83,14 @@ type InstalledFrontend struct {
 type DoctorResponse map[string][]ProvisionResult
 
 type ProvisionResult struct {
-	Filename    string `json:"filename"`
-	Kind        string `json:"kind"`
-	Description string `json:"description"`
-	Required    bool   `json:"required"`
-	Status      string `json:"status"`
-	FoundPath   string `json:"foundPath,omitempty"`
-	ImportViaUI bool   `json:"importViaUI,omitempty"`
+	Filename     string `json:"filename"`
+	Kind         string `json:"kind"`
+	Description  string `json:"description"`
+	Required     bool   `json:"required"`
+	Status       string `json:"status"`
+	ExpectedPath string `json:"expectedPath,omitempty"`
+	FoundPath    string `json:"foundPath,omitempty"`
+	ImportViaUI  bool   `json:"importViaUI,omitempty"`
 }
 
 type ProgressEvent struct {

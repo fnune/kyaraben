@@ -233,6 +233,12 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		}
 	}
 
+	for _, emuID := range emulatorsToInstall {
+		if err := userStore.InitializeEmulator(emuID); err != nil {
+			return nil, fmt.Errorf("initializing emulator %s: %w", emuID, err)
+		}
+	}
+
 	if err := a.NixClient.EnsureFlakeDir(); err != nil {
 		return nil, fmt.Errorf("creating flake directory: %w", err)
 	}

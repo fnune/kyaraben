@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fnune/kyaraben/internal/emulators/retroarch"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/store"
@@ -279,5 +280,185 @@ func TestGetWithVersionPinning(t *testing.T) {
 	emu := result.InstalledEmulators[0]
 	if emu.PinnedVersion != "v0.1-10655" {
 		t.Errorf("PinnedVersion: got %s, want v0.1-10655", emu.PinnedVersion)
+	}
+}
+
+func TestGetManagedConfigsIncludesKeys(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	manifest := &model.Manifest{
+		LastApplied: time.Now(),
+		InstalledEmulators: map[model.EmulatorID]model.InstalledEmulator{
+			model.EmulatorIDMGBA: {
+				ID:        model.EmulatorIDMGBA,
+				Version:   "latest",
+				StorePath: "/nix/store/abc123",
+				Installed: time.Now(),
+			},
+		},
+		ManagedConfigs: []model.ManagedConfig{
+			{
+				EmulatorID: model.EmulatorIDMGBA,
+				Target: model.ConfigTarget{
+					RelPath: "mgba/config.ini",
+					BaseDir: model.ConfigBaseDirUserConfig,
+				},
+				ManagedKeys: []model.ManagedKey{
+					{Path: []string{"ports.qt", "savegamePath"}, Value: "/test/saves"},
+					{Path: []string{"ports.qt", "bios"}, Value: "/test/bios"},
+				},
+			},
+		},
+	}
+
+	manifestPath := filepath.Join(tmpDir, "manifest.json")
+	if err := manifest.Save(manifestPath); err != nil {
+		t.Fatalf("Failed to save manifest: %v", err)
+	}
+
+	cfg := &model.KyarabenConfig{
+		Global:  model.GlobalConfig{UserStore: tmpDir},
+		Systems: map[model.SystemID][]model.EmulatorID{model.SystemIDGBA: {model.EmulatorIDMGBA}},
+	}
+
+	reg := registry.NewDefault()
+	userStore := mustNewUserStore(t, tmpDir)
+
+	result, err := Get(context.Background(), cfg, tmpDir, reg, userStore, manifestPath)
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+
+	if len(result.InstalledEmulators) != 1 {
+		t.Fatalf("InstalledEmulators: got %d, want 1", len(result.InstalledEmulators))
+	}
+
+	emu := result.InstalledEmulators[0]
+	if len(emu.ManagedConfigs) != 1 {
+		t.Fatalf("ManagedConfigs: got %d, want 1", len(emu.ManagedConfigs))
+	}
+
+	cfg0 := emu.ManagedConfigs[0]
+	if len(cfg0.Keys) != 2 {
+		t.Fatalf("Keys: got %d, want 2", len(cfg0.Keys))
+	}
+
+	if cfg0.Keys[0].Key != "savegamePath" {
+		t.Errorf("Key[0]: got %s, want savegamePath", cfg0.Keys[0].Key)
+	}
+	if cfg0.Keys[0].Value != "/test/saves" {
+		t.Errorf("Value[0]: got %s, want /test/saves", cfg0.Keys[0].Value)
+	}
+}
+
+func TestGetRetroArchCoreIncludesSharedConfig(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	manifest := &model.Manifest{
+		LastApplied: time.Now(),
+		InstalledEmulators: map[model.EmulatorID]model.InstalledEmulator{
+			model.EmulatorIDRetroArchBsnes: {
+				ID:        model.EmulatorIDRetroArchBsnes,
+				Version:   "latest",
+				StorePath: "/nix/store/abc123",
+				Installed: time.Now(),
+			},
+			model.EmulatorIDRetroArchMesen: {
+				ID:        model.EmulatorIDRetroArchMesen,
+				Version:   "latest",
+				StorePath: "/nix/store/def456",
+				Installed: time.Now(),
+			},
+		},
+		ManagedConfigs: []model.ManagedConfig{
+			{
+				EmulatorID: model.EmulatorIDRetroArchMesen,
+				Target:     retroarch.MainConfigTarget,
+				ManagedKeys: []model.ManagedKey{
+					{Path: []string{"system_directory"}, Value: "/test/bios"},
+					{Path: []string{"sort_savefiles_enable"}, Value: "false"},
+				},
+			},
+			{
+				EmulatorID: model.EmulatorIDRetroArchBsnes,
+				Target: model.ConfigTarget{
+					RelPath: "retroarch/config/bsnes_libretro/bsnes_libretro.cfg",
+					BaseDir: model.ConfigBaseDirUserConfig,
+				},
+				ManagedKeys: []model.ManagedKey{
+					{Path: []string{"savefile_directory"}, Value: "/test/saves/snes"},
+				},
+			},
+			{
+				EmulatorID: model.EmulatorIDRetroArchMesen,
+				Target: model.ConfigTarget{
+					RelPath: "retroarch/config/mesen_libretro/mesen_libretro.cfg",
+					BaseDir: model.ConfigBaseDirUserConfig,
+				},
+				ManagedKeys: []model.ManagedKey{
+					{Path: []string{"savefile_directory"}, Value: "/test/saves/nes"},
+				},
+			},
+		},
+	}
+
+	manifestPath := filepath.Join(tmpDir, "manifest.json")
+	if err := manifest.Save(manifestPath); err != nil {
+		t.Fatalf("Failed to save manifest: %v", err)
+	}
+
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{UserStore: tmpDir},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDSNES: {model.EmulatorIDRetroArchBsnes},
+			model.SystemIDNES:  {model.EmulatorIDRetroArchMesen},
+		},
+	}
+
+	reg := registry.NewDefault()
+	userStore := mustNewUserStore(t, tmpDir)
+
+	result, err := Get(context.Background(), cfg, tmpDir, reg, userStore, manifestPath)
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+
+	if len(result.InstalledEmulators) != 2 {
+		t.Fatalf("InstalledEmulators: got %d, want 2", len(result.InstalledEmulators))
+	}
+
+	var bsnes, mesen *EmulatorInfo
+	for i := range result.InstalledEmulators {
+		switch result.InstalledEmulators[i].ID {
+		case model.EmulatorIDRetroArchBsnes:
+			bsnes = &result.InstalledEmulators[i]
+		case model.EmulatorIDRetroArchMesen:
+			mesen = &result.InstalledEmulators[i]
+		}
+	}
+
+	if bsnes == nil || mesen == nil {
+		t.Fatal("Missing expected emulators")
+	}
+
+	if len(bsnes.ManagedConfigs) != 2 {
+		t.Errorf("bsnes ManagedConfigs: got %d, want 2 (core override + shared)", len(bsnes.ManagedConfigs))
+	}
+
+	if len(mesen.ManagedConfigs) != 2 {
+		t.Errorf("mesen ManagedConfigs: got %d, want 2 (core override + shared)", len(mesen.ManagedConfigs))
+	}
+
+	hasSharedConfig := false
+	for _, cfg := range bsnes.ManagedConfigs {
+		for _, key := range cfg.Keys {
+			if key.Key == "sort_savefiles_enable" {
+				hasSharedConfig = true
+				break
+			}
+		}
+	}
+	if !hasSharedConfig {
+		t.Error("bsnes should include shared RetroArch config with sort_savefiles_enable")
 	}
 }

@@ -57,6 +57,17 @@ func New(configPath, stateDir, manifestPath string, reg *registry.Registry, nixC
 	}
 }
 
+func shortenPath(path string) string {
+	home, err := os.UserHomeDir()
+	if err != nil || home == "" {
+		return path
+	}
+	if strings.HasPrefix(path, home+"/") {
+		return "~" + path[len(home):]
+	}
+	return path
+}
+
 func (d *Daemon) Handle(cmd Command) []Event {
 	return d.HandleWithEmit(cmd, nil)
 }
@@ -180,14 +191,45 @@ func (d *Daemon) handleStatus() []Event {
 
 	installedEmulators := make([]InstalledEmulator, len(result.InstalledEmulators))
 	for i, emu := range result.InstalledEmulators {
+		managedConfigs := make([]ManagedConfigInfo, len(emu.ManagedConfigs))
+		for j, cfg := range emu.ManagedConfigs {
+			keys := make([]ManagedKeyInfo, len(cfg.Keys))
+			for k, key := range cfg.Keys {
+				keys[k] = ManagedKeyInfo{
+					Key:   key.Key,
+					Value: shortenPath(key.Value),
+				}
+			}
+			managedConfigs[j] = ManagedConfigInfo{
+				Path: shortenPath(cfg.Path),
+				Keys: keys,
+			}
+		}
 		installed := InstalledEmulator{
 			ID:             emu.ID,
 			Version:        emu.Version,
-			ManagedConfigs: emu.ManagedConfigs,
+			ManagedConfigs: managedConfigs,
 		}
 		if e, err := d.reg.GetEmulator(emu.ID); err == nil && e.Launcher.Binary != "" {
 			installed.ExecLine = fmt.Sprintf("%s/%s", d.launcherManager.BinDir(), e.Launcher.Binary)
 		}
+
+		installed.Paths = make(map[string]EmulatorPaths)
+		for sysID, emuIDs := range cfg.Systems {
+			for _, emuID := range emuIDs {
+				if emuID == emu.ID {
+					installed.Paths[string(sysID)] = EmulatorPaths{
+						Roms:        shortenPath(userStore.SystemRomsDir(sysID)),
+						Bios:        shortenPath(userStore.SystemBiosDir(sysID)),
+						Saves:       shortenPath(userStore.SystemSavesDir(sysID)),
+						Savestates:  shortenPath(userStore.EmulatorStatesDir(emu.ID)),
+						Screenshots: shortenPath(userStore.SystemScreenshotsDir(sysID)),
+					}
+					break
+				}
+			}
+		}
+
 		installedEmulators[i] = installed
 	}
 
@@ -233,13 +275,14 @@ func (d *Daemon) handleDoctor() []Event {
 		provisions := make([]ProvisionResult, len(sys.Provisions))
 		for i, prov := range sys.Provisions {
 			provisions[i] = ProvisionResult{
-				Filename:    prov.Filename,
-				Kind:        string(prov.Kind),
-				Description: prov.Description,
-				Required:    prov.Required,
-				Status:      string(prov.Status),
-				FoundPath:   prov.FoundPath,
-				ImportViaUI: prov.ImportViaUI,
+				Filename:     prov.Filename,
+				Kind:         string(prov.Kind),
+				Description:  prov.Description,
+				Required:     prov.Required,
+				Status:       string(prov.Status),
+				ExpectedPath: shortenPath(prov.ExpectedPath),
+				FoundPath:    prov.FoundPath,
+				ImportViaUI:  prov.ImportViaUI,
 			}
 		}
 		response[string(sys.EmulatorID)] = provisions
@@ -888,8 +931,8 @@ func (d *Daemon) handleUninstallPreview() []Event {
 			ConfigFiles:        configFiles,
 			KyarabenFiles:      kyarabenFiles,
 			Preserved: PreservedPaths{
-				UserStore: userStore,
-				ConfigDir: configDir,
+				UserStore: shortenPath(userStore),
+				ConfigDir: shortenPath(configDir),
 			},
 		},
 	}}

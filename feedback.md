@@ -4,8 +4,8 @@
 
 - DuckStation onboarding wizard: needs a default config to prevent the wizard from appearing on first launch
 - Dolphin autoupdate prompt: needs a default config to disable the built-in autoupdate mechanism
-- UI ROM/BIOS folder access: add buttons to PathsModal for per-system ROM and BIOS folders (`~/Emulation/roms/{systemId}/`, `~/Emulation/bios/{systemId}/`)
 - Fix frontend e2e test: version resolution in test environment doesn't match real app, causing Apply button visibility check to be skipped after Done click
+- Investigate RetroArch save granularity: currently saves use per-system paths, verify this works correctly for RetroArch cores that may expect per-emulator save organization
 
 ## Important
 
