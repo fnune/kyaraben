@@ -64,12 +64,13 @@ type ManagedKeyInfo struct {
 }
 
 type EmulatorPaths struct {
-	Roms        string `json:"roms"`
-	Bios        string `json:"bios"`
-	Saves       string `json:"saves"`
-	Savestates  string `json:"states"`
-	Screenshots string `json:"screenshots"`
-	Opaque      string `json:"opaque,omitempty"`
+	Roms           string `json:"roms"`
+	Bios           string `json:"bios,omitempty"`
+	Saves          string `json:"saves,omitempty"`
+	Savestates     string `json:"states,omitempty"`
+	Screenshots    string `json:"screenshots,omitempty"`
+	Opaque         string `json:"opaque,omitempty"`
+	OpaqueContents string `json:"opaqueContents,omitempty"`
 }
 
 type InstalledFrontend struct {

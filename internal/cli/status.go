@@ -77,6 +77,41 @@ func (cmd *StatusCmd) Run(ctx *Context) error {
 		}
 		fmt.Println()
 
+		fmt.Println("Paths:")
+		for _, emu := range result.InstalledEmulators {
+			emuDef, err := registry.GetEmulator(emu.ID)
+			if err != nil {
+				continue
+			}
+			for sysID, emuIDs := range cfg.Systems {
+				for _, id := range emuIDs {
+					if id != emu.ID {
+						continue
+					}
+					fmt.Printf("  %s (%s)\n", emu.Name, sysID)
+					fmt.Printf("    ROMs:          %s\n", userStore.SystemRomsDir(sysID))
+					if emuDef.PathUsage.UsesBiosDir {
+						fmt.Printf("    BIOS:          %s\n", userStore.SystemBiosDir(sysID))
+					}
+					if emuDef.PathUsage.UsesSavesDir {
+						fmt.Printf("    Saves:         %s\n", userStore.SystemSavesDir(sysID))
+					}
+					if emuDef.PathUsage.UsesStatesDir {
+						fmt.Printf("    Savestates:    %s\n", userStore.EmulatorStatesDir(emu.ID))
+					}
+					if emuDef.PathUsage.UsesScreenshotsDir {
+						fmt.Printf("    Screenshots:   %s\n", userStore.SystemScreenshotsDir(sysID))
+					}
+					if emuDef.PathUsage.OpaqueContents != "" {
+						fmt.Printf("    Emulator data: %s\n", userStore.EmulatorOpaqueDir(emu.ID))
+						fmt.Printf("      Contains: %s\n", emuDef.PathUsage.OpaqueContents)
+					}
+					break
+				}
+			}
+		}
+		fmt.Println()
+
 		if !result.LastApplied.IsZero() {
 			fmt.Printf("Last applied: %s\n", result.LastApplied.Format("2006-01-02 15:04:05"))
 		}

@@ -54,6 +54,10 @@ func (Definition) Emulator() model.Emulator {
 				return cmd
 			},
 		},
+		PathUsage: model.PathUsage{
+			UsesScreenshotsDir: true,
+			OpaqueContents:     "NAND, SDMC, keys, saves, savestates, shader cache",
+		},
 	}
 }
 

@@ -227,15 +227,15 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		return nil, fmt.Errorf("initializing user store: %w", err)
 	}
 
-	for sys := range cfg.Systems {
-		if err := userStore.InitializeSystem(sys); err != nil {
-			return nil, fmt.Errorf("initializing system %s: %w", sys, err)
-		}
-	}
-
-	for _, emuID := range emulatorsToInstall {
-		if err := userStore.InitializeEmulator(emuID); err != nil {
-			return nil, fmt.Errorf("initializing emulator %s: %w", emuID, err)
+	for sys, emulatorIDs := range cfg.Systems {
+		for _, emuID := range emulatorIDs {
+			emu, err := a.Registry.GetEmulator(emuID)
+			if err != nil {
+				continue
+			}
+			if err := userStore.InitializeForEmulator(sys, emuID, emu.PathUsage); err != nil {
+				return nil, fmt.Errorf("initializing %s for %s: %w", sys, emuID, err)
+			}
 		}
 	}
 

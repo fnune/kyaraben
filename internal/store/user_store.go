@@ -83,26 +83,29 @@ func (s *UserStore) Initialize() error {
 	return nil
 }
 
-func (s *UserStore) InitializeSystem(sys model.SystemID) error {
-	dirs := []string{
-		s.SystemRomsDir(sys),
-		s.SystemBiosDir(sys),
-		s.SystemSavesDir(sys),
-		s.SystemScreenshotsDir(sys),
+func (s *UserStore) InitializeForEmulator(sys model.SystemID, emu model.EmulatorID, pathUsage model.PathUsage) error {
+	dirs := []string{s.SystemRomsDir(sys)}
+
+	if pathUsage.UsesBiosDir {
+		dirs = append(dirs, s.SystemBiosDir(sys))
+	}
+	if pathUsage.UsesSavesDir {
+		dirs = append(dirs, s.SystemSavesDir(sys))
+	}
+	if pathUsage.UsesStatesDir {
+		dirs = append(dirs, s.EmulatorStatesDir(emu))
+	}
+	if pathUsage.UsesScreenshotsDir {
+		dirs = append(dirs, s.SystemScreenshotsDir(sys))
+	}
+	if pathUsage.OpaqueContents != "" {
+		dirs = append(dirs, s.EmulatorOpaqueDir(emu))
 	}
 
 	for _, dir := range dirs {
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			return fmt.Errorf("creating %s: %w", dir, err)
 		}
-	}
-	return nil
-}
-
-func (s *UserStore) InitializeEmulator(emu model.EmulatorID) error {
-	dir := s.EmulatorStatesDir(emu)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("creating %s: %w", dir, err)
 	}
 	return nil
 }
