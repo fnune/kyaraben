@@ -151,3 +151,110 @@ func TestGenerateWrappers(t *testing.T) {
 		}
 	})
 }
+
+func TestGenerateWrappersSkipsRetroArchCoreWrappers(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	profileDir := filepath.Join(tmpDir, "kyaraben")
+	npLocation := filepath.Join(tmpDir, "nix-portable")
+	currentDir := filepath.Join(npLocation, ".nix-portable", "nix", "store", "abc123-profile")
+	currentBinDir := filepath.Join(currentDir, "bin")
+
+	if err := os.MkdirAll(currentBinDir, 0755); err != nil {
+		t.Fatalf("creating test dirs: %v", err)
+	}
+
+	retroarchSymlink := filepath.Join(currentBinDir, "retroarch")
+	if err := os.Symlink("/nix/store/xyz-retroarch/bin/retroarch", retroarchSymlink); err != nil {
+		t.Fatalf("creating retroarch symlink: %v", err)
+	}
+
+	retroarchBsnesSymlink := filepath.Join(currentBinDir, "retroarch-bsnes")
+	if err := os.Symlink("/nix/store/xyz-bsnes/bin/retroarch-bsnes", retroarchBsnesSymlink); err != nil {
+		t.Fatalf("creating retroarch-bsnes symlink: %v", err)
+	}
+
+	m := &Manager{
+		profileDir:          profileDir,
+		nixPortableBinary:   "/fake/nix-portable",
+		nixPortableLocation: npLocation,
+	}
+
+	if err := os.MkdirAll(profileDir, 0755); err != nil {
+		t.Fatalf("creating profile dir: %v", err)
+	}
+	if err := os.Symlink(currentDir, m.CurrentLink()); err != nil {
+		t.Fatalf("creating current symlink: %v", err)
+	}
+
+	if err := m.GenerateWrappers(nil); err != nil {
+		t.Fatalf("GenerateWrappers() error = %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(m.BinDir(), "retroarch")); os.IsNotExist(err) {
+		t.Error("retroarch wrapper should be created")
+	}
+
+	if _, err := os.Stat(filepath.Join(m.BinDir(), "retroarch-bsnes")); !os.IsNotExist(err) {
+		t.Error("retroarch-bsnes wrapper should NOT be created")
+	}
+}
+
+func TestGenerateCoreSymlinks(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("XDG_STATE_HOME", tmpDir)
+
+	profileDir := filepath.Join(tmpDir, "kyaraben")
+	npLocation := filepath.Join(tmpDir, "nix-portable")
+	currentDir := filepath.Join(npLocation, ".nix-portable", "nix", "store", "abc123-profile")
+	profileCoresDir := filepath.Join(currentDir, "lib", "retroarch", "cores")
+
+	bsnesPkgDir := filepath.Join(npLocation, ".nix-portable", "nix", "store", "xyz789-bsnes", "lib", "retroarch", "cores")
+
+	if err := os.MkdirAll(profileCoresDir, 0755); err != nil {
+		t.Fatalf("creating profile cores dir: %v", err)
+	}
+	if err := os.MkdirAll(bsnesPkgDir, 0755); err != nil {
+		t.Fatalf("creating bsnes cores dir: %v", err)
+	}
+
+	realCorePath := filepath.Join(bsnesPkgDir, "bsnes_libretro.so")
+	if err := os.WriteFile(realCorePath, []byte("fake core"), 0644); err != nil {
+		t.Fatalf("creating real core: %v", err)
+	}
+
+	coreSymlink := filepath.Join(profileCoresDir, "bsnes_libretro.so")
+	if err := os.Symlink("/nix/store/xyz789-bsnes/lib/retroarch/cores/bsnes_libretro.so", coreSymlink); err != nil {
+		t.Fatalf("creating core symlink: %v", err)
+	}
+
+	m := &Manager{
+		profileDir:          profileDir,
+		nixPortableBinary:   "/fake/nix-portable",
+		nixPortableLocation: npLocation,
+	}
+
+	if err := os.MkdirAll(profileDir, 0755); err != nil {
+		t.Fatalf("creating profile dir: %v", err)
+	}
+	if err := os.Symlink(currentDir, m.CurrentLink()); err != nil {
+		t.Fatalf("creating current symlink: %v", err)
+	}
+
+	if err := m.GenerateCoreSymlinks(); err != nil {
+		t.Fatalf("GenerateCoreSymlinks() error = %v", err)
+	}
+
+	coresDir := filepath.Join(tmpDir, "kyaraben", "cores")
+	generatedSymlink := filepath.Join(coresDir, "bsnes_libretro.so")
+
+	target, err := os.Readlink(generatedSymlink)
+	if err != nil {
+		t.Fatalf("reading generated symlink: %v", err)
+	}
+
+	expectedTarget := filepath.Join(npLocation, ".nix-portable", "nix", "store", "xyz789-bsnes", "lib", "retroarch", "cores", "bsnes_libretro.so")
+	if target != expectedTarget {
+		t.Errorf("symlink target = %q, want %q", target, expectedTarget)
+	}
+}

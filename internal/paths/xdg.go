@@ -4,6 +4,7 @@
 //
 //	~/.local/state/kyaraben/
 //	├── bin/              # wrapper scripts for emulator binaries (add to PATH)
+//	├── cores/            # symlinks to RetroArch cores (libretro_directory)
 //	├── current           # symlink to active nix profile (for XDG_DATA_DIRS)
 //	├── syncthing/        # sync device pairings and identity (user data)
 //	├── kyaraben.log      # application log
@@ -77,7 +78,7 @@ func RetroArchCoresDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(stateDir, "current", "lib", "retroarch", "cores"), nil
+	return filepath.Join(stateDir, "cores"), nil
 }
 
 func MustRetroArchCoresDir() string {
