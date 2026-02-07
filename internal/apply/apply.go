@@ -369,6 +369,21 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		return nil, ctx.Err()
 	}
 
+	// Build set of enabled emulators for filtering stale configs
+	enabledEmuSet := make(map[model.EmulatorID]bool)
+	for _, emuID := range emulatorsToInstall {
+		enabledEmuSet[emuID] = true
+	}
+
+	// Filter out ManagedConfigs for emulators that are no longer enabled
+	filteredConfigs := make([]model.ManagedConfig, 0, len(manifest.ManagedConfigs))
+	for _, cfg := range manifest.ManagedConfigs {
+		if enabledEmuSet[cfg.EmulatorID] {
+			filteredConfigs = append(filteredConfigs, cfg)
+		}
+	}
+	manifest.ManagedConfigs = filteredConfigs
+
 	// Now commit all changes to manifest atomically
 	manifest.LastApplied = now
 	manifest.InstalledEmulators = newInstalledEmulators
@@ -376,7 +391,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		manifest.AddManagedConfig(cfg)
 	}
 
-	if err := manifest.Save(a.ManifestPath); err != nil {
+	if err := manifest.SaveWithBackup(a.ManifestPath); err != nil {
 		return nil, fmt.Errorf("saving manifest: %w", err)
 	}
 

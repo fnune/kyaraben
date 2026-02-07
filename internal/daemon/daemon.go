@@ -734,6 +734,22 @@ func (d *Daemon) handleInstallKyaraben(data *InstallKyarabenRequest) []Event {
 		return d.errorResponse(err.Error())
 	}
 
+	lockDir := filepath.Dir(d.manifestPath)
+	if err := os.MkdirAll(lockDir, 0755); err != nil {
+		return d.errorResponse(fmt.Sprintf("creating state directory: %v", err))
+	}
+	lockPath := filepath.Join(lockDir, "apply.lock")
+	lockFile, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		return d.errorResponse(fmt.Sprintf("creating lock file: %v", err))
+	}
+	defer func() { _ = lockFile.Close() }()
+
+	if err := syscall.Flock(int(lockFile.Fd()), syscall.LOCK_EX); err != nil {
+		return d.errorResponse(fmt.Sprintf("acquiring lock: %v", err))
+	}
+	defer func() { _ = syscall.Flock(int(lockFile.Fd()), syscall.LOCK_UN) }()
+
 	manifest, err := d.loadManifest()
 	if err != nil {
 		return d.errorResponse(err.Error())
@@ -743,7 +759,7 @@ func (d *Daemon) handleInstallKyaraben(data *InstallKyarabenRequest) []Event {
 		CLIPath:     result.CLIPath,
 		DesktopPath: result.DesktopPath,
 	}
-	if saveErr := manifest.Save(d.manifestPath); saveErr != nil {
+	if saveErr := manifest.SaveWithBackup(d.manifestPath); saveErr != nil {
 		return d.errorResponse(fmt.Sprintf("failed to save manifest: %v", saveErr))
 	}
 

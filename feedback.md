@@ -213,28 +213,6 @@ This needs investigation:
 
 ---
 
-## CRITICAL: manifest.json disappearing, losing track of installed emulators
-
-Sometimes on a fresh launch, kyaraben loses track of all installed emulators and thinks everything needs to be installed again. The manifest.json file appears to be disappearing or getting corrupted.
-
-Possible causes to investigate:
-1. Race condition on app close (manifest written while app is shutting down?)
-2. Cancelling an installation mid-way corrupts or deletes the manifest
-3. Concurrent writes to manifest from multiple goroutines
-4. File not being flushed/synced before process exits
-5. Error during manifest write silently failing
-
-This is a core failure mode that makes kyaraben unreliable. Users should never lose their installation state. Priority fixes:
-
-1. Add atomic writes for manifest (write to temp file, then rename)
-2. Add manifest backup before any modification
-3. Log all manifest reads/writes for debugging
-4. Verify manifest integrity on load
-5. Handle cancellation gracefully (don't modify manifest until operation succeeds)
-6. Consider keeping manifest history/versions for recovery
-
----
-
 ## "Discard changes" button shown when config differs from manifest
 
 When the user uninstalls everything via CLI and then opens the UI, the config.toml still expects emulators to be installed. The UI correctly shows the diff (e.g., "1.2GB to download"), but it also shows a "Discard changes" button.
