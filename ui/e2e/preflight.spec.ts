@@ -7,7 +7,13 @@ import {
   type Page,
   test,
 } from '@playwright/test'
-import { createFixture, EmulatorIDMGBA, SystemIDGBA, type TestFixture } from './fixtures'
+import {
+  createFixture,
+  EmulatorIDMGBA,
+  setupFakeNixPortable,
+  SystemIDGBA,
+  type TestFixture,
+} from './fixtures'
 
 function getAppImagePath(): string {
   const appImagePath = process.env.KYARABEN_APPIMAGE
@@ -88,6 +94,8 @@ test.describe('Config conflict review', () => {
       JSON.stringify(manifest, null, 2),
     )
 
+    setupFakeNixPortable(fixture)
+
     app = await electron.launch({
       executablePath: getAppImagePath(),
       args: ['--no-sandbox'],
@@ -136,5 +144,27 @@ test.describe('Config conflict review', () => {
 
     await expect(page.getByText('Emulation folder')).toBeVisible()
     await expect(page.getByText('Config conflicts detected')).not.toBeVisible()
+  })
+
+  test('clicking Continue and override proceeds with apply', async () => {
+    // Re-trigger apply — SNES is still toggled on from the earlier test
+    await page.getByRole('button', { name: 'Apply' }).click()
+    await expect(page.getByText('Config conflicts detected')).toBeVisible({ timeout: 10000 })
+
+    await page.getByRole('button', { name: 'Continue and override' }).click()
+
+    await expect(
+      page.getByText(/Applying configuration|Installing emulators|Setting up/).first(),
+    ).toBeVisible({ timeout: 5000 })
+  })
+
+  test('apply completes and shows Done button', async () => {
+    await expect(page.getByRole('button', { name: 'Done' })).toBeVisible({ timeout: 30000 })
+  })
+
+  test('clicking Done returns to systems view', async () => {
+    await page.getByRole('button', { name: 'Done' }).click()
+
+    await expect(page.getByText('Emulation folder')).toBeVisible()
   })
 })
