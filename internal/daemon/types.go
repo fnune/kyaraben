@@ -23,6 +23,7 @@ const (
 	CommandTypeSyncAddDevice     CommandType = "sync_add_device"
 	CommandTypeSyncRemoveDevice  CommandType = "sync_remove_device"
 	CommandTypeUninstallPreview  CommandType = "uninstall_preview"
+	CommandTypeUninstall         CommandType = "uninstall"
 	CommandTypeInstallKyaraben   CommandType = "install_kyaraben"
 	CommandTypeInstallStatus     CommandType = "install_status"
 	CommandTypeRefreshIconCaches CommandType = "refresh_icon_caches"

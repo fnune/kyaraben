@@ -185,3 +185,9 @@ type InstallStatusResponse struct {
 type RefreshIconCachesResponse struct {
 	Refreshed []string `json:"refreshed"`
 }
+
+type UninstallResponse struct {
+	Success      bool     `json:"success"`
+	RemovedFiles []string `json:"removedFiles"`
+	Errors       []string `json:"errors,omitempty"`
+}

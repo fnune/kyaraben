@@ -7,6 +7,7 @@ import {
   installApp,
   openPath,
   readFile,
+  uninstall,
 } from '@/lib/daemon'
 import type { InstallStatus, UninstallPreviewResponse } from '@/types/daemon'
 
@@ -35,6 +36,22 @@ function EmptyState({ message }: { message: string }) {
   return <p className="text-sm text-gray-500 italic">{message}</p>
 }
 
+function UninstallSuccessOverlay() {
+  return (
+    <div className="fixed inset-0 bg-gray-900 flex items-center justify-center z-50">
+      <div className="text-center max-w-md px-6">
+        <div className="text-6xl mb-6">👋</div>
+        <h1 className="text-2xl font-medium text-gray-100 mb-4">Kyaraben uninstalled</h1>
+        <p className="text-gray-400 mb-6">
+          All managed files have been removed. Your ROMs, saves, and configuration have been
+          preserved.
+        </p>
+        <p className="text-gray-500 text-sm">You can now close this window.</p>
+      </div>
+    </div>
+  )
+}
+
 export function InstallationView() {
   const [preview, setPreview] = useState<UninstallPreviewResponse | null>(null)
   const [installStatus, setInstallStatus] = useState<InstallStatus | null>(null)
@@ -43,6 +60,8 @@ export function InstallationView() {
   const [configPath, setConfigPath] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [installing, setInstalling] = useState(false)
+  const [uninstalling, setUninstalling] = useState(false)
+  const [uninstalled, setUninstalled] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -82,6 +101,30 @@ export function InstallationView() {
       }
     }
     setInstalling(false)
+  }
+
+  const handleUninstall = async () => {
+    if (
+      !window.confirm(
+        'Are you sure you want to uninstall Kyaraben? Your ROMs, saves, and configuration will be preserved.',
+      )
+    ) {
+      return
+    }
+    setUninstalling(true)
+    const result = await uninstall()
+    if (result.ok && result.data.success) {
+      setUninstalled(true)
+    } else {
+      setError(
+        result.ok ? (result.data.errors?.join(', ') ?? 'Uninstall failed') : result.error.message,
+      )
+    }
+    setUninstalling(false)
+  }
+
+  if (uninstalled) {
+    return <UninstallSuccessOverlay />
   }
 
   if (loading) {
@@ -129,28 +172,79 @@ export function InstallationView() {
         </div>
       )}
 
-      <Section title="Kyaraben">
-        {installStatus?.installed ? (
-          <div className="space-y-2">
-            <p className="text-sm text-green-400">Installed</p>
-            <ul className="space-y-1">
-              {installStatus.appPath && <PathItem path={installStatus.appPath} />}
-              {installStatus.cliPath && <PathItem path={installStatus.cliPath} />}
-              {installStatus.desktopPath && <PathItem path={installStatus.desktopPath} />}
-            </ul>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <p className="text-sm text-gray-400">
-              Install Kyaraben to your applications menu and add the CLI to your{' '}
-              <code className="text-gray-300">$PATH</code>.
-            </p>
-            <Button onClick={handleInstall} disabled={installing}>
-              {installing ? 'Installing...' : 'Install'}
+      <Section title="Actions">
+        <div className="space-y-4">
+          {!installStatus?.installed && (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-300">Install to PATH</p>
+                <p className="text-xs text-gray-500">
+                  Add Kyaraben to your applications menu and <code>$PATH</code>
+                </p>
+              </div>
+              <Button onClick={handleInstall} disabled={installing}>
+                {installing ? 'Installing...' : 'Install'}
+              </Button>
+            </div>
+          )}
+          {configPath && (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-300">Edit configuration</p>
+                <p className="text-xs text-gray-500">{configPath}</p>
+              </div>
+              <Button variant="secondary" onClick={() => openPath(configPath)}>
+                Open
+              </Button>
+            </div>
+          )}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-300">Uninstall Kyaraben</p>
+              <p className="text-xs text-gray-500">
+                Remove all managed files (preserves ROMs and saves)
+              </p>
+            </div>
+            <Button variant="secondary" onClick={handleUninstall} disabled={uninstalling}>
+              {uninstalling ? 'Uninstalling...' : 'Uninstall'}
             </Button>
           </div>
+        </div>
+      </Section>
+
+      <Section title="Configuration">
+        {configContent ? (
+          <pre className="bg-gray-900 text-gray-300 text-xs font-mono p-3 rounded overflow-x-auto max-h-64 overflow-y-auto">
+            {configContent}
+          </pre>
+        ) : (
+          <EmptyState message="Config file not found" />
         )}
       </Section>
+
+      <Section title="Preserved on uninstall">
+        <p className="text-sm text-gray-400 mb-2">
+          These directories will not be removed when uninstalling:
+        </p>
+        <ul className="space-y-1">
+          <PathItem
+            path={`${preview.preserved.userStore} (ROMs, saves, BIOS)`}
+            variant="preserved"
+          />
+          <PathItem path={`${preview.preserved.configDir} (config)`} variant="preserved" />
+        </ul>
+      </Section>
+
+      {installStatus?.installed && (
+        <Section title="Kyaraben installation">
+          <p className="text-sm text-green-400 mb-2">Installed</p>
+          <ul className="space-y-1">
+            {installStatus.appPath && <PathItem path={installStatus.appPath} />}
+            {installStatus.cliPath && <PathItem path={installStatus.cliPath} />}
+            {installStatus.desktopPath && <PathItem path={installStatus.desktopPath} />}
+          </ul>
+        </Section>
+      )}
 
       <Section title="State directory">
         {preview.stateDirExists ? (
@@ -197,47 +291,6 @@ export function InstallationView() {
           <EmptyState message="No config files managed" />
         )}
       </Section>
-
-      <Section title="Preserved on uninstall">
-        <p className="text-sm text-gray-400 mb-2">
-          These directories will not be removed when uninstalling:
-        </p>
-        <ul className="space-y-1">
-          <PathItem
-            path={`${preview.preserved.userStore} (ROMs, saves, BIOS)`}
-            variant="preserved"
-          />
-          <PathItem path={`${preview.preserved.configDir} (config)`} variant="preserved" />
-        </ul>
-      </Section>
-
-      <Section title="Configuration">
-        <div className="flex items-center justify-between mb-3">
-          <code className="text-xs text-gray-400 font-mono">{configPath}</code>
-          {configPath && (
-            <Button variant="secondary" onClick={() => openPath(configPath)}>
-              Open
-            </Button>
-          )}
-        </div>
-        {configContent ? (
-          <pre className="bg-gray-900 text-gray-300 text-xs font-mono p-3 rounded overflow-x-auto max-h-64 overflow-y-auto">
-            {configContent}
-          </pre>
-        ) : (
-          <EmptyState message="Config file not found" />
-        )}
-      </Section>
-
-      <div className="border-t border-gray-700 pt-6">
-        <h3 className="text-sm font-medium text-gray-100 mb-2">Uninstall</h3>
-        <p className="text-sm text-gray-400 mb-3">
-          To remove Kyaraben and all managed files (except preserved data), run:
-        </p>
-        <code className="block bg-gray-700 text-gray-300 px-3 py-2 rounded text-sm font-mono">
-          {preview.stateDir}/bin/kyaraben uninstall
-        </code>
-      </div>
     </div>
   )
 }
