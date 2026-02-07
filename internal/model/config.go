@@ -156,9 +156,26 @@ func NewDefaultConfig() *KyarabenConfig {
 		Global: GlobalConfig{
 			UserStore: DefaultUserStore(),
 		},
-		Sync:      DefaultSyncConfig(),
-		Systems:   make(map[SystemID][]EmulatorID),
+		Sync: DefaultSyncConfig(),
+		Systems: map[SystemID][]EmulatorID{
+			SystemIDNES:      {EmulatorIDRetroArchMesen},
+			SystemIDSNES:     {EmulatorIDRetroArchBsnes},
+			SystemIDN64:      {EmulatorIDRetroArchMupen64Plus},
+			SystemIDGB:       {EmulatorIDMGBA},
+			SystemIDGBC:      {EmulatorIDMGBA},
+			SystemIDGBA:      {EmulatorIDMGBA},
+			SystemIDNDS:      {EmulatorIDMelonDS},
+			SystemIDPSX:      {EmulatorIDDuckStation},
+			SystemIDPS2:      {EmulatorIDPCSX2},
+			SystemIDGenesis:  {EmulatorIDRetroArchGenesisPlusGX},
+			SystemIDGameCube: {EmulatorIDDolphin},
+			SystemIDWii:      {EmulatorIDDolphin},
+			SystemIDPSP:      {EmulatorIDPPSSPP},
+		},
 		Emulators: make(map[EmulatorID]EmulatorConf),
+		Frontends: map[FrontendID]FrontendConfig{
+			FrontendIDESDE: {Enabled: true},
+		},
 	}
 }
 

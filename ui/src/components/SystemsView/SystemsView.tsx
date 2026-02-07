@@ -280,14 +280,14 @@ export function SystemsView({
       )}
 
       <div className="mt-6 flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-300">Emulators</span>
+        <span className="text-sm font-medium text-gray-300">Systems</span>
         <button
           type="button"
           onClick={onEnableAll}
           className="text-sm text-blue-400 hover:text-blue-300"
           title="Enable all systems with their default emulators"
         >
-          Enable all
+          Enable all systems
         </button>
       </div>
 

@@ -9,8 +9,8 @@ echo ""
 
 mkdir -p "$FAKE_NIX_STORE"
 
-echo "1. Initialize with SNES system..."
-kyaraben init -u ~/Emulation -s snes -f
+echo "1. Initialize with default systems..."
+kyaraben init -u ~/Emulation -f
 echo "   OK"
 echo ""
 
