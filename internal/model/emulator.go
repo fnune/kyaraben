@@ -31,13 +31,9 @@ type LauncherInfo struct {
 
 type RomLaunchOptions struct {
 	BinaryPath string
+	Fullscreen bool
 }
 
-// PositionalRomCommand is a RomCommand for emulators that accept the ROM path
-// as a positional argument (e.g., duckstation game.iso).
-func PositionalRomCommand(opts RomLaunchOptions) string {
-	return opts.BinaryPath + " %ROM%"
-}
 
 // SupportsSystem checks if this emulator can run games for the given system.
 func (e *Emulator) SupportsSystem(sys SystemID) bool {
