@@ -43,11 +43,11 @@ ui-e2e: _container-electron-e2e-build
     podman run --ipc=host --rm kyaraben-electron-e2e
 
 # Run Playwright UI e2e tests with interactive UI (run 'just build' first)
-ui-e2e-ui: _extract-appimage
+ui-e2e-ui *args: _extract-appimage
     #!/usr/bin/env bash
     cd ui && KYARABEN_APPIMAGE="$(pwd)/../.sandbox/app/kyaraben-ui" \
         APPDIR="$(pwd)/../.sandbox/app" \
-        npx playwright test --ui
+        npx playwright test --ui {{ args }}
 
 # Run app in sandbox container for manual testing (persistent state)
 sandbox: build _container-sandbox-build _extract-appimage
