@@ -4,8 +4,9 @@
 
 - DuckStation onboarding wizard: needs a default config to prevent the wizard from appearing on first launch
 - Dolphin autoupdate prompt: needs a default config to disable the built-in autoupdate mechanism
-- Fix frontend e2e test: version resolution in test environment doesn't match real app, causing Apply button visibility check to be skipped after Done click
-- Investigate RetroArch save granularity: currently saves use per-system paths, verify this works correctly for RetroArch cores that may expect per-emulator save organization
+- Apply button not showing after version pin: pinning an emulator or frontend to a specific version doesn't trigger the bottom bar/Apply button, so users can't save their config
+- Uninstall button styling: the uninstall button in the Installation tab should use ghost red/danger styling
+- "Enable all" should include frontend: currently enables all default emulators but not ES-DE, which should be enabled by default
 
 ## Important
 
@@ -14,9 +15,11 @@
 - ES-DE as non-Steam application: add to Steam for Steam Deck game mode launch
 - RetroArch download size display: misleading because it shows AppImage size for each core, not accounting for shared package. Total shown is wildly inaccurate when enabling multiple RetroArch cores
 - "Discard changes" button UX: confusing when config differs from manifest but user didn't make changes in this session. Consider renaming to "Reset to installed state" or only showing when user made UI modifications
+- Default config should enable systems: kyaraben doesn't ship a default config with popular systems enabled (or all systems with their default emulator), making first-run require more setup
 
 ## Nice to have
 
+- Allow Apply without config changes: users may need to re-apply after updating kyaraben to benefit from new managed config changes. Could store kyaraben version in manifest to detect when user updated but hasn't applied yet
 - Version tracking script: programmatic way to check for new emulator versions, compare against versions.toml, create PRs when updates available
 - Emulator health check in doctor: verify installed emulators work (check binaries exist, wrapper scripts valid, AppImage integrity)
 - Backend preview command: move apply status logic (shared emulators, will-install/update/uninstall) from frontend to backend `CommandTypeApplyPreview`
