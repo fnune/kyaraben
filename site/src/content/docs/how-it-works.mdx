@@ -1,0 +1,145 @@
+---
+title: How it works
+description: Technical overview, architecture, and guarantees
+---
+
+## Nix under the hood
+
+Kyaraben uses [Nix](https://nixos.org/) to install emulators. Nix provides
+reproducible, isolated package management: every package is identified by a
+cryptographic hash of its inputs, so the same configuration always produces the
+same result.
+
+You never interact with Nix directly. Kyaraben bundles a portable Nix
+distribution inside the AppImage. When you click apply, kyaraben generates a
+Nix expression, builds it, and places the resulting emulator binaries in
+`~/.local/share/kyaraben/`.
+
+If you already have Nix installed on your system, kyaraben does not interfere
+with it. Kyaraben uses its own Nix store and configuration, completely
+separate from any system-level Nix installation.
+
+## The declarative model
+
+Kyaraben's config file (`~/.config/kyaraben/config.toml`) describes the
+desired state of your emulation setup. When you apply, kyaraben computes the
+difference between the desired state and the current state, then makes the
+minimal changes needed.
+
+This is the same idea as infrastructure-as-code tools like Terraform or NixOS
+configuration: you declare what you want, and the tool figures out how to get
+there.
+
+## What apply does
+
+1. Reads your config to determine which systems and emulators should be
+   enabled
+2. Generates a Nix flake expression representing the desired set of packages
+3. Invokes Nix to build or fetch the packages (most come pre-built from a
+   binary cache)
+4. Places emulator binaries in `~/.local/share/kyaraben/`
+5. Generates or updates emulator configuration files with the correct paths
+6. Creates desktop launchers (`.desktop` files)
+7. Creates the `UserStore` folder structure
+8. Updates the manifest with what was installed
+
+## Three-way config merge
+
+Emulators store their settings in config files (INI, TOML, YAML, XML, CFG).
+Kyaraben manages specific keys in these files (paths to ROMs, BIOS, saves) but
+must not destroy the user's other settings (resolution, shaders, input
+bindings).
+
+On each apply, kyaraben maintains three versions of each managed config file:
+
+- The baseline: what kyaraben last wrote
+- The current file: what is on disk now (may include user changes)
+- The new version: what kyaraben wants to write
+
+Kyaraben compares these three versions:
+
+- If the user changed an unmanaged key (e.g., display resolution), the change
+  is preserved
+- If the user changed a managed key (e.g., the BIOS path), kyaraben warns
+  before overwriting
+- If the file was not modified since the last apply, kyaraben updates it
+  directly
+
+For structured config formats (INI, TOML), kyaraben normalizes formatting
+before diffing to handle whitespace and ordering differences.
+
+## Opaque directories
+
+Most emulators support configuring individual paths for saves, states, BIOS
+files, and screenshots. These emulators get entries in the standard
+`UserStore` directories (`saves/psx/`, `states/duckstation/`, etc.).
+
+Some emulators have complex internal directory structures that resist granular
+path configuration. Examples:
+
+- Eden (Switch): uses a NAND/SDMC structure for saves, keys, firmware, and
+  shader cache
+- RPCS3 (PS3): uses a virtual filesystem mimicking the PS3's internal storage
+- PPSSPP (PSP): uses a "memstick" directory mimicking the PSP's memory stick
+
+For these emulators, kyaraben places the entire data directory under
+`~/Emulation/opaque/<emulator>/`. The emulator manages its internal structure;
+kyaraben syncs the directory as a unit.
+
+This is a middle ground: you lose the unified saves/states layout for these
+emulators but gain full functionality and sync capability.
+
+## Emulator installation
+
+Kyaraben installs emulators as AppImages or extracted archives, downloaded from
+official versioned release URLs. Each download URL includes a version
+identifier, ensuring reproducible downloads.
+
+RetroArch cores are shared libraries fetched from the RetroArch buildbot. The
+RetroArch frontend is an AppImage; cores are `.so` files placed in a managed
+directory.
+
+Kyaraben does not use Flatpak, Snap, or distribution packages. These conflict
+with kyaraben's management model because they have their own update mechanisms,
+sandboxing, and path assumptions.
+
+## Guarantees
+
+### Installation
+
+- Installations are reproducible. The same config produces the same result on
+  any Linux machine.
+- No system pollution. Everything lives under `~/.local/share/kyaraben/`,
+  `~/.config/kyaraben/`, and `~/.local/state/kyaraben/`. No root access, no
+  system packages modified, no PATH pollution beyond `~/.local/bin/`.
+- Apply is atomic. If apply fails, the manifest is not updated. The previous
+  state remains intact.
+- Apply is idempotent. Running `kyaraben apply` twice with the same config
+  produces the same result.
+- Uninstall is clean. `kyaraben uninstall` removes only kyaraben-managed
+  files. The `UserStore` (your ROMs, saves, BIOS) is never touched.
+
+### Configuration
+
+- User changes to unmanaged config keys are preserved across applies.
+- Kyaraben warns before overwriting a managed key that the user changed.
+- Preflight diffs show exactly what will change before apply writes anything.
+
+### Data
+
+- Kyaraben never reads, modifies, or deletes ROM files.
+- Save files live in the `UserStore`, not in kyaraben's internal state.
+  Uninstalling kyaraben leaves saves intact.
+- Kyaraben verifies BIOS files by hash but never downloads, distributes, or
+  stores them.
+
+### What kyaraben does not guarantee
+
+- Controller configuration. Emulators handle this via SDL's controller
+  database. Controller abstraction is a future consideration.
+- Emulator-specific settings beyond paths. Kyaraben currently sets path-related
+  config and launches emulators fullscreen. Detailed settings (resolution,
+  shaders, performance tweaks) are configured in each emulator directly.
+  Conservative expansion of managed settings is planned.
+- ROM compatibility or legality.
+- Network availability for the initial download of emulator packages.

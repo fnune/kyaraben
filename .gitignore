@@ -23,3 +23,8 @@ result-*
 # Sandbox persistent state
 .sandbox/
 ui/binaries/
+
+# Site build output
+site/dist/
+site/node_modules/
+site/.astro/

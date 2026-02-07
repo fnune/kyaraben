@@ -31,3 +31,10 @@ repos:
         entry: sh -c 'cd ui && biome check --write "${@#ui/}"' --
         files: ^ui/.*\.(ts|tsx|js|jsx|json|css)$
         pass_filenames: true
+
+      - id: prettier
+        name: prettier (site markdown)
+        language: system
+        entry: sh -c 'cd site && npx prettier --write "${@#site/}"' --
+        files: ^site/.*\.(md|mdx)$
+        pass_filenames: true

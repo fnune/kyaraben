@@ -1,0 +1,81 @@
+---
+title: Getting started
+description: Install kyaraben and set up your first emulation environment
+---
+
+## Download
+
+Download the latest AppImage from the
+[GitHub releases page](https://github.com/fnune/kyaraben/releases).
+
+```bash
+chmod +x Kyaraben-x86_64.AppImage
+./Kyaraben-x86_64.AppImage
+```
+
+Kyaraben runs on any Linux distribution. It works in desktop mode on the Steam
+Deck.
+
+:::note
+Kyaraben bundles a portable Nix distribution internally. You do not need Nix
+installed on your system. If you already have Nix installed, kyaraben does not
+interfere with it or its store.
+:::
+
+## First run
+
+On first launch, kyaraben asks where to create your emulation folder. The
+default is `~/Emulation`. This is your `UserStore`: the single directory where
+all your ROMs, BIOS files, saves, and screenshots live.
+
+{/* Screenshot: v0.1-getting-started-welcome.png - Welcome screen with UserStore picker */}
+
+## Selecting systems
+
+The main screen shows available gaming systems grouped by manufacturer. Check
+the systems you want to emulate.
+
+Each system has a default emulator chosen for the best out-of-the-box
+experience. The UI shows which emulators are available for each system.
+
+{/* Screenshot: v0.1-getting-started-system-picker.png - System picker with some systems checked */}
+
+## Applying changes
+
+Click apply. Kyaraben fetches the emulators, generates their configuration
+files, and creates the folder structure inside your `UserStore`.
+
+{/* Screenshot: v0.1-getting-started-apply-progress.png - Apply progress view */}
+
+Before making changes, kyaraben shows exactly what will be modified. See
+[using kyaraben](/using-kyaraben/) for details on the preflight check.
+
+## Adding ROMs and BIOS files
+
+After applying, your `UserStore` contains folders for each enabled system:
+
+```
+~/Emulation/
+├── roms/
+│   ├── snes/
+│   ├── psx/
+│   └── ...
+├── bios/
+│   └── psx/
+├── saves/
+│   └── (per-system)
+├── states/
+│   └── (per-emulator)
+└── screenshots/
+    └── (per-system)
+```
+
+Place your ROM files in the appropriate `roms/` subdirectory. For systems that
+require BIOS or firmware files, use the provisions panel in the UI or run
+`kyaraben doctor` on the command line. These tools tell you exactly which files
+are needed, where to place them, and whether they pass hash verification.
+
+:::tip
+Do not memorize BIOS file requirements. The UI and `kyaraben doctor` always
+show the current status and expected file locations for your enabled systems.
+:::

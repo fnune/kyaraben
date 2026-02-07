@@ -28,6 +28,7 @@ fmt:
     gofmt -w .
     goimports -w -local github.com/fnune/kyaraben .
     cd ui && npm run lint:fix
+    cd site && npm run fmt
 
 # Build release AppImage
 build: _ensure-ui-deps generate-types _sidecar
@@ -65,6 +66,14 @@ sandbox: build _container-sandbox-build _extract-appimage
         --security-opt label=disable \
         kyaraben-sandbox
 
+# Run site development server
+site-dev: _ensure-site-deps
+    cd site && npm run dev
+
+# Build documentation site
+site-build: _ensure-site-deps
+    cd site && npm run build
+
 # Clean build artifacts
 clean:
     rm -f kyaraben
@@ -79,6 +88,9 @@ clean-sandbox:
 
 _ensure-ui-deps:
     cd ui && npm ci
+
+_ensure-site-deps:
+    cd site && npm ci
 
 _sidecar:
     ./scripts/build-sidecar.sh
