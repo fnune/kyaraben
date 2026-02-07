@@ -4,9 +4,6 @@
 
 - DuckStation onboarding wizard: needs a default config to prevent the wizard from appearing on first launch
 - Dolphin autoupdate prompt: needs a default config to disable the built-in autoupdate mechanism
-- Apply button not showing after version pin: pinning an emulator or frontend to a specific version doesn't trigger the bottom bar/Apply button, so users can't save their config
-- Uninstall button styling: the uninstall button in the Installation tab should use ghost red/danger styling
-- "Enable all" should include frontend: currently enables all default emulators but not ES-DE, which should be enabled by default
 
 ## Important
 

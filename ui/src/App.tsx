@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApplyProgressBar } from '@/components/ApplyProgressBar/ApplyProgressBar'
 import { InstallationView } from '@/components/InstallationView/InstallationView'
 import { Sidebar } from '@/components/Sidebar/Sidebar'
@@ -108,11 +108,21 @@ function AppContent() {
   const [userStore, setUserStore] = useState('~/Emulation')
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null)
 
+  const savedSystemEmulators = useRef<Map<SystemID, EmulatorID[]>>(new Map())
+  const savedEmulatorVersions = useRef<Map<EmulatorID, string | null>>(new Map())
+  const savedEnabledFrontends = useRef<Map<FrontendID, boolean>>(new Map())
+  const savedFrontendVersions = useRef<Map<FrontendID, string | null>>(new Map())
+  const savedUserStore = useRef('~/Emulation')
+
   const { onCompleteRef } = useApply()
   const { showToast } = useToast()
 
   const refreshAfterApply = useCallback(async () => {
-    const [doctorResult, statusResult] = await Promise.all([daemon.runDoctor(), daemon.getStatus()])
+    const [doctorResult, statusResult, configResult] = await Promise.all([
+      daemon.runDoctor(),
+      daemon.getStatus(),
+      daemon.getConfig(),
+    ])
 
     if (doctorResult.ok) {
       setProvisions(doctorResult.data)
@@ -127,6 +137,15 @@ function AppContent() {
       setManagedConfigs(configs)
       setInstalledFrontendVersions(feVersions)
       setInstalledPaths(paths)
+    }
+
+    if (configResult.ok) {
+      const parsed = parseConfigResponse(configResult.data)
+      savedSystemEmulators.current = new Map(parsed.systemEmulators)
+      savedEmulatorVersions.current = new Map(parsed.emulatorVersions)
+      savedEnabledFrontends.current = new Map(parsed.enabledFrontends)
+      savedFrontendVersions.current = new Map(parsed.frontendVersions)
+      savedUserStore.current = configResult.data.userStore
     }
   }, [])
 
@@ -153,11 +172,16 @@ function AppContent() {
 
       if (configResult.ok) {
         setUserStore(configResult.data.userStore)
+        savedUserStore.current = configResult.data.userStore
         const parsed = parseConfigResponse(configResult.data)
         setSystemEmulators(parsed.systemEmulators)
         setEmulatorVersions(parsed.emulatorVersions)
         setEnabledFrontends(parsed.enabledFrontends)
         setFrontendVersions(parsed.frontendVersions)
+        savedSystemEmulators.current = new Map(parsed.systemEmulators)
+        savedEmulatorVersions.current = new Map(parsed.emulatorVersions)
+        savedEnabledFrontends.current = new Map(parsed.enabledFrontends)
+        savedFrontendVersions.current = new Map(parsed.frontendVersions)
       }
 
       if (statusResult.ok) {
@@ -292,13 +316,20 @@ function AppContent() {
   }, [])
 
   const handleEnableAll = useCallback(() => {
-    const newMap = new Map<SystemID, EmulatorID[]>()
+    const newSystemEmulators = new Map<SystemID, EmulatorID[]>()
     for (const sys of systems) {
-      newMap.set(sys.id, [sys.defaultEmulatorId])
+      newSystemEmulators.set(sys.id, [sys.defaultEmulatorId])
     }
-    setSystemEmulators(newMap)
-    showToast('All systems enabled. Use "Discard changes" to undo.', 'success')
-  }, [systems, showToast])
+    setSystemEmulators(newSystemEmulators)
+
+    const newEnabledFrontends = new Map<FrontendID, boolean>()
+    for (const fe of frontends) {
+      newEnabledFrontends.set(fe.id, true)
+    }
+    setEnabledFrontends(newEnabledFrontends)
+
+    showToast('All systems and frontends enabled. Use "Discard changes" to undo.', 'success')
+  }, [systems, frontends, showToast])
 
   const handleDiscard = useCallback(async () => {
     const [configResult, statusResult] = await Promise.all([daemon.getConfig(), daemon.getStatus()])
@@ -323,6 +354,46 @@ function AppContent() {
     }
   }, [])
 
+  const hasConfigChanges = (() => {
+    if (userStore !== savedUserStore.current) return true
+
+    if (systemEmulators.size !== savedSystemEmulators.current.size) return true
+    for (const [sysId, emuIds] of systemEmulators) {
+      const savedIds = savedSystemEmulators.current.get(sysId)
+      if (!savedIds || emuIds.length !== savedIds.length) return true
+      if (!emuIds.every((id, i) => savedIds[i] === id)) return true
+    }
+    for (const sysId of savedSystemEmulators.current.keys()) {
+      if (!systemEmulators.has(sysId)) return true
+    }
+
+    if (emulatorVersions.size !== savedEmulatorVersions.current.size) return true
+    for (const [emuId, version] of emulatorVersions) {
+      if (savedEmulatorVersions.current.get(emuId) !== version) return true
+    }
+    for (const emuId of savedEmulatorVersions.current.keys()) {
+      if (!emulatorVersions.has(emuId)) return true
+    }
+
+    if (enabledFrontends.size !== savedEnabledFrontends.current.size) return true
+    for (const [feId, enabled] of enabledFrontends) {
+      if (savedEnabledFrontends.current.get(feId) !== enabled) return true
+    }
+    for (const feId of savedEnabledFrontends.current.keys()) {
+      if (!enabledFrontends.has(feId)) return true
+    }
+
+    if (frontendVersions.size !== savedFrontendVersions.current.size) return true
+    for (const [feId, version] of frontendVersions) {
+      if (savedFrontendVersions.current.get(feId) !== version) return true
+    }
+    for (const feId of savedFrontendVersions.current.keys()) {
+      if (!frontendVersions.has(feId)) return true
+    }
+
+    return false
+  })()
+
   const renderView = () => {
     switch (currentView) {
       case 'systems':
@@ -342,6 +413,7 @@ function AppContent() {
             installedPaths={installedPaths}
             provisions={provisions}
             userStore={userStore}
+            hasConfigChanges={hasConfigChanges}
             onUserStoreChange={setUserStore}
             onEmulatorToggle={handleEmulatorToggle}
             onVersionChange={handleVersionChange}

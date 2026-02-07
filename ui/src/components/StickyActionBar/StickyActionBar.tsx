@@ -24,7 +24,7 @@ export function StickyActionBar({
     return () => clearTimeout(timer)
   }, [confirmingDiscard])
 
-  if (changes.total === 0) return null
+  if (changes.total === 0 && !changes.hasConfigChanges) return null
 
   const handleDiscard = () => {
     if (confirmingDiscard) {
