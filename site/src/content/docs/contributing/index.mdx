@@ -1,0 +1,241 @@
+---
+title: Development guide
+description: Contributing to kyaraben
+---
+
+## Development setup
+
+Kyaraben uses a Nix flake for its development environment. If you have Nix
+installed:
+
+```bash
+nix develop
+```
+
+This provides Go, Node.js, golangci-lint, and all other development tools.
+
+Alternatively, install these manually:
+
+- Go 1.24+
+- Node.js (for the UI)
+- golangci-lint
+- just (task runner)
+
+Install dependencies:
+
+```bash
+cd ui && npm ci
+```
+
+## Running locally
+
+```bash
+just dev          # Run the Electron app in development mode
+just test         # Run Go tests
+just lint         # Run Go linter
+just fmt          # Format all code
+just check        # Run all checks (lint + test + typecheck)
+```
+
+See `just --list` for all available tasks.
+
+## Languages and typing
+
+The backend and CLI are Go. The UI is TypeScript (Electron + React). Both
+languages offer static typing, which the project relies on heavily.
+
+Go types in `internal/daemon/types.go` are the source of truth for the daemon
+protocol. TypeScript types are generated from Go types using tygo to ensure the
+contract between components is enforced at compile time.
+
+## Testing
+
+The project follows Martin Fowler's distinction between fakes and mocks. Fakes
+are working implementations with shortcuts (an in-memory store instead of a
+real database). Mocks verify that specific methods were called with specific
+arguments, which couples tests to implementation details. Prefer fakes.
+
+Test harnesses matter more than individual test cases. A well-designed harness
+that can spin up isolated environments, run commands, and assert on outcomes
+makes writing new tests trivial.
+
+- Unit tests cover pure logic
+- Integration tests use fakes for external dependencies (e.g., the Nix client)
+- E2E tests invoke the real system, including actual Nix builds
+
+For UI E2E tests, follow the
+[Playwright best practices](https://playwright.dev/docs/best-practices). Prefer
+user-facing selectors like `getByRole`, `getByLabel`, and `getByText`.
+
+## Project architecture
+
+### Domain model
+
+The core entities and their relationships:
+
+- `System`: a gaming platform (SNES, PSX, GameCube)
+- `Emulator`: an implementation that runs a system's games
+  (retroarch:bsnes, duckstation)
+- `Provision`: a user-provided file enabling emulation (BIOS, keys)
+- `State`: data an emulator produces (saves, savestates, screenshots)
+- `EmulatorConfig`: a configuration file for an emulator
+- `KyarabenConfig`: kyaraben's own configuration (config.toml)
+- `UserStore`: where the user's emulation data lives (~/Emulation)
+- `Manifest`: tracks what kyaraben has installed and managed
+
+### Storage model
+
+Two distinct storage areas:
+
+```
+KyarabenState (XDG)
+├── ~/.config/kyaraben/          # KyarabenConfig
+├── ~/.local/share/kyaraben/     # Nix store, emulator binaries
+└── ~/.local/state/kyaraben/     # Manifest, runtime state
+
+UserStore (e.g., ~/Emulation)
+├── roms/
+├── bios/
+├── saves/           # Structured by system
+├── states/          # Structured by emulator
+├── screenshots/
+└── opaque/          # Emulators with complex internal structures
+```
+
+### Package structure
+
+```
+cmd/kyaraben/        # CLI entry point
+internal/
+├── model/           # Domain types
+├── registry/        # System and emulator registry
+├── emulators/       # Per-emulator config generators
+├── systems/         # Per-system definitions
+├── nix/             # Nix flake generation and execution
+├── apply/           # Apply orchestration
+├── daemon/          # Daemon protocol and handlers
+├── cli/             # CLI commands
+├── store/           # UserStore management
+├── sync/            # Syncthing integration
+├── frontends/       # Frontend integrations (ES-DE)
+├── launcher/        # Desktop launcher management
+├── doctor/          # BIOS/provision checking
+├── status/          # Status reporting
+├── paths/           # XDG path management
+├── hardware/        # CPU architecture detection
+├── fileutil/        # File utilities
+├── logging/         # Unified logging
+└── versions/        # Version management
+ui/                  # Electron + React frontend
+```
+
+### Daemon protocol
+
+The UI and CLI communicate through a daemon that handles long-running
+operations. The daemon uses JSON request-response over stdin/stdout.
+
+Commands: `apply`, `status`, `doctor`, `get_config`, `set_config`,
+`get_systems`, `preflight`, `sync_status`, `uninstall`, and others.
+
+Events: `ready`, `result`, `progress`, `error`, `cancelled`.
+
+## Adding systems
+
+1. Add the `SystemID` constant to `internal/model/system.go`
+2. Create `internal/systems/<name>/<name>.go` implementing
+   `model.SystemDefinition`
+3. Add the system to `internal/registry/all.go`
+
+## Adding emulators
+
+1. Add the `EmulatorID` constant to `internal/model/emulator.go`
+2. Create `internal/emulators/<name>/<name>.go` implementing
+   `model.EmulatorDefinition` (includes both the emulator metadata and the
+   config generator)
+3. Add the emulator to `internal/registry/all.go`
+4. Add an entry to `internal/versions/versions.toml` with the download URL
+   and SHA256 hash
+5. Add a field to `internal/versions/versions.go`
+6. Add a case to `internal/nix/flake.go`
+7. Implement `ConfigGenerator` for the emulator
+8. Compute the SHA256 hash:
+   ```bash
+   nix-prefetch-url <url>
+   nix hash convert --to sri --hash-algo sha256 <hash>
+   ```
+9. Test installation and configuration
+
+The `TestAllDefinitions` test in `internal/registry/registry_test.go` validates
+that all definitions have required fields and that cross-references are valid.
+
+### Emulator installation methods
+
+When adding support for an emulator, follow this priority order:
+
+1. Check for official versioned binary releases (AppImage preferred, then
+   tarball, then plain binary). The URL must support version substitution for
+   reproducible downloads.
+2. If no official binary exists, check for well-maintained unofficial builds
+   (actively maintained, multiple contributors, builds from official source).
+3. For RetroArch cores, use the RetroArch buildbot archive.
+4. If no viable option exists, skip the system and document the blocker.
+
+Rejected formats: Flatpak, Snap, distribution packages (.deb, .rpm). These
+conflict with kyaraben's management model.
+
+## Dependency management
+
+Pass dependencies explicitly. No hidden instantiation deep in the call stack.
+Expensive instantiations happen at the composition root (main.go) and
+dependencies are threaded through constructors.
+
+Define dependencies as interfaces where substitution is needed. Swap real
+implementations for fakes at construction time.
+
+## Logging
+
+The Go daemon writes to `~/.local/state/kyaraben/kyaraben.log`. Use the
+logging package for all Go log output:
+
+```go
+var log = logging.New("nix")
+
+func DoSomething() {
+    log.Info("starting operation")
+    log.Debug("details: %v", details)
+    log.Error("operation failed: %v", err)
+}
+```
+
+Log levels: `Debug` (detailed debugging info), `Info` (significant events),
+`Error` (error conditions).
+
+The UI writes to two destinations: through the daemon (for the unified log)
+and directly to `~/.local/state/kyaraben/kyaraben-ui.log` (for UI-specific
+debugging).
+
+## Code style
+
+Make code self-evident. Do not write comments explaining what code does; if
+the code needs explanation, rewrite it to be clearer.
+
+Use sentence-case in headings. Do not use bold text in documentation. Avoid
+em-dashes. No emoji.
+
+## Commit messages
+
+The format is a brief actionable title in imperative mood, followed by a body
+explaining what changed and why, followed by a test plan:
+
+```
+Brief, actionable description
+
+What changed and why. Use paragraphs, lists, or both.
+
+## Test plan
+
+Reproducible verification steps.
+```
+
+Use imperative mood in titles: "Add", "Fix", "Remove". No trailing periods on
+list items. Use backticks for code references. Do not use bold text.
