@@ -53,7 +53,6 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
   const [progressSteps, setProgressSteps] = useState<readonly ProgressStep[]>([])
   const [error, setError] = useState<string | null>(null)
   const [preflightData, setPreflightData] = useState<PreflightResponse | null>(null)
-  const progressHandlerRef = useRef<((...args: unknown[]) => void) | null>(null)
   const onCompleteRef = useRef<(() => void) | null>(null)
   const { showToast } = useToast()
 
@@ -100,7 +99,6 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
       })
     }
 
-    progressHandlerRef.current = progressHandler
     window.electron.on('apply:progress', progressHandler)
 
     try {
@@ -148,10 +146,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
       showToast('Installation failed', 'error')
       return false
     } finally {
-      if (progressHandlerRef.current) {
-        window.electron.off('apply:progress', progressHandlerRef.current)
-        progressHandlerRef.current = null
-      }
+      window.electron.off('apply:progress')
     }
   }, [showToast])
 
