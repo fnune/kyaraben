@@ -20,6 +20,14 @@ func (Definition) Emulator() model.Emulator {
 			Binary:      "cemu",
 			GenericName: "Wii U Emulator",
 			Categories:  []string{"Game", "Emulator"},
+			RomCommand: func(opts model.RomLaunchOptions) string {
+				cmd := opts.BinaryPath
+				if opts.Fullscreen {
+					cmd += " -f"
+				}
+				cmd += " -g %ROM%"
+				return cmd
+			},
 		},
 	}
 }

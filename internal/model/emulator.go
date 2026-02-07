@@ -18,12 +18,20 @@ type Emulator struct {
 }
 
 type LauncherInfo struct {
-	// Binary is the executable name installed to $out/bin/. For AppImage packages,
-	// this must match the name passed to AppImageRef() (the versions.toml key).
+	// Binary must match the name passed to AppImageRef() for AppImage packages.
 	Binary      string
-	DisplayName string   // Name for .desktop file (uses Emulator.Name if empty)
-	GenericName string   // For .desktop generation (e.g., "PlayStation Emulator")
-	Categories  []string // XDG categories (e.g., ["Game", "Emulator"])
+	DisplayName string
+	GenericName string
+	Categories  []string
+
+	// RomCommand builds the CLI command for launching a game file.
+	// The returned string uses %ROM% as the placeholder for the game path.
+	RomCommand func(opts RomLaunchOptions) string
+}
+
+type RomLaunchOptions struct {
+	BinaryPath string
+	Fullscreen bool
 }
 
 // SupportsSystem checks if this emulator can run games for the given system.

@@ -37,6 +37,14 @@ func (Definition) Emulator() model.Emulator {
 			Binary:      "flycast",
 			GenericName: "Sega Dreamcast Emulator",
 			Categories:  []string{"Game", "Emulator"},
+			RomCommand: func(opts model.RomLaunchOptions) string {
+				cmd := opts.BinaryPath
+				if opts.Fullscreen {
+					cmd += " -config window:fullscreen=yes"
+				}
+				cmd += " %ROM%"
+				return cmd
+			},
 		},
 	}
 }

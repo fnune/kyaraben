@@ -16,6 +16,21 @@ var SharedLauncher = model.LauncherInfo{
 	Categories:  []string{"Game", "Emulator"},
 }
 
+// LauncherWithCore returns a copy of SharedLauncher with RomCommand set to load
+// the given libretro core via the -L flag when launching games.
+func LauncherWithCore(coreName string) model.LauncherInfo {
+	l := SharedLauncher
+	l.RomCommand = func(opts model.RomLaunchOptions) string {
+		cmd := opts.BinaryPath
+		if opts.Fullscreen {
+			cmd += " -f"
+		}
+		cmd += " -L " + coreName + " %ROM%"
+		return cmd
+	}
+	return l
+}
+
 var MainConfigTarget = model.ConfigTarget{
 	RelPath: "retroarch/retroarch.cfg",
 	Format:  model.ConfigFormatCFG,
