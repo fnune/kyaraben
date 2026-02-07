@@ -1,0 +1,62 @@
+---
+title: Kyaraben
+description: Declarative emulation manager for Linux
+template: splash
+hero:
+  tagline: Pick your systems. Kyaraben handles the rest.
+  actions:
+    - text: Get started
+      link: /getting-started/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/fnune/kyaraben
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components'
+
+## What it does
+
+<CardGrid>
+  <Card title="Select and apply">
+    Choose which gaming systems you want to emulate. Kyaraben installs the
+    emulators and generates their configuration. One click.
+  </Card>
+  <Card title="Unified folder structure">
+    ROMs, BIOS files, saves, and screenshots organized in a single
+    `~/Emulation` directory. Every emulator points to the same place.
+  </Card>
+  <Card title="Observability">
+    Kyaraben tracks what it installs, shows diffs before changing config files,
+    and avoids littering your system. You always know what changed and why.
+  </Card>
+  <Card title="Clean by design">
+    No system packages modified, no root access needed. Everything lives in
+    user directories. Uninstall removes only what kyaraben put there.
+  </Card>
+</CardGrid>
+
+## How it works
+
+Kyaraben uses Nix to install emulators reproducibly and in isolation. You never
+see or interact with Nix directly. It is an implementation detail.
+
+1. Download the AppImage and run it
+2. Select the systems you want to emulate
+3. The UI tells you which BIOS or firmware files are needed
+4. Click apply
+5. Drop your ROMs into the created folders and play
+
+{/* Screenshot: v0.1-index-system-picker.png - The system picker UI */}
+
+## Guarantees
+
+Kyaraben makes specific promises about how it behaves on your system. See
+[how it works](/how-it-works/) for the full list.
+
+- Installations are reproducible: same config, same result, every time
+- Your system is never polluted: no root access, no system packages modified
+- Uninstall is clean: your ROMs, saves, and BIOS files are never touched
+- Your emulator settings are preserved: kyaraben manages specific keys and
+  leaves the rest alone
+- You see what changes before it happens: config diffs are shown before apply

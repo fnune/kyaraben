@@ -1,0 +1,210 @@
+---
+title: Configuration
+description: Config file reference and CLI commands
+---
+
+## Config file
+
+Kyaraben's configuration lives at `~/.config/kyaraben/config.toml`. The UI is
+a friendly view into this file. Everything the UI can do, the config file can
+do.
+
+### Example
+
+```toml
+[global]
+user_store = "~/Emulation"
+
+[systems]
+snes = ["retroarch:bsnes"]
+psx = ["duckstation"]
+gamecube = ["dolphin"]
+ps2 = ["pcsx2"]
+
+[emulators.duckstation]
+version = "v0.1-10655"
+
+[frontends.esde]
+enabled = true
+
+[sync]
+enabled = true
+mode = "primary"
+```
+
+### `[global]`
+
+| Key | Type | Default | Description |
+| --- | --- | --- | --- |
+| `user_store` | string | `~/Emulation` | Path to the `UserStore` directory |
+
+### `[systems]`
+
+Maps system IDs to lists of emulator IDs. Each system can have one or more
+emulators enabled.
+
+```toml
+[systems]
+snes = ["retroarch:bsnes"]
+psx = ["duckstation"]
+```
+
+When a system is enabled with an empty list or `true`, kyaraben uses the
+default emulator for that system.
+
+### `[emulators.<id>]`
+
+Optional per-emulator configuration. Currently supports version pinning:
+
+```toml
+[emulators.duckstation]
+version = "v0.1-10655"
+```
+
+When no version is specified, kyaraben uses the latest supported version.
+
+### `[frontends.<id>]`
+
+Frontend configuration. Currently supports EmulationStation-DE:
+
+```toml
+[frontends.esde]
+enabled = true
+```
+
+### `[sync]`
+
+See [save sync](/sync/) for sync configuration details.
+
+## CLI commands
+
+The CLI is intentionally minimal. The config file is the interface for advanced
+users. The UI is for users who prefer not to edit files. The CLI is the glue:
+initialize, apply changes, check status.
+
+### `kyaraben apply`
+
+Reads the config, installs emulators, generates emulator configs, and creates
+the folder structure. Shows a preflight diff before making changes.
+
+```
+$ kyaraben apply
+
+Config changes:
+
+  MODIFY ~/.config/retroarch/retroarch.cfg
+    ~ system_directory
+        - ""
+        + "/home/user/Emulation/bios"
+
+  Summary: 0 file(s) to create, 1 to modify
+  Changes: 0 additions, 1 modification, 0 removals
+
+Apply? [y/N]
+```
+
+### `kyaraben status`
+
+Shows the current state: installed emulators, managed config files, and
+whether the user has modified any managed keys since the last apply.
+
+```
+$ kyaraben status
+
+User Store: ~/Emulation
+
+Installed Emulators:
+  duckstation (v0.1-10655)
+    Installed: 2026-01-15 10:30:00
+
+  retroarch:bsnes (1.19.1)
+    Installed: 2026-01-15 10:30:00
+
+Managed Configs:
+  ~/.config/duckstation/settings.ini
+    Last applied: 2026-01-15 10:30:00
+    6 managed keys
+    ✓ Unchanged
+
+  ~/.config/retroarch/retroarch.cfg
+    Last applied: 2026-01-15 10:30:00
+    8 managed keys
+    ⚠ User modified since last apply
+```
+
+### `kyaraben doctor`
+
+Checks BIOS and firmware file status for all enabled systems. Reports which
+files are found, verified, missing, or optional.
+
+```
+$ kyaraben doctor
+
+Provisions:
+
+  PlayStation (duckstation)
+    ✓ scph5501.bin (USA) - found, verified
+    ✗ scph5500.bin (Japan) - missing
+    ✗ scph5502.bin (Europe) - missing
+
+  SNES (retroarch:bsnes)
+    No provisions required.
+```
+
+### `kyaraben init`
+
+Creates a default `config.toml` if one does not exist.
+
+### `kyaraben uninstall`
+
+Removes kyaraben-managed files. Never touches the `UserStore` (your ROMs,
+saves, BIOS files).
+
+```
+$ kyaraben uninstall
+
+This will:
+  ✓ Remove emulator binaries from ~/.local/share/kyaraben/
+  ✓ Remove desktop launchers from ~/.local/share/applications/kyaraben/
+
+This will NOT touch:
+  • ~/Emulation/ (your ROMs, saves, BIOS)
+  • ~/.config/kyaraben/ (your kyaraben settings)
+
+Proceed? [y/N]
+```
+
+### `kyaraben sync`
+
+Manage save synchronization across devices. See [save sync](/sync/).
+
+```
+kyaraben sync status          # Show sync state
+kyaraben sync add-device      # Pair with another device
+kyaraben sync remove-device   # Remove a paired device
+```
+
+## NixOS home-manager module
+
+For users already on NixOS or home-manager, kyaraben exposes the same
+functionality as a Nix module:
+
+```nix
+{
+  imports = [ inputs.kyaraben.homeManagerModules.default ];
+
+  programs.kyaraben = {
+    enable = true;
+    emulationDir = "~/Emulation";
+
+    systems = {
+      snes.enable = true;
+      psx.enable = true;
+    };
+  };
+}
+```
+
+:::caution[Work in progress]
+The home-manager module is planned but not yet available.
+:::

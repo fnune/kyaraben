@@ -16,15 +16,13 @@ This project is in development.
 
 Kyaraben uses Nix to install emulators, which means installations are reproducible and isolated from the rest of your system. You do not need to have Nix installed; Kyaraben bundles a portable Nix distribution.
 
-## Supported systems
+## Documentation
 
-- Nintendo: SNES, Game Boy Advance, GameCube, DS, Wii, 3DS, Wii U, Switch
-- Sony: PlayStation, PlayStation 2, PSP, PlayStation 3, PS Vita
-- Sega: Dreamcast
+See the [documentation site](site/) for user guides, configuration reference, and technical details.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for technical details and conventions.
+See the [development guide](site/src/content/docs/contributing/index.mdx) for conventions and setup instructions.
 
 ---
 
