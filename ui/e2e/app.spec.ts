@@ -5,7 +5,9 @@ import {
   type Page,
   test,
 } from '@playwright/test'
+import { createFixture, type TestFixture } from './fixtures'
 
+let fixture: TestFixture
 let electronApp: ElectronApplication
 let page: Page
 
@@ -17,10 +19,16 @@ test.beforeAll(async () => {
     )
   }
 
+  fixture = createFixture({}, undefined)
+
   console.log(`Testing: ${appImagePath}`)
   electronApp = await electron.launch({
     executablePath: appImagePath,
     args: ['--no-sandbox'],
+    env: {
+      ...process.env,
+      ...fixture.env,
+    },
   })
 
   page = await electronApp.firstWindow()
@@ -31,6 +39,7 @@ test.afterAll(async () => {
   if (electronApp) {
     await electronApp.close()
   }
+  fixture?.cleanup()
 })
 
 test.describe('Kyaraben App', () => {
