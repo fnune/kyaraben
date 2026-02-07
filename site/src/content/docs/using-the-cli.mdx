@@ -88,63 +88,63 @@ the glue: initialize, apply, check status.
 
 Reads the config, installs emulators, generates emulator configs, and creates
 the folder structure. If there are conflicts with your existing configuration,
-`kyaraben apply` shows a diff and asks for confirmation.
+`kyaraben apply` asks for confirmation before overwriting.
 
 ```
 $ kyaraben apply
 
 Applying kyaraben configuration...
 
-Config changes:
-
-  MODIFY ~/.config/retroarch/retroarch.cfg
-    [paths]
-      ~ system_directory
-        - ""
-        + "/home/user/Emulation/bios"
-      ~ savefile_directory
-        - ""
-        + "/home/user/Emulation/saves"
-
-  CREATE ~/.config/duckstation/settings.ini
-    [BIOS]
-      + SearchDirectory = "/home/user/Emulation/bios/psx"
-    [MemoryCards]
-      + Directory = "/home/user/Emulation/saves/psx"
-
-  Summary: 1 file(s) to create, 1 to modify, 0 unchanged
-  Changes: 2 additions, 2 modifications, 0 removals
-
+Using ~/Emulation (existing data preserved)
 Installing emulators (this may take a while on first run)...
 Adding to application menu...
 Configuring emulators...
+  Built: ~/.local/state/kyaraben/build/nix/.nix-portable/nix/store/...
+
+  Applied: ~/.config/retroarch/retroarch.cfg
+  Applied: ~/.config/duckstation/settings.ini
+  Applied: ~/.config/mgba/config.ini
+  Applied: ~/.config/PCSX2/inis/PCSX2.ini
 
 Done!
 
-Your emulation directory is ready at: /home/user/Emulation
+Your emulation directory is ready at: ~/Emulation
 Place your ROMs in the appropriate subdirectories.
 ```
 
+Use `--dry-run` to preview config changes without applying them.
+
 ### `kyaraben status`
 
-Shows the current state: which emulators are installed, which config files are
-managed, and the provision status.
+Shows the current state: which emulators are installed, their versions, and
+where files are stored.
 
 ```
 $ kyaraben status
 
-Config: /home/user/.config/kyaraben/config.toml
-Emulation folder: /home/user/Emulation (initialized)
+Config: ~/.config/kyaraben/config.toml
+Emulation folder: ~/Emulation (initialized)
 
-Enabled systems: SNES, PlayStation
+Enabled systems: PlayStation, Super Nintendo, Game Boy Advance, Nintendo DS
 
 Managed emulators:
-  retroarch:bsnes      1.19.1
-  duckstation          v0.1-10655
+  DuckStation          v0.1-10655
+  RetroArch (bsnes)    1.22.2
+  mGBA                 0.10.5
+  melonDS              1.1
 
-Last applied: 2026-01-15 10:30:00
+Paths:
+  DuckStation (psx)
+    ROMs:          ~/Emulation/roms/psx
+    BIOS:          ~/Emulation/bios/psx
+    Saves:         ~/Emulation/saves/psx
+    Savestates:    ~/Emulation/states/duckstation
+    Screenshots:   ~/Emulation/screenshots/psx
+  ...
 
-Provision status: all required files present
+Last applied: 2026-02-07 23:13:59
+
+Provision status: 1 system(s) missing required files (run 'kyaraben doctor')
 ```
 
 ### `kyaraben doctor`
@@ -156,17 +156,24 @@ $ kyaraben doctor
 
 Checking provisions...
 
-  duckstation (psx)
-    ✓ scph5501.bin (USA) - found, verified
-    ✗ scph5500.bin (Japan) - missing (optional)
-    ✗ scph5502.bin (Europe) - missing (optional)
-    Expected location: /home/user/Emulation/bios/psx
+  DuckStation (psx)
+    ✗ scph5501.bin - MISSING (required)
+    - scph5500.bin - not found (optional)
+    - scph5502.bin - not found (optional)
+    Expected location: ~/Emulation/bios/psx
 
-  retroarch:bsnes (snes)
+  RetroArch (bsnes) (snes)
     No provisions required.
 
+  melonDS (nds)
+    - bios7.bin - not found (optional)
+    - bios9.bin - not found (optional)
+    - firmware.bin - not found (optional)
+    Expected location: ~/Emulation/bios/nds
+
 Summary:
-  2 optional file(s) missing
+  1 required file(s) missing
+  5 optional file(s) missing
 ```
 
 ### `kyaraben init`
@@ -176,7 +183,7 @@ Creates a default `config.toml` with popular systems enabled:
 ```
 $ kyaraben init
 
-Created configuration at /home/user/.config/kyaraben/config.toml
+Created configuration at ~/.config/kyaraben/config.toml
 
 Enabled 13 systems with default emulators.
 Run 'kyaraben apply' to install emulators and create directories.
@@ -191,24 +198,31 @@ $ kyaraben uninstall
 
 This will remove:
 
-  /home/user/.local/state/kyaraben (nix store, manifest, state)
+  ~/.local/state/kyaraben (nix store, manifest, state)
 
   Kyaraben installation:
-    /home/user/.local/bin/kyaraben-ui
-    /home/user/.local/bin/kyaraben
-    /home/user/.local/share/applications/kyaraben-ui.desktop
+    ~/.local/bin/kyaraben-ui
+    ~/.local/bin/kyaraben
+    ~/.local/share/applications/kyaraben.desktop
 
   Desktop entries:
-    /home/user/.local/share/applications/kyaraben/duckstation.desktop
-    /home/user/.local/share/applications/kyaraben/retroarch-bsnes.desktop
+    ~/.local/share/applications/kyaraben/duckstation.desktop
+    ~/.local/share/applications/kyaraben/retroarch.desktop
+    ~/.local/share/applications/kyaraben/mgba.desktop
+
+  Icons:
+    ~/.local/share/icons/hicolor/256x256/apps/kyaraben-duckstation.png
+    ~/.local/share/icons/hicolor/scalable/apps/kyaraben-retroarch.svg
+    ~/.local/share/icons/hicolor/256x256/apps/kyaraben-mgba.png
 
   Managed config files:
-    /home/user/.config/retroarch/retroarch.cfg
-    /home/user/.config/duckstation/settings.ini
+    ~/.config/retroarch/retroarch.cfg
+    ~/.config/duckstation/settings.ini
+    ~/.config/mgba/config.ini
 
 This will NOT remove:
-  /home/user/Emulation (your ROMs, saves, BIOS)
-  /home/user/.config/kyaraben (your kyaraben config)
+  ~/Emulation (your ROMs, saves, BIOS)
+  ~/.config/kyaraben (your kyaraben config)
 
 Proceed? [y/N]
 ```
@@ -218,7 +232,20 @@ Proceed? [y/N]
 Manage save synchronization. See [save sync](/sync/).
 
 ```
-kyaraben sync status          # Show sync state
+$ kyaraben sync status
+
+Sync: disabled
+
+Enable sync in your config.toml:
+
+  [sync]
+  enabled = true
+  mode = "primary"  # or "secondary"
+```
+
+Other subcommands:
+
+```
 kyaraben sync add-device      # Pair with another device
 kyaraben sync remove-device   # Remove a paired device
 ```
