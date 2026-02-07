@@ -305,7 +305,7 @@ test.describe('Apply flow', () => {
     await page.getByRole('button', { name: 'Apply' }).click()
 
     await expect(
-      page.getByText(/Installing emulators|Setting up directories|Applying\.\.\./).first(),
+      page.getByText(/Applying configuration|Installing emulators|Setting up/).first(),
     ).toBeVisible({ timeout: 5000 })
   })
 

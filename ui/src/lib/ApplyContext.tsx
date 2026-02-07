@@ -13,6 +13,7 @@ import { useToast } from '@/lib/ToastContext'
 import type { ApplyStatus, ProgressStep } from '@/types/ui'
 
 const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
+  summary: 'Applying configuration',
   store: 'Setting up emulation folder',
   build: 'Installing emulators',
   desktop: 'Adding to application menu',
