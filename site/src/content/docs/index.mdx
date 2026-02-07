@@ -3,7 +3,7 @@ title: Kyaraben
 description: Declarative emulation manager for Linux
 template: splash
 hero:
-  tagline: Pick your systems. Kyaraben handles the rest.
+  tagline: Declarative emulation manager for Linux. Pick your systems. Kyaraben handles the rest.
   actions:
     - text: Get started
       link: /getting-started/
@@ -20,6 +20,9 @@ import { Aside, Card, CardGrid } from "@astrojs/starlight/components";
   out as a pilot user, feedback and bug reports are welcome on
   [GitHub](https://github.com/fnune/kyaraben/issues).
 </Aside>
+
+Kyaraben sets up emulators on Linux so you can play retro games. It works on
+any Linux distribution, including the Steam Deck.
 
 ## What it does
 
@@ -44,25 +47,24 @@ import { Aside, Card, CardGrid } from "@astrojs/starlight/components";
 
 ## How it works
 
-Kyaraben uses Nix to install emulators reproducibly and in isolation. You never
-see or interact with Nix directly. It is an implementation detail.
-
 1. Download the AppImage and run it
 2. Select the systems you want to emulate
-3. The UI tells you which BIOS or firmware files are needed
-4. Click apply
+3. Click apply
+4. The UI shows which BIOS or firmware files are needed
 5. Drop your ROMs into the created folders and play
 
 {/* Screenshot: v0.1-index-system-picker.png - The system picker UI */}
 
-## Guarantees
-
-Kyaraben makes specific promises about how it behaves on your system. See
-[how it works](/how-it-works/) for the full list.
+## What kyaraben promises
 
 - Installations are reproducible: same config, same result, every time
 - Your system is never polluted: no root access, no system packages modified
+- Kyaraben installs itself, its emulators, and frontends to `~/.local/bin/`
+  and `~/.local/share/kyaraben/`, with `.desktop` entries for everything
 - Uninstall is clean: your ROMs, saves, and BIOS files are never touched
 - Your emulator settings are preserved: kyaraben manages specific keys and
   leaves the rest alone
 - You see what changes before it happens: config diffs are shown before apply
+
+See [app reference](/using-the-app/) for the full list of guarantees, non-goals,
+and future plans.

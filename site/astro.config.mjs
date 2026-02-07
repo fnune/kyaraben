@@ -14,21 +14,10 @@ export default defineConfig({
       ],
       sidebar: [
         { label: 'Getting started', slug: 'getting-started' },
-        { label: 'Using kyaraben', slug: 'using-kyaraben' },
-        { label: 'Configuration', slug: 'configuration' },
+        { label: 'App reference', slug: 'using-the-app' },
+        { label: 'CLI reference', slug: 'using-the-cli' },
         { label: 'Save sync', slug: 'sync' },
-        { label: 'How it works', slug: 'how-it-works' },
-        { label: 'Updating', slug: 'updating' },
-        {
-          label: 'Contributing',
-          items: [
-            { label: 'Development guide', slug: 'contributing' },
-            {
-              label: 'Emulator config reference',
-              slug: 'contributing/emulator-config-reference',
-            },
-          ],
-        },
+        { label: 'Contributing', slug: 'contributing' },
       ],
     }),
   ],
