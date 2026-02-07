@@ -25,7 +25,12 @@ func (Definition) Emulator() model.Emulator {
 			GenericName: "PlayStation Vita Emulator",
 			Categories:  []string{"Game", "Emulator"},
 			RomCommand: func(opts model.RomLaunchOptions) string {
-				return opts.BinaryPath + " -r %ROM%"
+				cmd := opts.BinaryPath
+				if opts.Fullscreen {
+					cmd += " -F"
+				}
+				cmd += " -r %ROM%"
+				return cmd
 			},
 		},
 	}

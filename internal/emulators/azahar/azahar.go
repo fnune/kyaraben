@@ -21,7 +21,14 @@ func (Definition) Emulator() model.Emulator {
 			Binary:      "azahar",
 			GenericName: "Nintendo 3DS Emulator",
 			Categories:  []string{"Game", "Emulator"},
-			RomCommand:  model.PositionalRomCommand,
+			RomCommand: func(opts model.RomLaunchOptions) string {
+				cmd := opts.BinaryPath
+				if opts.Fullscreen {
+					cmd += " -f"
+				}
+				cmd += " %ROM%"
+				return cmd
+			},
 		},
 	}
 }
