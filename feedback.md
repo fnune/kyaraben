@@ -98,30 +98,6 @@ This moves all the logic to one place and makes the UI a simple display layer. T
 
 ---
 
-## CLI philosophy: minimal commands, editable config
-
-The CLI should stay minimal. Rather than adding subcommands for every operation (`kyaraben enable psx`, `kyaraben add-emulator psx retroarch:mednafen`, `kyaraben list-emulators`, etc.), prefer:
-
-1. **Simple, discoverable config format** - TOML is human-readable; users can edit `~/.config/kyaraben/config.toml` directly
-2. **Few core commands** - `init`, `apply`, `status`, `doctor` cover the essential workflow
-3. **Good defaults** - `kyaraben init` creates a working config; users remove what they don't want
-
-This avoids:
-- CLI flag/subcommand explosion
-- Duplicating UI functionality in terminal
-- Maintaining two interaction paradigms
-
-The config file *is* the interface for advanced users. The UI is for users who don't want to edit files. The CLI is glue: initialize, apply changes, check status.
-
-If users need to discover available emulators for a system, they can:
-- Check the UI (shows all options)
-- Read EMULATORS.md (reference doc)
-- Look at a freshly-generated config from `kyaraben init` (shows defaults)
-
-We should ensure EMULATORS.md stays current and documents all system → emulator mappings.
-
----
-
 ## UI: show all available emulators for enabled systems
 
 Current gap: when a system has one emulator enabled, the UI shows a dropdown that switches between emulators but provides no way to enable a second one. The parent/child row pattern only appears when multiple emulators are already enabled (via config edit).
@@ -229,43 +205,6 @@ Potential simplification:
 - Or eliminate manifest entirely and derive state from filesystem + config
 
 The manifest has been a source of bugs (disappearing, corruption). Reducing its role or eliminating it could improve reliability.
-
----
-
-## Vita3K opaque config location
-
-Vita3K config lives in `~/Emulation/opaque/vita3k/config.yml` because the emulator takes a single `-c` path for its entire user directory. We can't separate config from data with Vita3K's current architecture. This is intentional - same pattern as Dolphin and Eden.
-
----
-
-## Electron app missing config change details
-
-The CLI shows detailed information about config file changes during apply:
-
-```
-Config changes:
-
-  MODIFY /home/fausto/.config/retroarch/retroarch.cfg
-    ⚠ You modified keys managed by kyaraben (will be overwritten):
-      system_directory: /home/fausto/Emulation/bios → "..."
-      libretro_directory: ~/.local/state/kyaraben/cores → "..."
-
-    ~ system_directory
-        - "old value"
-        + "new value"
-  UNCHANGED /home/fausto/.config/retroarch/config/mednafen_saturn_libretro/mednafen_saturn_libretro.cfg
-
-  Summary: 0 file(s) to create, 6 to modify, 7 unchanged
-  Changes: 0 additions, 14 modifications, 0 removals
-```
-
-This information is absent from the Electron app. Users should be able to see:
-- Which config files will be modified/created/unchanged
-- Warnings when their manual changes will be overwritten
-- The actual diffs showing old → new values
-- A summary of changes
-
-This could be shown in a collapsible "Config details" section or a pre-apply review panel.
 
 ---
 
