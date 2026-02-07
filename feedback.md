@@ -2,8 +2,8 @@
 
 ## Low-hanging fruit
 
-- DuckStation onboarding wizard: needs a default config to prevent the wizard from appearing on first launch
 - Dolphin autoupdate prompt: needs a default config to disable the built-in autoupdate mechanism
+- Backup prompt for opaque-dir emulators: emulators like Vita3K store config inside their opaque directory, which triggers "Create backups before modifying?" prompt on every apply. Need to figure out how to handle config files that live inside opaque dirs
 
 ## Important
 
@@ -27,6 +27,8 @@
 
 ## Nice to have
 
+- Storage breakdown bar: below the "Emulation folder" input in the UI, show a color-coded bar indicating total size and composition of the directory (ROMs, saves, opaque dirs, etc.)
+- Hydra cache miss for libretro-genesis-plus-gx: this core builds from source on apply, which is slow. May need to report upstream to nixpkgs or check if the package is misconfigured
 - Allow Apply without config changes: users may need to re-apply after updating kyaraben to benefit from new managed config changes. Could store kyaraben version in manifest to detect when user updated but hasn't applied yet
 - Version tracking script: programmatic way to check for new emulator versions, compare against versions.toml, create PRs when updates available
 - Emulator health check in doctor: verify installed emulators work (check binaries exist, wrapper scripts valid, AppImage integrity)
