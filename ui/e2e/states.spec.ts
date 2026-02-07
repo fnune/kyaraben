@@ -242,6 +242,82 @@ test.describe('Version pinning', () => {
   })
 })
 
+test.describe('Apply flow', () => {
+  let fixture: TestFixture
+  let app: ElectronApplication
+  let page: Page
+
+  test.beforeAll(async () => {
+    const preset = presets.freshInstall()
+    fixture = createFixture(preset.config, preset.manifest)
+    setupFakeNixPortable(fixture)
+    fixture.env.FAKE_NIX_SLOW = '1'
+
+    app = await electron.launch({
+      executablePath: getAppImagePath(),
+      args: ['--no-sandbox'],
+      env: {
+        ...process.env,
+        ...fixture.env,
+      },
+    })
+
+    page = await app.firstWindow()
+    await page.getByRole('heading', { level: 1 }).waitFor({ timeout: 30000 })
+  })
+
+  test.afterAll(async () => {
+    await app?.close()
+    fixture?.cleanup()
+  })
+
+  test('emulator starts disabled', async () => {
+    const snesCard = page.getByRole('article').filter({ hasText: 'Super Nintendo' })
+    const toggle = snesCard.getByRole('switch').first()
+    await expect(toggle).toHaveAttribute('aria-checked', 'false')
+  })
+
+  test('can enable emulator', async () => {
+    const snesCard = page.getByRole('article').filter({ hasText: 'Super Nintendo' })
+    const toggle = snesCard.getByRole('switch').first()
+
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-checked', 'true')
+  })
+
+  test('shows download size for enabled emulator', async () => {
+    const snesCard = page.getByRole('article').filter({ hasText: 'Super Nintendo' })
+    await expect(snesCard.getByText(/\d+(\.\d+)?\s*(MB|GB|KB)/)).toBeVisible()
+  })
+
+  test('shows action bar with Apply button', async () => {
+    await expect(page.getByRole('button', { name: 'Apply' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Discard' })).toBeVisible()
+  })
+
+  test('clicking Apply shows progress', async () => {
+    await page.getByRole('button', { name: 'Apply' }).click()
+
+    await expect(page.getByText(/installing|building|applying/i)).toBeVisible({ timeout: 5000 })
+  })
+
+  test('progress completes and shows Done button', async () => {
+    await expect(page.getByRole('button', { name: 'Done' })).toBeVisible({ timeout: 30000 })
+  })
+
+  test('clicking Done returns to systems view', async () => {
+    await page.getByRole('button', { name: 'Done' }).click()
+
+    await expect(page.getByRole('button', { name: 'Apply' })).not.toBeVisible()
+    await expect(page.getByText('Emulation folder')).toBeVisible()
+  })
+
+  test('emulator now shows Launch button', async () => {
+    const snesCard = page.getByRole('article').filter({ hasText: 'Super Nintendo' })
+    await expect(snesCard.getByText('Launch')).toBeVisible({ timeout: 5000 })
+  })
+})
+
 test.describe('Tab navigation', () => {
   let fixture: TestFixture
   let app: ElectronApplication
