@@ -11,6 +11,7 @@ func (Definition) System() model.System {
 		Description:  "32-bit home console by Sony (1994)",
 		Manufacturer: model.ManufacturerSony,
 		Label:        "PSX",
+		Extensions:   []string{".bin", ".cue", ".chd", ".iso", ".img", ".m3u"},
 	}
 }
 

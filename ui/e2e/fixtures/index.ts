@@ -8,6 +8,7 @@ export const SystemIDPSX = 'psx' as const
 export const EmulatorIDRetroArchBsnes = 'retroarch:bsnes' as const
 export const EmulatorIDMGBA = 'mgba' as const
 export const EmulatorIDDuckStation = 'duckstation' as const
+export const FrontendIDESDE = 'es-de' as const
 
 export type SystemID = typeof SystemIDSNES | typeof SystemIDGBA | typeof SystemIDPSX | string
 export type EmulatorID =
@@ -15,6 +16,7 @@ export type EmulatorID =
   | typeof EmulatorIDMGBA
   | typeof EmulatorIDDuckStation
   | string
+export type FrontendID = typeof FrontendIDESDE | string
 
 export interface TestFixture {
   configDir: string
@@ -28,6 +30,7 @@ export interface ConfigFixture {
   userStore?: string
   systems?: Partial<Record<SystemID, EmulatorID[]>>
   emulators?: Partial<Record<EmulatorID, { version?: string }>>
+  frontends?: Partial<Record<FrontendID, { enabled: boolean; version?: string }>>
   sync?: {
     enabled?: boolean
     mode?: 'primary' | 'secondary'
@@ -158,6 +161,19 @@ function generateConfigToml(config: ConfigFixture, defaultUserStore: string): st
     }
   }
 
+  if (config.frontends) {
+    for (const [feId, feConfig] of Object.entries(config.frontends)) {
+      if (feConfig) {
+        lines.push(`[frontends."${feId}"]`)
+        lines.push(`enabled = ${feConfig.enabled}`)
+        if (feConfig.version) {
+          lines.push(`version = "${feConfig.version}"`)
+        }
+        lines.push('')
+      }
+    }
+  }
+
   return lines.join('\n')
 }
 
@@ -282,6 +298,20 @@ export const presets = {
           installed: new Date(Date.now() - 86400000).toISOString(),
         },
       },
+    },
+  }),
+
+  frontendEnabled: (): { config: ConfigFixture; manifest: ManifestFixture } => ({
+    config: {
+      systems: {
+        [SystemIDSNES]: [EmulatorIDRetroArchBsnes],
+      },
+      frontends: {
+        [FrontendIDESDE]: { enabled: true },
+      },
+    },
+    manifest: {
+      installedEmulators: {},
     },
   }),
 }

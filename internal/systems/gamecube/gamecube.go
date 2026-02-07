@@ -11,6 +11,7 @@ func (Definition) System() model.System {
 		Description:  "Home console by Nintendo (2001)",
 		Manufacturer: model.ManufacturerNintendo,
 		Label:        "GC",
+		Extensions:   []string{".gcm", ".iso", ".gcz", ".rvz", ".wbfs"},
 	}
 }
 

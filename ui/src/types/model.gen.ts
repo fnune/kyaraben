@@ -34,6 +34,12 @@ export const EmulatorIDEden = "eden";
 export type EmulatorID = typeof EmulatorIDRetroArch | typeof EmulatorIDRetroArchBsnes | typeof EmulatorIDRetroArchMesen | typeof EmulatorIDRetroArchGenesisPlusGX | typeof EmulatorIDRetroArchMupen64Plus | typeof EmulatorIDRetroArchBeetleSaturn | typeof EmulatorIDDuckStation | typeof EmulatorIDPCSX2 | typeof EmulatorIDRPCS3 | typeof EmulatorIDVita3K | typeof EmulatorIDPPSSPP | typeof EmulatorIDMGBA | typeof EmulatorIDMelonDS | typeof EmulatorIDFlycast | typeof EmulatorIDCemu | typeof EmulatorIDAzahar | typeof EmulatorIDDolphin | typeof EmulatorIDEden;
 
 //////////
+// source: frontend_id.go
+
+export type FrontendID = string;
+export const FrontendIDESDE: FrontendID = "es-de";
+
+//////////
 // source: system.go
 
 /**
@@ -79,4 +85,5 @@ export interface System {
   description: string;
   manufacturer: Manufacturer;
   label: string;
+  extensions: string[];
 }

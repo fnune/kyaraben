@@ -16,7 +16,7 @@ func (cmd *ValidateFlakeCmd) Run(ctx *Context) error {
 	fmt.Println("Validating Nix flake for all emulators...")
 
 	registry := ctx.NewRegistry()
-	flakeGenerator := nix.NewFlakeGenerator(registry)
+	flakeGenerator := nix.NewFlakeGenerator(registry, registry)
 
 	nixClient, err := ctx.NewNixClient()
 	if err != nil {
@@ -39,14 +39,23 @@ func (cmd *ValidateFlakeCmd) Run(ctx *Context) error {
 		emulatorIDs[i] = emu.ID
 	}
 
-	fmt.Printf("Generating flake for %d emulators...\n", len(emulatorIDs))
-	genResult, err := flakeGenerator.Generate(tmpDir, emulatorIDs)
+	allFrontends := registry.AllFrontends()
+	frontendIDs := make([]model.FrontendID, len(allFrontends))
+	for i, fe := range allFrontends {
+		frontendIDs[i] = fe.ID
+	}
+
+	fmt.Printf("Generating flake for %d emulators and %d frontends...\n", len(emulatorIDs), len(frontendIDs))
+	genResult, err := flakeGenerator.Generate(tmpDir, emulatorIDs, frontendIDs)
 	if err != nil {
 		return fmt.Errorf("generating flake: %w", err)
 	}
 
 	for _, skipped := range genResult.SkippedEmulators {
 		fmt.Printf("Warning: emulator '%s' was skipped (unknown)\n", skipped)
+	}
+	for _, skipped := range genResult.SkippedFrontends {
+		fmt.Printf("Warning: frontend '%s' was skipped (unknown)\n", skipped)
 	}
 
 	fmt.Println("Evaluating flake (this checks syntax and attribute existence)...")

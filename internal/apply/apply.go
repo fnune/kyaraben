@@ -153,6 +153,39 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		allPatches = append(allPatches, patches...)
 	}
 
+	enabledFrontends := cfg.EnabledFrontends()
+	frontendsToInstall := make([]model.FrontendID, 0, len(enabledFrontends))
+
+	var binDir string
+	if a.LauncherManager != nil {
+		binDir = a.LauncherManager.BinDir()
+	}
+
+	for _, feID := range enabledFrontends {
+		frontendsToInstall = append(frontendsToInstall, feID)
+
+		gen := a.Registry.GetFrontendConfigGenerator(feID)
+		if gen == nil {
+			continue
+		}
+
+		frontendCtx := model.FrontendContext{
+			EnabledSystems:  cfg.EnabledSystems(),
+			SystemEmulators: cfg.Systems,
+			GetSystem:       a.Registry.GetSystem,
+			GetEmulator:     a.Registry.GetEmulator,
+			Store:           userStore,
+			BinDir:          binDir,
+		}
+
+		patches, err := gen.Generate(frontendCtx)
+		if err != nil {
+			return nil, fmt.Errorf("generating config for frontend %s: %w", feID, err)
+		}
+		allPatches = append(allPatches, patches...)
+	}
+
+	var summaryParts []string
 	if len(emulatorsToInstall) > 0 {
 		var emulatorNames []string
 		for _, emuID := range emulatorsToInstall {
@@ -160,9 +193,21 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 				emulatorNames = append(emulatorNames, emu.Name)
 			}
 		}
+		summaryParts = append(summaryParts, strings.Join(emulatorNames, ", "))
+	}
+	if len(frontendsToInstall) > 0 {
+		var frontendNames []string
+		for _, feID := range frontendsToInstall {
+			if fe, err := a.Registry.GetFrontend(feID); err == nil {
+				frontendNames = append(frontendNames, fe.Name)
+			}
+		}
+		summaryParts = append(summaryParts, strings.Join(frontendNames, ", "))
+	}
+	if len(summaryParts) > 0 {
 		opts.OnProgress(Progress{
 			Step:    "summary",
-			Message: "Enabling " + strings.Join(emulatorNames, ", "),
+			Message: "Enabling " + strings.Join(summaryParts, ", "),
 		})
 	}
 
@@ -192,7 +237,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		return nil, fmt.Errorf("creating flake directory: %w", err)
 	}
 
-	genResult, err := a.FlakeGenerator.Generate(a.NixClient.GetFlakePath(), emulatorsToInstall)
+	genResult, err := a.FlakeGenerator.Generate(a.NixClient.GetFlakePath(), emulatorsToInstall, frontendsToInstall)
 	if err != nil {
 		return nil, fmt.Errorf("generating flake: %w", err)
 	}
@@ -200,8 +245,12 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	for _, skipped := range genResult.SkippedEmulators {
 		opts.OnProgress(Progress{Step: "build", Message: fmt.Sprintf("Warning: emulator '%s' is no longer supported and will be skipped", skipped)})
 	}
+	for _, skipped := range genResult.SkippedFrontends {
+		opts.OnProgress(Progress{Step: "build", Message: fmt.Sprintf("Warning: frontend '%s' is no longer supported and will be skipped", skipped)})
+	}
 
 	resolvedVersions := a.FlakeGenerator.GetResolvedVersions(emulatorsToInstall)
+	resolvedFrontendVersions := a.FlakeGenerator.GetResolvedFrontendVersions(frontendsToInstall)
 
 	netMon := NewNetMonitor(func(bytesPerSec int64) {
 		if bytesPerSec > 1024 { // Only report if >1 KB/s
@@ -281,7 +330,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		}
 		a.LauncherManager.SetNixPortableBinary(persistentNixPortable)
 		a.LauncherManager.SetNixPortableLocation(a.NixClient.GetNixPortableLocation())
-		packageInfo := a.buildEmulatorPackageInfo(emulatorsToInstall)
+		packageInfo := a.buildPackageInfo(emulatorsToInstall, frontendsToInstall)
 		if err := a.LauncherManager.GenerateWrappers(packageInfo); err != nil {
 			return nil, fmt.Errorf("generating launcher wrappers: %w", err)
 		}
@@ -293,7 +342,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 			DesktopFiles: manifest.DesktopFiles,
 			IconFiles:    manifest.IconFiles,
 		}
-		desktopEntries := a.buildDesktopEntries(emulatorsToInstall, userStore)
+		desktopEntries := a.buildDesktopEntries(emulatorsToInstall, frontendsToInstall, userStore)
 		generatedFiles, err := a.LauncherManager.GenerateDesktopFiles(desktopEntries, previousFiles)
 		if err != nil {
 			return nil, fmt.Errorf("generating desktop files: %w", err)
@@ -342,8 +391,6 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		return nil, ctx.Err()
 	}
 
-	// Build new emulator map separately to avoid losing existing data on failure.
-	// Only replace the manifest's map right before save.
 	newInstalledEmulators := make(map[model.EmulatorID]model.InstalledEmulator)
 	now := time.Now()
 	for _, emuID := range emulatorsToInstall {
@@ -359,9 +406,27 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		}
 	}
 
-	// Build new managed configs list
-	newManagedConfigs := make([]model.ManagedConfig, 0, len(allPatches))
+	newInstalledFrontends := make(map[model.FrontendID]model.InstalledFrontend)
+	for _, feID := range frontendsToInstall {
+		version := resolvedFrontendVersions[feID]
+		if version == "" {
+			version = "unknown"
+		}
+		newInstalledFrontends[feID] = model.InstalledFrontend{
+			ID:        feID,
+			Version:   version,
+			StorePath: storePath,
+			Installed: now,
+		}
+	}
+
+	// Build new managed configs list (emulator patches only, not frontend patches)
+	emulatorPatchCount := len(patchEmulators)
+	newManagedConfigs := make([]model.ManagedConfig, 0, emulatorPatchCount)
 	for i, patch := range allPatches {
+		if i >= emulatorPatchCount {
+			break
+		}
 		if patch.Target.BaseDir == model.ConfigBaseDirOpaqueDir {
 			continue
 		}
@@ -406,9 +471,9 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	}
 	manifest.ManagedConfigs = filteredConfigs
 
-	// Now commit all changes to manifest atomically
 	manifest.LastApplied = now
 	manifest.InstalledEmulators = newInstalledEmulators
+	manifest.InstalledFrontends = newInstalledFrontends
 	for _, cfg := range newManagedConfigs {
 		manifest.AddManagedConfig(cfg)
 	}
@@ -436,7 +501,7 @@ func ComputeDiffs(patches []model.ConfigPatch) ([]*emulators.ConfigDiff, error) 
 	return diffs, nil
 }
 
-func (a *Applier) buildEmulatorPackageInfo(emulatorIDs []model.EmulatorID) []launcher.EmulatorPackageInfo {
+func (a *Applier) buildPackageInfo(emulatorIDs []model.EmulatorID, frontendIDs []model.FrontendID) []launcher.EmulatorPackageInfo {
 	seenBinaries := make(map[string]bool)
 	var info []launcher.EmulatorPackageInfo
 
@@ -456,10 +521,26 @@ func (a *Applier) buildEmulatorPackageInfo(emulatorIDs []model.EmulatorID) []lau
 		})
 	}
 
+	for _, feID := range frontendIDs {
+		fe, err := a.Registry.GetFrontend(feID)
+		if err != nil || fe.Launcher.Binary == "" {
+			continue
+		}
+
+		if seenBinaries[fe.Launcher.Binary] {
+			continue
+		}
+		seenBinaries[fe.Launcher.Binary] = true
+
+		info = append(info, launcher.EmulatorPackageInfo{
+			BinaryName: fe.Launcher.Binary,
+		})
+	}
+
 	return info
 }
 
-func (a *Applier) buildDesktopEntries(emulatorIDs []model.EmulatorID, store model.StoreReader) []launcher.GeneratedDesktop {
+func (a *Applier) buildDesktopEntries(emulatorIDs []model.EmulatorID, frontendIDs []model.FrontendID, store model.StoreReader) []launcher.GeneratedDesktop {
 	seenBinaries := make(map[string]bool)
 	var entries []launcher.GeneratedDesktop
 
@@ -479,7 +560,6 @@ func (a *Applier) buildDesktopEntries(emulatorIDs []model.EmulatorID, store mode
 			displayName = emu.Name
 		}
 
-		// Check if the config generator provides launch arguments
 		var launchArgs string
 		if gen := a.Registry.GetConfigGenerator(emuID); gen != nil {
 			if provider, ok := gen.(model.LaunchArgsProvider); ok {
@@ -494,6 +574,30 @@ func (a *Applier) buildDesktopEntries(emulatorIDs []model.EmulatorID, store mode
 			GenericName:   emu.Launcher.GenericName,
 			CategoriesStr: strings.Join(emu.Launcher.Categories, ";"),
 			LaunchArgs:    launchArgs,
+		})
+	}
+
+	for _, feID := range frontendIDs {
+		fe, err := a.Registry.GetFrontend(feID)
+		if err != nil || fe.Launcher.Binary == "" {
+			continue
+		}
+
+		if seenBinaries[fe.Launcher.Binary] {
+			continue
+		}
+		seenBinaries[fe.Launcher.Binary] = true
+
+		displayName := fe.Launcher.DisplayName
+		if displayName == "" {
+			displayName = fe.Name
+		}
+
+		entries = append(entries, launcher.GeneratedDesktop{
+			BinaryName:    fe.Launcher.Binary,
+			Name:          displayName,
+			GenericName:   fe.Launcher.GenericName,
+			CategoriesStr: strings.Join(fe.Launcher.Categories, ";"),
 		})
 	}
 

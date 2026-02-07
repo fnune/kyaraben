@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react'
+import { FrontendCard } from '@/components/FrontendCard/FrontendCard'
 import { Settings } from '@/components/Settings/Settings'
 import { StickyActionBar } from '@/components/StickyActionBar/StickyActionBar'
 import { SYSTEM_YEARS, SystemCard } from '@/components/SystemCard/SystemCard'
@@ -8,15 +9,26 @@ import { Button } from '@/lib/Button'
 import { addChange, emptyChangeSummary, getChangeType } from '@/lib/changeUtils'
 import { ProgressSteps } from '@/lib/ProgressSteps'
 import { useOpenLog } from '@/lib/useOpenLog'
-import type { DoctorResponse, EmulatorID, System, SystemID } from '@/types/daemon'
+import type {
+  DoctorResponse,
+  EmulatorID,
+  FrontendID,
+  FrontendRef,
+  System,
+  SystemID,
+} from '@/types/daemon'
 import { MANUFACTURER_ORDER } from '@/types/ui'
 
 export interface SystemsViewProps {
   readonly systems: readonly System[]
+  readonly frontends: readonly FrontendRef[]
   readonly systemEmulators: Map<SystemID, EmulatorID[]>
   readonly enabledEmulators: ReadonlySet<EmulatorID>
+  readonly enabledFrontends: Map<FrontendID, boolean>
   readonly emulatorVersions: Map<EmulatorID, string | null>
+  readonly frontendVersions: Map<FrontendID, string | null>
   readonly installedVersions: Map<EmulatorID, string>
+  readonly installedFrontendVersions: Map<FrontendID, string>
   readonly installedExecLines: Map<EmulatorID, string>
   readonly managedConfigs: Map<EmulatorID, string[]>
   readonly provisions: DoctorResponse
@@ -24,6 +36,8 @@ export interface SystemsViewProps {
   readonly onUserStoreChange: (value: string) => void
   readonly onEmulatorToggle: (emulatorId: EmulatorID, enabled: boolean) => void
   readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
+  readonly onFrontendToggle: (frontendId: FrontendID, enabled: boolean) => void
+  readonly onFrontendVersionChange: (frontendId: FrontendID, version: string | null) => void
   readonly onDiscard: () => void
   readonly onEnableAll: () => void
 }
@@ -51,10 +65,14 @@ function groupSystemsByManufacturer(systems: readonly System[]) {
 
 export function SystemsView({
   systems,
+  frontends,
   systemEmulators,
   enabledEmulators,
+  enabledFrontends,
   emulatorVersions,
+  frontendVersions,
   installedVersions,
+  installedFrontendVersions,
   installedExecLines,
   managedConfigs,
   provisions,
@@ -62,6 +80,8 @@ export function SystemsView({
   onUserStoreChange,
   onEmulatorToggle,
   onVersionChange,
+  onFrontendToggle,
+  onFrontendVersionChange,
   onDiscard,
   onEnableAll,
 }: SystemsViewProps) {
@@ -83,12 +103,19 @@ export function SystemsView({
       }
     }
 
+    const frontendsConfig: Record<string, { enabled: boolean; version?: string }> = {}
+    for (const [feId, enabled] of enabledFrontends) {
+      const version = frontendVersions.get(feId)
+      frontendsConfig[feId] = { enabled, ...(version && { version }) }
+    }
+
     await apply({
       userStore,
       systems: systemsConfig,
       emulators: emulatorsConfig,
+      frontends: frontendsConfig,
     })
-  }, [apply, systemEmulators, emulatorVersions, userStore])
+  }, [apply, systemEmulators, emulatorVersions, enabledFrontends, frontendVersions, userStore])
 
   const changes = useMemo(() => {
     let summary = emptyChangeSummary()
@@ -124,8 +151,34 @@ export function SystemsView({
       }
     }
 
+    for (const frontend of frontends) {
+      const enabled = enabledFrontends.get(frontend.id) ?? false
+      const installedVersion = installedFrontendVersions.get(frontend.id) ?? null
+      const pinnedVersion = frontendVersions.get(frontend.id) ?? null
+      const effectiveVersion = pinnedVersion ?? frontend.defaultVersion ?? null
+
+      const changeType = getChangeType(
+        enabled,
+        installedVersion,
+        effectiveVersion,
+        frontend.availableVersions,
+      )
+
+      const downloadBytes = frontend.downloadBytes ?? 0
+      summary = addChange(summary, changeType, downloadBytes)
+    }
+
     return summary
-  }, [systems, enabledEmulators, emulatorVersions, installedVersions])
+  }, [
+    systems,
+    frontends,
+    enabledEmulators,
+    enabledFrontends,
+    emulatorVersions,
+    frontendVersions,
+    installedVersions,
+    installedFrontendVersions,
+  ])
 
   const groupedSystems = useMemo(() => groupSystemsByManufacturer(systems), [systems])
 
@@ -184,6 +237,27 @@ export function SystemsView({
   return (
     <div className="p-6 pb-24">
       <Settings userStore={userStore} onUserStoreChange={onUserStoreChange} />
+
+      {frontends.length > 0 && (
+        <>
+          <div className="mt-6">
+            <span className="text-sm font-medium text-gray-300">Frontends</span>
+          </div>
+          <div className="space-y-3 mt-3">
+            {frontends.map((frontend) => (
+              <FrontendCard
+                key={frontend.id}
+                frontend={frontend}
+                enabled={enabledFrontends.get(frontend.id) ?? false}
+                pinnedVersion={frontendVersions.get(frontend.id) ?? null}
+                installedVersion={installedFrontendVersions.get(frontend.id) ?? null}
+                onToggle={(enabled) => onFrontendToggle(frontend.id, enabled)}
+                onVersionChange={(version) => onFrontendVersionChange(frontend.id, version)}
+              />
+            ))}
+          </div>
+        </>
+      )}
 
       <div className="mt-6 flex items-center justify-between">
         <span className="text-sm font-medium text-gray-300">Emulators</span>

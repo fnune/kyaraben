@@ -16,6 +16,7 @@ type Manifest struct {
 	Version            int                              `json:"version"`
 	LastApplied        time.Time                        `json:"last_applied"`
 	InstalledEmulators map[EmulatorID]InstalledEmulator `json:"installed_emulators"`
+	InstalledFrontends map[FrontendID]InstalledFrontend `json:"installed_frontends,omitempty"`
 	ManagedConfigs     []ManagedConfig                  `json:"managed_configs"`
 	DesktopFiles       []string                         `json:"desktop_files,omitempty"`
 	IconFiles          []string                         `json:"icon_files,omitempty"`
@@ -37,6 +38,14 @@ type InstalledEmulator struct {
 	Installed time.Time  `json:"installed"`
 }
 
+// InstalledFrontend tracks an installed frontend.
+type InstalledFrontend struct {
+	ID        FrontendID `json:"id"`
+	Version   string     `json:"version"`
+	StorePath string     `json:"store_path"`
+	Installed time.Time  `json:"installed"`
+}
+
 type ManagedKey struct {
 	Path  []string `json:"path"`
 	Value string   `json:"value"`
@@ -55,6 +64,7 @@ func NewManifest() *Manifest {
 	return &Manifest{
 		Version:            1,
 		InstalledEmulators: make(map[EmulatorID]InstalledEmulator),
+		InstalledFrontends: make(map[FrontendID]InstalledFrontend),
 		ManagedConfigs:     make([]ManagedConfig, 0),
 	}
 }
@@ -149,6 +159,22 @@ func syncDir(path string) error {
 // AddEmulator records an installed emulator.
 func (m *Manifest) AddEmulator(emu InstalledEmulator) {
 	m.InstalledEmulators[emu.ID] = emu
+}
+
+// AddFrontend records an installed frontend.
+func (m *Manifest) AddFrontend(fe InstalledFrontend) {
+	if m.InstalledFrontends == nil {
+		m.InstalledFrontends = make(map[FrontendID]InstalledFrontend)
+	}
+	m.InstalledFrontends[fe.ID] = fe
+}
+
+func (m *Manifest) GetFrontend(id FrontendID) (InstalledFrontend, bool) {
+	if m.InstalledFrontends == nil {
+		return InstalledFrontend{}, false
+	}
+	fe, ok := m.InstalledFrontends[id]
+	return fe, ok
 }
 
 func (m *Manifest) AddManagedConfig(cfg ManagedConfig) {

@@ -27,12 +27,19 @@ type EmulatorInfo struct {
 	ManagedConfigs []string // Paths to config files managed by kyaraben
 }
 
+type FrontendInfo struct {
+	ID      model.FrontendID
+	Name    string
+	Version string
+}
+
 type Result struct {
 	ConfigPath           string
 	UserStorePath        string
 	UserStoreInitialized bool
 	EnabledSystems       []SystemInfo
 	InstalledEmulators   []EmulatorInfo
+	InstalledFrontends   []FrontendInfo
 	LastApplied          time.Time
 	MissingRequiredCount int
 	HealthWarning        string // Non-empty if inconsistent state detected
@@ -87,6 +94,18 @@ func Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg 
 		}
 
 		result.InstalledEmulators = append(result.InstalledEmulators, info)
+	}
+
+	for _, fe := range manifest.InstalledFrontends {
+		info := FrontendInfo{
+			ID:      fe.ID,
+			Name:    string(fe.ID),
+			Version: fe.Version,
+		}
+		if f, err := reg.GetFrontend(fe.ID); err == nil {
+			info.Name = f.Name
+		}
+		result.InstalledFrontends = append(result.InstalledFrontends, info)
 	}
 
 	checker := store.NewProvisionChecker(userStore)

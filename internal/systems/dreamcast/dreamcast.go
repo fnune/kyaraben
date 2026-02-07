@@ -11,6 +11,7 @@ func (Definition) System() model.System {
 		Description:  "Home console by Sega (1998)",
 		Manufacturer: model.ManufacturerSega,
 		Label:        "DC",
+		Extensions:   []string{".gdi", ".cdi", ".chd", ".cue"},
 	}
 }
 

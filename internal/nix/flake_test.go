@@ -21,7 +21,7 @@ func TestMain(m *testing.M) {
 func TestFlakeGeneratorGenerateAllEmulators(t *testing.T) {
 	tmpDir := t.TempDir()
 	reg := registry.NewDefault()
-	fg := NewFlakeGenerator(reg)
+	fg := NewFlakeGenerator(reg, reg)
 
 	allEmulators := reg.AllEmulators()
 	emulatorIDs := make([]model.EmulatorID, len(allEmulators))
@@ -29,7 +29,7 @@ func TestFlakeGeneratorGenerateAllEmulators(t *testing.T) {
 		emulatorIDs[i] = emu.ID
 	}
 
-	result, err := fg.Generate(tmpDir, emulatorIDs)
+	result, err := fg.Generate(tmpDir, emulatorIDs, nil)
 	if err != nil {
 		t.Fatalf("Generate failed for all emulators: %v", err)
 	}
@@ -60,13 +60,13 @@ func TestFlakeGeneratorGenerateAllEmulators(t *testing.T) {
 
 func TestFlakeGeneratorGenerateSingleEmulator(t *testing.T) {
 	reg := registry.NewDefault()
-	fg := NewFlakeGenerator(reg)
+	fg := NewFlakeGenerator(reg, reg)
 
 	for _, emu := range reg.AllEmulators() {
 		t.Run(string(emu.ID), func(t *testing.T) {
 			tmpDir := t.TempDir()
 
-			result, err := fg.Generate(tmpDir, []model.EmulatorID{emu.ID})
+			result, err := fg.Generate(tmpDir, []model.EmulatorID{emu.ID}, nil)
 			if err != nil {
 				t.Fatalf("Generate failed for %s: %v", emu.ID, err)
 			}
@@ -86,9 +86,9 @@ func TestFlakeGeneratorGenerateSingleEmulator(t *testing.T) {
 func TestFlakeGeneratorGenerateUnknownEmulator(t *testing.T) {
 	tmpDir := t.TempDir()
 	reg := registry.NewDefault()
-	fg := NewFlakeGenerator(reg)
+	fg := NewFlakeGenerator(reg, reg)
 
-	result, err := fg.Generate(tmpDir, []model.EmulatorID{"unknown-emulator"})
+	result, err := fg.Generate(tmpDir, []model.EmulatorID{"unknown-emulator"}, nil)
 	if err != nil {
 		t.Fatalf("Generate should not fail for unknown emulator: %v", err)
 	}
@@ -105,9 +105,9 @@ func TestFlakeGeneratorGenerateUnknownEmulator(t *testing.T) {
 func TestFlakeGeneratorGenerateMixedEmulators(t *testing.T) {
 	tmpDir := t.TempDir()
 	reg := registry.NewDefault()
-	fg := NewFlakeGenerator(reg)
+	fg := NewFlakeGenerator(reg, reg)
 
-	result, err := fg.Generate(tmpDir, []model.EmulatorID{model.EmulatorIDMGBA, "unknown-emulator", model.EmulatorIDDolphin})
+	result, err := fg.Generate(tmpDir, []model.EmulatorID{model.EmulatorIDMGBA, "unknown-emulator", model.EmulatorIDDolphin}, nil)
 	if err != nil {
 		t.Fatalf("Generate should not fail: %v", err)
 	}
@@ -135,7 +135,7 @@ func TestFlakeGeneratorGenerateMixedEmulators(t *testing.T) {
 
 func TestFlakeGeneratorFlakeRef(t *testing.T) {
 	reg := registry.NewDefault()
-	fg := NewFlakeGenerator(reg)
+	fg := NewFlakeGenerator(reg, reg)
 
 	for _, emu := range reg.AllEmulators() {
 		t.Run(string(emu.ID), func(t *testing.T) {
@@ -153,7 +153,7 @@ func TestFlakeGeneratorFlakeRef(t *testing.T) {
 
 func TestFlakeGeneratorDefaultFlakeRef(t *testing.T) {
 	reg := registry.NewDefault()
-	fg := NewFlakeGenerator(reg)
+	fg := NewFlakeGenerator(reg, reg)
 
 	ref := fg.DefaultFlakeRef("/tmp/flake")
 	absPath, _ := filepath.Abs("/tmp/flake")
@@ -167,9 +167,9 @@ func TestFlakeGeneratorCreatesDirectory(t *testing.T) {
 	tmpDir := t.TempDir()
 	nestedDir := filepath.Join(tmpDir, "nested", "flake", "dir")
 	reg := registry.NewDefault()
-	fg := NewFlakeGenerator(reg)
+	fg := NewFlakeGenerator(reg, reg)
 
-	result, err := fg.Generate(nestedDir, []model.EmulatorID{model.EmulatorIDMGBA})
+	result, err := fg.Generate(nestedDir, []model.EmulatorID{model.EmulatorIDMGBA}, nil)
 	if err != nil {
 		t.Fatalf("Generate failed: %v", err)
 	}
@@ -185,7 +185,7 @@ func TestFlakeGeneratorCreatesDirectory(t *testing.T) {
 
 func TestNewFlakeGenerator(t *testing.T) {
 	reg := registry.NewDefault()
-	fg := NewFlakeGenerator(reg)
+	fg := NewFlakeGenerator(reg, reg)
 
 	if fg == nil || fg.emulators == nil {
 		t.Fatal("NewFlakeGenerator should return initialized generator")
@@ -194,7 +194,7 @@ func TestNewFlakeGenerator(t *testing.T) {
 
 func TestPackageInfoFromRef(t *testing.T) {
 	reg := registry.NewDefault()
-	fg := NewFlakeGenerator(reg)
+	fg := NewFlakeGenerator(reg, reg)
 
 	tests := []struct {
 		name     string
