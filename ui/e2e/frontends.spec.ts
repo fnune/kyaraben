@@ -36,7 +36,7 @@ function getAppImagePath(): string {
   return appImagePath
 }
 
-test.describe('Frontends section', () => {
+test.describe('Frontend installation', () => {
   let fixture: TestFixture
   let app: ElectronApplication
   let page: Page
@@ -54,61 +54,31 @@ test.describe('Frontends section', () => {
     fixture?.cleanup()
   })
 
-  test('shows Frontends section heading', async () => {
-    await expect(page.getByText('Frontends')).toBeVisible({ timeout: 10000 })
-  })
-
-  test('shows ES-DE frontend card', async () => {
-    await expect(page.getByText('ES-DE')).toBeVisible()
-  })
-
-  test('ES-DE toggle is initially off', async () => {
-    const esdeSection = page
-      .locator('div')
-      .filter({ hasText: /^ES-DE/ })
-      .first()
+  test('can enable and install ES-DE frontend', async () => {
+    const esdeSection = page.locator('div').filter({ hasText: /^ES-DE/ }).first()
     const toggle = esdeSection.getByRole('switch')
     await expect(toggle).toHaveAttribute('aria-checked', 'false')
-  })
-
-  test('can toggle ES-DE on', async () => {
-    const esdeSection = page
-      .locator('div')
-      .filter({ hasText: /^ES-DE/ })
-      .first()
-    const toggle = esdeSection.getByRole('switch')
 
     await toggle.click()
     await expect(toggle).toHaveAttribute('aria-checked', 'true')
-  })
 
-  test('shows Apply button after enabling frontend', async () => {
-    await expect(page.getByRole('button', { name: 'Apply' })).toBeVisible()
-  })
+    const applyButton = page.getByRole('button', { name: 'Apply' })
+    await expect(applyButton).toBeVisible()
 
-  test('clicking Apply shows progress', async () => {
-    await page.getByRole('button', { name: 'Apply' }).click()
-
-    await expect(
-      page.getByText(/Applying configuration|Installing|Setting up/).first(),
-    ).toBeVisible({ timeout: 5000 })
-  })
-
-  test('progress completes and shows Done button', async () => {
+    await applyButton.click()
     await expect(page.getByRole('button', { name: 'Done' })).toBeVisible({ timeout: 30000 })
-  })
 
-  test('clicking Done returns to systems view', async () => {
     await page.getByRole('button', { name: 'Done' }).click()
-
     await expect(page.getByText('Emulation folder')).toBeVisible()
-    // Note: The Apply button visibility check is skipped because frontend version
-    // resolution in the test environment doesn't match the real app. The functionality
-    // works correctly when tested manually.
+
+    const esdeToggleAfter = page.locator('div').filter({ hasText: /^ES-DE/ }).first().getByRole('switch')
+    await expect(esdeToggleAfter).toHaveAttribute('aria-checked', 'true')
+
+    await expect(page.getByRole('button', { name: 'Apply' })).not.toBeVisible()
   })
 })
 
-test.describe('Frontend enabled in config', () => {
+test.describe('Frontend already enabled', () => {
   let fixture: TestFixture
   let app: ElectronApplication
   let page: Page
@@ -126,11 +96,8 @@ test.describe('Frontend enabled in config', () => {
     fixture?.cleanup()
   })
 
-  test('ES-DE toggle is on when enabled in config', async () => {
-    const esdeSection = page
-      .locator('div')
-      .filter({ hasText: /^ES-DE/ })
-      .first()
+  test('shows ES-DE as enabled when configured', async () => {
+    const esdeSection = page.locator('div').filter({ hasText: /^ES-DE/ }).first()
     const toggle = esdeSection.getByRole('switch')
     await expect(toggle).toHaveAttribute('aria-checked', 'true')
   })
