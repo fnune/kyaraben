@@ -13,6 +13,7 @@ import (
 	"github.com/fnune/kyaraben/internal/nix"
 	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/store"
+	"github.com/fnune/kyaraben/internal/version"
 )
 
 const nixBuildTimeout = 30 * time.Minute
@@ -481,6 +482,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	manifest.ManagedConfigs = filteredConfigs
 
 	manifest.LastApplied = now
+	manifest.KyarabenVersion = version.Get()
 	manifest.InstalledEmulators = newInstalledEmulators
 	manifest.InstalledFrontends = newInstalledFrontends
 	for _, cfg := range newManagedConfigs {

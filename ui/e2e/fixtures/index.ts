@@ -1,6 +1,8 @@
 import * as fs from 'node:fs'
+import type * as http from 'node:http'
 import * as os from 'node:os'
 import * as path from 'node:path'
+import { startFakeReleasesServer } from './fake-releases-server'
 
 export const SystemIDSNES = 'snes' as const
 export const SystemIDGBA = 'gba' as const
@@ -24,6 +26,7 @@ export interface TestFixture {
   userStore: string
   env: Record<string, string>
   cleanup: () => void
+  releasesServer?: http.Server
 }
 
 export interface ConfigFixture {
@@ -47,6 +50,7 @@ export interface InstalledEmulatorFixture {
 
 export interface ManifestFixture {
   version?: number
+  kyarabenVersion?: string
   lastApplied?: string
   installedEmulators?: Partial<Record<EmulatorID, InstalledEmulatorFixture>>
   managedConfigs?: Array<{
@@ -78,13 +82,16 @@ export function createFixture(config?: ConfigFixture, manifest?: ManifestFixture
   }
 
   if (manifest) {
-    const manifestJson = {
+    const manifestJson: Record<string, unknown> = {
       version: manifest.version ?? 1,
       last_applied: manifest.lastApplied ?? new Date().toISOString(),
       installed_emulators: manifest.installedEmulators ?? {},
       managed_configs: manifest.managedConfigs ?? [],
       desktop_files: manifest.desktopFiles ?? [],
       icon_files: manifest.iconFiles ?? [],
+    }
+    if (manifest.kyarabenVersion) {
+      manifestJson.kyaraben_version = manifest.kyarabenVersion
     }
     fs.writeFileSync(
       path.join(stateDir, 'kyaraben', 'build', 'manifest.json'),
@@ -110,9 +117,17 @@ export function createFixture(config?: ConfigFixture, manifest?: ManifestFixture
     cleanup: () => {
       const logPath = path.join(stateDir, 'kyaraben', 'kyaraben.log')
       if (fs.existsSync(logPath)) {
-        console.log('\n=== Kyaraben log ===')
-        console.log(fs.readFileSync(logPath, 'utf-8'))
-        console.log('=== End log ===\n')
+        const content = fs.readFileSync(logPath, 'utf-8').trim()
+        if (content) {
+          const indent = '        '
+          const indented = content
+            .split('\n')
+            .map((line) => indent + line)
+            .join('\n')
+          console.log(`\n${indent}--- daemon log (${tmpDir}) ---`)
+          console.log(indented)
+          console.log(`${indent}--- end daemon log ---\n`)
+        }
       }
       try {
         fs.rmSync(tmpDir, { recursive: true, force: true })
@@ -329,4 +344,28 @@ export const presets = {
       installedEmulators: {},
     },
   }),
+}
+
+export interface FakeReleasesOptions {
+  latestVersion: string
+  appImagePath?: string
+}
+
+let nextPort = 19500
+
+export function setupFakeReleasesApi(fixture: TestFixture, options: FakeReleasesOptions): void {
+  const port = nextPort++
+  const server = startFakeReleasesServer(port, {
+    version: options.latestVersion,
+    appImagePath: options.appImagePath,
+  })
+
+  fixture.releasesServer = server
+  fixture.env.KYARABEN_RELEASES_URL = `http://localhost:${port}/releases/latest`
+
+  const originalCleanup = fixture.cleanup
+  fixture.cleanup = () => {
+    server.close()
+    originalCleanup()
+  }
 }

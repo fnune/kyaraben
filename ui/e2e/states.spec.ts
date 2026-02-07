@@ -412,7 +412,7 @@ test.describe('Tab navigation', () => {
     await page.getByRole('button', { name: 'Installation' }).click()
     await expect(page.getByText('State directory')).toBeVisible()
 
-    await page.getByRole('button', { name: 'Systems' }).click()
+    await page.getByRole('button', { name: 'Systems', exact: true }).click()
     await expect(page.getByText('Emulation folder')).toBeVisible()
   })
 
@@ -420,7 +420,7 @@ test.describe('Tab navigation', () => {
     await page.getByRole('button', { name: 'Sync' }).click()
     await expect(page.getByRole('heading', { name: /Sync/ })).toBeVisible()
 
-    await page.getByRole('button', { name: 'Systems' }).click()
+    await page.getByRole('button', { name: 'Systems', exact: true }).click()
     await expect(page.getByText('Emulation folder')).toBeVisible()
   })
 })

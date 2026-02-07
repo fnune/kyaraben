@@ -17,6 +17,9 @@ type DaemonChannel = Exclude<
   | 'launch_emulator'
   | 'open_log_tail'
   | 'launch_cli_uninstall'
+  | 'check_for_updates'
+  | 'download_update'
+  | 'apply_update'
 >
 
 // This line will fail to compile if any DaemonChannel is not a valid CommandType

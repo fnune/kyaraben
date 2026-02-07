@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { ApplyAfterUpdateBanner } from '@/components/ApplyAfterUpdateBanner/ApplyAfterUpdateBanner'
 import { ApplyProgressBar } from '@/components/ApplyProgressBar/ApplyProgressBar'
 import { InstallationView } from '@/components/InstallationView/InstallationView'
 import { Sidebar } from '@/components/Sidebar/Sidebar'
 import { SyncView } from '@/components/SyncView/SyncView'
 import { SystemsView } from '@/components/SystemsView/SystemsView'
+import { UpdateBanner } from '@/components/UpdateBanner/UpdateBanner'
 import { ApplyProvider, useApply } from '@/lib/ApplyContext'
 import { BottomBarSlot, BottomBarSlotProvider } from '@/lib/BottomBarSlot'
 import * as daemon from '@/lib/daemon'
+import { useUpdateChecker } from '@/lib/hooks/useUpdateChecker'
 import { ToastProvider, useToast } from '@/lib/ToastContext'
 import type {
   ConfigResponse,
@@ -117,6 +120,21 @@ function AppContent() {
   const { onCompleteRef } = useApply()
   const { showToast } = useToast()
 
+  const {
+    updateInfo,
+    isDownloading,
+    downloadProgress,
+    updateDismissed,
+    showApplyBanner,
+    applyBannerDismissed,
+    handleUpdate,
+    handleDismissUpdate,
+    handleDismissApplyBanner,
+    handleApplyFromBanner,
+    setShowApplyBanner,
+    clearApplyBannerDismissal,
+  } = useUpdateChecker(showToast, setCurrentView)
+
   const refreshAfterApply = useCallback(async () => {
     const [doctorResult, statusResult, configResult] = await Promise.all([
       daemon.runDoctor(),
@@ -150,8 +168,11 @@ function AppContent() {
   }, [])
 
   useEffect(() => {
-    onCompleteRef.current = refreshAfterApply
-  }, [onCompleteRef, refreshAfterApply])
+    onCompleteRef.current = () => {
+      refreshAfterApply()
+      clearApplyBannerDismissal()
+    }
+  }, [onCompleteRef, refreshAfterApply, clearApplyBannerDismissal])
 
   useEffect(() => {
     async function init() {
@@ -209,6 +230,12 @@ function AppContent() {
             'error',
           )
         }
+
+        const running = statusResult.data.kyarabenVersion
+        const manifest = statusResult.data.manifestKyarabenVersion
+        if (running && manifest && running !== manifest) {
+          setShowApplyBanner(true)
+        }
       }
 
       const [doctorResult, syncResult] = await Promise.all([
@@ -226,7 +253,7 @@ function AppContent() {
     }
 
     init()
-  }, [showToast])
+  }, [showToast, setShowApplyBanner])
 
   const handleEmulatorToggle = useCallback(
     (emulatorId: EmulatorID, enabled: boolean) => {
@@ -432,6 +459,23 @@ function AppContent() {
 
   return (
     <div className="h-dvh bg-gray-900 flex flex-col overflow-hidden">
+      {updateInfo?.available && !updateDismissed && (
+        <UpdateBanner
+          updateInfo={updateInfo}
+          onUpdate={handleUpdate}
+          onDismiss={handleDismissUpdate}
+          isDownloading={isDownloading}
+          downloadProgress={downloadProgress}
+        />
+      )}
+
+      {showApplyBanner && !applyBannerDismissed && (
+        <ApplyAfterUpdateBanner
+          onApply={handleApplyFromBanner}
+          onDismiss={handleDismissApplyBanner}
+        />
+      )}
+
       <div className="flex-1 flex flex-col min-[720px]:flex-row min-h-0">
         <Sidebar currentView={currentView} onNavigate={setCurrentView} syncStatus={syncStatus} />
         <main className="flex-1 overflow-y-auto">{renderView()}</main>
