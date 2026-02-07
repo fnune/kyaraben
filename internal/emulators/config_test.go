@@ -207,8 +207,8 @@ func TestMelonDSGenerate(t *testing.T) {
 
 	patch := patches[0]
 
-	if patch.Target.Format != model.ConfigFormatINI {
-		t.Errorf("expected INI format, got %s", patch.Target.Format)
+	if patch.Target.Format != model.ConfigFormatTOML {
+		t.Errorf("expected TOML format, got %s", patch.Target.Format)
 	}
 
 	if !strings.Contains(patch.Target.RelPath, "melonDS") {
@@ -252,8 +252,8 @@ func TestFlycastGenerate(t *testing.T) {
 
 	patch := patches[0]
 
-	if patch.Target.Format != model.ConfigFormatCFG {
-		t.Errorf("expected CFG format, got %s", patch.Target.Format)
+	if patch.Target.Format != model.ConfigFormatINI {
+		t.Errorf("expected INI format, got %s", patch.Target.Format)
 	}
 
 	if !strings.Contains(patch.Target.RelPath, "flycast") {
@@ -262,11 +262,12 @@ func TestFlycastGenerate(t *testing.T) {
 
 	// Verify Flycast has all required path settings
 	expectedKeys := map[string]bool{
-		"Flycast.DataPath":      false,
-		"Dreamcast.ContentPath": false,
-		"Dreamcast.SavePath":    false,
-		"SavestatesPath":        false,
-		"ScreenshotsPath":       false,
+		"Flycast.DataPath":        false,
+		"Dreamcast.BiosPath":      false,
+		"Dreamcast.ContentPath":   false,
+		"Dreamcast.SavePath":      false,
+		"Dreamcast.VMUPath":       false,
+		"Dreamcast.SavestatePath": false,
 	}
 
 	for _, entry := range patch.Entries {
