@@ -107,6 +107,7 @@ export interface ChangeSummary {
   readonly total: number
   readonly downloadBytes: number
   readonly freeBytes: number
+  readonly hasConfigChanges: boolean
 }
 
 export function emptyChangeSummary(): ChangeSummary {
@@ -118,6 +119,7 @@ export function emptyChangeSummary(): ChangeSummary {
     total: 0,
     downloadBytes: 0,
     freeBytes: 0,
+    hasConfigChanges: false,
   }
 }
 
@@ -156,4 +158,11 @@ export function addChange(
     downloadBytes: summary.downloadBytes + download,
     freeBytes: summary.freeBytes + free,
   }
+}
+
+export function withConfigChanges(
+  summary: ChangeSummary,
+  hasConfigChanges: boolean,
+): ChangeSummary {
+  return { ...summary, hasConfigChanges }
 }

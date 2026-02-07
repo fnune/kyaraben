@@ -61,9 +61,7 @@ export function PathsModal({
             <div className="space-y-3">
               {managedConfigs.map((config) => (
                 <div key={config.path}>
-                  <code className="block text-xs text-gray-500 mb-1 truncate">
-                    {config.path}
-                  </code>
+                  <code className="block text-xs text-gray-500 mb-1 truncate">{config.path}</code>
                   <div className="bg-gray-700 rounded-sm px-2 py-1.5 space-y-0.5">
                     {config.keys.map((key) => (
                       <div key={key.key} className="flex text-xs gap-2">
