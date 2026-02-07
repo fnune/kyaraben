@@ -57,14 +57,16 @@ export function StickyActionBar({
             )}
           </div>
         )}
-        <button
-          type="button"
-          onClick={handleDiscard}
-          disabled={applying}
-          className="text-blue-400 hover:text-blue-300 hover:underline disabled:opacity-50"
-        >
-          {confirmingDiscard ? 'Click again to confirm' : 'Discard changes'}
-        </button>
+        {changes.hasConfigChanges && (
+          <button
+            type="button"
+            onClick={handleDiscard}
+            disabled={applying}
+            className="text-blue-400 hover:text-blue-300 hover:underline disabled:opacity-50"
+          >
+            {confirmingDiscard ? 'Click again to confirm' : 'Discard changes'}
+          </button>
+        )}
       </div>
 
       <Button onClick={onApply} disabled={applying}>
