@@ -29,7 +29,7 @@ export interface ProgressStep {
   readonly output?: readonly string[]
 }
 
-export type ApplyStatus = 'idle' | 'applying' | 'success' | 'error' | 'cancelled'
+export type ApplyStatus = 'idle' | 'reviewing' | 'applying' | 'success' | 'error' | 'cancelled'
 
 export interface ApplyState {
   readonly status: ApplyStatus

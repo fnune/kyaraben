@@ -4,6 +4,7 @@ import type {
   DoctorResponse,
   FrontendRef,
   InstallStatus,
+  PreflightResponse,
   SetConfigRequest,
   StatusResponse,
   SyncAddDeviceRequest,
@@ -45,6 +46,8 @@ export const setConfig = (config: SetConfigRequest) =>
 export const getStatus = () => invoke<StatusResponse>('status')
 
 export const runDoctor = () => invoke<DoctorResponse>('doctor')
+
+export const preflight = () => invoke<PreflightResponse>('preflight')
 
 export const apply = () => invoke<{ messages: readonly string[]; cancelled: boolean }>('apply')
 

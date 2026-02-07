@@ -224,3 +224,31 @@ type UninstallResponse struct {
 	RemovedFiles []string `json:"removedFiles"`
 	Errors       []string `json:"errors,omitempty"`
 }
+
+type PreflightResponse struct {
+	Diffs         []ConfigFileDiff `json:"diffs"`
+	FilesToBackup []string         `json:"filesToBackup"`
+}
+
+type ConfigFileDiff struct {
+	Path         string               `json:"path"`
+	IsNewFile    bool                 `json:"isNewFile"`
+	HasChanges   bool                 `json:"hasChanges"`
+	UserModified bool                 `json:"userModified"`
+	UserChanges  []UserChangeDetail   `json:"userChanges,omitempty"`
+	Changes      []ConfigChangeDetail `json:"changes,omitempty"`
+}
+
+type UserChangeDetail struct {
+	Key           string `json:"key"`
+	BaselineValue string `json:"baselineValue"`
+	CurrentValue  string `json:"currentValue"`
+}
+
+type ConfigChangeDetail struct {
+	Type     string `json:"type"`
+	Key      string `json:"key"`
+	Section  string `json:"section,omitempty"`
+	OldValue string `json:"oldValue,omitempty"`
+	NewValue string `json:"newValue,omitempty"`
+}
