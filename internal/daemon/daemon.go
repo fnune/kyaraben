@@ -119,6 +119,18 @@ func (d *Daemon) errorResponse(msg string) []Event {
 	}}
 }
 
+// loadManifest loads the manifest, returning a descriptive error if corrupted.
+// Returns a fresh manifest if the file doesn't exist (not an error).
+func (d *Daemon) loadManifest() (*model.Manifest, error) {
+	manifest, err := model.LoadManifest(d.manifestPath)
+	if err != nil {
+		// LoadManifest only returns errors for actual corruption (parse errors),
+		// not for missing files. This is unexpected state that should be reported.
+		return nil, fmt.Errorf("manifest data appears corrupted: %w. Please report this as a bug and run 'kyaraben apply' to restore your configuration", err)
+	}
+	return manifest, nil
+}
+
 func (d *Daemon) loadConfig() (*model.KyarabenConfig, error) {
 	path := d.configPath
 	if path == "" {
@@ -184,6 +196,7 @@ func (d *Daemon) handleStatus() []Event {
 			EnabledSystems:     systems,
 			InstalledEmulators: installedEmulators,
 			LastApplied:        result.LastApplied.Format(time.RFC3339),
+			HealthWarning:      result.HealthWarning,
 		},
 	}}
 }
@@ -623,7 +636,11 @@ func (d *Daemon) handleSyncRemoveDevice(data *SyncRemoveDeviceRequest) []Event {
 }
 
 func (d *Daemon) handleUninstallPreview() []Event {
-	manifest, _ := model.LoadManifest(d.manifestPath)
+	manifest, err := model.LoadManifest(d.manifestPath)
+	if err != nil {
+		log.Error("Failed to load manifest for uninstall preview: %v", err)
+		manifest = model.NewManifest()
+	}
 
 	cfg, err := d.loadConfig()
 	if err != nil {
@@ -721,14 +738,17 @@ func (d *Daemon) handleInstallKyaraben(data *InstallKyarabenRequest) []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	manifest, _ := model.LoadManifest(d.manifestPath)
+	manifest, err := d.loadManifest()
+	if err != nil {
+		return d.errorResponse(err.Error())
+	}
 	manifest.KyarabenInstall = &model.KyarabenInstall{
 		AppPath:     result.AppPath,
 		CLIPath:     result.CLIPath,
 		DesktopPath: result.DesktopPath,
 	}
 	if saveErr := manifest.Save(d.manifestPath); saveErr != nil {
-		log.Debug("Failed to save manifest with install info: %v", saveErr)
+		return d.errorResponse(fmt.Sprintf("failed to save manifest: %v", saveErr))
 	}
 
 	return []Event{{
@@ -738,7 +758,11 @@ func (d *Daemon) handleInstallKyaraben(data *InstallKyarabenRequest) []Event {
 }
 
 func (d *Daemon) handleInstallStatus() []Event {
-	manifest, _ := model.LoadManifest(d.manifestPath)
+	manifest, err := model.LoadManifest(d.manifestPath)
+	if err != nil {
+		log.Error("Failed to load manifest for install status: %v", err)
+		manifest = model.NewManifest()
+	}
 
 	if manifest.KyarabenInstall != nil {
 		ki := manifest.KyarabenInstall
