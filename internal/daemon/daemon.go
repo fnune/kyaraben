@@ -215,17 +215,30 @@ func (d *Daemon) handleStatus() []Event {
 		}
 
 		installed.Paths = make(map[string]EmulatorPaths)
+		emuDef, _ := d.reg.GetEmulator(emu.ID)
 		for sysID, emuIDs := range cfg.Systems {
 			for _, emuID := range emuIDs {
 				if emuID == emu.ID {
-					installed.Paths[string(sysID)] = EmulatorPaths{
-						Roms:        shortenPath(userStore.SystemRomsDir(sysID)),
-						Bios:        shortenPath(userStore.SystemBiosDir(sysID)),
-						Saves:       shortenPath(userStore.SystemSavesDir(sysID)),
-						Savestates:  shortenPath(userStore.EmulatorStatesDir(emu.ID)),
-						Screenshots: shortenPath(userStore.SystemScreenshotsDir(sysID)),
-						Opaque:      shortenPath(userStore.EmulatorOpaqueDir(emu.ID)),
+					paths := EmulatorPaths{
+						Roms: shortenPath(userStore.SystemRomsDir(sysID)),
 					}
+					if emuDef.PathUsage.UsesBiosDir {
+						paths.Bios = shortenPath(userStore.SystemBiosDir(sysID))
+					}
+					if emuDef.PathUsage.UsesSavesDir {
+						paths.Saves = shortenPath(userStore.SystemSavesDir(sysID))
+					}
+					if emuDef.PathUsage.UsesStatesDir {
+						paths.Savestates = shortenPath(userStore.EmulatorStatesDir(emu.ID))
+					}
+					if emuDef.PathUsage.UsesScreenshotsDir {
+						paths.Screenshots = shortenPath(userStore.SystemScreenshotsDir(sysID))
+					}
+					if emuDef.PathUsage.OpaqueContents != "" {
+						paths.Opaque = shortenPath(userStore.EmulatorOpaqueDir(emu.ID))
+						paths.OpaqueContents = emuDef.PathUsage.OpaqueContents
+					}
+					installed.Paths[string(sysID)] = paths
 					break
 				}
 			}

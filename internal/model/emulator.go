@@ -7,6 +7,23 @@ const (
 	PackageSourceAppImage PackageSource = "appimage"
 )
 
+type PathUsage struct {
+	UsesBiosDir        bool
+	UsesSavesDir       bool
+	UsesStatesDir      bool
+	UsesScreenshotsDir bool
+	OpaqueContents     string
+}
+
+func StandardPathUsage() PathUsage {
+	return PathUsage{
+		UsesBiosDir:        true,
+		UsesSavesDir:       true,
+		UsesStatesDir:      true,
+		UsesScreenshotsDir: true,
+	}
+}
+
 type Emulator struct {
 	ID         EmulatorID
 	Name       string
@@ -15,6 +32,7 @@ type Emulator struct {
 	Provisions []Provision
 	StateKinds []StateKind
 	Launcher   LauncherInfo
+	PathUsage  PathUsage
 }
 
 type LauncherInfo struct {

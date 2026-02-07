@@ -30,6 +30,10 @@ func (Definition) Emulator() model.Emulator {
 				return cmd
 			},
 		},
+		PathUsage: model.PathUsage{
+			UsesScreenshotsDir: true,
+			OpaqueContents:     "MemStick (saves, savestates, textures)",
+		},
 	}
 }
 

@@ -34,6 +34,10 @@ func (Definition) Emulator() model.Emulator {
 				return cmd
 			},
 		},
+		PathUsage: model.PathUsage{
+			UsesScreenshotsDir: true,
+			OpaqueContents:     "config, GC memory cards, Wii NAND, savestates",
+		},
 	}
 }
 

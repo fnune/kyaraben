@@ -46,6 +46,7 @@ func (Definition) Emulator() model.Emulator {
 				return cmd
 			},
 		},
+		PathUsage: model.StandardPathUsage(),
 	}
 }
 

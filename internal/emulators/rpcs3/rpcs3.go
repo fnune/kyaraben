@@ -30,6 +30,9 @@ func (Definition) Emulator() model.Emulator {
 				return cmd
 			},
 		},
+		PathUsage: model.PathUsage{
+			OpaqueContents: "dev_hdd0, dev_flash (firmware, saves, game data)",
+		},
 	}
 }
 

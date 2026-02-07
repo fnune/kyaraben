@@ -33,6 +33,9 @@ func (Definition) Emulator() model.Emulator {
 				return cmd
 			},
 		},
+		PathUsage: model.PathUsage{
+			OpaqueContents: "config, ux0 (apps, saves, screenshots)",
+		},
 	}
 }
 

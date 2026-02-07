@@ -53,11 +53,12 @@ export interface ManagedKeyInfo {
 }
 export interface EmulatorPaths {
   roms: string;
-  bios: string;
-  saves: string;
-  states: string;
-  screenshots: string;
+  bios?: string;
+  saves?: string;
+  states?: string;
+  screenshots?: string;
   opaque?: string;
+  opaqueContents?: string;
 }
 export interface InstalledFrontend {
   id: FrontendID;
