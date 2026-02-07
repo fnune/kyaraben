@@ -141,6 +141,18 @@ func UpdateIconCaches(themeDir string) []string {
 		}
 	}
 
+	// Desktop database (freedesktop.org standard)
+	if _, err := exec.LookPath("update-desktop-database"); err == nil {
+		homeDir, _ := os.UserHomeDir()
+		applicationsDir := filepath.Join(homeDir, ".local", "share", "applications")
+		cmd := exec.Command("update-desktop-database", applicationsDir)
+		if err := cmd.Run(); err != nil {
+			log.Debug("update-desktop-database failed: %v", err)
+		} else {
+			refreshed = append(refreshed, "update-desktop-database")
+		}
+	}
+
 	// KDE Plasma
 	for _, kbuildsycoca := range []string{"kbuildsycoca6", "kbuildsycoca5"} {
 		if _, err := exec.LookPath(kbuildsycoca); err == nil {
