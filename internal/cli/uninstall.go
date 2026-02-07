@@ -277,5 +277,11 @@ func waitForProcess(pid int) {
 }
 
 func sendNotification(title, body string) error {
-	return exec.Command("/usr/bin/env", "notify-send", title, body).Run()
+	cmd := exec.Command("/usr/bin/notify-send", title, body)
+	// Use minimal env to avoid nix's LD_LIBRARY_PATH breaking system binaries
+	cmd.Env = []string{
+		"DISPLAY=" + os.Getenv("DISPLAY"),
+		"DBUS_SESSION_BUS_ADDRESS=" + os.Getenv("DBUS_SESSION_BUS_ADDRESS"),
+	}
+	return cmd.Run()
 }
