@@ -10,8 +10,8 @@ import {
 import {
   createFixture,
   EmulatorIDMGBA,
-  setupFakeNixPortable,
   SystemIDGBA,
+  setupFakeNixPortable,
   type TestFixture,
 } from './fixtures'
 
@@ -81,7 +81,10 @@ test.describe('Config conflict review', () => {
             { path: ['ports.qt', 'bios'], value: originalBiosValue },
             { path: ['ports.qt', 'savegamePath'], value: `${fixture.userStore}/saves/gba` },
             { path: ['ports.qt', 'savestatePath'], value: `${fixture.userStore}/states/mgba` },
-            { path: ['ports.qt', 'screenshotPath'], value: `${fixture.userStore}/screenshots/gba` },
+            {
+              path: ['ports.qt', 'screenshotPath'],
+              value: `${fixture.userStore}/screenshots/gba`,
+            },
           ],
         },
       ],
@@ -114,40 +117,28 @@ test.describe('Config conflict review', () => {
     fixture?.cleanup()
   })
 
-  test('clicking Apply shows conflict review when user modified configs', async () => {
+  test('shows conflict review with details and Cancel returns to systems view', async () => {
     // GBA is already enabled. Enable SNES to create a change that shows the Apply button.
     const snesCard = page.getByRole('article').filter({ hasText: 'Super Nintendo' })
-    const toggle = snesCard.getByRole('switch').first()
-    await toggle.click()
+    await snesCard.getByRole('switch').first().click()
 
-    const applyButton = page.getByRole('button', { name: 'Apply' })
-    await expect(applyButton).toBeVisible()
-
-    await applyButton.click()
-
+    await page.getByRole('button', { name: 'Apply' }).click()
     await expect(page.getByText('Config conflicts detected')).toBeVisible({ timeout: 10000 })
-  })
 
-  test('shows conflict details for user-modified file', async () => {
+    // Review screen shows conflict details
     await expect(page.getByText('You modified keys managed by kyaraben')).toBeVisible()
     await expect(page.getByText('mgba/config.ini')).toBeVisible()
-    await expect(page.getByText('Open file')).toBeVisible()
-  })
-
-  test('shows action buttons', async () => {
+    await expect(page.getByRole('button', { name: 'Open file' }).first()).toBeVisible()
     await expect(page.getByRole('button', { name: 'Continue and override' })).toBeVisible()
-    await expect(page.getByText('Cancel')).toBeVisible()
-  })
 
-  test('clicking Cancel returns to systems view', async () => {
-    await page.getByText('Cancel').click()
-
+    // Cancel returns to systems view
+    await page.getByRole('button', { name: 'Cancel' }).click()
     await expect(page.getByText('Emulation folder')).toBeVisible()
     await expect(page.getByText('Config conflicts detected')).not.toBeVisible()
   })
 
-  test('clicking Continue and override proceeds with apply', async () => {
-    // Re-trigger apply — SNES is still toggled on from the earlier test
+  test('Continue and override completes the apply', async () => {
+    // Re-trigger apply — SNES toggle is still on from earlier
     await page.getByRole('button', { name: 'Apply' }).click()
     await expect(page.getByText('Config conflicts detected')).toBeVisible({ timeout: 10000 })
 
@@ -156,15 +147,9 @@ test.describe('Config conflict review', () => {
     await expect(
       page.getByText(/Applying configuration|Installing emulators|Setting up/).first(),
     ).toBeVisible({ timeout: 5000 })
-  })
 
-  test('apply completes and shows Done button', async () => {
     await expect(page.getByRole('button', { name: 'Done' })).toBeVisible({ timeout: 30000 })
-  })
-
-  test('clicking Done returns to systems view', async () => {
     await page.getByRole('button', { name: 'Done' }).click()
-
     await expect(page.getByText('Emulation folder')).toBeVisible()
   })
 })
