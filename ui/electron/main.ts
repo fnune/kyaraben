@@ -4,6 +4,7 @@ import * as os from 'node:os'
 import * as path from 'node:path'
 import * as readline from 'node:readline'
 import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron'
+import { checkForUpdates, downloadUpdate } from './updater'
 
 // Set userData to XDG state directory instead of config
 const stateDir = process.env.XDG_STATE_HOME || path.join(os.homedir(), '.local', 'state')
@@ -518,6 +519,43 @@ function setupIpcHandlers(): void {
       osRelease: os.release(),
       stateDir: stateInfo,
     }
+  })
+
+  ipcMain.handle('check_for_updates', async () => {
+    return await checkForUpdates()
+  })
+
+  ipcMain.handle('download_update', async (_, url: string) => {
+    try {
+      const tempPath = await downloadUpdate(url, (percent) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('update:progress', { percent })
+        }
+      })
+      return { success: true, path: tempPath }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  ipcMain.handle('apply_update', async (_, tempPath: string) => {
+    const sidecarPath = findSidecarPath()
+
+    const event = await sendCommand({
+      type: 'install_kyaraben',
+      data: { appImagePath: tempPath, sidecarPath },
+    })
+
+    if (event.type === 'error') {
+      return {
+        success: false,
+        error: (event.data as { error?: string })?.error || 'Install failed',
+      }
+    }
+
+    app.relaunch()
+    app.exit(0)
+    return { success: true }
   })
 }
 

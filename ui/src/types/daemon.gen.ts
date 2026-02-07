@@ -34,6 +34,8 @@ export interface StatusResponse {
   installedFrontends: InstalledFrontend[];
   lastApplied: string;
   healthWarning?: string;
+  kyarabenVersion: string;
+  manifestKyarabenVersion?: string;
 }
 export interface InstalledEmulator {
   id: EmulatorID;

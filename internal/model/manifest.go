@@ -14,6 +14,7 @@ import (
 // Manifest tracks what kyaraben has installed and configured.
 type Manifest struct {
 	Version            int                              `json:"version"`
+	KyarabenVersion    string                           `json:"kyaraben_version,omitempty"`
 	LastApplied        time.Time                        `json:"last_applied"`
 	InstalledEmulators map[EmulatorID]InstalledEmulator `json:"installed_emulators"`
 	InstalledFrontends map[FrontendID]InstalledFrontend `json:"installed_frontends,omitempty"`

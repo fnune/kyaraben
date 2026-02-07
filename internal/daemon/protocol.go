@@ -36,12 +36,14 @@ type ErrorResponse struct {
 }
 
 type StatusResponse struct {
-	UserStore          string              `json:"userStore"`
-	EnabledSystems     []model.SystemID    `json:"enabledSystems"`
-	InstalledEmulators []InstalledEmulator `json:"installedEmulators"`
-	InstalledFrontends []InstalledFrontend `json:"installedFrontends"`
-	LastApplied        string              `json:"lastApplied"`
-	HealthWarning      string              `json:"healthWarning,omitempty"`
+	UserStore               string              `json:"userStore"`
+	EnabledSystems          []model.SystemID    `json:"enabledSystems"`
+	InstalledEmulators      []InstalledEmulator `json:"installedEmulators"`
+	InstalledFrontends      []InstalledFrontend `json:"installedFrontends"`
+	LastApplied             string              `json:"lastApplied"`
+	HealthWarning           string              `json:"healthWarning,omitempty"`
+	KyarabenVersion         string              `json:"kyarabenVersion"`
+	ManifestKyarabenVersion string              `json:"manifestKyarabenVersion,omitempty"`
 }
 
 type InstalledEmulator struct {

@@ -198,13 +198,12 @@ from any system-level Nix installation.
 
 ## Updating
 
-Kyaraben bundles emulator version information in each release. To get newer
-emulator versions, update kyaraben itself by downloading a new AppImage from
-the releases page.
+Kyaraben checks for updates automatically shortly after startup. When a new
+version is available, a banner appears offering to download and install it.
+You can also check for updates manually in the Installation tab.
 
-:::caution[Work in progress]
-Automatic self-updates for kyaraben are planned but not yet implemented.
-:::
+After updating, kyaraben prompts you to run Apply to get any new emulator
+configurations included in the update. This is optional but recommended.
 
 ## Non-goals
 
@@ -217,7 +216,6 @@ Automatic self-updates for kyaraben are planned but not yet implemented.
 ## Future plans
 
 - Controller configuration abstraction
-- Automatic self-updates for kyaraben
 - EmulationStation-DE as a non-Steam application for Steam Deck game mode
 - Conservative expansion of managed emulator settings
 - Save sync across devices (see [save sync](/sync/))
