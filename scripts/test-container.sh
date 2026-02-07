@@ -46,8 +46,8 @@ run_quick() {
         kyaraben apply --dry-run
 
         echo ""
-        echo "4. Re-init with different systems..."
-        kyaraben init -u ~/Emulation -s snes -s psx -f
+        echo "4. Re-init with force..."
+        kyaraben init -u ~/Emulation -f
 
         echo ""
         echo "5. Check doctor with PSX (will show missing BIOS)..."
