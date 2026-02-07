@@ -10,6 +10,7 @@ import {
 import * as daemon from '@/lib/daemon'
 import { installApp } from '@/lib/daemon'
 import { useToast } from '@/lib/ToastContext'
+import type { PreflightResponse } from '@/types/daemon'
 import type { ApplyStatus, ProgressStep } from '@/types/ui'
 
 const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
@@ -27,11 +28,17 @@ interface ApplyConfig {
   frontends?: Record<string, { enabled: boolean; version?: string }>
 }
 
+function hasConflicts(data: PreflightResponse): boolean {
+  return data.diffs.some((d) => d.userModified && d.hasChanges && (d.userChanges?.length ?? 0) > 0)
+}
+
 interface ApplyContextValue {
   status: ApplyStatus
   progressSteps: readonly ProgressStep[]
   error: string | null
+  preflightData: PreflightResponse | null
   apply: (config: ApplyConfig) => Promise<boolean>
+  confirmApply: () => Promise<boolean>
   cancel: () => Promise<void>
   reset: () => void
   onCompleteRef: MutableRefObject<(() => void) | null>
@@ -43,28 +50,15 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<ApplyStatus>('idle')
   const [progressSteps, setProgressSteps] = useState<readonly ProgressStep[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [preflightData, setPreflightData] = useState<PreflightResponse | null>(null)
   const progressHandlerRef = useRef<((...args: unknown[]) => void) | null>(null)
   const onCompleteRef = useRef<(() => void) | null>(null)
   const { showToast } = useToast()
 
-  const apply = useCallback(
-    async (config: ApplyConfig): Promise<boolean> => {
+  const runApply = useCallback(
+    async (): Promise<boolean> => {
       setStatus('applying')
       setProgressSteps([])
-      setError(null)
-
-      const configResult = await daemon.setConfig({
-        userStore: config.userStore,
-        systems: config.systems,
-        emulators: config.emulators,
-        ...(config.frontends && { frontends: config.frontends }),
-      })
-
-      if (!configResult.ok) {
-        setError(configResult.error.message)
-        setStatus('error')
-        return false
-      }
 
       const MAX_OUTPUT_LINES = 10000
 
@@ -162,6 +156,51 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
     [showToast],
   )
 
+  const apply = useCallback(
+    async (config: ApplyConfig): Promise<boolean> => {
+      setError(null)
+      setPreflightData(null)
+
+      const configResult = await daemon.setConfig({
+        userStore: config.userStore,
+        systems: config.systems,
+        emulators: config.emulators,
+        ...(config.frontends && { frontends: config.frontends }),
+      })
+
+      if (!configResult.ok) {
+        setError(configResult.error.message)
+        setStatus('error')
+        return false
+      }
+
+      const preflightResult = await daemon.preflight()
+
+      if (!preflightResult.ok) {
+        setError(preflightResult.error.message)
+        setStatus('error')
+        return false
+      }
+
+      if (hasConflicts(preflightResult.data)) {
+        setPreflightData(preflightResult.data)
+        setStatus('reviewing')
+        return false
+      }
+
+      return runApply()
+    },
+    [runApply],
+  )
+
+  const confirmApply = useCallback(
+    async (): Promise<boolean> => {
+      setPreflightData(null)
+      return runApply()
+    },
+    [runApply],
+  )
+
   const cancel = useCallback(async () => {
     await daemon.cancelApply()
   }, [])
@@ -170,11 +209,22 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
     setStatus('idle')
     setProgressSteps([])
     setError(null)
+    setPreflightData(null)
   }, [])
 
   return (
     <ApplyContext.Provider
-      value={{ status, progressSteps, error, apply, cancel, reset, onCompleteRef }}
+      value={{
+        status,
+        progressSteps,
+        error,
+        preflightData,
+        apply,
+        confirmApply,
+        cancel,
+        reset,
+        onCompleteRef,
+      }}
     >
       {children}
     </ApplyContext.Provider>

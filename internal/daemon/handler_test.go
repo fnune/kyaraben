@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/versions"
@@ -274,6 +275,82 @@ func TestHandleGetSystems_PopulatesPackageNameAndCoreBytes(t *testing.T) {
 
 	if !foundRetroArchEmulator {
 		t.Error("expected to find at least one RetroArch emulator")
+	}
+}
+
+type fakeBaseDirResolver struct {
+	root string
+}
+
+func (f fakeBaseDirResolver) UserConfigDir() (string, error) {
+	return filepath.Join(f.root, ".config"), nil
+}
+
+func (f fakeBaseDirResolver) UserHomeDir() (string, error) {
+	return f.root, nil
+}
+
+func (f fakeBaseDirResolver) UserDataDir() (string, error) {
+	return filepath.Join(f.root, ".local", "share"), nil
+}
+
+func TestHandlePreflight_ReturnsPreflightResponse(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.toml")
+	stateDir := filepath.Join(tmpDir, "state")
+	manifestPath := filepath.Join(tmpDir, "state", "build", "manifest.json")
+
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{
+			UserStore: filepath.Join(tmpDir, "Emulation"),
+		},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDGBA: {model.EmulatorIDMGBA},
+		},
+	}
+	if err := model.SaveConfig(cfg, configPath); err != nil {
+		t.Fatalf("saving config: %v", err)
+	}
+
+	reg := registry.NewDefault()
+	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
+	d := New(configPath, stateDir, manifestPath, reg, nil, nil, configWriter, nil)
+
+	events := d.Handle(Command{Type: CommandTypePreflight})
+	if len(events) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(events))
+	}
+
+	event := events[0]
+	if event.Type != EventTypeResult {
+		t.Fatalf("expected result event, got %s", event.Type)
+	}
+
+	resp, ok := event.Data.(PreflightResponse)
+	if !ok {
+		t.Fatalf("expected PreflightResponse, got %T", event.Data)
+	}
+
+	if resp.Diffs == nil {
+		t.Error("expected diffs to be non-nil")
+	}
+}
+
+func TestHandlePreflight_NoConfig(t *testing.T) {
+	d := newTestDaemon(t, nil)
+
+	events := d.Handle(Command{Type: CommandTypePreflight})
+	if len(events) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(events))
+	}
+
+	resp, ok := events[0].Data.(PreflightResponse)
+	if !ok {
+		t.Fatalf("expected PreflightResponse, got %T", events[0].Data)
+	}
+
+	if len(resp.Diffs) != 0 {
+		t.Errorf("expected 0 diffs for empty config, got %d", len(resp.Diffs))
 	}
 }
 
