@@ -167,9 +167,8 @@ func (c *Config) buildCommand(ctx model.FrontendContext, emuID model.EmulatorID)
 
 	binary := filepath.Join(ctx.BinDir, emu.Launcher.Binary)
 
-	if isRetroArchCore(emuID) {
-		coreName := retroArchCoreName(emuID)
-		return fmt.Sprintf("%s -L %s %%ROM%%", binary, coreName)
+	if emu.Launcher.RomArgs != "" {
+		return binary + " " + emu.Launcher.RomArgs
 	}
 
 	return fmt.Sprintf("%s %%ROM%%", binary)
@@ -182,32 +181,4 @@ func formatExtensions(exts []string) string {
 		result = append(result, strings.ToUpper(ext))
 	}
 	return strings.Join(result, " ")
-}
-
-func isRetroArchCore(emuID model.EmulatorID) bool {
-	switch emuID {
-	case model.EmulatorIDRetroArchBsnes,
-		model.EmulatorIDRetroArchMesen,
-		model.EmulatorIDRetroArchGenesisPlusGX,
-		model.EmulatorIDRetroArchMupen64Plus,
-		model.EmulatorIDRetroArchBeetleSaturn:
-		return true
-	}
-	return false
-}
-
-func retroArchCoreName(emuID model.EmulatorID) string {
-	switch emuID {
-	case model.EmulatorIDRetroArchBsnes:
-		return "bsnes_libretro"
-	case model.EmulatorIDRetroArchMesen:
-		return "mesen_libretro"
-	case model.EmulatorIDRetroArchGenesisPlusGX:
-		return "genesis_plus_gx_libretro"
-	case model.EmulatorIDRetroArchMupen64Plus:
-		return "mupen64plus_next_libretro"
-	case model.EmulatorIDRetroArchBeetleSaturn:
-		return "mednafen_saturn_libretro"
-	}
-	return ""
 }
