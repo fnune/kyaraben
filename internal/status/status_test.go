@@ -298,7 +298,7 @@ func TestGetManagedConfigsIncludesKeys(t *testing.T) {
 		},
 		ManagedConfigs: []model.ManagedConfig{
 			{
-				EmulatorID: model.EmulatorIDMGBA,
+				EmulatorIDs: []model.EmulatorID{model.EmulatorIDMGBA},
 				Target: model.ConfigTarget{
 					RelPath: "mgba/config.ini",
 					BaseDir: model.ConfigBaseDirUserConfig,
@@ -372,15 +372,15 @@ func TestGetRetroArchCoreIncludesSharedConfig(t *testing.T) {
 		},
 		ManagedConfigs: []model.ManagedConfig{
 			{
-				EmulatorID: model.EmulatorIDRetroArchMesen,
-				Target:     retroarch.MainConfigTarget,
+				EmulatorIDs: []model.EmulatorID{model.EmulatorIDRetroArchBsnes, model.EmulatorIDRetroArchMesen},
+				Target:      retroarch.MainConfigTarget,
 				ManagedKeys: []model.ManagedKey{
 					{Path: []string{"system_directory"}, Value: "/test/bios"},
 					{Path: []string{"sort_savefiles_enable"}, Value: "false"},
 				},
 			},
 			{
-				EmulatorID: model.EmulatorIDRetroArchBsnes,
+				EmulatorIDs: []model.EmulatorID{model.EmulatorIDRetroArchBsnes},
 				Target: model.ConfigTarget{
 					RelPath: "retroarch/config/bsnes_libretro/bsnes_libretro.cfg",
 					BaseDir: model.ConfigBaseDirUserConfig,
@@ -390,7 +390,7 @@ func TestGetRetroArchCoreIncludesSharedConfig(t *testing.T) {
 				},
 			},
 			{
-				EmulatorID: model.EmulatorIDRetroArchMesen,
+				EmulatorIDs: []model.EmulatorID{model.EmulatorIDRetroArchMesen},
 				Target: model.ConfigTarget{
 					RelPath: "retroarch/config/mesen_libretro/mesen_libretro.cfg",
 					BaseDir: model.ConfigBaseDirUserConfig,

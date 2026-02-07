@@ -216,11 +216,13 @@ func TestManifest_AddManagedConfig(t *testing.T) {
 	m := NewManifest()
 
 	cfg := ManagedConfig{
-		EmulatorID:   "emu1",
+		EmulatorIDs:  []EmulatorID{"emu1"},
 		Target:       ConfigTarget{RelPath: "config.ini"},
 		BaselineHash: "hash1",
 	}
-	m.AddManagedConfig(cfg)
+	if err := m.AddManagedConfig(cfg); err != nil {
+		t.Fatalf("AddManagedConfig failed: %v", err)
+	}
 
 	if len(m.ManagedConfigs) != 1 {
 		t.Fatalf("ManagedConfigs has %d entries, want 1", len(m.ManagedConfigs))
@@ -231,23 +233,34 @@ func TestManifest_AddManagedConfig(t *testing.T) {
 	}
 }
 
-func TestManifest_AddManagedConfig_UpdatesExisting(t *testing.T) {
+func TestManifest_AddManagedConfig_MergesEmulatorIDs(t *testing.T) {
 	m := NewManifest()
 	target := ConfigTarget{RelPath: "config.ini", BaseDir: ConfigBaseDirUserConfig}
+	keys := []ManagedKey{{Path: []string{"key"}, Value: "value"}}
 
-	m.AddManagedConfig(ManagedConfig{
-		EmulatorID:   "emu1",
+	if err := m.AddManagedConfig(ManagedConfig{
+		EmulatorIDs:  []EmulatorID{"emu1"},
 		Target:       target,
 		BaselineHash: "hash1",
-	})
-	m.AddManagedConfig(ManagedConfig{
-		EmulatorID:   "emu1",
+		ManagedKeys:  keys,
+	}); err != nil {
+		t.Fatalf("AddManagedConfig failed: %v", err)
+	}
+	if err := m.AddManagedConfig(ManagedConfig{
+		EmulatorIDs:  []EmulatorID{"emu2"},
 		Target:       target,
 		BaselineHash: "hash2",
-	})
+		ManagedKeys:  keys,
+	}); err != nil {
+		t.Fatalf("AddManagedConfig failed: %v", err)
+	}
 
 	if len(m.ManagedConfigs) != 1 {
 		t.Fatalf("ManagedConfigs has %d entries, want 1", len(m.ManagedConfigs))
+	}
+
+	if len(m.ManagedConfigs[0].EmulatorIDs) != 2 {
+		t.Errorf("EmulatorIDs has %d entries, want 2", len(m.ManagedConfigs[0].EmulatorIDs))
 	}
 
 	if m.ManagedConfigs[0].BaselineHash != "hash2" {
@@ -259,11 +272,13 @@ func TestManifest_GetManagedConfig(t *testing.T) {
 	m := NewManifest()
 	target := ConfigTarget{RelPath: "config.ini", BaseDir: ConfigBaseDirUserConfig}
 
-	m.AddManagedConfig(ManagedConfig{
-		EmulatorID:   "emu1",
+	if err := m.AddManagedConfig(ManagedConfig{
+		EmulatorIDs:  []EmulatorID{"emu1"},
 		Target:       target,
 		BaselineHash: "hash1",
-	})
+	}); err != nil {
+		t.Fatalf("AddManagedConfig failed: %v", err)
+	}
 
 	cfg, ok := m.GetManagedConfig(target)
 	if !ok {
@@ -287,17 +302,17 @@ func TestManifest_GetManagedConfigsForEmulator(t *testing.T) {
 		t.Errorf("expected empty slice, got %d configs", len(configs))
 	}
 
-	m.AddManagedConfig(ManagedConfig{
-		EmulatorID: "emu1",
-		Target:     ConfigTarget{RelPath: "config1.ini"},
+	_ = m.AddManagedConfig(ManagedConfig{
+		EmulatorIDs: []EmulatorID{"emu1"},
+		Target:      ConfigTarget{RelPath: "config1.ini"},
 	})
-	m.AddManagedConfig(ManagedConfig{
-		EmulatorID: "emu1",
-		Target:     ConfigTarget{RelPath: "config2.ini"},
+	_ = m.AddManagedConfig(ManagedConfig{
+		EmulatorIDs: []EmulatorID{"emu1"},
+		Target:      ConfigTarget{RelPath: "config2.ini"},
 	})
-	m.AddManagedConfig(ManagedConfig{
-		EmulatorID: "emu2",
-		Target:     ConfigTarget{RelPath: "other.ini"},
+	_ = m.AddManagedConfig(ManagedConfig{
+		EmulatorIDs: []EmulatorID{"emu2"},
+		Target:      ConfigTarget{RelPath: "other.ini"},
 	})
 
 	configs = m.GetManagedConfigsForEmulator("emu1")
@@ -313,5 +328,51 @@ func TestManifest_GetManagedConfigsForEmulator(t *testing.T) {
 	configs = m.GetManagedConfigsForEmulator("emu3")
 	if len(configs) != 0 {
 		t.Errorf("expected 0 configs for emu3, got %d", len(configs))
+	}
+}
+
+func TestManifest_AddManagedConfig_ErrorOnConflictingKeys(t *testing.T) {
+	m := NewManifest()
+	target := ConfigTarget{RelPath: "shared.cfg", BaseDir: ConfigBaseDirUserConfig}
+
+	if err := m.AddManagedConfig(ManagedConfig{
+		EmulatorIDs: []EmulatorID{"emu1"},
+		Target:      target,
+		ManagedKeys: []ManagedKey{{Path: []string{"key"}, Value: "value1"}},
+	}); err != nil {
+		t.Fatalf("first AddManagedConfig failed: %v", err)
+	}
+
+	err := m.AddManagedConfig(ManagedConfig{
+		EmulatorIDs: []EmulatorID{"emu2"},
+		Target:      target,
+		ManagedKeys: []ManagedKey{{Path: []string{"key"}, Value: "different_value"}},
+	})
+
+	if err == nil {
+		t.Error("expected error for conflicting ManagedKeys, got nil")
+	}
+}
+
+func TestManifest_GetManagedConfigsForEmulator_SharedConfig(t *testing.T) {
+	m := NewManifest()
+
+	_ = m.AddManagedConfig(ManagedConfig{
+		EmulatorIDs: []EmulatorID{"emu1", "emu2"},
+		Target:      ConfigTarget{RelPath: "shared.cfg"},
+	})
+	_ = m.AddManagedConfig(ManagedConfig{
+		EmulatorIDs: []EmulatorID{"emu1"},
+		Target:      ConfigTarget{RelPath: "emu1-only.cfg"},
+	})
+
+	configs := m.GetManagedConfigsForEmulator("emu1")
+	if len(configs) != 2 {
+		t.Errorf("expected 2 configs for emu1 (shared + own), got %d", len(configs))
+	}
+
+	configs = m.GetManagedConfigsForEmulator("emu2")
+	if len(configs) != 1 {
+		t.Errorf("expected 1 config for emu2 (shared only), got %d", len(configs))
 	}
 }

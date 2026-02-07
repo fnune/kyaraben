@@ -449,7 +449,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		}
 
 		newManagedConfigs = append(newManagedConfigs, model.ManagedConfig{
-			EmulatorID:   patchEmulators[i],
+			EmulatorIDs:  []model.EmulatorID{patchEmulators[i]},
 			Target:       patch.Target,
 			BaselineHash: configResults[i].BaselineHash,
 			LastModified: now,
@@ -468,11 +468,14 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		enabledEmuSet[emuID] = true
 	}
 
-	// Filter out ManagedConfigs for emulators that are no longer enabled
+	// Filter out ManagedConfigs where no emulator is still enabled
 	filteredConfigs := make([]model.ManagedConfig, 0, len(manifest.ManagedConfigs))
 	for _, cfg := range manifest.ManagedConfigs {
-		if enabledEmuSet[cfg.EmulatorID] {
-			filteredConfigs = append(filteredConfigs, cfg)
+		for _, emuID := range cfg.EmulatorIDs {
+			if enabledEmuSet[emuID] {
+				filteredConfigs = append(filteredConfigs, cfg)
+				break
+			}
 		}
 	}
 	manifest.ManagedConfigs = filteredConfigs
@@ -481,7 +484,9 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	manifest.InstalledEmulators = newInstalledEmulators
 	manifest.InstalledFrontends = newInstalledFrontends
 	for _, cfg := range newManagedConfigs {
-		manifest.AddManagedConfig(cfg)
+		if err := manifest.AddManagedConfig(cfg); err != nil {
+			return nil, fmt.Errorf("adding managed config: %w", err)
+		}
 	}
 
 	if err := manifest.SaveWithBackup(a.ManifestPath); err != nil {

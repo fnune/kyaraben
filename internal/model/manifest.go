@@ -52,7 +52,7 @@ type ManagedKey struct {
 }
 
 type ManagedConfig struct {
-	EmulatorID   EmulatorID   `json:"emulator_id"`
+	EmulatorIDs  []EmulatorID `json:"emulator_ids"`
 	Target       ConfigTarget `json:"target"`
 	BaselineHash string       `json:"baseline_hash"`
 	LastModified time.Time    `json:"last_modified"`
@@ -177,14 +177,56 @@ func (m *Manifest) GetFrontend(id FrontendID) (InstalledFrontend, bool) {
 	return fe, ok
 }
 
-func (m *Manifest) AddManagedConfig(cfg ManagedConfig) {
+func (m *Manifest) AddManagedConfig(cfg ManagedConfig) error {
 	for i, existing := range m.ManagedConfigs {
 		if existing.Target == cfg.Target {
-			m.ManagedConfigs[i] = cfg
-			return
+			if !managedKeysEqual(existing.ManagedKeys, cfg.ManagedKeys) {
+				return fmt.Errorf("conflicting ManagedKeys for config %s", cfg.Target.RelPath)
+			}
+			m.ManagedConfigs[i].EmulatorIDs = appendUniqueEmulatorIDs(existing.EmulatorIDs, cfg.EmulatorIDs...)
+			m.ManagedConfigs[i].BaselineHash = cfg.BaselineHash
+			m.ManagedConfigs[i].LastModified = cfg.LastModified
+			return nil
 		}
 	}
 	m.ManagedConfigs = append(m.ManagedConfigs, cfg)
+	return nil
+}
+
+func managedKeysEqual(a, b []ManagedKey) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i].Value != b[i].Value {
+			return false
+		}
+		if len(a[i].Path) != len(b[i].Path) {
+			return false
+		}
+		for j := range a[i].Path {
+			if a[i].Path[j] != b[i].Path[j] {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func appendUniqueEmulatorIDs(slice []EmulatorID, elems ...EmulatorID) []EmulatorID {
+	for _, e := range elems {
+		found := false
+		for _, s := range slice {
+			if s == e {
+				found = true
+				break
+			}
+		}
+		if !found {
+			slice = append(slice, e)
+		}
+	}
+	return slice
 }
 
 func (m *Manifest) GetEmulator(id EmulatorID) (InstalledEmulator, bool) {
@@ -204,8 +246,11 @@ func (m *Manifest) GetManagedConfig(target ConfigTarget) (ManagedConfig, bool) {
 func (m *Manifest) GetManagedConfigsForEmulator(emuID EmulatorID) []ManagedConfig {
 	var configs []ManagedConfig
 	for _, cfg := range m.ManagedConfigs {
-		if cfg.EmulatorID == emuID {
-			configs = append(configs, cfg)
+		for _, id := range cfg.EmulatorIDs {
+			if id == emuID {
+				configs = append(configs, cfg)
+				break
+			}
 		}
 	}
 	return configs

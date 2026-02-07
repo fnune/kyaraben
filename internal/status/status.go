@@ -4,10 +4,8 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
-	"github.com/fnune/kyaraben/internal/emulators/retroarch"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/paths"
 	"github.com/fnune/kyaraben/internal/registry"
@@ -112,24 +110,6 @@ func Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg 
 				})
 			}
 			info.ManagedConfigs = append(info.ManagedConfigs, configInfo)
-		}
-
-		if strings.HasPrefix(string(emu.ID), "retroarch:") {
-			if sharedCfg, ok := manifest.GetManagedConfig(retroarch.MainConfigTarget); ok {
-				if sharedCfg.EmulatorID != emu.ID {
-					path, err := sharedCfg.Target.Resolve()
-					if err == nil {
-						configInfo := ManagedConfigInfo{Path: path}
-						for _, key := range sharedCfg.ManagedKeys {
-							configInfo.Keys = append(configInfo.Keys, ManagedKeyInfo{
-								Key:   key.Path[len(key.Path)-1],
-								Value: key.Value,
-							})
-						}
-						info.ManagedConfigs = append(info.ManagedConfigs, configInfo)
-					}
-				}
-			}
 		}
 
 		result.InstalledEmulators = append(result.InstalledEmulators, info)

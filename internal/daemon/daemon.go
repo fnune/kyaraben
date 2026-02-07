@@ -224,6 +224,7 @@ func (d *Daemon) handleStatus() []Event {
 						Saves:       shortenPath(userStore.SystemSavesDir(sysID)),
 						Savestates:  shortenPath(userStore.EmulatorStatesDir(emu.ID)),
 						Screenshots: shortenPath(userStore.SystemScreenshotsDir(sysID)),
+						Opaque:      shortenPath(userStore.EmulatorOpaqueDir(emu.ID)),
 					}
 					break
 				}
