@@ -1,6 +1,6 @@
 ---
-title: Development guide
-description: Contributing to kyaraben
+title: Contributing
+description: Development setup, architecture, and conventions
 ---
 
 ## Development setup
@@ -35,6 +35,7 @@ just test         # Run Go tests
 just lint         # Run Go linter
 just fmt          # Format all code
 just check        # Run all checks (lint + test + typecheck)
+just site-dev     # Run the documentation site locally
 ```
 
 See `just --list` for all available tasks.
@@ -180,8 +181,9 @@ When adding support for an emulator, follow this priority order:
 3. For RetroArch cores, use the RetroArch buildbot archive.
 4. If no viable option exists, skip the system and document the blocker.
 
-Rejected formats: Flatpak, Snap, distribution packages (.deb, .rpm). These
-conflict with kyaraben's management model.
+Rejected formats: Flatpak and Snap require system integration we do not want to
+force on users. Distribution packages (.deb, .rpm) could theoretically work by
+extracting their assets, but AppImages are preferred for simplicity.
 
 ## Dependency management
 

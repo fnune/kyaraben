@@ -1,0 +1,223 @@
+---
+title: App reference
+description: How to use the kyaraben UI, what it does under the hood, and what it guarantees
+---
+
+import UserStore from "../../components/UserStore.astro";
+
+## Selecting systems and emulators
+
+The main screen shows all available systems. Check a system to enable it,
+uncheck to disable. Each system shows its available emulators.
+
+{/* Screenshot: v0.1-app-system-picker.png - System picker with emulator details */}
+
+## Checking BIOS and firmware status
+
+Some systems require BIOS or firmware files. The provisions panel shows which
+files are needed, whether they are found, and whether they pass hash
+verification. Kyaraben does not distribute these files.
+
+{/* Screenshot: v0.1-app-doctor-view.png - Provisions panel showing BIOS status */}
+
+## Applying changes
+
+Click apply. If there are conflicts with your existing configuration, kyaraben
+shows a preflight check with the exact changes it will make: which config files
+are created, modified, or left unchanged, with line-by-line diffs.
+
+{/* Screenshot: v0.1-app-preflight.png - Preflight diff view */}
+
+When you confirm, kyaraben:
+
+1. Fetches emulator packages (from a binary cache, so downloads are fast)
+2. Installs emulator binaries to kyaraben-managed directories
+3. Generates or updates emulator configuration files
+4. Creates the folder structure in your <UserStore />
+5. Creates `.desktop` entries for each emulator
+6. Updates the manifest tracking what was installed
+
+If apply fails partway through, the previous state remains intact. The
+manifest is only updated after all steps succeed.
+
+## Browsing and launching games
+
+Kyaraben can install [EmulationStation-DE](https://es-de.org/) as a frontend
+for browsing and launching your games. Enable it in the settings. ES-DE scans
+your ROM directories and provides a unified game launcher with metadata
+scraping, media art, and controller-friendly navigation.
+
+{/* Screenshot: v0.1-app-esde-option.png - ES-DE option in settings */}
+
+:::caution[Work in progress]
+Adding EmulationStation-DE to Steam as a non-Steam application (for launching
+from Steam Deck game mode) is planned but not yet implemented.
+:::
+
+## Observability
+
+Kyaraben tracks everything it does.
+
+### Preflight diffs
+
+Before applying, you see exactly which config files change and how. The CLI
+shows line-by-line diffs with color-coded additions, modifications, and
+removals. The UI shows equivalent information.
+
+### What kyaraben installs and where
+
+Kyaraben installs emulators and tools into kyaraben-managed directories:
+
+- Emulator binaries: `~/.local/share/kyaraben/`
+- Desktop entries: `~/.local/share/applications/kyaraben/`
+- CLI tools: `~/.local/bin/kyaraben`, `~/.local/bin/kyaraben-ui`
+
+This means kyaraben does not overwrite emulators you installed from other
+sources. The `.desktop` entries kyaraben creates are configured to use
+kyaraben's managed paths.
+
+Emulators themselves may create additional files in their default config
+locations (shader caches, input profiles, logs). Kyaraben does not manage
+these.
+
+## Managed config keys
+
+Kyaraben manages specific keys in emulator configuration files. These are
+path settings that point emulators to your <UserStore />:
+
+- ROM directories
+- BIOS search paths
+- Save file directories
+- Save state directories
+- Screenshot directories
+
+Kyaraben uses the emulators' default config file locations. For example,
+RetroArch at `~/.config/retroarch/retroarch.cfg` and DuckStation at
+`~/.config/duckstation/settings.ini`.
+
+### What you control
+
+Kyaraben only manages keys it needs for <UserStore /> integration. All other
+settings (resolution, shaders, audio, display) are yours to configure freely
+in each emulator.
+
+When you apply, kyaraben uses a three-way merge to preserve your changes:
+
+1. It compares what it last wrote (the baseline) with what is currently on disk
+2. If you changed a key that kyaraben does not manage, your change is preserved
+3. If you changed a managed key, kyaraben warns you before overwriting
+
+You can customize emulator settings through their own UIs without losing
+changes when you apply again.
+
+### Kyaraben as the emulator config manager
+
+Kyaraben expects to be the sole manager of emulator configuration files. If
+you use another tool (like EmuDeck) that also writes to the same config files,
+the two will conflict.
+
+You can install the same emulators from other sources since kyaraben installs
+its own copies to kyaraben-managed directories. However, they share the same
+config files at default paths, and kyaraben will overwrite managed keys on
+apply.
+
+## The emulation directory
+
+Your <UserStore /> (default `~/Emulation`) has a consistent structure:
+
+```
+~/Emulation/
+├── roms/              # Your ROM files, organized by system
+│   ├── snes/
+│   ├── psx/
+│   └── ...
+├── bios/              # BIOS and firmware files, organized by system
+│   ├── psx/
+│   └── ...
+├── saves/             # Save files (memory cards, battery saves)
+│   └── (per-system)
+├── states/            # Emulator save states
+│   └── (per-emulator)
+├── screenshots/       # Captured screenshots
+│   └── (per-system)
+└── opaque/            # Emulators with complex internal structures
+    ├── eden/
+    ├── rpcs3/
+    └── ...
+```
+
+Some emulators have complex internal directory structures that do not fit the
+`saves/states` model (Eden for Switch, RPCS3 for PS3, PPSSPP for PSP). These
+use an `opaque/` directory where the emulator manages its own layout. Kyaraben
+points the emulator at this directory and syncs it as a unit.
+
+## Under the hood
+
+Kyaraben uses [nix-portable](https://github.com/DavHau/nix-portable) to
+install emulators reproducibly and in isolation. Nix is a package manager that
+identifies every package by a cryptographic hash of its inputs, so the same
+configuration always produces the same result.
+
+You never interact with Nix directly. It is an implementation detail bundled
+inside the AppImage. If you have Nix installed on your system, kyaraben does
+not interfere with it. Kyaraben uses its own Nix store, completely separate
+from any system-level Nix installation.
+
+## Guarantees
+
+### Installation
+
+- Installations are reproducible. Same config, same result, on any Linux
+  machine.
+- No system pollution. Everything lives under `~/.local/share/kyaraben/`,
+  `~/.config/kyaraben/`, and `~/.local/state/kyaraben/`. No root access, no
+  system packages modified.
+- `kyaraben` and `kyaraben-ui` are added to your `PATH` via `~/.local/bin/`.
+  `.desktop` entries are created for kyaraben and each installed emulator.
+  These entries are configured to use kyaraben's managed paths.
+- Apply is atomic. If it fails, the manifest is not updated. The previous
+  state remains intact.
+- Apply is idempotent. Running it twice with the same config produces the same
+  result.
+- Uninstall is clean. `kyaraben uninstall` removes only kyaraben-managed
+  files. Your emulation directory (ROMs, saves, BIOS) is never touched.
+
+### Configuration
+
+- User changes to unmanaged config keys are preserved across applies.
+- Kyaraben warns before overwriting a managed key that the user changed.
+- Preflight diffs show exactly what will change before anything is written.
+
+### Data
+
+- Kyaraben never reads, modifies, or deletes ROM files.
+- Save files live in the <UserStore />, not in kyaraben's internal state.
+  Uninstalling kyaraben leaves saves intact.
+- Kyaraben verifies BIOS files by hash but never downloads, distributes, or
+  stores them.
+
+## Updating
+
+Kyaraben bundles emulator version information in each release. To get newer
+emulator versions, update kyaraben itself by downloading a new AppImage from
+the releases page.
+
+:::caution[Work in progress]
+Automatic self-updates for kyaraben are planned but not yet implemented.
+:::
+
+## Non-goals
+
+- Windows, macOS, iOS, or Android support
+- ROM management or scraping (use ES-DE, Skraper, or similar tools)
+- Netplay configuration
+- Abstracting every emulator setting (kyaraben manages paths and launches
+  emulators fullscreen; detailed settings are configured in each emulator)
+
+## Future plans
+
+- Controller configuration abstraction
+- Automatic self-updates for kyaraben
+- EmulationStation-DE as a non-Steam application for Steam Deck game mode
+- Conservative expansion of managed emulator settings
+- Save sync across devices (see [save sync](/sync/))

@@ -294,3 +294,9 @@ The `ui/e2e/frontends.spec.ts` test has timing issues. The test enables ES-DE, c
 - Whether the fake nix-portable fixture handles frontends correctly
 - Whether there are race conditions in the Apply flow for frontends
 
+---
+
+## Reduce Kyaraben download size
+
+The Kyaraben AppImage is currently ~190MB. This is large for an initial download. Need to investigate what's contributing to the size and whether it can be reduced.
+
