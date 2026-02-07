@@ -595,9 +595,21 @@ func TestEdenGenerate(t *testing.T) {
 	}
 }
 
+type fakeBaseDirResolver struct {
+	root string
+}
+
+func (f fakeBaseDirResolver) UserConfigDir() (string, error) {
+	return filepath.Join(f.root, ".config"), nil
+}
+
+func (f fakeBaseDirResolver) UserHomeDir() (string, error) {
+	return f.root, nil
+}
+
 func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
 	tmpDir := t.TempDir()
-	writer := NewConfigWriter()
+	writer := NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
 
 	t.Run("CFG format", func(t *testing.T) {
 		path := filepath.Join(tmpDir, "test.cfg")
