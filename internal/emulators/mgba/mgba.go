@@ -29,6 +29,7 @@ func (Definition) Emulator() model.Emulator {
 			Binary:      "mgba",
 			GenericName: "Game Boy Advance Emulator",
 			Categories:  []string{"Game", "Emulator"},
+			RomCommand:  model.PositionalRomCommand,
 		},
 	}
 }

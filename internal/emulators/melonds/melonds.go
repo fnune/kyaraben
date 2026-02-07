@@ -45,6 +45,7 @@ func (Definition) Emulator() model.Emulator {
 			Binary:      "melonds",
 			GenericName: "Nintendo DS Emulator",
 			Categories:  []string{"Game", "Emulator"},
+			RomCommand:  model.PositionalRomCommand,
 		},
 	}
 }

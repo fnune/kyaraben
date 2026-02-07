@@ -37,6 +37,7 @@ func (Definition) Emulator() model.Emulator {
 			Binary:      "flycast",
 			GenericName: "Sega Dreamcast Emulator",
 			Categories:  []string{"Game", "Emulator"},
+			RomCommand:  model.PositionalRomCommand,
 		},
 	}
 }
