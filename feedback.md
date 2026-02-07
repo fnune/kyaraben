@@ -235,3 +235,52 @@ The manifest has been a source of bugs (disappearing, corruption). Reducing its 
 ## Vita3K opaque config location
 
 Vita3K config lives in `~/Emulation/opaque/vita3k/config.yml` because the emulator takes a single `-c` path for its entire user directory. We can't separate config from data with Vita3K's current architecture. This is intentional - same pattern as Dolphin and Eden.
+
+---
+
+## Electron app missing config change details
+
+The CLI shows detailed information about config file changes during apply:
+
+```
+Config changes:
+
+  MODIFY /home/fausto/.config/retroarch/retroarch.cfg
+    ⚠ You modified keys managed by kyaraben (will be overwritten):
+      system_directory: /home/fausto/Emulation/bios → "..."
+      libretro_directory: ~/.local/state/kyaraben/cores → "..."
+
+    ~ system_directory
+        - "old value"
+        + "new value"
+  UNCHANGED /home/fausto/.config/retroarch/config/mednafen_saturn_libretro/mednafen_saturn_libretro.cfg
+
+  Summary: 0 file(s) to create, 6 to modify, 7 unchanged
+  Changes: 0 additions, 14 modifications, 0 removals
+```
+
+This information is absent from the Electron app. Users should be able to see:
+- Which config files will be modified/created/unchanged
+- Warnings when their manual changes will be overwritten
+- The actual diffs showing old → new values
+- A summary of changes
+
+This could be shown in a collapsible "Config details" section or a pre-apply review panel.
+
+---
+
+## CLI should offer review step before overwriting user changes
+
+The CLI warns users when they've modified kyaraben-managed keys ("⚠ You modified keys managed by kyaraben (will be overwritten)") but proceeds to overwrite without giving them a chance to decide.
+
+Users should be able to:
+1. See what they changed and what kyaraben wants to set
+2. Choose to keep their changes or accept kyaraben's values (per-key or per-file)
+3. Optionally skip the review for future applies
+
+This could be:
+- An interactive prompt (`--interactive` flag or default behavior with `--yes` to skip)
+- A config option in `config.toml` like `review_managed_changes = true`
+- A dry-run mode that shows changes without applying (`kyaraben apply --dry-run`)
+
+The goal is to prevent surprise data loss when users have legitimately customized settings that kyaraben also manages.
