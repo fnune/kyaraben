@@ -86,8 +86,15 @@ export function SystemsView({
   onDiscard,
   onEnableAll,
 }: SystemsViewProps) {
-  const { status: applyStatus, progressSteps, error, preflightData, apply, confirmApply, reset } =
-    useApply()
+  const {
+    status: applyStatus,
+    progressSteps,
+    error,
+    preflightData,
+    apply,
+    confirmApply,
+    reset,
+  } = useApply()
   const handleOpenLog = useOpenLog()
   const isApplying = applyStatus === 'applying'
   const showProgress = applyStatus !== 'idle' && applyStatus !== 'reviewing'

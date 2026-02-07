@@ -29,7 +29,9 @@ interface ApplyConfig {
 }
 
 function hasConflicts(data: PreflightResponse): boolean {
-  return data.diffs.some((d) => d.userModified && d.hasChanges && (d.userChanges?.length ?? 0) > 0)
+  return (data.diffs ?? []).some(
+    (d) => d.userModified && d.hasChanges && (d.userChanges?.length ?? 0) > 0,
+  )
 }
 
 interface ApplyContextValue {
@@ -55,106 +57,103 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
   const onCompleteRef = useRef<(() => void) | null>(null)
   const { showToast } = useToast()
 
-  const runApply = useCallback(
-    async (): Promise<boolean> => {
-      setStatus('applying')
-      setProgressSteps([])
+  const runApply = useCallback(async (): Promise<boolean> => {
+    setStatus('applying')
+    setProgressSteps([])
 
-      const MAX_OUTPUT_LINES = 10000
+    const MAX_OUTPUT_LINES = 10000
 
-      const progressHandler = (...args: unknown[]) => {
-        const data = args[0] as { step: string; message: string; output?: string }
+    const progressHandler = (...args: unknown[]) => {
+      const data = args[0] as { step: string; message: string; output?: string }
 
-        setProgressSteps((prev) => {
-          const existing = prev.find((s) => s.id === data.step)
-          const isNewStep = !existing
+      setProgressSteps((prev) => {
+        const existing = prev.find((s) => s.id === data.step)
+        const isNewStep = !existing
 
-          return (
-            isNewStep
-              ? [
-                  ...prev,
-                  {
-                    id: data.step,
-                    label: PROGRESS_STEP_LABELS[data.step] ?? data.step,
-                    status: 'in_progress' as const,
-                  },
-                ]
-              : prev
-          ).map((s) => {
-            if (s.id === data.step) {
-              return {
-                ...s,
-                status: 'in_progress' as const,
-                ...(data.message && { message: data.message }),
-                ...(data.output && {
-                  output: [...(s.output ?? []), data.output].slice(-MAX_OUTPUT_LINES),
-                }),
-              }
-            }
-            if (isNewStep && s.status === 'in_progress') {
-              return { ...s, status: 'completed' as const }
-            }
-            return s
-          })
-        })
-      }
-
-      progressHandlerRef.current = progressHandler
-      window.electron.on('apply:progress', progressHandler)
-
-      try {
-        const applyResult = await daemon.apply()
-
-        if (!applyResult.ok) {
-          setError(applyResult.error.message)
-          setStatus('error')
-          setProgressSteps((prev) =>
-            prev.map((s) => ({ ...s, status: s.status === 'in_progress' ? 'error' : s.status })),
-          )
-          return false
-        }
-
-        if (applyResult.data.cancelled) {
-          setStatus('cancelled')
-          setProgressSteps((prev) =>
-            prev.map((s) => ({
+        return (
+          isNewStep
+            ? [
+                ...prev,
+                {
+                  id: data.step,
+                  label: PROGRESS_STEP_LABELS[data.step] ?? data.step,
+                  status: 'in_progress' as const,
+                },
+              ]
+            : prev
+        ).map((s) => {
+          if (s.id === data.step) {
+            return {
               ...s,
-              status: s.status === 'in_progress' ? 'cancelled' : s.status,
-            })),
-          )
-          showToast('Installation cancelled', 'info')
-          return false
-        }
-
-        setProgressSteps((prev) => prev.map((s) => ({ ...s, status: 'completed' as const })))
-        setStatus('success')
-        onCompleteRef.current?.()
-
-        installApp().catch((err) => {
-          console.error('Failed to install Kyaraben:', err)
+              status: 'in_progress' as const,
+              ...(data.message && { message: data.message }),
+              ...(data.output && {
+                output: [...(s.output ?? []), data.output].slice(-MAX_OUTPUT_LINES),
+              }),
+            }
+          }
+          if (isNewStep && s.status === 'in_progress') {
+            return { ...s, status: 'completed' as const }
+          }
+          return s
         })
+      })
+    }
 
-        showToast('Installation complete', 'success')
-        return true
-      } catch (err) {
-        console.error('Apply failed:', err)
-        const message = err instanceof Error ? err.message : String(err)
-        setError(message)
+    progressHandlerRef.current = progressHandler
+    window.electron.on('apply:progress', progressHandler)
+
+    try {
+      const applyResult = await daemon.apply()
+
+      if (!applyResult.ok) {
+        setError(applyResult.error.message)
         setStatus('error')
         setProgressSteps((prev) =>
           prev.map((s) => ({ ...s, status: s.status === 'in_progress' ? 'error' : s.status })),
         )
-        showToast('Installation failed', 'error')
         return false
-      } finally {
-        if (progressHandlerRef.current) {
-          window.electron.off('apply:progress', progressHandlerRef.current)
-          progressHandlerRef.current = null
-        }
       }
-    },
-    [showToast],
-  )
+
+      if (applyResult.data.cancelled) {
+        setStatus('cancelled')
+        setProgressSteps((prev) =>
+          prev.map((s) => ({
+            ...s,
+            status: s.status === 'in_progress' ? 'cancelled' : s.status,
+          })),
+        )
+        showToast('Installation cancelled', 'info')
+        return false
+      }
+
+      setProgressSteps((prev) => prev.map((s) => ({ ...s, status: 'completed' as const })))
+      setStatus('success')
+      onCompleteRef.current?.()
+
+      installApp().catch((err) => {
+        console.error('Failed to install Kyaraben:', err)
+      })
+
+      showToast('Installation complete', 'success')
+      return true
+    } catch (err) {
+      console.error('Apply failed:', err)
+      const message = err instanceof Error ? err.message : String(err)
+      setError(message)
+      setStatus('error')
+      setProgressSteps((prev) =>
+        prev.map((s) => ({ ...s, status: s.status === 'in_progress' ? 'error' : s.status })),
+      )
+      showToast('Installation failed', 'error')
+      return false
+    } finally {
+      if (progressHandlerRef.current) {
+        window.electron.off('apply:progress', progressHandlerRef.current)
+        progressHandlerRef.current = null
+      }
+    }
+  }, [showToast])
 
   const apply = useCallback(
     async (config: ApplyConfig): Promise<boolean> => {
@@ -193,13 +192,10 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
     [runApply],
   )
 
-  const confirmApply = useCallback(
-    async (): Promise<boolean> => {
-      setPreflightData(null)
-      return runApply()
-    },
-    [runApply],
-  )
+  const confirmApply = useCallback(async (): Promise<boolean> => {
+    setPreflightData(null)
+    return runApply()
+  }, [runApply])
 
   const cancel = useCallback(async () => {
     await daemon.cancelApply()
