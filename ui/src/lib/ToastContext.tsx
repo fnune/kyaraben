@@ -2,12 +2,12 @@ import { createContext, type ReactNode, useCallback, useContext, useState } from
 
 interface Toast {
   id: number
-  message: string
+  content: ReactNode
   type: 'error' | 'success' | 'info'
 }
 
 interface ToastContextValue {
-  showToast: (message: string, type?: Toast['type']) => void
+  showToast: (content: ReactNode, type?: Toast['type']) => void
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null)
@@ -17,12 +17,12 @@ let nextId = 0
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
 
-  const showToast = useCallback((message: string, type: Toast['type'] = 'info') => {
+  const showToast = useCallback((content: ReactNode, type: Toast['type'] = 'info') => {
     const id = nextId++
-    setToasts((prev) => [...prev, { id, message, type }])
+    setToasts((prev) => [...prev, { id, content, type }])
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id))
-    }, 2500)
+    }, 5000)
   }, [])
 
   const dismiss = useCallback((id: number) => {
@@ -53,7 +53,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               shadow-sm flex items-center gap-2
             `}
           >
-            <span>{toast.message}</span>
+            {toast.content}
             <button
               type="button"
               onClick={() => dismiss(toast.id)}
