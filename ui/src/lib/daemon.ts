@@ -65,3 +65,7 @@ export const getBugReportInfo = () => invoke<BugReportInfo>('get_bug_report_info
 
 export const launchEmulator = (execLine: string) =>
   invoke<{ success: boolean }>('launch_emulator', execLine)
+
+export const openPath = (path: string) => invoke<string>('open_path', path)
+
+export const readFile = (path: string) => invoke<string>('read_file', path)

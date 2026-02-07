@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/lib/Button'
-import { getInstallStatus, getStatus, getUninstallPreview, installApp } from '@/lib/daemon'
+import {
+  getInstallStatus,
+  getStatus,
+  getUninstallPreview,
+  installApp,
+  openPath,
+  readFile,
+} from '@/lib/daemon'
 import type { InstallStatus, UninstallPreviewResponse } from '@/types/daemon'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -32,6 +39,8 @@ export function InstallationView() {
   const [preview, setPreview] = useState<UninstallPreviewResponse | null>(null)
   const [installStatus, setInstallStatus] = useState<InstallStatus | null>(null)
   const [healthWarning, setHealthWarning] = useState<string | null>(null)
+  const [configContent, setConfigContent] = useState<string | null>(null)
+  const [configPath, setConfigPath] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [installing, setInstalling] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -40,9 +49,15 @@ export function InstallationView() {
     setLoading(true)
     setError(null)
     Promise.all([getUninstallPreview(), getInstallStatus(), getStatus()]).then(
-      ([previewResult, installResult, statusResult]) => {
+      async ([previewResult, installResult, statusResult]) => {
         if (previewResult.ok) {
           setPreview(previewResult.data)
+          const path = `${previewResult.data.preserved.configDir}/config.toml`
+          setConfigPath(path)
+          const contentResult = await readFile(path)
+          if (contentResult.ok) {
+            setConfigContent(contentResult.data)
+          }
         } else {
           setError(previewResult.error.message)
         }
@@ -194,6 +209,24 @@ export function InstallationView() {
           />
           <PathItem path={`${preview.preserved.configDir} (config)`} variant="preserved" />
         </ul>
+      </Section>
+
+      <Section title="Configuration">
+        <div className="flex items-center justify-between mb-3">
+          <code className="text-xs text-gray-400 font-mono">{configPath}</code>
+          {configPath && (
+            <Button variant="secondary" onClick={() => openPath(configPath)}>
+              Open
+            </Button>
+          )}
+        </div>
+        {configContent ? (
+          <pre className="bg-gray-900 text-gray-300 text-xs font-mono p-3 rounded overflow-x-auto max-h-64 overflow-y-auto">
+            {configContent}
+          </pre>
+        ) : (
+          <EmptyState message="Config file not found" />
+        )}
       </Section>
 
       <div className="border-t border-gray-700 pt-6">
