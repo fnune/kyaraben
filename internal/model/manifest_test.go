@@ -331,7 +331,7 @@ func TestManifest_GetManagedConfigsForEmulator(t *testing.T) {
 	}
 }
 
-func TestManifest_AddManagedConfig_ErrorOnConflictingKeys(t *testing.T) {
+func TestManifest_AddManagedConfig_UpdatesKeysOnChange(t *testing.T) {
 	m := NewManifest()
 	target := ConfigTarget{RelPath: "shared.cfg", BaseDir: ConfigBaseDirUserConfig}
 
@@ -349,8 +349,20 @@ func TestManifest_AddManagedConfig_ErrorOnConflictingKeys(t *testing.T) {
 		ManagedKeys: []ManagedKey{{Path: []string{"key"}, Value: "different_value"}},
 	})
 
-	if err == nil {
-		t.Error("expected error for conflicting ManagedKeys, got nil")
+	if err != nil {
+		t.Fatalf("second AddManagedConfig failed: %v", err)
+	}
+
+	if len(m.ManagedConfigs) != 1 {
+		t.Fatalf("expected 1 managed config, got %d", len(m.ManagedConfigs))
+	}
+
+	cfg := m.ManagedConfigs[0]
+	if len(cfg.EmulatorIDs) != 2 {
+		t.Errorf("expected 2 emulator IDs, got %d", len(cfg.EmulatorIDs))
+	}
+	if len(cfg.ManagedKeys) != 1 || cfg.ManagedKeys[0].Value != "different_value" {
+		t.Errorf("expected keys to be updated to new value, got %v", cfg.ManagedKeys)
 	}
 }
 
