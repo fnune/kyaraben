@@ -21,6 +21,7 @@ func (Definition) Emulator() model.Emulator {
 			Binary:      "azahar",
 			GenericName: "Nintendo 3DS Emulator",
 			Categories:  []string{"Game", "Emulator"},
+			RomCommand:  model.PositionalRomCommand,
 		},
 	}
 }

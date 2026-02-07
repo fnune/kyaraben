@@ -165,13 +165,9 @@ func (c *Config) buildCommand(ctx model.FrontendContext, emuID model.EmulatorID)
 		return ""
 	}
 
-	binary := filepath.Join(ctx.BinDir, emu.Launcher.Binary)
-
-	if emu.Launcher.RomArgs != "" {
-		return binary + " " + emu.Launcher.RomArgs
-	}
-
-	return fmt.Sprintf("%s %%ROM%%", binary)
+	return emu.Launcher.RomCommand(model.RomLaunchOptions{
+		BinaryPath: filepath.Join(ctx.BinDir, emu.Launcher.Binary),
+	})
 }
 
 func formatExtensions(exts []string) string {

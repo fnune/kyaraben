@@ -24,7 +24,9 @@ func (Definition) Emulator() model.Emulator {
 			Binary:      "vita3k",
 			GenericName: "PlayStation Vita Emulator",
 			Categories:  []string{"Game", "Emulator"},
-			RomArgs:     "-r %ROM%",
+			RomCommand: func(opts model.RomLaunchOptions) string {
+				return opts.BinaryPath + " -r %ROM%"
+			},
 		},
 	}
 }

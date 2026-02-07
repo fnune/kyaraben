@@ -18,23 +18,25 @@ type Emulator struct {
 }
 
 type LauncherInfo struct {
-	// Binary is the executable name installed to $out/bin/. For AppImage packages,
-	// this must match the name passed to AppImageRef() (the versions.toml key).
+	// Binary must match the name passed to AppImageRef() for AppImage packages.
 	Binary      string
-	DisplayName string   // Name for .desktop file (uses Emulator.Name if empty)
-	GenericName string   // For .desktop generation (e.g., "PlayStation Emulator")
-	Categories  []string // XDG categories (e.g., ["Game", "Emulator"])
+	DisplayName string
+	GenericName string
+	Categories  []string
 
-	// RomArgs is the CLI argument pattern for launching a ROM/game file.
-	// Use %ROM% as the placeholder for the game path.
-	// Empty means the ROM path is a positional argument: <binary> <rom>.
-	// Examples:
-	//   ""                          → positional: <binary> <rom>
-	//   "-e %ROM%"                  → Dolphin: dolphin -e <rom>
-	//   "-g %ROM%"                  → Cemu/Eden: cemu -g <rom>
-	//   "-r %ROM%"                  → Vita3K: vita3k -r <rom>
-	//   "-L bsnes_libretro %ROM%"   → RetroArch: retroarch -L bsnes_libretro <rom>
-	RomArgs string
+	// RomCommand builds the CLI command for launching a game file.
+	// The returned string uses %ROM% as the placeholder for the game path.
+	RomCommand func(opts RomLaunchOptions) string
+}
+
+type RomLaunchOptions struct {
+	BinaryPath string
+}
+
+// PositionalRomCommand is a RomCommand for emulators that accept the ROM path
+// as a positional argument (e.g., duckstation game.iso).
+func PositionalRomCommand(opts RomLaunchOptions) string {
+	return opts.BinaryPath + " %ROM%"
 }
 
 // SupportsSystem checks if this emulator can run games for the given system.
