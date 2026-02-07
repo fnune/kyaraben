@@ -10,6 +10,7 @@ type Registry struct {
 	systems          map[model.SystemID]model.System
 	emulators        map[model.EmulatorID]emulatorEntry
 	defaultEmulators map[model.SystemID]model.EmulatorID
+	frontends        map[model.FrontendID]frontendEntry
 }
 
 type emulatorEntry struct {
@@ -17,11 +18,17 @@ type emulatorEntry struct {
 	configGen model.ConfigGenerator
 }
 
-func New(systems []model.SystemDefinition, emulators []model.EmulatorDefinition) *Registry {
+type frontendEntry struct {
+	model.Frontend
+	configGen model.FrontendConfigGenerator
+}
+
+func New(systems []model.SystemDefinition, emulators []model.EmulatorDefinition, frontends []model.FrontendDefinition) *Registry {
 	r := &Registry{
 		systems:          make(map[model.SystemID]model.System),
 		emulators:        make(map[model.EmulatorID]emulatorEntry),
 		defaultEmulators: make(map[model.SystemID]model.EmulatorID),
+		frontends:        make(map[model.FrontendID]frontendEntry),
 	}
 
 	for _, def := range emulators {
@@ -36,6 +43,14 @@ func New(systems []model.SystemDefinition, emulators []model.EmulatorDefinition)
 		sys := def.System()
 		r.systems[sys.ID] = sys
 		r.defaultEmulators[sys.ID] = def.DefaultEmulatorID()
+	}
+
+	for _, def := range frontends {
+		fe := def.Frontend()
+		r.frontends[fe.ID] = frontendEntry{
+			Frontend:  fe,
+			configGen: def.ConfigGenerator(),
+		}
 	}
 
 	return r
@@ -97,4 +112,28 @@ func (r *Registry) GetConfigGenerator(emuID model.EmulatorID) model.ConfigGenera
 		return nil
 	}
 	return entry.configGen
+}
+
+func (r *Registry) GetFrontend(id model.FrontendID) (model.Frontend, error) {
+	entry, ok := r.frontends[id]
+	if !ok {
+		return model.Frontend{}, fmt.Errorf("unknown frontend: %s", id)
+	}
+	return entry.Frontend, nil
+}
+
+func (r *Registry) GetFrontendConfigGenerator(id model.FrontendID) model.FrontendConfigGenerator {
+	entry, ok := r.frontends[id]
+	if !ok {
+		return nil
+	}
+	return entry.configGen
+}
+
+func (r *Registry) AllFrontends() []model.Frontend {
+	result := make([]model.Frontend, 0, len(r.frontends))
+	for _, entry := range r.frontends {
+		result = append(result, entry.Frontend)
+	}
+	return result
 }

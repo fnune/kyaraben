@@ -11,6 +11,7 @@ func (Definition) System() model.System {
 		Description:  "8-bit home console by Nintendo (1983)",
 		Manufacturer: model.ManufacturerNintendo,
 		Label:        "NES",
+		Extensions:   []string{".nes", ".unf", ".unif", ".fds"},
 	}
 }
 

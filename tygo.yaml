@@ -4,6 +4,7 @@ packages:
     include_files:
       - system.go
       - emulator_id.go
+      - frontend_id.go
     enum_style: union
 
   - path: github.com/fnune/kyaraben/internal/daemon
@@ -15,6 +16,7 @@ packages:
     type_mappings:
       model.SystemID: SystemID
       model.EmulatorID: EmulatorID
+      model.FrontendID: FrontendID
       model.Manufacturer: Manufacturer
     frontmatter: |
-      import type { SystemID, EmulatorID, Manufacturer } from './model.gen'
+      import type { SystemID, EmulatorID, FrontendID, Manufacturer } from './model.gen'

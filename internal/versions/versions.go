@@ -78,6 +78,9 @@ func (v *VersionEntry) EffectiveReleaseTag() string {
 
 // URL returns the download URL for a given target.
 func (v *VersionEntry) URL(target string, spec *EmulatorSpec) string {
+	if t := v.Target(target); t != nil && t.URL != "" {
+		return t.URL
+	}
 	url := strings.ReplaceAll(spec.URLTemplate, "{version}", v.Version)
 	url = strings.ReplaceAll(url, "{target}", target)
 	url = strings.ReplaceAll(url, "{release_tag}", v.EffectiveReleaseTag())
@@ -151,9 +154,10 @@ type TargetBuild struct {
 	SHA256     string `toml:"sha256"`
 	BinaryPath string `toml:"binary_path"`
 	Size       int64  `toml:"size"`
+	URL        string `toml:"url"`
 }
 
-// Known emulator names for parsing
+// Known emulator and frontend names for parsing
 var emulatorNames = []string{
 	"nix-portable",
 	"eden",
@@ -169,6 +173,7 @@ var emulatorNames = []string{
 	"rpcs3",
 	"flycast",
 	"retroarch",
+	"es-de",
 }
 
 // GetEmulator returns the EmulatorSpec for a given emulator name.
@@ -361,6 +366,9 @@ func parseVersionEntry(version string, raw map[string]interface{}) (VersionEntry
 			}
 			if v, ok := targetRaw["size"].(int64); ok {
 				target.Size = v
+			}
+			if v, ok := targetRaw["url"].(string); ok {
+				target.URL = v
 			}
 
 			entry.Targets[targetName] = target

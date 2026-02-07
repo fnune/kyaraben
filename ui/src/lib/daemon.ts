@@ -2,6 +2,7 @@ import type {
   BugReportInfo,
   ConfigResponse,
   DoctorResponse,
+  FrontendRef,
   InstallStatus,
   SetConfigRequest,
   StatusResponse,
@@ -33,6 +34,8 @@ async function invoke<T>(command: string, data?: unknown): Promise<DaemonResult<
 }
 
 export const getSystems = () => invoke<readonly System[]>('get_systems')
+
+export const getFrontends = () => invoke<readonly FrontendRef[]>('get_frontends')
 
 export const getConfig = () => invoke<ConfigResponse>('get_config')
 

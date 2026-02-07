@@ -17,6 +17,7 @@ const (
 	CommandTypeApply             CommandType = "apply"
 	CommandTypeCancelApply       CommandType = "cancel_apply"
 	CommandTypeGetSystems        CommandType = "get_systems"
+	CommandTypeGetFrontends      CommandType = "get_frontends"
 	CommandTypeGetConfig         CommandType = "get_config"
 	CommandTypeSetConfig         CommandType = "set_config"
 	CommandTypeSyncStatus        CommandType = "sync_status"

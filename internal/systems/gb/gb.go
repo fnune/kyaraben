@@ -11,6 +11,7 @@ func (Definition) System() model.System {
 		Description:  "8-bit handheld console by Nintendo (1989)",
 		Manufacturer: model.ManufacturerNintendo,
 		Label:        "GB",
+		Extensions:   []string{".gb"},
 	}
 }
 

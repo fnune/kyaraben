@@ -1,6 +1,7 @@
 package model
 
 type StoreReader interface {
+	RomsDir() string
 	BiosDir() string
 	SystemBiosDir(SystemID) string
 	SystemSavesDir(SystemID) string

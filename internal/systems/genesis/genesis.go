@@ -11,6 +11,7 @@ func (Definition) System() model.System {
 		Description:  "16-bit home console by Sega (1988)",
 		Manufacturer: model.ManufacturerSega,
 		Label:        "GEN",
+		Extensions:   []string{".gen", ".md", ".smd", ".bin"},
 	}
 }
 

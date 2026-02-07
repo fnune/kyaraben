@@ -341,6 +341,11 @@ function setupIpcHandlers(): void {
     return event.data
   })
 
+  ipcMain.handle('get_frontends', async () => {
+    const event = await sendCommand({ type: 'get_frontends' })
+    return event.data
+  })
+
   ipcMain.handle('get_config', async () => {
     const event = await sendCommand({ type: 'get_config' })
     return event.data

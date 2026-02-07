@@ -11,6 +11,7 @@ func (Definition) System() model.System {
 		Description:  "Hybrid console by Nintendo (2017)",
 		Manufacturer: model.ManufacturerNintendo,
 		Label:        "NSW",
+		Extensions:   []string{".nsp", ".xci", ".nsz", ".xcz"},
 	}
 }
 

@@ -11,6 +11,7 @@ func (Definition) System() model.System {
 		Description:  "32-bit home console by Sega (1994)",
 		Manufacturer: model.ManufacturerSega,
 		Label:        "SAT",
+		Extensions:   []string{".bin", ".cue", ".chd", ".iso"},
 	}
 }
 

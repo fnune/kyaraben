@@ -11,6 +11,7 @@ func (Definition) System() model.System {
 		Description:  "Home console by Sony (2006)",
 		Manufacturer: model.ManufacturerSony,
 		Label:        "PS3",
+		Extensions:   []string{".iso"},
 	}
 }
 

@@ -24,6 +24,7 @@ interface ApplyConfig {
   userStore: string
   systems: Record<string, string[]>
   emulators: Record<string, { version?: string }>
+  frontends?: Record<string, { enabled: boolean; version?: string }>
 }
 
 interface ApplyContextValue {
@@ -56,6 +57,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
         userStore: config.userStore,
         systems: config.systems,
         emulators: config.emulators,
+        ...(config.frontends && { frontends: config.frontends }),
       })
 
       if (!configResult.ok) {
