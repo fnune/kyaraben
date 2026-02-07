@@ -53,6 +53,76 @@ func (m *mockNixClient) GetNixPortableBinary() string                           
 func (m *mockNixClient) GetNixPortableLocation() string                          { return "" }
 func (m *mockNixClient) RealStorePath(path string) string                        { return path }
 
+func TestUnmanagedEntriesExcludedFromManifest(t *testing.T) {
+	tmpDir := t.TempDir()
+	manifestPath := filepath.Join(tmpDir, "manifest.json")
+	userStorePath := filepath.Join(tmpDir, "Emulation")
+	flakePath := filepath.Join(tmpDir, "flake")
+
+	if err := os.MkdirAll(flakePath, 0755); err != nil {
+		t.Fatalf("Failed to create flake dir: %v", err)
+	}
+
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{
+			UserStore: userStorePath,
+		},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDSNES: {model.EmulatorIDRetroArchBsnes},
+		},
+	}
+
+	reg := registry.NewDefault()
+	userStore, err := store.NewUserStore(userStorePath)
+	if err != nil {
+		t.Fatalf("Failed to create user store: %v", err)
+	}
+
+	flakeGen := nix.NewFlakeGenerator(reg)
+	configWriter := emulators.NewConfigWriter()
+
+	applier := &Applier{
+		NixClient:       &mockNixClient{storePath: "/nix/store/test-path", flakePath: flakePath},
+		FlakeGenerator:  flakeGen,
+		ConfigWriter:    configWriter,
+		Registry:        reg,
+		ManifestPath:    manifestPath,
+		LauncherManager: nil,
+	}
+
+	_, err = applier.Apply(context.Background(), cfg, userStore, Options{})
+	if err != nil {
+		t.Fatalf("Apply failed: %v", err)
+	}
+
+	manifest, err := model.LoadManifest(manifestPath)
+	if err != nil {
+		t.Fatalf("Failed to load manifest: %v", err)
+	}
+
+	for _, cfg := range manifest.ManagedConfigs {
+		for _, key := range cfg.ManagedKeys {
+			keyName := key.Path[len(key.Path)-1]
+			if keyName == "menu_driver" {
+				t.Errorf("menu_driver should not be in ManagedKeys (it's unmanaged)")
+			}
+		}
+	}
+
+	foundSystemDir := false
+	for _, cfg := range manifest.ManagedConfigs {
+		for _, key := range cfg.ManagedKeys {
+			keyName := key.Path[len(key.Path)-1]
+			if keyName == "system_directory" {
+				foundSystemDir = true
+			}
+		}
+	}
+	if !foundSystemDir {
+		t.Error("system_directory should be in ManagedKeys (it's managed)")
+	}
+}
+
 func TestApplyRemovesUnenabledEmulatorsFromManifest(t *testing.T) {
 	tmpDir := t.TempDir()
 	manifestPath := filepath.Join(tmpDir, "manifest.json")

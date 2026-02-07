@@ -31,6 +31,7 @@ func SharedConfig(store model.StoreReader) model.ConfigPatch {
 		Entries: []model.ConfigEntry{
 			{Path: []string{"system_directory"}, Value: store.BiosDir()},
 			{Path: []string{"libretro_directory"}, Value: paths.MustRetroArchCoresDir()},
+			{Path: []string{"menu_driver"}, Value: "rgui", Unmanaged: true},
 		},
 	}
 }

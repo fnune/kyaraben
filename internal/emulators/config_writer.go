@@ -134,8 +134,11 @@ func (w *ConfigWriter) applyCFG(path string, entries []model.ConfigEntry) (Apply
 	}
 
 	for _, entry := range entries {
-		// CFG format requires quoted values (RetroArch style)
-		existing[entry.Key()] = `"` + entry.Value + `"`
+		key := entry.Key()
+		if entry.Unmanaged && existing[key] != "" {
+			continue
+		}
+		existing[key] = `"` + entry.Value + `"`
 	}
 
 	f, err := os.Create(path)
@@ -205,7 +208,11 @@ func (w *ConfigWriter) applyINI(path string, entries []model.ConfigEntry) (Apply
 		if sections[section] == nil {
 			sections[section] = make(map[string]string)
 		}
-		sections[section][entry.Key()] = entry.Value
+		key := entry.Key()
+		if entry.Unmanaged && sections[section][key] != "" {
+			continue
+		}
+		sections[section][key] = entry.Value
 	}
 
 	f, err := os.Create(path)
@@ -263,6 +270,9 @@ func (w *ConfigWriter) applyYAML(path string, entries []model.ConfigEntry) (Appl
 	}
 
 	for _, entry := range entries {
+		if entry.Unmanaged && hasNestedValue(existing, entry.Path) {
+			continue
+		}
 		setNestedValue(existing, entry.Path, entry.Value)
 	}
 
@@ -315,6 +325,23 @@ func setNestedValue(m map[string]interface{}, path []string, value string) {
 	}
 }
 
+func hasNestedValue(m map[string]interface{}, path []string) bool {
+	if len(path) == 0 {
+		return false
+	}
+
+	if len(path) == 1 {
+		_, exists := m[path[0]]
+		return exists
+	}
+
+	key := path[0]
+	if nested, ok := m[key].(map[string]interface{}); ok {
+		return hasNestedValue(nested, path[1:])
+	}
+	return false
+}
+
 func (w *ConfigWriter) applyXML(path string, entries []model.ConfigEntry) (ApplyResult, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return ApplyResult{}, fmt.Errorf("creating config directory: %w", err)
@@ -328,6 +355,9 @@ func (w *ConfigWriter) applyXML(path string, entries []model.ConfigEntry) (Apply
 	}
 
 	for _, entry := range entries {
+		if entry.Unmanaged && hasXMLValue(doc, entry.Path) {
+			continue
+		}
 		setXMLValue(doc, entry.Path, entry.Value)
 	}
 
@@ -372,4 +402,25 @@ func setXMLValue(doc *etree.Document, path []string, value string) {
 		}
 		elem = child
 	}
+}
+
+func hasXMLValue(doc *etree.Document, path []string) bool {
+	if len(path) == 0 {
+		return false
+	}
+
+	root := doc.Root()
+	if root == nil || root.Tag != path[0] {
+		return false
+	}
+
+	elem := root
+	for _, key := range path[1:] {
+		child := elem.SelectElement(key)
+		if child == nil {
+			return false
+		}
+		elem = child
+	}
+	return true
 }
