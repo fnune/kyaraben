@@ -300,3 +300,13 @@ The `ui/e2e/frontends.spec.ts` test has timing issues. The test enables ES-DE, c
 
 The Kyaraben AppImage is currently ~190MB. This is large for an initial download. Need to investigate what's contributing to the size and whether it can be reduced.
 
+---
+
+## UI should provide easy access to ROM and BIOS folders
+
+The PathsModal shows per-emulator paths (config, data, saves) but not per-system folders. Users would benefit from quick access to:
+- ROM folder (`~/Emulation/roms/{systemId}/`)
+- BIOS folder (`~/Emulation/bios/{systemId}/`)
+
+This would make it easier to add games and BIOS files for a specific system.
+
