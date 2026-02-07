@@ -41,7 +41,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		return err
 	}
 	flakeGenerator.SetVersionOverrides(versionOverrides)
-	configWriter := emulators.NewConfigWriter()
+	configWriter := emulators.NewConfigWriter(model.OSBaseDirResolver{})
 	manifestPath, err := model.DefaultManifestPath()
 	if err != nil {
 		return err

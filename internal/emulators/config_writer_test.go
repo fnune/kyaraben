@@ -13,7 +13,7 @@ func TestApplyYAML(t *testing.T) {
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "test", "config.yml")
 
-	writer := NewConfigWriter()
+	writer := NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
 
 	patch := model.ConfigPatch{
 		Target: model.ConfigTarget{
@@ -57,7 +57,7 @@ func TestApplyXML(t *testing.T) {
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "test", "config.xml")
 
-	writer := NewConfigWriter()
+	writer := NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
 
 	patch := model.ConfigPatch{
 		Target: model.ConfigTarget{
@@ -109,7 +109,7 @@ other:
 		t.Fatalf("writing existing config: %v", err)
 	}
 
-	writer := NewConfigWriter()
+	writer := NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
 
 	patch := model.ConfigPatch{
 		Target: model.ConfigTarget{

@@ -16,6 +16,18 @@ import (
 	"github.com/fnune/kyaraben/internal/versions"
 )
 
+type fakeBaseDirResolver struct {
+	root string
+}
+
+func (f fakeBaseDirResolver) UserConfigDir() (string, error) {
+	return filepath.Join(f.root, ".config"), nil
+}
+
+func (f fakeBaseDirResolver) UserHomeDir() (string, error) {
+	return f.root, nil
+}
+
 func TestMain(m *testing.M) {
 	if err := versions.Init(); err != nil {
 		panic(err)
@@ -79,7 +91,7 @@ func TestUnmanagedEntriesExcludedFromManifest(t *testing.T) {
 	}
 
 	flakeGen := nix.NewFlakeGenerator(reg)
-	configWriter := emulators.NewConfigWriter()
+	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
 
 	applier := &Applier{
 		NixClient:       &mockNixClient{storePath: "/nix/store/test-path", flakePath: flakePath},
@@ -171,7 +183,7 @@ func TestApplyRemovesUnenabledEmulatorsFromManifest(t *testing.T) {
 	}
 
 	flakeGen := nix.NewFlakeGenerator(reg)
-	configWriter := emulators.NewConfigWriter()
+	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
 
 	applier := &Applier{
 		NixClient:       &mockNixClient{storePath: "/nix/store/new-path", flakePath: flakePath},
