@@ -367,3 +367,73 @@ func stringContains(s, substr string) bool {
 	}
 	return false
 }
+
+func TestComputeDiff_TildePathNormalization(t *testing.T) {
+	tmpDir := t.TempDir()
+	target := testTarget(t, tmpDir)
+	configPath, _ := target.Resolve()
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Skipf("cannot get home dir: %v", err)
+	}
+
+	writeINI(t, configPath, "[paths]\nsaves = "+home+"/Emulation/saves\n")
+
+	patch := model.ConfigPatch{
+		Target: target,
+		Entries: []model.ConfigEntry{
+			{Path: []string{"paths", "saves"}, Value: "~/Emulation/saves"},
+		},
+	}
+
+	diff, err := ComputeDiff(patch)
+	if err != nil {
+		t.Fatalf("ComputeDiff: %v", err)
+	}
+
+	if len(diff.Changes) != 0 {
+		t.Errorf("expected no changes (tilde should match expanded path), got %d: %v", len(diff.Changes), diff.Changes)
+	}
+}
+
+func TestComputeDiffWithBaseline_TildePathNormalization(t *testing.T) {
+	tmpDir := t.TempDir()
+	target := testTarget(t, tmpDir)
+	configPath, _ := target.Resolve()
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Skipf("cannot get home dir: %v", err)
+	}
+
+	originalContent := "[paths]\nsaves = ~/Emulation/saves\n"
+	writeINI(t, configPath, originalContent)
+	baselineHash := sha256sum(originalContent)
+
+	modifiedContent := "[paths]\nsaves = " + home + "/Emulation/saves\n"
+	writeINI(t, configPath, modifiedContent)
+
+	baseline := &model.ManagedConfig{
+		BaselineHash: baselineHash,
+		ManagedKeys: []model.ManagedKey{
+			{Path: []string{"paths", "saves"}, Value: "~/Emulation/saves"},
+		},
+	}
+
+	patch := model.ConfigPatch{
+		Target: target,
+		Entries: []model.ConfigEntry{
+			{Path: []string{"paths", "saves"}, Value: "~/Emulation/saves"},
+		},
+	}
+
+	diff, err := ComputeDiffWithBaseline(patch, baseline)
+	if err != nil {
+		t.Fatalf("ComputeDiffWithBaseline: %v", err)
+	}
+
+	if len(diff.UserChanges) != 0 {
+		t.Errorf("expected no user changes (tilde should match expanded path), got %d: %v", len(diff.UserChanges), diff.UserChanges)
+	}
+}

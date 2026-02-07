@@ -444,7 +444,15 @@ func (d *Daemon) handlePreflight() []Event {
 		return d.errorResponse(fmt.Sprintf("loading manifest: %v", err))
 	}
 
-	var diffs []ConfigFileDiff
+	type fileDiffState struct {
+		diff         ConfigFileDiff
+		seenChanges  map[string]bool
+		seenUserKeys map[string]bool
+	}
+
+	diffsByPath := make(map[string]*fileDiffState)
+	var pathOrder []string
+
 	for _, patch := range preflight.Patches {
 		baseline, found := manifest.GetManagedConfig(patch.Target)
 		var baselinePtr *model.ManagedConfig
@@ -457,22 +465,43 @@ func (d *Daemon) handlePreflight() []Event {
 			continue
 		}
 
-		fileDiff := ConfigFileDiff{
-			Path:         diff.Path,
-			IsNewFile:    diff.IsNewFile,
-			HasChanges:   diff.HasChanges(),
-			UserModified: diff.UserModified,
+		state, seen := diffsByPath[diff.Path]
+		if !seen {
+			state = &fileDiffState{
+				diff: ConfigFileDiff{
+					Path:      diff.Path,
+					IsNewFile: diff.IsNewFile,
+				},
+				seenChanges:  make(map[string]bool),
+				seenUserKeys: make(map[string]bool),
+			}
+			diffsByPath[diff.Path] = state
+			pathOrder = append(pathOrder, diff.Path)
 		}
 
+		state.diff.HasChanges = state.diff.HasChanges || diff.HasChanges()
+		state.diff.UserModified = state.diff.UserModified || diff.UserModified
+
 		for _, uc := range diff.UserChanges {
-			fileDiff.UserChanges = append(fileDiff.UserChanges, UserChangeDetail{
-				Key:           uc.Path[len(uc.Path)-1],
+			key := uc.Path[len(uc.Path)-1]
+			if state.seenUserKeys[key] {
+				continue
+			}
+			state.seenUserKeys[key] = true
+			state.diff.UserChanges = append(state.diff.UserChanges, UserChangeDetail{
+				Key:           key,
 				BaselineValue: uc.BaselineValue,
 				CurrentValue:  uc.CurrentValue,
 			})
 		}
 
 		for _, c := range diff.Changes {
+			changeKey := c.Section() + ":" + c.Key()
+			if state.seenChanges[changeKey] {
+				continue
+			}
+			state.seenChanges[changeKey] = true
+
 			changeType := "add"
 			switch c.Type {
 			case emulators.ChangeModify:
@@ -480,7 +509,7 @@ func (d *Daemon) handlePreflight() []Event {
 			case emulators.ChangeRemove:
 				changeType = "remove"
 			}
-			fileDiff.Changes = append(fileDiff.Changes, ConfigChangeDetail{
+			state.diff.Changes = append(state.diff.Changes, ConfigChangeDetail{
 				Type:     changeType,
 				Key:      c.Key(),
 				Section:  c.Section(),
@@ -488,8 +517,11 @@ func (d *Daemon) handlePreflight() []Event {
 				NewValue: c.NewValue,
 			})
 		}
+	}
 
-		diffs = append(diffs, fileDiff)
+	var diffs []ConfigFileDiff
+	for _, path := range pathOrder {
+		diffs = append(diffs, diffsByPath[path].diff)
 	}
 
 	return []Event{{

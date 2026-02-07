@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/fnune/kyaraben/internal/model"
@@ -79,6 +80,16 @@ func unquote(v string) string {
 	return v
 }
 
+func normalizePath(v string) string {
+	v = unquote(v)
+	if strings.HasPrefix(v, "~/") {
+		if home, err := os.UserHomeDir(); err == nil {
+			return filepath.Join(home, v[2:])
+		}
+	}
+	return v
+}
+
 func ComputeDiffWithBaseline(patch model.ConfigPatch, baseline *model.ManagedConfig) (*ConfigDiff, error) {
 	diff, err := ComputeDiff(patch)
 	if err != nil {
@@ -107,7 +118,7 @@ func ComputeDiffWithBaseline(patch model.ConfigPatch, baseline *model.ManagedCon
 			key := mk.Path[len(mk.Path)-1]
 
 			if sectionMap, ok := current[section]; ok {
-				if currentVal, ok := sectionMap[key]; ok && unquote(currentVal) != unquote(mk.Value) {
+				if currentVal, ok := sectionMap[key]; ok && normalizePath(currentVal) != normalizePath(mk.Value) {
 					diff.UserChanges = append(diff.UserChanges, UserChange{
 						Path:          mk.Path,
 						BaselineValue: mk.Value,
@@ -181,7 +192,7 @@ func ComputeDiff(patch model.ConfigPatch) (*ConfigDiff, error) {
 			continue
 		}
 
-		if unquote(oldValue) != unquote(newValue) {
+		if normalizePath(oldValue) != normalizePath(newValue) {
 			diff.Changes = append(diff.Changes, ConfigChange{
 				Type:     ChangeModify,
 				Path:     entry.Path,
