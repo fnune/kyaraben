@@ -5,6 +5,7 @@ import {
   getStatus,
   getUninstallPreview,
   installApp,
+  openLogTail,
   openPath,
   readFile,
   uninstall,
@@ -34,6 +35,25 @@ function PathItem({
 
 function EmptyState({ message }: { message: string }) {
   return <p className="text-sm text-gray-500 italic">{message}</p>
+}
+
+function UninstallingOverlay() {
+  return (
+    <div className="fixed inset-0 bg-gray-900 flex items-center justify-center z-50">
+      <div className="text-center max-w-md px-6">
+        <div className="w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-6" />
+        <h1 className="text-2xl font-medium text-gray-100 mb-4">Uninstalling Kyaraben...</h1>
+        <p className="text-gray-400 mb-6">Removing managed files and emulators.</p>
+        <button
+          type="button"
+          onClick={() => openLogTail()}
+          className="text-gray-500 hover:text-gray-400 hover:underline text-sm"
+        >
+          View log
+        </button>
+      </div>
+    </div>
+  )
 }
 
 function UninstallSuccessOverlay() {
@@ -121,6 +141,10 @@ export function InstallationView() {
       )
     }
     setUninstalling(false)
+  }
+
+  if (uninstalling) {
+    return <UninstallingOverlay />
   }
 
   if (uninstalled) {

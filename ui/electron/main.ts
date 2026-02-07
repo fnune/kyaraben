@@ -522,15 +522,16 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('will-quit', () => {
+app.on('quit', () => {
   if (pendingUninstallCleanup) {
-    // Electron's ui/ subdirectory is locked during uninstall, so the daemon
-    // can't remove it. Clean up the remaining state directory now that we're quitting.
-    const fs = require('node:fs')
-    try {
-      fs.rmSync(kyarabenStateDir, { recursive: true, force: true })
-    } catch {
-      // Ignore errors
-    }
+    // Electron recreates storage files during shutdown even after clearStorageData().
+    // Spawn a detached process that waits for Electron to fully exit, then removes the directory.
+    const { spawn } = require('node:child_process')
+    const pid = process.pid
+    spawn(
+      'sh',
+      ['-c', `while kill -0 ${pid} 2>/dev/null; do sleep 0.1; done; rm -rf "${kyarabenStateDir}"`],
+      { detached: true, stdio: 'ignore' },
+    ).unref()
   }
 })
