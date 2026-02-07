@@ -36,16 +36,31 @@ type ConfigTarget struct {
 type BaseDirResolver interface {
 	UserConfigDir() (string, error)
 	UserHomeDir() (string, error)
+	UserDataDir() (string, error)
 }
 
 type OSBaseDirResolver struct{}
 
 func (OSBaseDirResolver) UserConfigDir() (string, error) {
+	if dir := os.Getenv("XDG_CONFIG_HOME"); dir != "" {
+		return dir, nil
+	}
 	return os.UserConfigDir()
 }
 
 func (OSBaseDirResolver) UserHomeDir() (string, error) {
 	return os.UserHomeDir()
+}
+
+func (OSBaseDirResolver) UserDataDir() (string, error) {
+	if dir := os.Getenv("XDG_DATA_HOME"); dir != "" {
+		return dir, nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".local", "share"), nil
 }
 
 func (ct ConfigTarget) ResolveWith(resolver BaseDirResolver) (string, error) {

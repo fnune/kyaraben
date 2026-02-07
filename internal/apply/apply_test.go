@@ -28,6 +28,10 @@ func (f fakeBaseDirResolver) UserHomeDir() (string, error) {
 	return f.root, nil
 }
 
+func (f fakeBaseDirResolver) UserDataDir() (string, error) {
+	return filepath.Join(f.root, ".local", "share"), nil
+}
+
 func TestMain(m *testing.M) {
 	if err := versions.Init(); err != nil {
 		panic(err)
