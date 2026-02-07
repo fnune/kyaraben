@@ -407,13 +407,15 @@ function setupIpcHandlers(): void {
   })
 
   ipcMain.handle('launch_cli_uninstall', () => {
+    const { spawn: spawnProcess } = require('node:child_process')
     const sidecarPath = findSidecarPath()
-    const command = `"${sidecarPath}" uninstall --force; echo; read -p "Press Enter to close..."`
-    const result = spawnInTerminal(command)
-    if (result.success) {
-      setTimeout(() => app.quit(), 500)
-    }
-    return result
+    const pid = process.pid
+    spawnProcess(sidecarPath, ['uninstall', '--force', `--wait-pid=${pid}`, '--notify'], {
+      detached: true,
+      stdio: 'ignore',
+    }).unref()
+    app.quit()
+    return { success: true }
   })
 
   ipcMain.handle('get_bug_report_info', async () => {
