@@ -73,10 +73,15 @@ export function ProgressSteps({ steps, error, cancelled }: ProgressStepsProps) {
         <ol className="space-y-2">
           {steps.map((step) => (
             <li key={step.id}>
-              <div className="flex items-center gap-2">
+              <div
+                className="flex items-center gap-2 min-w-0"
+                title={step.message ? `${step.label} ${step.message}` : step.label}
+              >
                 <StepIcon status={step.status} />
-                <span className="font-medium text-gray-300">{step.label}</span>
-                {step.message && <span className="text-sm text-gray-500">{step.message}</span>}
+                <span className="text-gray-300 truncate">
+                  <span className="font-medium">{step.label}</span>
+                  {step.message && <span className="text-sm"> {step.message}</span>}
+                </span>
               </div>
               {step.output && step.output.length > 0 && (
                 <div className="mt-1 ml-6">

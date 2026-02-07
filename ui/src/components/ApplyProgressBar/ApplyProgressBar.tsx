@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react'
 import { useApply } from '@/lib/ApplyContext'
 import { BOTTOM_BAR_HEIGHT } from '@/lib/BottomBar'
 import { BottomBarPortal } from '@/lib/BottomBarSlot'
-import { openLogTail } from '@/lib/daemon'
-import { useToast } from '@/lib/ToastContext'
+import { useOpenLog } from '@/lib/useOpenLog'
 
 export interface ApplyProgressBarProps {
   readonly currentView: string
@@ -12,7 +11,7 @@ export interface ApplyProgressBarProps {
 
 export function ApplyProgressBar({ currentView, onNavigateToSystems }: ApplyProgressBarProps) {
   const { status, progressSteps, cancel } = useApply()
-  const { showToast } = useToast()
+  const handleOpenLog = useOpenLog()
   const [confirmingCancel, setConfirmingCancel] = useState(false)
   const [cancelling, setCancelling] = useState(false)
 
@@ -28,17 +27,6 @@ export function ApplyProgressBar({ currentView, onNavigateToSystems }: ApplyProg
     const timer = setTimeout(() => setConfirmingCancel(false), 3000)
     return () => clearTimeout(timer)
   }, [confirmingCancel])
-
-  const handleOpenLog = async () => {
-    const result = await openLogTail()
-    if (!result.ok) {
-      showToast('Failed to open log', 'error')
-      return
-    }
-    if (!result.data.success && result.data.command) {
-      showToast(`No terminal found. Run manually: ${result.data.command}`, 'info', 10000)
-    }
-  }
 
   const handleCancel = () => {
     if (cancelling) return

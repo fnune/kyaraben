@@ -326,6 +326,60 @@ test.describe('Apply flow', () => {
   })
 })
 
+test.describe('Enable all flow', () => {
+  let fixture: TestFixture
+  let app: ElectronApplication
+  let page: Page
+
+  test.beforeAll(async () => {
+    const preset = presets.freshInstall()
+    fixture = createFixture(preset.config, preset.manifest)
+    setupFakeNixPortable(fixture)
+    fixture.env.FAKE_NIX_SLOW = '1'
+
+    app = await electron.launch({
+      executablePath: getAppImagePath(),
+      args: ['--no-sandbox'],
+      env: {
+        ...process.env,
+        ...fixture.env,
+      },
+    })
+
+    page = await app.firstWindow()
+    await page.getByRole('heading', { level: 1 }).waitFor({ timeout: 30000 })
+  })
+
+  test.afterAll(async () => {
+    await app?.close()
+    fixture?.cleanup()
+  })
+
+  test('Enable all shows toast and enables systems', async () => {
+    await page.getByRole('button', { name: 'Enable all' }).click()
+    await expect(page.getByText('All systems enabled')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Apply' })).toBeVisible()
+  })
+
+  test('Apply installs all emulators', async () => {
+    await page.getByRole('button', { name: 'Apply' }).click()
+    await expect(page.getByRole('button', { name: 'Done' })).toBeVisible({ timeout: 60000 })
+  })
+
+  test('Multiple emulators show Launch button after install', async () => {
+    await page.getByRole('button', { name: 'Done' }).click()
+
+    const snesCard = page.getByRole('article').filter({ hasText: 'Super Nintendo' })
+    await expect(snesCard.getByText('Launch')).toBeVisible({ timeout: 5000 })
+
+    const nesCard = page.getByRole('article').filter({ hasText: 'NESNintendo' })
+    await expect(nesCard.getByText('Launch')).toBeVisible()
+
+    const psxCard = page.getByRole('article').filter({ hasText: 'PlayStationSony · 1994' }).first()
+    await expect(psxCard.getByText('Launch')).toBeVisible()
+  })
+})
+
 test.describe('Tab navigation', () => {
   let fixture: TestFixture
   let app: ElectronApplication

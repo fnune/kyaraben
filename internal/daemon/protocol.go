@@ -79,12 +79,13 @@ type CancelledResponse struct {
 type GetSystemsResponse []SystemWithEmulators
 
 type SystemWithEmulators struct {
-	ID           model.SystemID     `json:"id"`
-	Name         string             `json:"name"`
-	Description  string             `json:"description"`
-	Manufacturer model.Manufacturer `json:"manufacturer"`
-	Label        string             `json:"label"`
-	Emulators    []EmulatorRef      `json:"emulators"`
+	ID                model.SystemID     `json:"id"`
+	Name              string             `json:"name"`
+	Description       string             `json:"description"`
+	Manufacturer      model.Manufacturer `json:"manufacturer"`
+	Label             string             `json:"label"`
+	DefaultEmulatorID model.EmulatorID   `json:"defaultEmulatorId"`
+	Emulators         []EmulatorRef      `json:"emulators"`
 }
 
 type EmulatorRef struct {
