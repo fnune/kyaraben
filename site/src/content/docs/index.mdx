@@ -13,26 +13,32 @@ hero:
       variant: minimal
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components'
+import { Aside, Card, CardGrid } from "@astrojs/starlight/components";
+
+<Aside type="caution">
+  Kyaraben is pre-alpha software. It has not been battle-tested. If you are interested in trying it
+  out as a pilot user, feedback and bug reports are welcome on
+  [GitHub](https://github.com/fnune/kyaraben/issues).
+</Aside>
 
 ## What it does
 
 <CardGrid>
   <Card title="Select and apply">
-    Choose which gaming systems you want to emulate. Kyaraben installs the
-    emulators and generates their configuration. One click.
+    Choose which gaming systems you want to emulate. Kyaraben installs the emulators and generates
+    their configuration. One click.
   </Card>
   <Card title="Unified folder structure">
-    ROMs, BIOS files, saves, and screenshots organized in a single
-    `~/Emulation` directory. Every emulator points to the same place.
+    ROMs, BIOS files, saves, and screenshots organized in a single `~/Emulation` directory. Every
+    emulator points to the same place.
   </Card>
   <Card title="Observability">
-    Kyaraben tracks what it installs, shows diffs before changing config files,
-    and avoids littering your system. You always know what changed and why.
+    Kyaraben tracks what it installs, shows diffs before changing config files, and avoids littering
+    your system. You always know what changed and why.
   </Card>
   <Card title="Clean by design">
-    No system packages modified, no root access needed. Everything lives in
-    user directories. Uninstall removes only what kyaraben put there.
+    No system packages modified, no root access needed. Everything lives in user directories.
+    Uninstall removes only what kyaraben put there.
   </Card>
 </CardGrid>
 
