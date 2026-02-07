@@ -23,6 +23,7 @@
 - UI show all available emulators: when a system is enabled, show all available emulators with checkboxes instead of a dropdown that switches
 - Sync UI: dedicated UI for pairing devices, monitoring sync status (currently CLI/config only)
 - CLI review step: offer interactive review before overwriting user-modified managed keys, add `--dry-run` flag
+- Handheld distro sync targets: support SD-based handhelds (Trimui Brick, Miyoo, etc.) running community distros (NextUI, PakUI, MinUI). These distros already bundle emulators, so kyaraben would skip nix-based installation and instead generate configs and directory layouts matching the target distro's conventions, then sync ROMs, saves, and configs to the SD card via Syncthing or export. Add a "target" concept to config (e.g. `target = "trimui-brick-nextui"`) so users declare their systems once and kyaraben translates to the right structure per platform
 
 ## Probably not worth it
 
