@@ -7,7 +7,7 @@ interface Toast {
 }
 
 interface ToastContextValue {
-  showToast: (content: ReactNode, type?: Toast['type']) => void
+  showToast: (content: ReactNode, type?: Toast['type'], duration?: number) => void
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null)
@@ -17,13 +17,16 @@ let nextId = 0
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
 
-  const showToast = useCallback((content: ReactNode, type: Toast['type'] = 'info') => {
-    const id = nextId++
-    setToasts((prev) => [...prev, { id, content, type }])
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id))
-    }, 5000)
-  }, [])
+  const showToast = useCallback(
+    (content: ReactNode, type: Toast['type'] = 'info', duration = 5000) => {
+      const id = nextId++
+      setToasts((prev) => [...prev, { id, content, type }])
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id))
+      }, duration)
+    },
+    [],
+  )
 
   const dismiss = useCallback((id: number) => {
     setToasts((prev) => prev.filter((t) => t.id !== id))
@@ -49,8 +52,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={toast.id}
             className={`
               ${getStyles(toast.type)}
-              px-3 py-1.5 rounded border text-xs backdrop-blur-sm
-              shadow-sm flex items-center gap-2
+              px-3 py-1.5 rounded border text-xs backdrop-blur-xs
+              shadow-xs flex items-center gap-2
             `}
           >
             {toast.content}

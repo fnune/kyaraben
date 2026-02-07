@@ -130,5 +130,11 @@
       "semicolons": "asNeeded"
     },
     "globals": ["describe", "it", "browser", "$"]
+  },
+  "css": {
+    "parser": {
+      "cssModules": true,
+      "tailwindDirectives": true
+    }
   }
 }

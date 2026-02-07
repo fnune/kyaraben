@@ -1,6 +1,31 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@layer base {
+  button,
+  [role="button"],
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  summary {
+    cursor: pointer;
+  }
+}
+
+@theme {
+  --color-nintendo: #e60012;
+  --color-sony: #003087;
+  --color-sega: #0060a8;
+
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(400%);
+    }
+  }
+  --animate-shimmer: shimmer 1.5s infinite;
+}
 
 :root {
   --color-bg-primary: #111827;

@@ -292,7 +292,7 @@ function VersionSelector({
       disabled={disabled}
       className={`
         bg-gray-700 rounded px-2 py-1 text-xs text-gray-200
-        outline-2 outline-offset-1 focus:outline focus:outline-blue-400
+        outline-2 outline-offset-1 focus:outline-solid focus:outline-blue-400
         ${isPinned ? 'ring-2 ring-amber-500' : 'border border-gray-600'}
         ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
         tabular-nums

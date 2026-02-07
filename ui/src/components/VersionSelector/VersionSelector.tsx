@@ -48,7 +48,7 @@ export function VersionSelector({
         value={currentValue}
         onChange={handleChange}
         disabled={disabled}
-        className="text-xs bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5 text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50 cursor-pointer"
+        className="text-xs bg-gray-50 border border-gray-200 rounded-sm px-1.5 py-0.5 text-gray-600 focus:outline-hidden focus:ring-1 focus:ring-blue-500 disabled:opacity-50 cursor-pointer"
         title={
           pinnedVersion
             ? `Pinned to ${pinnedVersion}`

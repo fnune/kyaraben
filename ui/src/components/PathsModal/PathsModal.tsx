@@ -36,13 +36,13 @@ export function PathsModal({
           <div key={label}>
             <p className="text-sm text-gray-400 mb-1">{label}</p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 text-sm bg-gray-700 px-2 py-1.5 rounded text-gray-300 select-all truncate">
+              <code className="flex-1 text-sm bg-gray-700 px-2 py-1.5 rounded-sm text-gray-300 select-all truncate">
                 {path}
               </code>
               <button
                 type="button"
                 onClick={() => handleOpenFolder(path)}
-                className="p-1.5 bg-gray-600 hover:bg-gray-500 text-gray-300 rounded transition-colors flex-shrink-0"
+                className="p-1.5 bg-gray-600 hover:bg-gray-500 text-gray-300 rounded-sm transition-colors shrink-0"
                 aria-label={`Open ${label} folder`}
               >
                 <FolderIcon />
@@ -58,7 +58,7 @@ export function PathsModal({
               {managedConfigs.map((configPath) => (
                 <code
                   key={configPath}
-                  className="block text-sm bg-gray-700 px-2 py-1.5 rounded text-gray-300 select-all overflow-x-auto whitespace-nowrap"
+                  className="block text-sm bg-gray-700 px-2 py-1.5 rounded-sm text-gray-300 select-all overflow-x-auto whitespace-nowrap"
                 >
                   {configPath}
                 </code>
