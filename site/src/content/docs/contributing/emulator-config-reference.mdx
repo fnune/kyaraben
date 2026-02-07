@@ -23,51 +23,51 @@ Kyaraben uses three strategies depending on the emulator's capabilities:
 
 ## DuckStation (PSX)
 
-| Property | Value |
-| --- | --- |
-| Format | INI |
+| Property | Value                                |
+| -------- | ------------------------------------ |
+| Format   | INI                                  |
 | Location | `~/.config/duckstation/settings.ini` |
 
 Managed keys:
 
-| INI section | Key | Maps to |
-| --- | --- | --- |
-| `[BIOS]` | `SearchDirectory` | `UserStore/bios/psx` |
-| `[MemoryCards]` | `Directory` | `UserStore/saves/psx` |
-| `[Folders]` | `SaveStates` | `UserStore/states/duckstation` |
-| `[Folders]` | `Screenshots` | `UserStore/screenshots/psx` |
-| `[GameList]` | `RecursivePaths` | `UserStore/roms/psx` |
+| INI section     | Key               | Maps to                        |
+| --------------- | ----------------- | ------------------------------ |
+| `[BIOS]`        | `SearchDirectory` | `UserStore/bios/psx`           |
+| `[MemoryCards]` | `Directory`       | `UserStore/saves/psx`          |
+| `[Folders]`     | `SaveStates`      | `UserStore/states/duckstation` |
+| `[Folders]`     | `Screenshots`     | `UserStore/screenshots/psx`    |
+| `[GameList]`    | `RecursivePaths`  | `UserStore/roms/psx`           |
 
 Provisions: `scph5501.bin` (USA), `scph5500.bin` (Japan), `scph5502.bin`
 (Europe). All placed in `UserStore/bios/psx/`.
 
 ## PCSX2 (PS2)
 
-| Property | Value |
-| --- | --- |
-| Format | INI |
+| Property | Value                            |
+| -------- | -------------------------------- |
+| Format   | INI                              |
 | Location | `~/.config/PCSX2/inis/PCSX2.ini` |
 
 Managed keys:
 
-| INI section | Key | Maps to |
-| --- | --- | --- |
-| `[Folders]` | `Bios` | `UserStore/bios/ps2` |
-| `[Folders]` | `MemoryCards` | `UserStore/saves/ps2` |
-| `[Folders]` | `Savestates` | `UserStore/states/pcsx2` |
-| `[Folders]` | `Screenshots` | `UserStore/screenshots/ps2` |
-| `[GameList]` | `RecursivePaths` | `UserStore/roms/ps2` |
+| INI section  | Key              | Maps to                     |
+| ------------ | ---------------- | --------------------------- |
+| `[Folders]`  | `Bios`           | `UserStore/bios/ps2`        |
+| `[Folders]`  | `MemoryCards`    | `UserStore/saves/ps2`       |
+| `[Folders]`  | `Savestates`     | `UserStore/states/pcsx2`    |
+| `[Folders]`  | `Screenshots`    | `UserStore/screenshots/ps2` |
+| `[GameList]` | `RecursivePaths` | `UserStore/roms/ps2`        |
 
 Provisions: `scph39001.bin` (USA), `scph70004.bin` (Europe), `scph10000.bin`
 (Japan).
 
 ## RPCS3 (PS3)
 
-| Property | Value |
-| --- | --- |
-| Format | YAML |
+| Property    | Value                        |
+| ----------- | ---------------------------- |
+| Format      | YAML                         |
 | Main config | `~/.config/rpcs3/config.yml` |
-| VFS config | `~/.config/rpcs3/vfs.yml` |
+| VFS config  | `~/.config/rpcs3/vfs.yml`    |
 
 Uses the opaque directory pattern. The `$(EmulatorDir)` variable in `vfs.yml`
 is set to `UserStore/opaque/rpcs3/`.
@@ -78,9 +78,9 @@ Manual setup required: firmware installation via the RPCS3 GUI.
 
 ## PPSSPP (PSP)
 
-| Property | Value |
-| --- | --- |
-| Format | INI |
+| Property | Value                                    |
+| -------- | ---------------------------------------- |
+| Format   | INI                                      |
 | Location | `~/.config/ppsspp/PSP/SYSTEM/ppsspp.ini` |
 
 Uses the opaque directory pattern. The `MemStickDirectory` in `[General]` is
@@ -91,11 +91,11 @@ No provisions required (HLE).
 
 ## Vita3K (PS Vita)
 
-| Property | Value |
-| --- | --- |
-| Format | YAML |
-| Location | `<opaque>/config.yml` |
-| CLI argument | `-c <opaque-path>` |
+| Property     | Value                 |
+| ------------ | --------------------- |
+| Format       | YAML                  |
+| Location     | `<opaque>/config.yml` |
+| CLI argument | `-c <opaque-path>`    |
 
 Uses the opaque directory pattern with CLI argument `-c` to set the data
 location. The PS Vita filesystem (ux0, ur0) lives inside this directory.
@@ -104,48 +104,48 @@ Provisions: firmware, installed through the emulator GUI.
 
 ## mGBA (GBA)
 
-| Property | Value |
-| --- | --- |
-| Format | INI |
+| Property | Value                       |
+| -------- | --------------------------- |
+| Format   | INI                         |
 | Location | `~/.config/mgba/config.ini` |
 
 Managed keys:
 
-| INI section | Key | Maps to |
-| --- | --- | --- |
-| `[ports.qt]` | `savegamePath` | `UserStore/saves/gba` |
-| `[ports.qt]` | `savestatePath` | `UserStore/states/mgba` |
+| INI section  | Key              | Maps to                     |
+| ------------ | ---------------- | --------------------------- |
+| `[ports.qt]` | `savegamePath`   | `UserStore/saves/gba`       |
+| `[ports.qt]` | `savestatePath`  | `UserStore/states/mgba`     |
 | `[ports.qt]` | `screenshotPath` | `UserStore/screenshots/gba` |
 
 Provisions: `gba_bios.bin` (optional, mGBA has HLE).
 
 ## melonDS (NDS)
 
-| Property | Value |
-| --- | --- |
-| Format | INI |
+| Property | Value                           |
+| -------- | ------------------------------- |
+| Format   | INI                             |
 | Location | `~/.config/melonDS/melonDS.ini` |
 
 Managed keys:
 
-| Key | Maps to |
-| --- | --- |
-| `BIOS9Path` | `UserStore/bios/nds/bios9.bin` |
-| `BIOS7Path` | `UserStore/bios/nds/bios7.bin` |
-| `FirmwarePath` | `UserStore/bios/nds/firmware.bin` |
-| `SaveFilePath` | `UserStore/saves/nds` |
-| `SavestatePath` | `UserStore/states/melonds` |
-| `ScreenshotPath` | `UserStore/screenshots/nds` |
-| `LastROMFolder` | `UserStore/roms/nds` |
+| Key              | Maps to                           |
+| ---------------- | --------------------------------- |
+| `BIOS9Path`      | `UserStore/bios/nds/bios9.bin`    |
+| `BIOS7Path`      | `UserStore/bios/nds/bios7.bin`    |
+| `FirmwarePath`   | `UserStore/bios/nds/firmware.bin` |
+| `SaveFilePath`   | `UserStore/saves/nds`             |
+| `SavestatePath`  | `UserStore/states/melonds`        |
+| `ScreenshotPath` | `UserStore/screenshots/nds`       |
+| `LastROMFolder`  | `UserStore/roms/nds`              |
 
 Provisions: `bios7.bin`, `bios9.bin`, `firmware.bin` (all optional, melonDS
 has open-source BIOS).
 
 ## Azahar (3DS)
 
-| Property | Value |
-| --- | --- |
-| Format | INI (Qt format) |
+| Property | Value                            |
+| -------- | -------------------------------- |
+| Format   | INI (Qt format)                  |
 | Location | `~/.config/azahar/qt-config.ini` |
 
 Uses the opaque directory pattern for NAND and SDMC directories. Screenshot
@@ -158,11 +158,11 @@ Provisions: AES keys may be required for encrypted content.
 
 ## Dolphin (GameCube/Wii)
 
-| Property | Value |
-| --- | --- |
-| Format | INI |
-| Location | `<opaque>/Config/Dolphin.ini` |
-| CLI argument | `-u <opaque-path>` |
+| Property     | Value                         |
+| ------------ | ----------------------------- |
+| Format       | INI                           |
+| Location     | `<opaque>/Config/Dolphin.ini` |
+| CLI argument | `-u <opaque-path>`            |
 
 Uses CLI argument `-u` to set the user directory. All Dolphin data (config,
 memory cards, Wii NAND, save states, screenshots) lives inside the opaque
@@ -175,11 +175,11 @@ Provisions: GameCube BIOS (`GC/<region>/IPL.bin`, optional).
 
 ## Cemu (Wii U)
 
-| Property | Value |
-| --- | --- |
-| Format | XML |
-| Location | `~/.config/Cemu/settings.xml` |
-| CLI argument | `-mlc <opaque-path>` |
+| Property     | Value                         |
+| ------------ | ----------------------------- |
+| Format       | XML                           |
+| Location     | `~/.config/Cemu/settings.xml` |
+| CLI argument | `-mlc <opaque-path>`          |
 
 Uses CLI argument `-mlc` to set the MLC directory (saves, updates, DLC).
 ROM paths are configured in `settings.xml` under `<GamePaths>`.
@@ -188,11 +188,11 @@ Provisions: Wii U decryption keys.
 
 ## Eden (Switch)
 
-| Property | Value |
-| --- | --- |
-| Format | INI (Qt format) |
-| Location | `<opaque>/config/qt-config.ini` |
-| CLI argument | `-r <opaque-path>` |
+| Property     | Value                           |
+| ------------ | ------------------------------- |
+| Format       | INI (Qt format)                 |
+| Location     | `<opaque>/config/qt-config.ini` |
+| CLI argument | `-r <opaque-path>`              |
 
 Uses CLI argument `-r` to set the root data directory. NAND, SDMC, keys, and
 shader cache live inside this directory.
@@ -205,21 +205,21 @@ GUI).
 
 ## RetroArch (SNES, NES, Genesis, Saturn, N64)
 
-| Property | Value |
-| --- | --- |
-| Format | CFG |
+| Property | Value                               |
+| -------- | ----------------------------------- |
+| Format   | CFG                                 |
 | Location | `~/.config/retroarch/retroarch.cfg` |
 
 Managed keys:
 
-| Key | Maps to |
-| --- | --- |
-| `system_directory` | `UserStore/bios` |
-| `savefile_directory` | `UserStore/saves` |
-| `savestate_directory` | `UserStore/states` |
-| `screenshot_directory` | `UserStore/screenshots` |
-| `libretro_directory` | Kyaraben-managed cores directory |
-| `rgui_browser_directory` | `UserStore/roms` |
+| Key                      | Maps to                          |
+| ------------------------ | -------------------------------- |
+| `system_directory`       | `UserStore/bios`                 |
+| `savefile_directory`     | `UserStore/saves`                |
+| `savestate_directory`    | `UserStore/states`               |
+| `screenshot_directory`   | `UserStore/screenshots`          |
+| `libretro_directory`     | Kyaraben-managed cores directory |
+| `rgui_browser_directory` | `UserStore/roms`                 |
 
 Per-core overrides are placed in
 `~/.config/retroarch/config/<core_name>/<core_name>.cfg` to set
@@ -230,35 +230,35 @@ beetle_saturn (Saturn), mupen64plus_next (N64).
 
 ## Flycast (Dreamcast)
 
-| Property | Value |
-| --- | --- |
-| Format | CFG |
+| Property | Value                       |
+| -------- | --------------------------- |
+| Format   | CFG                         |
 | Location | `~/.config/flycast/emu.cfg` |
 
 Managed keys:
 
-| CFG section | Key | Maps to |
-| --- | --- | --- |
-| `[config]` | `Dreamcast.ContentPath` | `UserStore/roms/dreamcast` |
-| `[config]` | `SavestatesPath` | `UserStore/states/flycast` |
-| `[config]` | `ScreenshotsPath` | `UserStore/screenshots/dreamcast` |
+| CFG section | Key                     | Maps to                           |
+| ----------- | ----------------------- | --------------------------------- |
+| `[config]`  | `Dreamcast.ContentPath` | `UserStore/roms/dreamcast`        |
+| `[config]`  | `SavestatesPath`        | `UserStore/states/flycast`        |
+| `[config]`  | `ScreenshotsPath`       | `UserStore/screenshots/dreamcast` |
 
 Provisions: `dc_boot.bin`, `dc_flash.bin` (both optional, Flycast has HLE).
 
 ## Path configurability summary
 
-| Emulator | ROMs | BIOS | Saves | States | Screenshots | Strategy |
-| --- | --- | --- | --- | --- | --- | --- |
-| DuckStation | yes | yes | yes | yes | yes | Simple path |
-| PCSX2 | yes | yes | yes | yes | yes | Simple path |
-| RPCS3 | yes | partial | partial | partial | partial | Opaque |
-| PPSSPP | yes | n/a | partial | partial | yes | Opaque |
-| Vita3K | partial | partial | partial | n/a | partial | Opaque + CLI |
-| mGBA | partial | partial | yes | yes | yes | Simple path |
-| melonDS | yes | yes | yes | yes | yes | Simple path |
-| Azahar | yes | partial | partial | partial | yes | Opaque |
-| Dolphin | yes | partial | partial | yes | yes | CLI argument |
-| Cemu | yes | partial | partial | partial | partial | CLI argument |
-| Eden | yes | partial | partial | partial | yes | CLI argument |
-| RetroArch | yes | yes | yes | yes | yes | Simple path |
-| Flycast | yes | partial | partial | yes | yes | Simple path |
+| Emulator    | ROMs    | BIOS    | Saves   | States  | Screenshots | Strategy     |
+| ----------- | ------- | ------- | ------- | ------- | ----------- | ------------ |
+| DuckStation | yes     | yes     | yes     | yes     | yes         | Simple path  |
+| PCSX2       | yes     | yes     | yes     | yes     | yes         | Simple path  |
+| RPCS3       | yes     | partial | partial | partial | partial     | Opaque       |
+| PPSSPP      | yes     | n/a     | partial | partial | yes         | Opaque       |
+| Vita3K      | partial | partial | partial | n/a     | partial     | Opaque + CLI |
+| mGBA        | partial | partial | yes     | yes     | yes         | Simple path  |
+| melonDS     | yes     | yes     | yes     | yes     | yes         | Simple path  |
+| Azahar      | yes     | partial | partial | partial | yes         | Opaque       |
+| Dolphin     | yes     | partial | partial | yes     | yes         | CLI argument |
+| Cemu        | yes     | partial | partial | partial | partial     | CLI argument |
+| Eden        | yes     | partial | partial | partial | yes         | CLI argument |
+| RetroArch   | yes     | yes     | yes     | yes     | yes         | Simple path  |
+| Flycast     | yes     | partial | partial | yes     | yes         | Simple path  |

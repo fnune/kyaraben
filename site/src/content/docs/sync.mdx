@@ -26,14 +26,14 @@ Each device operates as either `primary` or `secondary`:
 
 ## Sync direction
 
-| Content | Primary | Secondary |
-| --- | --- | --- |
-| `roms/` | Send only | Receive only |
-| `bios/` | Send only | Receive only |
-| `saves/` | Bidirectional | Bidirectional |
-| `states/` | Bidirectional | Bidirectional |
+| Content        | Primary       | Secondary     |
+| -------------- | ------------- | ------------- |
+| `roms/`        | Send only     | Receive only  |
+| `bios/`        | Send only     | Receive only  |
+| `saves/`       | Bidirectional | Bidirectional |
+| `states/`      | Bidirectional | Bidirectional |
 | `screenshots/` | Bidirectional | Bidirectional |
-| `opaque/` | Bidirectional | Bidirectional |
+| `opaque/`      | Bidirectional | Bidirectional |
 
 ROMs and BIOS files flow one direction: from primary to secondaries. This
 prevents accidental deletion of your primary ROM collection from a secondary
@@ -84,14 +84,14 @@ subscribes to the corresponding shared folders from the primary.
 Kyaraben ships its own Syncthing instance with separate configuration to avoid
 conflicts with any existing Syncthing installation.
 
-| Setting | Default |
-| --- | --- |
+| Setting          | Default                         |
+| ---------------- | ------------------------------- |
 | Config directory | `~/.config/kyaraben/syncthing/` |
-| Listen port | 22001 |
-| Discovery port | 21028 |
-| GUI port | 8385 |
-| Relay servers | Enabled |
-| Device name | `<hostname>-kyaraben` |
+| Listen port      | 22001                           |
+| Discovery port   | 21028                           |
+| GUI port         | 8385                            |
+| Relay servers    | Enabled                         |
+| Device name      | `<hostname>-kyaraben`           |
 
 All ports are configurable in `config.toml`:
 
