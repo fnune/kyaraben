@@ -56,7 +56,7 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
 			{Path: []string{"General", "MemStickDirectory"}, Value: store.EmulatorOpaqueDir(model.EmulatorIDPPSSPP)},
-			{Path: []string{"General", "ScreenshotsPath"}, Value: store.SystemScreenshotsDir(model.SystemIDPSP)},
+			{Path: []string{"General", "ScreenshotsPath"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDPPSSPP)},
 		},
 	}}, nil
 }

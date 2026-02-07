@@ -7,7 +7,7 @@ type StoreReader interface {
 	SystemSavesDir(SystemID) string
 	EmulatorSavesDir(EmulatorID) string // Per-emulator saves for cores that need individual sync
 	EmulatorStatesDir(EmulatorID) string
-	SystemScreenshotsDir(SystemID) string
+	EmulatorScreenshotsDir(EmulatorID) string
 	SystemRomsDir(SystemID) string
 	EmulatorOpaqueDir(EmulatorID) string
 }

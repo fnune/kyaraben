@@ -62,7 +62,7 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 			{Path: []string{"ports.qt", "bios"}, Value: store.SystemBiosDir(model.SystemIDGBA) + "/gba_bios.bin"},
 			{Path: []string{"ports.qt", "savegamePath"}, Value: store.SystemSavesDir(model.SystemIDGBA)},
 			{Path: []string{"ports.qt", "savestatePath"}, Value: store.EmulatorStatesDir(model.EmulatorIDMGBA)},
-			{Path: []string{"ports.qt", "screenshotPath"}, Value: store.SystemScreenshotsDir(model.SystemIDGBA)},
+			{Path: []string{"ports.qt", "screenshotPath"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDMGBA)},
 		},
 	}}, nil
 }

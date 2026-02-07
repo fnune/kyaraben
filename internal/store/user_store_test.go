@@ -62,7 +62,7 @@ func TestUserStoreInitializeForEmulator(t *testing.T) {
 		filepath.Join(tmpDir, "bios", "snes"),
 		filepath.Join(tmpDir, "saves", "snes"),
 		filepath.Join(tmpDir, "states", "retroarch:bsnes"),
-		filepath.Join(tmpDir, "screenshots", "snes"),
+		filepath.Join(tmpDir, "screenshots", "retroarch"),
 	}
 
 	for _, dir := range expectedDirs {
@@ -95,7 +95,7 @@ func TestUserStoreInitializeForOpaqueEmulator(t *testing.T) {
 
 	expectedDirs := []string{
 		filepath.Join(tmpDir, "roms", "switch"),
-		filepath.Join(tmpDir, "screenshots", "switch"),
+		filepath.Join(tmpDir, "screenshots", "eden"),
 		filepath.Join(tmpDir, "opaque", "eden"),
 	}
 
@@ -160,7 +160,6 @@ func TestUserStoreSystemPaths(t *testing.T) {
 		{"SystemRomsDir", model.SystemIDSNES, store.SystemRomsDir, "/home/user/Emulation/roms/snes"},
 		{"SystemBiosDir", model.SystemIDPSX, store.SystemBiosDir, "/home/user/Emulation/bios/psx"},
 		{"SystemSavesDir", model.SystemIDGBA, store.SystemSavesDir, "/home/user/Emulation/saves/gba"},
-		{"SystemScreenshotsDir", model.SystemIDPSX, store.SystemScreenshotsDir, "/home/user/Emulation/screenshots/psx"},
 	}
 
 	for _, tt := range tests {
@@ -180,6 +179,18 @@ func TestUserStoreEmulatorPaths(t *testing.T) {
 	want := "/home/user/Emulation/states/retroarch:bsnes"
 	if got != want {
 		t.Errorf("EmulatorStatesDir got %s, want %s", got, want)
+	}
+
+	gotScreenshots := store.EmulatorScreenshotsDir(model.EmulatorIDDuckStation)
+	wantScreenshots := "/home/user/Emulation/screenshots/duckstation"
+	if gotScreenshots != wantScreenshots {
+		t.Errorf("EmulatorScreenshotsDir got %s, want %s", gotScreenshots, wantScreenshots)
+	}
+
+	gotRetroArchScreenshots := store.EmulatorScreenshotsDir(model.EmulatorIDRetroArchBsnes)
+	wantRetroArchScreenshots := "/home/user/Emulation/screenshots/retroarch"
+	if gotRetroArchScreenshots != wantRetroArchScreenshots {
+		t.Errorf("EmulatorScreenshotsDir (RetroArch) got %s, want %s", gotRetroArchScreenshots, wantRetroArchScreenshots)
 	}
 }
 

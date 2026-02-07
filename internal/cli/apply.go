@@ -58,6 +58,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		Registry:        registry,
 		ManifestPath:    manifestPath,
 		LauncherManager: launcherManager,
+		BaseDirResolver: model.OSBaseDirResolver{},
 	}
 
 	fmt.Println("Applying kyaraben configuration...")
