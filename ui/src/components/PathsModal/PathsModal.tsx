@@ -1,32 +1,33 @@
 import { FolderIcon } from '@/lib/icons'
 import { Modal } from '@/lib/Modal'
+import type { EmulatorPaths, ManagedConfigInfo } from '@/types/daemon'
 
 export interface PathsModalProps {
   readonly open: boolean
   readonly onClose: () => void
   readonly emulatorName: string
-  readonly emulatorId: string
-  readonly userStore: string
-  readonly managedConfigs?: readonly string[]
+  readonly paths: EmulatorPaths
+  readonly managedConfigs?: readonly ManagedConfigInfo[]
 }
 
 export function PathsModal({
   open,
   onClose,
   emulatorName,
-  emulatorId,
-  userStore,
+  paths: emulatorPaths,
   managedConfigs,
 }: PathsModalProps) {
   const paths = [
-    { label: 'Config', path: `~/.config/${emulatorId}/` },
-    { label: 'Data', path: `${userStore}/data/${emulatorId}/` },
-    { label: 'Saves', path: `${userStore}/saves/${emulatorId}/` },
+    { label: 'ROMs', path: emulatorPaths.roms },
+    { label: 'BIOS', path: emulatorPaths.bios },
+    { label: 'Saves', path: emulatorPaths.saves },
+    { label: 'Savestates', path: emulatorPaths.states },
+    { label: 'Screenshots', path: emulatorPaths.screenshots },
+    ...(emulatorPaths.opaque ? [{ label: 'Emulator data', path: emulatorPaths.opaque }] : []),
   ]
 
   const handleOpenFolder = (path: string) => {
-    const expandedPath = path.replace(/^~/, userStore.replace(/^~/, ''))
-    window.electron.invoke('open_path', expandedPath)
+    window.electron.invoke('open_path', path)
   }
 
   return (
@@ -53,15 +54,26 @@ export function PathsModal({
 
         {managedConfigs && managedConfigs.length > 0 && (
           <div>
-            <p className="text-sm text-gray-400 mb-1">Managed configs</p>
-            <div className="space-y-1.5">
-              {managedConfigs.map((configPath) => (
-                <code
-                  key={configPath}
-                  className="block text-sm bg-gray-700 px-2 py-1.5 rounded-sm text-gray-300 select-all overflow-x-auto whitespace-nowrap"
-                >
-                  {configPath}
-                </code>
+            <p className="text-sm text-gray-400 mb-1">Managed settings</p>
+            <p className="text-xs text-gray-500 mb-2">
+              These settings are controlled by kyaraben. Changing them may cause issues.
+            </p>
+            <div className="space-y-3">
+              {managedConfigs.map((config) => (
+                <div key={config.path}>
+                  <code className="block text-xs text-gray-500 mb-1 truncate">
+                    {config.path}
+                  </code>
+                  <div className="bg-gray-700 rounded-sm px-2 py-1.5 space-y-0.5">
+                    {config.keys.map((key) => (
+                      <div key={key.key} className="flex text-xs gap-2">
+                        <span className="text-gray-400 shrink-0">{key.key}</span>
+                        <span className="text-gray-500">=</span>
+                        <span className="text-gray-300 truncate">{key.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </div>

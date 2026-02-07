@@ -13,8 +13,10 @@ import { useOpenLog } from '@/lib/useOpenLog'
 import type {
   DoctorResponse,
   EmulatorID,
+  EmulatorPaths,
   FrontendID,
   FrontendRef,
+  ManagedConfigInfo,
   System,
   SystemID,
 } from '@/types/daemon'
@@ -31,7 +33,8 @@ export interface SystemsViewProps {
   readonly installedVersions: Map<EmulatorID, string>
   readonly installedFrontendVersions: Map<FrontendID, string>
   readonly installedExecLines: Map<EmulatorID, string>
-  readonly managedConfigs: Map<EmulatorID, string[]>
+  readonly managedConfigs: Map<EmulatorID, ManagedConfigInfo[]>
+  readonly installedPaths: Map<EmulatorID, Record<string, EmulatorPaths>>
   readonly provisions: DoctorResponse
   readonly userStore: string
   readonly onUserStoreChange: (value: string) => void
@@ -76,6 +79,7 @@ export function SystemsView({
   installedFrontendVersions,
   installedExecLines,
   managedConfigs,
+  installedPaths,
   provisions,
   userStore,
   onUserStoreChange,
@@ -300,8 +304,8 @@ export function SystemsView({
                   installedVersions={installedVersions}
                   installedExecLines={installedExecLines}
                   managedConfigs={managedConfigs}
+                  installedPaths={installedPaths}
                   provisions={provisions}
-                  userStore={userStore}
                   sharedPackages={sharedPackages}
                   onEmulatorToggle={onEmulatorToggle}
                   onVersionChange={onVersionChange}

@@ -380,7 +380,7 @@ func TestMGBAGenerate(t *testing.T) {
 	}
 }
 
-func TestRetroArchPerCoreSaveDirectories(t *testing.T) {
+func TestRetroArchCoreDirectories(t *testing.T) {
 	store := &fakeStoreReader{root: "/emulation"}
 	gen := retroarchbsnes.Definition{}.ConfigGenerator()
 
@@ -393,26 +393,69 @@ func TestRetroArchPerCoreSaveDirectories(t *testing.T) {
 		t.Fatalf("expected 2 patches (shared + override), got %d", len(patches))
 	}
 
-	// Check the override patch has per-emulator save directory
 	override := patches[1]
 
-	foundSaveDir := false
+	var saveDir, stateDir string
 	for _, entry := range override.Entries {
-		if entry.Key() == "savefile_directory" {
-			foundSaveDir = true
-			// Should use EmulatorSavesDir (contains emulator ID "retroarch:bsnes"), not SystemSavesDir
-			if !strings.Contains(entry.Value, "retroarch:bsnes") {
-				t.Errorf("savefile_directory should use per-emulator path, got %s", entry.Value)
-			}
-			// Should NOT be system-based (e.g., /saves/snes)
-			if strings.HasSuffix(entry.Value, "/snes") {
-				t.Errorf("savefile_directory should not use system-based path, got %s", entry.Value)
-			}
+		switch entry.Key() {
+		case "savefile_directory":
+			saveDir = entry.Value
+		case "savestate_directory":
+			stateDir = entry.Value
 		}
 	}
 
-	if !foundSaveDir {
+	if saveDir == "" {
 		t.Error("expected savefile_directory entry not found")
+	} else if !strings.HasSuffix(saveDir, "/snes") {
+		t.Errorf("savefile_directory should use system path ending in /snes, got %s", saveDir)
+	}
+
+	if stateDir == "" {
+		t.Error("expected savestate_directory entry not found")
+	} else if !strings.Contains(stateDir, "retroarch:bsnes") {
+		t.Errorf("savestate_directory should use per-emulator path containing retroarch:bsnes, got %s", stateDir)
+	}
+}
+
+func TestRetroArchSharedConfigDisablesSorting(t *testing.T) {
+	store := &fakeStoreReader{root: "/emulation"}
+	gen := retroarchbsnes.Definition{}.ConfigGenerator()
+
+	patches, err := gen.Generate(store)
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	if len(patches) < 1 {
+		t.Fatal("expected at least 1 patch")
+	}
+
+	shared := patches[0]
+	if shared.Target != retroarch.MainConfigTarget {
+		t.Fatalf("first patch should be shared config, got %v", shared.Target)
+	}
+
+	sortSettings := map[string]bool{
+		"sort_savefiles_enable":             false,
+		"sort_savestates_enable":            false,
+		"sort_savefiles_by_content_enable":  false,
+		"sort_savestates_by_content_enable": false,
+	}
+
+	for _, entry := range shared.Entries {
+		if _, ok := sortSettings[entry.Key()]; ok {
+			if entry.Value != "false" {
+				t.Errorf("%s should be false, got %s", entry.Key(), entry.Value)
+			}
+			sortSettings[entry.Key()] = true
+		}
+	}
+
+	for key, found := range sortSettings {
+		if !found {
+			t.Errorf("missing sort setting: %s", key)
+		}
 	}
 }
 

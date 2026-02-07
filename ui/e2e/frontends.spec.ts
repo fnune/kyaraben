@@ -55,7 +55,10 @@ test.describe('Frontend installation', () => {
   })
 
   test('can enable and install ES-DE frontend', async () => {
-    const esdeSection = page.locator('div').filter({ hasText: /^ES-DE/ }).first()
+    const esdeSection = page
+      .locator('div')
+      .filter({ hasText: /^ES-DE/ })
+      .first()
     const toggle = esdeSection.getByRole('switch')
     await expect(toggle).toHaveAttribute('aria-checked', 'false')
 
@@ -71,7 +74,11 @@ test.describe('Frontend installation', () => {
     await page.getByRole('button', { name: 'Done' }).click()
     await expect(page.getByText('Emulation folder')).toBeVisible()
 
-    const esdeToggleAfter = page.locator('div').filter({ hasText: /^ES-DE/ }).first().getByRole('switch')
+    const esdeToggleAfter = page
+      .locator('div')
+      .filter({ hasText: /^ES-DE/ })
+      .first()
+      .getByRole('switch')
     await expect(esdeToggleAfter).toHaveAttribute('aria-checked', 'true')
 
     await expect(page.getByRole('button', { name: 'Apply' })).not.toBeVisible()
@@ -97,7 +104,10 @@ test.describe('Frontend already enabled', () => {
   })
 
   test('shows ES-DE as enabled when configured', async () => {
-    const esdeSection = page.locator('div').filter({ hasText: /^ES-DE/ }).first()
+    const esdeSection = page
+      .locator('div')
+      .filter({ hasText: /^ES-DE/ })
+      .first()
     const toggle = esdeSection.getByRole('switch')
     await expect(toggle).toHaveAttribute('aria-checked', 'true')
   })

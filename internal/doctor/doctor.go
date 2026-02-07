@@ -14,6 +14,7 @@ type ProvisionResult struct {
 	Description  string
 	Required     bool
 	Status       model.ProvisionStatus
+	ExpectedPath string
 	FoundPath    string
 	ActualHash   string
 	ExpectedHash string
@@ -61,6 +62,7 @@ func Run(ctx context.Context, cfg *model.KyarabenConfig, reg *registry.Registry,
 					Description:  r.Provision.Description,
 					Required:     r.Provision.Required,
 					Status:       r.Status,
+					ExpectedPath: r.ExpectedPath,
 					FoundPath:    r.FoundPath,
 					ActualHash:   r.ActualHash,
 					ExpectedHash: r.Provision.MD5Hash,

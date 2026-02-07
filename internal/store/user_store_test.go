@@ -139,6 +139,24 @@ func TestUserStoreEmulatorPaths(t *testing.T) {
 	}
 }
 
+func TestUserStoreInitializeEmulator(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := mustNewUserStore(t, tmpDir)
+
+	if err := store.Initialize(); err != nil {
+		t.Fatalf("Initialize failed: %v", err)
+	}
+
+	if err := store.InitializeEmulator(model.EmulatorIDRetroArchBsnes); err != nil {
+		t.Fatalf("InitializeEmulator failed: %v", err)
+	}
+
+	statesDir := filepath.Join(tmpDir, "states", "retroarch:bsnes")
+	if info, err := os.Stat(statesDir); err != nil || !info.IsDir() {
+		t.Errorf("States directory not created: %s", statesDir)
+	}
+}
+
 func TestUserStoreExists(t *testing.T) {
 	tmpDir := t.TempDir()
 

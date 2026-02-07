@@ -12,8 +12,10 @@ import type {
   ConfigResponse,
   DoctorResponse,
   EmulatorID,
+  EmulatorPaths,
   FrontendID,
   FrontendRef,
+  ManagedConfigInfo,
   StatusResponse,
   SyncStatusResponse,
   System,
@@ -24,7 +26,8 @@ import type { View } from '@/types/ui'
 function parseStatusResponse(data: StatusResponse) {
   const versions = new Map<EmulatorID, string>()
   const execLines = new Map<EmulatorID, string>()
-  const configs = new Map<EmulatorID, string[]>()
+  const configs = new Map<EmulatorID, ManagedConfigInfo[]>()
+  const paths = new Map<EmulatorID, Record<string, EmulatorPaths>>()
   for (const emu of data.installedEmulators ?? []) {
     versions.set(emu.id, emu.version)
     if (emu.execLine) {
@@ -33,6 +36,9 @@ function parseStatusResponse(data: StatusResponse) {
     if (emu.managedConfigs) {
       configs.set(emu.id, emu.managedConfigs)
     }
+    if (emu.paths) {
+      paths.set(emu.id, emu.paths)
+    }
   }
 
   const feVersions = new Map<FrontendID, string>()
@@ -40,7 +46,7 @@ function parseStatusResponse(data: StatusResponse) {
     feVersions.set(fe.id, fe.version)
   }
 
-  return { versions, execLines, configs, feVersions }
+  return { versions, execLines, configs, feVersions, paths }
 }
 
 function parseConfigResponse(data: ConfigResponse) {
@@ -92,7 +98,12 @@ function AppContent() {
     Map<FrontendID, string>
   >(new Map())
   const [installedExecLines, setInstalledExecLines] = useState<Map<EmulatorID, string>>(new Map())
-  const [managedConfigs, setManagedConfigs] = useState<Map<EmulatorID, string[]>>(new Map())
+  const [managedConfigs, setManagedConfigs] = useState<Map<EmulatorID, ManagedConfigInfo[]>>(
+    new Map(),
+  )
+  const [installedPaths, setInstalledPaths] = useState<
+    Map<EmulatorID, Record<string, EmulatorPaths>>
+  >(new Map())
   const [provisions, setProvisions] = useState<DoctorResponse>({})
   const [userStore, setUserStore] = useState('~/Emulation')
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null)
@@ -108,11 +119,14 @@ function AppContent() {
     }
 
     if (statusResult.ok) {
-      const { versions, execLines, configs, feVersions } = parseStatusResponse(statusResult.data)
+      const { versions, execLines, configs, feVersions, paths } = parseStatusResponse(
+        statusResult.data,
+      )
       setInstalledVersions(versions)
       setInstalledExecLines(execLines)
       setManagedConfigs(configs)
       setInstalledFrontendVersions(feVersions)
+      setInstalledPaths(paths)
     }
   }, [])
 
@@ -147,11 +161,14 @@ function AppContent() {
       }
 
       if (statusResult.ok) {
-        const { versions, execLines, configs, feVersions } = parseStatusResponse(statusResult.data)
+        const { versions, execLines, configs, feVersions, paths } = parseStatusResponse(
+          statusResult.data,
+        )
         setInstalledVersions(versions)
         setInstalledExecLines(execLines)
         setManagedConfigs(configs)
         setInstalledFrontendVersions(feVersions)
+        setInstalledPaths(paths)
 
         if (statusResult.data.healthWarning === 'orphaned_artifacts') {
           showToast(
@@ -295,11 +312,14 @@ function AppContent() {
     }
 
     if (statusResult.ok) {
-      const { versions, execLines, configs, feVersions } = parseStatusResponse(statusResult.data)
+      const { versions, execLines, configs, feVersions, paths } = parseStatusResponse(
+        statusResult.data,
+      )
       setInstalledVersions(versions)
       setInstalledExecLines(execLines)
       setManagedConfigs(configs)
       setInstalledFrontendVersions(feVersions)
+      setInstalledPaths(paths)
     }
   }, [])
 
@@ -319,6 +339,7 @@ function AppContent() {
             installedFrontendVersions={installedFrontendVersions}
             installedExecLines={installedExecLines}
             managedConfigs={managedConfigs}
+            installedPaths={installedPaths}
             provisions={provisions}
             userStore={userStore}
             onUserStoreChange={setUserStore}

@@ -1,7 +1,14 @@
 import { EmulatorSubcard } from '@/components/EmulatorSubcard/EmulatorSubcard'
 import { SYSTEM_LOGOS } from '@/components/SystemLogo/SystemLogo'
 import { launchEmulator } from '@/lib/daemon'
-import type { DoctorResponse, EmulatorID, System, SystemID } from '@/types/daemon'
+import type {
+  DoctorResponse,
+  EmulatorID,
+  EmulatorPaths,
+  ManagedConfigInfo,
+  System,
+  SystemID,
+} from '@/types/daemon'
 
 export const SYSTEM_YEARS: Record<SystemID, number> = {
   nes: 1983,
@@ -32,9 +39,9 @@ export interface SystemCardProps {
   readonly emulatorVersions: ReadonlyMap<EmulatorID, string | null>
   readonly installedVersions: ReadonlyMap<EmulatorID, string>
   readonly installedExecLines: ReadonlyMap<EmulatorID, string>
-  readonly managedConfigs: ReadonlyMap<EmulatorID, string[]>
+  readonly managedConfigs: ReadonlyMap<EmulatorID, ManagedConfigInfo[]>
+  readonly installedPaths: ReadonlyMap<EmulatorID, Record<string, EmulatorPaths>>
   readonly provisions: DoctorResponse
-  readonly userStore: string
   readonly sharedPackages: ReadonlySet<string>
   readonly onEmulatorToggle: (emulatorId: EmulatorID, enabled: boolean) => void
   readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
@@ -47,8 +54,8 @@ export function SystemCard({
   installedVersions,
   installedExecLines,
   managedConfigs,
+  installedPaths,
   provisions,
-  userStore,
   sharedPackages,
   onEmulatorToggle,
   onVersionChange,
@@ -82,22 +89,22 @@ export function SystemCard({
         {system.emulators.map((emulator) => {
           const execLine = installedExecLines.get(emulator.id)
           const emuManagedConfigs = managedConfigs.get(emulator.id)
+          const emuPaths = installedPaths.get(emulator.id)?.[system.id]
           const packageName = emulator.packageName ?? emulator.id
           const isSharedPackage = sharedPackages.has(packageName)
           return (
             <EmulatorSubcard
               key={emulator.id}
               emulator={emulator}
-              systemId={system.id}
               enabled={enabledEmulators.has(emulator.id)}
               pinnedVersion={emulatorVersions.get(emulator.id) ?? null}
               installedVersion={installedVersions.get(emulator.id) ?? null}
               provisions={provisions[emulator.id] ?? []}
-              userStore={userStore}
               sharedPackage={isSharedPackage}
               onToggle={(enabled) => onEmulatorToggle(emulator.id, enabled)}
               onVersionChange={(version) => onVersionChange(emulator.id, version)}
               {...(emuManagedConfigs && { managedConfigs: emuManagedConfigs })}
+              {...(emuPaths && { paths: emuPaths })}
               {...(execLine && {
                 execLine,
                 onLaunch: () => launchEmulator(execLine),
