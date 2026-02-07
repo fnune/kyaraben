@@ -243,6 +243,62 @@ func TestHandleGetSystems_ReturnsSystems(t *testing.T) {
 	}
 }
 
+func TestHandleGetSystems_PopulatesPackageNameAndCoreBytes(t *testing.T) {
+	d := newTestDaemon(t, nil)
+
+	events := d.Handle(Command{Type: CommandTypeGetSystems})
+	if len(events) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(events))
+	}
+
+	resp, ok := events[0].Data.(GetSystemsResponse)
+	if !ok {
+		t.Fatalf("expected GetSystemsResponse, got %T", events[0].Data)
+	}
+
+	var foundRetroArchEmulator bool
+	for _, sys := range resp {
+		for _, emu := range sys.Emulators {
+			if emu.PackageName == "" {
+				t.Errorf("emulator %s has empty PackageName", emu.ID)
+			}
+
+			if emu.PackageName == "retroarch" {
+				foundRetroArchEmulator = true
+				if emu.CoreBytes <= 0 {
+					t.Errorf("RetroArch emulator %s should have CoreBytes > 0, got %d", emu.ID, emu.CoreBytes)
+				}
+			}
+		}
+	}
+
+	if !foundRetroArchEmulator {
+		t.Error("expected to find at least one RetroArch emulator")
+	}
+}
+
+func TestRetroArchCoreName(t *testing.T) {
+	tests := []struct {
+		id       model.EmulatorID
+		expected string
+	}{
+		{model.EmulatorIDRetroArchBsnes, "bsnes"},
+		{model.EmulatorIDRetroArchMesen, "mesen"},
+		{model.EmulatorIDRetroArchGenesisPlusGX, "genesis_plus_gx"},
+		{model.EmulatorIDRetroArchMupen64Plus, "mupen64plus_next"},
+		{model.EmulatorIDRetroArchBeetleSaturn, "mednafen_saturn"},
+		{model.EmulatorIDMGBA, ""},
+		{model.EmulatorIDDolphin, ""},
+	}
+
+	for _, tt := range tests {
+		got := retroArchCoreName(tt.id)
+		if got != tt.expected {
+			t.Errorf("retroArchCoreName(%s) = %q, want %q", tt.id, got, tt.expected)
+		}
+	}
+}
+
 func TestHandleInstallStatus_EmptyManifest(t *testing.T) {
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "config.toml")

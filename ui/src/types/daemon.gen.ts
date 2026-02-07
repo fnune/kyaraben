@@ -80,6 +80,8 @@ export interface EmulatorRef {
   defaultVersion?: string;
   availableVersions?: string[];
   downloadBytes?: number /* int64 */;
+  coreBytes?: number /* int64 */;
+  packageName?: string;
 }
 export interface ConfigResponse {
   userStore: string;
@@ -131,6 +133,8 @@ export interface SyncRemoveDeviceResponse {
 export interface UninstallPreviewResponse {
   stateDir: string;
   stateDirExists: boolean;
+  retroArchCoresDir?: string;
+  retroArchCoreFiles?: string[];
   desktopFiles: string[];
   iconFiles: string[];
   configFiles: string[];

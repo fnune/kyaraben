@@ -7,6 +7,15 @@ commit = "fa83fd837f3098e3e678e6cf017b2b36102c7211" # https://github.com/NixOS/n
 [retroarch-cores]
 commit = "d03088749a110d52a4739348f39a63f84bb0be14" # hydra-cached libretro cores
 
+# Core sizes in bytes. To measure:
+#   find ~/.local/state/kyaraben/build/nix/.nix-portable/nix/store -name "*_libretro.so" -exec ls -la {} \;
+[retroarch-cores.sizes]
+bsnes = 6362240
+mesen = 3783048
+genesis_plus_gx = 12729616
+mupen64plus_next = 8725856
+mednafen_saturn = 8316472
+
 # ============================================================================
 # EDEN - Nintendo Switch emulator (pilot for multi-version support)
 # https://github.com/eden-emulator/Releases/releases

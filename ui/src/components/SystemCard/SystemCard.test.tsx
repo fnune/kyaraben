@@ -31,6 +31,7 @@ describe('SystemCard', () => {
         managedConfigs={new Map()}
         provisions={{}}
         userStore="~/Emulation"
+        sharedPackages={new Set()}
         onEmulatorToggle={vi.fn()}
         onVersionChange={vi.fn()}
       />,
@@ -51,6 +52,7 @@ describe('SystemCard', () => {
         managedConfigs={new Map()}
         provisions={{}}
         userStore="~/Emulation"
+        sharedPackages={new Set()}
         onEmulatorToggle={vi.fn()}
         onVersionChange={vi.fn()}
       />,
@@ -74,6 +76,7 @@ describe('SystemCard', () => {
         managedConfigs={new Map()}
         provisions={{}}
         userStore="~/Emulation"
+        sharedPackages={new Set()}
         onEmulatorToggle={onEmulatorToggle}
         onVersionChange={vi.fn()}
       />,
@@ -106,6 +109,7 @@ describe('SystemCard', () => {
         managedConfigs={new Map()}
         provisions={provisions}
         userStore="~/Emulation"
+        sharedPackages={new Set()}
         onEmulatorToggle={vi.fn()}
         onVersionChange={vi.fn()}
       />,
@@ -125,6 +129,7 @@ describe('SystemCard', () => {
         managedConfigs={new Map()}
         provisions={{}}
         userStore="~/Emulation"
+        sharedPackages={new Set()}
         onEmulatorToggle={vi.fn()}
         onVersionChange={vi.fn()}
       />,

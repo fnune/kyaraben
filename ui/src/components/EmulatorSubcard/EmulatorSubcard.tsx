@@ -18,6 +18,7 @@ export interface EmulatorSubcardProps {
   readonly managedConfigs?: readonly string[]
   readonly userStore: string
   readonly execLine?: string
+  readonly sharedPackage?: boolean
   readonly onToggle: (enabled: boolean) => void
   readonly onVersionChange: (version: string | null) => void
   readonly onLaunch?: () => void
@@ -135,6 +136,7 @@ export function EmulatorSubcard({
   managedConfigs,
   userStore,
   execLine,
+  sharedPackage,
   onToggle,
   onVersionChange,
   onLaunch,
@@ -227,8 +229,19 @@ export function EmulatorSubcard({
                 </button>
               </>
             ) : (
-              emulator.downloadBytes && (
-                <span className="text-gray-500">{formatBytes(emulator.downloadBytes)}</span>
+              (emulator.downloadBytes || emulator.coreBytes) && (
+                <span className="text-gray-500">
+                  {emulator.downloadBytes ? formatBytes(emulator.downloadBytes) : ''}
+                  {sharedPackage && emulator.downloadBytes && (
+                    <span className="text-blue-400 ml-1">(shared)</span>
+                  )}
+                  {emulator.coreBytes && (
+                    <span className="ml-1">
+                      {emulator.downloadBytes ? '+ ' : ''}
+                      {formatBytes(emulator.coreBytes)} core
+                    </span>
+                  )}
+                </span>
               )
             )}
           </div>
