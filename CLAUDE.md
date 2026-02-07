@@ -1,5 +1,12 @@
 # Claude instructions for kyaraben
 
+To quickly learn about kyaraben:
+
+- `site/src/content/docs/index.mdx`: what kyaraben is and how it works
+- `site/src/content/docs/getting-started.mdx`: installation and first-run walkthrough
+- `site/src/content/docs/using-the-app.mdx`: app reference and guarantees
+- `site/src/content/docs/using-the-cli.mdx`: CLI reference
+
 Read and follow the contributing guidelines at `site/src/content/docs/contributing.mdx`.
 
 Key points:
