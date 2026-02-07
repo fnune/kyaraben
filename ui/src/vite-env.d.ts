@@ -18,7 +18,7 @@ type EventChannel = 'apply:progress'
 interface ElectronAPI {
   invoke<T>(command: CommandType, data?: unknown): Promise<T>
   on(channel: EventChannel, callback: (...args: unknown[]) => void): void
-  off(channel: EventChannel, callback: (...args: unknown[]) => void): void
+  off(channel: EventChannel): void
 }
 
 interface Window {
