@@ -413,8 +413,8 @@ function setupIpcHandlers(): void {
     spawnProcess(sidecarPath, ['uninstall', '--force', `--wait-pid=${pid}`, '--notify'], {
       detached: true,
       stdio: 'ignore',
+      env: process.env,
     }).unref()
-    app.quit()
     return { success: true }
   })
 
