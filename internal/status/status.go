@@ -2,9 +2,12 @@ package status
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/paths"
 	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/store"
 	"github.com/fnune/kyaraben/internal/versions"
@@ -32,6 +35,7 @@ type Result struct {
 	InstalledEmulators   []EmulatorInfo
 	LastApplied          time.Time
 	MissingRequiredCount int
+	HealthWarning        string // Non-empty if inconsistent state detected
 }
 
 func Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg *registry.Registry, userStore *store.UserStore, manifestPath string) (*Result, error) {
@@ -99,5 +103,30 @@ func Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg 
 		}
 	}
 
+	result.HealthWarning = detectOrphanedArtifacts(manifest)
+
 	return result, nil
+}
+
+func detectOrphanedArtifacts(manifest *model.Manifest) string {
+	if len(manifest.InstalledEmulators) > 0 {
+		return ""
+	}
+
+	stateDir, err := paths.KyarabenStateDir()
+	if err != nil {
+		return ""
+	}
+
+	binDir := filepath.Join(stateDir, "bin")
+	if entries, err := os.ReadDir(binDir); err == nil && len(entries) > 0 {
+		return "orphaned_artifacts"
+	}
+
+	currentLink := filepath.Join(stateDir, "current")
+	if _, err := os.Lstat(currentLink); err == nil {
+		return "orphaned_artifacts"
+	}
+
+	return ""
 }
