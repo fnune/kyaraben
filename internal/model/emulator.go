@@ -34,7 +34,6 @@ type RomLaunchOptions struct {
 	Fullscreen bool
 }
 
-
 // SupportsSystem checks if this emulator can run games for the given system.
 func (e *Emulator) SupportsSystem(sys SystemID) bool {
 	for _, s := range e.Systems {
