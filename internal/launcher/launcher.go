@@ -8,6 +8,7 @@ import (
 	"text/template"
 
 	"github.com/fnune/kyaraben/internal/logging"
+	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/paths"
 )
 
@@ -18,9 +19,14 @@ type Manager struct {
 	dataDir             string
 	nixPortableBinary   string
 	nixPortableLocation string
+	resolver            model.BaseDirResolver
 }
 
 func NewManager() (*Manager, error) {
+	return NewManagerWithResolver(model.OSBaseDirResolver{})
+}
+
+func NewManagerWithResolver(resolver model.BaseDirResolver) (*Manager, error) {
 	stateDir, err := paths.KyarabenStateDir()
 	if err != nil {
 		return nil, fmt.Errorf("getting state directory: %w", err)
@@ -32,6 +38,7 @@ func NewManager() (*Manager, error) {
 	return &Manager{
 		profileDir: stateDir,
 		dataDir:    dataDir,
+		resolver:   resolver,
 	}, nil
 }
 
@@ -271,13 +278,17 @@ type InstallResult struct {
 }
 
 func (m *Manager) InstallKyaraben(appImagePath, sidecarPath string) (*InstallResult, error) {
-	homeDir, err := os.UserHomeDir()
+	homeDir, err := m.resolver.UserHomeDir()
 	if err != nil {
 		return nil, fmt.Errorf("getting home directory: %w", err)
 	}
+	dataDir, err := m.resolver.UserDataDir()
+	if err != nil {
+		return nil, fmt.Errorf("getting data directory: %w", err)
+	}
 
 	binDir := filepath.Join(homeDir, ".local", "bin")
-	appsDir := filepath.Join(homeDir, ".local", "share", "applications")
+	appsDir := filepath.Join(dataDir, "applications")
 
 	if err := os.MkdirAll(binDir, 0755); err != nil {
 		return nil, fmt.Errorf("creating bin directory: %w", err)
@@ -360,13 +371,17 @@ func (m *Manager) InstallKyaraben(appImagePath, sidecarPath string) (*InstallRes
 }
 
 func (m *Manager) GetInstallStatus() *InstallResult {
-	homeDir, err := os.UserHomeDir()
+	homeDir, err := m.resolver.UserHomeDir()
+	if err != nil {
+		return nil
+	}
+	dataDir, err := m.resolver.UserDataDir()
 	if err != nil {
 		return nil
 	}
 
 	binDir := filepath.Join(homeDir, ".local", "bin")
-	appsDir := filepath.Join(homeDir, ".local", "share", "applications")
+	appsDir := filepath.Join(dataDir, "applications")
 
 	result := &InstallResult{}
 

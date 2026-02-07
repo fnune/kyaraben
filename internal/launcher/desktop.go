@@ -121,14 +121,28 @@ func (m *Manager) RemoveDesktopFiles(files *GeneratedFiles) {
 }
 
 func (m *Manager) updateIconCache() []string {
-	return UpdateIconCaches(m.iconThemeDir())
+	dataDir, _ := m.resolver.UserDataDir()
+	applicationsDir := filepath.Join(dataDir, "applications")
+	return UpdateIconCachesWithAppsDir(m.iconThemeDir(), applicationsDir)
 }
 
 func (m *Manager) RefreshIconCaches() []string {
-	return UpdateIconCaches(m.iconThemeDir())
+	dataDir, _ := m.resolver.UserDataDir()
+	applicationsDir := filepath.Join(dataDir, "applications")
+	return UpdateIconCachesWithAppsDir(m.iconThemeDir(), applicationsDir)
 }
 
 func UpdateIconCaches(themeDir string) []string {
+	dataDir := os.Getenv("XDG_DATA_HOME")
+	if dataDir == "" {
+		homeDir, _ := os.UserHomeDir()
+		dataDir = filepath.Join(homeDir, ".local", "share")
+	}
+	applicationsDir := filepath.Join(dataDir, "applications")
+	return UpdateIconCachesWithAppsDir(themeDir, applicationsDir)
+}
+
+func UpdateIconCachesWithAppsDir(themeDir, applicationsDir string) []string {
 	var refreshed []string
 
 	// GTK-based DEs (GNOME, XFCE, etc.)
@@ -143,8 +157,6 @@ func UpdateIconCaches(themeDir string) []string {
 
 	// Desktop database (freedesktop.org standard)
 	if _, err := exec.LookPath("update-desktop-database"); err == nil {
-		homeDir, _ := os.UserHomeDir()
-		applicationsDir := filepath.Join(homeDir, ".local", "share", "applications")
 		cmd := exec.Command("update-desktop-database", applicationsDir)
 		if err := cmd.Run(); err != nil {
 			log.Debug("update-desktop-database failed: %v", err)

@@ -7,11 +7,36 @@ import (
 	"testing"
 )
 
+type fakeBaseDirResolver struct {
+	homeDir   string
+	configDir string
+	dataDir   string
+}
+
+func (r fakeBaseDirResolver) UserHomeDir() (string, error) {
+	return r.homeDir, nil
+}
+
+func (r fakeBaseDirResolver) UserConfigDir() (string, error) {
+	if r.configDir != "" {
+		return r.configDir, nil
+	}
+	return filepath.Join(r.homeDir, ".config"), nil
+}
+
+func (r fakeBaseDirResolver) UserDataDir() (string, error) {
+	if r.dataDir != "" {
+		return r.dataDir, nil
+	}
+	return filepath.Join(r.homeDir, ".local", "share"), nil
+}
+
 func TestGenerateDesktopFiles(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	profileDir := filepath.Join(tmpDir, "kyaraben")
 	npLocation := filepath.Join(tmpDir, "nix-portable")
+	homeDir := filepath.Join(tmpDir, "home")
 
 	// Create the fake nix-portable store structure
 	realIconsDir := filepath.Join(npLocation, ".nix-portable", "nix", "store", "abc123-icons", "share", "icons")
@@ -39,7 +64,8 @@ func TestGenerateDesktopFiles(t *testing.T) {
 	}
 
 	dataDir := filepath.Join(tmpDir, "data")
-	m := &Manager{profileDir: profileDir, dataDir: dataDir, nixPortableLocation: npLocation}
+	resolver := fakeBaseDirResolver{homeDir: homeDir}
+	m := &Manager{profileDir: profileDir, dataDir: dataDir, nixPortableLocation: npLocation, resolver: resolver}
 
 	if err := os.MkdirAll(profileDir, 0755); err != nil {
 		t.Fatalf("creating profile dir: %v", err)
@@ -142,9 +168,8 @@ func TestInstallKyarabenWithAppImage(t *testing.T) {
 	binDir := filepath.Join(homeDir, ".local", "bin")
 	appsDir := filepath.Join(homeDir, ".local", "share", "applications")
 
-	t.Setenv("HOME", homeDir)
-
-	m := &Manager{profileDir: filepath.Join(tmpDir, "kyaraben")}
+	resolver := fakeBaseDirResolver{homeDir: homeDir}
+	m := &Manager{profileDir: filepath.Join(tmpDir, "kyaraben"), resolver: resolver}
 
 	appImagePath := filepath.Join(tmpDir, "Kyaraben.AppImage")
 	if err := os.WriteFile(appImagePath, []byte("fake appimage content"), 0755); err != nil {
@@ -185,9 +210,8 @@ func TestInstallKyarabenWithSidecar(t *testing.T) {
 	homeDir := filepath.Join(tmpDir, "home")
 	binDir := filepath.Join(homeDir, ".local", "bin")
 
-	t.Setenv("HOME", homeDir)
-
-	m := &Manager{profileDir: filepath.Join(tmpDir, "kyaraben")}
+	resolver := fakeBaseDirResolver{homeDir: homeDir}
+	m := &Manager{profileDir: filepath.Join(tmpDir, "kyaraben"), resolver: resolver}
 
 	appImagePath := filepath.Join(tmpDir, "Kyaraben.AppImage")
 	if err := os.WriteFile(appImagePath, []byte("fake appimage"), 0755); err != nil {
@@ -232,9 +256,8 @@ func TestInstallKyarabenCLIOnly(t *testing.T) {
 	binDir := filepath.Join(homeDir, ".local", "bin")
 	appsDir := filepath.Join(homeDir, ".local", "share", "applications")
 
-	t.Setenv("HOME", homeDir)
-
-	m := &Manager{profileDir: filepath.Join(tmpDir, "kyaraben")}
+	resolver := fakeBaseDirResolver{homeDir: homeDir}
+	m := &Manager{profileDir: filepath.Join(tmpDir, "kyaraben"), resolver: resolver}
 
 	result, err := m.InstallKyaraben("", "")
 	if err != nil {
@@ -275,9 +298,8 @@ func TestGetInstallStatus(t *testing.T) {
 	binDir := filepath.Join(homeDir, ".local", "bin")
 	appsDir := filepath.Join(homeDir, ".local", "share", "applications")
 
-	t.Setenv("HOME", homeDir)
-
-	m := &Manager{profileDir: filepath.Join(tmpDir, "kyaraben")}
+	resolver := fakeBaseDirResolver{homeDir: homeDir}
+	m := &Manager{profileDir: filepath.Join(tmpDir, "kyaraben"), resolver: resolver}
 
 	status := m.GetInstallStatus()
 	if status.AppPath != "" || status.CLIPath != "" || status.DesktopPath != "" {
