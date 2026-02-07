@@ -3,9 +3,9 @@ import { defineConfig } from '@playwright/test'
 export default defineConfig({
   testDir: './e2e',
   testMatch: '**/*.spec.ts',
-  timeout: 900000, // 15 minutes - Nix builds can take a while
+  timeout: 30000,
   expect: {
-    timeout: 120000, // 2 minutes - first run cache warming can be slow
+    timeout: 10000,
   },
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
@@ -15,6 +15,6 @@ export default defineConfig({
   use: {
     trace: 'on-first-retry',
     video: 'retain-on-failure',
-    actionTimeout: 120000, // 2 minutes - app startup can be slow
+    actionTimeout: 10000,
   },
 })
