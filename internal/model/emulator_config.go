@@ -69,8 +69,9 @@ func (ct ConfigTarget) Resolve() (string, error) {
 }
 
 type ConfigEntry struct {
-	Path  []string
-	Value string
+	Path      []string
+	Value     string
+	Unmanaged bool // Only set if key doesn't exist; user changes are preserved
 }
 
 func (e ConfigEntry) Key() string {

@@ -366,9 +366,15 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 			continue
 		}
 
-		managedKeys := make([]model.ManagedKey, len(patch.Entries))
-		for j, entry := range patch.Entries {
-			managedKeys[j] = model.ManagedKey(entry)
+		var managedKeys []model.ManagedKey
+		for _, entry := range patch.Entries {
+			if entry.Unmanaged {
+				continue
+			}
+			managedKeys = append(managedKeys, model.ManagedKey{
+				Path:  entry.Path,
+				Value: entry.Value,
+			})
 		}
 
 		newManagedConfigs = append(newManagedConfigs, model.ManagedConfig{

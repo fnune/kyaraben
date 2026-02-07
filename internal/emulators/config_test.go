@@ -595,6 +595,159 @@ func TestEdenGenerate(t *testing.T) {
 	}
 }
 
+func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
+	tmpDir := t.TempDir()
+	writer := NewConfigWriter()
+
+	t.Run("CFG format", func(t *testing.T) {
+		path := filepath.Join(tmpDir, "test.cfg")
+		if err := os.WriteFile(path, []byte("menu_driver = \"ozone\"\n"), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		patch := model.ConfigPatch{
+			Target: model.ConfigTarget{
+				RelPath: path,
+				Format:  model.ConfigFormatCFG,
+				BaseDir: model.ConfigBaseDirOpaqueDir,
+			},
+			Entries: []model.ConfigEntry{
+				{Path: []string{"menu_driver"}, Value: "rgui", Unmanaged: true},
+				{Path: []string{"system_directory"}, Value: "/bios"},
+			},
+		}
+
+		if _, err := writer.Apply(patch); err != nil {
+			t.Fatal(err)
+		}
+
+		content, _ := os.ReadFile(path)
+		if !strings.Contains(string(content), `menu_driver = "ozone"`) {
+			t.Errorf("unmanaged entry was overwritten: %s", content)
+		}
+		if !strings.Contains(string(content), `system_directory = "/bios"`) {
+			t.Errorf("managed entry was not written: %s", content)
+		}
+	})
+
+	t.Run("CFG format fresh file", func(t *testing.T) {
+		path := filepath.Join(tmpDir, "fresh.cfg")
+
+		patch := model.ConfigPatch{
+			Target: model.ConfigTarget{
+				RelPath: path,
+				Format:  model.ConfigFormatCFG,
+				BaseDir: model.ConfigBaseDirOpaqueDir,
+			},
+			Entries: []model.ConfigEntry{
+				{Path: []string{"menu_driver"}, Value: "rgui", Unmanaged: true},
+			},
+		}
+
+		if _, err := writer.Apply(patch); err != nil {
+			t.Fatal(err)
+		}
+
+		content, _ := os.ReadFile(path)
+		if !strings.Contains(string(content), `menu_driver = "rgui"`) {
+			t.Errorf("unmanaged entry was not written to fresh file: %s", content)
+		}
+	})
+
+	t.Run("INI format", func(t *testing.T) {
+		path := filepath.Join(tmpDir, "test.ini")
+		if err := os.WriteFile(path, []byte("[Section]\nkey = existing\n"), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		patch := model.ConfigPatch{
+			Target: model.ConfigTarget{
+				RelPath: path,
+				Format:  model.ConfigFormatINI,
+				BaseDir: model.ConfigBaseDirOpaqueDir,
+			},
+			Entries: []model.ConfigEntry{
+				{Path: []string{"Section", "key"}, Value: "new", Unmanaged: true},
+				{Path: []string{"Section", "other"}, Value: "value"},
+			},
+		}
+
+		if _, err := writer.Apply(patch); err != nil {
+			t.Fatal(err)
+		}
+
+		content, _ := os.ReadFile(path)
+		if !strings.Contains(string(content), "key = existing") {
+			t.Errorf("unmanaged entry was overwritten: %s", content)
+		}
+		if !strings.Contains(string(content), "other = value") {
+			t.Errorf("managed entry was not written: %s", content)
+		}
+	})
+
+	t.Run("YAML format", func(t *testing.T) {
+		path := filepath.Join(tmpDir, "test.yaml")
+		if err := os.WriteFile(path, []byte("nested:\n  key: existing\n"), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		patch := model.ConfigPatch{
+			Target: model.ConfigTarget{
+				RelPath: path,
+				Format:  model.ConfigFormatYAML,
+				BaseDir: model.ConfigBaseDirOpaqueDir,
+			},
+			Entries: []model.ConfigEntry{
+				{Path: []string{"nested", "key"}, Value: "new", Unmanaged: true},
+				{Path: []string{"nested", "other"}, Value: "value"},
+			},
+		}
+
+		if _, err := writer.Apply(patch); err != nil {
+			t.Fatal(err)
+		}
+
+		content, _ := os.ReadFile(path)
+		if !strings.Contains(string(content), "key: existing") {
+			t.Errorf("unmanaged entry was overwritten: %s", content)
+		}
+		if !strings.Contains(string(content), "other: value") {
+			t.Errorf("managed entry was not written: %s", content)
+		}
+	})
+
+	t.Run("XML format", func(t *testing.T) {
+		path := filepath.Join(tmpDir, "test.xml")
+		if err := os.WriteFile(path, []byte("<root><key>existing</key></root>"), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		patch := model.ConfigPatch{
+			Target: model.ConfigTarget{
+				RelPath: path,
+				Format:  model.ConfigFormatXML,
+				BaseDir: model.ConfigBaseDirOpaqueDir,
+			},
+			Entries: []model.ConfigEntry{
+				{Path: []string{"root", "key"}, Value: "new", Unmanaged: true},
+				{Path: []string{"root", "other"}, Value: "value"},
+			},
+		}
+
+		if _, err := writer.Apply(patch); err != nil {
+			t.Fatal(err)
+		}
+
+		content, _ := os.ReadFile(path)
+		if !strings.Contains(string(content), "<key>existing</key>") {
+			t.Errorf("unmanaged entry was overwritten: %s", content)
+		}
+		if !strings.Contains(string(content), "<other>value</other>") {
+			t.Errorf("managed entry was not written: %s", content)
+		}
+	})
+}
+
 func TestConfigTargetResolveIntegration(t *testing.T) {
 	targets := []model.ConfigTarget{
 		{RelPath: "test/config.ini", Format: model.ConfigFormatINI, BaseDir: model.ConfigBaseDirUserConfig},
