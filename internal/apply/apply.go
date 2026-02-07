@@ -51,7 +51,6 @@ type BackupInfo struct {
 
 type Options struct {
 	DryRun        bool
-	ShowDiff      bool
 	CreateBackups bool
 	OnProgress    func(Progress)
 }

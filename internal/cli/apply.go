@@ -15,8 +15,7 @@ import (
 )
 
 type ApplyCmd struct {
-	DryRun   bool `help:"Show what would be done without making changes."`
-	ShowDiff bool `help:"Show config changes before applying." default:"true" negatable:""`
+	DryRun bool `help:"Show what would be done without making changes."`
 }
 
 func (cmd *ApplyCmd) Run(ctx *Context) error {
@@ -88,7 +87,6 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	buildMsgPrinted := false
 	opts := apply.Options{
 		DryRun:        cmd.DryRun,
-		ShowDiff:      cmd.ShowDiff,
 		CreateBackups: createBackups,
 		OnProgress: func(p apply.Progress) {
 			switch p.Step {
@@ -132,7 +130,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 
 		diff, err := emulators.ComputeDiffWithBaseline(patch, baselinePtr)
 		if err != nil {
-			if cmd.ShowDiff || cmd.DryRun {
+			if cmd.DryRun {
 				fmt.Printf("  Warning: could not compute diff: %v\n", err)
 			}
 			continue
@@ -158,7 +156,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		}
 	}
 
-	if cmd.DryRun || cmd.ShowDiff {
+	if cmd.DryRun {
 		fmt.Println("Config changes:")
 		fmt.Println()
 
@@ -175,10 +173,8 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		}
 		fmt.Println()
 
-		if cmd.DryRun {
-			fmt.Println("Dry run - no changes applied.")
-			return nil
-		}
+		fmt.Println("Dry run - no changes applied.")
+		return nil
 	}
 
 	if hasOverwrittenUserChanges {
