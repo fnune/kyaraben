@@ -30,7 +30,10 @@ placeholder locations where screenshots should be added. Replace the MDX comment
 with a standard image import:
 
 ```mdx
-import systemPicker from '../../assets/screenshots/v0.1-getting-started-system-picker.png'
+import systemPicker from "../../assets/screenshots/v0.1-getting-started-system-picker.png";
 
-<img src={systemPicker.src} alt="The system picker showing available systems grouped by manufacturer" />
+<img
+  src={systemPicker.src}
+  alt="The system picker showing available systems grouped by manufacturer"
+/>
 ```
