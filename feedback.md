@@ -10,6 +10,20 @@
 - Environment variable security: KYARABEN_* env vars (KYARABEN_RELEASES_URL, KYARABEN_VERSION, KYARABEN_NIX_PORTABLE_PATH) are useful for testing but could be risky in production if accidentally set. Consider adding a "test mode" flag that must be set to enable these overrides, or prefix them with KYARABEN_TEST_ to make intent clear
 - Garbage collection: nix store grows unbounded, need a way to trigger cleanup via nix-portable and show space freed
 - ES-DE as non-Steam application: add to Steam for Steam Deck game mode launch
+- ARM (aarch64) support: needed for Raspberry Pi, Pinebook Pro, Apple Silicon with Asahi Linux, and other ARM Linux devices. Analysis:
+  - Code already supports ARM: hardware detection returns aarch64 target, flake generation handles single-arch and multi-arch packages gracefully
+  - nix-portable: has aarch64 build ✓
+  - Emulators with ARM builds already in versions.toml: Eden, DuckStation, PPSSPP, mGBA, Dolphin, melonDS
+  - Emulators with upstream ARM builds to add: Vita3K (AppImage), RPCS3 (AppImage, tested on Asahi), ES-DE (experimental AppImage)
+  - Emulators without ARM builds: PCSX2, Cemu, Azahar, Flycast, RetroArch (no AppImage but Flatpak exists)
+  - Work needed: (1) add ARM targets to versions.toml for Vita3K/RPCS3/ES-DE, (2) gracefully hide unavailable emulators in UI when on ARM instead of showing them with no download option, (3) consider Flatpak fallback for RetroArch on ARM, (4) test on real ARM hardware
+  - Note: some emulators (PCSX2, Cemu) may never have ARM builds due to low-level x86 translation requirements
+- Steam Deck support: the Steam Deck uses an AMD Zen 2 x86_64 APU (not ARM), so all current binaries are compatible. Some emulators already have Steam Deck-specific builds (Eden, ES-DE). Remaining concerns:
+  - SteamOS immutable filesystem: nix-portable stores in ~/.nix-portable which should work, but needs testing on a real device to verify permissions and available disk space on the internal SSD vs SD card
+  - Gaming Mode integration: users primarily run the Deck in Gaming Mode. Need a way to add ES-DE (or individual emulators) to Steam so they appear in the library and can be launched without switching to Desktop Mode. Could generate .desktop files and use `steam-rom-manager` or `steamos-add-to-steam` to register them
+  - Controller input: Steam Input may intercept controller events before they reach emulators. Need to test whether emulators receive correct input, and whether Steam's controller configuration for each emulator is needed
+  - Performance profiles: Steam Deck allows per-game TDP/GPU limits. Emulator wrapper scripts could potentially integrate with `gamescope` or Steam's performance overlay, but this may be out of scope
+  - Installation path: default ~/.local/share/kyaraben may compete for limited internal storage. Consider detecting Steam Deck and recommending SD card installation, or prompting user during init
 
 ## Nice to have
 
