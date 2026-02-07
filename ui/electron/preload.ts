@@ -24,6 +24,7 @@ contextBridge.exposeInMainWorld('electron', {
       'read_file',
       'get_bug_report_info',
       'launch_emulator',
+      'open_log_tail',
     ]
 
     if (validChannels.includes(channel)) {
