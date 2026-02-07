@@ -72,9 +72,9 @@ export function ApplyProgressBar({ currentView, onNavigateToSystems }: ApplyProg
             <button
               type="button"
               onClick={handleCancel}
-              className="text-gray-400 hover:text-gray-300 hover:underline text-sm"
+              className={`hover:underline text-sm ${confirmingCancel ? 'text-red-400 hover:text-red-300' : 'text-gray-400 hover:text-gray-300'}`}
             >
-              {confirmingCancel ? 'Click again to confirm' : 'Cancel'}
+              {confirmingCancel ? 'Confirm cancel' : 'Cancel'}
             </button>
             {showViewProgress && (
               <button
