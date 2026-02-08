@@ -52,10 +52,10 @@ function ProvisionsSummary({
       <button
         type="button"
         onClick={onClick}
-        className="flex items-center text-xs px-3 py-1.5 w-full h-full hover:bg-gray-700/50 transition-colors"
+        className="flex items-center text-xs px-3 py-1.5 w-full h-full hover:bg-surface-raised/50 transition-colors"
       >
         <span className="text-emerald-400">✓</span>
-        <span className="ml-2 text-gray-400">
+        <span className="ml-2 text-on-surface-muted">
           {provisions.length} file{provisions.length > 1 ? 's' : ''} ready
         </span>
       </button>
@@ -73,15 +73,17 @@ function ProvisionsSummary({
       <button
         type="button"
         onClick={onClick}
-        className="flex items-center text-xs px-3 py-1.5 w-full hover:bg-gray-700/50 transition-colors text-left"
+        className="flex items-center text-xs px-3 py-1.5 w-full hover:bg-surface-raised/50 transition-colors text-left"
       >
         <span className="text-red-400">✗</span>
-        <span className="text-gray-400 truncate ml-2">
+        <span className="text-on-surface-muted truncate ml-2">
           {label}
-          <span className="hidden md:inline text-gray-500">, {statusLabel}</span>
+          <span className="hidden md:inline text-on-surface-dim">, {statusLabel}</span>
         </span>
         {unsatisfiedRequired.length > 1 && (
-          <span className="text-gray-500 shrink-0 ml-2">+{unsatisfiedRequired.length - 1}</span>
+          <span className="text-on-surface-dim shrink-0 ml-2">
+            +{unsatisfiedRequired.length - 1}
+          </span>
         )}
         <ProvisionActionInline
           provision={firstUnsatisfied}
@@ -102,12 +104,12 @@ function ProvisionsSummary({
       <button
         type="button"
         onClick={onClick}
-        className="flex items-center text-xs px-3 py-1.5 w-full hover:bg-gray-700/50 transition-colors text-left"
+        className="flex items-center text-xs px-3 py-1.5 w-full hover:bg-surface-raised/50 transition-colors text-left"
       >
         <span className="text-emerald-400">✓</span>
-        <span className="text-gray-400 truncate ml-2">{label}</span>
+        <span className="text-on-surface-muted truncate ml-2">{label}</span>
         {found.length > 1 && (
-          <span className="text-gray-500 shrink-0 ml-2">+{found.length - 1}</span>
+          <span className="text-on-surface-dim shrink-0 ml-2">+{found.length - 1}</span>
         )}
         {optionalCount > 0 && (
           <span className="text-amber-400 shrink-0 ml-2">({optionalCount} optional)</span>
@@ -153,9 +155,9 @@ export function EmulatorSubcard({
   const cardClasses = (() => {
     if (changeType) {
       const config = CHANGE_CONFIG[changeType]
-      return `ring-1 ${config.ringColor} bg-gray-800`
+      return `ring-1 ${config.ringColor} bg-surface-alt`
     }
-    return enabled ? 'bg-gray-800' : 'bg-gray-800/50'
+    return enabled ? 'bg-surface-alt' : 'bg-surface-alt/50'
   })()
 
   const handleLaunch = () => {
@@ -184,7 +186,7 @@ export function EmulatorSubcard({
         )}
         <div className="flex-1 space-y-1">
           <div className="flex items-center gap-2">
-            <span className="text-white font-medium text-sm">{emulator.name}</span>
+            <span className="text-on-surface font-medium text-sm">{emulator.name}</span>
             <div className="ml-auto flex items-center gap-1.5">
               <VersionSelector
                 defaultVersion={emulator.defaultVersion}
@@ -195,7 +197,7 @@ export function EmulatorSubcard({
               />
             </div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-gray-400">
+          <div className="flex items-center gap-2 text-xs text-on-surface-muted">
             {installedVersion ? (
               <>
                 {execLine && (
@@ -204,11 +206,11 @@ export function EmulatorSubcard({
                       type="button"
                       onClick={handleLaunch}
                       disabled={!enabled}
-                      className={enabled ? 'hover:text-white' : 'cursor-not-allowed'}
+                      className={enabled ? 'hover:text-on-surface' : 'cursor-not-allowed'}
                     >
                       Launch
                     </button>
-                    <span className="text-gray-600">·</span>
+                    <span className="text-on-surface-faint">·</span>
                   </>
                 )}
                 {paths && (
@@ -217,11 +219,11 @@ export function EmulatorSubcard({
                       type="button"
                       onClick={() => setPathsOpen(true)}
                       disabled={!enabled}
-                      className={enabled ? 'hover:text-white' : 'cursor-not-allowed'}
+                      className={enabled ? 'hover:text-on-surface' : 'cursor-not-allowed'}
                     >
                       Paths
                     </button>
-                    {provisions.length > 0 && <span className="text-gray-600">·</span>}
+                    {provisions.length > 0 && <span className="text-on-surface-faint">·</span>}
                   </>
                 )}
                 {provisions.length > 0 && (
@@ -229,7 +231,7 @@ export function EmulatorSubcard({
                     type="button"
                     onClick={() => setProvisionsOpen(true)}
                     disabled={!enabled}
-                    className={enabled ? 'hover:text-white' : 'cursor-not-allowed'}
+                    className={enabled ? 'hover:text-on-surface' : 'cursor-not-allowed'}
                   >
                     Provisions
                   </button>
@@ -237,10 +239,10 @@ export function EmulatorSubcard({
               </>
             ) : (
               (emulator.downloadBytes || emulator.coreBytes) && (
-                <span className="text-gray-500">
+                <span className="text-on-surface-dim">
                   {emulator.downloadBytes ? formatBytes(emulator.downloadBytes) : ''}
                   {sharedPackage && emulator.downloadBytes && (
-                    <span className="text-blue-400 ml-1">(shared)</span>
+                    <span className="text-accent ml-1">(shared)</span>
                   )}
                   {emulator.coreBytes && (
                     <span className="ml-1">
@@ -258,7 +260,7 @@ export function EmulatorSubcard({
       </div>
 
       {provisions.length > 0 && (
-        <div className={`border-t border-gray-700/50 ${!enabled ? 'opacity-60' : ''}`}>
+        <div className={`border-t border-outline/50 ${!enabled ? 'opacity-60' : ''}`}>
           <ProvisionsSummary
             provisions={provisions}
             disabled={!enabled}
@@ -307,7 +309,9 @@ function VersionSelector({
   readonly disabled: boolean
 }) {
   if (!availableVersions || availableVersions.length === 0) {
-    return <span className="text-xs text-gray-400 tabular-nums">{defaultVersion}</span>
+    return (
+      <span className="text-xs text-on-surface-muted tabular-nums font-mono">{defaultVersion}</span>
+    )
   }
 
   const isPinned = pinnedVersion !== null
@@ -318,11 +322,11 @@ function VersionSelector({
       onChange={(e) => onChange(e.target.value === '' ? null : e.target.value)}
       disabled={disabled}
       className={`
-        bg-gray-700 rounded px-2 py-1 text-xs text-gray-200
-        outline-2 outline-offset-1 focus:outline-solid focus:outline-blue-400
-        ${isPinned ? 'ring-2 ring-amber-500' : 'border border-gray-600'}
+        bg-surface-raised rounded px-2 py-1 text-xs text-on-surface-secondary
+        outline-2 outline-offset-1 focus:outline-solid focus:outline-accent
+        ${isPinned ? 'ring-2 ring-amber-500' : 'border border-outline-strong'}
         ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
-        tabular-nums
+        tabular-nums font-mono
       `}
     >
       <option value="">{defaultVersion} (auto)</option>
