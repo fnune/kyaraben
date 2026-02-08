@@ -74,6 +74,8 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
+			{Path: []string{"UI", "SettingsVersion"}, Value: "1"},
+			{Path: []string{"UI", "SetupWizardIncomplete"}, Value: "false"},
 			{Path: []string{"Folders", "Bios"}, Value: store.SystemBiosDir(model.SystemIDPS2)},
 			{Path: []string{"Folders", "MemoryCards"}, Value: store.SystemSavesDir(model.SystemIDPS2)},
 			{Path: []string{"Folders", "Savestates"}, Value: store.EmulatorStatesDir(model.EmulatorIDPCSX2)},
