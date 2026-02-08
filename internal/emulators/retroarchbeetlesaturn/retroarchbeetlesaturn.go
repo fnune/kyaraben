@@ -59,6 +59,7 @@ func coreOverrideConfig(store model.StoreReader) model.ConfigPatch {
 		Target: retroarch.CoreOverrideTarget(shortCoreName),
 		Entries: []model.ConfigEntry{
 			{Path: []string{"rgui_browser_directory"}, Value: store.SystemRomsDir(model.SystemIDSaturn)},
+			{Path: []string{"system_directory"}, Value: store.SystemBiosDir(model.SystemIDSaturn)},
 		},
 	}
 }
