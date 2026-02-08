@@ -6,29 +6,32 @@ description: Install kyaraben and set up your first emulation environment
 ## Download
 
 Download the latest AppImage from the
-[GitHub releases page](https://github.com/fnune/kyaraben/releases).
+[GitHub releases page](https://github.com/fnune/kyaraben/releases) and double-click it to execute it.
+
+Kyaraben runs on any Linux distribution, including SteamOS for the Steam Deck.
+To install it on the Steam Deck, press the `STEAM` button, select Power, and
+choose Switch to Desktop.
+
+If you're comfortable using the terminal:
 
 ```bash
 chmod +x Kyaraben-x86_64.AppImage
 ./Kyaraben-x86_64.AppImage
 ```
 
-Kyaraben runs on any Linux distribution. It works in desktop mode on the Steam
-Deck.
-
 :::note
-Kyaraben bundles a portable Nix distribution internally. You do not need Nix
-installed on your system. If you already have Nix installed, kyaraben does not
-interfere with it or its store.
+Kyaraben has not been tested across a wide range of systems yet. If you run
+into issues on your distribution, please
+[report them](https://github.com/fnune/kyaraben/issues).
 :::
 
 ## First run
 
-On first launch, kyaraben asks where to create your emulation folder. The
-default is `~/Emulation`. This is your `UserStore`: the single directory where
-all your ROMs, BIOS files, saves, and screenshots live.
+Kyaraben asks where to create your emulation folder. The default is
+`~/Emulation`. This is where all your ROMs, BIOS files, saves, and screenshots
+live.
 
-{/* Screenshot: v0.1-getting-started-welcome.png - Welcome screen with UserStore picker */}
+{/* Screenshot: v0.1-getting-started-welcome.png - Welcome screen with emulation directory picker */}
 
 ## Selecting systems
 
@@ -43,16 +46,22 @@ experience. The UI shows which emulators are available for each system.
 ## Applying changes
 
 Click apply. Kyaraben fetches the emulators, generates their configuration
-files, and creates the folder structure inside your `UserStore`.
+files, and creates the folder structure inside your emulation directory. On
+first apply, kyaraben also installs itself to your system, adding `kyaraben`
+and `kyaraben-ui` to your PATH and creating a desktop entry so you can launch
+it from your application menu. If you prefer a headless experience, the CLI has
+full feature parity with the UI.
 
 {/* Screenshot: v0.1-getting-started-apply-progress.png - Apply progress view */}
 
-Before making changes, kyaraben shows exactly what will be modified. See
-[using kyaraben](/using-kyaraben/) for details on the preflight check.
+If there are conflicts with your existing configuration, kyaraben shows exactly
+what will be modified. See [app reference](/using-the-app/) for details on the
+preflight check.
 
 ## Adding ROMs and BIOS files
 
-After applying, your `UserStore` contains folders for each enabled system:
+After applying, your emulation directory contains folders for each enabled
+system:
 
 ```
 ~/Emulation/
@@ -71,11 +80,21 @@ After applying, your `UserStore` contains folders for each enabled system:
 ```
 
 Place your ROM files in the appropriate `roms/` subdirectory. For systems that
-require BIOS or firmware files, use the provisions panel in the UI or run
-`kyaraben doctor` on the command line. These tools tell you exactly which files
-are needed, where to place them, and whether they pass hash verification.
+require BIOS or firmware files, the provisions panel in the UI shows exactly
+which files are needed, where to place them, and whether they pass hash
+verification. You can also run `kyaraben doctor` from the command line.
 
-:::tip
-Do not memorize BIOS file requirements. The UI and `kyaraben doctor` always
-show the current status and expected file locations for your enabled systems.
-:::
+## Playing your games
+
+You can launch games in two ways:
+
+- Use [EmulationStation-DE](https://es-de.org/) for a unified game browser with
+  metadata, artwork, and controller-friendly navigation. Enable it in the
+  kyaraben settings (see [app reference](/using-the-app/#browsing-and-launching-games)).
+- Launch emulators directly from your application menu and open ROMs from there.
+
+## Next steps
+
+- [Save sync](/sync/): sync your saves across devices
+- [CLI reference](/using-the-cli/): use the CLI instead of the UI
+- [App reference](/using-the-app/): learn what kyaraben does under the hood

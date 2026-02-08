@@ -11,8 +11,8 @@ This project is in development.
 ## How it works
 
 1. Select the systems you want to emulate
-2. Kyaraben shows which BIOS or firmware files are required for each system
-3. Click Apply to install the emulators and configure them
+2. Click apply to install the emulators and configure them
+3. Kyaraben shows which BIOS or firmware files are required for each system
 
 Kyaraben uses Nix to install emulators, which means installations are reproducible and isolated from the rest of your system. You do not need to have Nix installed; Kyaraben bundles a portable Nix distribution.
 
