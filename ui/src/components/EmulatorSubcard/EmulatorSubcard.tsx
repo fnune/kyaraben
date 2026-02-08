@@ -54,7 +54,7 @@ function ProvisionsSummary({
         onClick={onClick}
         className="flex items-center text-xs px-3 py-1.5 w-full h-full hover:bg-surface-raised/50 transition-colors"
       >
-        <span className="text-emerald-400">✓</span>
+        <span className="text-status-ok">✓</span>
         <span className="ml-2 text-on-surface-muted">
           {provisions.length} file{provisions.length > 1 ? 's' : ''} ready
         </span>
@@ -75,7 +75,7 @@ function ProvisionsSummary({
         onClick={onClick}
         className="flex items-center text-xs px-3 py-1.5 w-full hover:bg-surface-raised/50 transition-colors text-left"
       >
-        <span className="text-red-400">✗</span>
+        <span className="text-status-error">✗</span>
         <span className="text-on-surface-muted truncate ml-2">
           {label}
           <span className="hidden md:inline text-on-surface-dim">, {statusLabel}</span>
@@ -106,13 +106,13 @@ function ProvisionsSummary({
         onClick={onClick}
         className="flex items-center text-xs px-3 py-1.5 w-full hover:bg-surface-raised/50 transition-colors text-left"
       >
-        <span className="text-emerald-400">✓</span>
+        <span className="text-status-ok">✓</span>
         <span className="text-on-surface-muted truncate ml-2">{label}</span>
         {found.length > 1 && (
           <span className="text-on-surface-dim shrink-0 ml-2">+{found.length - 1}</span>
         )}
         {optionalCount > 0 && (
-          <span className="text-amber-400 shrink-0 ml-2">({optionalCount} optional)</span>
+          <span className="text-status-warning shrink-0 ml-2">({optionalCount} optional)</span>
         )}
         <ProvisionActionInline
           provision={firstFound}
@@ -324,7 +324,7 @@ function VersionSelector({
       className={`
         bg-surface-raised rounded-control px-2 py-1 text-xs text-on-surface-secondary
         outline-2 outline-offset-1 focus:outline-solid focus:outline-accent
-        ${isPinned ? 'ring-2 ring-amber-500' : 'border border-outline-strong'}
+        ${isPinned ? 'ring-2 ring-status-warning' : 'border border-outline-strong'}
         ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
         tabular-nums font-mono
       `}

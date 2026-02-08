@@ -108,7 +108,7 @@ function VersionSelector({
       className={`
         bg-surface-raised rounded-control px-2 py-1 text-xs text-on-surface-secondary
         outline-2 outline-offset-1 focus:outline-solid focus:outline-accent
-        ${isPinned ? 'ring-2 ring-amber-500' : 'border border-outline-strong'}
+        ${isPinned ? 'ring-2 ring-status-warning' : 'border border-outline-strong'}
         ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
         tabular-nums font-mono
       `}

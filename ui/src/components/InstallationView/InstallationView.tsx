@@ -17,8 +17,8 @@ import type { InstallStatus, UninstallPreviewResponse } from '@/types/daemon'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="p-4 bg-gray-800 rounded-lg">
-      <h3 className="text-sm font-medium text-gray-100 mb-3">{title}</h3>
+    <div className="p-4 bg-surface-alt rounded-card">
+      <h3 className="text-sm font-medium text-on-surface mb-3">{title}</h3>
       {children}
     </div>
   )
@@ -31,25 +31,25 @@ function PathItem({
   path: string
   variant?: 'default' | 'preserved'
 }) {
-  const bgColor = variant === 'preserved' ? 'bg-green-500/10' : 'bg-gray-700'
-  const textColor = variant === 'preserved' ? 'text-green-300' : 'text-gray-300'
+  const bgColor = variant === 'preserved' ? 'bg-status-ok/10' : 'bg-surface-raised'
+  const textColor = variant === 'preserved' ? 'text-status-ok' : 'text-on-surface-secondary'
   return (
     <li className={`font-mono text-xs ${bgColor} ${textColor} px-2 py-1 rounded-sm`}>{path}</li>
   )
 }
 
 function EmptyState({ message }: { message: string }) {
-  return <p className="text-sm text-gray-500 italic">{message}</p>
+  return <p className="text-sm text-on-surface-dim italic">{message}</p>
 }
 
 function UninstallPendingOverlay() {
   return (
-    <div className="fixed inset-0 bg-gray-900 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-surface flex items-center justify-center z-50">
       <div className="text-center max-w-md px-6">
         <div className="text-6xl mb-6">👋</div>
-        <h1 className="text-2xl font-medium text-gray-100 mb-4">Ready to uninstall</h1>
-        <p className="text-gray-400 mb-2">Kyaraben will uninstall when you close this window.</p>
-        <p className="text-gray-500 text-sm">You'll receive a notification when it's done.</p>
+        <h1 className="text-2xl font-medium text-on-surface mb-4">Ready to uninstall</h1>
+        <p className="text-on-surface-muted mb-2">Kyaraben will uninstall when you close this window.</p>
+        <p className="text-on-surface-dim text-sm">You'll receive a notification when it's done.</p>
       </div>
     </div>
   )
@@ -183,7 +183,7 @@ export function InstallationView() {
   if (loading) {
     return (
       <div className="p-6">
-        <p className="text-gray-400">Loading installation info...</p>
+        <p className="text-on-surface-muted">Loading installation info...</p>
       </div>
     )
   }
@@ -191,7 +191,7 @@ export function InstallationView() {
   if (error || !preview) {
     return (
       <div className="p-6">
-        <p className="text-red-400">Failed to load installation info: {error ?? 'Unknown error'}</p>
+        <p className="text-status-error">Failed to load installation info: {error ?? 'Unknown error'}</p>
       </div>
     )
   }
@@ -203,13 +203,13 @@ export function InstallationView() {
   return (
     <div className="p-6 space-y-6">
       {healthWarning === 'orphaned_artifacts' && (
-        <div className="p-4 bg-red-900/30 border border-red-700/50 rounded-lg">
-          <h3 className="text-sm font-medium text-red-300 mb-2">Installation state corrupted</h3>
-          <p className="text-sm text-red-200/80 mb-3">
+        <div className="p-4 bg-status-error/10 border border-status-error/30 rounded-card">
+          <h3 className="text-sm font-medium text-status-error mb-2">Installation state corrupted</h3>
+          <p className="text-sm text-status-error/80 mb-3">
             Kyaraben found installation artifacts but the manifest tracking them is missing or
             empty. This can happen if files were manually deleted or corrupted.
           </p>
-          <p className="text-sm text-red-200/80">
+          <p className="text-sm text-status-error/80">
             To fix this, click Apply in the Systems tab to restore the installation state. Please
             also consider{' '}
             <a
@@ -229,9 +229,9 @@ export function InstallationView() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-300">Check for updates</p>
+              <p className="text-sm text-on-surface-secondary">Check for updates</p>
               {updateInfo && (
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-on-surface-dim">
                   {updateInfo.available
                     ? `New version available: ${updateInfo.latestVersion}`
                     : `You're on the latest version (${updateInfo.currentVersion})`}
@@ -253,13 +253,13 @@ export function InstallationView() {
           </div>
           {downloadingUpdate && (
             <div>
-              <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-surface-raised rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-blue-500 transition-all duration-200"
+                  className="h-full bg-accent transition-all duration-200"
                   style={{ width: `${downloadProgress}%` }}
                 />
               </div>
-              <p className="text-xs text-gray-400 mt-1">Downloading... {downloadProgress}%</p>
+              <p className="text-xs text-on-surface-muted mt-1">Downloading... {downloadProgress}%</p>
             </div>
           )}
         </div>
@@ -270,8 +270,8 @@ export function InstallationView() {
           {!installStatus?.installed && (
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-300">Install to PATH</p>
-                <p className="text-xs text-gray-500">
+                <p className="text-sm text-on-surface-secondary">Install to PATH</p>
+                <p className="text-xs text-on-surface-dim">
                   Add Kyaraben to your applications menu and <code>$PATH</code>
                 </p>
               </div>
@@ -283,8 +283,8 @@ export function InstallationView() {
           {configPath && (
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-300">Edit configuration</p>
-                <p className="text-xs text-gray-500">{configPath}</p>
+                <p className="text-sm text-on-surface-secondary">Edit configuration</p>
+                <p className="text-xs text-on-surface-dim">{configPath}</p>
               </div>
               <Button variant="secondary" onClick={() => openPath(configPath)}>
                 Open
@@ -293,8 +293,8 @@ export function InstallationView() {
           )}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-300">Uninstall Kyaraben</p>
-              <p className="text-xs text-gray-500">
+              <p className="text-sm text-on-surface-secondary">Uninstall Kyaraben</p>
+              <p className="text-xs text-on-surface-dim">
                 Remove all managed files (preserves ROMs and saves)
               </p>
             </div>
@@ -307,7 +307,7 @@ export function InstallationView() {
 
       <Section title="Configuration">
         {configContent ? (
-          <pre className="bg-gray-900 text-gray-300 text-xs font-mono p-3 rounded-sm overflow-x-auto max-h-64 overflow-y-auto">
+          <pre className="bg-surface text-on-surface-secondary text-xs font-mono p-3 rounded-sm overflow-x-auto max-h-64 overflow-y-auto">
             {configContent}
           </pre>
         ) : (
@@ -316,7 +316,7 @@ export function InstallationView() {
       </Section>
 
       <Section title="Preserved on uninstall">
-        <p className="text-sm text-gray-400 mb-2">
+        <p className="text-sm text-on-surface-muted mb-2">
           These directories will not be removed when uninstalling:
         </p>
         <ul className="space-y-1">
@@ -330,7 +330,7 @@ export function InstallationView() {
 
       {installStatus?.installed && (
         <Section title="Kyaraben installation">
-          <p className="text-sm text-green-400 mb-2">Installed</p>
+          <p className="text-sm text-status-ok mb-2">Installed</p>
           <ul className="space-y-1">
             {installStatus.appPath && <PathItem path={installStatus.appPath} />}
             {installStatus.cliPath && <PathItem path={installStatus.cliPath} />}
@@ -391,7 +391,7 @@ export function InstallationView() {
             <PathItem path={preview.retroArchCoresDir} />
           </ul>
           {preview.retroArchCoreFiles && preview.retroArchCoreFiles.length > 0 && (
-            <div className="mt-2 text-xs text-gray-400">
+            <div className="mt-2 text-xs text-on-surface-muted">
               {preview.retroArchCoreFiles.length} core
               {preview.retroArchCoreFiles.length !== 1 ? 's' : ''} installed:{' '}
               {preview.retroArchCoreFiles.map((f) => f.replace('_libretro.so', '')).join(', ')}

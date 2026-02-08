@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApplyAfterUpdateBanner } from '@/components/ApplyAfterUpdateBanner/ApplyAfterUpdateBanner'
 import { ApplyProgressBar } from '@/components/ApplyProgressBar/ApplyProgressBar'
-import { DebugView } from '@/components/DebugView/DebugView'
 import { InstallationView } from '@/components/InstallationView/InstallationView'
 import { Sidebar } from '@/components/Sidebar/Sidebar'
 import { SyncView } from '@/components/SyncView/SyncView'
@@ -11,7 +10,6 @@ import { ApplyProvider, useApply } from '@/lib/ApplyContext'
 import { BottomBarSlot, BottomBarSlotProvider } from '@/lib/BottomBarSlot'
 import * as daemon from '@/lib/daemon'
 import { useUpdateChecker } from '@/lib/hooks/useUpdateChecker'
-import { ThemeProvider } from '@/lib/ThemeContext'
 import { ToastProvider, useToast } from '@/lib/ToastContext'
 import type {
   ConfigResponse,
@@ -456,8 +454,8 @@ function AppContent() {
             onRemoveDevice={handleRemoveDevice}
           />
         )
-      case 'debug':
-        return <DebugView />
+      default:
+        return null
     }
   }
 
@@ -497,14 +495,12 @@ function AppContent() {
 
 export function App() {
   return (
-    <ThemeProvider>
-      <BottomBarSlotProvider>
-        <ToastProvider>
-          <ApplyProvider>
-            <AppContent />
-          </ApplyProvider>
-        </ToastProvider>
-      </BottomBarSlotProvider>
-    </ThemeProvider>
+    <BottomBarSlotProvider>
+      <ToastProvider>
+        <ApplyProvider>
+          <AppContent />
+        </ApplyProvider>
+      </ToastProvider>
+    </BottomBarSlotProvider>
   )
 }
