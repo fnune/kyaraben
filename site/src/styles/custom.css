@@ -1,4 +1,6 @@
-:root {
+:root,
+[data-theme="light"],
+[data-theme="dark"] {
   --sl-color-accent-low: rgba(74, 82, 168, 0.12);
   --sl-color-accent: #4a52a8;
   --sl-color-accent-high: #2e3480;
@@ -12,6 +14,7 @@
   --sl-color-gray-6: #d0ccc6;
   --sl-color-black: #e8e4de;
 
+  --sl-color-bg: #d0ccc6;
   --sl-color-bg-nav: #c4c0ba;
   --sl-color-bg-sidebar: #cac6c0;
   --sl-color-hairline-light: #aaa6a0;
@@ -19,16 +22,37 @@
 
   --sl-font: "IBM Plex Sans", sans-serif;
   --sl-font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --sl-font-heading: "DM Serif Display", serif;
 
+  --sl-color-text: var(--sl-color-gray-2);
   --sl-color-text-accent: #4a52a8;
-}
+  --sl-color-text-invert: #e8e4de;
+  --sl-color-bg-inline-code: #bab6b0;
 
-[data-theme="light"] {
-  --sl-color-bg: #d0ccc6;
+  --sl-color-blue-low: hsl(224, 88%, 90%);
+  --sl-color-blue: hsl(224, 90%, 60%);
+  --sl-color-blue-high: hsl(224, 80%, 30%);
+  --sl-color-purple-low: hsl(269, 80%, 90%);
+  --sl-color-purple: hsl(269, 90%, 60%);
+  --sl-color-purple-high: hsl(269, 90%, 30%);
+  --sl-color-orange-low: hsl(41, 90%, 88%);
+  --sl-color-orange: hsl(41, 90%, 60%);
+  --sl-color-orange-high: hsl(41, 80%, 25%);
+  --sl-color-red-low: hsl(339, 80%, 90%);
+  --sl-color-red: hsl(339, 90%, 60%);
+  --sl-color-red-high: hsl(339, 80%, 30%);
+  --sl-color-green-low: hsl(101, 85%, 90%);
+  --sl-color-green: hsl(101, 90%, 46%);
+  --sl-color-green-high: hsl(101, 80%, 22%);
 }
 
 starlight-theme-select {
   display: none;
+}
+
+.site-title {
+  font-family: var(--sl-font-heading);
+  letter-spacing: 0.025em;
 }
 
 h1,
