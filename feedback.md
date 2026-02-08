@@ -23,7 +23,6 @@ What we won't do: full performance tuning, per-game settings, target-specific op
 - DLC and updates directory layout: similar to cheats, figure out folder structure for user-provided DLC and game updates. This could help solve the provision problem where some files must be imported via emulator UI (e.g., Cemu keys.txt, 3DS system files). If kyaraben manages these directories, we could check for installed content. Wii U title structure: 00050000 (games), 0005000c (DLC), 0005000e (patches) per WiiUBrew
 - Audit system extensions against ES-DE bundled config: ensure kyaraben's extension lists are complete for each system
 - Flycast CLI hotkey issue: save state hotkeys don't work when launching via CLI (known upstream issue)
-- Config change detection bug: kyaraben silently overwrites manually edited keys without warning. Repro: (1) apply sets Cemu check_update=false, (2) user enables update check in UI (check_update=true), (3) apply overwrites to false with no backup prompt. Expected: warning that a managed key was modified externally
 - Kyaraben should fetch provision status on focus so that when users add files and come back to Kyaraben to check things update
     - We could even show a toast notification if we find something new
 

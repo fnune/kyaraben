@@ -237,6 +237,42 @@ func TestApplyUserModifiedConfig(t *testing.T) {
 	c.assertContains(string(output), "Cancelled")
 }
 
+func TestApplyUserModifiedConfigXML(t *testing.T) {
+	c := newCLITest(t)
+
+	configContent := `[global]
+user_store = "` + c.userStore + `"
+
+[systems]
+wiiu = ["cemu"]
+`
+	c.writeFile("config.toml", configContent)
+	c.apply()
+
+	cemuConfig := filepath.Join(c.tmpDir, "xdg-config", "Cemu", "settings.xml")
+	content := c.readFile("xdg-config/Cemu/settings.xml")
+
+	if !strings.Contains(content, "<check_update>false</check_update>") {
+		t.Fatalf("expected check_update=false in config, got:\n%s", content)
+	}
+
+	modified := strings.Replace(content, "<check_update>false</check_update>", "<check_update>true</check_update>", 1)
+	if modified == content {
+		t.Fatal("failed to modify config - no substitution made")
+	}
+	if err := os.WriteFile(cemuConfig, []byte(modified), 0644); err != nil {
+		t.Fatalf("writing modified config: %v", err)
+	}
+
+	cmd := c.cmdWithFakeNix("apply")
+	cmd.Stdin = bytes.NewReader([]byte("n\n"))
+	output, _ := cmd.CombinedOutput()
+
+	c.assertContains(string(output), "managed keys will be overwritten")
+	c.assertContains(string(output), "check_update")
+	c.assertContains(string(output), "Cancelled")
+}
+
 func TestDoctor(t *testing.T) {
 	t.Run("reports missing required provisions", func(t *testing.T) {
 		c := newCLITest(t)
