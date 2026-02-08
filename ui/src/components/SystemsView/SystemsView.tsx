@@ -7,7 +7,7 @@ import { SYSTEM_YEARS, SystemCard } from '@/components/SystemCard/SystemCard'
 import { useApply } from '@/lib/ApplyContext'
 import { BottomBar } from '@/lib/BottomBar'
 import { Button } from '@/lib/Button'
-import { addChange, emptyChangeSummary, getChangeType } from '@/lib/changeUtils'
+import { addChange, emptyChangeSummary, getChangeType, withConfigChanges } from '@/lib/changeUtils'
 import { ProgressSteps } from '@/lib/ProgressSteps'
 import { useOpenLog } from '@/lib/useOpenLog'
 import type {
@@ -37,6 +37,7 @@ export interface SystemsViewProps {
   readonly installedPaths: Map<EmulatorID, Record<string, EmulatorPaths>>
   readonly provisions: DoctorResponse
   readonly userStore: string
+  readonly hasConfigChanges: boolean
   readonly onUserStoreChange: (value: string) => void
   readonly onEmulatorToggle: (emulatorId: EmulatorID, enabled: boolean) => void
   readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
@@ -82,6 +83,7 @@ export function SystemsView({
   installedPaths,
   provisions,
   userStore,
+  hasConfigChanges,
   onUserStoreChange,
   onEmulatorToggle,
   onVersionChange,
@@ -181,7 +183,7 @@ export function SystemsView({
       summary = addChange(summary, changeType, downloadBytes)
     }
 
-    return summary
+    return withConfigChanges(summary, hasConfigChanges)
   }, [
     systems,
     frontends,
@@ -191,6 +193,7 @@ export function SystemsView({
     frontendVersions,
     installedVersions,
     installedFrontendVersions,
+    hasConfigChanges,
   ])
 
   const groupedSystems = useMemo(() => groupSystemsByManufacturer(systems), [systems])

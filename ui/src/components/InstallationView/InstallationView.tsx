@@ -201,7 +201,7 @@ export function InstallationView() {
                 Remove all managed files (preserves ROMs and saves)
               </p>
             </div>
-            <Button variant="secondary" onClick={handleUninstall}>
+            <Button variant="danger" onClick={handleUninstall}>
               Uninstall
             </Button>
           </div>
