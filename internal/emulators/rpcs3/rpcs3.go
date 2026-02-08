@@ -6,12 +6,11 @@ type Definition struct{}
 
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
-		ID:      model.EmulatorIDRPCS3,
-		Name:    "RPCS3",
-		Systems: []model.SystemID{model.SystemIDPS3},
-		Package: model.AppImageRef("rpcs3"),
-		// PS3 firmware is installed through the emulator
-		Provisions: nil,
+		ID:              model.EmulatorIDRPCS3,
+		Name:            "RPCS3",
+		Systems:         []model.SystemID{model.SystemIDPS3},
+		Package:         model.AppImageRef("rpcs3"),
+		ProvisionGroups: nil,
 		StateKinds: []model.StateKind{
 			model.StateSaves,
 			model.StateSavestates,

@@ -76,11 +76,14 @@ export interface ProvisionResult {
   filename: string;
   kind: string;
   description: string;
-  required: boolean;
   status: string;
   expectedPath?: string;
   foundPath?: string;
   importViaUI?: boolean;
+  groupMessage?: string;
+  groupRequired: boolean;
+  groupSatisfied: boolean;
+  groupSize: number /* int */;
 }
 export interface ProgressEvent {
   step: string;

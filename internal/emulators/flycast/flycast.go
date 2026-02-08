@@ -10,24 +10,24 @@ func (Definition) Emulator() model.Emulator {
 		Name:    "Flycast",
 		Systems: []model.SystemID{model.SystemIDDreamcast},
 		Package: model.AppImageRef("flycast"),
-		Provisions: []model.Provision{
-			{
-				ID:          "dc-bios",
-				Kind:        model.ProvisionBIOS,
-				Filename:    "dc_boot.bin",
-				Description: "Boot",
-				Required:    false,
-				MD5Hash:     "e10c53c2f8b90bab96ead2d368858623",
+		ProvisionGroups: []model.ProvisionGroup{{
+			MinRequired: 0,
+			Message:     "BIOS files (optional, enables boot animation)",
+			Provisions: []model.Provision{
+				{
+					Kind:        model.ProvisionBIOS,
+					Filename:    "dc_boot.bin",
+					Description: "Boot",
+					Hashes:      []string{"e10c53c2f8b90bab96ead2d368858623"},
+				},
+				{
+					Kind:        model.ProvisionBIOS,
+					Filename:    "dc_flash.bin",
+					Description: "Flash",
+					Hashes:      []string{"0a93f7940c455905bea6e392dfde92a4"},
+				},
 			},
-			{
-				ID:          "dc-flash",
-				Kind:        model.ProvisionBIOS,
-				Filename:    "dc_flash.bin",
-				Description: "Flash",
-				Required:    false,
-				MD5Hash:     "0a93f7940c455905bea6e392dfde92a4",
-			},
-		},
+		}},
 		StateKinds: []model.StateKind{
 			model.StateSaves,
 			model.StateSavestates,

@@ -10,12 +10,11 @@ type Definition struct{}
 
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
-		ID:      model.EmulatorIDDolphin,
-		Name:    "Dolphin",
-		Systems: []model.SystemID{model.SystemIDGameCube, model.SystemIDWii},
-		Package: model.AppImageRef("dolphin"),
-		// Wii system menu optional, GameCube IPL optional
-		Provisions: nil,
+		ID:              model.EmulatorIDDolphin,
+		Name:            "Dolphin",
+		Systems:         []model.SystemID{model.SystemIDGameCube, model.SystemIDWii},
+		Package:         model.AppImageRef("dolphin"),
+		ProvisionGroups: nil,
 		StateKinds: []model.StateKind{
 			model.StateSaves,
 			model.StateSavestates,

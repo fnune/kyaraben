@@ -71,13 +71,13 @@ function generateMarkdown(
       for (const [systemId, results] of entries) {
         const found = results.filter((r) => r.status === 'found').length
         const missing = results.filter((r) => r.status === 'missing')
-        const missingRequired = missing.filter((r) => r.required).length > 0
+        const hasUnsatisfiedRequired = missing.some((r) => r.groupRequired && !r.groupSatisfied)
         if (results.length === 0) {
           lines.push(`- ${systemId}: OK (no provisions required)`)
         } else if (missing.length === 0) {
           lines.push(`- ${systemId}: ${found} found, 0 missing`)
         } else {
-          const reqNote = missingRequired ? ' (required)' : ''
+          const reqNote = hasUnsatisfiedRequired ? ' (required)' : ''
           lines.push(`- ${systemId}: ${found} found, ${missing.length} missing${reqNote}`)
         }
       }

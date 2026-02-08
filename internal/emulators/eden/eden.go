@@ -17,22 +17,24 @@ func (Definition) Emulator() model.Emulator {
 		// Eden requires firmware and keys which must be installed via the Eden UI.
 		// Kyaraben can verify their presence but cannot automatically provision them.
 		// See: https://eden-emu.dev/
-		Provisions: []model.Provision{
+		ProvisionGroups: []model.ProvisionGroup{
 			{
-				ID:          "switch-keys",
-				Kind:        model.ProvisionKeys,
-				Filename:    "prod.keys",
-				Description: "Keys",
-				Required:    true,
-				ImportViaUI: true,
+				MinRequired: 1,
+				Message:     "Keys required",
+				Provisions: []model.Provision{{
+					Kind:        model.ProvisionKeys,
+					Filename:    "prod.keys",
+					ImportViaUI: true,
+				}},
 			},
 			{
-				ID:          "switch-firmware",
-				Kind:        model.ProvisionFirmware,
-				Filename:    "firmware",
-				Description: "Firmware",
-				Required:    false,
-				ImportViaUI: true,
+				MinRequired: 0,
+				Message:     "Firmware (optional)",
+				Provisions: []model.Provision{{
+					Kind:        model.ProvisionFirmware,
+					Filename:    "firmware",
+					ImportViaUI: true,
+				}},
 			},
 		},
 		StateKinds: []model.StateKind{

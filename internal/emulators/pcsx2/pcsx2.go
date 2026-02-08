@@ -10,32 +10,30 @@ func (Definition) Emulator() model.Emulator {
 		Name:    "PCSX2",
 		Systems: []model.SystemID{model.SystemIDPS2},
 		Package: model.AppImageRef("pcsx2"),
-		Provisions: []model.Provision{
-			{
-				ID:          "ps2-bios-usa",
-				Kind:        model.ProvisionBIOS,
-				Filename:    "scph39001.bin",
-				Description: "USA",
-				Required:    true,
-				MD5Hash:     "d5ce2c7d119f563ce04bc04dbc3a323e",
+		ProvisionGroups: []model.ProvisionGroup{{
+			MinRequired: 1,
+			Message:     "At least one regional BIOS required",
+			Provisions: []model.Provision{
+				{
+					Kind:        model.ProvisionBIOS,
+					Filename:    "scph39001.bin",
+					Description: "USA",
+					Hashes:      []string{"d5ce2c7d119f563ce04bc04dbc3a323e"},
+				},
+				{
+					Kind:        model.ProvisionBIOS,
+					Filename:    "scph70004.bin",
+					Description: "Europe",
+					Hashes:      []string{"d333558cc14561c1fdc334c75d5f37b7"},
+				},
+				{
+					Kind:        model.ProvisionBIOS,
+					Filename:    "scph10000.bin",
+					Description: "Japan",
+					Hashes:      []string{"2e6e6db3a66e65e86ad75389cd7fb4b6"},
+				},
 			},
-			{
-				ID:          "ps2-bios-europe",
-				Kind:        model.ProvisionBIOS,
-				Filename:    "scph70004.bin",
-				Description: "Europe",
-				Required:    false,
-				MD5Hash:     "d333558cc14561c1fdc334c75d5f37b7",
-			},
-			{
-				ID:          "ps2-bios-japan",
-				Kind:        model.ProvisionBIOS,
-				Filename:    "scph10000.bin",
-				Description: "Japan",
-				Required:    false,
-				MD5Hash:     "2e6e6db3a66e65e86ad75389cd7fb4b6",
-			},
-		},
+		}},
 		StateKinds: []model.StateKind{
 			model.StateSaves,
 			model.StateSavestates,

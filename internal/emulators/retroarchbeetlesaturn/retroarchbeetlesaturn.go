@@ -13,24 +13,24 @@ func (Definition) Emulator() model.Emulator {
 		Name:    "RetroArch (Beetle Saturn)",
 		Systems: []model.SystemID{model.SystemIDSaturn},
 		Package: model.AppImageRef("retroarch"),
-		Provisions: []model.Provision{
-			{
-				ID:          "saturn-bios",
-				Kind:        model.ProvisionBIOS,
-				Filename:    "sega_101.bin",
-				Description: "Saturn BIOS (Japan)",
-				Required:    true,
-				MD5Hash:     "85ec9ca47d8f6807718151cbcca8b964",
+		ProvisionGroups: []model.ProvisionGroup{{
+			MinRequired: 1,
+			Message:     "At least one regional BIOS required",
+			Provisions: []model.Provision{
+				{
+					Kind:        model.ProvisionBIOS,
+					Filename:    "sega_101.bin",
+					Description: "Japan",
+					Hashes:      []string{"85ec9ca47d8f6807718151cbcca8b964"},
+				},
+				{
+					Kind:        model.ProvisionBIOS,
+					Filename:    "mpr-17933.bin",
+					Description: "US/EU",
+					Hashes:      []string{"3240872c70984b6cbfda1586cab68dbe"},
+				},
 			},
-			{
-				ID:          "saturn-bios-us",
-				Kind:        model.ProvisionBIOS,
-				Filename:    "mpr-17933.bin",
-				Description: "Saturn BIOS (US/EU)",
-				Required:    true,
-				MD5Hash:     "3240872c70984b6cbfda1586cab68dbe",
-			},
-		},
+		}},
 		StateKinds: []model.StateKind{
 			model.StateSaves,
 			model.StateSavestates,

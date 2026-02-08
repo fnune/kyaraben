@@ -9,16 +9,17 @@ import (
 )
 
 type ProvisionResult struct {
-	Filename     string
-	Kind         model.ProvisionKind
-	Description  string
-	Required     bool
-	Status       model.ProvisionStatus
-	ExpectedPath string
-	FoundPath    string
-	ActualHash   string
-	ExpectedHash string
-	ImportViaUI  bool
+	Filename       string
+	Kind           model.ProvisionKind
+	Description    string
+	Status         model.ProvisionStatus
+	ExpectedPath   string
+	FoundPath      string
+	ImportViaUI    bool
+	GroupMessage   string
+	GroupRequired  bool
+	GroupSatisfied bool
+	GroupSize      int
 }
 
 type SystemResult struct {
@@ -30,9 +31,9 @@ type SystemResult struct {
 }
 
 type Result struct {
-	Systems         []SystemResult
-	RequiredMissing int
-	OptionalMissing int
+	Systems              []SystemResult
+	UnsatisfiedGroups    int
+	OptionalGroupsMissed int
 }
 
 func Run(ctx context.Context, cfg *model.KyarabenConfig, reg *registry.Registry, userStore *store.UserStore) (*Result, error) {
@@ -54,35 +55,29 @@ func Run(ctx context.Context, cfg *model.KyarabenConfig, reg *registry.Registry,
 				BiosDir:      userStore.SystemBiosDir(sys),
 			}
 
-			provResults := checker.Check(emu, sys)
-			for _, r := range provResults {
-				pr := ProvisionResult{
-					Filename:     r.Provision.Filename,
-					Kind:         r.Provision.Kind,
-					Description:  r.Provision.Description,
-					Required:     r.Provision.Required,
-					Status:       r.Status,
-					ExpectedPath: r.ExpectedPath,
-					FoundPath:    r.FoundPath,
-					ActualHash:   r.ActualHash,
-					ExpectedHash: r.Provision.MD5Hash,
-					ImportViaUI:  r.Provision.ImportViaUI,
+			groupResults := checker.Check(emu, sys)
+			for _, gr := range groupResults {
+				for _, pr := range gr.Results {
+					provResult := ProvisionResult{
+						Filename:       pr.Provision.Filename,
+						Kind:           pr.Provision.Kind,
+						Description:    pr.Provision.Description,
+						Status:         pr.Status,
+						ExpectedPath:   gr.BiosDir,
+						FoundPath:      pr.FoundPath,
+						ImportViaUI:    pr.Provision.ImportViaUI,
+						GroupMessage:   gr.Group.Message,
+						GroupRequired:  gr.IsRequired,
+						GroupSatisfied: gr.IsSatisfied,
+						GroupSize:      len(gr.Group.Provisions),
+					}
+					sysResult.Provisions = append(sysResult.Provisions, provResult)
 				}
-				sysResult.Provisions = append(sysResult.Provisions, pr)
 
-				switch r.Status {
-				case model.ProvisionMissing:
-					if r.Provision.Required {
-						result.RequiredMissing++
-					} else {
-						result.OptionalMissing++
-					}
-				case model.ProvisionInvalid:
-					if r.Provision.Required {
-						result.RequiredMissing++
-					}
-				case model.ProvisionOptional:
-					result.OptionalMissing++
+				if gr.IsRequired && !gr.IsSatisfied {
+					result.UnsatisfiedGroups++
+				} else if !gr.IsRequired && gr.Satisfied == 0 {
+					result.OptionalGroupsMissed++
 				}
 			}
 
@@ -94,5 +89,5 @@ func Run(ctx context.Context, cfg *model.KyarabenConfig, reg *registry.Registry,
 }
 
 func (r *Result) HasIssues() bool {
-	return r.RequiredMissing > 0
+	return r.UnsatisfiedGroups > 0
 }

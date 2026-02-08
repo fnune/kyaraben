@@ -50,17 +50,15 @@ func (cmd *DoctorCmd) Run(ctx *Context) error {
 			case model.ProvisionFound:
 				fmt.Printf("    %s %s - found, verified\n", checkMark(), label)
 			case model.ProvisionMissing:
-				if prov.Required {
-					fmt.Printf("    %s %s - MISSING (required)\n", crossMark(), label)
+				if prov.GroupRequired && !prov.GroupSatisfied {
+					fmt.Printf("    %s %s - MISSING (%s)\n", crossMark(), label, prov.GroupMessage)
+				} else if prov.GroupRequired {
+					fmt.Printf("    %s %s - not found (group satisfied)\n", dashMark(), label)
 				} else {
-					fmt.Printf("    %s %s - missing (optional)\n", crossMark(), label)
+					fmt.Printf("    %s %s - not found (optional)\n", dashMark(), label)
 				}
 			case model.ProvisionInvalid:
 				fmt.Printf("    %s %s - INVALID HASH\n", crossMark(), label)
-				fmt.Printf("      Expected: %s\n", prov.ExpectedHash)
-				fmt.Printf("      Got:      %s\n", prov.ActualHash)
-			case model.ProvisionOptional:
-				fmt.Printf("    %s %s - not found (optional)\n", dashMark(), label)
 			}
 		}
 
@@ -69,13 +67,13 @@ func (cmd *DoctorCmd) Run(ctx *Context) error {
 	}
 
 	fmt.Println("Summary:")
-	if result.RequiredMissing > 0 {
-		fmt.Printf("  %d required file(s) missing\n", result.RequiredMissing)
+	if result.UnsatisfiedGroups > 0 {
+		fmt.Printf("  %d provision group(s) unsatisfied\n", result.UnsatisfiedGroups)
 	}
-	if result.OptionalMissing > 0 {
-		fmt.Printf("  %d optional file(s) missing\n", result.OptionalMissing)
+	if result.OptionalGroupsMissed > 0 {
+		fmt.Printf("  %d optional group(s) not found\n", result.OptionalGroupsMissed)
 	}
-	if !result.HasIssues() && result.OptionalMissing == 0 {
+	if !result.HasIssues() && result.OptionalGroupsMissed == 0 {
 		fmt.Println("  All provisions satisfied!")
 	}
 

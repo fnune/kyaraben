@@ -298,14 +298,17 @@ func (d *Daemon) handleDoctor() []Event {
 		provisions := make([]ProvisionResult, len(sys.Provisions))
 		for i, prov := range sys.Provisions {
 			provisions[i] = ProvisionResult{
-				Filename:     prov.Filename,
-				Kind:         string(prov.Kind),
-				Description:  prov.Description,
-				Required:     prov.Required,
-				Status:       string(prov.Status),
-				ExpectedPath: shortenPath(prov.ExpectedPath),
-				FoundPath:    prov.FoundPath,
-				ImportViaUI:  prov.ImportViaUI,
+				Filename:       prov.Filename,
+				Kind:           string(prov.Kind),
+				Description:    prov.Description,
+				Status:         string(prov.Status),
+				ExpectedPath:   shortenPath(prov.ExpectedPath),
+				FoundPath:      prov.FoundPath,
+				ImportViaUI:    prov.ImportViaUI,
+				GroupMessage:   prov.GroupMessage,
+				GroupRequired:  prov.GroupRequired,
+				GroupSatisfied: prov.GroupSatisfied,
+				GroupSize:      prov.GroupSize,
 			}
 		}
 		response[string(sys.EmulatorID)] = provisions

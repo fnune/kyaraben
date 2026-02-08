@@ -10,32 +10,30 @@ func (Definition) Emulator() model.Emulator {
 		Name:    "DuckStation",
 		Systems: []model.SystemID{model.SystemIDPSX},
 		Package: model.AppImageRef("duckstation"),
-		Provisions: []model.Provision{
-			{
-				ID:          "psx-bios-usa",
-				Kind:        model.ProvisionBIOS,
-				Filename:    "scph5501.bin",
-				Description: "USA",
-				Required:    true,
-				MD5Hash:     "490f666e1afb15b7362b406ed1cea246",
+		ProvisionGroups: []model.ProvisionGroup{{
+			MinRequired: 1,
+			Message:     "At least one regional BIOS required",
+			Provisions: []model.Provision{
+				{
+					Kind:        model.ProvisionBIOS,
+					Filename:    "scph5501.bin",
+					Description: "USA",
+					Hashes:      []string{"490f666e1afb15b7362b406ed1cea246"},
+				},
+				{
+					Kind:        model.ProvisionBIOS,
+					Filename:    "scph5500.bin",
+					Description: "Japan",
+					Hashes:      []string{"8dd7d5296a650fac7319bce665a6a53c"},
+				},
+				{
+					Kind:        model.ProvisionBIOS,
+					Filename:    "scph5502.bin",
+					Description: "Europe",
+					Hashes:      []string{"32736f17079d0b2b7024407c39bd3050"},
+				},
 			},
-			{
-				ID:          "psx-bios-japan",
-				Kind:        model.ProvisionBIOS,
-				Filename:    "scph5500.bin",
-				Description: "Japan",
-				Required:    false,
-				MD5Hash:     "8dd7d5296a650fac7319bce665a6a53c",
-			},
-			{
-				ID:          "psx-bios-europe",
-				Kind:        model.ProvisionBIOS,
-				Filename:    "scph5502.bin",
-				Description: "Europe",
-				Required:    false,
-				MD5Hash:     "32736f17079d0b2b7024407c39bd3050",
-			},
-		},
+		}},
 		StateKinds: []model.StateKind{
 			model.StateSaves,
 			model.StateSavestates,

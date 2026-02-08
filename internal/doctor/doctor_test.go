@@ -49,13 +49,12 @@ func TestRun(t *testing.T) {
 		t.Errorf("Systems: got %d, want 2", len(result.Systems))
 	}
 
-	// PSX should have missing required BIOS
-	if result.RequiredMissing == 0 {
-		t.Error("RequiredMissing should be > 0 (PSX BIOS missing)")
+	if result.UnsatisfiedGroups == 0 {
+		t.Error("UnsatisfiedGroups should be > 0 (PSX BIOS group unsatisfied)")
 	}
 
 	if !result.HasIssues() {
-		t.Error("HasIssues should return true when required files are missing")
+		t.Error("HasIssues should return true when required groups are unsatisfied")
 	}
 }
 
@@ -92,11 +91,11 @@ func TestRunNoRequiredProvisions(t *testing.T) {
 		t.Errorf("EmulatorName: got %s, want mGBA", sys.EmulatorName)
 	}
 
-	if result.RequiredMissing != 0 {
-		t.Errorf("RequiredMissing: got %d, want 0 (GBA BIOS is optional)", result.RequiredMissing)
+	if result.UnsatisfiedGroups != 0 {
+		t.Errorf("UnsatisfiedGroups: got %d, want 0 (GBA BIOS is optional)", result.UnsatisfiedGroups)
 	}
 	if result.HasIssues() {
-		t.Error("HasIssues should return false when no required files are missing")
+		t.Error("HasIssues should return false when no required groups are unsatisfied")
 	}
 }
 
@@ -109,7 +108,6 @@ func TestRunWithBiosFile(t *testing.T) {
 		t.Fatalf("Failed to create bios dir: %v", err)
 	}
 
-	// Create a fake BIOS file (with wrong hash, but let's test the flow)
 	biosFile := filepath.Join(biosDir, "scph5501.bin")
 	if err := os.WriteFile(biosFile, []byte("fake bios content"), 0644); err != nil {
 		t.Fatalf("Failed to create bios file: %v", err)
@@ -138,7 +136,6 @@ func TestRunWithBiosFile(t *testing.T) {
 
 	sys := result.Systems[0]
 
-	// Find the scph5501.bin provision result
 	var foundProv *ProvisionResult
 	for i := range sys.Provisions {
 		if sys.Provisions[i].Filename == "scph5501.bin" {
@@ -152,9 +149,8 @@ func TestRunWithBiosFile(t *testing.T) {
 		return
 	}
 
-	// File exists but hash is wrong, so should be Invalid
 	if foundProv.Status != model.ProvisionInvalid {
-		t.Errorf("Provision status: got %s, want %s", foundProv.Status, model.ProvisionInvalid)
+		t.Errorf("Provision status: got %s, want %s (fake content has wrong hash)", foundProv.Status, model.ProvisionInvalid)
 	}
 }
 
@@ -200,7 +196,6 @@ func TestRunSystemResult(t *testing.T) {
 		t.Errorf("BiosDir: got %s, want %s", sys.BiosDir, expectedBiosDir)
 	}
 
-	// PSX should have provisions
 	if len(sys.Provisions) == 0 {
 		t.Error("PSX should have provisions defined")
 	}
@@ -231,7 +226,6 @@ func TestRunMultipleEmulators(t *testing.T) {
 		t.Fatalf("Run failed: %v", err)
 	}
 
-	// Should have results for both emulators
 	if len(result.Systems) != 2 {
 		t.Errorf("Systems: got %d, want 2 (one per emulator)", len(result.Systems))
 	}
@@ -251,22 +245,22 @@ func TestRunMultipleEmulators(t *testing.T) {
 
 func TestHasIssues(t *testing.T) {
 	tests := []struct {
-		name            string
-		requiredMissing int
-		optionalMissing int
-		want            bool
+		name              string
+		unsatisfiedGroups int
+		optionalMissed    int
+		want              bool
 	}{
 		{"no issues", 0, 0, false},
 		{"only optional missing", 0, 5, false},
-		{"required missing", 1, 0, true},
+		{"required unsatisfied", 1, 0, true},
 		{"both missing", 2, 3, true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := &Result{
-				RequiredMissing: tt.requiredMissing,
-				OptionalMissing: tt.optionalMissing,
+				UnsatisfiedGroups:    tt.unsatisfiedGroups,
+				OptionalGroupsMissed: tt.optionalMissed,
 			}
 			if got := r.HasIssues(); got != tt.want {
 				t.Errorf("HasIssues() = %v, want %v", got, tt.want)

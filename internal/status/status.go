@@ -135,7 +135,7 @@ func Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg 
 				continue
 			}
 			results := checker.Check(emu, sys)
-			if store.HasMissingRequired(results) {
+			if store.HasUnsatisfiedRequired(results) {
 				result.MissingRequiredCount++
 			}
 		}
