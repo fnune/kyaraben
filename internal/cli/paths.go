@@ -77,7 +77,7 @@ func (cmd *PathsCmd) Run(ctx *Context) error {
 					fmt.Printf("    Savestates:  %s\n", shortenPath(userStore.EmulatorStatesDir(emuID)))
 				}
 				if emu.PathUsage.UsesScreenshotsDir {
-					fmt.Printf("    Screenshots: %s\n", shortenPath(userStore.SystemScreenshotsDir(sysID)))
+					fmt.Printf("    Screenshots: %s\n", shortenPath(userStore.EmulatorScreenshotsDir(emuID)))
 				}
 				if emu.PathUsage.OpaqueContents != "" {
 					fmt.Printf("    Emulator data: %s\n", shortenPath(userStore.EmulatorOpaqueDir(emuID)))

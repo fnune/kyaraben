@@ -104,6 +104,7 @@ func TestUnmanagedEntriesExcludedFromManifest(t *testing.T) {
 		Registry:        reg,
 		ManifestPath:    manifestPath,
 		LauncherManager: nil,
+		BaseDirResolver: fakeBaseDirResolver{root: tmpDir},
 	}
 
 	_, err = applier.Apply(context.Background(), cfg, userStore, Options{})
@@ -196,6 +197,7 @@ func TestApplyRemovesUnenabledEmulatorsFromManifest(t *testing.T) {
 		Registry:        reg,
 		ManifestPath:    manifestPath,
 		LauncherManager: nil,
+		BaseDirResolver: fakeBaseDirResolver{root: tmpDir},
 	}
 
 	_, err = applier.Apply(context.Background(), cfg, userStore, Options{})
@@ -257,6 +259,7 @@ func TestApplyCreatesEmulatorStatesDirectories(t *testing.T) {
 		Registry:        reg,
 		ManifestPath:    manifestPath,
 		LauncherManager: nil,
+		BaseDirResolver: fakeBaseDirResolver{root: tmpDir},
 	}
 
 	_, err = applier.Apply(context.Background(), cfg, userStore, Options{})

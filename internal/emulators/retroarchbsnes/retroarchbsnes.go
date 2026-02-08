@@ -19,7 +19,7 @@ func (Definition) Emulator() model.Emulator {
 			model.StateSavestates,
 			model.StateScreenshots,
 		},
-		Launcher:  retroarch.LauncherWithCore(coreName),
+		Launcher:  retroarch.LauncherWithCore(libretroCoreName),
 		PathUsage: model.StandardPathUsage(),
 	}
 }
@@ -37,15 +37,15 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 	}, nil
 }
 
-const coreName = "bsnes_libretro"
+const (
+	libretroCoreName = "bsnes_libretro"
+	shortCoreName    = "bsnes"
+)
 
 func coreOverrideConfig(store model.StoreReader) model.ConfigPatch {
 	return model.ConfigPatch{
-		Target: retroarch.CoreOverrideTarget(coreName),
+		Target: retroarch.CoreOverrideTarget(shortCoreName),
 		Entries: []model.ConfigEntry{
-			{Path: []string{"savefile_directory"}, Value: store.SystemSavesDir(model.SystemIDSNES)},
-			{Path: []string{"savestate_directory"}, Value: store.EmulatorStatesDir(model.EmulatorIDRetroArchBsnes)},
-			{Path: []string{"screenshot_directory"}, Value: store.SystemScreenshotsDir(model.SystemIDSNES)},
 			{Path: []string{"rgui_browser_directory"}, Value: store.SystemRomsDir(model.SystemIDSNES)},
 		},
 	}

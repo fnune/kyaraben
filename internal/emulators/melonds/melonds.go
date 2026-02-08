@@ -79,7 +79,7 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 			{Path: []string{"DS", "FirmwarePath"}, Value: store.SystemBiosDir(model.SystemIDNDS) + "/firmware.bin"},
 			{Path: []string{"Instance0", "SaveFilePath"}, Value: store.SystemSavesDir(model.SystemIDNDS)},
 			{Path: []string{"Instance0", "SavestatePath"}, Value: store.EmulatorStatesDir(model.EmulatorIDMelonDS)},
-			{Path: []string{"Instance0", "ScreenshotPath"}, Value: store.SystemScreenshotsDir(model.SystemIDNDS)},
+			{Path: []string{"Instance0", "ScreenshotPath"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDMelonDS)},
 			{Path: []string{"Instance0", "LastROMFolder"}, Value: store.SystemRomsDir(model.SystemIDNDS)},
 		},
 	}}, nil
