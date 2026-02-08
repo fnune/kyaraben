@@ -15,7 +15,7 @@ const VARIANT_CLASSES: Record<NonNullable<ButtonProps['variant']>, string> = {
 
 export function Button({ children, variant = 'primary', disabled, onClick }: ButtonProps) {
   const baseClasses =
-    'px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed text-sm tracking-wide'
+    'px-4 py-2 rounded-control disabled:opacity-50 disabled:cursor-not-allowed text-sm tracking-wide'
   const variantClasses = VARIANT_CLASSES[variant]
 
   return (

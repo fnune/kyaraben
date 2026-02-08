@@ -175,7 +175,7 @@ export function EmulatorSubcard({
   const logo = getEmulatorLogo(emulator.id)
 
   return (
-    <div className={`rounded-lg overflow-hidden relative ${cardClasses}`}>
+    <div className={`rounded-element overflow-hidden relative ${cardClasses}`}>
       {changeType && <ChangeNotch type={changeType} />}
 
       <div className={`flex items-center gap-4 p-3 ${!enabled ? 'opacity-60' : ''}`}>
@@ -206,7 +206,7 @@ export function EmulatorSubcard({
                       type="button"
                       onClick={handleLaunch}
                       disabled={!enabled}
-                      className={enabled ? 'hover:text-on-surface' : 'cursor-not-allowed'}
+                      className={enabled ? 'hover:text-accent' : 'cursor-not-allowed'}
                     >
                       Launch
                     </button>
@@ -219,7 +219,7 @@ export function EmulatorSubcard({
                       type="button"
                       onClick={() => setPathsOpen(true)}
                       disabled={!enabled}
-                      className={enabled ? 'hover:text-on-surface' : 'cursor-not-allowed'}
+                      className={enabled ? 'hover:text-accent' : 'cursor-not-allowed'}
                     >
                       Paths
                     </button>
@@ -231,7 +231,7 @@ export function EmulatorSubcard({
                     type="button"
                     onClick={() => setProvisionsOpen(true)}
                     disabled={!enabled}
-                    className={enabled ? 'hover:text-on-surface' : 'cursor-not-allowed'}
+                    className={enabled ? 'hover:text-accent' : 'cursor-not-allowed'}
                   >
                     Provisions
                   </button>
@@ -322,7 +322,7 @@ function VersionSelector({
       onChange={(e) => onChange(e.target.value === '' ? null : e.target.value)}
       disabled={disabled}
       className={`
-        bg-surface-raised rounded px-2 py-1 text-xs text-on-surface-secondary
+        bg-surface-raised rounded-control px-2 py-1 text-xs text-on-surface-secondary
         outline-2 outline-offset-1 focus:outline-solid focus:outline-accent
         ${isPinned ? 'ring-2 ring-amber-500' : 'border border-outline-strong'}
         ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}

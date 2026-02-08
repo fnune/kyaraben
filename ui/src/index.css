@@ -33,6 +33,10 @@
   --color-outline: var(--t-outline, #374151);
   --color-outline-strong: var(--t-outline-strong, #4b5563);
 
+  --radius-card: var(--t-radius-card, 0.75rem);
+  --radius-element: var(--t-radius-element, 0.5rem);
+  --radius-control: var(--t-radius-control, 0.375rem);
+
   --font-heading: var(
     --t-font-heading,
     ui-sans-serif,
