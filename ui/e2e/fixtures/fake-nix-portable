@@ -11,23 +11,25 @@ log() {
   echo "[fake-nix] $*" >&2
 }
 
+log "Called with args: $*"
+
 simulate_progress() {
   local pkg="$1"
   if [[ "$FAKE_NIX_PROGRESS" == "1" ]]; then
     echo "evaluating derivation..." >&2
-    [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.2
+    [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.2 || true
     echo "these 1 derivations will be built:" >&2
     echo "  /nix/store/fake-hash-$pkg.drv" >&2
-    [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.3
+    [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.3 || true
     echo "building '/nix/store/fake-hash-$pkg.drv'..." >&2
     echo "$pkg> unpacking sources" >&2
-    [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.2
+    [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.2 || true
     echo "$pkg> configuring" >&2
-    [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.2
+    [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.2 || true
     echo "$pkg> building" >&2
-    [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.3
+    [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.3 || true
     echo "$pkg> installing" >&2
-    [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.1
+    [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.1 || true
   fi
 }
 
@@ -79,8 +81,13 @@ case "$1" in
       exit 1
     fi
 
-    pkg_name="${flake_ref##*#}"  # ".#kyaraben" -> "kyaraben"
-    pkg_name="${pkg_name:-unknown}"
+    # Extract package name from flake ref (e.g., ".#kyaraben" -> "kyaraben")
+    # If no # in the ref, it's a path-only flake ref, default to "kyaraben"
+    if [[ "$flake_ref" == *"#"* ]]; then
+      pkg_name="${flake_ref##*#}"
+    else
+      pkg_name="kyaraben"
+    fi
 
     log "Building: $flake_ref (package: $pkg_name)"
 
@@ -91,31 +98,39 @@ case "$1" in
     fi
 
     simulate_progress "$pkg_name"
+    log "simulate_progress done"
 
+    log "Creating fake store path..."
     fake_hash="$(echo "$pkg_name-$RANDOM" | md5sum | cut -c1-32)"
     store_path="/nix/store/$fake_hash-$pkg_name"
+    log "fake_hash=$fake_hash store_path=$store_path"
 
     if [[ -n "$FAKE_NIX_STORE" ]]; then
+      log "FAKE_NIX_STORE=$FAKE_NIX_STORE"
       real_store_path="$FAKE_NIX_STORE/$fake_hash-$pkg_name"
+      log "Creating directories at $real_store_path"
       mkdir -p "$real_store_path/bin"
       mkdir -p "$real_store_path/lib/retroarch/cores"
       mkdir -p "$real_store_path/share/applications"
       mkdir -p "$real_store_path/share/icons/hicolor/256x256/apps"
+      log "Directories created"
 
-      case "$pkg_name" in
-        kyaraben)
-          echo '#!/bin/bash' > "$real_store_path/bin/bsnes"
-          echo 'echo "fake bsnes"' >> "$real_store_path/bin/bsnes"
-          chmod +x "$real_store_path/bin/bsnes"
+      # Create symlinks for binaries and cores specified via env vars
+      # FAKE_NIX_BINARIES="es-de,retroarch,duckstation-qt"
+      # FAKE_NIX_CORES="mgba_libretro.so,bsnes_libretro.so"
+      if [[ -n "$FAKE_NIX_BINARIES" ]]; then
+        IFS=',' read -ra bins <<< "$FAKE_NIX_BINARIES"
+        for bin in "${bins[@]}"; do
+          ln -sf "/nix/store/fake-wrapped/bin/$bin" "$real_store_path/bin/$bin"
+        done
+      fi
 
-          echo '#!/bin/bash' > "$real_store_path/bin/duckstation-qt"
-          echo 'echo "fake duckstation"' >> "$real_store_path/bin/duckstation-qt"
-          chmod +x "$real_store_path/bin/duckstation-qt"
-
-          touch "$real_store_path/lib/retroarch/cores/mgba_libretro.so"
-          touch "$real_store_path/lib/retroarch/cores/snes9x_libretro.so"
-          ;;
-      esac
+      if [[ -n "$FAKE_NIX_CORES" ]]; then
+        IFS=',' read -ra cores <<< "$FAKE_NIX_CORES"
+        for core in "${cores[@]}"; do
+          ln -sf "/nix/store/fake-cores/$core" "$real_store_path/lib/retroarch/cores/$core"
+        done
+      fi
 
       log "Created fake store at: $real_store_path"
 
