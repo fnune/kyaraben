@@ -1,3 +1,6 @@
+// BIOS hash data compiled from:
+// - EmuDeck (https://github.com/dragoonDorise/EmuDeck) - GPL-3
+// - Libretro documentation (https://docs.libretro.com)
 package retroarchbeetlesaturn
 
 import (
@@ -15,19 +18,25 @@ func (Definition) Emulator() model.Emulator {
 		Package: model.AppImageRef("retroarch"),
 		ProvisionGroups: []model.ProvisionGroup{{
 			MinRequired: 1,
-			Message:     "At least one regional BIOS required",
+			Message:     "At least one BIOS required",
 			Provisions: []model.Provision{
 				{
 					Kind:        model.ProvisionBIOS,
 					Filename:    "sega_101.bin",
 					Description: "Japan",
-					Hashes:      []string{"85ec9ca47d8f6807718151cbcca8b964"},
+					Hashes: []string{
+						"85ec9ca47d8f6807718151cbcca8b964",
+						"f273555d7d91e8a5a6bfd9bcf066331c",
+					},
 				},
 				{
 					Kind:        model.ProvisionBIOS,
 					Filename:    "mpr-17933.bin",
 					Description: "US/EU",
-					Hashes:      []string{"3240872c70984b6cbfda1586cab68dbe"},
+					Hashes: []string{
+						"3240872c70984b6cbfda1586cab68dbe",
+						"ac4e4b6522e200c0d23d371a8cecbfd3",
+					},
 				},
 			},
 		}},

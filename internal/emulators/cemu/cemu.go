@@ -6,11 +6,20 @@ type Definition struct{}
 
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
-		ID:              model.EmulatorIDCemu,
-		Name:            "Cemu",
-		Systems:         []model.SystemID{model.SystemIDWiiU},
-		Package:         model.AppImageRef("cemu"),
-		ProvisionGroups: nil,
+		ID:      model.EmulatorIDCemu,
+		Name:    "Cemu",
+		Systems: []model.SystemID{model.SystemIDWiiU},
+		Package: model.AppImageRef("cemu"),
+		ProvisionGroups: []model.ProvisionGroup{{
+			MinRequired: 1,
+			Message:     "Encryption keys required",
+			Provisions: []model.Provision{{
+				Kind:        model.ProvisionKeys,
+				Filename:    "keys.txt",
+				Description: "Wii U keys",
+				ImportViaUI: true,
+			}},
+		}},
 		StateKinds: []model.StateKind{
 			model.StateSaves,
 			model.StateSavestates,

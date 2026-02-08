@@ -1,3 +1,6 @@
+// BIOS hash data compiled from:
+// - EmuDeck (https://github.com/dragoonDorise/EmuDeck) - GPL-3
+// - Libretro documentation (https://docs.libretro.com)
 package melonds
 
 import "github.com/fnune/kyaraben/internal/model"

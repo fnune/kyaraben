@@ -6,11 +6,36 @@ type Definition struct{}
 
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
-		ID:              model.EmulatorIDAzahar,
-		Name:            "Azahar",
-		Systems:         []model.SystemID{model.SystemIDN3DS},
-		Package:         model.AppImageRef("azahar"),
-		ProvisionGroups: nil,
+		ID:      model.EmulatorIDAzahar,
+		Name:    "Azahar",
+		Systems: []model.SystemID{model.SystemIDN3DS},
+		Package: model.AppImageRef("azahar"),
+		ProvisionGroups: []model.ProvisionGroup{
+			{
+				MinRequired: 1,
+				Message:     "Encryption keys required for encrypted games",
+				Provisions: []model.Provision{
+					{
+						Kind:        model.ProvisionKeys,
+						Filename:    "aes_keys.txt",
+						Description: "AES keys",
+						ImportViaUI: true,
+					},
+				},
+			},
+			{
+				MinRequired: 0,
+				Message:     "Seed database (optional, for some encrypted games)",
+				Provisions: []model.Provision{
+					{
+						Kind:        model.ProvisionKeys,
+						Filename:    "seeddb.bin",
+						Description: "Seed DB",
+						ImportViaUI: true,
+					},
+				},
+			},
+		},
 		StateKinds: []model.StateKind{
 			model.StateSaves,
 			model.StateSavestates,

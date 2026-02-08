@@ -1,3 +1,6 @@
+// BIOS hash data compiled from:
+// - EmuDeck (https://github.com/dragoonDorise/EmuDeck) - GPL-3
+// - Libretro documentation (https://docs.libretro.com)
 package flycast
 
 import "github.com/fnune/kyaraben/internal/model"
@@ -17,14 +20,20 @@ func (Definition) Emulator() model.Emulator {
 				{
 					Kind:        model.ProvisionBIOS,
 					Filename:    "dc_boot.bin",
-					Description: "Boot",
-					Hashes:      []string{"e10c53c2f8b90bab96ead2d368858623"},
+					Description: "Boot ROM",
+					Hashes: []string{
+						"e10c53c2f8b90bab96ead2d368858623",
+						"d407fcf70b56acb84b8c77c93b0e5327",
+						"93a9766f14159b403178ac77417c6b68",
+					},
 				},
 				{
 					Kind:        model.ProvisionBIOS,
 					Filename:    "dc_flash.bin",
-					Description: "Flash",
-					Hashes:      []string{"0a93f7940c455905bea6e392dfde92a4"},
+					Description: "Flash ROM",
+					Hashes: []string{
+						"0a93f7940c455905bea6e392dfde92a4",
+					},
 				},
 			},
 		}},
