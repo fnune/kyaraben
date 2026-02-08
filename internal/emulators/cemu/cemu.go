@@ -29,6 +29,9 @@ func (Definition) Emulator() model.Emulator {
 				return cmd
 			},
 		},
+		PathUsage: model.PathUsage{
+			OpaqueContents: "MLC (saves, updates, DLC)",
+		},
 	}
 }
 

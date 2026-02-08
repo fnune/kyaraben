@@ -36,7 +36,8 @@ func (Definition) Emulator() model.Emulator {
 			model.StateSavestates,
 			model.StateScreenshots,
 		},
-		Launcher: retroarch.LauncherWithCore(coreName),
+		Launcher:  retroarch.LauncherWithCore(coreName),
+		PathUsage: model.StandardPathUsage(),
 	}
 }
 

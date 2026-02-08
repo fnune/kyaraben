@@ -17,13 +17,23 @@ export function PathsModal({
   paths: emulatorPaths,
   managedConfigs,
 }: PathsModalProps) {
-  const paths = [
+  const paths: Array<{ label: string; path: string; description?: string | undefined }> = [
     { label: 'ROMs', path: emulatorPaths.roms },
-    { label: 'BIOS', path: emulatorPaths.bios },
-    { label: 'Saves', path: emulatorPaths.saves },
-    { label: 'Savestates', path: emulatorPaths.states },
-    { label: 'Screenshots', path: emulatorPaths.screenshots },
-    ...(emulatorPaths.opaque ? [{ label: 'Emulator data', path: emulatorPaths.opaque }] : []),
+    ...(emulatorPaths.bios ? [{ label: 'BIOS', path: emulatorPaths.bios }] : []),
+    ...(emulatorPaths.saves ? [{ label: 'Saves', path: emulatorPaths.saves }] : []),
+    ...(emulatorPaths.states ? [{ label: 'Savestates', path: emulatorPaths.states }] : []),
+    ...(emulatorPaths.screenshots
+      ? [{ label: 'Screenshots', path: emulatorPaths.screenshots }]
+      : []),
+    ...(emulatorPaths.opaque
+      ? [
+          {
+            label: 'Emulator data',
+            path: emulatorPaths.opaque,
+            description: emulatorPaths.opaqueContents,
+          },
+        ]
+      : []),
   ]
 
   const handleOpenFolder = (path: string) => {
@@ -33,9 +43,10 @@ export function PathsModal({
   return (
     <Modal open={open} onClose={onClose} title={`${emulatorName} Paths`}>
       <div className="space-y-4">
-        {paths.map(({ label, path }) => (
+        {paths.map(({ label, path, description }) => (
           <div key={label}>
             <p className="text-sm text-gray-400 mb-1">{label}</p>
+            {description && <p className="text-xs text-gray-500 mb-2">Contains: {description}</p>}
             <div className="flex items-center gap-2">
               <code className="flex-1 text-sm bg-gray-700 px-2 py-1.5 rounded-sm text-gray-300 select-all truncate">
                 {path}

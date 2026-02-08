@@ -45,36 +45,80 @@ func TestUserStoreInitialize(t *testing.T) {
 	}
 }
 
-func TestUserStoreInitializeSystem(t *testing.T) {
+func TestUserStoreInitializeForEmulator(t *testing.T) {
 	tmpDir := t.TempDir()
 	store := mustNewUserStore(t, tmpDir)
 
-	// Initialize base structure first
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Initialize failed: %v", err)
 	}
 
-	// Initialize SNES system
-	if err := store.InitializeSystem(model.SystemIDSNES); err != nil {
-		t.Fatalf("InitializeSystem failed: %v", err)
+	if err := store.InitializeForEmulator(model.SystemIDSNES, model.EmulatorIDRetroArchBsnes, model.StandardPathUsage()); err != nil {
+		t.Fatalf("InitializeForEmulator failed: %v", err)
 	}
 
-	// Verify system directories exist (states are per-emulator, not per-system)
 	expectedDirs := []string{
 		filepath.Join(tmpDir, "roms", "snes"),
 		filepath.Join(tmpDir, "bios", "snes"),
 		filepath.Join(tmpDir, "saves", "snes"),
+		filepath.Join(tmpDir, "states", "retroarch:bsnes"),
 		filepath.Join(tmpDir, "screenshots", "snes"),
 	}
 
 	for _, dir := range expectedDirs {
 		info, err := os.Stat(dir)
 		if err != nil {
-			t.Errorf("System directory not created: %s: %v", dir, err)
+			t.Errorf("Directory not created: %s: %v", dir, err)
 			continue
 		}
 		if !info.IsDir() {
 			t.Errorf("%s is not a directory", dir)
+		}
+	}
+}
+
+func TestUserStoreInitializeForOpaqueEmulator(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := mustNewUserStore(t, tmpDir)
+
+	if err := store.Initialize(); err != nil {
+		t.Fatalf("Initialize failed: %v", err)
+	}
+
+	pathUsage := model.PathUsage{
+		UsesScreenshotsDir: true,
+		OpaqueContents:     "NAND, SDMC, keys",
+	}
+	if err := store.InitializeForEmulator(model.SystemIDSwitch, model.EmulatorIDEden, pathUsage); err != nil {
+		t.Fatalf("InitializeForEmulator failed: %v", err)
+	}
+
+	expectedDirs := []string{
+		filepath.Join(tmpDir, "roms", "switch"),
+		filepath.Join(tmpDir, "screenshots", "switch"),
+		filepath.Join(tmpDir, "opaque", "eden"),
+	}
+
+	for _, dir := range expectedDirs {
+		info, err := os.Stat(dir)
+		if err != nil {
+			t.Errorf("Directory not created: %s: %v", dir, err)
+			continue
+		}
+		if !info.IsDir() {
+			t.Errorf("%s is not a directory", dir)
+		}
+	}
+
+	unexpectedDirs := []string{
+		filepath.Join(tmpDir, "bios", "switch"),
+		filepath.Join(tmpDir, "saves", "switch"),
+		filepath.Join(tmpDir, "states", "eden"),
+	}
+
+	for _, dir := range unexpectedDirs {
+		if _, err := os.Stat(dir); err == nil {
+			t.Errorf("Directory should not have been created: %s", dir)
 		}
 	}
 }
@@ -136,24 +180,6 @@ func TestUserStoreEmulatorPaths(t *testing.T) {
 	want := "/home/user/Emulation/states/retroarch:bsnes"
 	if got != want {
 		t.Errorf("EmulatorStatesDir got %s, want %s", got, want)
-	}
-}
-
-func TestUserStoreInitializeEmulator(t *testing.T) {
-	tmpDir := t.TempDir()
-	store := mustNewUserStore(t, tmpDir)
-
-	if err := store.Initialize(); err != nil {
-		t.Fatalf("Initialize failed: %v", err)
-	}
-
-	if err := store.InitializeEmulator(model.EmulatorIDRetroArchBsnes); err != nil {
-		t.Fatalf("InitializeEmulator failed: %v", err)
-	}
-
-	statesDir := filepath.Join(tmpDir, "states", "retroarch:bsnes")
-	if info, err := os.Stat(statesDir); err != nil || !info.IsDir() {
-		t.Errorf("States directory not created: %s", statesDir)
 	}
 }
 

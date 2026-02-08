@@ -16,7 +16,7 @@ func TestProvisionCheckerCheck(t *testing.T) {
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
 	}
-	if err := store.InitializeSystem(model.SystemIDPSX); err != nil {
+	if err := store.InitializeForEmulator(model.SystemIDPSX, model.EmulatorIDDuckStation, model.StandardPathUsage()); err != nil {
 		t.Fatalf("Failed to initialize PSX system: %v", err)
 	}
 
@@ -71,7 +71,7 @@ func TestProvisionCheckerWithFile(t *testing.T) {
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
 	}
-	if err := store.InitializeSystem(model.SystemIDGBA); err != nil {
+	if err := store.InitializeForEmulator(model.SystemIDGBA, model.EmulatorIDMGBA, model.StandardPathUsage()); err != nil {
 		t.Fatalf("Failed to initialize GBA system: %v", err)
 	}
 
@@ -100,7 +100,7 @@ func TestProvisionCheckerHashVerification(t *testing.T) {
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
 	}
-	if err := store.InitializeSystem(model.SystemIDPSX); err != nil {
+	if err := store.InitializeForEmulator(model.SystemIDPSX, model.EmulatorIDDuckStation, model.StandardPathUsage()); err != nil {
 		t.Fatalf("Failed to initialize PSX system: %v", err)
 	}
 
@@ -149,7 +149,7 @@ func TestProvisionCheckerCaseInsensitive(t *testing.T) {
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
 	}
-	if err := store.InitializeSystem(model.SystemIDPSX); err != nil {
+	if err := store.InitializeForEmulator(model.SystemIDPSX, model.EmulatorIDDuckStation, model.StandardPathUsage()); err != nil {
 		t.Fatalf("Failed to initialize PSX system: %v", err)
 	}
 
