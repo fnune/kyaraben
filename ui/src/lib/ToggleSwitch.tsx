@@ -14,7 +14,7 @@ export function ToggleSwitch({ enabled, onChange, disabled = false }: ToggleSwit
       onClick={() => onChange(!enabled)}
       className={`
         relative w-11 h-6 rounded-full shrink-0 transition-colors
-        ${enabled ? 'bg-blue-500' : 'bg-gray-600'}
+        ${enabled ? 'bg-accent' : 'bg-surface-raised'}
         ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
       `}
     >

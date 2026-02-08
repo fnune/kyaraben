@@ -56,16 +56,13 @@ export function SystemLogo({ systemId, systemName, className = '' }: SystemLogoP
   const logo = SYSTEM_LOGOS[systemId]
 
   return (
-    <div className={`w-20 flex items-center justify-center ${className}`}>
+    <div className={`w-16 h-10 flex items-center justify-center ${className}`}>
       <img
         src={logo}
         alt={systemName ?? systemId}
         title={systemName}
-        className="w-full h-auto"
-        style={{
-          filter:
-            'brightness(0) saturate(100%) invert(40%) sepia(0%) saturate(0%) hue-rotate(0deg)',
-        }}
+        className="max-w-full max-h-full object-contain"
+        style={{ filter: 'var(--t-logo-filter)' }}
       />
     </div>
   )

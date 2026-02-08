@@ -1,7 +1,7 @@
 import type { EmulatorID, ProvisionResult, SystemID } from './daemon'
 import type { Manufacturer } from './model.gen'
 
-export type View = 'systems' | 'installation' | 'sync'
+export type View = 'systems' | 'installation' | 'sync' | 'debug'
 
 export const MANUFACTURER_ORDER: readonly Manufacturer[] = ['Nintendo', 'Sony', 'Sega', 'Other']
 
