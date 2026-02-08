@@ -74,7 +74,7 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
-			{Path: []string{"Main", "SetupWizardIncomplete"}, Value: "false"},
+			{Path: []string{"Main", "SettingsVersion"}, Value: "3"},
 			{Path: []string{"AutoUpdater", "CheckAtStartup"}, Value: "false"},
 			{Path: []string{"BIOS", "SearchDirectory"}, Value: store.SystemBiosDir(model.SystemIDPSX)},
 			{Path: []string{"MemoryCards", "Directory"}, Value: store.SystemSavesDir(model.SystemIDPSX)},
