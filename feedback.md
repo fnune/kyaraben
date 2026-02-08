@@ -10,7 +10,6 @@
 - Automatic self-updates: users currently must manually download new AppImages
 - Garbage collection: nix store grows unbounded, need a way to trigger cleanup via nix-portable and show space freed
 - ES-DE as non-Steam application: add to Steam for Steam Deck game mode launch
-- "Discard changes" button UX: confusing when config differs from manifest but user didn't make changes in this session. Consider renaming to "Reset to installed state" or only showing when user made UI modifications
 
 ## Nice to have
 
