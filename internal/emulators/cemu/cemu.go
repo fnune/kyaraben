@@ -1,6 +1,10 @@
 package cemu
 
-import "github.com/fnune/kyaraben/internal/model"
+import (
+	"strings"
+
+	"github.com/fnune/kyaraben/internal/model"
+)
 
 type Definition struct{}
 
@@ -22,7 +26,6 @@ func (Definition) Emulator() model.Emulator {
 		}},
 		StateKinds: []model.StateKind{
 			model.StateSaves,
-			model.StateSavestates,
 		},
 		Launcher: model.LauncherInfo{
 			Binary:      "cemu",
@@ -30,6 +33,9 @@ func (Definition) Emulator() model.Emulator {
 			Categories:  []string{"Game", "Emulator"},
 			RomCommand: func(opts model.RomLaunchOptions) string {
 				cmd := opts.BinaryPath
+				if len(opts.LaunchArgs) > 0 {
+					cmd += " " + strings.Join(opts.LaunchArgs, " ")
+				}
 				if opts.Fullscreen {
 					cmd += " -f"
 				}
@@ -69,6 +75,7 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
 			{Path: []string{"content", "GamePaths", "Entry"}, Value: store.SystemRomsDir(model.SystemIDWiiU)},
+			{Path: []string{"content", "check_update"}, Value: "false"},
 		},
 	}}, nil
 }
