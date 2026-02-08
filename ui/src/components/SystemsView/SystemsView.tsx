@@ -298,7 +298,7 @@ export function SystemsView({
       <div className="space-y-8 mt-6">
         {groupedSystems.map(([manufacturer, manufacturerSystems]) => (
           <section key={manufacturer}>
-            <h2 className="font-heading text-sm font-semibold text-on-surface-dim uppercase tracking-widest mb-3">
+            <h2 className="font-heading text-sm font-semibold text-on-surface-dim uppercase tracking-widest mb-3 border-l-2 border-accent pl-2">
               {manufacturer}
             </h2>
             <div className="space-y-4">

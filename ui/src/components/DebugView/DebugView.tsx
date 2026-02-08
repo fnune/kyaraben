@@ -36,7 +36,7 @@ export function DebugView() {
             {themes.map((t) => (
               <label
                 key={t.id}
-                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                className={`flex items-center gap-3 p-3 rounded-element border cursor-pointer transition-colors ${
                   theme.id === t.id
                     ? 'border-accent bg-accent-muted'
                     : 'border-outline hover:border-outline-strong'
@@ -81,7 +81,7 @@ export function DebugView() {
             {fontPairs.map((f) => (
               <label
                 key={f.id}
-                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                className={`flex items-center gap-3 p-3 rounded-element border cursor-pointer transition-colors ${
                   fontPair.id === f.id
                     ? 'border-accent bg-accent-muted'
                     : 'border-outline hover:border-outline-strong'
@@ -113,7 +113,7 @@ export function DebugView() {
           {SAMPLE_SYSTEMS.map((sys) => (
             <div
               key={sys.id}
-              className="flex flex-col items-center gap-2 p-4 rounded-lg bg-surface-alt border border-outline"
+              className="flex flex-col items-center gap-2 p-4 rounded-element bg-surface-alt border border-outline"
             >
               <div className="w-16 h-10 flex items-center justify-center">
                 <img
@@ -135,7 +135,7 @@ export function DebugView() {
         <h3 className="text-xs font-semibold text-on-surface-dim uppercase tracking-widest mb-4">
           Typography specimen
         </h3>
-        <div className="space-y-4 p-6 rounded-lg bg-surface-alt border border-outline">
+        <div className="space-y-4 p-6 rounded-element bg-surface-alt border border-outline">
           <h4 className="font-heading text-2xl font-semibold text-on-surface">Kyaraben</h4>
           <p className="font-heading text-lg text-on-surface-secondary italic">
             Emulation, managed.
@@ -147,13 +147,13 @@ export function DebugView() {
           <div className="flex gap-3 pt-2">
             <button
               type="button"
-              className="px-4 py-2 rounded-md bg-accent text-white text-sm font-medium"
+              className="px-4 py-2 rounded-control bg-accent text-white text-sm font-medium"
             >
               Apply
             </button>
             <button
               type="button"
-              className="px-4 py-2 rounded-md bg-surface-raised text-on-surface-secondary text-sm"
+              className="px-4 py-2 rounded-control bg-surface-raised text-on-surface-secondary text-sm"
             >
               Discard
             </button>

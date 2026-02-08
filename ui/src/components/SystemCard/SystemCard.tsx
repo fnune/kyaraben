@@ -64,7 +64,7 @@ export function SystemCard({
   const year = SYSTEM_YEARS[system.id]
 
   return (
-    <article className="border border-outline rounded-xl overflow-hidden bg-surface">
+    <article className="border border-outline rounded-card border-t-2 border-t-accent overflow-hidden bg-surface">
       <div className="relative flex items-center h-14 bg-surface-alt">
         <img
           src={logo}

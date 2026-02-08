@@ -21,7 +21,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
     >
       <div
         role="document"
-        className="bg-surface-alt rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col border border-outline"
+        className="bg-surface-alt rounded-element shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col border border-outline"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
       >
