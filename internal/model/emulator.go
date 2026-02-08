@@ -50,6 +50,7 @@ type LauncherInfo struct {
 type RomLaunchOptions struct {
 	BinaryPath string
 	Fullscreen bool
+	SavesDir   string
 }
 
 // SupportsSystem checks if this emulator can run games for the given system.
