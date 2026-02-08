@@ -1,3 +1,6 @@
+// BIOS hash data compiled from:
+// - EmuDeck (https://github.com/dragoonDorise/EmuDeck) - GPL-3
+// - Libretro documentation (https://docs.libretro.com)
 package pcsx2
 
 import "github.com/fnune/kyaraben/internal/model"
@@ -12,25 +15,55 @@ func (Definition) Emulator() model.Emulator {
 		Package: model.AppImageRef("pcsx2"),
 		ProvisionGroups: []model.ProvisionGroup{{
 			MinRequired: 1,
-			Message:     "At least one regional BIOS required",
+			Message:     "At least one BIOS required",
 			Provisions: []model.Provision{
 				{
 					Kind:        model.ProvisionBIOS,
 					Filename:    "scph39001.bin",
-					Description: "USA",
+					Description: "USA v1.60",
 					Hashes:      []string{"d5ce2c7d119f563ce04bc04dbc3a323e"},
 				},
 				{
 					Kind:        model.ProvisionBIOS,
-					Filename:    "scph70004.bin",
-					Description: "Europe",
+					Filename:    "scph70012.bin",
+					Description: "USA v2.00",
 					Hashes:      []string{"d333558cc14561c1fdc334c75d5f37b7"},
 				},
 				{
 					Kind:        model.ProvisionBIOS,
+					Filename:    "scph77001.bin",
+					Description: "USA v2.20",
+					Hashes:      []string{"af60e6d1a939019d55e5b330d24b1c25"},
+				},
+				{
+					Kind:        model.ProvisionBIOS,
+					Filename:    "scph70004.bin",
+					Description: "Europe v2.00",
+					Hashes:      []string{"d333558cc14561c1fdc334c75d5f37b7"},
+				},
+				{
+					Kind:        model.ProvisionBIOS,
+					Filename:    "scph39004.bin",
+					Description: "Europe v1.60",
+					Hashes:      []string{"1ad977bb539fc9448a08ab276a836bbc"},
+				},
+				{
+					Kind:        model.ProvisionBIOS,
 					Filename:    "scph10000.bin",
-					Description: "Japan",
-					Hashes:      []string{"2e6e6db3a66e65e86ad75389cd7fb4b6"},
+					Description: "Japan v1.00",
+					Hashes:      []string{"b7fa11e87d51752a98b38e3e691cbf17"},
+				},
+				{
+					Kind:        model.ProvisionBIOS,
+					Filename:    "scph50000.bin",
+					Description: "Japan v1.70",
+					Hashes:      []string{"d3f1853a16c2ec18f3cd1ae655213308"},
+				},
+				{
+					Kind:        model.ProvisionBIOS,
+					Filename:    "scph70000.bin",
+					Description: "Japan v2.00",
+					Hashes:      []string{"0bf988e9c7aaa4c051805b0fa6eb3387"},
 				},
 			},
 		}},
