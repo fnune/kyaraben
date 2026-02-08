@@ -38,7 +38,7 @@ Standalone:
 - [ ] azahar (N3DS)
 - [ ] dolphin (GameCube, Wii)
 - [ ] cemu (Wii U)
-- [ ] eden (Switch) - opaque
+- [ ] eden (Switch)
 - [ ] flycast (Dreamcast)
 
 RetroArch cores:

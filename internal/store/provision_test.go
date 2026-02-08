@@ -225,3 +225,48 @@ func TestProvisionGroupSatisfaction(t *testing.T) {
 		t.Error("HasUnsatisfiedRequired should return false when group is satisfied")
 	}
 }
+
+func TestProvisionCheckerFilePattern(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := mustNewUserStore(t, tmpDir)
+
+	if err := store.Initialize(); err != nil {
+		t.Fatalf("Failed to initialize store: %v", err)
+	}
+	if err := store.InitializeForEmulator(model.SystemIDSwitch, model.EmulatorIDEden, model.StandardPathUsage()); err != nil {
+		t.Fatalf("Failed to initialize Switch system: %v", err)
+	}
+
+	biosDir := store.SystemBiosDir(model.SystemIDSwitch)
+	checker := NewProvisionChecker(store)
+
+	emu := model.Emulator{
+		ID:      model.EmulatorIDEden,
+		Systems: []model.SystemID{model.SystemIDSwitch},
+		ProvisionGroups: []model.ProvisionGroup{{
+			MinRequired: 0,
+			Message:     "Firmware",
+			Provisions: []model.Provision{{
+				FilePattern: "*.nca",
+				Description: "Switch firmware",
+			}},
+		}},
+	}
+
+	results := checker.Check(emu, model.SystemIDSwitch)
+	if results[0].Results[0].Status != model.ProvisionMissing {
+		t.Error("Empty bios directory should be missing")
+	}
+
+	if err := os.WriteFile(filepath.Join(biosDir, "0100000000000809.nca"), []byte("firmware"), 0644); err != nil {
+		t.Fatalf("Failed to create NCA file: %v", err)
+	}
+
+	results = checker.Check(emu, model.SystemIDSwitch)
+	if results[0].Results[0].Status != model.ProvisionFound {
+		t.Error("Bios directory with .nca files should be found")
+	}
+	if results[0].Results[0].FoundPath != biosDir {
+		t.Errorf("Expected FoundPath %s, got %s", biosDir, results[0].Results[0].FoundPath)
+	}
+}

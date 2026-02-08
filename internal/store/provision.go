@@ -59,6 +59,17 @@ func (pc *ProvisionChecker) checkProvision(prov model.Provision, biosDir string)
 		Status:    model.ProvisionMissing,
 	}
 
+	// Glob pattern matching (e.g., *.nca) - searches directly in biosDir
+	if prov.FilePattern != "" {
+		pattern := filepath.Join(biosDir, prov.FilePattern)
+		matches, err := filepath.Glob(pattern)
+		if err == nil && len(matches) > 0 {
+			result.Status = model.ProvisionFound
+			result.FoundPath = biosDir
+		}
+		return result
+	}
+
 	filePath := filepath.Join(biosDir, prov.Filename)
 
 	// Case-insensitive filename matching

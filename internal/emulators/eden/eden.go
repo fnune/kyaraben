@@ -15,34 +15,43 @@ func (Definition) Emulator() model.Emulator {
 		Name:    "Eden",
 		Systems: []model.SystemID{model.SystemIDSwitch},
 		Package: model.AppImageRef("eden"),
-		// Eden requires firmware and keys which must be installed via the Eden UI.
-		// Kyaraben can verify their presence but cannot automatically provision them.
-		// See: https://eden-emu.dev/
+		// Eden copies keys to ~/.local/share/eden/keys/ on import (just a file copy).
+		// See: https://gitlab.com/codxjb/eden/-/blob/master/src/yuzu/main.cpp#L4353
+		// Firmware is copied to nand/system/Contents/registered/ as .nca files.
+		// See: https://gitlab.com/codxjb/eden/-/blob/master/src/yuzu/main.cpp#L4216
 		ProvisionGroups: []model.ProvisionGroup{
 			{
 				MinRequired: 1,
-				Message:     "Keys required",
+				Message:     "Decryption keys required",
 				Provisions: []model.Provision{{
 					Kind:        model.ProvisionKeys,
 					Filename:    "prod.keys",
-					ImportViaUI: true,
+					Description: "Production keys",
 				}},
 			},
 			{
 				MinRequired: 0,
-				Message:     "Firmware (optional)",
+				Message:     "Title keys (optional, for DLC and updates)",
+				Provisions: []model.Provision{{
+					Kind:        model.ProvisionKeys,
+					Filename:    "title.keys",
+					Description: "Title keys",
+				}},
+			},
+			{
+				MinRequired: 0,
+				Message:     "Firmware (optional, enables system applets)",
 				Provisions: []model.Provision{{
 					Kind:        model.ProvisionFirmware,
-					Filename:    "firmware",
-					ImportViaUI: true,
+					Filename:    "*.nca files",
+					FilePattern: "*.nca",
+					Description: "Place firmware .nca files in this directory",
 				}},
 			},
 		},
 		StateKinds: []model.StateKind{
 			model.StateSaves,
-			model.StateSavestates,
 			model.StateScreenshots,
-			model.StatePersistent, // NAND, shader cache, etc.
 		},
 		Launcher: model.LauncherInfo{
 			Binary:      "eden",
@@ -61,8 +70,9 @@ func (Definition) Emulator() model.Emulator {
 			},
 		},
 		PathUsage: model.PathUsage{
+			UsesBiosDir:        true,
+			UsesSavesDir:       true,
 			UsesScreenshotsDir: true,
-			OpaqueContents:     "NAND, SDMC, keys, saves, savestates, shader cache",
 		},
 	}
 }
@@ -73,29 +83,13 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 
 type Config struct{}
 
-// LaunchArgs implements model.LaunchArgsProvider.
-// Eden's -r flag sets the root data directory where all data is stored:
-// config, nand, sdmc, keys, etc.
-func (c *Config) LaunchArgs(store model.StoreReader) []string {
-	return []string{"-r", store.EmulatorOpaqueDir(model.EmulatorIDEden)}
+var configTarget = model.ConfigTarget{
+	RelPath: "eden/qt-config.ini",
+	Format:  model.ConfigFormatINI,
+	BaseDir: model.ConfigBaseDirUserConfig,
 }
 
 func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	// With -r flag, Eden stores everything in the root data directory:
-	// - Config at <root>/config/qt-config.ini
-	// - NAND at <root>/nand/
-	// - SDMC at <root>/sdmc/
-	// - Keys at <root>/keys/
-	//
-	// We only need to configure ROM paths and screenshot location.
-	opaqueDir := store.EmulatorOpaqueDir(model.EmulatorIDEden)
-
-	configTarget := model.ConfigTarget{
-		RelPath: filepath.Join(opaqueDir, "config", "qt-config.ini"),
-		Format:  model.ConfigFormatINI,
-		BaseDir: model.ConfigBaseDirOpaqueDir,
-	}
-
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
@@ -106,4 +100,26 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 			{Path: []string{"UI", "Paths\\gamedirs\\1\\path"}, Value: store.SystemRomsDir(model.SystemIDSwitch)},
 		},
 	}}, nil
+}
+
+// Symlinks implements model.SymlinkProvider.
+// Eden uses XDG directories by default. We symlink:
+// - keys/ -> bios/switch/ (keys are .keys files)
+// - nand/system/Contents/registered/ -> bios/switch/ (firmware .nca files coexist with keys)
+// - screenshots/ -> screenshots/eden/
+// - nand/user/save/ -> saves/switch/ (game saves are in user NAND)
+func (c *Config) Symlinks(store model.StoreReader, resolver model.BaseDirResolver) ([]model.SymlinkSpec, error) {
+	dataDir, err := resolver.UserDataDir()
+	if err != nil {
+		return nil, err
+	}
+	edenDir := filepath.Join(dataDir, "eden")
+	biosDir := store.SystemBiosDir(model.SystemIDSwitch)
+
+	return []model.SymlinkSpec{
+		{Source: filepath.Join(edenDir, "keys"), Target: biosDir},
+		{Source: filepath.Join(edenDir, "nand", "system", "Contents", "registered"), Target: biosDir},
+		{Source: filepath.Join(edenDir, "screenshots"), Target: store.EmulatorScreenshotsDir(model.EmulatorIDEden)},
+		{Source: filepath.Join(edenDir, "nand", "user", "save"), Target: store.SystemSavesDir(model.SystemIDSwitch)},
+	}, nil
 }

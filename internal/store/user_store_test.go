@@ -87,16 +87,16 @@ func TestUserStoreInitializeForOpaqueEmulator(t *testing.T) {
 
 	pathUsage := model.PathUsage{
 		UsesScreenshotsDir: true,
-		OpaqueContents:     "NAND, SDMC, keys",
+		OpaqueContents:     "dev_hdd0, dev_flash (firmware, saves, game data)",
 	}
-	if err := store.InitializeForEmulator(model.SystemIDSwitch, model.EmulatorIDEden, pathUsage); err != nil {
+	if err := store.InitializeForEmulator(model.SystemIDPS3, model.EmulatorIDRPCS3, pathUsage); err != nil {
 		t.Fatalf("InitializeForEmulator failed: %v", err)
 	}
 
 	expectedDirs := []string{
-		filepath.Join(tmpDir, "roms", "switch"),
-		filepath.Join(tmpDir, "screenshots", "eden"),
-		filepath.Join(tmpDir, "opaque", "eden"),
+		filepath.Join(tmpDir, "roms", "ps3"),
+		filepath.Join(tmpDir, "screenshots", "rpcs3"),
+		filepath.Join(tmpDir, "opaque", "rpcs3"),
 	}
 
 	for _, dir := range expectedDirs {
@@ -111,9 +111,9 @@ func TestUserStoreInitializeForOpaqueEmulator(t *testing.T) {
 	}
 
 	unexpectedDirs := []string{
-		filepath.Join(tmpDir, "bios", "switch"),
-		filepath.Join(tmpDir, "saves", "switch"),
-		filepath.Join(tmpDir, "states", "eden"),
+		filepath.Join(tmpDir, "bios", "ps3"),
+		filepath.Join(tmpDir, "saves", "ps3"),
+		filepath.Join(tmpDir, "states", "rpcs3"),
 	}
 
 	for _, dir := range unexpectedDirs {
