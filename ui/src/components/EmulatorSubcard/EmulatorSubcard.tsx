@@ -2,8 +2,12 @@ import { useState } from 'react'
 import { ChangeNotch } from '@/components/ChangeNotch/ChangeNotch'
 import { getEmulatorLogo } from '@/components/EmulatorLogo/EmulatorLogo'
 import { PathsModal } from '@/components/PathsModal/PathsModal'
+import {
+  getKindLabel,
+  ProvisionActionInline,
+  ProvisionsModal,
+} from '@/components/ProvisionsModal/ProvisionsModal'
 import { CHANGE_CONFIG, formatBytes, getChangeType } from '@/lib/changeUtils'
-import { CopyIcon, FolderIcon, PlayIcon } from '@/lib/icons'
 import { useToast } from '@/lib/ToastContext'
 import { ToggleSwitch } from '@/lib/ToggleSwitch'
 import type { EmulatorPaths, EmulatorRef, ManagedConfigInfo, ProvisionResult } from '@/types/daemon'
@@ -23,119 +27,101 @@ export interface EmulatorSubcardProps {
   readonly onLaunch?: () => void
 }
 
-const KIND_LABELS: Record<string, string> = {
-  bios: 'BIOS',
-  keys: 'keys',
-  firmware: 'firmware',
-}
-
-function ProvisionItem({
-  provision,
-  emulatorName,
+function ProvisionsSummary({
+  provisions,
   disabled,
   onOpenFolder,
-  onCopy,
+  onClick,
   onLaunch,
 }: {
-  readonly provision: ProvisionResult
-  readonly emulatorName: string
+  readonly provisions: readonly ProvisionResult[]
   readonly disabled: boolean
   readonly onOpenFolder: (path: string) => void
-  readonly onCopy: (text: string) => void
+  readonly onClick: () => void
   readonly onLaunch?: () => void
 }) {
-  const isReady = provision.status === 'found'
-  const isOptional = !provision.groupRequired
-  const isGroupSatisfied = provision.groupSatisfied
-  const kindLabel = KIND_LABELS[provision.kind] ?? provision.kind
-  const expectedPath = provision.expectedPath ?? ''
+  const found = provisions.filter((p) => p.status === 'found')
+  const missing = provisions.filter((p) => p.status !== 'found')
+  const unsatisfiedRequired = missing.filter((p) => p.groupRequired && !p.groupSatisfied)
 
-  const getStatusColor = () => {
-    if (isReady) return 'text-emerald-400'
-    if (isOptional) return 'text-amber-400'
-    if (isGroupSatisfied) return 'text-gray-500'
-    return 'text-red-400'
-  }
+  const firstFound = found[0]
+  const firstUnsatisfied = unsatisfiedRequired[0]
 
-  const handleOpenFolder = () => {
-    if (!disabled && expectedPath) onOpenFolder(expectedPath)
-  }
-
-  const handleCopy = () => {
-    if (!disabled) {
-      navigator.clipboard.writeText(provision.filename)
-      onCopy(provision.filename)
-    }
-  }
-
-  const label = provision.description ? `${kindLabel} (${provision.description})` : kindLabel
-
-  if (isReady) {
+  if (missing.length === 0) {
     return (
-      <div className="flex items-center text-xs px-3 py-1.5">
-        <span className={getStatusColor()}>✓</span>
-        <span className="ml-2 text-gray-400">{label}</span>
-      </div>
-    )
-  }
-
-  const actionButton = provision.importViaUI ? (
-    onLaunch && !disabled ? (
       <button
         type="button"
-        onClick={onLaunch}
-        className="ml-auto flex items-center gap-1.5 text-blue-400 hover:text-blue-300 hover:underline transition-colors shrink-0"
+        onClick={onClick}
+        className="flex items-center text-xs px-3 py-1.5 w-full h-full hover:bg-gray-700/50 transition-colors"
       >
-        <span className="hidden md:inline">Import in {emulatorName}</span>
-        <PlayIcon />
+        <span className="text-emerald-400">✓</span>
+        <span className="ml-2 text-gray-400">
+          {provisions.length} file{provisions.length > 1 ? 's' : ''} ready
+        </span>
       </button>
-    ) : (
-      <span className="ml-auto text-gray-500 text-xs shrink-0">
-        <span className="hidden md:inline">Import in {emulatorName} after install</span>
-      </span>
     )
-  ) : (
-    <button
-      type="button"
-      onClick={handleOpenFolder}
-      disabled={disabled}
-      className={`ml-auto flex items-center gap-1.5 text-blue-400 transition-colors shrink-0 ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:text-blue-300 hover:underline'}`}
-      aria-label={`Open ${expectedPath}`}
-    >
-      <span className="hidden md:inline">Place in {expectedPath}</span>
-      <FolderIcon />
-    </button>
-  )
-
-  const getStatusLabel = () => {
-    if (isOptional) return 'optional'
-    if (isGroupSatisfied) return 'not needed'
-    if (provision.groupSize > 1) return 'at least one required'
-    return 'required'
   }
 
-  return (
-    <div className="flex items-center text-xs px-3 py-1.5 gap-2">
-      <span className={getStatusColor()}>{isGroupSatisfied && !isOptional ? '-' : '✗'}</span>
-      <span className="text-gray-400">
-        {label}
-        <span className="hidden md:inline text-gray-500">, {getStatusLabel()}</span>
-      </span>
-      <span className="inline-flex items-center gap-1">
-        <code className="text-gray-500">{provision.filename}</code>
-        <button
-          type="button"
-          onClick={handleCopy}
+  if (firstUnsatisfied) {
+    const kindLabel = getKindLabel(firstUnsatisfied.kind)
+    const label = firstUnsatisfied.description
+      ? `${kindLabel} (${firstUnsatisfied.description})`
+      : kindLabel
+    const statusLabel = firstUnsatisfied.groupSize > 1 ? 'at least one required' : 'required'
+
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex items-center text-xs px-3 py-1.5 w-full hover:bg-gray-700/50 transition-colors text-left"
+      >
+        <span className="text-red-400">✗</span>
+        <span className="text-gray-400 truncate ml-2">
+          {label}
+          <span className="hidden md:inline text-gray-500">, {statusLabel}</span>
+        </span>
+        {unsatisfiedRequired.length > 1 && (
+          <span className="text-gray-500 shrink-0 ml-2">+{unsatisfiedRequired.length - 1}</span>
+        )}
+        <ProvisionActionInline
+          provision={firstUnsatisfied}
           disabled={disabled}
-          className={`text-gray-600 transition-colors ${disabled ? 'cursor-not-allowed' : 'hover:text-white'}`}
-          aria-label={`Copy ${provision.filename}`}
-        >
-          <CopyIcon />
-        </button>
-      </span>
-      {actionButton}
-    </div>
-  )
+          onOpenFolder={onOpenFolder}
+          {...(onLaunch && { onLaunch })}
+        />
+      </button>
+    )
+  }
+
+  if (firstFound) {
+    const kindLabel = getKindLabel(firstFound.kind)
+    const label = firstFound.description ? `${kindLabel} (${firstFound.description})` : kindLabel
+    const optionalCount = missing.filter((p) => !p.groupRequired).length
+
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex items-center text-xs px-3 py-1.5 w-full hover:bg-gray-700/50 transition-colors text-left"
+      >
+        <span className="text-emerald-400">✓</span>
+        <span className="text-gray-400 truncate ml-2">{label}</span>
+        {found.length > 1 && (
+          <span className="text-gray-500 shrink-0 ml-2">+{found.length - 1}</span>
+        )}
+        {optionalCount > 0 && (
+          <span className="text-amber-400 shrink-0 ml-2">({optionalCount} optional)</span>
+        )}
+        <ProvisionActionInline
+          provision={firstFound}
+          disabled={disabled}
+          onOpenFolder={onOpenFolder}
+        />
+      </button>
+    )
+  }
+
+  return null
 }
 
 export function EmulatorSubcard({
@@ -153,6 +139,7 @@ export function EmulatorSubcard({
   onLaunch,
 }: EmulatorSubcardProps) {
   const [pathsOpen, setPathsOpen] = useState(false)
+  const [provisionsOpen, setProvisionsOpen] = useState(false)
   const { showToast } = useToast()
 
   const effectiveVersion = pinnedVersion ?? emulator.defaultVersion ?? null
@@ -181,10 +168,6 @@ export function EmulatorSubcard({
   const handleOpenFolder = (path: string) => {
     window.electron.invoke('open_path', path)
     showToast(`Opening ${path}`)
-  }
-
-  const handleCopy = (text: string) => {
-    showToast(`Copied ${text}`)
   }
 
   const logo = getEmulatorLogo(emulator.id)
@@ -229,13 +212,26 @@ export function EmulatorSubcard({
                   </>
                 )}
                 {paths && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setPathsOpen(true)}
+                      disabled={!enabled}
+                      className={enabled ? 'hover:text-white' : 'cursor-not-allowed'}
+                    >
+                      Paths
+                    </button>
+                    {provisions.length > 0 && <span className="text-gray-600">·</span>}
+                  </>
+                )}
+                {provisions.length > 0 && (
                   <button
                     type="button"
-                    onClick={() => setPathsOpen(true)}
+                    onClick={() => setProvisionsOpen(true)}
                     disabled={!enabled}
                     className={enabled ? 'hover:text-white' : 'cursor-not-allowed'}
                   >
-                    Paths
+                    Provisions
                   </button>
                 )}
               </>
@@ -263,17 +259,13 @@ export function EmulatorSubcard({
 
       {provisions.length > 0 && (
         <div className={`border-t border-gray-700/50 ${!enabled ? 'opacity-60' : ''}`}>
-          {provisions.map((p) => (
-            <ProvisionItem
-              key={p.filename}
-              provision={p}
-              emulatorName={emulator.name}
-              disabled={!enabled}
-              onOpenFolder={handleOpenFolder}
-              onCopy={handleCopy}
-              {...(execLine && onLaunch && { onLaunch })}
-            />
-          ))}
+          <ProvisionsSummary
+            provisions={provisions}
+            disabled={!enabled}
+            onOpenFolder={handleOpenFolder}
+            onClick={() => setProvisionsOpen(true)}
+            {...(execLine && onLaunch && { onLaunch: handleLaunch })}
+          />
         </div>
       )}
 
@@ -284,6 +276,17 @@ export function EmulatorSubcard({
           emulatorName={emulator.name}
           paths={paths}
           {...(managedConfigs && { managedConfigs })}
+        />
+      )}
+
+      {provisions.length > 0 && (
+        <ProvisionsModal
+          open={provisionsOpen}
+          onClose={() => setProvisionsOpen(false)}
+          emulatorName={emulator.name}
+          provisions={provisions}
+          disabled={!enabled}
+          {...(execLine && onLaunch && { onLaunch: handleLaunch })}
         />
       )}
     </div>

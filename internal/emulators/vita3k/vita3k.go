@@ -10,11 +10,20 @@ type Definition struct{}
 
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
-		ID:              model.EmulatorIDVita3K,
-		Name:            "Vita3K",
-		Systems:         []model.SystemID{model.SystemIDPSVita},
-		Package:         model.AppImageRef("vita3k"),
-		ProvisionGroups: nil,
+		ID:      model.EmulatorIDVita3K,
+		Name:    "Vita3K",
+		Systems: []model.SystemID{model.SystemIDPSVita},
+		Package: model.AppImageRef("vita3k"),
+		ProvisionGroups: []model.ProvisionGroup{{
+			MinRequired: 1,
+			Message:     "PS Vita firmware required",
+			Provisions: []model.Provision{{
+				Kind:        model.ProvisionFirmware,
+				Filename:    "PSVUPDAT.PUP",
+				Description: "Official firmware",
+				ImportViaUI: true,
+			}},
+		}},
 		StateKinds: []model.StateKind{
 			model.StateSaves,
 			model.StateScreenshots,

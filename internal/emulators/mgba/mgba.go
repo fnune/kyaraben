@@ -1,3 +1,5 @@
+// BIOS hash data compiled from:
+// - Libretro documentation (https://docs.libretro.com)
 package mgba
 
 import "github.com/fnune/kyaraben/internal/model"
