@@ -4,8 +4,10 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
+	"github.com/fnune/kyaraben/internal/emulators/retroarch"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/paths"
 	"github.com/fnune/kyaraben/internal/registry"
@@ -18,13 +20,23 @@ type SystemInfo struct {
 	Name string
 }
 
+type ManagedConfigInfo struct {
+	Path string
+	Keys []ManagedKeyInfo
+}
+
+type ManagedKeyInfo struct {
+	Key   string
+	Value string
+}
+
 type EmulatorInfo struct {
 	ID             model.EmulatorID
 	Name           string
-	Version        string   // Installed version
-	PinnedVersion  string   // User-pinned version (empty if auto)
-	DefaultVersion string   // Latest default version from versions.toml
-	ManagedConfigs []string // Paths to config files managed by kyaraben
+	Version        string              // Installed version
+	PinnedVersion  string              // User-pinned version (empty if auto)
+	DefaultVersion string              // Latest default version from versions.toml
+	ManagedConfigs []ManagedConfigInfo // Config files managed by kyaraben with their keys
 }
 
 type FrontendInfo struct {
@@ -88,8 +100,35 @@ func Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg 
 		}
 
 		for _, cfg := range manifest.GetManagedConfigsForEmulator(emu.ID) {
-			if path, err := cfg.Target.Resolve(); err == nil {
-				info.ManagedConfigs = append(info.ManagedConfigs, path)
+			path, err := cfg.Target.Resolve()
+			if err != nil {
+				continue
+			}
+			configInfo := ManagedConfigInfo{Path: path}
+			for _, key := range cfg.ManagedKeys {
+				configInfo.Keys = append(configInfo.Keys, ManagedKeyInfo{
+					Key:   key.Path[len(key.Path)-1],
+					Value: key.Value,
+				})
+			}
+			info.ManagedConfigs = append(info.ManagedConfigs, configInfo)
+		}
+
+		if strings.HasPrefix(string(emu.ID), "retroarch:") {
+			if sharedCfg, ok := manifest.GetManagedConfig(retroarch.MainConfigTarget); ok {
+				if sharedCfg.EmulatorID != emu.ID {
+					path, err := sharedCfg.Target.Resolve()
+					if err == nil {
+						configInfo := ManagedConfigInfo{Path: path}
+						for _, key := range sharedCfg.ManagedKeys {
+							configInfo.Keys = append(configInfo.Keys, ManagedKeyInfo{
+								Key:   key.Path[len(key.Path)-1],
+								Value: key.Value,
+							})
+						}
+						info.ManagedConfigs = append(info.ManagedConfigs, configInfo)
+					}
+				}
 			}
 		}
 

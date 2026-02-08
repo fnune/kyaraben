@@ -6,17 +6,16 @@ import { CHANGE_CONFIG, formatBytes, getChangeType } from '@/lib/changeUtils'
 import { CopyIcon, FolderIcon, PlayIcon } from '@/lib/icons'
 import { useToast } from '@/lib/ToastContext'
 import { ToggleSwitch } from '@/lib/ToggleSwitch'
-import type { EmulatorRef, ProvisionResult, SystemID } from '@/types/daemon'
+import type { EmulatorPaths, EmulatorRef, ManagedConfigInfo, ProvisionResult } from '@/types/daemon'
 
 export interface EmulatorSubcardProps {
   readonly emulator: EmulatorRef
-  readonly systemId: SystemID
   readonly enabled: boolean
   readonly pinnedVersion: string | null
   readonly installedVersion: string | null
   readonly provisions: readonly ProvisionResult[]
-  readonly managedConfigs?: readonly string[]
-  readonly userStore: string
+  readonly managedConfigs?: readonly ManagedConfigInfo[]
+  readonly paths?: EmulatorPaths
   readonly execLine?: string
   readonly sharedPackage?: boolean
   readonly onToggle: (enabled: boolean) => void
@@ -32,7 +31,6 @@ const KIND_LABELS: Record<string, string> = {
 
 function ProvisionItem({
   provision,
-  provisionPath,
   emulatorName,
   disabled,
   onOpenFolder,
@@ -40,7 +38,6 @@ function ProvisionItem({
   onLaunch,
 }: {
   readonly provision: ProvisionResult
-  readonly provisionPath: string
   readonly emulatorName: string
   readonly disabled: boolean
   readonly onOpenFolder: (path: string) => void
@@ -51,9 +48,10 @@ function ProvisionItem({
   const isOptional = !provision.required
   const statusColor = isReady ? 'text-emerald-400' : isOptional ? 'text-amber-400' : 'text-red-400'
   const kindLabel = KIND_LABELS[provision.kind] ?? provision.kind
+  const expectedPath = provision.expectedPath ?? ''
 
   const handleOpenFolder = () => {
-    if (!disabled) onOpenFolder(provisionPath)
+    if (!disabled && expectedPath) onOpenFolder(expectedPath)
   }
 
   const handleCopy = () => {
@@ -95,9 +93,9 @@ function ProvisionItem({
       onClick={handleOpenFolder}
       disabled={disabled}
       className={`ml-auto flex items-center gap-1.5 text-blue-400 transition-colors shrink-0 ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:text-blue-300 hover:underline'}`}
-      aria-label={`Open ${provisionPath}`}
+      aria-label={`Open ${expectedPath}`}
     >
-      <span className="hidden md:inline">Place in {provisionPath}</span>
+      <span className="hidden md:inline">Place in {expectedPath}</span>
       <FolderIcon />
     </button>
   )
@@ -128,13 +126,12 @@ function ProvisionItem({
 
 export function EmulatorSubcard({
   emulator,
-  systemId,
   enabled,
   pinnedVersion,
   installedVersion,
   provisions,
   managedConfigs,
-  userStore,
+  paths,
   execLine,
   sharedPackage,
   onToggle,
@@ -159,8 +156,6 @@ export function EmulatorSubcard({
     }
     return enabled ? 'bg-gray-800' : 'bg-gray-800/50'
   })()
-
-  const biosPath = userStore ? `${userStore}/bios/${systemId}` : ''
 
   const handleLaunch = () => {
     if (onLaunch) {
@@ -219,14 +214,16 @@ export function EmulatorSubcard({
                     <span className="text-gray-600">·</span>
                   </>
                 )}
-                <button
-                  type="button"
-                  onClick={() => setPathsOpen(true)}
-                  disabled={!enabled}
-                  className={enabled ? 'hover:text-white' : 'cursor-not-allowed'}
-                >
-                  Paths
-                </button>
+                {paths && (
+                  <button
+                    type="button"
+                    onClick={() => setPathsOpen(true)}
+                    disabled={!enabled}
+                    className={enabled ? 'hover:text-white' : 'cursor-not-allowed'}
+                  >
+                    Paths
+                  </button>
+                )}
               </>
             ) : (
               (emulator.downloadBytes || emulator.coreBytes) && (
@@ -256,7 +253,6 @@ export function EmulatorSubcard({
             <ProvisionItem
               key={p.filename}
               provision={p}
-              provisionPath={biosPath}
               emulatorName={emulator.name}
               disabled={!enabled}
               onOpenFolder={handleOpenFolder}
@@ -267,14 +263,15 @@ export function EmulatorSubcard({
         </div>
       )}
 
-      <PathsModal
-        open={pathsOpen}
-        onClose={() => setPathsOpen(false)}
-        emulatorName={emulator.name}
-        emulatorId={emulator.id}
-        userStore={userStore}
-        {...(managedConfigs && { managedConfigs })}
-      />
+      {paths && (
+        <PathsModal
+          open={pathsOpen}
+          onClose={() => setPathsOpen(false)}
+          emulatorName={emulator.name}
+          paths={paths}
+          {...(managedConfigs && { managedConfigs })}
+        />
+      )}
     </div>
   )
 }

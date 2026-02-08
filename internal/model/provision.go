@@ -39,10 +39,11 @@ type Provision struct {
 
 // ProvisionResult represents the outcome of checking a provision.
 type ProvisionResult struct {
-	Provision  Provision
-	Status     ProvisionStatus
-	FoundPath  string // Actual path where file was found
-	ActualHash string // Hash of found file (if any)
+	Provision    Provision
+	Status       ProvisionStatus
+	ExpectedPath string // Directory where the file should be placed
+	FoundPath    string // Actual path where file was found
+	ActualHash   string // Hash of found file (if any)
 }
 
 func (pr *ProvisionResult) IsSatisfied() bool {

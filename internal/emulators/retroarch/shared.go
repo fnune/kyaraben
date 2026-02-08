@@ -46,6 +46,11 @@ func SharedConfig(store model.StoreReader) model.ConfigPatch {
 		Entries: []model.ConfigEntry{
 			{Path: []string{"system_directory"}, Value: store.BiosDir()},
 			{Path: []string{"libretro_directory"}, Value: paths.MustRetroArchCoresDir()},
+			// Disable RetroArch's built-in save sorting since we configure paths per-core
+			{Path: []string{"sort_savefiles_enable"}, Value: "false"},
+			{Path: []string{"sort_savestates_enable"}, Value: "false"},
+			{Path: []string{"sort_savefiles_by_content_enable"}, Value: "false"},
+			{Path: []string{"sort_savestates_by_content_enable"}, Value: "false"},
 			{Path: []string{"menu_driver"}, Value: "rgui", Unmanaged: true},
 		},
 	}

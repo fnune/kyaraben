@@ -220,3 +220,61 @@ func TestApplyRemovesUnenabledEmulatorsFromManifest(t *testing.T) {
 		t.Error("RetroArch bsnes should have been removed from manifest")
 	}
 }
+
+func TestApplyCreatesEmulatorStatesDirectories(t *testing.T) {
+	tmpDir := t.TempDir()
+	manifestPath := filepath.Join(tmpDir, "manifest.json")
+	userStorePath := filepath.Join(tmpDir, "Emulation")
+	flakePath := filepath.Join(tmpDir, "flake")
+
+	if err := os.MkdirAll(flakePath, 0755); err != nil {
+		t.Fatalf("Failed to create flake dir: %v", err)
+	}
+
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{
+			UserStore: userStorePath,
+		},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDSNES: {model.EmulatorIDRetroArchBsnes},
+			model.SystemIDGBA:  {model.EmulatorIDMGBA},
+		},
+	}
+
+	reg := registry.NewDefault()
+	userStore, err := store.NewUserStore(userStorePath)
+	if err != nil {
+		t.Fatalf("Failed to create user store: %v", err)
+	}
+
+	flakeGen := nix.NewFlakeGenerator(reg, reg)
+	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
+
+	applier := &Applier{
+		NixClient:       &mockNixClient{storePath: "/nix/store/test-path", flakePath: flakePath},
+		FlakeGenerator:  flakeGen,
+		ConfigWriter:    configWriter,
+		Registry:        reg,
+		ManifestPath:    manifestPath,
+		LauncherManager: nil,
+	}
+
+	_, err = applier.Apply(context.Background(), cfg, userStore, Options{})
+	if err != nil {
+		t.Fatalf("Apply failed: %v", err)
+	}
+
+	for _, tc := range []struct {
+		name string
+		path string
+	}{
+		{"retroarch core", filepath.Join(userStorePath, "states", "retroarch:bsnes")},
+		{"standalone emulator", filepath.Join(userStorePath, "states", "mgba")},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if info, err := os.Stat(tc.path); err != nil || !info.IsDir() {
+				t.Errorf("States directory not created: %s", tc.path)
+			}
+		})
+	}
+}

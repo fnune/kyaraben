@@ -36,8 +36,9 @@ func (pc *ProvisionChecker) Check(emu model.Emulator, sys model.SystemID) []mode
 
 func (pc *ProvisionChecker) checkProvision(prov model.Provision, biosDir string) model.ProvisionResult {
 	result := model.ProvisionResult{
-		Provision: prov,
-		Status:    model.ProvisionMissing,
+		Provision:    prov,
+		Status:       model.ProvisionMissing,
+		ExpectedPath: biosDir,
 	}
 
 	// Look for the file in the bios directory

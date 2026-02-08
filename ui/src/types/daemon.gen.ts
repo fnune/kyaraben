@@ -39,8 +39,25 @@ export interface InstalledEmulator {
   id: EmulatorID;
   version: string;
   execLine?: string;
-  managedConfigs?: string[];
+  managedConfigs?: ManagedConfigInfo[];
   iconPath?: string;
+  paths?: { [key: string]: EmulatorPaths};
+}
+export interface ManagedConfigInfo {
+  path: string;
+  keys: ManagedKeyInfo[];
+}
+export interface ManagedKeyInfo {
+  key: string;
+  value: string;
+}
+export interface EmulatorPaths {
+  roms: string;
+  bios: string;
+  saves: string;
+  states: string;
+  screenshots: string;
+  opaque?: string;
 }
 export interface InstalledFrontend {
   id: FrontendID;
@@ -58,6 +75,7 @@ export interface ProvisionResult {
   description: string;
   required: boolean;
   status: string;
+  expectedPath?: string;
   foundPath?: string;
   importViaUI?: boolean;
 }

@@ -209,8 +209,10 @@ export function setupFakeNixPortable(fixture: TestFixture): void {
   fixture.env.FAKE_NIX_STORE = fakeStore
   fixture.env.FAKE_NIX_PROGRESS = '1'
   // Default binaries and cores for fake nix builds
-  fixture.env.FAKE_NIX_BINARIES = 'es-de,retroarch,duckstation-qt,mgba,bsnes,pcsx2-qt,ppsspp,dolphin-emu,melonDS,azahar,cemu,vita3k,rpcs3'
-  fixture.env.FAKE_NIX_CORES = 'mgba_libretro.so,bsnes_libretro.so,snes9x_libretro.so,mednafen_psx_libretro.so,mednafen_saturn_libretro.so'
+  fixture.env.FAKE_NIX_BINARIES =
+    'es-de,retroarch,duckstation-qt,mgba,bsnes,pcsx2-qt,ppsspp,dolphin-emu,melonDS,azahar,cemu,vita3k,rpcs3'
+  fixture.env.FAKE_NIX_CORES =
+    'mgba_libretro.so,bsnes_libretro.so,snes9x_libretro.so,mednafen_psx_libretro.so,mednafen_saturn_libretro.so'
 }
 
 export function createBiosDirectory(fixture: TestFixture, systemId: SystemID): string {
