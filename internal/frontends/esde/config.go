@@ -99,7 +99,7 @@ func (c *Config) generateSystems(ctx model.FrontendContext) (model.ConfigPatch, 
 		systemElem.CreateElement("fullname").SetText(mapping.FullName)
 		systemElem.CreateElement("path").SetText(filepath.Join("%ROMPATH%", string(sysID)))
 		systemElem.CreateElement("extension").SetText(formatExtensions(sys.Extensions))
-		systemElem.CreateElement("command").SetText(c.buildCommand(ctx, emulators[0]))
+		systemElem.CreateElement("command").SetText(c.buildCommand(ctx, emulators[0], sysID))
 		systemElem.CreateElement("platform").SetText(mapping.Platform)
 	}
 
@@ -117,7 +117,7 @@ func (c *Config) generateSystems(ctx model.FrontendContext) (model.ConfigPatch, 
 	}, nil
 }
 
-func (c *Config) buildCommand(ctx model.FrontendContext, emuID model.EmulatorID) string {
+func (c *Config) buildCommand(ctx model.FrontendContext, emuID model.EmulatorID, sysID model.SystemID) string {
 	emu, err := ctx.GetEmulator(emuID)
 	if err != nil {
 		return ""
@@ -126,6 +126,7 @@ func (c *Config) buildCommand(ctx model.FrontendContext, emuID model.EmulatorID)
 	return emu.Launcher.RomCommand(model.RomLaunchOptions{
 		BinaryPath: filepath.Join(ctx.BinDir, emu.Launcher.Binary),
 		Fullscreen: true,
+		SavesDir:   ctx.Store.SystemSavesDir(sysID),
 	})
 }
 
