@@ -37,6 +37,7 @@
 
 ## Probably not worth it
 
+- Longer folder names for systems: short names like `3ds`, `nds`, `psx` could be `nintendo-3ds`, `nintendo-ds`, `playstation` for clarity, or `n3ds` so 3DS sorts after NDS chronologically. However, ES-DE expects these exact short folder names for scraping, theming, and game detection. Changing them would break ES-DE integration. Since users mostly browse via the frontend UI rather than file managers, the alphabetical sorting issue is minor
 - Reconsider flake generations: each apply creates new generation directory and lock file with warning. Works fine, unclear benefit from changing
 - Reconsider the manifest: could derive state from filesystem instead of tracking in manifest, but risky refactor for unclear benefit
 - Controller configuration abstraction: every emulator handles this differently, massive scope
