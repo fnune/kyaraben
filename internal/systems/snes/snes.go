@@ -11,7 +11,7 @@ func (Definition) System() model.System {
 		Description:  "16-bit home console by Nintendo (1990)",
 		Manufacturer: model.ManufacturerNintendo,
 		Label:        "SNES",
-		Extensions:   []string{".sfc", ".smc", ".bs", ".zip"},
+		Extensions:   []string{".sfc", ".smc", ".bs", ".bsx", ".fig", ".swc", ".7z", ".zip"},
 	}
 }
 

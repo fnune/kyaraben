@@ -59,6 +59,7 @@ func SharedConfig(store model.StoreReader) model.ConfigPatch {
 			{Path: []string{"sort_savefiles_by_content_enable"}, Value: "false"},
 			{Path: []string{"sort_savestates_by_content_enable"}, Value: "false"},
 			{Path: []string{"menu_driver"}, Value: "rgui", Unmanaged: true},
+			{Path: []string{"rgui_show_start_screen"}, Value: "false"},
 		},
 	}
 }
