@@ -84,6 +84,68 @@ clean-sandbox:
     chmod -R u+w .sandbox 2>/dev/null || true
     rm -rf .sandbox
 
+# Clean all emulator config directories (for development/testing)
+clean-emu-configs:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    config_dirs=(
+        "$HOME/.config/duckstation"
+        "$HOME/.config/retroarch"
+        "$HOME/.config/azahar"
+        "$HOME/.config/Cemu"
+        "$HOME/.config/flycast"
+        "$HOME/.config/melonDS"
+        "$HOME/.config/mgba"
+        "$HOME/.config/PCSX2"
+        "$HOME/.config/ppsspp"
+        "$HOME/.config/rpcs3"
+        "$HOME/ES-DE"
+    )
+
+    # Also check for opaque dirs
+    opaque_base="$HOME/.local/share/kyaraben/opaque"
+    if [ -d "$opaque_base" ]; then
+        for dir in "$opaque_base"/*; do
+            [ -d "$dir" ] && config_dirs+=("$dir")
+        done
+    fi
+
+    echo "Emulator config directories that will be removed:"
+    echo
+    found=0
+    for dir in "${config_dirs[@]}"; do
+        if [ -d "$dir" ]; then
+            size=$(du -sh "$dir" 2>/dev/null | cut -f1)
+            echo "  [EXISTS] $dir ($size)"
+            found=$((found + 1))
+        else
+            echo "  [MISSING] $dir"
+        fi
+    done
+    echo
+
+    if [ $found -eq 0 ]; then
+        echo "No config directories found to remove."
+        exit 0
+    fi
+
+    echo "This will remove $found directories."
+    read -p "Continue? [y/N] " confirm
+    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+        echo "Aborted."
+        exit 1
+    fi
+
+    for dir in "${config_dirs[@]}"; do
+        if [ -d "$dir" ]; then
+            echo "Removing $dir..."
+            rm -rf "$dir"
+        fi
+    done
+
+    echo "Done."
+
 # --- Internal targets (prefixed with _) ---
 
 _ensure-ui-deps:
