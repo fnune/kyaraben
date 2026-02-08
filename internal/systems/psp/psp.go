@@ -11,7 +11,7 @@ func (Definition) System() model.System {
 		Description:  "Handheld console by Sony (2004)",
 		Manufacturer: model.ManufacturerSony,
 		Label:        "PSP",
-		Extensions:   []string{".iso", ".cso", ".chd", ".pbp"},
+		Extensions:   []string{".iso", ".cso", ".chd", ".pbp", ".7z", ".zip"},
 	}
 }
 
