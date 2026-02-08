@@ -11,7 +11,7 @@ func (Definition) System() model.System {
 		Description:  "32-bit handheld by Nintendo (2001)",
 		Manufacturer: model.ManufacturerNintendo,
 		Label:        "GBA",
-		Extensions:   []string{".gba", ".zip"},
+		Extensions:   []string{".gba", ".7z", ".zip"},
 	}
 }
 
