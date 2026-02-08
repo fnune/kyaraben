@@ -56,28 +56,29 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 
 var configTarget = model.ConfigTarget{
 	RelPath: "flycast/emu.cfg",
-	Format:  model.ConfigFormatCFG,
+	Format:  model.ConfigFormatINI,
 	BaseDir: model.ConfigBaseDirUserConfig,
 }
 
 type Config struct{}
 
 func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	// Flycast looks for BIOS files (dc_boot.bin, dc_flash.bin) in DataPath
-	// VMU saves (Dreamcast memory cards) go in a separate path
+	biosDir := store.SystemBiosDir(model.SystemIDDreamcast)
+	savesDir := store.SystemSavesDir(model.SystemIDDreamcast)
+
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
-			// BIOS/data directory - Flycast looks for dc_boot.bin and dc_flash.bin here
-			{Path: []string{"config", "Flycast.DataPath"}, Value: store.SystemBiosDir(model.SystemIDDreamcast)},
+			// BIOS directories (both needed for different Flycast code paths)
+			{Path: []string{"config", "Flycast.DataPath"}, Value: biosDir},
+			{Path: []string{"config", "Dreamcast.BiosPath"}, Value: biosDir},
 			// ROM directory
 			{Path: []string{"config", "Dreamcast.ContentPath"}, Value: store.SystemRomsDir(model.SystemIDDreamcast)},
-			// VMU saves (Dreamcast memory cards)
-			{Path: []string{"config", "Dreamcast.SavePath"}, Value: store.SystemSavesDir(model.SystemIDDreamcast)},
-			// Savestates
-			{Path: []string{"config", "SavestatesPath"}, Value: store.EmulatorStatesDir(model.EmulatorIDFlycast)},
-			// Screenshots
-			{Path: []string{"config", "ScreenshotsPath"}, Value: store.SystemScreenshotsDir(model.SystemIDDreamcast)},
+			// Saves: both SavePath and VMUPath for memory cards
+			{Path: []string{"config", "Dreamcast.SavePath"}, Value: savesDir},
+			{Path: []string{"config", "Dreamcast.VMUPath"}, Value: savesDir},
+			// Savestates (needs Dreamcast. prefix)
+			{Path: []string{"config", "Dreamcast.SavestatePath"}, Value: store.EmulatorStatesDir(model.EmulatorIDFlycast)},
 		},
 	}}, nil
 }
