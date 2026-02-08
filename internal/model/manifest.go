@@ -181,10 +181,8 @@ func (m *Manifest) GetFrontend(id FrontendID) (InstalledFrontend, bool) {
 func (m *Manifest) AddManagedConfig(cfg ManagedConfig) error {
 	for i, existing := range m.ManagedConfigs {
 		if existing.Target == cfg.Target {
-			if !managedKeysEqual(existing.ManagedKeys, cfg.ManagedKeys) {
-				return fmt.Errorf("conflicting ManagedKeys for config %s", cfg.Target.RelPath)
-			}
 			m.ManagedConfigs[i].EmulatorIDs = appendUniqueEmulatorIDs(existing.EmulatorIDs, cfg.EmulatorIDs...)
+			m.ManagedConfigs[i].ManagedKeys = cfg.ManagedKeys
 			m.ManagedConfigs[i].BaselineHash = cfg.BaselineHash
 			m.ManagedConfigs[i].LastModified = cfg.LastModified
 			return nil
@@ -192,26 +190,6 @@ func (m *Manifest) AddManagedConfig(cfg ManagedConfig) error {
 	}
 	m.ManagedConfigs = append(m.ManagedConfigs, cfg)
 	return nil
-}
-
-func managedKeysEqual(a, b []ManagedKey) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i].Value != b[i].Value {
-			return false
-		}
-		if len(a[i].Path) != len(b[i].Path) {
-			return false
-		}
-		for j := range a[i].Path {
-			if a[i].Path[j] != b[i].Path[j] {
-				return false
-			}
-		}
-	}
-	return true
 }
 
 func appendUniqueEmulatorIDs(slice []EmulatorID, elems ...EmulatorID) []EmulatorID {
