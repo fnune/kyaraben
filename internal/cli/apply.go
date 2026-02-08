@@ -179,7 +179,15 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	}
 
 	if hasOverwrittenUserChanges {
-		fmt.Print("Proceed? Your changes to managed keys will be overwritten. [Y/n] ")
+		fmt.Println("Your changes to managed keys will be overwritten:")
+		fmt.Println()
+		for _, diff := range diffs {
+			if diff.UserModified && len(diff.UserChanges) > 0 {
+				fmt.Print(diff.Format())
+			}
+		}
+		fmt.Println()
+		fmt.Print("Proceed? [Y/n] ")
 		reader := bufio.NewReader(os.Stdin)
 		response, _ := reader.ReadString('\n')
 		response = strings.TrimSpace(strings.ToLower(response))
