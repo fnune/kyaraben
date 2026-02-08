@@ -322,14 +322,8 @@ function AppContent() {
     }
     setSystemEmulators(newSystemEmulators)
 
-    const newEnabledFrontends = new Map<FrontendID, boolean>()
-    for (const fe of frontends) {
-      newEnabledFrontends.set(fe.id, true)
-    }
-    setEnabledFrontends(newEnabledFrontends)
-
-    showToast('All systems and frontends enabled. Use "Discard changes" to undo.', 'success')
-  }, [systems, frontends, showToast])
+    showToast('All systems enabled. Use "Discard changes" to undo.', 'success')
+  }, [systems, showToast])
 
   const handleDiscard = useCallback(async () => {
     const [configResult, statusResult] = await Promise.all([daemon.getConfig(), daemon.getStatus()])

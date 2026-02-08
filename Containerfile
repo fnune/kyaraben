@@ -39,7 +39,7 @@ WORKDIR /home/testuser
 
 # Create default config
 RUN mkdir -p ~/.config/kyaraben && \
-    kyaraben init -u ~/Emulation -s e2e-test
+    kyaraben init -u ~/Emulation
 
 # Default command shows status
 CMD ["kyaraben", "status"]

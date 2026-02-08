@@ -359,7 +359,7 @@ test.describe('Enable all flow', () => {
   })
 
   test('Enable all shows toast and enables systems', async () => {
-    await page.getByRole('button', { name: 'Enable all' }).click()
+    await page.getByRole('button', { name: 'Enable all systems' }).click()
     await expect(page.getByText('All systems enabled')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Apply' })).toBeVisible()
   })

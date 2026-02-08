@@ -336,8 +336,14 @@ func TestHandlePreflight_ReturnsPreflightResponse(t *testing.T) {
 	}
 }
 
-func TestHandlePreflight_NoConfig(t *testing.T) {
-	d := newTestDaemon(t, nil)
+func TestHandlePreflight_EmptyConfig(t *testing.T) {
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{
+			UserStore: "~/Emulation",
+		},
+		Systems: make(map[model.SystemID][]model.EmulatorID),
+	}
+	d := newTestDaemon(t, cfg)
 
 	events := d.Handle(Command{Type: CommandTypePreflight})
 	if len(events) != 1 {
