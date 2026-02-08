@@ -79,7 +79,7 @@ func (c *cliTest) init() string {
 
 func (c *cliTest) apply() string {
 	c.t.Helper()
-	output, err := c.runWithFakeNix("apply", "--no-show-diff")
+	output, err := c.runWithFakeNix("apply")
 	if err != nil {
 		c.t.Fatalf("apply failed: %v\nOutput: %s", err, output)
 	}
@@ -206,7 +206,7 @@ func TestApplyWorkflow(t *testing.T) {
 		c := newCLITest(t)
 		c.init()
 
-		output, err := c.runWithFakeNixFail("apply", "--no-show-diff")
+		output, err := c.runWithFakeNixFail("apply")
 		if err == nil {
 			t.Error("expected error when nix build fails")
 		}
