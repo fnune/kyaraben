@@ -6,12 +6,11 @@ type Definition struct{}
 
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
-		ID:      model.EmulatorIDAzahar,
-		Name:    "Azahar",
-		Systems: []model.SystemID{model.SystemIDN3DS},
-		Package: model.AppImageRef("azahar"),
-		// 3DS AES keys required but handled separately
-		Provisions: nil,
+		ID:              model.EmulatorIDAzahar,
+		Name:            "Azahar",
+		Systems:         []model.SystemID{model.SystemIDN3DS},
+		Package:         model.AppImageRef("azahar"),
+		ProvisionGroups: nil,
 		StateKinds: []model.StateKind{
 			model.StateSaves,
 			model.StateSavestates,

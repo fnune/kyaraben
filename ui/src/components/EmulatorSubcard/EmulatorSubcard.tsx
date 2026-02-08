@@ -45,10 +45,17 @@ function ProvisionItem({
   readonly onLaunch?: () => void
 }) {
   const isReady = provision.status === 'found'
-  const isOptional = !provision.required
-  const statusColor = isReady ? 'text-emerald-400' : isOptional ? 'text-amber-400' : 'text-red-400'
+  const isOptional = !provision.groupRequired
+  const isGroupSatisfied = provision.groupSatisfied
   const kindLabel = KIND_LABELS[provision.kind] ?? provision.kind
   const expectedPath = provision.expectedPath ?? ''
+
+  const getStatusColor = () => {
+    if (isReady) return 'text-emerald-400'
+    if (isOptional) return 'text-amber-400'
+    if (isGroupSatisfied) return 'text-gray-500'
+    return 'text-red-400'
+  }
 
   const handleOpenFolder = () => {
     if (!disabled && expectedPath) onOpenFolder(expectedPath)
@@ -61,13 +68,13 @@ function ProvisionItem({
     }
   }
 
+  const label = provision.description ? `${kindLabel} (${provision.description})` : kindLabel
+
   if (isReady) {
     return (
       <div className="flex items-center text-xs px-3 py-1.5">
-        <span className={statusColor}>✓</span>
-        <span className="ml-2 text-gray-400">
-          {kindLabel} ({provision.description})
-        </span>
+        <span className={getStatusColor()}>✓</span>
+        <span className="ml-2 text-gray-400">{label}</span>
       </div>
     )
   }
@@ -100,12 +107,19 @@ function ProvisionItem({
     </button>
   )
 
+  const getStatusLabel = () => {
+    if (isOptional) return 'optional'
+    if (isGroupSatisfied) return 'not needed'
+    if (provision.groupSize > 1) return 'at least one required'
+    return 'required'
+  }
+
   return (
     <div className="flex items-center text-xs px-3 py-1.5 gap-2">
-      <span className={statusColor}>✗</span>
+      <span className={getStatusColor()}>{isGroupSatisfied && !isOptional ? '-' : '✗'}</span>
       <span className="text-gray-400">
-        <span className="hidden md:inline">Missing {isOptional ? 'optional' : 'required'} </span>
-        {kindLabel} ({provision.description})
+        {label}
+        <span className="hidden md:inline text-gray-500">, {getStatusLabel()}</span>
       </span>
       <span className="inline-flex items-center gap-1">
         <code className="text-gray-500">{provision.filename}</code>

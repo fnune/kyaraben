@@ -86,14 +86,17 @@ type InstalledFrontend struct {
 type DoctorResponse map[string][]ProvisionResult
 
 type ProvisionResult struct {
-	Filename     string `json:"filename"`
-	Kind         string `json:"kind"`
-	Description  string `json:"description"`
-	Required     bool   `json:"required"`
-	Status       string `json:"status"`
-	ExpectedPath string `json:"expectedPath,omitempty"`
-	FoundPath    string `json:"foundPath,omitempty"`
-	ImportViaUI  bool   `json:"importViaUI,omitempty"`
+	Filename       string `json:"filename"`
+	Kind           string `json:"kind"`
+	Description    string `json:"description"`
+	Status         string `json:"status"`
+	ExpectedPath   string `json:"expectedPath,omitempty"`
+	FoundPath      string `json:"foundPath,omitempty"`
+	ImportViaUI    bool   `json:"importViaUI,omitempty"`
+	GroupMessage   string `json:"groupMessage,omitempty"`
+	GroupRequired  bool   `json:"groupRequired"`
+	GroupSatisfied bool   `json:"groupSatisfied"`
+	GroupSize      int    `json:"groupSize"`
 }
 
 type ProgressEvent struct {

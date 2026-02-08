@@ -25,14 +25,14 @@ func StandardPathUsage() PathUsage {
 }
 
 type Emulator struct {
-	ID         EmulatorID
-	Name       string
-	Systems    []SystemID
-	Package    PackageRef
-	Provisions []Provision
-	StateKinds []StateKind
-	Launcher   LauncherInfo
-	PathUsage  PathUsage
+	ID              EmulatorID
+	Name            string
+	Systems         []SystemID
+	Package         PackageRef
+	ProvisionGroups []ProvisionGroup
+	StateKinds      []StateKind
+	Launcher        LauncherInfo
+	PathUsage       PathUsage
 }
 
 type LauncherInfo struct {

@@ -10,30 +10,35 @@ func (Definition) Emulator() model.Emulator {
 		Name:    "melonDS",
 		Systems: []model.SystemID{model.SystemIDNDS},
 		Package: model.AppImageRef("melonds"),
-		Provisions: []model.Provision{
+		ProvisionGroups: []model.ProvisionGroup{
 			{
-				ID:          "nds-bios-arm7",
-				Kind:        model.ProvisionBIOS,
-				Filename:    "bios7.bin",
-				Description: "ARM7",
-				Required:    false,
-				MD5Hash:     "df692a80a5b1bc90728bc3dfc76cd948",
+				MinRequired: 0,
+				Message:     "Native BIOS (optional, both needed for native mode)",
+				Provisions: []model.Provision{
+					{
+						Kind:        model.ProvisionBIOS,
+						Filename:    "bios7.bin",
+						Description: "ARM7",
+						Hashes:      []string{"df692a80a5b1bc90728bc3dfc76cd948"},
+					},
+					{
+						Kind:        model.ProvisionBIOS,
+						Filename:    "bios9.bin",
+						Description: "ARM9",
+						Hashes:      []string{"a392174eb3e572fed6447e956bde4b25"},
+					},
+				},
 			},
 			{
-				ID:          "nds-bios-arm9",
-				Kind:        model.ProvisionBIOS,
-				Filename:    "bios9.bin",
-				Description: "ARM9",
-				Required:    false,
-				MD5Hash:     "a392174eb3e572fed6447e956bde4b25",
-			},
-			{
-				ID:          "nds-firmware",
-				Kind:        model.ProvisionFirmware,
-				Filename:    "firmware.bin",
-				Description: "Firmware",
-				Required:    false,
-				MD5Hash:     "e45033d9b0fa6b0de071292bba7c9d13",
+				MinRequired: 0,
+				Message:     "Native firmware (optional)",
+				Provisions: []model.Provision{
+					{
+						Kind:     model.ProvisionFirmware,
+						Filename: "firmware.bin",
+						Hashes:   []string{"e45033d9b0fa6b0de071292bba7c9d13"},
+					},
+				},
 			},
 		},
 		StateKinds: []model.StateKind{

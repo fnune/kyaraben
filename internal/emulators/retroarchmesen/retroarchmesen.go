@@ -9,11 +9,11 @@ type Definition struct{}
 
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
-		ID:         model.EmulatorIDRetroArchMesen,
-		Name:       "RetroArch (Mesen)",
-		Systems:    []model.SystemID{model.SystemIDNES},
-		Package:    model.AppImageRef("retroarch"),
-		Provisions: []model.Provision{},
+		ID:              model.EmulatorIDRetroArchMesen,
+		Name:            "RetroArch (Mesen)",
+		Systems:         []model.SystemID{model.SystemIDNES},
+		Package:         model.AppImageRef("retroarch"),
+		ProvisionGroups: nil,
 		StateKinds: []model.StateKind{
 			model.StateSaves,
 			model.StateSavestates,
