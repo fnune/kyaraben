@@ -43,8 +43,8 @@ function ProvisionAction({
   const isInline = variant === 'inline'
   const iconClass = isInline ? 'w-4 h-4 shrink-0' : 'w-3.5 h-3.5 shrink-0'
   const textClass = isInline
-    ? 'flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors shrink-0 ml-auto'
-    : 'flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors truncate'
+    ? 'flex items-center gap-1 text-accent hover:text-accent-hover transition-colors shrink-0 ml-auto'
+    : 'flex items-center gap-1 text-xs text-accent hover:text-accent-hover transition-colors truncate'
   const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : ''
 
   if (provision.importViaUI) {
@@ -65,11 +65,11 @@ function ProvisionAction({
     }
     if (!isFound) {
       return isInline ? (
-        <span className="text-gray-500 shrink-0 ml-auto hidden sm:inline">
+        <span className="text-on-surface-dim shrink-0 ml-auto hidden sm:inline">
           Import after install
         </span>
       ) : (
-        <span className="text-xs text-gray-500 truncate">Import after install</span>
+        <span className="text-xs text-on-surface-dim truncate">Import after install</span>
       )
     }
     return null
@@ -161,11 +161,11 @@ export function ProvisionsModal({
       <div className="space-y-4">
         {found.length > 0 && (
           <div>
-            <p className="text-sm text-gray-400 mb-2">Found</p>
+            <p className="text-sm text-on-surface-muted mb-2">Found</p>
             <div className="space-y-3">
               {foundGroups.map((group) => (
                 <div key={group.message ?? 'default'} className="space-y-1">
-                  {group.message && <p className="text-xs text-gray-500 mb-1">{group.message}</p>}
+                  {group.message && <p className="text-xs text-on-surface-dim mb-1">{group.message}</p>}
                   {group.provisions.map((p) => (
                     <ProvisionRow
                       key={p.filename}
@@ -183,11 +183,11 @@ export function ProvisionsModal({
 
         {missing.length > 0 && (
           <div>
-            <p className="text-sm text-gray-400 mb-2">Missing</p>
+            <p className="text-sm text-on-surface-muted mb-2">Missing</p>
             <div className="space-y-3">
               {missingGroups.map((group) => (
                 <div key={group.message ?? 'default'} className="space-y-1">
-                  {group.message && <p className="text-xs text-gray-500 mb-1">{group.message}</p>}
+                  {group.message && <p className="text-xs text-on-surface-dim mb-1">{group.message}</p>}
                   {group.provisions.map((p) => (
                     <ProvisionRow
                       key={p.filename}
@@ -235,32 +235,32 @@ function ProvisionRow({
   }
 
   const getIcon = () => {
-    if (isFound) return { icon: '✓', color: 'text-emerald-400' }
-    if (isGroupSatisfied && !isOptional) return { icon: '-', color: 'text-gray-500' }
-    if (isOptional) return { icon: '✗', color: 'text-amber-400' }
-    return { icon: '✗', color: 'text-red-400' }
+    if (isFound) return { icon: '✓', color: 'text-status-ok' }
+    if (isGroupSatisfied && !isOptional) return { icon: '-', color: 'text-on-surface-dim' }
+    if (isOptional) return { icon: '✗', color: 'text-status-warning' }
+    return { icon: '✗', color: 'text-status-error' }
   }
 
   const { icon, color } = getIcon()
   const statusLabel = getStatusLabel()
 
   return (
-    <div className="bg-gray-700 rounded-sm px-3 py-2 space-y-0.5">
+    <div className="bg-surface-raised rounded-sm px-3 py-2 space-y-0.5">
       <div className="flex items-center gap-2">
         <span className={`${color} w-3 text-center shrink-0`}>{icon}</span>
-        <span className="text-sm text-gray-300">
+        <span className="text-sm text-on-surface-secondary">
           {kindLabel}
           {provision.description && ` (${provision.description})`}
         </span>
-        {statusLabel && <span className="text-xs text-gray-500">{statusLabel}</span>}
+        {statusLabel && <span className="text-xs text-on-surface-dim">{statusLabel}</span>}
       </div>
       <div className="flex items-center gap-1 ml-5">
-        <code className="text-xs text-gray-500 truncate">{provision.filename}</code>
+        <code className="text-xs text-on-surface-dim truncate">{provision.filename}</code>
         <button
           type="button"
           onClick={() => onCopy(provision.filename)}
           disabled={disabled}
-          className={`p-0.5 text-gray-400 rounded-sm transition-colors shrink-0 ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:text-gray-200'}`}
+          className={`p-0.5 text-on-surface-muted rounded-sm transition-colors shrink-0 ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:text-on-surface'}`}
           aria-label={`Copy ${provision.filename}`}
         >
           <CopyIcon />

@@ -45,16 +45,16 @@ export function PathsModal({
       <div className="space-y-4">
         {paths.map(({ label, path, description }) => (
           <div key={label}>
-            <p className="text-sm text-gray-400 mb-1">{label}</p>
-            {description && <p className="text-xs text-gray-500 mb-2">Contains: {description}</p>}
+            <p className="text-sm text-on-surface-muted mb-1">{label}</p>
+            {description && <p className="text-xs text-on-surface-dim mb-2">Contains: {description}</p>}
             <div className="flex items-center gap-2">
-              <code className="flex-1 text-sm bg-gray-700 px-2 py-1.5 rounded-sm text-gray-300 select-all truncate">
+              <code className="flex-1 text-sm bg-surface-raised px-2 py-1.5 rounded-sm text-on-surface-secondary select-all truncate">
                 {path}
               </code>
               <button
                 type="button"
                 onClick={() => handleOpenFolder(path)}
-                className="p-1.5 bg-gray-600 hover:bg-gray-500 text-gray-300 rounded-sm transition-colors shrink-0"
+                className="p-1.5 bg-outline hover:bg-outline-strong text-on-surface-secondary rounded-sm transition-colors shrink-0"
                 aria-label={`Open ${label} folder`}
               >
                 <FolderIcon />
@@ -65,20 +65,20 @@ export function PathsModal({
 
         {managedConfigs && managedConfigs.length > 0 && (
           <div>
-            <p className="text-sm text-gray-400 mb-1">Managed settings</p>
-            <p className="text-xs text-gray-500 mb-2">
+            <p className="text-sm text-on-surface-muted mb-1">Managed settings</p>
+            <p className="text-xs text-on-surface-dim mb-2">
               These settings are controlled by kyaraben. Changing them may cause issues.
             </p>
             <div className="space-y-3">
               {managedConfigs.map((config) => (
                 <div key={config.path}>
-                  <code className="block text-xs text-gray-500 mb-1 truncate">{config.path}</code>
-                  <div className="bg-gray-700 rounded-sm px-2 py-1.5 space-y-0.5">
+                  <code className="block text-xs text-on-surface-dim mb-1 truncate">{config.path}</code>
+                  <div className="bg-surface-raised rounded-sm px-2 py-1.5 space-y-0.5">
                     {config.keys.map((key) => (
                       <div key={key.key} className="flex text-xs gap-2">
-                        <span className="text-gray-400 shrink-0">{key.key}</span>
-                        <span className="text-gray-500">=</span>
-                        <span className="text-gray-300 truncate">{key.value}</span>
+                        <span className="text-on-surface-muted shrink-0">{key.key}</span>
+                        <span className="text-on-surface-dim">=</span>
+                        <span className="text-on-surface-secondary truncate">{key.value}</span>
                       </div>
                     ))}
                   </div>

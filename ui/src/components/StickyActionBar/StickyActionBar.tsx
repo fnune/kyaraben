@@ -44,10 +44,10 @@ export function StickyActionBar({
         {hasSize && (
           <div className="flex items-center gap-2 font-mono">
             {changes.downloadBytes > 0 && (
-              <span className="text-emerald-400">+{formatBytes(changes.downloadBytes)}</span>
+              <span className="text-status-ok">+{formatBytes(changes.downloadBytes)}</span>
             )}
             {changes.freeBytes > 0 && (
-              <span className="text-red-400">-{formatBytes(changes.freeBytes)}</span>
+              <span className="text-status-error">-{formatBytes(changes.freeBytes)}</span>
             )}
             {changes.downloadBytes > 0 && changes.freeBytes > 0 && (
               <span className="text-on-surface-dim">

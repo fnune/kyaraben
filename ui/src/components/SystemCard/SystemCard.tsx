@@ -70,12 +70,12 @@ export function SystemCard({
           src={logo}
           alt=""
           className="absolute right-4 h-8 w-auto opacity-10"
-          style={{ filter: 'var(--t-logo-filter)' }}
+          style={{ filter: 'var(--logo-filter)' }}
         />
         <div
           className="relative z-10 pl-4 pr-12"
           style={{
-            background: 'linear-gradient(to right, var(--t-surface-alt) 70%, transparent)',
+            background: 'linear-gradient(to right, var(--color-surface-alt) 70%, transparent)',
           }}
         >
           <h3 className="font-heading text-base font-semibold text-on-surface whitespace-nowrap">

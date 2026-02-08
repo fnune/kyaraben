@@ -125,7 +125,7 @@ export function BugReport({ open, onClose }: BugReportProps) {
     <Modal open={open} onClose={onClose} title="Report a problem">
       <div className="space-y-4">
         <div>
-          <label htmlFor="bug-description" className="block text-sm font-medium text-gray-300 mb-1">
+          <label htmlFor="bug-description" className="block text-sm font-medium text-on-surface-secondary mb-1">
             Describe the issue
           </label>
           <textarea
@@ -133,25 +133,25 @@ export function BugReport({ open, onClose }: BugReportProps) {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="What happened? What did you expect?"
-            className="w-full h-24 px-3 py-2 border border-gray-600 bg-gray-700 text-gray-100 placeholder-gray-500 rounded-md text-sm resize-none focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+            className="w-full h-24 px-3 py-2 border border-outline-strong bg-surface-raised text-on-surface placeholder-on-surface-dim rounded-control text-sm resize-none focus:outline-hidden focus:ring-2 focus:ring-accent"
           />
         </div>
         <div>
-          <label htmlFor="bug-report" className="block text-sm font-medium text-gray-300 mb-1">
+          <label htmlFor="bug-report" className="block text-sm font-medium text-on-surface-secondary mb-1">
             Generated report
           </label>
           <textarea
             id="bug-report"
             readOnly
             value={markdown}
-            className="w-full h-48 px-3 py-2 border border-gray-600 rounded-md text-xs font-mono bg-gray-900 text-gray-300 resize-none"
+            className="w-full h-48 px-3 py-2 border border-outline-strong rounded-control text-xs font-mono bg-surface text-on-surface-secondary resize-none"
           />
         </div>
         <div className="flex justify-end">
           <button
             type="button"
             onClick={handleCopy}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 text-sm font-medium text-white bg-accent rounded-control hover:bg-accent-hover focus:outline-hidden focus:ring-2 focus:ring-accent"
           >
             {copied ? 'Copied!' : 'Copy to clipboard'}
           </button>
