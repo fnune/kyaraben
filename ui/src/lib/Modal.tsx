@@ -21,15 +21,19 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
     >
       <div
         role="document"
-        className="bg-gray-800 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col border border-gray-700"
+        className="bg-surface-alt rounded-element shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col border border-outline"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-6 pb-4 shrink-0">
-          <h2 id="modal-title" className="text-lg font-semibold text-gray-100">
+          <h2 id="modal-title" className="font-heading text-lg font-semibold text-on-surface">
             {title}
           </h2>
-          <button type="button" onClick={onClose} className="text-gray-500 hover:text-gray-300">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-on-surface-dim hover:text-on-surface-secondary"
+          >
             &times;
           </button>
         </div>

@@ -40,7 +40,10 @@ export function Settings({ userStore, onUserStoreChange }: SettingsProps) {
 
   return (
     <div>
-      <span id="user-store-label" className="text-sm font-medium text-gray-300 block">
+      <span
+        id="user-store-label"
+        className="text-xs font-semibold text-on-surface-dim uppercase tracking-widest block"
+      >
         Emulation folder
       </span>
       <div className="mt-1 flex gap-2">
@@ -48,7 +51,7 @@ export function Settings({ userStore, onUserStoreChange }: SettingsProps) {
           <Input value={userStore} onChange={onUserStoreChange} placeholder="~/Emulation" />
         </div>
         <IconButton
-          icon={<FolderIcon className="w-5 h-5 text-gray-400" />}
+          icon={<FolderIcon className="w-5 h-5 text-on-surface-muted" />}
           label={folderExists ? 'Open folder' : 'Folder does not exist'}
           loading={opening}
           disabled={!folderExists}

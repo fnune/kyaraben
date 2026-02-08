@@ -15,7 +15,7 @@ export function IconButton({ icon, label, loading, disabled, onClick }: IconButt
       type="button"
       onClick={onClick}
       disabled={disabled || loading}
-      className="px-3 py-2 border border-gray-600 rounded-md hover:bg-gray-700 disabled:opacity-50"
+      className="px-3 py-2 border border-outline-strong rounded-control hover:bg-surface-raised disabled:opacity-50"
       title={label}
       aria-label={label}
     >

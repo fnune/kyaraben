@@ -7,10 +7,10 @@ export interface ApplyAfterUpdateBannerProps {
 
 export function ApplyAfterUpdateBanner({ onApply, onDismiss }: ApplyAfterUpdateBannerProps) {
   return (
-    <div className="bg-amber-900/50 border-b border-amber-700/50 px-4 py-3">
+    <div className="bg-status-warning/10 border-b border-status-warning/30 px-4 py-3">
       <div className="flex items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-amber-100">
+          <p className="text-sm text-on-surface">
             Kyaraben was updated. Run Apply to get the latest emulator configs.
           </p>
         </div>

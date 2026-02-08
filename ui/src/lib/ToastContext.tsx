@@ -35,11 +35,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const getStyles = (type: Toast['type']) => {
     switch (type) {
       case 'error':
-        return 'bg-red-900/90 text-red-100 border-red-700/50'
+        return 'bg-status-error/90 text-white border-status-error/50'
       case 'success':
-        return 'bg-emerald-900/90 text-emerald-100 border-emerald-700/50'
+        return 'bg-status-ok/90 text-white border-status-ok/50'
       default:
-        return 'bg-gray-800/90 text-gray-200 border-gray-700/50'
+        return 'bg-on-surface/90 text-surface border-on-surface-muted/50'
     }
   }
 

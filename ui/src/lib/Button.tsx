@@ -8,13 +8,14 @@ export interface ButtonProps {
 }
 
 const VARIANT_CLASSES: Record<NonNullable<ButtonProps['variant']>, string> = {
-  primary: 'bg-blue-600 text-white hover:bg-blue-700',
-  secondary: 'bg-gray-700 text-gray-300 hover:bg-gray-600',
-  danger: 'bg-transparent text-red-400 hover:text-red-300 hover:bg-red-500/10',
+  primary: 'bg-accent text-white hover:bg-accent-hover',
+  secondary: 'bg-surface-raised text-on-surface-secondary hover:bg-outline-strong',
+  danger: 'bg-transparent text-status-error hover:text-status-error hover:bg-status-error/10',
 }
 
 export function Button({ children, variant = 'primary', disabled, onClick }: ButtonProps) {
-  const baseClasses = 'px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed'
+  const baseClasses =
+    'px-4 py-2 rounded-control disabled:opacity-50 disabled:cursor-not-allowed text-sm tracking-wide'
   const variantClasses = VARIANT_CLASSES[variant]
 
   return (
