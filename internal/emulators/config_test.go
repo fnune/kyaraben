@@ -14,6 +14,7 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/melonds"
 	"github.com/fnune/kyaraben/internal/emulators/mgba"
 	"github.com/fnune/kyaraben/internal/emulators/retroarch"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchbeetlesaturn"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbsnes"
 	"github.com/fnune/kyaraben/internal/emulators/rpcs3"
 	"github.com/fnune/kyaraben/internal/emulators/vita3k"
@@ -126,59 +127,27 @@ func TestDuckStationGenerate(t *testing.T) {
 func TestRetroArchCoresGenerate(t *testing.T) {
 	store := &fakeStoreReader{root: "/emulation"}
 
-	tests := []struct {
-		name          string
-		gen           model.ConfigGenerator
-		system        model.SystemID
-		shortCoreName string
-		wantRomDir    string
-	}{
-		{
-			name:          "bsnes",
-			gen:           retroarchbsnes.Definition{}.ConfigGenerator(),
-			system:        model.SystemIDSNES,
-			shortCoreName: "bsnes",
-			wantRomDir:    "/emulation/roms/snes",
-		},
+	gen := retroarchbsnes.Definition{}.ConfigGenerator()
+	patches, err := gen.Generate(store)
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			patches, err := tt.gen.Generate(store)
-			if err != nil {
-				t.Fatalf("Generate() error = %v", err)
-			}
+	if len(patches) != 1 {
+		t.Fatalf("expected 1 patch (shared config), got %d", len(patches))
+	}
 
-			if len(patches) != 2 {
-				t.Fatalf("expected 2 patches (shared + override), got %d", len(patches))
-			}
+	shared := patches[0]
+	if shared.Target.RelPath != "retroarch/retroarch.cfg" {
+		t.Errorf("expected shared config path, got %s", shared.Target.RelPath)
+	}
 
-			shared := patches[0]
-			if shared.Target.RelPath != "retroarch/retroarch.cfg" {
-				t.Errorf("expected shared config path, got %s", shared.Target.RelPath)
-			}
-			sharedKeys := collectKeys(shared.Entries)
-			if !sharedKeys["system_directory"] {
-				t.Error("shared config missing system_directory")
-			}
-
-			override := patches[1]
-			expectedOverridePath := retroarch.CoreOverrideTarget(tt.shortCoreName).RelPath
-			if override.Target.RelPath != expectedOverridePath {
-				t.Errorf("expected override path %q, got %q", expectedOverridePath, override.Target.RelPath)
-			}
-
-			overrideKeys := collectKeys(override.Entries)
-			if !overrideKeys["rgui_browser_directory"] {
-				t.Error("override missing key rgui_browser_directory")
-			}
-
-			for _, entry := range override.Entries {
-				if entry.Key() == "rgui_browser_directory" && !strings.Contains(entry.Value, tt.wantRomDir) {
-					t.Errorf("rgui_browser_directory %q doesn't contain %s", entry.Value, tt.wantRomDir)
-				}
-			}
-		})
+	sharedKeys := collectKeys(shared.Entries)
+	if !sharedKeys["libretro_directory"] {
+		t.Error("shared config missing libretro_directory")
+	}
+	if !sharedKeys["rgui_browser_directory"] {
+		t.Error("shared config missing rgui_browser_directory")
 	}
 }
 
@@ -406,9 +375,9 @@ func TestMGBAGenerate(t *testing.T) {
 	}
 }
 
-func TestRetroArchCoreOverrideOnlyContainsBrowserDir(t *testing.T) {
+func TestRetroArchCoreOverrideContainsSystemDirectory(t *testing.T) {
 	store := &fakeStoreReader{root: "/emulation"}
-	gen := retroarchbsnes.Definition{}.ConfigGenerator()
+	gen := retroarchbeetlesaturn.Definition{}.ConfigGenerator()
 
 	patches, err := gen.Generate(store)
 	if err != nil {
@@ -420,6 +389,10 @@ func TestRetroArchCoreOverrideOnlyContainsBrowserDir(t *testing.T) {
 	}
 
 	override := patches[1]
+	expectedPath := retroarch.CoreOverrideTarget("mednafen_saturn").RelPath
+	if override.Target.RelPath != expectedPath {
+		t.Errorf("expected override path %q, got %q", expectedPath, override.Target.RelPath)
+	}
 
 	for _, entry := range override.Entries {
 		switch entry.Key() {
@@ -430,15 +403,15 @@ func TestRetroArchCoreOverrideOnlyContainsBrowserDir(t *testing.T) {
 
 	found := false
 	for _, entry := range override.Entries {
-		if entry.Key() == "rgui_browser_directory" {
+		if entry.Key() == "system_directory" {
 			found = true
-			if !strings.HasSuffix(entry.Value, "/snes") {
-				t.Errorf("rgui_browser_directory should end in /snes, got %s", entry.Value)
+			if !strings.HasSuffix(entry.Value, "/saturn") {
+				t.Errorf("system_directory should end in /saturn, got %s", entry.Value)
 			}
 		}
 	}
 	if !found {
-		t.Error("expected rgui_browser_directory entry not found")
+		t.Error("expected system_directory entry not found")
 	}
 }
 
