@@ -29,7 +29,7 @@ export const SYSTEM_LOGOS: Record<SystemID, string> = {
   gbc,
   gba,
   nds,
-  '3ds': n3ds,
+  n3ds,
   gamecube: gc,
   wii,
   wiiu,

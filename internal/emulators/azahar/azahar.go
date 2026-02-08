@@ -8,7 +8,7 @@ func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
 		ID:      model.EmulatorIDAzahar,
 		Name:    "Azahar",
-		Systems: []model.SystemID{model.SystemID3DS},
+		Systems: []model.SystemID{model.SystemIDN3DS},
 		Package: model.AppImageRef("azahar"),
 		// 3DS AES keys required but handled separately
 		Provisions: nil,
@@ -56,7 +56,7 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 		Entries: []model.ConfigEntry{
 			{Path: []string{"Data%20Storage", "nand_directory"}, Value: store.EmulatorOpaqueDir(model.EmulatorIDAzahar) + "/nand"},
 			{Path: []string{"Data%20Storage", "sdmc_directory"}, Value: store.EmulatorOpaqueDir(model.EmulatorIDAzahar) + "/sdmc"},
-			{Path: []string{"UI", "Paths\\gamedirs\\1\\path"}, Value: store.SystemRomsDir(model.SystemID3DS)},
+			{Path: []string{"UI", "Paths\\gamedirs\\1\\path"}, Value: store.SystemRomsDir(model.SystemIDN3DS)},
 			{Path: []string{"UI", "Screenshots\\screenshot_path"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDAzahar)},
 		},
 	}}, nil

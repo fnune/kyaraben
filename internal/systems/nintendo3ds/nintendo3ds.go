@@ -6,7 +6,7 @@ type Definition struct{}
 
 func (Definition) System() model.System {
 	return model.System{
-		ID:           model.SystemID3DS,
+		ID:           model.SystemIDN3DS,
 		Name:         "Nintendo 3DS",
 		Description:  "Handheld console by Nintendo (2011)",
 		Manufacturer: model.ManufacturerNintendo,

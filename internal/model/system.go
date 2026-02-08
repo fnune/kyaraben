@@ -14,7 +14,7 @@ const (
 	SystemIDGBC       SystemID = "gbc"
 	SystemIDGBA       SystemID = "gba"
 	SystemIDNDS       SystemID = "nds"
-	SystemID3DS       SystemID = "3ds"
+	SystemIDN3DS      SystemID = "n3ds"
 	SystemIDGameCube  SystemID = "gamecube"
 	SystemIDWii       SystemID = "wii"
 	SystemIDWiiU      SystemID = "wiiu"
