@@ -33,3 +33,16 @@ type EmulatorDefinition interface {
 	Emulator() Emulator
 	ConfigGenerator() ConfigGenerator
 }
+
+type SymlinkSpec struct {
+	Source string // Where the emulator expects the directory (e.g., ~/.local/share/dolphin-emu/GC)
+	Target string // Where kyaraben stores data (e.g., ~/Emulation/saves/gamecube)
+}
+
+type SymlinkProvider interface {
+	Symlinks(store StoreReader, resolver BaseDirResolver) ([]SymlinkSpec, error)
+}
+
+type SymlinkCreator interface {
+	Create(spec SymlinkSpec) error
+}

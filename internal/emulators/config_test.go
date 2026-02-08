@@ -300,16 +300,14 @@ func TestDolphinGenerate(t *testing.T) {
 		t.Errorf("expected INI format, got %s", patch.Target.Format)
 	}
 
-	// Dolphin now uses -u CLI arg to set user directory, so config is inside opaque dir
-	if patch.Target.BaseDir != model.ConfigBaseDirOpaqueDir {
-		t.Errorf("expected opaque dir base dir, got %s", patch.Target.BaseDir)
+	if patch.Target.BaseDir != model.ConfigBaseDirUserData {
+		t.Errorf("expected user data base dir, got %s", patch.Target.BaseDir)
 	}
 
-	if !strings.Contains(patch.Target.RelPath, "opaque/dolphin") {
-		t.Errorf("expected RelPath to contain 'opaque/dolphin', got %s", patch.Target.RelPath)
+	if !strings.Contains(patch.Target.RelPath, "dolphin-emu") {
+		t.Errorf("expected RelPath to contain 'dolphin-emu', got %s", patch.Target.RelPath)
 	}
 
-	// With -u flag, GC/Wii saves are automatic. We only configure ROM paths.
 	foundISOPath := false
 	foundDumpPath := false
 	for _, entry := range patch.Entries {
@@ -327,15 +325,44 @@ func TestDolphinGenerate(t *testing.T) {
 	if !foundDumpPath {
 		t.Error("expected DumpPath entry not found")
 	}
+}
 
-	// Test LaunchArgsProvider interface
-	provider, ok := gen.(model.LaunchArgsProvider)
+func TestDolphinSymlinks(t *testing.T) {
+	store := &fakeStoreReader{root: "/emulation"}
+	resolver := fakeBaseDirResolver{root: "/home/user"}
+	gen := dolphin.Definition{}.ConfigGenerator()
+
+	provider, ok := gen.(model.SymlinkProvider)
 	if !ok {
-		t.Fatal("Dolphin config generator should implement LaunchArgsProvider")
+		t.Fatal("Dolphin config generator should implement SymlinkProvider")
 	}
-	args := provider.LaunchArgs(store)
-	if len(args) != 2 || args[0] != "-u" {
-		t.Errorf("expected LaunchArgs to return [-u, <path>], got %v", args)
+
+	specs, err := provider.Symlinks(store, resolver)
+	if err != nil {
+		t.Fatalf("Symlinks() error = %v", err)
+	}
+
+	if len(specs) != 4 {
+		t.Fatalf("expected 4 symlink specs, got %d", len(specs))
+	}
+
+	expectedSources := map[string]bool{
+		"/home/user/.local/share/dolphin-emu/GC":          false,
+		"/home/user/.local/share/dolphin-emu/Wii":         false,
+		"/home/user/.local/share/dolphin-emu/StateSaves":  false,
+		"/home/user/.local/share/dolphin-emu/ScreenShots": false,
+	}
+
+	for _, spec := range specs {
+		if _, ok := expectedSources[spec.Source]; ok {
+			expectedSources[spec.Source] = true
+		}
+	}
+
+	for source, found := range expectedSources {
+		if !found {
+			t.Errorf("expected symlink source %q not found", source)
+		}
 	}
 }
 
@@ -596,21 +623,40 @@ func TestGeneratedEntriesContainStorePaths(t *testing.T) {
 	}
 }
 
-func TestCemuLaunchArgs(t *testing.T) {
+func TestCemuSymlinks(t *testing.T) {
 	store := &fakeStoreReader{root: "/emulation"}
+	resolver := fakeBaseDirResolver{root: "/home/user"}
 	gen := cemu.Definition{}.ConfigGenerator()
 
-	// Test LaunchArgsProvider interface
-	provider, ok := gen.(model.LaunchArgsProvider)
+	provider, ok := gen.(model.SymlinkProvider)
 	if !ok {
-		t.Fatal("Cemu config generator should implement LaunchArgsProvider")
+		t.Fatal("Cemu config generator should implement SymlinkProvider")
 	}
-	args := provider.LaunchArgs(store)
-	if len(args) != 2 || args[0] != "-mlc" {
-		t.Errorf("expected LaunchArgs to return [-mlc, <path>], got %v", args)
+
+	specs, err := provider.Symlinks(store, resolver)
+	if err != nil {
+		t.Fatalf("Symlinks() error = %v", err)
 	}
-	if !strings.Contains(args[1], "cemu") {
-		t.Errorf("MLC path should contain 'cemu', got %s", args[1])
+
+	if len(specs) != 2 {
+		t.Fatalf("expected 2 symlink specs, got %d", len(specs))
+	}
+
+	expectedSources := map[string]bool{
+		"/home/user/.local/share/Cemu/mlc01/usr/save/00050000": false,
+		"/home/user/.local/share/Cemu/screenshots":             false,
+	}
+
+	for _, spec := range specs {
+		if _, ok := expectedSources[spec.Source]; ok {
+			expectedSources[spec.Source] = true
+		}
+	}
+
+	for source, found := range expectedSources {
+		if !found {
+			t.Errorf("expected symlink source %q not found", source)
+		}
 	}
 }
 
