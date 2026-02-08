@@ -41,21 +41,26 @@ func (cmd *DoctorCmd) Run(ctx *Context) error {
 		}
 
 		for _, prov := range sys.Provisions {
+			label := prov.Filename
+			if prov.Description != "" {
+				label = fmt.Sprintf("%s (%s)", prov.Filename, prov.Description)
+			}
+
 			switch prov.Status {
 			case model.ProvisionFound:
-				fmt.Printf("    %s %s - found, verified\n", checkMark(), prov.Filename)
+				fmt.Printf("    %s %s - found, verified\n", checkMark(), label)
 			case model.ProvisionMissing:
 				if prov.Required {
-					fmt.Printf("    %s %s - MISSING (required)\n", crossMark(), prov.Filename)
+					fmt.Printf("    %s %s - MISSING (required)\n", crossMark(), label)
 				} else {
-					fmt.Printf("    %s %s - missing (optional)\n", crossMark(), prov.Filename)
+					fmt.Printf("    %s %s - missing (optional)\n", crossMark(), label)
 				}
 			case model.ProvisionInvalid:
-				fmt.Printf("    %s %s - INVALID HASH\n", crossMark(), prov.Filename)
+				fmt.Printf("    %s %s - INVALID HASH\n", crossMark(), label)
 				fmt.Printf("      Expected: %s\n", prov.ExpectedHash)
 				fmt.Printf("      Got:      %s\n", prov.ActualHash)
 			case model.ProvisionOptional:
-				fmt.Printf("    %s %s - not found (optional)\n", dashMark(), prov.Filename)
+				fmt.Printf("    %s %s - not found (optional)\n", dashMark(), label)
 			}
 		}
 
