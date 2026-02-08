@@ -2,6 +2,8 @@
 
 ## Low-hanging fruit
 
+- Cemu says it has required provisions but games launch fine: investigate whether the provision check is wrong or if Cemu has fallback behavior
+- Provisions that require importing things via UI will always remain incomplete: need a way to check that they're working. How might we detect this?
 - Dolphin autoupdate prompt: needs a default config to disable the built-in autoupdate mechanism
 - Backup prompt for opaque-dir emulators: emulators like Vita3K store config inside their opaque directory, which triggers "Create backups before modifying?" prompt on every apply. Need to figure out how to handle config files that live inside opaque dirs
 
