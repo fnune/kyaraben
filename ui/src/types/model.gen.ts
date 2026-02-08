@@ -54,7 +54,7 @@ export const SystemIDGB = "gb";
 export const SystemIDGBC = "gbc";
 export const SystemIDGBA = "gba";
 export const SystemIDNDS = "nds";
-export const SystemID3DS = "3ds";
+export const SystemIDN3DS = "n3ds";
 export const SystemIDGameCube = "gamecube";
 export const SystemIDWii = "wii";
 export const SystemIDWiiU = "wiiu";
@@ -67,7 +67,7 @@ export const SystemIDPSVita = "psvita";
 export const SystemIDGenesis = "genesis";
 export const SystemIDSaturn = "saturn";
 export const SystemIDDreamcast = "dreamcast";
-export type SystemID = typeof SystemIDNES | typeof SystemIDSNES | typeof SystemIDN64 | typeof SystemIDGB | typeof SystemIDGBC | typeof SystemIDGBA | typeof SystemIDNDS | typeof SystemID3DS | typeof SystemIDGameCube | typeof SystemIDWii | typeof SystemIDWiiU | typeof SystemIDSwitch | typeof SystemIDPSX | typeof SystemIDPS2 | typeof SystemIDPS3 | typeof SystemIDPSP | typeof SystemIDPSVita | typeof SystemIDGenesis | typeof SystemIDSaturn | typeof SystemIDDreamcast;
+export type SystemID = typeof SystemIDNES | typeof SystemIDSNES | typeof SystemIDN64 | typeof SystemIDGB | typeof SystemIDGBC | typeof SystemIDGBA | typeof SystemIDNDS | typeof SystemIDN3DS | typeof SystemIDGameCube | typeof SystemIDWii | typeof SystemIDWiiU | typeof SystemIDSwitch | typeof SystemIDPSX | typeof SystemIDPS2 | typeof SystemIDPS3 | typeof SystemIDPSP | typeof SystemIDPSVita | typeof SystemIDGenesis | typeof SystemIDSaturn | typeof SystemIDDreamcast;
 /**
  * Manufacturer represents the company that made a gaming system.
  */

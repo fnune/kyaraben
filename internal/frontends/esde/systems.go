@@ -44,10 +44,10 @@ var systemMappings = map[model.SystemID]SystemMapping{
 		FullName: "Nintendo DS",
 		Platform: "nds",
 	},
-	model.SystemID3DS: {
-		Name:     "3ds",
+	model.SystemIDN3DS: {
+		Name:     "n3ds",
 		FullName: "Nintendo 3DS",
-		Platform: "3ds",
+		Platform: "n3ds",
 	},
 	model.SystemIDGameCube: {
 		Name:     "gc",

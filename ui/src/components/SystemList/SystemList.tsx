@@ -11,7 +11,7 @@ const SYSTEM_RELEASE_YEAR: Record<SystemID, number> = {
   gbc: 1998,
   gba: 2001,
   nds: 2004,
-  '3ds': 2011,
+  n3ds: 2011,
   gamecube: 2001,
   wii: 2006,
   wiiu: 2012,
