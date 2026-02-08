@@ -273,17 +273,17 @@ size = 22964019
 
 [rpcs3]
 url_template = "https://github.com/RPCS3/rpcs3-binaries-linux/releases/download/{release_tag}/rpcs3-v{version}_linux64.AppImage"
-default = "0.0.18-12817-fff0c96b"
+default = "0.0.39-18718-fbd5bbcf"
 icon_url = "https://raw.githubusercontent.com/RPCS3/rpcs3/588cf69dad726a4485af945ba0507193c526ccf7/rpcs3/rpcs3.svg"
 icon_sha256 = "sha256-++YdZ65VMc6SYFcfB3uTrHTHvYGRztfwi+Ktg3x2+d0="
 
-[rpcs3."0.0.18-12817-fff0c96b"]
-release_tag = "build-fff0c96bf38d1ada075e524c4753a7f263c06449"
+[rpcs3."0.0.39-18718-fbd5bbcf"]
+release_tag = "build-fbd5bbcfa32a83aea9823dae1a34e637f6e56d5e"
 
-[rpcs3."0.0.18-12817-fff0c96b".targets.x64]
+[rpcs3."0.0.39-18718-fbd5bbcf".targets.x64]
 arch = "x86_64"
-sha256 = "sha256-dcloGeNbIDVf36GkP6Td4YN/YdwIpw27OoLZb8rYbGk="
-size = 61235610
+sha256 = "sha256-sxcprFVtUiYa4IVpGy+HI2kgAE/KozWEwbAeStmxtMI="
+size = 95703826
 
 # ============================================================================
 # FLYCAST - Sega Dreamcast emulator
