@@ -24,7 +24,6 @@ What we won't do: full performance tuning, per-game settings, target-specific op
 - Audit system extensions against ES-DE bundled config: ensure kyaraben's extension lists are complete for each system
 - Flycast CLI hotkey issue: save state hotkeys don't work when launching via CLI (known upstream issue)
 - Config change detection bug: kyaraben silently overwrites manually edited keys without warning. Repro: (1) apply sets Cemu check_update=false, (2) user enables update check in UI (check_update=true), (3) apply overwrites to false with no backup prompt. Expected: warning that a managed key was modified externally
-- I'm not sure this is being used `rgui_browser_directory = ~/Emulation/roms/nes` or if it's working, we should check
 - Kyaraben should fetch provision status on focus so that when users add files and come back to Kyaraben to check things update
     - We could even show a toast notification if we find something new
 
