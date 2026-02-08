@@ -123,10 +123,18 @@ func (c *Config) buildCommand(ctx model.FrontendContext, emuID model.EmulatorID,
 		return ""
 	}
 
+	var launchArgs []string
+	if gen := ctx.GetConfigGenerator(emuID); gen != nil {
+		if provider, ok := gen.(model.LaunchArgsProvider); ok {
+			launchArgs = provider.LaunchArgs(ctx.Store)
+		}
+	}
+
 	return emu.Launcher.RomCommand(model.RomLaunchOptions{
 		BinaryPath: filepath.Join(ctx.BinDir, emu.Launcher.Binary),
 		Fullscreen: true,
 		SavesDir:   ctx.Store.SystemSavesDir(sysID),
+		LaunchArgs: launchArgs,
 	})
 }
 
