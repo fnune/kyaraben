@@ -46,7 +46,9 @@ export function PathsModal({
         {paths.map(({ label, path, description }) => (
           <div key={label}>
             <p className="text-sm text-on-surface-muted mb-1">{label}</p>
-            {description && <p className="text-xs text-on-surface-dim mb-2">Contains: {description}</p>}
+            {description && (
+              <p className="text-xs text-on-surface-dim mb-2">Contains: {description}</p>
+            )}
             <div className="flex items-center gap-2">
               <code className="flex-1 text-sm bg-surface-raised px-2 py-1.5 rounded-sm text-on-surface-secondary select-all truncate">
                 {path}
@@ -72,7 +74,9 @@ export function PathsModal({
             <div className="space-y-3">
               {managedConfigs.map((config) => (
                 <div key={config.path}>
-                  <code className="block text-xs text-on-surface-dim mb-1 truncate">{config.path}</code>
+                  <code className="block text-xs text-on-surface-dim mb-1 truncate">
+                    {config.path}
+                  </code>
                   <div className="bg-surface-raised rounded-sm px-2 py-1.5 space-y-0.5">
                     {config.keys.map((key) => (
                       <div key={key.key} className="flex text-xs gap-2">

@@ -165,7 +165,9 @@ export function ProvisionsModal({
             <div className="space-y-3">
               {foundGroups.map((group) => (
                 <div key={group.message ?? 'default'} className="space-y-1">
-                  {group.message && <p className="text-xs text-on-surface-dim mb-1">{group.message}</p>}
+                  {group.message && (
+                    <p className="text-xs text-on-surface-dim mb-1">{group.message}</p>
+                  )}
                   {group.provisions.map((p) => (
                     <ProvisionRow
                       key={p.filename}
@@ -187,7 +189,9 @@ export function ProvisionsModal({
             <div className="space-y-3">
               {missingGroups.map((group) => (
                 <div key={group.message ?? 'default'} className="space-y-1">
-                  {group.message && <p className="text-xs text-on-surface-dim mb-1">{group.message}</p>}
+                  {group.message && (
+                    <p className="text-xs text-on-surface-dim mb-1">{group.message}</p>
+                  )}
                   {group.provisions.map((p) => (
                     <ProvisionRow
                       key={p.filename}

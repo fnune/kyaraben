@@ -41,7 +41,11 @@ function DeviceRow({
         <span className="font-medium text-on-surface">{device.name}</span>
         <span className="text-xs text-on-surface-dim">{truncateDeviceId(device.id)}</span>
       </div>
-      <button type="button" onClick={onRemove} className="text-xs text-status-error hover:text-status-error">
+      <button
+        type="button"
+        onClick={onRemove}
+        className="text-xs text-status-error hover:text-status-error"
+      >
         Remove
       </button>
     </div>
@@ -103,7 +107,9 @@ export function SyncView({ status, onAddDevice, onRemoveDevice }: SyncViewProps)
           </div>
           <div className="flex justify-between">
             <span className="text-on-surface-muted">Running</span>
-            <span className={`font-medium ${status.running ? 'text-status-ok' : 'text-status-error'}`}>
+            <span
+              className={`font-medium ${status.running ? 'text-status-ok' : 'text-status-error'}`}
+            >
               {status.running ? 'Yes' : 'No'}
             </span>
           </div>

@@ -145,7 +145,9 @@ export function ConfigDiffReview({ data, onConfirm, onCancel }: ConfigDiffReview
 
       {otherDiffs.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-sm font-medium text-on-surface-muted">Other changes ({otherDiffs.length})</h3>
+          <h3 className="text-sm font-medium text-on-surface-muted">
+            Other changes ({otherDiffs.length})
+          </h3>
           {otherDiffs.map((diff) => (
             <FileDiff key={diff.path} diff={diff} />
           ))}
