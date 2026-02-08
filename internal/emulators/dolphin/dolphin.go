@@ -84,9 +84,9 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 type Config struct{}
 
 var configTarget = model.ConfigTarget{
-	RelPath: "dolphin-emu/Config/Dolphin.ini",
+	RelPath: "dolphin-emu/Dolphin.ini",
 	Format:  model.ConfigFormatINI,
-	BaseDir: model.ConfigBaseDirUserData,
+	BaseDir: model.ConfigBaseDirUserConfig,
 }
 
 func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {

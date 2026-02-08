@@ -84,7 +84,7 @@ After running the emulator, document what was created.
 
 ### Config location
 
-Default config path: `~/.local/share/dolphin-emu/Config/`
+Default config path: `~/.config/dolphin-emu/`
 
 Files found:
 
