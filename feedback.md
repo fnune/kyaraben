@@ -7,7 +7,7 @@
 
 ## Important
 
-- Automatic self-updates: users currently must manually download new AppImages
+- Environment variable security: KYARABEN_* env vars (KYARABEN_RELEASES_URL, KYARABEN_VERSION, KYARABEN_NIX_PORTABLE_PATH) are useful for testing but could be risky in production if accidentally set. Consider adding a "test mode" flag that must be set to enable these overrides, or prefix them with KYARABEN_TEST_ to make intent clear
 - Garbage collection: nix store grows unbounded, need a way to trigger cleanup via nix-portable and show space freed
 - ES-DE as non-Steam application: add to Steam for Steam Deck game mode launch
 

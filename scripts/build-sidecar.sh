@@ -46,9 +46,11 @@ OUTPUT_NAME="kyaraben-$TARGET_TRIPLE"
 
 echo "Building kyaraben sidecar for $TARGET_TRIPLE..."
 
+VERSION=$(node -p "require('$PROJECT_ROOT/ui/package.json').version" 2>/dev/null || echo "dev")
+
 mkdir -p "$BINARIES_DIR"
 cd "$PROJECT_ROOT"
-CGO_ENABLED=0 go build -o "$BINARIES_DIR/$OUTPUT_NAME" ./cmd/kyaraben
+CGO_ENABLED=0 go build -ldflags="-X github.com/fnune/kyaraben/internal/version.Version=$VERSION" -o "$BINARIES_DIR/$OUTPUT_NAME" ./cmd/kyaraben
 
 echo "Built: $BINARIES_DIR/$OUTPUT_NAME"
 

@@ -29,12 +29,19 @@ const ELECTRON_CHANNELS = [
   'launch_emulator',
   'open_log_tail',
   'launch_cli_uninstall',
+  'check_for_updates',
+  'download_update',
+  'apply_update',
 ] as const
 
 export const INVOKE_CHANNELS = [...DAEMON_CHANNELS, ...ELECTRON_CHANNELS] as const
 
 export type InvokeChannel = (typeof INVOKE_CHANNELS)[number]
 
-export const EVENT_CHANNELS = ['apply:progress'] as const
+export const EVENT_CHANNELS = ['apply:progress', 'update:progress'] as const
 
 export type EventChannel = (typeof EVENT_CHANNELS)[number]
+
+export interface UpdateProgressEvent {
+  percent: number
+}

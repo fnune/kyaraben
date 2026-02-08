@@ -82,3 +82,19 @@ export const openLogTail = () =>
 
 export const launchCliUninstall = () =>
   invoke<{ success: boolean; error?: string }>('launch_cli_uninstall')
+
+export interface UpdateInfo {
+  available: boolean
+  currentVersion: string
+  latestVersion: string
+  downloadUrl: string
+  releaseNotes?: string
+}
+
+export const checkForUpdates = () => invoke<UpdateInfo>('check_for_updates')
+
+export const downloadUpdate = (url: string) =>
+  invoke<{ success: boolean; path?: string; error?: string }>('download_update', url)
+
+export const applyUpdate = (tempPath: string) =>
+  invoke<{ success: boolean; error?: string }>('apply_update', tempPath)

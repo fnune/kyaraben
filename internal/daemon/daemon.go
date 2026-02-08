@@ -25,6 +25,7 @@ import (
 	"github.com/fnune/kyaraben/internal/status"
 	"github.com/fnune/kyaraben/internal/store"
 	syncpkg "github.com/fnune/kyaraben/internal/sync"
+	"github.com/fnune/kyaraben/internal/version"
 	"github.com/fnune/kyaraben/internal/versions"
 )
 
@@ -255,15 +256,23 @@ func (d *Daemon) handleStatus() []Event {
 		}
 	}
 
+	manifest, _ := d.loadManifest()
+	manifestVersion := ""
+	if manifest != nil {
+		manifestVersion = manifest.KyarabenVersion
+	}
+
 	return []Event{{
 		Type: EventTypeResult,
 		Data: StatusResponse{
-			UserStore:          result.UserStorePath,
-			EnabledSystems:     systems,
-			InstalledEmulators: installedEmulators,
-			InstalledFrontends: installedFrontends,
-			LastApplied:        result.LastApplied.Format(time.RFC3339),
-			HealthWarning:      result.HealthWarning,
+			UserStore:               result.UserStorePath,
+			EnabledSystems:          systems,
+			InstalledEmulators:      installedEmulators,
+			InstalledFrontends:      installedFrontends,
+			LastApplied:             result.LastApplied.Format(time.RFC3339),
+			HealthWarning:           result.HealthWarning,
+			KyarabenVersion:         version.Get(),
+			ManifestKyarabenVersion: manifestVersion,
 		},
 	}}
 }

@@ -62,9 +62,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
 
     const MAX_OUTPUT_LINES = 10000
 
-    const progressHandler = (...args: unknown[]) => {
-      const data = args[0] as { step: string; message: string; output?: string }
-
+    const progressHandler = (data: { step: string; message?: string; output?: string }) => {
       setProgressSteps((prev) => {
         const existing = prev.find((s) => s.id === data.step)
         const isNewStep = !existing

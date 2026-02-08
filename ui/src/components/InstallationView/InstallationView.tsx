@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/lib/Button'
+import type { UpdateInfo } from '@/lib/daemon'
 import {
+  applyUpdate,
+  checkForUpdates,
+  downloadUpdate,
   getInstallStatus,
   getStatus,
   getUninstallPreview,
@@ -61,6 +65,16 @@ export function InstallationView() {
   const [installing, setInstalling] = useState(false)
   const [uninstallPending, setUninstallPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
+  const [checkingUpdate, setCheckingUpdate] = useState(false)
+  const [downloadingUpdate, setDownloadingUpdate] = useState(false)
+  const [downloadProgress, setDownloadProgress] = useState(0)
+
+  useEffect(() => {
+    return window.electron.on('update:progress', (data) => {
+      setDownloadProgress(data.percent)
+    })
+  }, [])
 
   useEffect(() => {
     setLoading(true)
@@ -119,6 +133,49 @@ export function InstallationView() {
     }
   }
 
+  const handleCheckUpdate = async () => {
+    setCheckingUpdate(true)
+    setError(null)
+    const result = await checkForUpdates()
+    if (result.ok) {
+      setUpdateInfo(result.data)
+    } else {
+      setError(result.error.message)
+    }
+    setCheckingUpdate(false)
+  }
+
+  const handleDownloadUpdate = async () => {
+    if (!updateInfo?.downloadUrl) return
+
+    setDownloadingUpdate(true)
+    setDownloadProgress(0)
+    setError(null)
+
+    const downloadResult = await downloadUpdate(updateInfo.downloadUrl)
+    if (!downloadResult.ok) {
+      setError(downloadResult.error.message || 'Download failed')
+      setDownloadingUpdate(false)
+      return
+    }
+    if (!downloadResult.data.success || !downloadResult.data.path) {
+      setError(downloadResult.data.error || 'Download failed')
+      setDownloadingUpdate(false)
+      return
+    }
+
+    const applyResult = await applyUpdate(downloadResult.data.path)
+    if (!applyResult.ok) {
+      setError(applyResult.error.message || 'Update failed')
+      setDownloadingUpdate(false)
+      return
+    }
+    if (!applyResult.data.success) {
+      setError(applyResult.data.error || 'Update failed')
+      setDownloadingUpdate(false)
+    }
+  }
+
   if (uninstallPending) {
     return <UninstallPendingOverlay />
   }
@@ -167,6 +224,46 @@ export function InstallationView() {
           </p>
         </div>
       )}
+
+      <Section title="Updates">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-300">Check for updates</p>
+              {updateInfo && (
+                <p className="text-xs text-gray-500">
+                  {updateInfo.available
+                    ? `New version available: ${updateInfo.latestVersion}`
+                    : `You're on the latest version (${updateInfo.currentVersion})`}
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              {updateInfo?.available && !downloadingUpdate && (
+                <Button onClick={handleDownloadUpdate}>Update now</Button>
+              )}
+              <Button
+                variant="secondary"
+                onClick={handleCheckUpdate}
+                disabled={checkingUpdate || downloadingUpdate}
+              >
+                {checkingUpdate ? 'Checking...' : 'Check'}
+              </Button>
+            </div>
+          </div>
+          {downloadingUpdate && (
+            <div>
+              <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-500 transition-all duration-200"
+                  style={{ width: `${downloadProgress}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Downloading... {downloadProgress}%</p>
+            </div>
+          )}
+        </div>
+      </Section>
 
       <Section title="Actions">
         <div className="space-y-4">
