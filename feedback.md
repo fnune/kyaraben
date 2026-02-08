@@ -6,9 +6,13 @@
 - Provisions that require importing things via UI will always remain incomplete: need a way to check that they're working. How might we detect this?
 - Dolphin autoupdate prompt: needs a default config to disable the built-in autoupdate mechanism
 - Backup prompt for opaque-dir emulators: emulators like Vita3K store config inside their opaque directory, which triggers "Create backups before modifying?" prompt on every apply. Need to figure out how to handle config files that live inside opaque dirs
+- Cheats directory layout: decide between per-emulator (`~/Emulation/cheats/{emulator}/`) or per-system (`~/Emulation/cheats/{system}/`). Some emulators support configurable cheat paths (melonDS, Flycast, PCSX2)
+- Audit system extensions against ES-DE bundled config: ensure kyaraben's extension lists are complete for each system
+- Flycast CLI hotkey issue: save state hotkeys don't work when launching via CLI (known upstream issue)
 
 ## Important
 
+- Expand BIOS hash data: import comprehensive hash alternatives from EmuDeck/RetroDECK into provision Hashes arrays. Current data is minimal; these projects have 30+ PSX hashes, 71+ PS2 hashes, etc.
 - Environment variable security: KYARABEN_* env vars (KYARABEN_RELEASES_URL, KYARABEN_VERSION, KYARABEN_NIX_PORTABLE_PATH) are useful for testing but could be risky in production if accidentally set. Consider adding a "test mode" flag that must be set to enable these overrides, or prefix them with KYARABEN_TEST_ to make intent clear
 - Garbage collection: nix store grows unbounded, need a way to trigger cleanup via nix-portable and show space freed
 - ES-DE as non-Steam application: add to Steam for Steam Deck game mode launch
@@ -29,6 +33,12 @@
 
 ## Nice to have
 
+- RetroAchievements integration: global credential storage with per-emulator login. Supported by DuckStation, PCSX2, PPSSPP, RetroArch cores, and Dolphin (experimental)
+- Cross-emulator presets: toggle high-level features that cascade to all compatible emulators (widescreen, integer scaling, Discord presence, RetroAchievements, auto-save on exit)
+- Performance defaults: ship sensible defaults for renderer (Vulkan), resolution scale, recompilers, fast boot. Currently kyaraben focuses on paths but users must manually configure performance settings
+- Shader and overlay management: CRT shaders, bezel overlays, per-core shader presets, HD texture pack paths
+- Compression guidance: tools or documentation for ROM compression (CHD for disc-based, RVZ for GameCube/Wii, ZIP for cartridge-based)
+- Additional emulator paths: configure more optional directories. Flycast (BoxartPath, MappingsPath, TexturePath), PCSX2 (Cheats, Covers, Videos)
 - Storage breakdown bar: below the "Emulation folder" input in the UI, show a color-coded bar indicating total size and composition of the directory (ROMs, saves, opaque dirs, etc.)
 - Hydra cache miss for libretro-genesis-plus-gx: this core builds from source on apply, which is slow. May need to report upstream to nixpkgs or check if the package is misconfigured
 - Allow Apply without config changes: users may need to re-apply after updating kyaraben to benefit from new managed config changes. Could store kyaraben version in manifest to detect when user updated but hasn't applied yet
@@ -44,6 +54,6 @@
 - Longer folder names for systems: short names like `3ds`, `nds`, `psx` could be `nintendo-3ds`, `nintendo-ds`, `playstation` for clarity, or `n3ds` so 3DS sorts after NDS chronologically. However, ES-DE expects these exact short folder names for scraping, theming, and game detection. Changing them would break ES-DE integration. Since users mostly browse via the frontend UI rather than file managers, the alphabetical sorting issue is minor
 - Reconsider flake generations: each apply creates new generation directory and lock file with warning. Works fine, unclear benefit from changing
 - Reconsider the manifest: could derive state from filesystem instead of tracking in manifest, but risky refactor for unclear benefit
-- Controller configuration abstraction: every emulator handles this differently, massive scope
+- Controller configuration abstraction: every emulator handles this differently. Detailed investigation in `testing/controller-support-plan.md` shows a path forward (semantic hotkey model, per-emulator translators), but scope is still large. 5 emulators support controller hotkeys via config (DuckStation, Dolphin, PPSSPP, PCSX2, RetroArch); the rest need Steam Input
 - Home-manager module: very niche audience, unclear if AppImages work on NixOS
 - Reduce download size: 190MB is acceptable for one-time download, effort better spent elsewhere
