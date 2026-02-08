@@ -35,6 +35,9 @@ func (Definition) Emulator() model.Emulator {
 				if opts.Fullscreen {
 					cmd += " -f"
 				}
+				if opts.SavesDir != "" {
+					cmd += " -C savegamePath=" + opts.SavesDir
+				}
 				cmd += " %ROM%"
 				return cmd
 			},
