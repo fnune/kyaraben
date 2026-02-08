@@ -246,7 +246,7 @@ test.describe('Version pinning', () => {
     const snesCard = page.getByRole('article').filter({ hasText: 'Super Nintendo' })
     await expect(snesCard).toBeVisible()
 
-    const versionSelect = snesCard.locator('select')
+    const versionSelect = snesCard.getByRole('combobox')
     await expect(versionSelect).toBeVisible()
   })
 })
