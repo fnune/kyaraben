@@ -125,7 +125,10 @@ export function BugReport({ open, onClose }: BugReportProps) {
     <Modal open={open} onClose={onClose} title="Report a problem">
       <div className="space-y-4">
         <div>
-          <label htmlFor="bug-description" className="block text-sm font-medium text-on-surface-secondary mb-1">
+          <label
+            htmlFor="bug-description"
+            className="block text-sm font-medium text-on-surface-secondary mb-1"
+          >
             Describe the issue
           </label>
           <textarea
@@ -137,7 +140,10 @@ export function BugReport({ open, onClose }: BugReportProps) {
           />
         </div>
         <div>
-          <label htmlFor="bug-report" className="block text-sm font-medium text-on-surface-secondary mb-1">
+          <label
+            htmlFor="bug-report"
+            className="block text-sm font-medium text-on-surface-secondary mb-1"
+          >
             Generated report
           </label>
           <textarea

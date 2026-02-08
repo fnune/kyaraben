@@ -48,7 +48,9 @@ function UninstallPendingOverlay() {
       <div className="text-center max-w-md px-6">
         <div className="text-6xl mb-6">👋</div>
         <h1 className="text-2xl font-medium text-on-surface mb-4">Ready to uninstall</h1>
-        <p className="text-on-surface-muted mb-2">Kyaraben will uninstall when you close this window.</p>
+        <p className="text-on-surface-muted mb-2">
+          Kyaraben will uninstall when you close this window.
+        </p>
         <p className="text-on-surface-dim text-sm">You'll receive a notification when it's done.</p>
       </div>
     </div>
@@ -191,7 +193,9 @@ export function InstallationView() {
   if (error || !preview) {
     return (
       <div className="p-6">
-        <p className="text-status-error">Failed to load installation info: {error ?? 'Unknown error'}</p>
+        <p className="text-status-error">
+          Failed to load installation info: {error ?? 'Unknown error'}
+        </p>
       </div>
     )
   }
@@ -204,7 +208,9 @@ export function InstallationView() {
     <div className="p-6 space-y-6">
       {healthWarning === 'orphaned_artifacts' && (
         <div className="p-4 bg-status-error/10 border border-status-error/30 rounded-card">
-          <h3 className="text-sm font-medium text-status-error mb-2">Installation state corrupted</h3>
+          <h3 className="text-sm font-medium text-status-error mb-2">
+            Installation state corrupted
+          </h3>
           <p className="text-sm text-status-error/80 mb-3">
             Kyaraben found installation artifacts but the manifest tracking them is missing or
             empty. This can happen if files were manually deleted or corrupted.
@@ -259,7 +265,9 @@ export function InstallationView() {
                   style={{ width: `${downloadProgress}%` }}
                 />
               </div>
-              <p className="text-xs text-on-surface-muted mt-1">Downloading... {downloadProgress}%</p>
+              <p className="text-xs text-on-surface-muted mt-1">
+                Downloading... {downloadProgress}%
+              </p>
             </div>
           )}
         </div>
