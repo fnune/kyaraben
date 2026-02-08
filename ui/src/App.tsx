@@ -9,7 +9,9 @@ import { UpdateBanner } from '@/components/UpdateBanner/UpdateBanner'
 import { ApplyProvider, useApply } from '@/lib/ApplyContext'
 import { BottomBarSlot, BottomBarSlotProvider } from '@/lib/BottomBarSlot'
 import * as daemon from '@/lib/daemon'
+import { useOnWindowFocus } from '@/lib/hooks/useOnWindowFocus'
 import { useUpdateChecker } from '@/lib/hooks/useUpdateChecker'
+import { getNewlyFoundProvisions } from '@/lib/provisions'
 import { ToastProvider, useToast } from '@/lib/ToastContext'
 import type {
   ConfigResponse,
@@ -255,6 +257,19 @@ function AppContent() {
     init()
   }, [showToast, setShowApplyBanner])
 
+  useOnWindowFocus(async () => {
+    const result = await daemon.runDoctor()
+    if (result.ok) {
+      setProvisions((prev) => {
+        const newlyFound = getNewlyFoundProvisions(prev, result.data)
+        if (newlyFound.length > 0) {
+          showToast(`Found ${newlyFound.join(', ')}`, 'success')
+        }
+        return result.data
+      })
+    }
+  })
+
   const handleEmulatorToggle = useCallback(
     (emulatorId: EmulatorID, enabled: boolean) => {
       setSystemEmulators((prev) => {
@@ -480,7 +495,9 @@ function AppContent() {
 
       <div className="flex-1 flex flex-col min-[720px]:flex-row min-h-0">
         <Sidebar currentView={currentView} onNavigate={setCurrentView} syncStatus={syncStatus} />
-        <main id="main-content" className="flex-1 overflow-y-auto">{renderView()}</main>
+        <main id="main-content" className="flex-1 overflow-y-auto">
+          {renderView()}
+        </main>
       </div>
 
       <BottomBarSlot />
