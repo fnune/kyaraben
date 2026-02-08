@@ -172,12 +172,13 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		}
 
 		frontendCtx := model.FrontendContext{
-			EnabledSystems:  cfg.EnabledSystems(),
-			SystemEmulators: cfg.Systems,
-			GetSystem:       a.Registry.GetSystem,
-			GetEmulator:     a.Registry.GetEmulator,
-			Store:           userStore,
-			BinDir:          binDir,
+			EnabledSystems:     cfg.EnabledSystems(),
+			SystemEmulators:    cfg.Systems,
+			GetSystem:          a.Registry.GetSystem,
+			GetEmulator:        a.Registry.GetEmulator,
+			GetConfigGenerator: a.Registry.GetConfigGenerator,
+			Store:              userStore,
+			BinDir:             binDir,
 		}
 
 		patches, err := gen.Generate(frontendCtx)

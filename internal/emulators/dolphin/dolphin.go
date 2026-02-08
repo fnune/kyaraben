@@ -5,6 +5,7 @@ package dolphin
 
 import (
 	"path/filepath"
+	"strings"
 
 	"github.com/fnune/kyaraben/internal/model"
 )
@@ -61,6 +62,9 @@ func (Definition) Emulator() model.Emulator {
 			Categories:  []string{"Game", "Emulator"},
 			RomCommand: func(opts model.RomLaunchOptions) string {
 				cmd := opts.BinaryPath
+				if len(opts.LaunchArgs) > 0 {
+					cmd += " " + strings.Join(opts.LaunchArgs, " ")
+				}
 				if opts.Fullscreen {
 					cmd += " -C Dolphin.Display.Fullscreen=True"
 				}
