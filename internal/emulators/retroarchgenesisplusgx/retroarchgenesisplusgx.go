@@ -19,7 +19,7 @@ func (Definition) Emulator() model.Emulator {
 			model.StateSavestates,
 			model.StateScreenshots,
 		},
-		Launcher:  retroarch.LauncherWithCore(coreName),
+		Launcher:  retroarch.LauncherWithCore(libretroCoreName),
 		PathUsage: model.StandardPathUsage(),
 	}
 }
@@ -37,15 +37,15 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 	}, nil
 }
 
-const coreName = "genesis_plus_gx_libretro"
+const (
+	libretroCoreName = "genesis_plus_gx_libretro"
+	shortCoreName    = "genesis_plus_gx"
+)
 
 func coreOverrideConfig(store model.StoreReader) model.ConfigPatch {
 	return model.ConfigPatch{
-		Target: retroarch.CoreOverrideTarget(coreName),
+		Target: retroarch.CoreOverrideTarget(shortCoreName),
 		Entries: []model.ConfigEntry{
-			{Path: []string{"savefile_directory"}, Value: store.SystemSavesDir(model.SystemIDGenesis)},
-			{Path: []string{"savestate_directory"}, Value: store.EmulatorStatesDir(model.EmulatorIDRetroArchGenesisPlusGX)},
-			{Path: []string{"screenshot_directory"}, Value: store.SystemScreenshotsDir(model.SystemIDGenesis)},
 			{Path: []string{"rgui_browser_directory"}, Value: store.SystemRomsDir(model.SystemIDGenesis)},
 		},
 	}

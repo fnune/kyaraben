@@ -48,8 +48,12 @@ func (f *fakeStoreReader) EmulatorStatesDir(emu model.EmulatorID) string {
 	return filepath.Join(f.root, "states", string(emu))
 }
 
-func (f *fakeStoreReader) SystemScreenshotsDir(sys model.SystemID) string {
-	return filepath.Join(f.root, "screenshots", string(sys))
+func (f *fakeStoreReader) EmulatorScreenshotsDir(emu model.EmulatorID) string {
+	name := string(emu)
+	if strings.HasPrefix(name, "retroarch:") {
+		name = "retroarch"
+	}
+	return filepath.Join(f.root, "screenshots", name)
 }
 
 func (f *fakeStoreReader) SystemRomsDir(sys model.SystemID) string {
@@ -123,18 +127,18 @@ func TestRetroArchCoresGenerate(t *testing.T) {
 	store := &fakeStoreReader{root: "/emulation"}
 
 	tests := []struct {
-		name       string
-		gen        model.ConfigGenerator
-		system     model.SystemID
-		coreName   string
-		wantRomDir string
+		name          string
+		gen           model.ConfigGenerator
+		system        model.SystemID
+		shortCoreName string
+		wantRomDir    string
 	}{
 		{
-			name:       "bsnes",
-			gen:        retroarchbsnes.Definition{}.ConfigGenerator(),
-			system:     model.SystemIDSNES,
-			coreName:   "bsnes_libretro",
-			wantRomDir: "/emulation/roms/snes",
+			name:          "bsnes",
+			gen:           retroarchbsnes.Definition{}.ConfigGenerator(),
+			system:        model.SystemIDSNES,
+			shortCoreName: "bsnes",
+			wantRomDir:    "/emulation/roms/snes",
 		},
 	}
 
@@ -149,7 +153,6 @@ func TestRetroArchCoresGenerate(t *testing.T) {
 				t.Fatalf("expected 2 patches (shared + override), got %d", len(patches))
 			}
 
-			// First patch: shared retroarch.cfg (only system_directory)
 			shared := patches[0]
 			if shared.Target.RelPath != "retroarch/retroarch.cfg" {
 				t.Errorf("expected shared config path, got %s", shared.Target.RelPath)
@@ -159,22 +162,17 @@ func TestRetroArchCoresGenerate(t *testing.T) {
 				t.Error("shared config missing system_directory")
 			}
 
-			// Second patch: per-core override with all paths
 			override := patches[1]
-			expectedOverridePath := retroarch.CoreOverrideTarget(tt.coreName).RelPath
+			expectedOverridePath := retroarch.CoreOverrideTarget(tt.shortCoreName).RelPath
 			if override.Target.RelPath != expectedOverridePath {
 				t.Errorf("expected override path %q, got %q", expectedOverridePath, override.Target.RelPath)
 			}
 
-			// Check all path settings are in override
 			overrideKeys := collectKeys(override.Entries)
-			for _, key := range []string{"savefile_directory", "savestate_directory", "screenshot_directory", "rgui_browser_directory"} {
-				if !overrideKeys[key] {
-					t.Errorf("override missing key %q", key)
-				}
+			if !overrideKeys["rgui_browser_directory"] {
+				t.Error("override missing key rgui_browser_directory")
 			}
 
-			// Verify ROM browser points to correct system
 			for _, entry := range override.Entries {
 				if entry.Key() == "rgui_browser_directory" && !strings.Contains(entry.Value, tt.wantRomDir) {
 					t.Errorf("rgui_browser_directory %q doesn't contain %s", entry.Value, tt.wantRomDir)
@@ -381,7 +379,7 @@ func TestMGBAGenerate(t *testing.T) {
 	}
 }
 
-func TestRetroArchCoreDirectories(t *testing.T) {
+func TestRetroArchCoreOverrideOnlyContainsBrowserDir(t *testing.T) {
 	store := &fakeStoreReader{root: "/emulation"}
 	gen := retroarchbsnes.Definition{}.ConfigGenerator()
 
@@ -396,30 +394,28 @@ func TestRetroArchCoreDirectories(t *testing.T) {
 
 	override := patches[1]
 
-	var saveDir, stateDir string
 	for _, entry := range override.Entries {
 		switch entry.Key() {
-		case "savefile_directory":
-			saveDir = entry.Value
-		case "savestate_directory":
-			stateDir = entry.Value
+		case "savefile_directory", "savestate_directory", "screenshot_directory":
+			t.Errorf("override should not contain %s (symlinks handle directories)", entry.Key())
 		}
 	}
 
-	if saveDir == "" {
-		t.Error("expected savefile_directory entry not found")
-	} else if !strings.HasSuffix(saveDir, "/snes") {
-		t.Errorf("savefile_directory should use system path ending in /snes, got %s", saveDir)
+	found := false
+	for _, entry := range override.Entries {
+		if entry.Key() == "rgui_browser_directory" {
+			found = true
+			if !strings.HasSuffix(entry.Value, "/snes") {
+				t.Errorf("rgui_browser_directory should end in /snes, got %s", entry.Value)
+			}
+		}
 	}
-
-	if stateDir == "" {
-		t.Error("expected savestate_directory entry not found")
-	} else if !strings.Contains(stateDir, "retroarch:bsnes") {
-		t.Errorf("savestate_directory should use per-emulator path containing retroarch:bsnes, got %s", stateDir)
+	if !found {
+		t.Error("expected rgui_browser_directory entry not found")
 	}
 }
 
-func TestRetroArchSharedConfigDisablesSorting(t *testing.T) {
+func TestRetroArchSharedConfigEnablesSorting(t *testing.T) {
 	store := &fakeStoreReader{root: "/emulation"}
 	gen := retroarchbsnes.Definition{}.ConfigGenerator()
 
@@ -437,23 +433,37 @@ func TestRetroArchSharedConfigDisablesSorting(t *testing.T) {
 		t.Fatalf("first patch should be shared config, got %v", shared.Target)
 	}
 
-	sortSettings := map[string]bool{
-		"sort_savefiles_enable":             false,
-		"sort_savestates_enable":            false,
+	enabledSortSettings := map[string]bool{
+		"sort_savefiles_enable":  false,
+		"sort_savestates_enable": false,
+	}
+
+	disabledSortSettings := map[string]bool{
 		"sort_savefiles_by_content_enable":  false,
 		"sort_savestates_by_content_enable": false,
 	}
 
 	for _, entry := range shared.Entries {
-		if _, ok := sortSettings[entry.Key()]; ok {
+		if _, ok := enabledSortSettings[entry.Key()]; ok {
+			if entry.Value != "true" {
+				t.Errorf("%s should be true, got %s", entry.Key(), entry.Value)
+			}
+			enabledSortSettings[entry.Key()] = true
+		}
+		if _, ok := disabledSortSettings[entry.Key()]; ok {
 			if entry.Value != "false" {
 				t.Errorf("%s should be false, got %s", entry.Key(), entry.Value)
 			}
-			sortSettings[entry.Key()] = true
+			disabledSortSettings[entry.Key()] = true
 		}
 	}
 
-	for key, found := range sortSettings {
+	for key, found := range enabledSortSettings {
+		if !found {
+			t.Errorf("missing sort setting: %s", key)
+		}
+	}
+	for key, found := range disabledSortSettings {
 		if !found {
 			t.Errorf("missing sort setting: %s", key)
 		}

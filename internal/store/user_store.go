@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/fnune/kyaraben/internal/model"
 )
@@ -66,8 +67,12 @@ func (s *UserStore) EmulatorSavesDir(emu model.EmulatorID) string {
 func (s *UserStore) EmulatorStatesDir(emu model.EmulatorID) string {
 	return filepath.Join(s.StatesDir(), string(emu))
 }
-func (s *UserStore) SystemScreenshotsDir(sys model.SystemID) string {
-	return filepath.Join(s.ScreenshotsDir(), string(sys))
+func (s *UserStore) EmulatorScreenshotsDir(emu model.EmulatorID) string {
+	name := string(emu)
+	if strings.HasPrefix(name, "retroarch:") {
+		name = "retroarch"
+	}
+	return filepath.Join(s.ScreenshotsDir(), name)
 }
 func (s *UserStore) EmulatorOpaqueDir(emu model.EmulatorID) string {
 	return filepath.Join(s.OpaqueDir(), string(emu))
@@ -96,7 +101,7 @@ func (s *UserStore) InitializeForEmulator(sys model.SystemID, emu model.Emulator
 		dirs = append(dirs, s.EmulatorStatesDir(emu))
 	}
 	if pathUsage.UsesScreenshotsDir {
-		dirs = append(dirs, s.SystemScreenshotsDir(sys))
+		dirs = append(dirs, s.EmulatorScreenshotsDir(emu))
 	}
 	if pathUsage.OpaqueContents != "" {
 		dirs = append(dirs, s.EmulatorOpaqueDir(emu))

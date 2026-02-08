@@ -36,7 +36,7 @@ func (Definition) Emulator() model.Emulator {
 			model.StateSavestates,
 			model.StateScreenshots,
 		},
-		Launcher:  retroarch.LauncherWithCore(coreName),
+		Launcher:  retroarch.LauncherWithCore(libretroCoreName),
 		PathUsage: model.StandardPathUsage(),
 	}
 }
@@ -54,15 +54,15 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 	}, nil
 }
 
-const coreName = "mednafen_saturn_libretro"
+const (
+	libretroCoreName = "mednafen_saturn_libretro"
+	shortCoreName    = "mednafen_saturn"
+)
 
 func coreOverrideConfig(store model.StoreReader) model.ConfigPatch {
 	return model.ConfigPatch{
-		Target: retroarch.CoreOverrideTarget(coreName),
+		Target: retroarch.CoreOverrideTarget(shortCoreName),
 		Entries: []model.ConfigEntry{
-			{Path: []string{"savefile_directory"}, Value: store.SystemSavesDir(model.SystemIDSaturn)},
-			{Path: []string{"savestate_directory"}, Value: store.EmulatorStatesDir(model.EmulatorIDRetroArchBeetleSaturn)},
-			{Path: []string{"screenshot_directory"}, Value: store.SystemScreenshotsDir(model.SystemIDSaturn)},
 			{Path: []string{"rgui_browser_directory"}, Value: store.SystemRomsDir(model.SystemIDSaturn)},
 		},
 	}

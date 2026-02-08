@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/fnune/kyaraben/internal/emulators"
+	"github.com/fnune/kyaraben/internal/emulators/retroarch"
 	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/nix"
@@ -119,6 +120,7 @@ type Applier struct {
 	Registry        *registry.Registry
 	ManifestPath    string
 	LauncherManager *launcher.Manager
+	BaseDirResolver model.BaseDirResolver
 }
 
 func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStore *store.UserStore, opts Options) (*Result, error) {
@@ -388,6 +390,14 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 				OriginalPath: result.Path,
 				BackupPath:   result.BackupPath,
 			})
+		}
+	}
+
+	for emuID := range enabledEmulators {
+		if retroarch.CoreShortName(emuID) != "" {
+			if err := retroarch.CreateCoreSymlinks(emuID, userStore, a.BaseDirResolver); err != nil {
+				return nil, fmt.Errorf("creating retroarch symlinks for %s: %w", emuID, err)
+			}
 		}
 	}
 

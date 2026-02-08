@@ -233,7 +233,7 @@ func (d *Daemon) handleStatus() []Event {
 						paths.Savestates = shortenPath(userStore.EmulatorStatesDir(emu.ID))
 					}
 					if emuDef.PathUsage.UsesScreenshotsDir {
-						paths.Screenshots = shortenPath(userStore.SystemScreenshotsDir(sysID))
+						paths.Screenshots = shortenPath(userStore.EmulatorScreenshotsDir(emu.ID))
 					}
 					if emuDef.PathUsage.OpaqueContents != "" {
 						paths.Opaque = shortenPath(userStore.EmulatorOpaqueDir(emu.ID))
@@ -369,6 +369,7 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 		Registry:        d.reg,
 		ManifestPath:    d.manifestPath,
 		LauncherManager: d.launcherManager,
+		BaseDirResolver: model.OSBaseDirResolver{},
 	}
 
 	opts := apply.Options{
@@ -430,6 +431,7 @@ func (d *Daemon) handlePreflight() []Event {
 		Registry:        d.reg,
 		ManifestPath:    d.manifestPath,
 		LauncherManager: d.launcherManager,
+		BaseDirResolver: model.OSBaseDirResolver{},
 	}
 
 	preflight, err := applier.Preflight(context.Background(), cfg, userStore)

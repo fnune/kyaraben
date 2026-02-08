@@ -93,7 +93,7 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
-			{Path: []string{"UI", "Screenshots\\screenshot_path"}, Value: store.SystemScreenshotsDir(model.SystemIDSwitch)},
+			{Path: []string{"UI", "Screenshots\\screenshot_path"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDEden)},
 			{Path: []string{"UI", "Paths\\gamedirs\\size"}, Value: "1"},
 			{Path: []string{"UI", "Paths\\gamedirs\\1\\deep_scan"}, Value: "false"},
 			{Path: []string{"UI", "Paths\\gamedirs\\1\\expanded"}, Value: "true"},

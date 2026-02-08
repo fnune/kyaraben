@@ -19,7 +19,7 @@ func (Definition) Emulator() model.Emulator {
 			model.StateSavestates,
 			model.StateScreenshots,
 		},
-		Launcher:  retroarch.LauncherWithCore(coreName),
+		Launcher:  retroarch.LauncherWithCore(libretroCoreName),
 		PathUsage: model.StandardPathUsage(),
 	}
 }
@@ -37,15 +37,15 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 	}, nil
 }
 
-const coreName = "mupen64plus_next_libretro"
+const (
+	libretroCoreName = "mupen64plus_next_libretro"
+	shortCoreName    = "mupen64plus_next"
+)
 
 func coreOverrideConfig(store model.StoreReader) model.ConfigPatch {
 	return model.ConfigPatch{
-		Target: retroarch.CoreOverrideTarget(coreName),
+		Target: retroarch.CoreOverrideTarget(shortCoreName),
 		Entries: []model.ConfigEntry{
-			{Path: []string{"savefile_directory"}, Value: store.SystemSavesDir(model.SystemIDN64)},
-			{Path: []string{"savestate_directory"}, Value: store.EmulatorStatesDir(model.EmulatorIDRetroArchMupen64Plus)},
-			{Path: []string{"screenshot_directory"}, Value: store.SystemScreenshotsDir(model.SystemIDN64)},
 			{Path: []string{"rgui_browser_directory"}, Value: store.SystemRomsDir(model.SystemIDN64)},
 		},
 	}
