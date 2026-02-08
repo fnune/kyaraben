@@ -32,9 +32,9 @@ export function FrontendCard({
   const cardClasses = (() => {
     if (changeType) {
       const config = CHANGE_CONFIG[changeType]
-      return `ring-1 ${config.ringColor} bg-gray-800`
+      return `ring-1 ${config.ringColor} bg-surface-alt`
     }
-    return enabled ? 'bg-gray-800' : 'bg-gray-800/50'
+    return enabled ? 'bg-surface-alt' : 'bg-surface-alt/50'
   })()
 
   const logo = getFrontendLogo(frontend.id)
@@ -51,7 +51,7 @@ export function FrontendCard({
         )}
         <div className="flex-1 space-y-1">
           <div className="flex items-center gap-2">
-            <span className="text-white font-medium text-sm">{frontend.name}</span>
+            <span className="text-on-surface font-medium text-sm">{frontend.name}</span>
             <div className="ml-auto flex items-center gap-1.5">
               <VersionSelector
                 defaultVersion={frontend.defaultVersion}
@@ -62,12 +62,12 @@ export function FrontendCard({
               />
             </div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-gray-400">
+          <div className="flex items-center gap-2 text-xs text-on-surface-muted">
             {installedVersion ? (
-              <span className="text-gray-500">Installed: {installedVersion}</span>
+              <span className="text-on-surface-dim">Installed: {installedVersion}</span>
             ) : (
               frontend.downloadBytes && (
-                <span className="text-gray-500">{formatBytes(frontend.downloadBytes)}</span>
+                <span className="text-on-surface-dim">{formatBytes(frontend.downloadBytes)}</span>
               )
             )}
           </div>
@@ -93,7 +93,9 @@ function VersionSelector({
   readonly disabled: boolean
 }) {
   if (!availableVersions || availableVersions.length === 0) {
-    return <span className="text-xs text-gray-400 tabular-nums">{defaultVersion}</span>
+    return (
+      <span className="text-xs text-on-surface-muted tabular-nums font-mono">{defaultVersion}</span>
+    )
   }
 
   const isPinned = pinnedVersion !== null
@@ -104,11 +106,11 @@ function VersionSelector({
       onChange={(e) => onChange(e.target.value === '' ? null : e.target.value)}
       disabled={disabled}
       className={`
-        bg-gray-700 rounded px-2 py-1 text-xs text-gray-200
-        outline-2 outline-offset-1 focus:outline-solid focus:outline-blue-400
-        ${isPinned ? 'ring-2 ring-amber-500' : 'border border-gray-600'}
+        bg-surface-raised rounded px-2 py-1 text-xs text-on-surface-secondary
+        outline-2 outline-offset-1 focus:outline-solid focus:outline-accent
+        ${isPinned ? 'ring-2 ring-amber-500' : 'border border-outline-strong'}
         ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
-        tabular-nums
+        tabular-nums font-mono
       `}
     >
       <option value="">{defaultVersion} (auto)</option>

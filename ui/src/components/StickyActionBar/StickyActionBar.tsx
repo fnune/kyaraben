@@ -50,7 +50,7 @@ export function StickyActionBar({
               <span className="text-red-400">-{formatBytes(changes.freeBytes)}</span>
             )}
             {changes.downloadBytes > 0 && changes.freeBytes > 0 && (
-              <span className="text-gray-500">
+              <span className="text-on-surface-dim">
                 ({netBytes >= 0 ? '+' : '-'}
                 {formatBytes(netBytes)})
               </span>
@@ -62,7 +62,7 @@ export function StickyActionBar({
             type="button"
             onClick={handleDiscard}
             disabled={applying}
-            className="text-blue-400 hover:text-blue-300 hover:underline disabled:opacity-50"
+            className="text-accent hover:text-accent-hover hover:underline disabled:opacity-50"
           >
             {confirmingDiscard ? 'Click again to confirm' : 'Discard changes'}
           </button>

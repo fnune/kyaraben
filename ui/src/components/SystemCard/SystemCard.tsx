@@ -64,28 +64,30 @@ export function SystemCard({
   const year = SYSTEM_YEARS[system.id]
 
   return (
-    <article className="border border-gray-700 rounded-xl overflow-hidden bg-gray-900">
-      <div className="relative flex items-center h-14 bg-gray-800">
+    <article className="border border-outline rounded-xl overflow-hidden bg-surface">
+      <div className="relative flex items-center h-14 bg-surface-alt">
         <img
           src={logo}
           alt=""
-          className="absolute right-4 w-28 h-auto opacity-10"
-          style={{ filter: 'brightness(0) invert(1)' }}
+          className="absolute right-4 h-8 w-auto opacity-10"
+          style={{ filter: 'var(--t-logo-filter)' }}
         />
         <div
           className="relative z-10 pl-4 pr-12"
           style={{
-            background: 'linear-gradient(to right, rgb(31 41 55) 70%, transparent)',
+            background: 'linear-gradient(to right, var(--t-surface-alt) 70%, transparent)',
           }}
         >
-          <h3 className="text-base font-semibold text-white whitespace-nowrap">{system.name}</h3>
-          <p className="text-xs text-gray-400 whitespace-nowrap">
+          <h3 className="font-heading text-base font-semibold text-on-surface whitespace-nowrap">
+            {system.name}
+          </h3>
+          <p className="text-xs text-on-surface-muted whitespace-nowrap italic">
             {system.manufacturer} · {year}
           </p>
         </div>
       </div>
 
-      <div className="p-2 space-y-2 bg-gray-900">
+      <div className="p-2 space-y-2 bg-surface">
         {system.emulators.map((emulator) => {
           const execLine = installedExecLines.get(emulator.id)
           const emuManagedConfigs = managedConfigs.get(emulator.id)

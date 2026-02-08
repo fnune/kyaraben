@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { type FontPair, applyFontPair, fontPairs } from './fonts'
-import { type ThemeDefinition, applyTheme, themes } from './themes'
+import { applyFontPair, type FontPair, fontPairs } from './fonts'
+import { applyTheme, type ThemeDefinition, themes } from './themes'
 
 interface ThemeContextValue {
   readonly theme: ThemeDefinition
