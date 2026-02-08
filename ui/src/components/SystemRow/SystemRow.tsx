@@ -41,19 +41,20 @@ function ProvisionsBadges({
     >
       {provisions.map((p) => {
         const isFound = p.status === 'found'
+        const isRequired = p.groupRequired && !p.groupSatisfied
         const bgColor = isFound
           ? 'bg-green-100 border-green-200'
-          : p.required
+          : isRequired
             ? 'bg-red-50 border-red-200'
             : 'bg-amber-50 border-amber-200'
         const textColor = isFound
           ? 'text-green-700'
-          : p.required
+          : isRequired
             ? 'text-red-700'
             : 'text-amber-700'
         const descColor = isFound
           ? 'text-green-600'
-          : p.required
+          : isRequired
             ? 'text-red-600'
             : 'text-amber-600'
 
@@ -229,42 +230,45 @@ function ProvisionsDialog({
         )}
 
         <ul className="space-y-3">
-          {missing.map((p) => (
-            <li key={p.filename} className="flex items-start gap-3">
-              {p.required ? (
-                <svg
-                  className="w-6 h-6 text-red-500 shrink-0"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  role="img"
-                  aria-label={`${p.filename} is missing and required`}
-                >
-                  <path d="M12 2L1 21h22L12 2zm0 4l7.53 13H4.47L12 6zm-1 5v4h2v-4h-2zm0 6v2h2v-2h-2z" />
-                </svg>
-              ) : (
-                <svg
-                  className="w-6 h-6 text-amber-500 shrink-0"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  role="img"
-                  aria-label={`${p.filename} is missing but optional`}
-                >
-                  <circle cx="12" cy="12" r="10" />
-                </svg>
-              )}
-              <div>
-                <code className="text-sm font-medium text-gray-900 bg-gray-100 px-1.5 py-0.5 rounded-sm">
-                  {p.filename}
-                </code>
-                {p.required ? (
-                  <span className="text-xs text-red-600 ml-2">required</span>
+          {missing.map((p) => {
+            const isRequired = p.groupRequired && !p.groupSatisfied
+            return (
+              <li key={p.filename} className="flex items-start gap-3">
+                {isRequired ? (
+                  <svg
+                    className="w-6 h-6 text-red-500 shrink-0"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    role="img"
+                    aria-label={`${p.filename} is missing and required`}
+                  >
+                    <path d="M12 2L1 21h22L12 2zm0 4l7.53 13H4.47L12 6zm-1 5v4h2v-4h-2zm0 6v2h2v-2h-2z" />
+                  </svg>
                 ) : (
-                  <span className="text-xs text-amber-600 ml-2">optional</span>
+                  <svg
+                    className="w-6 h-6 text-amber-500 shrink-0"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    role="img"
+                    aria-label={`${p.filename} is missing but optional`}
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                  </svg>
                 )}
-                <p className="text-sm text-gray-500 mt-1">{p.description}</p>
-              </div>
-            </li>
-          ))}
+                <div>
+                  <code className="text-sm font-medium text-gray-900 bg-gray-100 px-1.5 py-0.5 rounded-sm">
+                    {p.filename}
+                  </code>
+                  {isRequired ? (
+                    <span className="text-xs text-red-600 ml-2">required</span>
+                  ) : (
+                    <span className="text-xs text-amber-600 ml-2">optional</span>
+                  )}
+                  <p className="text-sm text-gray-500 mt-1">{p.description}</p>
+                </div>
+              </li>
+            )
+          })}
           {found.map((p) => (
             <li key={p.filename} className="flex items-start gap-3">
               <svg

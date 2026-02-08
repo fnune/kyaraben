@@ -6,12 +6,11 @@ type Definition struct{}
 
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
-		ID:      model.EmulatorIDCemu,
-		Name:    "Cemu",
-		Systems: []model.SystemID{model.SystemIDWiiU},
-		Package: model.AppImageRef("cemu"),
-		// Wii U keys are required but handled separately (not as BIOS files)
-		Provisions: nil,
+		ID:              model.EmulatorIDCemu,
+		Name:            "Cemu",
+		Systems:         []model.SystemID{model.SystemIDWiiU},
+		Package:         model.AppImageRef("cemu"),
+		ProvisionGroups: nil,
 		StateKinds: []model.StateKind{
 			model.StateSaves,
 			model.StateSavestates,

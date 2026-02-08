@@ -66,7 +66,7 @@ function ProvisionsBadges({
   if (provisions.length === 0) return null
 
   const missing = provisions.filter((p) => p.status !== 'found')
-  const hasMissingRequired = missing.some((p) => p.required)
+  const hasUnsatisfiedRequired = missing.some((p) => p.groupRequired && !p.groupSatisfied)
 
   if (missing.length === 0) {
     return (
@@ -80,10 +80,10 @@ function ProvisionsBadges({
     )
   }
 
-  const bgColor = hasMissingRequired
+  const bgColor = hasUnsatisfiedRequired
     ? 'bg-red-100 hover:bg-red-200'
     : 'bg-amber-100 hover:bg-amber-200'
-  const textColor = hasMissingRequired ? 'text-red-700' : 'text-amber-700'
+  const textColor = hasUnsatisfiedRequired ? 'text-red-700' : 'text-amber-700'
 
   return (
     <button
@@ -143,26 +143,29 @@ function ProvisionsDialog({
         )}
 
         <ul className="space-y-3">
-          {missing.map((p) => (
-            <li key={p.filename} className="flex items-start gap-3">
-              {p.required ? (
-                <span className="text-red-500 text-lg">⚠</span>
-              ) : (
-                <span className="text-amber-500 text-lg">○</span>
-              )}
-              <div>
-                <code className="text-sm font-medium text-gray-900 bg-gray-100 px-1.5 py-0.5 rounded-sm">
-                  {p.filename}
-                </code>
-                {p.required ? (
-                  <span className="text-xs text-red-600 ml-2">required</span>
+          {missing.map((p) => {
+            const isRequired = p.groupRequired && !p.groupSatisfied
+            return (
+              <li key={p.filename} className="flex items-start gap-3">
+                {isRequired ? (
+                  <span className="text-red-500 text-lg">⚠</span>
                 ) : (
-                  <span className="text-xs text-amber-600 ml-2">optional</span>
+                  <span className="text-amber-500 text-lg">○</span>
                 )}
-                <p className="text-sm text-gray-500 mt-1">{p.description}</p>
-              </div>
-            </li>
-          ))}
+                <div>
+                  <code className="text-sm font-medium text-gray-900 bg-gray-100 px-1.5 py-0.5 rounded-sm">
+                    {p.filename}
+                  </code>
+                  {isRequired ? (
+                    <span className="text-xs text-red-600 ml-2">required</span>
+                  ) : (
+                    <span className="text-xs text-amber-600 ml-2">optional</span>
+                  )}
+                  <p className="text-sm text-gray-500 mt-1">{p.description}</p>
+                </div>
+              </li>
+            )
+          })}
           {found.map((p) => (
             <li key={p.filename} className="flex items-start gap-3">
               <span className="text-green-500 text-lg">✓</span>

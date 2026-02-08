@@ -93,8 +93,10 @@ describe('SystemCard', () => {
           filename: 'bios.bin',
           kind: 'bios',
           description: 'USA',
-          required: true,
           status: 'missing',
+          groupRequired: true,
+          groupSatisfied: false,
+          groupSize: 1,
         },
       ],
     }

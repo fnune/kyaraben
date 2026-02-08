@@ -6,12 +6,11 @@ type Definition struct{}
 
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
-		ID:      model.EmulatorIDPPSSPP,
-		Name:    "PPSSPP",
-		Systems: []model.SystemID{model.SystemIDPSP},
-		Package: model.AppImageRef("ppsspp"),
-		// PPSSPP uses HLE - no BIOS required
-		Provisions: nil,
+		ID:              model.EmulatorIDPPSSPP,
+		Name:            "PPSSPP",
+		Systems:         []model.SystemID{model.SystemIDPSP},
+		Package:         model.AppImageRef("ppsspp"),
+		ProvisionGroups: nil,
 		StateKinds: []model.StateKind{
 			model.StateSaves,
 			model.StateSavestates,
