@@ -53,7 +53,7 @@ export function FrontendCard({
         <div className="flex-1 space-y-1">
           <div className="flex items-center gap-2">
             <span className="text-on-surface font-medium text-sm">{frontend.name}</span>
-            <div className="ml-auto flex items-center gap-1.5">
+            <div className="ml-auto flex items-center gap-3">
               <VersionSelector
                 defaultVersion={frontend.defaultVersion}
                 availableVersions={frontend.availableVersions}
@@ -61,6 +61,7 @@ export function FrontendCard({
                 onChange={onVersionChange}
                 disabled={!enabled}
               />
+              <ToggleSwitch enabled={enabled} onChange={onToggle} />
             </div>
           </div>
           <div className="flex items-center gap-2 text-xs text-on-surface-muted">
@@ -73,8 +74,6 @@ export function FrontendCard({
             )}
           </div>
         </div>
-
-        <ToggleSwitch enabled={enabled} onChange={onToggle} />
       </div>
     </div>
   )

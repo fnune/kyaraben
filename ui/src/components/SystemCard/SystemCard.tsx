@@ -1,5 +1,5 @@
+import { ESDE_LOGOS } from '@/assets/esde'
 import { EmulatorSubcard } from '@/components/EmulatorSubcard/EmulatorSubcard'
-import { SYSTEM_LOGOS } from '@/components/SystemLogo/SystemLogo'
 import { launchEmulator } from '@/lib/daemon'
 import type {
   DoctorResponse,
@@ -33,6 +33,15 @@ export const SYSTEM_YEARS: Record<SystemID, number> = {
   dreamcast: 1998,
 }
 
+export const LOGO_OPACITIES: Partial<Record<SystemID, number>> = {
+  wii: 0.35,
+  wiiu: 0.35,
+  psp: 0.18,
+  ps2: 0.18,
+  gba: 0.07,
+  saturn: 0.13,
+}
+
 export interface SystemCardProps {
   readonly system: System
   readonly enabledEmulators: ReadonlySet<EmulatorID>
@@ -60,24 +69,14 @@ export function SystemCard({
   onEmulatorToggle,
   onVersionChange,
 }: SystemCardProps) {
-  const logo = SYSTEM_LOGOS[system.id]
+  const logo = ESDE_LOGOS[system.id]
   const year = SYSTEM_YEARS[system.id]
+  const logoOpacity = LOGO_OPACITIES[system.id] ?? 0.1
 
   return (
     <article className="border border-outline rounded-card border-t-2 border-t-accent overflow-hidden bg-surface">
-      <div className="relative flex items-center h-14 bg-surface-alt">
-        <img
-          src={logo}
-          alt=""
-          className="absolute right-4 h-8 w-auto opacity-10"
-          style={{ filter: 'var(--logo-filter)' }}
-        />
-        <div
-          className="relative z-10 pl-4 pr-12"
-          style={{
-            background: 'linear-gradient(to right, var(--color-surface-alt) 70%, transparent)',
-          }}
-        >
+      <div className="flex items-center justify-between h-14 bg-surface-alt px-4">
+        <div>
           <h3 className="font-heading text-base font-semibold text-on-surface whitespace-nowrap">
             {system.name}
           </h3>
@@ -85,8 +84,13 @@ export function SystemCard({
             {system.manufacturer} · {year}
           </p>
         </div>
+        <img
+          src={logo}
+          alt=""
+          className="h-6 w-auto saturate-0 will-change-transform"
+          style={{ opacity: logoOpacity }}
+        />
       </div>
-
       <div className="p-2 space-y-2 bg-surface">
         {system.emulators.map((emulator) => {
           const execLine = installedExecLines.get(emulator.id)
