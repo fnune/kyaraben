@@ -437,3 +437,263 @@ func TestComputeDiffWithBaseline_TildePathNormalization(t *testing.T) {
 		t.Errorf("expected no user changes (tilde should match expanded path), got %d: %v", len(diff.UserChanges), diff.UserChanges)
 	}
 }
+
+func writeFile(t *testing.T, path, content string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		t.Fatalf("creating directory: %v", err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatalf("writing file: %v", err)
+	}
+}
+
+func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_XML(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "settings.xml")
+	target := model.ConfigTarget{
+		RelPath: configPath,
+		Format:  model.ConfigFormatXML,
+		BaseDir: model.ConfigBaseDirOpaqueDir,
+	}
+
+	originalContent := `<settings>
+  <video>
+    <resolution>1920x1080</resolution>
+    <monitor>1</monitor>
+  </video>
+</settings>`
+	writeFile(t, configPath, originalContent)
+	baselineHash := sha256sum(originalContent)
+
+	modifiedContent := `<settings>
+  <video>
+    <resolution>1920x1080</resolution>
+    <monitor>2</monitor>
+  </video>
+</settings>`
+	writeFile(t, configPath, modifiedContent)
+
+	baseline := &model.ManagedConfig{
+		BaselineHash: baselineHash,
+		ManagedKeys: []model.ManagedKey{
+			{Path: []string{"settings", "video", "resolution"}, Value: "1920x1080"},
+			{Path: []string{"settings", "video", "monitor"}, Value: "1"},
+		},
+	}
+
+	patch := model.ConfigPatch{
+		Target: target,
+		Entries: []model.ConfigEntry{
+			{Path: []string{"settings", "video", "resolution"}, Value: "1920x1080"},
+			{Path: []string{"settings", "video", "monitor"}, Value: "1"},
+		},
+	}
+
+	diff, err := ComputeDiffWithBaseline(patch, baseline)
+	if err != nil {
+		t.Fatalf("ComputeDiffWithBaseline: %v", err)
+	}
+
+	if !diff.UserModified {
+		t.Error("expected UserModified to be true")
+	}
+	if len(diff.UserChanges) != 1 {
+		t.Fatalf("expected 1 user change, got %d", len(diff.UserChanges))
+	}
+
+	uc := diff.UserChanges[0]
+	if uc.Path[len(uc.Path)-1] != "monitor" {
+		t.Errorf("expected changed key monitor, got %s", uc.Path[len(uc.Path)-1])
+	}
+	if uc.BaselineValue != "1" {
+		t.Errorf("expected baseline value 1, got %s", uc.BaselineValue)
+	}
+	if uc.CurrentValue != "2" {
+		t.Errorf("expected current value 2, got %s", uc.CurrentValue)
+	}
+}
+
+func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_YAML(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.yaml")
+	target := model.ConfigTarget{
+		RelPath: configPath,
+		Format:  model.ConfigFormatYAML,
+		BaseDir: model.ConfigBaseDirOpaqueDir,
+	}
+
+	originalContent := `video:
+  resolution: 1920x1080
+  monitor: "1"
+`
+	writeFile(t, configPath, originalContent)
+	baselineHash := sha256sum(originalContent)
+
+	modifiedContent := `video:
+  resolution: 1920x1080
+  monitor: "2"
+`
+	writeFile(t, configPath, modifiedContent)
+
+	baseline := &model.ManagedConfig{
+		BaselineHash: baselineHash,
+		ManagedKeys: []model.ManagedKey{
+			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
+			{Path: []string{"video", "monitor"}, Value: "1"},
+		},
+	}
+
+	patch := model.ConfigPatch{
+		Target: target,
+		Entries: []model.ConfigEntry{
+			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
+			{Path: []string{"video", "monitor"}, Value: "1"},
+		},
+	}
+
+	diff, err := ComputeDiffWithBaseline(patch, baseline)
+	if err != nil {
+		t.Fatalf("ComputeDiffWithBaseline: %v", err)
+	}
+
+	if !diff.UserModified {
+		t.Error("expected UserModified to be true")
+	}
+	if len(diff.UserChanges) != 1 {
+		t.Fatalf("expected 1 user change, got %d", len(diff.UserChanges))
+	}
+
+	uc := diff.UserChanges[0]
+	if uc.Path[len(uc.Path)-1] != "monitor" {
+		t.Errorf("expected changed key monitor, got %s", uc.Path[len(uc.Path)-1])
+	}
+	if uc.BaselineValue != "1" {
+		t.Errorf("expected baseline value 1, got %s", uc.BaselineValue)
+	}
+	if uc.CurrentValue != "2" {
+		t.Errorf("expected current value 2, got %s", uc.CurrentValue)
+	}
+}
+
+func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_TOML(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.toml")
+	target := model.ConfigTarget{
+		RelPath: configPath,
+		Format:  model.ConfigFormatTOML,
+		BaseDir: model.ConfigBaseDirOpaqueDir,
+	}
+
+	originalContent := `[video]
+resolution = "1920x1080"
+monitor = "1"
+`
+	writeFile(t, configPath, originalContent)
+	baselineHash := sha256sum(originalContent)
+
+	modifiedContent := `[video]
+resolution = "1920x1080"
+monitor = "2"
+`
+	writeFile(t, configPath, modifiedContent)
+
+	baseline := &model.ManagedConfig{
+		BaselineHash: baselineHash,
+		ManagedKeys: []model.ManagedKey{
+			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
+			{Path: []string{"video", "monitor"}, Value: "1"},
+		},
+	}
+
+	patch := model.ConfigPatch{
+		Target: target,
+		Entries: []model.ConfigEntry{
+			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
+			{Path: []string{"video", "monitor"}, Value: "1"},
+		},
+	}
+
+	diff, err := ComputeDiffWithBaseline(patch, baseline)
+	if err != nil {
+		t.Fatalf("ComputeDiffWithBaseline: %v", err)
+	}
+
+	if !diff.UserModified {
+		t.Error("expected UserModified to be true")
+	}
+	if len(diff.UserChanges) != 1 {
+		t.Fatalf("expected 1 user change, got %d", len(diff.UserChanges))
+	}
+
+	uc := diff.UserChanges[0]
+	if uc.Path[len(uc.Path)-1] != "monitor" {
+		t.Errorf("expected changed key monitor, got %s", uc.Path[len(uc.Path)-1])
+	}
+	if uc.BaselineValue != "1" {
+		t.Errorf("expected baseline value 1, got %s", uc.BaselineValue)
+	}
+	if uc.CurrentValue != "2" {
+		t.Errorf("expected current value 2, got %s", uc.CurrentValue)
+	}
+}
+
+func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_CFG(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "retroarch.cfg")
+	target := model.ConfigTarget{
+		RelPath: configPath,
+		Format:  model.ConfigFormatCFG,
+		BaseDir: model.ConfigBaseDirOpaqueDir,
+	}
+
+	originalContent := `savefile_directory = "/home/user/saves"
+savestate_directory = "/home/user/states"
+`
+	writeFile(t, configPath, originalContent)
+	baselineHash := sha256sum(originalContent)
+
+	modifiedContent := `savefile_directory = "/home/user/saves"
+savestate_directory = "/custom/states"
+`
+	writeFile(t, configPath, modifiedContent)
+
+	baseline := &model.ManagedConfig{
+		BaselineHash: baselineHash,
+		ManagedKeys: []model.ManagedKey{
+			{Path: []string{"savefile_directory"}, Value: "/home/user/saves"},
+			{Path: []string{"savestate_directory"}, Value: "/home/user/states"},
+		},
+	}
+
+	patch := model.ConfigPatch{
+		Target: target,
+		Entries: []model.ConfigEntry{
+			{Path: []string{"savefile_directory"}, Value: "/home/user/saves"},
+			{Path: []string{"savestate_directory"}, Value: "/home/user/states"},
+		},
+	}
+
+	diff, err := ComputeDiffWithBaseline(patch, baseline)
+	if err != nil {
+		t.Fatalf("ComputeDiffWithBaseline: %v", err)
+	}
+
+	if !diff.UserModified {
+		t.Error("expected UserModified to be true")
+	}
+	if len(diff.UserChanges) != 1 {
+		t.Fatalf("expected 1 user change, got %d", len(diff.UserChanges))
+	}
+
+	uc := diff.UserChanges[0]
+	if uc.Path[len(uc.Path)-1] != "savestate_directory" {
+		t.Errorf("expected changed key savestate_directory, got %s", uc.Path[len(uc.Path)-1])
+	}
+	if uc.BaselineValue != "/home/user/states" {
+		t.Errorf("expected baseline value /home/user/states, got %s", uc.BaselineValue)
+	}
+	if uc.CurrentValue != `"/custom/states"` {
+		t.Errorf("expected current value \"/custom/states\", got %s", uc.CurrentValue)
+	}
+}

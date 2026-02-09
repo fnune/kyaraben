@@ -1,14 +1,13 @@
 package emulators
 
 import (
-	"bufio"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
+	"github.com/fnune/kyaraben/internal/configformat"
 	"github.com/fnune/kyaraben/internal/model"
 )
 
@@ -73,23 +72,6 @@ const (
 	colorDim    = "\033[2m"
 )
 
-func unquote(v string) string {
-	if len(v) >= 2 && v[0] == '"' && v[len(v)-1] == '"' {
-		return v[1 : len(v)-1]
-	}
-	return v
-}
-
-func normalizePath(v string) string {
-	v = unquote(v)
-	if strings.HasPrefix(v, "~/") {
-		if home, err := os.UserHomeDir(); err == nil {
-			return filepath.Join(home, v[2:])
-		}
-	}
-	return v
-}
-
 func ComputeDiffWithBaseline(patch model.ConfigPatch, baseline *model.ManagedConfig) (*ConfigDiff, error) {
 	diff, err := ComputeDiff(patch)
 	if err != nil {
@@ -114,11 +96,11 @@ func ComputeDiffWithBaseline(patch model.ConfigPatch, baseline *model.ManagedCon
 		}
 
 		for _, mk := range baseline.ManagedKeys {
-			section := iniSection(mk.Path[:len(mk.Path)-1])
+			section := configformat.SectionKey(mk.Path[:len(mk.Path)-1])
 			key := mk.Path[len(mk.Path)-1]
 
 			if sectionMap, ok := current[section]; ok {
-				if currentVal, ok := sectionMap[key]; ok && normalizePath(currentVal) != normalizePath(mk.Value) {
+				if currentVal, ok := sectionMap[key]; ok && configformat.NormalizePath(currentVal) != configformat.NormalizePath(mk.Value) {
 					diff.UserChanges = append(diff.UserChanges, UserChange{
 						Path:          mk.Path,
 						BaselineValue: mk.Value,
@@ -164,7 +146,7 @@ func ComputeDiff(patch model.ConfigPatch) (*ConfigDiff, error) {
 	}
 
 	for _, entry := range patch.Entries {
-		section := iniSection(entry.Parent())
+		section := configformat.SectionKey(entry.Parent())
 		key := entry.Key()
 
 		newValue := entry.Value
@@ -192,7 +174,7 @@ func ComputeDiff(patch model.ConfigPatch) (*ConfigDiff, error) {
 			continue
 		}
 
-		if normalizePath(oldValue) != normalizePath(newValue) {
+		if configformat.NormalizePath(oldValue) != configformat.NormalizePath(newValue) {
 			diff.Changes = append(diff.Changes, ConfigChange{
 				Type:     ChangeModify,
 				Path:     entry.Path,
@@ -337,46 +319,6 @@ func (d *ConfigDiff) FormatWithColor(useColor bool) string {
 }
 
 func readConfig(path string, format model.ConfigFormat) (map[string]map[string]string, error) {
-	result := make(map[string]map[string]string)
-	result[""] = make(map[string]string)
-
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = f.Close() }()
-
-	scanner := bufio.NewScanner(f)
-	currentSection := ""
-
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-
-		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, ";") {
-			continue
-		}
-
-		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
-			currentSection = line[1 : len(line)-1]
-			if result[currentSection] == nil {
-				result[currentSection] = make(map[string]string)
-			}
-			continue
-		}
-
-		idx := strings.Index(line, "=")
-		if idx == -1 {
-			continue
-		}
-
-		key := strings.TrimSpace(line[:idx])
-		value := strings.TrimSpace(line[idx+1:])
-
-		if result[currentSection] == nil {
-			result[currentSection] = make(map[string]string)
-		}
-		result[currentSection][key] = value
-	}
-
-	return result, scanner.Err()
+	handler := configformat.GetHandler(format)
+	return handler.Read(path)
 }
