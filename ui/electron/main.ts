@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import * as readline from 'node:readline'
-import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { checkForUpdates, downloadUpdate } from './updater'
 
 // Set userData to XDG state directory instead of config

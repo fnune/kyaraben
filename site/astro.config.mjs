@@ -6,6 +6,9 @@ export default defineConfig({
     starlight({
       title: "Kyaraben",
       customCss: ["./src/styles/custom.css"],
+      expressiveCode: {
+        themes: ["dark-plus"],
+      },
       head: [
         {
           tag: "link",
