@@ -7,8 +7,10 @@
 - Dolphin autoupdate prompt: needs a default config to disable the built-in autoupdate mechanism
 - Backup prompt for opaque-dir emulators: emulators like Vita3K store config inside their opaque directory, which triggers "Create backups before modifying?" prompt on every apply. Need to figure out how to handle config files that live inside opaque dirs
 - Cheats directory layout: decide between per-emulator (`~/Emulation/cheats/{emulator}/`) or per-system (`~/Emulation/cheats/{system}/`). Some emulators support configurable cheat paths (melonDS, Flycast, PCSX2)
+- DLC and updates directory layout: similar to cheats, figure out folder structure for user-provided DLC and game updates. This could help solve the provision problem where some files must be imported via emulator UI (e.g., Cemu keys.txt, 3DS system files). If kyaraben manages these directories, we could check for installed content. Wii U title structure: 00050000 (games), 0005000c (DLC), 0005000e (patches) per WiiUBrew
 - Audit system extensions against ES-DE bundled config: ensure kyaraben's extension lists are complete for each system
 - Flycast CLI hotkey issue: save state hotkeys don't work when launching via CLI (known upstream issue)
+- Config change detection bug: kyaraben silently overwrites manually edited keys without warning. Repro: (1) apply sets Cemu check_update=false, (2) user enables update check in UI (check_update=true), (3) apply overwrites to false with no backup prompt. Expected: warning that a managed key was modified externally
 
 ## Important
 
@@ -54,6 +56,6 @@
 - Longer folder names for systems: short names like `3ds`, `nds`, `psx` could be `nintendo-3ds`, `nintendo-ds`, `playstation` for clarity, or `n3ds` so 3DS sorts after NDS chronologically. However, ES-DE expects these exact short folder names for scraping, theming, and game detection. Changing them would break ES-DE integration. Since users mostly browse via the frontend UI rather than file managers, the alphabetical sorting issue is minor
 - Reconsider flake generations: each apply creates new generation directory and lock file with warning. Works fine, unclear benefit from changing
 - Reconsider the manifest: could derive state from filesystem instead of tracking in manifest, but risky refactor for unclear benefit
-- Controller configuration abstraction: every emulator handles this differently. Detailed investigation in `testing/controller-support-plan.md` shows a path forward (semantic hotkey model, per-emulator translators), but scope is still large. 5 emulators support controller hotkeys via config (DuckStation, Dolphin, PPSSPP, PCSX2, RetroArch); the rest need Steam Input
+- Controller configuration abstraction: every emulator handles this differently. Detailed investigation in `testing/plans/controller-support-plan.md` shows a path forward (semantic hotkey model, per-emulator translators), but scope is still large. 5 emulators support controller hotkeys via config (DuckStation, Dolphin, PPSSPP, PCSX2, RetroArch); the rest need Steam Input
 - Home-manager module: very niche audience, unclear if AppImages work on NixOS
 - Reduce download size: 190MB is acceptable for one-time download, effort better spent elsewhere
