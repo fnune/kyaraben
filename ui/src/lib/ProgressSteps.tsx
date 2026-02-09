@@ -17,15 +17,15 @@ export interface ProgressStepsProps {
 function StepIcon({ status }: { readonly status: Step['status'] }) {
   switch (status) {
     case 'completed':
-      return <span className="text-green-400">✓</span>
+      return <span className="text-status-ok">✓</span>
     case 'in_progress':
-      return <span className="text-blue-400 animate-pulse">●</span>
+      return <span className="text-accent animate-pulse">●</span>
     case 'error':
-      return <span className="text-red-400">✗</span>
+      return <span className="text-status-error">✗</span>
     case 'cancelled':
-      return <span className="text-amber-400">⊘</span>
+      return <span className="text-status-warning">⊘</span>
     default:
-      return <span className="text-gray-500">○</span>
+      return <span className="text-on-surface-dim">○</span>
   }
 }
 
@@ -49,13 +49,13 @@ function OutputPre({
     <div className="relative">
       <pre
         ref={preRef}
-        className="p-2 text-xs font-mono bg-gray-900 text-gray-300 rounded-sm max-h-32 overflow-y-auto whitespace-pre overflow-x-hidden"
+        className="p-2 text-xs font-mono bg-surface text-on-surface-secondary rounded-sm max-h-32 overflow-y-auto whitespace-pre overflow-x-hidden"
       >
         {output.join('\n')}
       </pre>
       {showShimmer && (
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-900 rounded-b overflow-hidden pointer-events-none">
-          <div className="h-full w-1/3 bg-linear-to-r from-transparent via-blue-500 to-transparent animate-[shimmer_1.5s_infinite]" />
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-surface rounded-b overflow-hidden pointer-events-none">
+          <div className="h-full w-1/3 bg-linear-to-r from-transparent via-accent to-transparent animate-[shimmer_1.5s_infinite]" />
         </div>
       )}
     </div>
@@ -68,7 +68,7 @@ export function ProgressSteps({ steps, error, cancelled }: ProgressStepsProps) {
   }
 
   return (
-    <div className="mt-6 p-4 bg-gray-800 rounded-lg">
+    <div className="mt-6 p-4 bg-surface-alt rounded-card">
       {steps.length > 0 && (
         <ol className="space-y-2">
           {steps.map((step) => (
@@ -78,7 +78,7 @@ export function ProgressSteps({ steps, error, cancelled }: ProgressStepsProps) {
                 title={step.message ? `${step.label} ${step.message}` : step.label}
               >
                 <StepIcon status={step.status} />
-                <span className="text-gray-300 truncate">
+                <span className="text-on-surface-secondary truncate">
                   <span className="font-medium">{step.label}</span>
                   {step.message && <span className="text-sm"> {step.message}</span>}
                 </span>
@@ -94,13 +94,13 @@ export function ProgressSteps({ steps, error, cancelled }: ProgressStepsProps) {
       )}
 
       {cancelled && (
-        <div className="mt-4 p-3 bg-amber-500/10 text-amber-400 rounded-sm border border-amber-500/30">
+        <div className="mt-4 p-3 bg-status-warning/10 text-status-warning rounded-sm border border-status-warning/30">
           Installation cancelled
         </div>
       )}
 
       {error && !cancelled && (
-        <div className="mt-4 p-3 bg-red-500/10 text-red-400 rounded-sm border border-red-500/30">
+        <div className="mt-4 p-3 bg-status-error/10 text-status-error rounded-sm border border-status-error/30">
           {error}
         </div>
       )}

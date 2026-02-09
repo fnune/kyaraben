@@ -454,11 +454,13 @@ function AppContent() {
             onRemoveDevice={handleRemoveDevice}
           />
         )
+      default:
+        return null
     }
   }
 
   return (
-    <div className="h-dvh bg-gray-900 flex flex-col overflow-hidden">
+    <div className="h-dvh bg-surface flex flex-col overflow-hidden font-body">
       {updateInfo?.available && !updateDismissed && (
         <UpdateBanner
           updateInfo={updateInfo}
