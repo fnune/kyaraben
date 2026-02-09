@@ -241,7 +241,7 @@ function ProvisionRow({
   const getIcon = () => {
     if (isFound) return { icon: '✓', color: 'text-status-ok' }
     if (isGroupSatisfied && !isOptional) return { icon: '-', color: 'text-on-surface-dim' }
-    if (isOptional) return { icon: '✗', color: 'text-status-warning' }
+    if (isOptional) return { icon: '?', color: 'text-accent' }
     return { icon: '✗', color: 'text-status-error' }
   }
 
