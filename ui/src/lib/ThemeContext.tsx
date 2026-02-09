@@ -15,8 +15,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [themeId, setThemeId] = useState('default')
   const [fontPairId, setFontPairId] = useState('system')
 
-  const theme = themes.find((t) => t.id === themeId) ?? themes[0]
-  const fontPair = fontPairs.find((f) => f.id === fontPairId) ?? fontPairs[0]
+  // biome-ignore lint/style/noNonNullAssertion: themes and fontPairs are compile-time constants with known entries
+  const theme = themes.find((t) => t.id === themeId) ?? themes[0]!
+  // biome-ignore lint/style/noNonNullAssertion: themes and fontPairs are compile-time constants with known entries
+  const fontPair = fontPairs.find((f) => f.id === fontPairId) ?? fontPairs[0]!
 
   useEffect(() => {
     applyTheme(theme.tokens)
