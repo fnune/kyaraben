@@ -62,8 +62,17 @@ export function Select({
       }
     }
 
+    function handleScroll(e: Event) {
+      if (listboxRef.current?.contains(e.target as Node)) return
+      setOpen(false)
+    }
+
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    document.addEventListener('scroll', handleScroll, true)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('scroll', handleScroll, true)
+    }
   }, [open])
 
   useEffect(() => {
