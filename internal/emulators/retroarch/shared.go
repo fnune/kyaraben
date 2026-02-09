@@ -50,7 +50,6 @@ func SharedConfig(store model.StoreReader) model.ConfigPatch {
 	return model.ConfigPatch{
 		Target: MainConfigTarget,
 		Entries: []model.ConfigEntry{
-			{Path: []string{"system_directory"}, Value: store.BiosDir()},
 			{Path: []string{"libretro_directory"}, Value: paths.MustRetroArchCoresDir()},
 			{Path: []string{"screenshot_directory"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDRetroArchBsnes)},
 			{Path: []string{"sort_savefiles_enable"}, Value: "true"},
