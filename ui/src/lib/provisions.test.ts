@@ -15,6 +15,8 @@ function provision(
     groupRequired: true,
     groupSatisfied: status === 'found',
     groupSize: 1,
+    displayName: filename,
+    instructions: `Place ${filename} in this directory`,
   }
 }
 

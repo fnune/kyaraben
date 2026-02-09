@@ -12,13 +12,10 @@ func (Definition) Emulator() model.Emulator {
 		Package: model.AppImageRef("rpcs3"),
 		ProvisionGroups: []model.ProvisionGroup{{
 			MinRequired: 1,
-			Message:     "PS3 firmware required",
-			Provisions: []model.Provision{{
-				Kind:        model.ProvisionFirmware,
-				Filename:    "PS3UPDAT.PUP",
-				Description: "Official firmware",
-				ImportViaUI: true,
-			}},
+			Message:     "Firmware required (provides system libraries and OS)",
+			Provisions: []model.Provision{
+				model.FileProvision(model.ProvisionFirmware, "PS3UPDAT.PUP", "Official firmware").WithImportViaUI(),
+			},
 		}},
 		StateKinds: []model.StateKind{
 			model.StateSaves,
@@ -48,9 +45,6 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 	return &Config{}
 }
 
-// RPCS3 uses vfs.yml for Virtual File System path mappings.
-// This is separate from config.yml which handles emulator settings.
-// See: https://wiki.rpcs3.net/index.php?title=Help:Game_Compatibility
 var vfsTarget = model.ConfigTarget{
 	RelPath: "rpcs3/vfs.yml",
 	Format:  model.ConfigFormatYAML,
@@ -60,17 +54,12 @@ var vfsTarget = model.ConfigTarget{
 type Config struct{}
 
 func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	// RPCS3's VFS uses $(EmulatorDir) as a base variable that other paths reference.
-	// Setting this redirects all of RPCS3's data (games, saves, firmware) to our opaque directory.
-	// The trailing slash is required by RPCS3.
 	opaqueDir := store.EmulatorOpaqueDir(model.EmulatorIDRPCS3) + "/"
 
 	return []model.ConfigPatch{{
 		Target: vfsTarget,
 		Entries: []model.ConfigEntry{
-			// Base emulator directory - all other VFS paths are relative to this
 			{Path: []string{"$(EmulatorDir)"}, Value: opaqueDir},
-			// Standard VFS paths that reference the base directory
 			{Path: []string{"/dev_hdd0/"}, Value: "$(EmulatorDir)dev_hdd0/"},
 			{Path: []string{"/dev_hdd1/"}, Value: "$(EmulatorDir)dev_hdd1/"},
 			{Path: []string{"/dev_flash/"}, Value: "$(EmulatorDir)dev_flash/"},
@@ -79,7 +68,6 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 			{Path: []string{"/dev_usb000/"}, Value: "$(EmulatorDir)dev_usb000/"},
 			{Path: []string{"/dev_bdvd/"}, Value: ""},
 			{Path: []string{"/app_home/"}, Value: ""},
-			// Games directory for disc-based games
 			{Path: []string{"/games/"}, Value: store.SystemRomsDir(model.SystemIDPS3) + "/"},
 		},
 	}}, nil

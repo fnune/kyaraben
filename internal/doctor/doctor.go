@@ -20,6 +20,8 @@ type ProvisionResult struct {
 	GroupRequired  bool
 	GroupSatisfied bool
 	GroupSize      int
+	DisplayName    string
+	Instructions   string
 }
 
 type SystemResult struct {
@@ -58,8 +60,9 @@ func Run(ctx context.Context, cfg *model.KyarabenConfig, reg *registry.Registry,
 			groupResults := checker.Check(emu, sys)
 			for _, gr := range groupResults {
 				for _, pr := range gr.Results {
+					hints := pr.Provision.Hints()
 					provResult := ProvisionResult{
-						Filename:       pr.Provision.Filename,
+						Filename:       hints.DisplayName,
 						Kind:           pr.Provision.Kind,
 						Description:    pr.Provision.Description,
 						Status:         pr.Status,
@@ -70,6 +73,8 @@ func Run(ctx context.Context, cfg *model.KyarabenConfig, reg *registry.Registry,
 						GroupRequired:  gr.IsRequired,
 						GroupSatisfied: gr.IsSatisfied,
 						GroupSize:      len(gr.Group.Provisions),
+						DisplayName:    hints.DisplayName,
+						Instructions:   hints.Instructions,
 					}
 					sysResult.Provisions = append(sysResult.Provisions, provResult)
 				}

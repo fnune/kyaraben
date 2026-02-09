@@ -105,7 +105,7 @@ export function SystemCard({
               enabled={enabledEmulators.has(emulator.id)}
               pinnedVersion={emulatorVersions.get(emulator.id) ?? null}
               installedVersion={installedVersions.get(emulator.id) ?? null}
-              provisions={provisions[emulator.id] ?? []}
+              provisions={provisions[`${system.id}:${emulator.id}`] ?? []}
               sharedPackage={isSharedPackage}
               onToggle={(enabled) => onEmulatorToggle(emulator.id, enabled)}
               onVersionChange={(version) => onVersionChange(emulator.id, version)}

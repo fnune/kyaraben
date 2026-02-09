@@ -13,6 +13,10 @@ import { useToast } from '@/lib/ToastContext'
 import { ToggleSwitch } from '@/lib/ToggleSwitch'
 import type { EmulatorPaths, EmulatorRef, ManagedConfigInfo, ProvisionResult } from '@/types/daemon'
 
+function isNonEmpty<T>(arr: readonly T[]): arr is readonly [T, ...T[]] {
+  return arr.length > 0
+}
+
 export interface EmulatorSubcardProps {
   readonly emulator: EmulatorRef
   readonly enabled: boolean
@@ -35,91 +39,88 @@ function ProvisionsSummary({
   onClick,
   onLaunch,
 }: {
-  readonly provisions: readonly ProvisionResult[]
+  readonly provisions: readonly [ProvisionResult, ...ProvisionResult[]]
   readonly disabled: boolean
   readonly onOpenFolder: (path: string) => void
   readonly onClick: () => void
   readonly onLaunch?: () => void
 }) {
-  const found = provisions.filter((p) => p.status === 'found')
-  const missing = provisions.filter((p) => p.status !== 'found')
-  const unsatisfiedRequired = missing.filter((p) => p.groupRequired && !p.groupSatisfied)
+  const foundCount = provisions.filter((p) => p.status === 'found').length
+  const unsatisfiedRequired = provisions.filter(
+    (p) => p.status !== 'found' && p.groupRequired && !p.groupSatisfied,
+  )
+  const missingOptionalCount = provisions.filter(
+    (p) => p.status !== 'found' && !p.groupRequired,
+  ).length
 
-  const firstFound = found[0]
   const firstUnsatisfied = unsatisfiedRequired[0]
+  const hasError = firstUnsatisfied !== undefined
+  const allFound = foundCount === provisions.length
 
-  if (missing.length === 0) {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className="flex items-center text-xs px-3 py-1.5 w-full h-full hover:bg-surface-raised/50 transition-colors"
-      >
-        <span className="text-status-ok">✓</span>
-        <span className="ml-2 text-on-surface-muted">
+  const icon = hasError ? '✗' : allFound ? '✓' : foundCount > 0 ? '✓' : '?'
+  const iconColor = hasError
+    ? 'text-status-error'
+    : allFound || foundCount > 0
+      ? 'text-status-ok'
+      : 'text-accent'
+
+  const getText = () => {
+    if (hasError) {
+      const kindLabel = getKindLabel(firstUnsatisfied.kind)
+      const label = firstUnsatisfied.description
+        ? `${kindLabel} (${firstUnsatisfied.description})`
+        : kindLabel
+      const statusLabel = firstUnsatisfied.groupSize > 1 ? 'at least one required' : 'required'
+      return (
+        <>
+          <span className="text-on-surface-muted truncate">{label}</span>
+          <span className="hidden md:inline text-on-surface-dim">, {statusLabel}</span>
+          {unsatisfiedRequired.length > 1 && (
+            <span className="text-on-surface-dim shrink-0 ml-2">
+              +{unsatisfiedRequired.length - 1}
+            </span>
+          )}
+        </>
+      )
+    }
+    if (allFound) {
+      return (
+        <span className="text-on-surface-muted">
           {provisions.length} file{provisions.length > 1 ? 's' : ''} ready
         </span>
-      </button>
-    )
+      )
+    }
+    if (foundCount > 0) {
+      return (
+        <>
+          <span className="text-on-surface-muted">{foundCount} ready</span>
+          {missingOptionalCount > 0 && (
+            <span className="text-on-surface-dim ml-2">{missingOptionalCount} optional</span>
+          )}
+        </>
+      )
+    }
+    return <span className="text-on-surface-muted">{provisions.length} optional</span>
   }
 
-  if (firstUnsatisfied) {
-    const kindLabel = getKindLabel(firstUnsatisfied.kind)
-    const label = firstUnsatisfied.description
-      ? `${kindLabel} (${firstUnsatisfied.description})`
-      : kindLabel
-    const statusLabel = firstUnsatisfied.groupSize > 1 ? 'at least one required' : 'required'
+  const actionProvision = firstUnsatisfied ?? provisions[0]
 
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className="flex items-center text-xs px-3 py-1.5 w-full hover:bg-surface-raised/50 transition-colors text-left"
-      >
-        <span className="text-status-error">✗</span>
-        <span className="text-on-surface-muted truncate ml-2">
-          {label}
-          <span className="hidden md:inline text-on-surface-dim">, {statusLabel}</span>
-        </span>
-        {unsatisfiedRequired.length > 1 && (
-          <span className="text-on-surface-dim shrink-0 ml-2">
-            +{unsatisfiedRequired.length - 1}
-          </span>
-        )}
-        <ProvisionActionInline
-          provision={firstUnsatisfied}
-          disabled={disabled}
-          onOpenFolder={onOpenFolder}
-          {...(onLaunch && { onLaunch })}
-        />
-      </button>
-    )
-  }
-
-  if (firstFound) {
-    const missingOptionalCount = missing.filter((p) => !p.groupRequired).length
-
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className="flex items-center text-xs px-3 py-1.5 w-full hover:bg-surface-raised/50 transition-colors text-left"
-      >
-        <span className="text-status-ok">✓</span>
-        <span className="text-on-surface-muted ml-2">{found.length} ready</span>
-        {missingOptionalCount > 0 && (
-          <span className="text-on-surface-dim ml-2">{missingOptionalCount} optional</span>
-        )}
-        <ProvisionActionInline
-          provision={firstFound}
-          disabled={disabled}
-          onOpenFolder={onOpenFolder}
-        />
-      </button>
-    )
-  }
-
-  return null
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center text-xs px-3 py-1.5 w-full hover:bg-surface-raised/50 transition-colors text-left"
+    >
+      <span className={iconColor}>{icon}</span>
+      <span className="ml-2">{getText()}</span>
+      <ProvisionActionInline
+        provision={actionProvision}
+        disabled={disabled}
+        onOpenFolder={onOpenFolder}
+        {...(onLaunch && hasError && { onLaunch })}
+      />
+    </button>
+  )
 }
 
 export function EmulatorSubcard({
@@ -254,7 +255,7 @@ export function EmulatorSubcard({
         </div>
       </div>
 
-      {provisions.length > 0 && (
+      {isNonEmpty(provisions) && (
         <div className={`border-t border-outline/50 ${!enabled ? 'opacity-60' : ''}`}>
           <ProvisionsSummary
             provisions={provisions}

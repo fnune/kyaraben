@@ -28,16 +28,8 @@ func TestProvisionCheckerCheck(t *testing.T) {
 			MinRequired: 1,
 			Message:     "At least one regional BIOS required",
 			Provisions: []model.Provision{
-				{
-					Filename:    "scph5501.bin",
-					Description: "USA",
-					Hashes:      []string{"490f666e1afb15b7362b406ed1cea246"},
-				},
-				{
-					Filename:    "scph5500.bin",
-					Description: "Japan",
-					Hashes:      []string{"8dd7d5296a650fac7319bce665a6a53c"},
-				},
+				model.HashedProvision(model.ProvisionBIOS, "scph5501.bin", "USA", []string{"490f666e1afb15b7362b406ed1cea246"}),
+				model.HashedProvision(model.ProvisionBIOS, "scph5500.bin", "Japan", []string{"8dd7d5296a650fac7319bce665a6a53c"}),
 			},
 		}},
 	}
@@ -121,10 +113,9 @@ func TestProvisionCheckerHashVerification(t *testing.T) {
 		ProvisionGroups: []model.ProvisionGroup{{
 			MinRequired: 1,
 			Message:     "Test BIOS required",
-			Provisions: []model.Provision{{
-				Filename: "test.bin",
-				Hashes:   []string{"9473fdd0d880a43c21b7778d34872157"},
-			}},
+			Provisions: []model.Provision{
+				model.HashedProvision(model.ProvisionBIOS, "test.bin", "", []string{"9473fdd0d880a43c21b7778d34872157"}),
+			},
 		}},
 	}
 
@@ -136,7 +127,9 @@ func TestProvisionCheckerHashVerification(t *testing.T) {
 		t.Error("Group should be satisfied when file is found")
 	}
 
-	emu.ProvisionGroups[0].Provisions[0].Hashes = []string{"wronghash"}
+	emu.ProvisionGroups[0].Provisions = []model.Provision{
+		model.HashedProvision(model.ProvisionBIOS, "test.bin", "", []string{"wronghash"}),
+	}
 	results = checker.Check(emu, model.SystemIDPSX)
 	if results[0].Results[0].Status != model.ProvisionInvalid {
 		t.Errorf("Expected provision to be invalid with wrong hash, got %s", results[0].Results[0].Status)
@@ -167,9 +160,9 @@ func TestProvisionCheckerCaseInsensitive(t *testing.T) {
 		Systems: []model.SystemID{model.SystemIDPSX},
 		ProvisionGroups: []model.ProvisionGroup{{
 			MinRequired: 1,
-			Provisions: []model.Provision{{
-				Filename: "scph5501.bin",
-			}},
+			Provisions: []model.Provision{
+				model.FileProvision(model.ProvisionBIOS, "scph5501.bin", ""),
+			},
 		}},
 	}
 
@@ -204,9 +197,9 @@ func TestProvisionGroupSatisfaction(t *testing.T) {
 			MinRequired: 1,
 			Message:     "At least one regional BIOS required",
 			Provisions: []model.Provision{
-				{Filename: "scph5501.bin", Description: "USA"},
-				{Filename: "scph5500.bin", Description: "Japan"},
-				{Filename: "scph5502.bin", Description: "Europe"},
+				model.FileProvision(model.ProvisionBIOS, "scph5501.bin", "USA"),
+				model.FileProvision(model.ProvisionBIOS, "scph5500.bin", "Japan"),
+				model.FileProvision(model.ProvisionBIOS, "scph5502.bin", "Europe"),
 			},
 		}},
 	}
@@ -246,10 +239,9 @@ func TestProvisionCheckerFilePattern(t *testing.T) {
 		ProvisionGroups: []model.ProvisionGroup{{
 			MinRequired: 0,
 			Message:     "Firmware",
-			Provisions: []model.Provision{{
-				FilePattern: "*.nca",
-				Description: "Switch firmware",
-			}},
+			Provisions: []model.Provision{
+				model.PatternProvision(model.ProvisionFirmware, "*.nca", "firmware NCA", "Switch firmware"),
+			},
 		}},
 	}
 
