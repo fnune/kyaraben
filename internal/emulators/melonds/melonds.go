@@ -1,5 +1,6 @@
 // BIOS hash data compiled from:
 // - EmuDeck (https://github.com/dragoonDorise/EmuDeck) - GPL-3
+// - RetroDECK (https://github.com/XargonWan/RetroDECK) - GPL-3
 // - Libretro documentation (https://docs.libretro.com)
 package melonds
 
