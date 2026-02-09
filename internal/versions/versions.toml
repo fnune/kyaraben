@@ -175,9 +175,14 @@ size = 24536678
 
 [cemu]
 url_template = "https://github.com/cemu-project/Cemu/releases/download/v{version}/Cemu-{version}-x86_64.AppImage"
-default = "2.4"
+default = "2.6"
 icon_url = "https://github.com/cemu-project/Cemu/raw/ba82dc57d64fe8fc1b268e24fa583b350404b9a6/src/resource/logo_icon.png"
 icon_sha256 = "sha256-ZFipm4vVTkSFfvoPgr/WA15+By5+CA4zMOTiz+icvTM="
+
+[cemu."2.6".targets.x64]
+arch = "x86_64"
+sha256 = "sha256-DCDErrgAuxPZurlHTvRab4/N5kAsrZsyrCobvQMYYxM="
+size = 61423960
 
 [cemu."2.4".targets.x64]
 arch = "x86_64"
