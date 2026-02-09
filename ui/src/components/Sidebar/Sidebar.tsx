@@ -64,7 +64,7 @@ export function Sidebar({ currentView, onNavigate, syncStatus }: SidebarProps) {
   return (
     <aside className="bg-surface-alt border-b min-[720px]:border-b-0 min-[720px]:border-r border-outline flex flex-row min-[720px]:flex-col min-[720px]:w-56">
       <div className="p-4 border-r min-[720px]:border-r-0 min-[720px]:border-b border-outline">
-        <h1 className="font-heading text-lg font-semibold text-on-surface tracking-wider uppercase">
+        <h1 className="font-heading text-lg font-semibold text-accent tracking-wider uppercase">
           Kyaraben
         </h1>
       </div>

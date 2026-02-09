@@ -89,6 +89,14 @@ export const fontPairs: FontPair[] = [
     body: '"Instrument Sans", sans-serif',
     mono: '"JetBrains Mono", ui-monospace, monospace',
   },
+  {
+    id: 'typeset',
+    name: 'Typeset',
+    description: 'DM Serif Display headings, IBM Plex Sans body, IBM Plex Mono',
+    heading: '"DM Serif Display", serif',
+    body: '"IBM Plex Sans", sans-serif',
+    mono: '"IBM Plex Mono", ui-monospace, monospace',
+  },
 ]
 
 export function applyFontPair(pair: FontPair) {

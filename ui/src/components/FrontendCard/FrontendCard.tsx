@@ -40,7 +40,7 @@ export function FrontendCard({
   const logo = getFrontendLogo(frontend.id)
 
   return (
-    <div className={`rounded-lg overflow-hidden relative ${cardClasses}`}>
+    <div className={`rounded-element overflow-hidden relative ${cardClasses}`}>
       {changeType && <ChangeNotch type={changeType} />}
 
       <div className={`flex items-center gap-4 p-3 ${!enabled ? 'opacity-60' : ''}`}>
@@ -106,7 +106,7 @@ function VersionSelector({
       onChange={(e) => onChange(e.target.value === '' ? null : e.target.value)}
       disabled={disabled}
       className={`
-        bg-surface-raised rounded px-2 py-1 text-xs text-on-surface-secondary
+        bg-surface-raised rounded-control px-2 py-1 text-xs text-on-surface-secondary
         outline-2 outline-offset-1 focus:outline-solid focus:outline-accent
         ${isPinned ? 'ring-2 ring-amber-500' : 'border border-outline-strong'}
         ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
