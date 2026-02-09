@@ -77,6 +77,9 @@ func TestBuildCommandPassesSavesDir(t *testing.T) {
 		GetEmulator: func(id model.EmulatorID) (model.Emulator, error) {
 			return emulators[id], nil
 		},
+		GetConfigGenerator: func(id model.EmulatorID) model.ConfigGenerator {
+			return nil
+		},
 	}
 
 	c := &Config{}
@@ -98,5 +101,70 @@ func TestBuildCommandPassesSavesDir(t *testing.T) {
 				t.Errorf("buildCommand() = %q, want savegamePath=%s", cmd, tt.wantSavesIn)
 			}
 		})
+	}
+}
+
+type fakeConfigGenerator struct {
+	launchArgs []string
+}
+
+func (f *fakeConfigGenerator) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
+	return nil, nil
+}
+
+func (f *fakeConfigGenerator) LaunchArgs(store model.StoreReader) []string {
+	return f.launchArgs
+}
+
+func TestBuildCommandIncludesLaunchArgs(t *testing.T) {
+	store := &fakeStoreReader{root: "/emulation"}
+
+	emulators := map[model.EmulatorID]model.Emulator{
+		model.EmulatorIDCemu: {
+			ID: model.EmulatorIDCemu,
+			Launcher: model.LauncherInfo{
+				Binary: "cemu",
+				RomCommand: func(opts model.RomLaunchOptions) string {
+					cmd := opts.BinaryPath
+					if len(opts.LaunchArgs) > 0 {
+						cmd += " " + strings.Join(opts.LaunchArgs, " ")
+					}
+					if opts.Fullscreen {
+						cmd += " -f"
+					}
+					cmd += " -g %ROM%"
+					return cmd
+				},
+			},
+		},
+	}
+
+	configGenerators := map[model.EmulatorID]model.ConfigGenerator{
+		model.EmulatorIDCemu: &fakeConfigGenerator{
+			launchArgs: []string{"-mlc", "/emulation/opaque/cemu"},
+		},
+	}
+
+	ctx := model.FrontendContext{
+		BinDir: "/opt/bin",
+		Store:  store,
+		GetEmulator: func(id model.EmulatorID) (model.Emulator, error) {
+			return emulators[id], nil
+		},
+		GetConfigGenerator: func(id model.EmulatorID) model.ConfigGenerator {
+			return configGenerators[id]
+		},
+	}
+
+	c := &Config{}
+	cmd := c.buildCommand(ctx, model.EmulatorIDCemu, model.SystemIDWiiU)
+
+	if !strings.Contains(cmd, "-mlc /emulation/opaque/cemu") {
+		t.Errorf("buildCommand() = %q, want LaunchArgs included", cmd)
+	}
+
+	expectedOrder := "/opt/bin/cemu -mlc /emulation/opaque/cemu -f -g %ROM%"
+	if cmd != expectedOrder {
+		t.Errorf("buildCommand() = %q, want %q", cmd, expectedOrder)
 	}
 }
