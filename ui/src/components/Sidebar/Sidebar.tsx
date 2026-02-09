@@ -25,12 +25,12 @@ interface NavItemProps {
 }
 
 const syncDotColors: Record<SyncState, string> = {
-  [SyncStateDisabled]: 'bg-gray-400',
-  [SyncStateSynced]: 'bg-green-500',
-  [SyncStateSyncing]: 'bg-blue-500 animate-pulse',
-  [SyncStateDisconnected]: 'bg-red-500',
-  [SyncStateConflict]: 'bg-yellow-500',
-  [SyncStateError]: 'bg-red-500',
+  [SyncStateDisabled]: 'bg-on-surface-faint',
+  [SyncStateSynced]: 'bg-status-ok',
+  [SyncStateSyncing]: 'bg-accent animate-pulse',
+  [SyncStateDisconnected]: 'bg-status-error',
+  [SyncStateConflict]: 'bg-status-warning',
+  [SyncStateError]: 'bg-status-error',
 }
 
 function getSyncState(status: SyncStatusResponse | null): SyncState {
@@ -85,11 +85,6 @@ export function Sidebar({ currentView, onNavigate, syncStatus }: SidebarProps) {
           active={currentView === 'sync'}
           onClick={() => onNavigate('sync')}
           indicator={<span className={`w-2 h-2 rounded-full ${syncDotColor}`} />}
-        />
-        <NavItem
-          label="Debug"
-          active={currentView === 'debug'}
-          onClick={() => onNavigate('debug')}
         />
       </nav>
 
