@@ -7,7 +7,15 @@ import { SYSTEM_YEARS, SystemCard } from '@/components/SystemCard/SystemCard'
 import { useApply } from '@/lib/ApplyContext'
 import { BottomBar } from '@/lib/BottomBar'
 import { Button } from '@/lib/Button'
-import { addChange, emptyChangeSummary, getChangeType, withConfigChanges } from '@/lib/changeUtils'
+import {
+  addChange,
+  calculateEmulatorSizes,
+  type EmulatorChangeInput,
+  emptyChangeSummary,
+  formatChangeSummary,
+  getChangeType,
+  withConfigChanges,
+} from '@/lib/changeUtils'
 import { ProgressSteps } from '@/lib/ProgressSteps'
 import { useOpenLog } from '@/lib/useOpenLog'
 import type {
@@ -105,37 +113,47 @@ export function SystemsView({
   const isApplying = applyStatus === 'applying'
   const showProgress = applyStatus !== 'idle' && applyStatus !== 'reviewing'
 
-  const handleApply = useCallback(async () => {
-    const systemsConfig: Record<string, string[]> = {}
-    for (const [sysId, emuIds] of systemEmulators) {
-      systemsConfig[sysId] = emuIds
-    }
-
-    const emulatorsConfig: Record<string, { version?: string }> = {}
-    for (const [emuId, version] of emulatorVersions) {
-      if (version) {
-        emulatorsConfig[emuId] = { version }
+  const handleApply = useCallback(
+    async (changeSummary: ReturnType<typeof emptyChangeSummary>) => {
+      const systemsConfig: Record<string, string[]> = {}
+      for (const [sysId, emuIds] of systemEmulators) {
+        systemsConfig[sysId] = emuIds
       }
-    }
 
-    const frontendsConfig: Record<string, { enabled: boolean; version?: string }> = {}
-    for (const [feId, enabled] of enabledFrontends) {
-      const version = frontendVersions.get(feId)
-      frontendsConfig[feId] = { enabled, ...(version && { version }) }
-    }
+      const emulatorsConfig: Record<string, { version?: string }> = {}
+      for (const [emuId, version] of emulatorVersions) {
+        if (version) {
+          emulatorsConfig[emuId] = { version }
+        }
+      }
 
-    await apply({
-      userStore,
-      systems: systemsConfig,
-      emulators: emulatorsConfig,
-      frontends: frontendsConfig,
-    })
-  }, [apply, systemEmulators, emulatorVersions, enabledFrontends, frontendVersions, userStore])
+      const frontendsConfig: Record<string, { enabled: boolean; version?: string }> = {}
+      for (const [feId, enabled] of enabledFrontends) {
+        const version = frontendVersions.get(feId)
+        frontendsConfig[feId] = { enabled, ...(version && { version }) }
+      }
+
+      const summaryMessage = formatChangeSummary(changeSummary)
+      await apply({
+        userStore,
+        systems: systemsConfig,
+        emulators: emulatorsConfig,
+        frontends: frontendsConfig,
+        ...(summaryMessage && { summaryMessage }),
+      })
+    },
+    [apply, systemEmulators, emulatorVersions, enabledFrontends, frontendVersions, userStore],
+  )
 
   const changes = useMemo(() => {
     let summary = emptyChangeSummary()
     const seenEmulators = new Set<EmulatorID>()
-    const seenPackages = new Set<string>()
+
+    interface EmulatorInputWithName extends EmulatorChangeInput {
+      name: string
+    }
+
+    const emulatorInputs: EmulatorInputWithName[] = []
 
     for (const system of systems) {
       for (const emulator of system.emulators) {
@@ -154,16 +172,24 @@ export function SystemsView({
           emulator.availableVersions,
         )
 
-        const packageName = emulator.packageName ?? emulator.id
-        const isNewPackage = !seenPackages.has(packageName)
-        if (isNewPackage && (changeType === 'install' || changeType === 'upgrade')) {
-          seenPackages.add(packageName)
-        }
-
-        const packageBytes = isNewPackage ? (emulator.downloadBytes ?? 0) : 0
-        const coreBytes = emulator.coreBytes ?? 0
-        summary = addChange(summary, changeType, packageBytes + coreBytes)
+        emulatorInputs.push({
+          id: emulator.id,
+          name: emulator.name,
+          packageName: emulator.packageName ?? emulator.id,
+          downloadBytes: emulator.downloadBytes ?? 0,
+          coreBytes: emulator.coreBytes ?? 0,
+          changeType,
+          isInstalled: installedVersion !== null,
+        })
       }
+    }
+
+    const emulatorSizes = calculateEmulatorSizes(emulatorInputs)
+    for (const input of emulatorInputs) {
+      summary = addChange(summary, input.changeType, emulatorSizes.get(input.id) ?? 0, {
+        id: input.id,
+        name: input.name,
+      })
     }
 
     for (const frontend of frontends) {
@@ -180,7 +206,10 @@ export function SystemsView({
       )
 
       const downloadBytes = frontend.downloadBytes ?? 0
-      summary = addChange(summary, changeType, downloadBytes)
+      summary = addChange(summary, changeType, downloadBytes, {
+        id: frontend.id,
+        name: frontend.name,
+      })
     }
 
     return withConfigChanges(summary, hasConfigChanges)
