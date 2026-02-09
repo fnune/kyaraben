@@ -139,17 +139,23 @@ Your <UserStore /> (default `~/Emulation`) has a consistent structure:
 ├── states/            # Emulator save states
 │   └── (per-emulator)
 ├── screenshots/       # Captured screenshots
-│   └── (per-system)
+│   └── (per-emulator)
 └── opaque/            # Emulators with complex internal structures
     ├── eden/
     ├── rpcs3/
     └── ...
 ```
 
-Some emulators have complex internal directory structures that do not fit the
-`saves/states` model (Eden for Switch, RPCS3 for PS3, PPSSPP for PSP). These
-use an `opaque/` directory where the emulator manages its own layout. Kyaraben
-points the emulator at this directory and syncs it as a unit.
+Kyaraben uses symlinks to redirect emulator data directories to your
+<UserStore />. For example, Dolphin normally stores GameCube saves in
+`~/.local/share/dolphin-emu/GC/`. Kyaraben creates a symlink from that location
+to `~/Emulation/saves/gamecube/`. The emulator runs with its default settings;
+the symlink transparently redirects data to your managed location.
+
+A few emulators have complex internal directory structures that resist symlinks
+(virtual filesystems, interlinked databases). These use an `opaque/` directory
+where the emulator manages its own layout. Kyaraben points the emulator at this
+directory and syncs it as a unit.
 
 ## Under the hood
 

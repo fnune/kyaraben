@@ -1,6 +1,7 @@
 package cemu
 
 import (
+	"path/filepath"
 	"strings"
 
 	"github.com/fnune/kyaraben/internal/model"
@@ -44,7 +45,8 @@ func (Definition) Emulator() model.Emulator {
 			},
 		},
 		PathUsage: model.PathUsage{
-			OpaqueContents: "MLC (saves, updates, DLC)",
+			UsesSavesDir:       true,
+			UsesScreenshotsDir: true,
 		},
 	}
 }
@@ -61,16 +63,7 @@ var configTarget = model.ConfigTarget{
 
 type Config struct{}
 
-// LaunchArgs implements model.LaunchArgsProvider.
-// Cemu's -mlc flag sets the MLC directory which stores saves, updates, and DLC.
-// This is separate from the config file location.
-func (c *Config) LaunchArgs(store model.StoreReader) []string {
-	return []string{"-mlc", store.EmulatorOpaqueDir(model.EmulatorIDCemu)}
-}
-
 func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	// Cemu uses XML config for settings. MLC path is set via -mlc CLI flag,
-	// but we still configure ROM paths via the settings file.
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
@@ -78,4 +71,17 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 			{Path: []string{"content", "check_update"}, Value: "false"},
 		},
 	}}, nil
+}
+
+func (c *Config) Symlinks(store model.StoreReader, resolver model.BaseDirResolver) ([]model.SymlinkSpec, error) {
+	dataDir, err := resolver.UserDataDir()
+	if err != nil {
+		return nil, err
+	}
+	cemuDir := filepath.Join(dataDir, "Cemu")
+
+	return []model.SymlinkSpec{
+		{Source: filepath.Join(cemuDir, "mlc01", "usr", "save", "00050000"), Target: store.SystemSavesDir(model.SystemIDWiiU)},
+		{Source: filepath.Join(cemuDir, "screenshots"), Target: store.EmulatorScreenshotsDir(model.EmulatorIDCemu)},
+	}, nil
 }

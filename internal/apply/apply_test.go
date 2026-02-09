@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/fnune/kyaraben/internal/emulators"
+	"github.com/fnune/kyaraben/internal/emulators/symlink"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/nix"
 	"github.com/fnune/kyaraben/internal/registry"
@@ -279,5 +280,75 @@ func TestApplyCreatesEmulatorStatesDirectories(t *testing.T) {
 				t.Errorf("States directory not created: %s", tc.path)
 			}
 		})
+	}
+}
+
+func TestApplyCreatesSymlinksForSymlinkProviders(t *testing.T) {
+	tmpDir := t.TempDir()
+	manifestPath := filepath.Join(tmpDir, "manifest.json")
+	userStorePath := filepath.Join(tmpDir, "Emulation")
+	flakePath := filepath.Join(tmpDir, "flake")
+
+	if err := os.MkdirAll(flakePath, 0755); err != nil {
+		t.Fatalf("Failed to create flake dir: %v", err)
+	}
+
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{
+			UserStore: userStorePath,
+		},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDGameCube: {model.EmulatorIDDolphin},
+		},
+	}
+
+	reg := registry.NewDefault()
+	userStore, err := store.NewUserStore(userStorePath)
+	if err != nil {
+		t.Fatalf("Failed to create user store: %v", err)
+	}
+
+	flakeGen := nix.NewFlakeGenerator(reg, reg)
+	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
+
+	fakeSymlinkCreator := &symlink.FakeCreator{}
+
+	applier := &Applier{
+		NixClient:       &mockNixClient{storePath: "/nix/store/test-path", flakePath: flakePath},
+		FlakeGenerator:  flakeGen,
+		ConfigWriter:    configWriter,
+		Registry:        reg,
+		ManifestPath:    manifestPath,
+		LauncherManager: nil,
+		BaseDirResolver: fakeBaseDirResolver{root: tmpDir},
+		SymlinkCreator:  fakeSymlinkCreator,
+	}
+
+	_, err = applier.Apply(context.Background(), cfg, userStore, Options{})
+	if err != nil {
+		t.Fatalf("Apply failed: %v", err)
+	}
+
+	if len(fakeSymlinkCreator.Created) != 4 {
+		t.Errorf("Expected 4 symlinks created for Dolphin, got %d", len(fakeSymlinkCreator.Created))
+	}
+
+	expectedSources := map[string]bool{
+		filepath.Join(tmpDir, ".local", "share", "dolphin-emu", "GC"):          false,
+		filepath.Join(tmpDir, ".local", "share", "dolphin-emu", "Wii"):         false,
+		filepath.Join(tmpDir, ".local", "share", "dolphin-emu", "StateSaves"):  false,
+		filepath.Join(tmpDir, ".local", "share", "dolphin-emu", "ScreenShots"): false,
+	}
+
+	for _, spec := range fakeSymlinkCreator.Created {
+		if _, ok := expectedSources[spec.Source]; ok {
+			expectedSources[spec.Source] = true
+		}
+	}
+
+	for source, found := range expectedSources {
+		if !found {
+			t.Errorf("Expected symlink source %q not found", source)
+		}
 	}
 }

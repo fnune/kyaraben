@@ -37,6 +37,10 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 	}, nil
 }
 
+func (c *Config) Symlinks(store model.StoreReader, resolver model.BaseDirResolver) ([]model.SymlinkSpec, error) {
+	return retroarch.CoreSymlinks(model.EmulatorIDRetroArchMupen64Plus, store, resolver)
+}
+
 const (
 	libretroCoreName = "mupen64plus_next_libretro"
 	shortCoreName    = "mupen64plus_next"

@@ -7,7 +7,6 @@ package retroarch
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/fnune/kyaraben/internal/model"
@@ -94,83 +93,26 @@ func CoreShortName(emuID model.EmulatorID) string {
 	return coreShortNames[emuID]
 }
 
-func CreateCoreSymlinks(emuID model.EmulatorID, store model.StoreReader, resolver model.BaseDirResolver) error {
+func CoreSymlinks(emuID model.EmulatorID, store model.StoreReader, resolver model.BaseDirResolver) ([]model.SymlinkSpec, error) {
 	shortName := CoreShortName(emuID)
 	if shortName == "" {
-		return nil
+		return nil, nil
 	}
 
 	configDir, err := resolver.UserConfigDir()
 	if err != nil {
-		return fmt.Errorf("getting config dir: %w", err)
+		return nil, fmt.Errorf("getting config dir: %w", err)
 	}
 
 	systemID := coreToSystem[emuID]
-	links := []struct {
-		source string
-		target string
-	}{
+	return []model.SymlinkSpec{
 		{
-			source: filepath.Join(configDir, "retroarch", "saves", shortName),
-			target: store.SystemSavesDir(systemID),
+			Source: filepath.Join(configDir, "retroarch", "saves", shortName),
+			Target: store.SystemSavesDir(systemID),
 		},
 		{
-			source: filepath.Join(configDir, "retroarch", "states", shortName),
-			target: store.EmulatorStatesDir(emuID),
+			Source: filepath.Join(configDir, "retroarch", "states", shortName),
+			Target: store.EmulatorStatesDir(emuID),
 		},
-	}
-
-	for _, link := range links {
-		if err := createSymlink(link.source, link.target); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func createSymlink(source, target string) error {
-	info, err := os.Lstat(source)
-	if err == nil {
-		if info.Mode()&os.ModeSymlink != 0 {
-			existingTarget, err := os.Readlink(source)
-			if err != nil {
-				return fmt.Errorf("reading symlink %s: %w", source, err)
-			}
-			if existingTarget == target {
-				return nil
-			}
-			if err := os.Remove(source); err != nil {
-				return fmt.Errorf("removing old symlink %s: %w", source, err)
-			}
-		} else if info.IsDir() {
-			entries, err := os.ReadDir(source)
-			if err != nil {
-				return fmt.Errorf("reading directory %s: %w", source, err)
-			}
-			if len(entries) > 0 {
-				return fmt.Errorf(
-					"cannot create symlink at %s: directory contains files; "+
-						"please move or remove your existing saves before running kyaraben apply",
-					source,
-				)
-			}
-			if err := os.Remove(source); err != nil {
-				return fmt.Errorf("removing empty directory %s: %w", source, err)
-			}
-		} else {
-			return fmt.Errorf("cannot create symlink at %s: file exists", source)
-		}
-	} else if !os.IsNotExist(err) {
-		return fmt.Errorf("checking %s: %w", source, err)
-	}
-
-	if err := os.MkdirAll(filepath.Dir(source), 0755); err != nil {
-		return fmt.Errorf("creating parent directory for %s: %w", source, err)
-	}
-
-	if err := os.Symlink(target, source); err != nil {
-		return fmt.Errorf("creating symlink %s -> %s: %w", source, target, err)
-	}
-
-	return nil
+	}, nil
 }

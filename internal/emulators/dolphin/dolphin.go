@@ -1,6 +1,3 @@
-// BIOS hash data compiled from:
-// - Libretro documentation (https://docs.libretro.com)
-// - Dolphin Emulator forums and documentation
 package dolphin
 
 import (
@@ -73,8 +70,9 @@ func (Definition) Emulator() model.Emulator {
 			},
 		},
 		PathUsage: model.PathUsage{
+			UsesSavesDir:       true,
+			UsesStatesDir:      true,
 			UsesScreenshotsDir: true,
-			OpaqueContents:     "config, GC memory cards, Wii NAND, savestates",
 		},
 	}
 }
@@ -85,30 +83,13 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 
 type Config struct{}
 
-// LaunchArgs implements model.LaunchArgsProvider.
-// Dolphin's -u flag sets the user directory, which contains config, saves, and state.
-// This avoids conflicts with system-wide Dolphin installations and allows kyaraben
-// to fully manage Dolphin's data within the opaque directory.
-func (c *Config) LaunchArgs(store model.StoreReader) []string {
-	return []string{"-u", store.EmulatorOpaqueDir(model.EmulatorIDDolphin)}
+var configTarget = model.ConfigTarget{
+	RelPath: "dolphin-emu/Config/Dolphin.ini",
+	Format:  model.ConfigFormatINI,
+	BaseDir: model.ConfigBaseDirUserData,
 }
 
 func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	// With -u flag, Dolphin stores everything in the user directory:
-	// - Config at <user_dir>/Config/Dolphin.ini
-	// - GC saves at <user_dir>/GC/
-	// - Wii NAND at <user_dir>/Wii/
-	// - Screenshots at <user_dir>/ScreenShots/
-	//
-	// We only need to configure ROM paths and screenshot location.
-	opaqueDir := store.EmulatorOpaqueDir(model.EmulatorIDDolphin)
-
-	configTarget := model.ConfigTarget{
-		RelPath: filepath.Join(opaqueDir, "Config", "Dolphin.ini"),
-		Format:  model.ConfigFormatINI,
-		BaseDir: model.ConfigBaseDirOpaqueDir,
-	}
-
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
@@ -118,4 +99,19 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 			{Path: []string{"General", "DumpPath"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDDolphin)},
 		},
 	}}, nil
+}
+
+func (c *Config) Symlinks(store model.StoreReader, resolver model.BaseDirResolver) ([]model.SymlinkSpec, error) {
+	dataDir, err := resolver.UserDataDir()
+	if err != nil {
+		return nil, err
+	}
+	dolphinDir := filepath.Join(dataDir, "dolphin-emu")
+
+	return []model.SymlinkSpec{
+		{Source: filepath.Join(dolphinDir, "GC"), Target: store.SystemSavesDir(model.SystemIDGameCube)},
+		{Source: filepath.Join(dolphinDir, "Wii"), Target: store.SystemSavesDir(model.SystemIDWii)},
+		{Source: filepath.Join(dolphinDir, "StateSaves"), Target: store.EmulatorStatesDir(model.EmulatorIDDolphin)},
+		{Source: filepath.Join(dolphinDir, "ScreenShots"), Target: store.EmulatorScreenshotsDir(model.EmulatorIDDolphin)},
+	}, nil
 }

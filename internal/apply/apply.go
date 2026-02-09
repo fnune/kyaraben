@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/fnune/kyaraben/internal/emulators"
-	"github.com/fnune/kyaraben/internal/emulators/retroarch"
+	"github.com/fnune/kyaraben/internal/emulators/symlink"
 	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/nix"
@@ -121,6 +121,7 @@ type Applier struct {
 	ManifestPath    string
 	LauncherManager *launcher.Manager
 	BaseDirResolver model.BaseDirResolver
+	SymlinkCreator  model.SymlinkCreator
 }
 
 func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStore *store.UserStore, opts Options) (*Result, error) {
@@ -394,10 +395,19 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		}
 	}
 
+	symlinkCreator := a.SymlinkCreator
+	if symlinkCreator == nil {
+		symlinkCreator = symlink.OSCreator{}
+	}
 	for emuID := range enabledEmulators {
-		if retroarch.CoreShortName(emuID) != "" {
-			if err := retroarch.CreateCoreSymlinks(emuID, userStore, a.BaseDirResolver); err != nil {
-				return nil, fmt.Errorf("creating retroarch symlinks for %s: %w", emuID, err)
+		gen := a.Registry.GetConfigGenerator(emuID)
+		if provider, ok := gen.(model.SymlinkProvider); ok {
+			specs, err := provider.Symlinks(userStore, a.BaseDirResolver)
+			if err != nil {
+				return nil, fmt.Errorf("getting symlink specs for %s: %w", emuID, err)
+			}
+			if err := symlink.CreateAll(symlinkCreator, specs); err != nil {
+				return nil, fmt.Errorf("creating symlinks for %s: %w", emuID, err)
 			}
 		}
 	}
