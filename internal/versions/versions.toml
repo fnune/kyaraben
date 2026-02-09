@@ -322,11 +322,13 @@ icon_sha256 = "sha256-hsZGRNcl/wAzSTMtt3Z2rtbBTKKU5zjA1baYSC4EMWA="
 arch = "x86_64"
 url = "https://gitlab.com/es-de/emulationstation-de/-/package_files/246875981/download"
 sha256 = "sha256-TLZs/JIwmXEc+g7d2D22R0SmKU4C4//Rnuhn93qI7H4="
+size = 129931768
 
 [es-de."3.4.0".targets.steamdeck]
 arch = "x86_64"
 url = "https://gitlab.com/es-de/emulationstation-de/-/package_files/246876039/download"
 sha256 = "sha256-/RaIA4KO3QaDPlxboj36Nmujvs58BUMpVU+8Qj5+lws="
+size = 129931768
 
 # ============================================================================
 # RETROARCH - Multi-system emulator frontend
