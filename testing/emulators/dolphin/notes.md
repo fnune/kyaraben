@@ -1,7 +1,7 @@
 # Dolphin
 
 System(s): GameCube, Wii
-Opaque: yes
+Opaque: no (uses symlinks)
 
 ## Installation
 
@@ -48,11 +48,11 @@ Current: .ciso, .dff, .dol, .elf, .gcm, .gcz, .iso, .json, .m3u, .rvz, .tgc, .wa
 
 ## Path configuration
 
-- [x] Saves write to opaque GC/ or Wii/ directories
-- [x] Save states write to opaque StateSaves/
+- [x] Saves write to `~/Emulation/saves/gamecube/` and `~/Emulation/saves/wii/` (via symlinks)
+- [x] Save states write to `~/Emulation/states/dolphin/` (via symlink)
 - [x] Screenshots write to `~/Emulation/screenshots/dolphin/` (via symlink)
 
-Notes: Saves at `saves/gamecube/{region}/Card A/*.gci`. Savestates at `states/dolphin/`. Screenshots at `screenshots/dolphin/`. All via symlinks from opaque dir - see testing/plans/symlinks-over-opaque.md.
+Notes: kyaraben creates symlinks from `~/.local/share/dolphin-emu/` to the user store. Config at standard XDG location.
 
 ## Persistence
 
@@ -84,7 +84,7 @@ After running the emulator, document what was created.
 
 ### Config location
 
-Default config path: `~/Emulation/opaque/dolphin/Config/`
+Default config path: `~/.local/share/dolphin-emu/Config/`
 
 Files found:
 
@@ -105,11 +105,20 @@ Not managed (should be?): Controller configs, Qt.ini
 
 ### Data location
 
-Default data path: n/a (uses opaque dir)
+Default data path: `~/.local/share/dolphin-emu/`
+
+Symlinks created by kyaraben:
+
+```
+~/.local/share/dolphin-emu/GC/          → ~/Emulation/saves/gamecube/
+~/.local/share/dolphin-emu/Wii/         → ~/Emulation/saves/wii/
+~/.local/share/dolphin-emu/StateSaves/  → ~/Emulation/states/dolphin/
+~/.local/share/dolphin-emu/ScreenShots/ → ~/Emulation/screenshots/dolphin/
+```
 
 ### Cache location
 
-Cache path: `~/Emulation/opaque/dolphin/Cache/`
+Cache path: `~/.local/share/dolphin-emu/Cache/`
 
 Files found:
 
@@ -119,52 +128,24 @@ Shaders/OpenGL-uber-pipeline-*.cache
 GFZP01.uidcache
 ```
 
-### Opaque directory
-
-Path: `~/Emulation/opaque/dolphin/`
-
-Structure:
-
-```
-Cache/
-Config/
-Dump/
-GameSettings/
-GBA/
-GC/EUR/Card A/, GC/JAP/, GC/USA/
-Load/
-Maps/
-ResourcePacks/
-SavedAssembly/
-ScreenShots/
-Shaders/
-StateSaves/
-Styles/
-Themes/
-WFS/
-Wii/shared2/sys/SYSCONF, Wii/fst.bin
-```
-
-What is machine-specific (should not sync): Cache/, Shaders/
-
-What should sync: GC/ (memory cards), Wii/ (NAND), StateSaves/, Config/ (maybe), GameSettings/
-
 ### Other locations
 
-Any other files created: None outside opaque dir (good!)
+Any other files created: None outside standard XDG locations (good!)
 
 ## Sync implications
 
 Based on recon, what needs to sync for this emulator:
 
-- Save data location: opaque/GC/ (memory cards), opaque/Wii/ (NAND)
-- Save state location: opaque/StateSaves/
-- Any emulator-specific considerations: Wii NAND can be large. Shader cache should NOT sync.
+- Save data location: `saves/gamecube/`, `saves/wii/`
+- Save state location: `states/dolphin/`
+- Any emulator-specific considerations: Wii NAND can be large. Shader cache (in XDG data dir) should NOT sync.
 
 ## Issues found
 
-- Screenshots go to `opaque/ScreenShots/` instead of `~/Emulation/screenshots/dolphin/`. The `DumpPath` setting is for frame/texture/audio dumps, not screenshots. Dolphin may not have a configurable screenshot path - screenshots always go to `<user_dir>/ScreenShots/`. Workaround: symlink approach (see testing/plans/symlinks-over-opaque.md).
 - When launched from CLI with a ROM path (including ES-DE), Dolphin does not show the game list - goes straight to the game. This is expected behavior when using `-e <rom>`.
+
+Resolved:
+- Screenshots now go to correct location via symlink.
 
 ## Summary
 

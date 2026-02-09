@@ -1,6 +1,6 @@
 # Symlinks over opaque directories
 
-## Status: proposed
+## Status: implemented (Dolphin, Cemu)
 
 ## The idea
 

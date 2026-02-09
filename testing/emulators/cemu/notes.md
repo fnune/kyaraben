@@ -1,7 +1,7 @@
 # Cemu
 
 System(s): Wii U
-Opaque: yes (MLC directory for saves, updates, DLC)
+Opaque: no (uses symlinks for saves and screenshots)
 
 ## Installation
 
@@ -48,12 +48,12 @@ Current: .wua, .wud, .wux, .rpx, .elf
 
 ## Path configuration
 
-- [x] Saves write to kyaraben location (via symlink)
+- [x] Saves write to `~/Emulation/saves/wiiu/` (via symlink)
 - N/A Save states - Cemu does not support savestates
-- [x] Screenshots write to kyaraben location (via symlink)
+- [x] Screenshots write to `~/Emulation/screenshots/cemu/` (via symlink)
 
 Notes:
-- Saves: symlink `opaque/cemu/usr/save/00050000/` → `saves/wiiu/` (game title IDs inside)
+- Saves: symlink `~/.local/share/Cemu/mlc01/usr/save/00050000/` → `saves/wiiu/` (game title IDs inside)
 - Screenshots: symlink `~/.local/share/Cemu/screenshots/` → `screenshots/cemu/`
 - Only symlink 00050000 (games), not 00050010 (system) or system/ (account data)
 - No savestate support due to Wii U hardware complexity
@@ -96,39 +96,39 @@ Not managed (should be?):
 
 ### Data location
 
-Default data path: n/a (uses MLC via -mlc flag)
+Default data path: `~/.local/share/Cemu/`
+
+Symlinks created by kyaraben:
+
+```
+~/.local/share/Cemu/mlc01/usr/save/00050000/ → ~/Emulation/saves/wiiu/
+~/.local/share/Cemu/screenshots/             → ~/Emulation/screenshots/cemu/
+```
+
+MLC structure (at `~/.local/share/Cemu/mlc01/`):
+
+```
+sys/title/... (system titles)
+usr/save/system/... (system save data - account, play diary)
+usr/save/00050000/... (game saves - symlinked)
+usr/save/00050010/... (system saves - not symlinked)
+```
 
 ### Cache location
 
 Cache path: TBD
 
-### Opaque directory (MLC)
-
-Path: `~/Emulation/opaque/cemu/`
-
-Structure:
-
-```
-sys/title/... (system titles)
-usr/save/system/... (system save data - account, play diary)
-usr/save/{title_id}/... (game saves)
-```
-
-What is machine-specific (should not sync): possibly account.dat?
-
-What should sync: usr/save/{title_id}/ (game saves)
-
 ### Other locations
 
-Any other files created:
+Any other files created: None outside standard XDG locations
 
 ## Sync implications
 
 Based on recon, what needs to sync for this emulator:
 
-- Save data location: opaque/cemu/usr/save/{title_id}/
-- Save state location: TBD
-- Any emulator-specific considerations: MLC structure is complex, may need selective sync
+- Save data location: `saves/wiiu/`
+- Save state location: N/A (Cemu does not support savestates)
+- Any emulator-specific considerations: MLC structure is complex but game saves are now cleanly symlinked
 
 ## Issues found
 
