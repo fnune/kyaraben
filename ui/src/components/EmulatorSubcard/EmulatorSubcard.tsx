@@ -3,6 +3,7 @@ import { ChangeNotch } from '@/components/ChangeNotch/ChangeNotch'
 import { getEmulatorLogo } from '@/components/EmulatorLogo/EmulatorLogo'
 import { PathsModal } from '@/components/PathsModal/PathsModal'
 import {
+  CopyableFilename,
   getKindLabel,
   ProvisionActionInline,
   ProvisionsModal,
@@ -102,25 +103,26 @@ function ProvisionsSummary({
     const optionalCount = missing.filter((p) => !p.groupRequired).length
 
     return (
-      <button
-        type="button"
-        onClick={onClick}
-        className="flex items-center text-xs px-3 py-1.5 w-full hover:bg-surface-raised/50 transition-colors text-left"
-      >
-        <span className="text-status-ok">✓</span>
-        <span className="text-on-surface-muted truncate ml-2">{label}</span>
-        {found.length > 1 && (
-          <span className="text-on-surface-dim shrink-0 ml-2">+{found.length - 1}</span>
-        )}
-        {optionalCount > 0 && (
-          <span className="text-status-warning shrink-0 ml-2">({optionalCount} optional)</span>
-        )}
+      <div className="flex items-center text-xs px-3 py-1.5 w-full hover:bg-surface-raised/50 transition-colors text-left">
+        <button type="button" onClick={onClick} className="flex items-center min-w-0">
+          <span className="text-status-ok">✓</span>
+          <span className="text-on-surface-muted truncate ml-2">{label}</span>
+          {found.length > 1 && (
+            <span className="text-on-surface-dim shrink-0 ml-2">+{found.length - 1}</span>
+          )}
+          {optionalCount > 0 && (
+            <span className="text-status-warning shrink-0 ml-2">({optionalCount} optional)</span>
+          )}
+        </button>
+        <span className="hidden sm:contents">
+          <CopyableFilename filename={firstFound.filename} disabled={disabled} className="ml-2" />
+        </span>
         <ProvisionActionInline
           provision={firstFound}
           disabled={disabled}
           onOpenFolder={onOpenFolder}
         />
-      </button>
+      </div>
     )
   }
 
