@@ -1,5 +1,18 @@
 # Feedback
 
+## Philosophy
+
+Kyaraben's approach to emulator config is minimal: only edit what's strictly necessary to make games playable and enjoyable. We configure paths, disable annoying prompts, and set up ES-DE integration, but we don't touch performance tuning, graphics settings, or advanced options.
+
+Future possibilities:
+- Controller/hotkey configuration (see testing/plans/controller-support-plan.md)
+- Basic shader/overlay presets
+- Hardware presets (e.g., "beefy desktop" vs "Steam Deck" vs "low-power handheld") rather than per-setting tweaks
+
+What we won't do: full performance tuning, per-game settings, target-specific optimizations. Users who want that level of control can configure emulators directly. Keeping things simple is a goal.
+
+(This should eventually be documented on the docs site.)
+
 ## Low-hanging fruit
 
 - Cemu says it has required provisions but games launch fine: investigate whether the provision check is wrong or if Cemu has fallback behavior
