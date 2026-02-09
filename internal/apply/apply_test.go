@@ -127,17 +127,17 @@ func TestUnmanagedEntriesExcludedFromManifest(t *testing.T) {
 		}
 	}
 
-	foundSystemDir := false
+	foundLibretroDir := false
 	for _, cfg := range manifest.ManagedConfigs {
 		for _, key := range cfg.ManagedKeys {
 			keyName := key.Path[len(key.Path)-1]
-			if keyName == "system_directory" {
-				foundSystemDir = true
+			if keyName == "libretro_directory" {
+				foundLibretroDir = true
 			}
 		}
 	}
-	if !foundSystemDir {
-		t.Error("system_directory should be in ManagedKeys (it's managed)")
+	if !foundLibretroDir {
+		t.Error("libretro_directory should be in ManagedKeys (it's managed)")
 	}
 }
 
