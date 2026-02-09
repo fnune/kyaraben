@@ -23,8 +23,35 @@ type NixpkgsVersion struct {
 }
 
 type RetroArchCoresSpec struct {
-	Commit string           `toml:"commit"`
-	Sizes  map[string]int64 `toml:"sizes"`
+	URLTemplate string `toml:"url_template"`
+	Default     string `toml:"default"`
+	Versions    map[string]RetroArchCoresBuild
+	Files       map[string]string `toml:"files"` // core name -> filename in archive
+	Sizes       map[string]int64  `toml:"sizes"`
+}
+
+type RetroArchCoresBuild struct {
+	Targets map[string]TargetBuild
+}
+
+// GetCoresURL returns the URL for the cores bundle for the given arch.
+func (r *RetroArchCoresSpec) GetCoresURL(arch string) (string, string, bool) {
+	version := r.Default
+	if version == "" {
+		return "", "", false
+	}
+	build, ok := r.Versions[version]
+	if !ok {
+		return "", "", false
+	}
+	target, ok := build.Targets[arch]
+	if !ok {
+		return "", "", false
+	}
+	url := r.URLTemplate
+	url = strings.ReplaceAll(url, "{version}", version)
+	url = strings.ReplaceAll(url, "{arch}", arch)
+	return url, target.SHA256, true
 }
 
 // EmulatorSpec describes all available versions of an emulator.
@@ -243,14 +270,46 @@ func parse(data string) (*Versions, error) {
 	}
 
 	if racRaw, ok := raw["retroarch-cores"].(map[string]interface{}); ok {
-		if commit, ok := racRaw["commit"].(string); ok {
-			v.RetroArchCores.Commit = commit
+		if urlTemplate, ok := racRaw["url_template"].(string); ok {
+			v.RetroArchCores.URLTemplate = urlTemplate
+		}
+		if defaultVer, ok := racRaw["default"].(string); ok {
+			v.RetroArchCores.Default = defaultVer
+		}
+		if filesRaw, ok := racRaw["files"].(map[string]interface{}); ok {
+			v.RetroArchCores.Files = make(map[string]string)
+			for name, file := range filesRaw {
+				if f, ok := file.(string); ok {
+					v.RetroArchCores.Files[name] = f
+				}
+			}
 		}
 		if sizesRaw, ok := racRaw["sizes"].(map[string]interface{}); ok {
 			v.RetroArchCores.Sizes = make(map[string]int64)
 			for name, size := range sizesRaw {
 				if s, ok := size.(int64); ok {
 					v.RetroArchCores.Sizes[name] = s
+				}
+			}
+		}
+		v.RetroArchCores.Versions = make(map[string]RetroArchCoresBuild)
+		for key, val := range racRaw {
+			if versionRaw, ok := val.(map[string]interface{}); ok {
+				if targetsRaw, ok := versionRaw["targets"].(map[string]interface{}); ok {
+					build := RetroArchCoresBuild{Targets: make(map[string]TargetBuild)}
+					for targetName, targetVal := range targetsRaw {
+						if targetData, ok := targetVal.(map[string]interface{}); ok {
+							target := TargetBuild{}
+							if arch, ok := targetData["arch"].(string); ok {
+								target.Arch = arch
+							}
+							if sha, ok := targetData["sha256"].(string); ok {
+								target.SHA256 = sha
+							}
+							build.Targets[targetName] = target
+						}
+					}
+					v.RetroArchCores.Versions[key] = build
 				}
 			}
 		}
