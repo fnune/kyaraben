@@ -8,6 +8,7 @@ import {
   ProvisionsModal,
 } from '@/components/ProvisionsModal/ProvisionsModal'
 import { CHANGE_CONFIG, formatBytes, getChangeType } from '@/lib/changeUtils'
+import { Select } from '@/lib/Select'
 import { useToast } from '@/lib/ToastContext'
 import { ToggleSwitch } from '@/lib/ToggleSwitch'
 import type { EmulatorPaths, EmulatorRef, ManagedConfigInfo, ProvisionResult } from '@/types/daemon'
@@ -315,26 +316,18 @@ function VersionSelector({
   }
 
   const isPinned = pinnedVersion !== null
+  const options = [
+    { value: '', label: `${defaultVersion} (auto)` },
+    ...availableVersions.map((v) => ({ value: v, label: `${v} (pin)` })),
+  ]
 
   return (
-    <select
+    <Select
       value={pinnedVersion ?? ''}
-      onChange={(e) => onChange(e.target.value === '' ? null : e.target.value)}
+      options={options}
+      onChange={(v) => onChange(v === '' ? null : v)}
       disabled={disabled}
-      className={`
-        bg-surface-raised rounded-control px-2 py-1 text-xs text-on-surface-secondary
-        outline-2 outline-offset-1 focus:outline-solid focus:outline-accent
-        ${isPinned ? 'ring-2 ring-status-warning' : 'border border-outline-strong'}
-        ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
-        tabular-nums font-mono
-      `}
-    >
-      <option value="">{defaultVersion} (auto)</option>
-      {availableVersions.map((v) => (
-        <option key={v} value={v}>
-          {v} (pin)
-        </option>
-      ))}
-    </select>
+      className={isPinned ? '[&>button]:ring-2 [&>button]:ring-status-warning' : ''}
+    />
   )
 }
