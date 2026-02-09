@@ -38,7 +38,6 @@ type Config struct{}
 func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
 	return []model.ConfigPatch{
 		retroarch.SharedConfig(store),
-		coreOverrideConfig(store),
 	}, nil
 }
 
@@ -46,16 +45,4 @@ func (c *Config) Symlinks(store model.StoreReader, resolver model.BaseDirResolve
 	return retroarch.CoreSymlinks(model.EmulatorIDRetroArchBsnes, store, resolver)
 }
 
-const (
-	libretroCoreName = "bsnes_libretro"
-	shortCoreName    = "bsnes"
-)
-
-func coreOverrideConfig(store model.StoreReader) model.ConfigPatch {
-	return model.ConfigPatch{
-		Target: retroarch.CoreOverrideTarget(shortCoreName),
-		Entries: []model.ConfigEntry{
-			{Path: []string{"rgui_browser_directory"}, Value: store.SystemRomsDir(model.SystemIDSNES)},
-		},
-	}
-}
+const libretroCoreName = "bsnes_libretro"

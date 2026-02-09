@@ -1,6 +1,6 @@
 // Package retroarch provides shared configuration for RetroArch cores.
 // All RetroArch cores use the same retroarch.cfg for base settings.
-// Per-core overrides handle system-specific paths like ROM browsers.
+// Per-core overrides handle core-specific paths like BIOS directories.
 // Symlinks redirect RetroArch's sorted directories to kyaraben's store.
 // See: https://docs.libretro.com/guides/change-directories/
 package retroarch
@@ -57,6 +57,7 @@ func SharedConfig(store model.StoreReader) model.ConfigPatch {
 			{Path: []string{"sort_savestates_enable"}, Value: "true"},
 			{Path: []string{"sort_savefiles_by_content_enable"}, Value: "false"},
 			{Path: []string{"sort_savestates_by_content_enable"}, Value: "false"},
+			{Path: []string{"rgui_browser_directory"}, Value: store.RomsDir(), Unmanaged: true},
 			{Path: []string{"menu_driver"}, Value: "rgui", Unmanaged: true},
 			{Path: []string{"menu_show_load_content_animation"}, Value: "false"},
 			{Path: []string{"notification_show_config_override_load"}, Value: "false"},
