@@ -27,6 +27,9 @@ export interface ProgressStep {
   readonly status: ProgressStepStatus
   readonly message?: string
   readonly output?: readonly string[]
+  readonly buildPhase?: string
+  readonly packageName?: string
+  readonly progressPercent?: number
 }
 
 export type ApplyStatus = 'idle' | 'reviewing' | 'applying' | 'success' | 'error' | 'cancelled'

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
 	"time"
 
@@ -11,6 +12,13 @@ import (
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/versions"
 )
+
+func retroArchCoreName(id model.EmulatorID) string {
+	if !strings.HasPrefix(string(id), "retroarch:") {
+		return ""
+	}
+	return strings.TrimPrefix(string(id), "retroarch:")
+}
 
 // EmulatorLookup provides access to emulator definitions.
 type EmulatorLookup interface {
@@ -559,4 +567,82 @@ func (fg *FlakeGenerator) GetResolvedFrontendVersions(frontendIDs []model.Fronte
 		result[feID] = entry.Version
 	}
 	return result
+}
+
+func (fg *FlakeGenerator) GetExpectedPackages(emulatorIDs []model.EmulatorID, frontendIDs []model.FrontendID) []ExpectedPackage {
+	var packages []ExpectedPackage
+	currentArch := getTargetTriple()
+
+	vers, err := versions.Get()
+	if err != nil {
+		return packages
+	}
+
+	for _, emuID := range emulatorIDs {
+		emu, err := fg.emulators.GetEmulator(emuID)
+		if err != nil {
+			continue
+		}
+
+		pkgName := emu.Package.PackageName()
+		displayName := emu.Name
+		var sizeBytes int64
+
+		if spec, ok := vers.GetEmulator(pkgName); ok {
+			if entry := spec.GetDefault(); entry != nil {
+				if target := entry.DefaultTargetForArch(currentArch); target != "" {
+					if build := entry.Target(target); build != nil && build.Size > 0 {
+						sizeBytes = build.Size
+					}
+				}
+			}
+		}
+
+		if coreName := retroArchCoreName(emuID); coreName != "" {
+			coreLookupName := strings.ReplaceAll(coreName, "-", "_")
+			coreSize := vers.GetCoreSize(coreLookupName)
+			if coreSize > 0 {
+				packages = append(packages, ExpectedPackage{
+					Name:        "libretro-" + coreName,
+					DisplayName: coreName + " (RetroArch)",
+					SizeBytes:   coreSize,
+				})
+			}
+		}
+
+		packages = append(packages, ExpectedPackage{
+			Name:        pkgName,
+			DisplayName: displayName,
+			SizeBytes:   sizeBytes,
+		})
+	}
+
+	for _, feID := range frontendIDs {
+		fe, err := fg.frontends.GetFrontend(feID)
+		if err != nil {
+			continue
+		}
+
+		pkgName := fe.Package.PackageName()
+		displayName := fe.Name
+		var sizeBytes int64
+
+		if spec, ok := vers.GetEmulator(pkgName); ok {
+			if entry := spec.GetDefault(); entry != nil {
+				if target := entry.DefaultTargetForArch(currentArch); target != "" {
+					if build := entry.Target(target); build != nil && build.Size > 0 {
+						sizeBytes = build.Size
+					}
+				}
+			}
+		}
+
+		packages = append(packages, ExpectedPackage{
+			Name:        pkgName,
+			DisplayName: displayName,
+			SizeBytes:   sizeBytes,
+		})
+	}
+
+	return packages
 }

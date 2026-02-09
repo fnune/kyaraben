@@ -90,7 +90,9 @@ export interface ProgressEvent {
   step: string;
   message: string;
   output?: string;
-  speed?: string;
+  buildPhase?: string;
+  packageName?: string;
+  progressPercent?: number /* int */;
 }
 export interface ApplyResult {
   success: boolean;

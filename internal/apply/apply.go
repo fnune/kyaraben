@@ -20,23 +20,12 @@ import (
 const nixBuildTimeout = 30 * time.Minute
 
 type Progress struct {
-	Step    string
-	Message string
-	Output  string // Optional streaming output line (e.g., from nix build)
-	Speed   string // Optional download speed (e.g., "12.3 MB/s")
-}
-
-func formatSpeed(bytesPerSec int64) string {
-	const unit = 1024
-	if bytesPerSec < unit {
-		return fmt.Sprintf("%d B/s", bytesPerSec)
-	}
-	div, exp := int64(unit), 0
-	for n := bytesPerSec / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %cB/s", float64(bytesPerSec)/float64(div), "KMGTPE"[exp])
+	Step            string
+	Message         string
+	Output          string // Optional streaming output line (e.g., from nix build)
+	BuildPhase      string // evaluating, installing
+	PackageName     string // Current package being processed
+	ProgressPercent int    // 0-100 progress percentage
 }
 
 type Result struct {
@@ -262,18 +251,24 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	resolvedVersions := a.FlakeGenerator.GetResolvedVersions(emulatorsToInstall)
 	resolvedFrontendVersions := a.FlakeGenerator.GetResolvedFrontendVersions(frontendsToInstall)
 
-	netMon := NewNetMonitor(func(bytesPerSec int64) {
-		if bytesPerSec > 1024 { // Only report if >1 KB/s
-			opts.OnProgress(Progress{Step: "build", Speed: formatSpeed(bytesPerSec)})
-		}
-	})
-	netMon.Start()
-	defer netMon.Stop()
+	expectedPackages := a.FlakeGenerator.GetExpectedPackages(emulatorsToInstall, frontendsToInstall)
+	a.NixClient.SetExpectedPackages(expectedPackages)
+	defer a.NixClient.SetExpectedPackages(nil)
 
 	a.NixClient.SetOutputCallback(func(line string) {
 		opts.OnProgress(Progress{Step: "build", Output: line})
 	})
 	defer a.NixClient.SetOutputCallback(nil)
+
+	a.NixClient.SetProgressCallback(func(p nix.BuildProgress) {
+		opts.OnProgress(Progress{
+			Step:            "build",
+			BuildPhase:      string(p.Phase),
+			PackageName:     p.PackageName,
+			ProgressPercent: p.ProgressPercent,
+		})
+	})
+	defer a.NixClient.SetProgressCallback(nil)
 
 	opts.OnProgress(Progress{Step: "build", Message: "This may take a while on first run"})
 

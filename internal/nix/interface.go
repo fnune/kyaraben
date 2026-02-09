@@ -30,6 +30,8 @@ type NixClient interface {
 	GetNixPortableBinary() string
 	GetNixPortableLocation() string
 	SetOutputCallback(fn func(line string))
+	SetProgressCallback(fn func(BuildProgress))
+	SetExpectedPackages(packages []ExpectedPackage)
 
 	GetPersistentNixPortablePath() string
 	EnsurePersistentNixPortable() (string, error)
