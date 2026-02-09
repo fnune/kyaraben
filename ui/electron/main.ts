@@ -601,7 +601,6 @@ process.on('unhandledRejection', (reason) => {
 
 // App lifecycle
 app.whenReady().then(() => {
-  Menu.setApplicationMenu(null)
   setupIpcHandlers()
   createWindow()
 
