@@ -44,6 +44,7 @@ What we won't do: full performance tuning, per-game settings, target-specific op
     - Is it a good idea to add text for users such as README.md files? Or any other more popular format?
     - What else can be improved?
 - Since we moved to the new style, contrast isn't great. It's not easy to tell which emulators are installed and which aren't, and disabled styles leave things with very low contrast.
+- Kyaraben shows the download size for each thing that's enabled. However, the full nix store created by kyaraben may exceed the size of the install shown to the user, because of the created Nix closure. How much bigger is it? How can we communicate this?
 - We add symlinks for emulator for which we can't configure routes
     - What should we do with those symlinks when Kyaraben uninstalls?
 - Garbage collection: nix store grows unbounded, need a way to trigger cleanup via nix-portable and show space freed
