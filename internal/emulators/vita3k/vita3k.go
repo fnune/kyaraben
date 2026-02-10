@@ -17,13 +17,10 @@ func (Definition) Emulator() model.Emulator {
 		Package: model.AppImageRef("vita3k"),
 		ProvisionGroups: []model.ProvisionGroup{{
 			MinRequired: 1,
-			Message:     "PS Vita firmware required",
-			Provisions: []model.Provision{{
-				Kind:        model.ProvisionFirmware,
-				Filename:    "PSVUPDAT.PUP",
-				Description: "Official firmware",
-				ImportViaUI: true,
-			}},
+			Message:     "Firmware required (provides system libraries and OS)",
+			Provisions: []model.Provision{
+				model.FileProvision(model.ProvisionFirmware, "PSVUPDAT.PUP", "Official firmware").WithImportViaUI(),
+			},
 		}},
 		StateKinds: []model.StateKind{
 			model.StateSaves,
@@ -57,19 +54,11 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 
 type Config struct{}
 
-// LaunchArgs implements model.LaunchArgsProvider.
-// Vita3K's -c flag sets the config/data location where all emulator data is stored.
 func (c *Config) LaunchArgs(store model.StoreReader) []string {
 	return []string{"-c", store.EmulatorOpaqueDir(model.EmulatorIDVita3K)}
 }
 
 func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	// With -c flag, Vita3K stores everything in the specified directory:
-	// - Config at <dir>/config.yml
-	// - Vita ux0 data at <dir>/ux0/
-	// - Screenshots at <dir>/screenshots/
-	//
-	// The config file is created automatically, but we can set preferences.
 	opaqueDir := store.EmulatorOpaqueDir(model.EmulatorIDVita3K)
 
 	configTarget := model.ConfigTarget{

@@ -23,33 +23,9 @@ func (Definition) Emulator() model.Emulator {
 			MinRequired: 0,
 			Message:     "GameCube IPL (optional, enables boot animation and system fonts)",
 			Provisions: []model.Provision{
-				{
-					Kind:        model.ProvisionBIOS,
-					Filename:    "usa/ipl.bin",
-					Description: "USA",
-					Hashes: []string{
-						"6dac1f2a14f659a1a7fbf749892b4e41",
-						"019e39822a9ca3029124f74dd4d55ac4",
-					},
-				},
-				{
-					Kind:        model.ProvisionBIOS,
-					Filename:    "eur/ipl.bin",
-					Description: "Europe",
-					Hashes: []string{
-						"db92574caab77a7ec99d4605fd6f2450",
-						"0cdda509e2da83c85bfe423dd87346cc",
-					},
-				},
-				{
-					Kind:        model.ProvisionBIOS,
-					Filename:    "jap/ipl.bin",
-					Description: "Japan",
-					Hashes: []string{
-						"fc924a7c879b661abc37cec4f018fdf3",
-						"81df278301dc7bdf57bb760d7393ab4d",
-					},
-				},
+				model.HashedProvision(model.ProvisionBIOS, "usa/ipl.bin", "USA", []string{"6dac1f2a14f659a1a7fbf749892b4e41", "019e39822a9ca3029124f74dd4d55ac4"}),
+				model.HashedProvision(model.ProvisionBIOS, "eur/ipl.bin", "Europe", []string{"db92574caab77a7ec99d4605fd6f2450", "0cdda509e2da83c85bfe423dd87346cc"}),
+				model.HashedProvision(model.ProvisionBIOS, "jap/ipl.bin", "Japan", []string{"fc924a7c879b661abc37cec4f018fdf3", "81df278301dc7bdf57bb760d7393ab4d"}),
 			},
 		}},
 		StateKinds: []model.StateKind{

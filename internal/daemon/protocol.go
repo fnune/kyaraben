@@ -80,9 +80,8 @@ type InstalledFrontend struct {
 	Version string           `json:"version"`
 }
 
-// DoctorResponse uses map[string] because tygo can't generate valid TypeScript
-// for map[EmulatorID] (index signatures don't support union types).
-// The TypeScript type is manually defined as Record<EmulatorID, ProvisionResult[]>.
+// DoctorResponse maps "systemId:emulatorId" to provisions for that system/emulator pair.
+// Uses map[string] because tygo can't generate valid TypeScript for union index types.
 type DoctorResponse map[string][]ProvisionResult
 
 type ProvisionResult struct {
@@ -97,6 +96,8 @@ type ProvisionResult struct {
 	GroupRequired  bool   `json:"groupRequired"`
 	GroupSatisfied bool   `json:"groupSatisfied"`
 	GroupSize      int    `json:"groupSize"`
+	DisplayName    string `json:"displayName"`
+	Instructions   string `json:"instructions,omitempty"`
 }
 
 type ProgressEvent struct {

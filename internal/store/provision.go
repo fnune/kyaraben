@@ -1,14 +1,6 @@
 package store
 
 import (
-	"crypto/md5"
-	"encoding/hex"
-	"fmt"
-	"io"
-	"os"
-	"path/filepath"
-	"strings"
-
 	"github.com/fnune/kyaraben/internal/model"
 )
 
@@ -25,14 +17,16 @@ func (pc *ProvisionChecker) Check(emu model.Emulator, sys model.SystemID) []mode
 	results := make([]model.ProvisionGroupResult, 0, len(emu.ProvisionGroups))
 
 	for _, group := range emu.ProvisionGroups {
-		result := pc.checkGroup(group, biosDir)
-		results = append(results, result)
+		result := pc.checkGroup(group, biosDir, sys)
+		if len(result.Results) > 0 {
+			results = append(results, result)
+		}
 	}
 
 	return results
 }
 
-func (pc *ProvisionChecker) checkGroup(group model.ProvisionGroup, biosDir string) model.ProvisionGroupResult {
+func (pc *ProvisionChecker) checkGroup(group model.ProvisionGroup, biosDir string, sys model.SystemID) model.ProvisionGroupResult {
 	result := model.ProvisionGroupResult{
 		Group:      group,
 		Results:    make([]model.ProvisionResult, 0, len(group.Provisions)),
@@ -41,7 +35,16 @@ func (pc *ProvisionChecker) checkGroup(group model.ProvisionGroup, biosDir strin
 	}
 
 	for _, prov := range group.Provisions {
-		provResult := pc.checkProvision(prov, biosDir)
+		if !prov.AppliesToSystem(sys) {
+			continue
+		}
+		checkResult := prov.Check(biosDir)
+		provResult := model.ProvisionResult{
+			Provision:  prov,
+			Status:     checkResult.Status,
+			FoundPath:  checkResult.FoundPath,
+			ActualHash: checkResult.ActualHash,
+		}
 		result.Results = append(result.Results, provResult)
 		if provResult.Status == model.ProvisionFound {
 			result.Satisfied++
@@ -53,67 +56,6 @@ func (pc *ProvisionChecker) checkGroup(group model.ProvisionGroup, biosDir strin
 	return result
 }
 
-func (pc *ProvisionChecker) checkProvision(prov model.Provision, biosDir string) model.ProvisionResult {
-	result := model.ProvisionResult{
-		Provision: prov,
-		Status:    model.ProvisionMissing,
-	}
-
-	// Glob pattern matching (e.g., *.nca) - searches directly in biosDir
-	if prov.FilePattern != "" {
-		pattern := filepath.Join(biosDir, prov.FilePattern)
-		matches, err := filepath.Glob(pattern)
-		if err == nil && len(matches) > 0 {
-			result.Status = model.ProvisionFound
-			result.FoundPath = biosDir
-		}
-		return result
-	}
-
-	filePath := filepath.Join(biosDir, prov.Filename)
-
-	// Case-insensitive filename matching
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		entries, _ := os.ReadDir(biosDir)
-		for _, entry := range entries {
-			if strings.EqualFold(entry.Name(), prov.Filename) {
-				filePath = filepath.Join(biosDir, entry.Name())
-				break
-			}
-		}
-	}
-
-	info, err := os.Stat(filePath)
-	if err != nil || info.IsDir() {
-		return result
-	}
-
-	result.FoundPath = filePath
-
-	if len(prov.Hashes) == 0 {
-		result.Status = model.ProvisionFound
-		return result
-	}
-
-	hash, err := md5File(filePath)
-	if err != nil {
-		result.Status = model.ProvisionInvalid
-		return result
-	}
-
-	result.ActualHash = hash
-
-	for _, validHash := range prov.Hashes {
-		if strings.EqualFold(hash, validHash) {
-			result.Status = model.ProvisionFound
-			return result
-		}
-	}
-
-	result.Status = model.ProvisionInvalid
-	return result
-}
-
 func HasUnsatisfiedRequired(results []model.ProvisionGroupResult) bool {
 	for _, r := range results {
 		if r.IsRequired && !r.IsSatisfied {
@@ -121,19 +63,4 @@ func HasUnsatisfiedRequired(results []model.ProvisionGroupResult) bool {
 		}
 	}
 	return false
-}
-
-func md5File(path string) (string, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return "", fmt.Errorf("opening file: %w", err)
-	}
-	defer func() { _ = f.Close() }()
-
-	h := md5.New()
-	if _, err := io.Copy(h, f); err != nil {
-		return "", fmt.Errorf("hashing file: %w", err)
-	}
-
-	return hex.EncodeToString(h.Sum(nil)), nil
 }

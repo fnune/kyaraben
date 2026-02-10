@@ -23,30 +23,23 @@ func (Definition) Emulator() model.Emulator {
 			{
 				MinRequired: 1,
 				Message:     "Decryption keys required",
-				Provisions: []model.Provision{{
-					Kind:        model.ProvisionKeys,
-					Filename:    "prod.keys",
-					Description: "Production keys",
-				}},
+				Provisions: []model.Provision{
+					model.FileProvision(model.ProvisionKeys, "prod.keys", "Production keys"),
+				},
 			},
 			{
 				MinRequired: 0,
 				Message:     "Title keys (optional, for DLC and updates)",
-				Provisions: []model.Provision{{
-					Kind:        model.ProvisionKeys,
-					Filename:    "title.keys",
-					Description: "Title keys",
-				}},
+				Provisions: []model.Provision{
+					model.FileProvision(model.ProvisionKeys, "title.keys", "Title keys"),
+				},
 			},
 			{
 				MinRequired: 0,
 				Message:     "Firmware (optional, enables system applets)",
-				Provisions: []model.Provision{{
-					Kind:        model.ProvisionFirmware,
-					Filename:    "*.nca files",
-					FilePattern: "*.nca",
-					Description: "Place firmware *.nca files in this directory",
-				}},
+				Provisions: []model.Provision{
+					model.PatternProvision(model.ProvisionFirmware, "*.nca", "firmware NCA", "Switch firmware"),
+				},
 			},
 		},
 		StateKinds: []model.StateKind{

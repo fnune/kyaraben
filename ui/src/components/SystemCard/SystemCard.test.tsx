@@ -88,7 +88,7 @@ describe('SystemCard', () => {
 
   it('renders provision status when provisions exist', () => {
     const provisions: DoctorResponse = {
-      'retroarch:bsnes': [
+      'snes:retroarch:bsnes': [
         {
           filename: 'bios.bin',
           kind: 'bios',
@@ -97,6 +97,8 @@ describe('SystemCard', () => {
           groupRequired: true,
           groupSatisfied: false,
           groupSize: 1,
+          displayName: 'bios.bin',
+          instructions: 'Place bios.bin in this directory',
         },
       ],
     }
