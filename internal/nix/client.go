@@ -506,3 +506,28 @@ func (c *Client) FlakeCheck(ctx context.Context, flakePath string) error {
 
 	return nil
 }
+
+// GarbageCollect removes unreferenced store paths to free disk space.
+func (c *Client) GarbageCollect(ctx context.Context) error {
+	log.Info("Running nix garbage collection...")
+
+	args := []string{
+		"store",
+		"gc",
+	}
+
+	fullArgs, opts, err := c.prepareNixRun(args)
+	if err != nil {
+		return err
+	}
+
+	var stderr bytes.Buffer
+	opts.Stderr = io.MultiWriter(&stderr, os.Stderr, logging.Writer())
+
+	if err := c.runner.Run(ctx, c.NixPortableBinary, fullArgs, opts); err != nil {
+		return fmt.Errorf("nix store gc failed: %w\nstderr: %s", err, stderr.String())
+	}
+
+	log.Info("Garbage collection completed")
+	return nil
+}

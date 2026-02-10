@@ -126,5 +126,9 @@ func (f *FakeClient) EnsurePersistentNixPortable() (string, error) {
 	return f.GetPersistentNixPortablePath(), nil
 }
 
+func (f *FakeClient) GarbageCollect(ctx context.Context) error {
+	return nil
+}
+
 // Ensure FakeClient implements NixClient.
 var _ NixClient = (*FakeClient)(nil)

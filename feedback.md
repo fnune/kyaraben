@@ -42,6 +42,8 @@ What we won't do: full performance tuning, per-game settings, target-specific op
         download>                                  Dload  Upload   Total   Spent    Left  Speed
         ```
     - While unzipping retroarch cores, it says "Installing Flycast" (or some other emu -> parsing for unzipping retroarch cores is broken)
+    - The new `gc` step doesn't look great in the UI but it works fine
+        - CRITICAL: `gc` broke things completely, it's e.g. removing retroarch and Eden
 - Cemu says it has required provisions but games launch fine: investigate whether the provision check is wrong or if Cemu has fallback behavior
 - Provisions that require importing things via UI will always remain incomplete: need a way to check that they're working. How might we detect this?
 - Add a "Disable all systems" button for convenience
