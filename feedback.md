@@ -28,6 +28,7 @@ What we won't do: full performance tuning, per-game settings, target-specific op
 - DLC, patches and updates directory layout: similar to cheats, figure out folder structure for user-provided DLC and game updates. This could help solve the provision problem where some files must be imported via emulator UI (e.g., Cemu keys.txt, 3DS system files). If kyaraben manages these directories, we could check for installed content. Wii U title structure: 00050000 (games), 0005000c (DLC), 0005000e (patches) per WiiUBrew
 - Eden provision summary display: when optional provisions are satisfied (e.g., firmware found), the "(1 optional)" text shows in yellow instead of green. Should satisfied optional provisions show as green?
 - Provision summary in the systems list: the clickable area does not span the whole width of the bar. Clickable items within it that don't open the provisions modal should have stoppropagation or similar, but the whole bar should be clickable to open the provisions modal.
+- Reinstalling on uninstall: things seem to be reinstalled even when changing config to exclude an already-installed package. For example, ES-DE was redownloaded when it should have just been removed. Is this because changing the flake reference triggers a full rebuild?
 
 ## Important
 
