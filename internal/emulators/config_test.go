@@ -652,23 +652,51 @@ func TestEdenGenerate(t *testing.T) {
 		t.Errorf("expected INI format, got %s", patch.Target.Format)
 	}
 
-	// Eden now uses -r CLI arg to set root data directory, so config is inside opaque dir
-	if patch.Target.BaseDir != model.ConfigBaseDirOpaqueDir {
-		t.Errorf("expected opaque dir base dir, got %s", patch.Target.BaseDir)
+	if patch.Target.BaseDir != model.ConfigBaseDirUserConfig {
+		t.Errorf("expected user config base dir, got %s", patch.Target.BaseDir)
 	}
 
-	if !strings.Contains(patch.Target.RelPath, "opaque/eden") {
-		t.Errorf("expected RelPath to contain 'opaque/eden', got %s", patch.Target.RelPath)
+	if patch.Target.RelPath != "eden/qt-config.ini" {
+		t.Errorf("expected RelPath 'eden/qt-config.ini', got %s", patch.Target.RelPath)
 	}
+}
 
-	// Test LaunchArgsProvider interface
-	provider, ok := gen.(model.LaunchArgsProvider)
+func TestEdenSymlinks(t *testing.T) {
+	store := &fakeStoreReader{root: "/emulation"}
+	resolver := fakeBaseDirResolver{root: "/home/user"}
+	gen := eden.Definition{}.ConfigGenerator()
+
+	provider, ok := gen.(model.SymlinkProvider)
 	if !ok {
-		t.Fatal("Eden config generator should implement LaunchArgsProvider")
+		t.Fatal("Eden config generator should implement SymlinkProvider")
 	}
-	args := provider.LaunchArgs(store)
-	if len(args) != 2 || args[0] != "-r" {
-		t.Errorf("expected LaunchArgs to return [-r, <path>], got %v", args)
+
+	specs, err := provider.Symlinks(store, resolver)
+	if err != nil {
+		t.Fatalf("Symlinks() error = %v", err)
+	}
+
+	if len(specs) != 4 {
+		t.Fatalf("expected 4 symlink specs, got %d", len(specs))
+	}
+
+	expectedSources := map[string]bool{
+		"/home/user/.local/share/eden/keys":                            false,
+		"/home/user/.local/share/eden/nand/system/Contents/registered": false,
+		"/home/user/.local/share/eden/screenshots":                     false,
+		"/home/user/.local/share/eden/nand/user/save":                  false,
+	}
+
+	for _, spec := range specs {
+		if _, ok := expectedSources[spec.Source]; ok {
+			expectedSources[spec.Source] = true
+		}
+	}
+
+	for source, found := range expectedSources {
+		if !found {
+			t.Errorf("expected symlink source %q not found", source)
+		}
 	}
 }
 

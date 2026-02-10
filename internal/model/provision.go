@@ -24,6 +24,9 @@ type Provision struct {
 	Filename    string   // Canonical filename (for display and lookup)
 	Description string   // Short label like "USA", "ARM7", "IPL"
 	Hashes      []string // Valid MD5 hashes for this file
+	// FilePattern is a glob pattern (e.g., "*.nca"). When set, Filename is treated
+	// as a directory and the provision is satisfied if any files match the pattern.
+	FilePattern string
 	// ImportViaUI indicates that this provision must be imported through the
 	// emulator's settings UI rather than being placed in a folder.
 	ImportViaUI bool
