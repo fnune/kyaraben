@@ -16,7 +16,32 @@ What we won't do: full performance tuning, per-game settings, target-specific op
 ## Low-hanging fruit
 
 - Refactor Provision struct: Filename, Hashes, and FilePattern are mutually exclusive validation strategies but modeled as optional fields on the same struct. Consider an interface or union type: `FilenameProvision` (just check file exists), `HashedProvision` (check file exists with valid hash), `DirectoryProvision` (check directory contains files matching a glob pattern like `*.nca`). This would make the validation logic cleaner and prevent invalid combinations.
-- Pipe nix output through `https://github.com/maralorn/nix-output-monitor` for more user-readable progress indication
+- Nix build progress indication: we implemented a basic progress parser but it has limitations:
+  - Nix builds happen in multiple waves (dependencies first, then actual packages) with separate "these N derivations will be built" announcements, making counts misleading
+  - The closure contains many packages users don't care about (build tools, libraries) - ~400 deps before the actual emulators
+  - Current approach shows counts that go backwards or exceed totals due to multi-wave builds
+  - Consider: (1) remove counts entirely, just show phase, (2) filter to only show known emulator/frontend package names, (3) investigate nix-output-monitor integration
+  - Related: the closure size could potentially be reduced by ensuring cores are fetched from cache rather than built. libretro-genesis-plus-gx builds from source which is slow
+  - New progress says `Installing RetroArch (Genesis Plus GX)...` but we now fetch all cores at once, so this is wrong
+      - Output is:
+        ```
+        building '~/.local/state/kyaraben/f5hn0w6alhdxq0vk04w5h3pvzsbk4am5-RetroArch.7z.drv'...
+        RetroArch.7z> trying https://buildbot.libretro.com/stable/1.22.2/linux/x86_64/RetroArch.7z
+        RetroArch.7z>   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+        RetroArch.7z>                                  Dload  Upload   Total   Spent    Left  Speed
+        RetroArch.7z> 100 171.0M 100 171.0M   0     0 10912k     0   0:00:16  0:00:16 --:--:-- 11213k
+        building '~/.local/state/kyaraben/jfsjifzawibxz04z9vzjbffflksk15i9-RetroArch_cores.7z.drv'...
+        RetroArch_cores.7z> trying https://buildbot.libretro.com/stable/1.22.2/linux/x86_64/RetroArch_cores.7z
+        RetroArch_cores.7z>   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+        RetroArch_cores.7z>                                  Dload  Upload   Total   Spent    Left  Speed
+        ```
+    - Progress says Installing Azahar while it's actually installing ESDE:
+        ```
+        download> trying https://gitlab.com/es-de/emulationstation-de/-/package_files/246875981/download
+        download>   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+        download>                                  Dload  Upload   Total   Spent    Left  Speed
+        ```
+    - While unzipping retroarch cores, it says "Installing Flycast" (or some other emu -> parsing for unzipping retroarch cores is broken)
 - Cemu says it has required provisions but games launch fine: investigate whether the provision check is wrong or if Cemu has fallback behavior
 - Provisions that require importing things via UI will always remain incomplete: need a way to check that they're working. How might we detect this?
 - Add a "Disable all systems" button for convenience
