@@ -299,7 +299,14 @@ async function applyCommand(): Promise<{ messages: string[]; cancelled: boolean 
 
     const handleEvent = (event: DaemonEvent) => {
       if (event.type === 'progress') {
-        const data = event.data as { step?: string; message?: string; output?: string }
+        const data = event.data as {
+          step?: string
+          message?: string
+          output?: string
+          buildPhase?: string
+          packageName?: string
+          progressPercent?: number
+        }
         const msg = data?.message
         if (msg) messages.push(msg)
 
@@ -310,6 +317,9 @@ async function applyCommand(): Promise<{ messages: string[]; cancelled: boolean 
               step: data?.step ?? 'unknown',
               message: msg ?? '',
               output: data?.output,
+              buildPhase: data?.buildPhase,
+              packageName: data?.packageName,
+              progressPercent: data?.progressPercent,
             })
           } catch (sendErr) {
             console.error('[kyaraben] Failed to send progress:', sendErr)

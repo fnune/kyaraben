@@ -101,10 +101,12 @@ type ProvisionResult struct {
 }
 
 type ProgressEvent struct {
-	Step    string `json:"step"`
-	Message string `json:"message"`
-	Output  string `json:"output,omitempty"`
-	Speed   string `json:"speed,omitempty"`
+	Step            string `json:"step"`
+	Message         string `json:"message"`
+	Output          string `json:"output,omitempty"`
+	BuildPhase      string `json:"buildPhase,omitempty"`
+	PackageName     string `json:"packageName,omitempty"`
+	ProgressPercent int    `json:"progressPercent,omitempty"`
 }
 
 type ApplyResult struct {

@@ -64,7 +64,14 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
 
     const MAX_OUTPUT_LINES = 10000
 
-    const progressHandler = (data: { step: string; message?: string; output?: string }) => {
+    const progressHandler = (data: {
+      step: string
+      message?: string
+      output?: string
+      buildPhase?: string
+      packageName?: string
+      progressPercent?: number
+    }) => {
       setProgressSteps((prev) => {
         const existing = prev.find((s) => s.id === data.step)
         const isNewStep = !existing
@@ -94,6 +101,9 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
               ...(data.output && {
                 output: [...(s.output ?? []), data.output].slice(-MAX_OUTPUT_LINES),
               }),
+              ...(data.buildPhase && { buildPhase: data.buildPhase }),
+              ...(data.packageName && { packageName: data.packageName }),
+              ...(data.progressPercent !== undefined && { progressPercent: data.progressPercent }),
             }
           }
           if (isNewStep && s.status === 'in_progress') {
