@@ -41,7 +41,7 @@ export function StickyActionBar({
 
   return (
     <BottomBar>
-      <div className="flex items-center gap-4 text-sm min-w-0">
+      <div className="flex items-center gap-4 text-sm min-w-0 overflow-hidden">
         {changeGroups.length > 0 && (
           <div className="flex items-center gap-3 min-w-0">
             {changeGroups.map(({ type, items }) => {
