@@ -17,7 +17,7 @@ func (Definition) Emulator() model.Emulator {
 		Package: model.AppImageRef("eden"),
 		// Eden copies keys to ~/.local/share/eden/keys/ on import (just a file copy).
 		// See: https://gitlab.com/codxjb/eden/-/blob/master/src/yuzu/main.cpp#L4353
-		// Firmware is copied to nand/system/Contents/registered/ as .nca files.
+		// Firmware is copied to nand/system/Contents/registered/ as *.nca files.
 		// See: https://gitlab.com/codxjb/eden/-/blob/master/src/yuzu/main.cpp#L4216
 		ProvisionGroups: []model.ProvisionGroup{
 			{
@@ -45,7 +45,7 @@ func (Definition) Emulator() model.Emulator {
 					Kind:        model.ProvisionFirmware,
 					Filename:    "*.nca files",
 					FilePattern: "*.nca",
-					Description: "Place firmware .nca files in this directory",
+					Description: "Place firmware *.nca files in this directory",
 				}},
 			},
 		},
@@ -105,7 +105,7 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 // Symlinks implements model.SymlinkProvider.
 // Eden uses XDG directories by default. We symlink:
 // - keys/ -> bios/switch/ (keys are .keys files)
-// - nand/system/Contents/registered/ -> bios/switch/ (firmware .nca files coexist with keys)
+// - nand/system/Contents/registered/ -> bios/switch/ (firmware *.nca files coexist with keys)
 // - screenshots/ -> screenshots/eden/
 // - nand/user/save/ -> saves/switch/ (game saves are in user NAND)
 func (c *Config) Symlinks(store model.StoreReader, resolver model.BaseDirResolver) ([]model.SymlinkSpec, error) {

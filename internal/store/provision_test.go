@@ -264,7 +264,7 @@ func TestProvisionCheckerFilePattern(t *testing.T) {
 
 	results = checker.Check(emu, model.SystemIDSwitch)
 	if results[0].Results[0].Status != model.ProvisionFound {
-		t.Error("Bios directory with .nca files should be found")
+		t.Error("Bios directory with *.nca files should be found")
 	}
 	if results[0].Results[0].FoundPath != biosDir {
 		t.Errorf("Expected FoundPath %s, got %s", biosDir, results[0].Results[0].FoundPath)
