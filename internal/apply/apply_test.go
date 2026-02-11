@@ -3,6 +3,7 @@ package apply
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -43,6 +44,7 @@ func TestMain(m *testing.M) {
 type mockNixClient struct {
 	storePath string
 	flakePath string
+	gcError   error
 }
 
 func (m *mockNixClient) IsAvailable() bool { return true }
@@ -71,7 +73,7 @@ func (m *mockNixClient) GetPersistentNixPortablePath() string                   
 func (m *mockNixClient) GetNixPortableBinary() string                            { return "" }
 func (m *mockNixClient) GetNixPortableLocation() string                          { return "" }
 func (m *mockNixClient) RealStorePath(path string) string                        { return path }
-func (m *mockNixClient) GarbageCollect(ctx context.Context) error                { return nil }
+func (m *mockNixClient) GarbageCollect(ctx context.Context) error                { return m.gcError }
 
 func TestUnmanagedEntriesExcludedFromManifest(t *testing.T) {
 	tmpDir := t.TempDir()
@@ -353,5 +355,71 @@ func TestApplyCreatesSymlinksForSymlinkProviders(t *testing.T) {
 		if !found {
 			t.Errorf("Expected symlink source %q not found", source)
 		}
+	}
+}
+
+func TestApplySucceedsWhenGCFails(t *testing.T) {
+	tmpDir := t.TempDir()
+	manifestPath := filepath.Join(tmpDir, "manifest.json")
+	userStorePath := filepath.Join(tmpDir, "Emulation")
+	flakePath := filepath.Join(tmpDir, "flake")
+
+	if err := os.MkdirAll(flakePath, 0755); err != nil {
+		t.Fatalf("Failed to create flake dir: %v", err)
+	}
+
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{
+			UserStore: userStorePath,
+		},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDGBA: {model.EmulatorIDMGBA},
+		},
+	}
+
+	reg := registry.NewDefault()
+	userStore, err := store.NewUserStore(userStorePath)
+	if err != nil {
+		t.Fatalf("Failed to create user store: %v", err)
+	}
+
+	flakeGen := nix.NewFlakeGenerator(reg, reg)
+	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
+
+	var progressSteps []Progress
+	applier := &Applier{
+		NixClient: &mockNixClient{
+			storePath: "/nix/store/test-path",
+			flakePath: flakePath,
+			gcError:   fmt.Errorf("nix store gc failed: Operation not permitted"),
+		},
+		FlakeGenerator:  flakeGen,
+		ConfigWriter:    configWriter,
+		Registry:        reg,
+		ManifestPath:    manifestPath,
+		BaseDirResolver: fakeBaseDirResolver{root: tmpDir},
+	}
+
+	_, err = applier.Apply(context.Background(), cfg, userStore, Options{
+		OnProgress: func(p Progress) {
+			progressSteps = append(progressSteps, p)
+		},
+	})
+	if err != nil {
+		t.Fatalf("Apply should succeed even when GC fails, got: %v", err)
+	}
+
+	var gcSteps []Progress
+	for _, p := range progressSteps {
+		if p.Step == "gc" {
+			gcSteps = append(gcSteps, p)
+		}
+	}
+
+	if len(gcSteps) != 2 {
+		t.Fatalf("Expected 2 gc progress events, got %d", len(gcSteps))
+	}
+	if gcSteps[1].Message == "" {
+		t.Error("GC failure should report a message")
 	}
 }
