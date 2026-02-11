@@ -35,6 +35,9 @@ type NixClient interface {
 
 	GetPersistentNixPortablePath() string
 	EnsurePersistentNixPortable() (string, error)
+
+	// GarbageCollect removes unreferenced store paths to free disk space.
+	GarbageCollect(ctx context.Context) error
 }
 
 func (c *Client) GetFlakePath() string {
