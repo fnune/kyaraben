@@ -13,7 +13,7 @@ export function Input({ value, onChange, placeholder, disabled }: InputProps) {
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       disabled={disabled}
-      className="block w-full rounded-md border-gray-600 bg-gray-700 text-gray-100 placeholder-gray-500 shadow-xs focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
+      className="block w-full rounded-control border-outline-strong bg-surface-raised text-on-surface placeholder-on-surface-dim shadow-xs focus:border-accent focus:ring-accent px-3 py-2 border font-mono"
     />
   )
 }

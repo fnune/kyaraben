@@ -49,21 +49,21 @@ export function ApplyProgressBar({ currentView, onNavigateToSystems }: ApplyProg
   return (
     <BottomBarPortal>
       <div
-        className={`bg-gray-800/95 backdrop-blur-sm border-t border-gray-700 px-6 ${BOTTOM_BAR_HEIGHT} flex items-center`}
+        className={`bg-surface-alt/95 backdrop-blur-sm border-t border-outline px-6 ${BOTTOM_BAR_HEIGHT} flex items-center`}
       >
         <div className="flex-1 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm text-gray-300 truncate max-w-md">
+            <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm text-on-surface-secondary truncate max-w-md">
               {label}
-              {detail && <span className="text-gray-500 ml-2">— {detail}</span>}
+              {detail && <span className="text-on-surface-dim ml-2">— {detail}</span>}
             </span>
           </div>
           <div className="flex items-center gap-4">
             <button
               type="button"
               onClick={handleOpenLog}
-              className="text-gray-400 hover:text-gray-300 hover:underline text-sm"
+              className="text-on-surface-muted hover:text-on-surface-secondary hover:underline text-sm"
             >
               Open log in terminal
             </button>
@@ -71,7 +71,7 @@ export function ApplyProgressBar({ currentView, onNavigateToSystems }: ApplyProg
               type="button"
               onClick={handleCancel}
               disabled={cancelling}
-              className={`text-sm ${cancelling ? 'text-gray-500 cursor-not-allowed' : confirmingCancel ? 'text-red-400 hover:text-red-300 hover:underline' : 'text-gray-400 hover:text-gray-300 hover:underline'}`}
+              className={`text-sm ${cancelling ? 'text-on-surface-dim cursor-not-allowed' : confirmingCancel ? 'text-status-error hover:text-status-error hover:underline' : 'text-on-surface-muted hover:text-on-surface-secondary hover:underline'}`}
             >
               {cancelling ? 'Canceling...' : confirmingCancel ? 'Confirm cancel' : 'Cancel'}
             </button>
@@ -79,7 +79,7 @@ export function ApplyProgressBar({ currentView, onNavigateToSystems }: ApplyProg
               <button
                 type="button"
                 onClick={onNavigateToSystems}
-                className="text-blue-400 hover:text-blue-300 hover:underline text-sm"
+                className="text-accent hover:text-accent-hover hover:underline text-sm"
               >
                 View progress
               </button>

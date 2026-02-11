@@ -242,7 +242,7 @@ export function SystemsView({
               <button
                 type="button"
                 onClick={handleOpenLog}
-                className="text-gray-400 hover:text-gray-300 hover:underline text-sm"
+                className="text-on-surface-muted hover:text-on-surface-secondary hover:underline text-sm"
               >
                 Open log in terminal
               </button>
@@ -261,7 +261,9 @@ export function SystemsView({
       {frontends.length > 0 && (
         <>
           <div className="mt-6">
-            <span className="text-sm font-medium text-gray-300">Frontends</span>
+            <span className="text-xs font-semibold text-on-surface-dim uppercase tracking-widest">
+              Frontends
+            </span>
           </div>
           <div className="space-y-3 mt-3">
             {frontends.map((frontend) => (
@@ -280,11 +282,13 @@ export function SystemsView({
       )}
 
       <div className="mt-6 flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-300">Systems</span>
+        <span className="text-xs font-semibold text-on-surface-dim uppercase tracking-widest">
+          Systems
+        </span>
         <button
           type="button"
           onClick={onEnableAll}
-          className="text-sm text-blue-400 hover:text-blue-300"
+          className="text-sm text-accent hover:text-accent-hover"
           title="Enable all systems with their default emulators"
         >
           Enable all systems
@@ -294,7 +298,7 @@ export function SystemsView({
       <div className="space-y-8 mt-6">
         {groupedSystems.map(([manufacturer, manufacturerSystems]) => (
           <section key={manufacturer}>
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+            <h2 className="font-heading text-sm font-semibold text-on-surface-dim uppercase tracking-widest mb-3 border-l-2 border-accent pl-2">
               {manufacturer}
             </h2>
             <div className="space-y-4">

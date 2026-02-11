@@ -49,32 +49,34 @@ export class ErrorBoundary extends Component<Props, State> {
       const { error, errorInfo } = this.state
 
       return (
-        <div className="min-h-screen bg-red-50 p-8">
+        <div className="min-h-screen bg-status-error/5 p-8">
           <div className="max-w-3xl mx-auto">
-            <h1 className="text-2xl font-bold text-red-800 mb-4">Something went wrong</h1>
+            <h1 className="text-2xl font-bold text-status-error mb-4">Something went wrong</h1>
 
-            <div className="bg-white border border-red-200 rounded-lg p-4 mb-4">
-              <h2 className="font-semibold text-red-700 mb-2">Error message</h2>
-              <pre className="text-sm text-red-600 whitespace-pre-wrap wrap-break-word">
+            <div className="bg-surface border border-status-error/30 rounded-card p-4 mb-4">
+              <h2 className="font-semibold text-status-error mb-2">Error message</h2>
+              <pre className="text-sm text-status-error/80 whitespace-pre-wrap wrap-break-word">
                 {error?.message}
               </pre>
             </div>
 
             {error?.stack && (
-              <details className="bg-white border border-red-200 rounded-lg p-4 mb-4">
-                <summary className="font-semibold text-red-700 cursor-pointer">Stack trace</summary>
-                <pre className="mt-2 text-xs text-gray-700 whitespace-pre-wrap wrap-break-word overflow-auto max-h-64">
+              <details className="bg-surface border border-status-error/30 rounded-card p-4 mb-4">
+                <summary className="font-semibold text-status-error cursor-pointer">
+                  Stack trace
+                </summary>
+                <pre className="mt-2 text-xs text-on-surface-muted whitespace-pre-wrap wrap-break-word overflow-auto max-h-64">
                   {error.stack}
                 </pre>
               </details>
             )}
 
             {errorInfo?.componentStack && (
-              <details className="bg-white border border-red-200 rounded-lg p-4 mb-4">
-                <summary className="font-semibold text-red-700 cursor-pointer">
+              <details className="bg-surface border border-status-error/30 rounded-card p-4 mb-4">
+                <summary className="font-semibold text-status-error cursor-pointer">
                   Component stack
                 </summary>
-                <pre className="mt-2 text-xs text-gray-700 whitespace-pre-wrap wrap-break-word overflow-auto max-h-64">
+                <pre className="mt-2 text-xs text-on-surface-muted whitespace-pre-wrap wrap-break-word overflow-auto max-h-64">
                   {errorInfo.componentStack}
                 </pre>
               </details>
@@ -84,14 +86,14 @@ export class ErrorBoundary extends Component<Props, State> {
               <button
                 type="button"
                 onClick={this.handleReload}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                className="px-4 py-2 bg-status-error text-white rounded-control hover:bg-status-error/90"
               >
                 Reload app
               </button>
               <button
                 type="button"
                 onClick={this.handleCopyError}
-                className="px-4 py-2 border border-red-300 text-red-700 rounded-md hover:bg-red-100"
+                className="px-4 py-2 border border-status-error/30 text-status-error rounded-control hover:bg-status-error/5"
               >
                 Copy error details
               </button>
