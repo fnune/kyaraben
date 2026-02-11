@@ -284,26 +284,26 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 
 	var storePath string
 	if profileLink != "" {
-		// Use a separate symlink for the nix GC root. nix build --out-link
-		// registers an indirect GC root pointing to this symlink; nix GC
-		// follows it and keeps the target alive. We must not rewrite the
-		// target to a real filesystem path, because nix only recognises
-		// paths under its virtualised /nix/store/ prefix.
-		gcRootLink := profileLink + "-gc-root"
+		// nix build --out-link registers an indirect GC root pointing to
+		// the symlink it creates. nix GC follows it and keeps the target
+		// alive, but only recognises paths under /nix/store/. We keep this
+		// virtual-path symlink separate from the profile link (which uses
+		// the real nix-portable filesystem path) so GC can find it.
+		virtualLink := profileLink + "-virtual"
 
-		if _, err := os.Lstat(gcRootLink); err == nil {
-			if err := os.Remove(gcRootLink); err != nil {
-				return nil, fmt.Errorf("removing existing gc root link: %w", err)
+		if _, err := os.Lstat(virtualLink); err == nil {
+			if err := os.Remove(virtualLink); err != nil {
+				return nil, fmt.Errorf("removing existing virtual link: %w", err)
 			}
 		}
 
 		opts.OnProgress(Progress{Step: "build", Output: "$ nix build " + flakeRef})
-		if err := a.NixClient.BuildWithLink(buildCtx, flakeRef, gcRootLink); err != nil {
+		if err := a.NixClient.BuildWithLink(buildCtx, flakeRef, virtualLink); err != nil {
 			return nil, fmt.Errorf("building emulators: %w", err)
 		}
-		target, err := os.Readlink(gcRootLink)
+		target, err := os.Readlink(virtualLink)
 		if err != nil {
-			return nil, fmt.Errorf("reading gc root link: %w", err)
+			return nil, fmt.Errorf("reading virtual link: %w", err)
 		}
 
 		// nix-portable virtualizes /nix/store, so the symlink target doesn't exist

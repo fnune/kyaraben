@@ -210,12 +210,12 @@ func TestUnlink(t *testing.T) {
 
 	m := &Manager{profileDir: profileDir}
 
-	t.Run("removes both current and gc root links", func(t *testing.T) {
+	t.Run("removes both current and virtual links", func(t *testing.T) {
 		if err := os.Symlink("/nix/store/abc", m.CurrentLink()); err != nil {
 			t.Fatalf("creating current link: %v", err)
 		}
-		if err := os.Symlink("/nix/store/abc", m.GCRootLink()); err != nil {
-			t.Fatalf("creating gc root link: %v", err)
+		if err := os.Symlink("/nix/store/abc", m.VirtualLink()); err != nil {
+			t.Fatalf("creating virtual link: %v", err)
 		}
 
 		if err := m.Unlink(); err != nil {
@@ -225,8 +225,8 @@ func TestUnlink(t *testing.T) {
 		if _, err := os.Lstat(m.CurrentLink()); !os.IsNotExist(err) {
 			t.Error("current link should be removed")
 		}
-		if _, err := os.Lstat(m.GCRootLink()); !os.IsNotExist(err) {
-			t.Error("gc root link should be removed")
+		if _, err := os.Lstat(m.VirtualLink()); !os.IsNotExist(err) {
+			t.Error("virtual link should be removed")
 		}
 	})
 
