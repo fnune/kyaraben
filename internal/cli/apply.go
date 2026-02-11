@@ -11,7 +11,6 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/model"
-	"github.com/fnune/kyaraben/internal/nix"
 )
 
 func isTerminal() bool {
@@ -38,16 +37,15 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	}
 
 	registry := ctx.NewRegistry()
-	nixClient, err := ctx.NewNixClient()
+	installer, err := ctx.NewInstaller()
 	if err != nil {
-		return fmt.Errorf("creating nix client: %w", err)
+		return fmt.Errorf("creating installer: %w", err)
 	}
-	flakeGenerator := nix.NewFlakeGenerator(registry, registry)
 	versionOverrides, err := cfg.BuildVersionOverrides(registry.GetEmulator)
 	if err != nil {
 		return err
 	}
-	flakeGenerator.SetVersionOverrides(versionOverrides)
+	installer.SetVersionOverrides(versionOverrides)
 	configWriter := emulators.NewConfigWriter(model.OSBaseDirResolver{})
 	manifestPath, err := model.DefaultManifestPath()
 	if err != nil {
@@ -60,8 +58,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	}
 
 	applier := &apply.Applier{
-		NixClient:       nixClient,
-		FlakeGenerator:  flakeGenerator,
+		Installer:       installer,
 		ConfigWriter:    configWriter,
 		Registry:        registry,
 		ManifestPath:    manifestPath,
@@ -120,15 +117,21 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 
 				var line string
 				switch p.BuildPhase {
-				case "evaluating":
-					line = "  Preparing..."
-				case "installing":
+				case "downloading":
 					if p.PackageName != "" {
-						if p.ProgressPercent > 0 {
-							line = fmt.Sprintf("  Installing %s... (%d%%)", p.PackageName, p.ProgressPercent)
-						} else {
-							line = fmt.Sprintf("  Installing %s...", p.PackageName)
-						}
+						line = fmt.Sprintf("  Downloading %s...", p.PackageName)
+					}
+				case "extracting":
+					if p.PackageName != "" {
+						line = fmt.Sprintf("  Extracting %s...", p.PackageName)
+					}
+				case "installed":
+					if p.PackageName != "" {
+						line = fmt.Sprintf("  Installed %s", p.PackageName)
+					}
+				case "skipped":
+					if p.PackageName != "" {
+						line = fmt.Sprintf("  %s (already installed)", p.PackageName)
 					}
 				}
 
@@ -248,7 +251,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		return err
 	}
 
-	fmt.Printf("  Built: %s\n", result.StorePath)
+	clearProgress()
 	fmt.Println()
 
 	for _, patch := range result.Patches {

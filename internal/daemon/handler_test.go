@@ -32,7 +32,7 @@ func newTestDaemon(t *testing.T, cfg *model.KyarabenConfig) *Daemon {
 		}
 	}
 
-	return New(configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil, nil)
+	return New(configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil)
 }
 
 func TestHandleUninstallPreview_EmptyManifest(t *testing.T) {
@@ -111,7 +111,7 @@ func TestHandleUninstallPreview_WithManifest(t *testing.T) {
 		t.Fatalf("saving config: %v", err)
 	}
 
-	d := New(configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil, nil)
+	d := New(configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil)
 
 	events := d.Handle(Command{Type: CommandTypeUninstallPreview})
 	if len(events) != 1 {
@@ -314,7 +314,7 @@ func TestHandlePreflight_ReturnsPreflightResponse(t *testing.T) {
 
 	reg := registry.NewDefault()
 	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
-	d := New(configPath, stateDir, manifestPath, reg, nil, nil, configWriter, nil)
+	d := New(configPath, stateDir, manifestPath, reg, nil, configWriter, nil)
 
 	events := d.Handle(Command{Type: CommandTypePreflight})
 	if len(events) != 1 {
@@ -400,7 +400,7 @@ func TestHandleInstallStatus_EmptyManifest(t *testing.T) {
 		t.Fatalf("saving manifest: %v", err)
 	}
 
-	d := New(configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil, nil)
+	d := New(configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil)
 
 	events := d.Handle(Command{Type: CommandTypeInstallStatus})
 	if len(events) != 1 {
@@ -452,7 +452,7 @@ func TestHandleInstallStatus_WithManifest(t *testing.T) {
 		t.Fatalf("saving manifest: %v", err)
 	}
 
-	d := New(configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil, nil)
+	d := New(configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil)
 
 	events := d.Handle(Command{Type: CommandTypeInstallStatus})
 	if len(events) != 1 {

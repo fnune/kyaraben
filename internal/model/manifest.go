@@ -31,20 +31,18 @@ type KyarabenInstall struct {
 	DesktopPath string `json:"desktop_path,omitempty"`
 }
 
-// InstalledEmulator tracks an installed emulator.
 type InstalledEmulator struct {
-	ID        EmulatorID `json:"id"`
-	Version   string     `json:"version"`
-	StorePath string     `json:"store_path"` // Path in Nix store
-	Installed time.Time  `json:"installed"`
+	ID          EmulatorID `json:"id"`
+	Version     string     `json:"version"`
+	PackagePath string     `json:"package_path"`
+	Installed   time.Time  `json:"installed"`
 }
 
-// InstalledFrontend tracks an installed frontend.
 type InstalledFrontend struct {
-	ID        FrontendID `json:"id"`
-	Version   string     `json:"version"`
-	StorePath string     `json:"store_path"`
-	Installed time.Time  `json:"installed"`
+	ID          FrontendID `json:"id"`
+	Version     string     `json:"version"`
+	PackagePath string     `json:"package_path"`
+	Installed   time.Time  `json:"installed"`
 }
 
 type ManagedKey struct {
