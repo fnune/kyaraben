@@ -58,6 +58,10 @@ func (m *Manager) CurrentLink() string {
 	return filepath.Join(m.profileDir, "current")
 }
 
+func (m *Manager) GCRootLink() string {
+	return filepath.Join(m.profileDir, "current-gc-root")
+}
+
 func (m *Manager) Link(storePath string) error {
 	log.Info("Linking profile: %s -> %s", m.CurrentLink(), storePath)
 
@@ -93,9 +97,12 @@ func (m *Manager) Link(storePath string) error {
 }
 
 func (m *Manager) Unlink() error {
-	currentLink := m.CurrentLink()
-	if _, err := os.Lstat(currentLink); err == nil {
-		return os.Remove(currentLink)
+	for _, link := range []string{m.CurrentLink(), m.GCRootLink()} {
+		if _, err := os.Lstat(link); err == nil {
+			if err := os.Remove(link); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }

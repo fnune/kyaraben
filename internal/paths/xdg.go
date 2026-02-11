@@ -5,7 +5,8 @@
 //	~/.local/state/kyaraben/
 //	├── bin/              # wrapper scripts for emulator binaries (add to PATH)
 //	├── cores/            # symlinks to RetroArch cores (libretro_directory)
-//	├── current           # symlink to active nix profile (for XDG_DATA_DIRS)
+//	├── current           # symlink to active nix profile (real store path)
+//	├── current-gc-root   # nix-managed symlink (indirect GC root, virtual store path)
 //	├── syncthing/        # sync device pairings and identity (user data)
 //	├── kyaraben.log      # application log
 //	└── build/            # regenerable via 'kyaraben apply'

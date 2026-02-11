@@ -284,32 +284,39 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 
 	var storePath string
 	if profileLink != "" {
-		// Remove existing symlink before building - nix won't overwrite it
+		// Use a separate symlink for the nix GC root. nix build --out-link
+		// registers an indirect GC root pointing to this symlink; nix GC
+		// follows it and keeps the target alive. We must not rewrite the
+		// target to a real filesystem path, because nix only recognises
+		// paths under its virtualised /nix/store/ prefix.
+		gcRootLink := profileLink + "-gc-root"
+
+		if _, err := os.Lstat(gcRootLink); err == nil {
+			if err := os.Remove(gcRootLink); err != nil {
+				return nil, fmt.Errorf("removing existing gc root link: %w", err)
+			}
+		}
+
+		opts.OnProgress(Progress{Step: "build", Output: "$ nix build " + flakeRef})
+		if err := a.NixClient.BuildWithLink(buildCtx, flakeRef, gcRootLink); err != nil {
+			return nil, fmt.Errorf("building emulators: %w", err)
+		}
+		target, err := os.Readlink(gcRootLink)
+		if err != nil {
+			return nil, fmt.Errorf("reading gc root link: %w", err)
+		}
+
+		// nix-portable virtualizes /nix/store, so the symlink target doesn't exist
+		// on the real filesystem. Translate to the real store path for the profile link.
+		realTarget := a.NixClient.RealStorePath(target)
+
 		if _, err := os.Lstat(profileLink); err == nil {
 			if err := os.Remove(profileLink); err != nil {
 				return nil, fmt.Errorf("removing existing profile link: %w", err)
 			}
 		}
-
-		opts.OnProgress(Progress{Step: "build", Output: "$ nix build " + flakeRef})
-		if err := a.NixClient.BuildWithLink(buildCtx, flakeRef, profileLink); err != nil {
-			return nil, fmt.Errorf("building emulators: %w", err)
-		}
-		target, err := os.Readlink(profileLink)
-		if err != nil {
-			return nil, fmt.Errorf("reading profile link: %w", err)
-		}
-
-		// nix-portable virtualizes /nix/store, so the symlink target doesn't exist
-		// on the real filesystem. Translate to the real store path.
-		realTarget := a.NixClient.RealStorePath(target)
-		if realTarget != target {
-			if err := os.Remove(profileLink); err != nil {
-				return nil, fmt.Errorf("removing old profile link: %w", err)
-			}
-			if err := os.Symlink(realTarget, profileLink); err != nil {
-				return nil, fmt.Errorf("creating real profile link: %w", err)
-			}
+		if err := os.Symlink(realTarget, profileLink); err != nil {
+			return nil, fmt.Errorf("creating profile link: %w", err)
 		}
 		storePath = realTarget
 	} else {
