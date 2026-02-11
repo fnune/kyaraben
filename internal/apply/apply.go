@@ -328,8 +328,10 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		}
 	}
 
-	opts.OnProgress(Progress{Step: "gc", Output: "Cleaning up unused store paths..."})
-	_ = a.NixClient.GarbageCollect(buildCtx)
+	opts.OnProgress(Progress{Step: "gc"})
+	if err := a.NixClient.GarbageCollect(buildCtx); err != nil {
+		opts.OnProgress(Progress{Step: "gc", Message: "Skipped (cleanup failed, will retry next time)"})
+	}
 
 	manifest, err := model.LoadManifest(a.ManifestPath)
 	if err != nil {
