@@ -3,6 +3,9 @@ import { useApply } from '@/lib/ApplyContext'
 import { BOTTOM_BAR_HEIGHT } from '@/lib/BottomBar'
 import { BottomBarPortal } from '@/lib/BottomBarSlot'
 import { useOpenLog } from '@/lib/useOpenLog'
+import { SpeedBadge } from '@/components/SpeedBadge/SpeedBadge'
+import { getDownloadSpeedBytes, getStepSubtitle } from '@/lib/progressUtils'
+import { ProgressBar, ProgressRail, Shimmer } from '@/lib/progressWidgets'
 
 export interface ApplyProgressBarProps {
   readonly currentView: string
@@ -43,23 +46,41 @@ export function ApplyProgressBar({ currentView, onNavigateToSystems }: ApplyProg
 
   const currentStep = [...progressSteps].reverse().find((s) => s.status === 'in_progress')
   const label = currentStep?.label ?? 'Installing...'
-  const detail = currentStep?.message
+  const subtitle = currentStep ? getStepSubtitle(currentStep) : null
+  const showSpeed = currentStep?.id === 'build' && currentStep.status === 'in_progress'
+  const downloadSpeedBytes = currentStep ? getDownloadSpeedBytes(currentStep) : 0
+  const computedPercent =
+    currentStep?.bytesTotal && currentStep.bytesTotal > 0
+      ? Math.min(100, Math.floor(((currentStep.bytesDownloaded ?? 0) * 100) / currentStep.bytesTotal))
+      : undefined
+  const progressPercent = currentStep?.progressPercent ?? computedPercent
   const showViewProgress = currentView !== 'systems'
+  const showInlineProgress = currentView !== 'systems'
 
   return (
     <BottomBarPortal>
       <div
-        className={`bg-surface-alt/95 backdrop-blur-sm border-t border-outline px-6 ${BOTTOM_BAR_HEIGHT} flex items-center`}
+        className={`relative bg-surface-alt/95 backdrop-blur-sm border-t border-outline px-6 ${BOTTOM_BAR_HEIGHT} flex items-center`}
       >
+        {showInlineProgress && (
+          <ProgressRail className="absolute left-0 right-0 bottom-0 h-1 pointer-events-none">
+            {progressPercent !== undefined ? (
+              <ProgressBar percent={progressPercent} />
+            ) : (
+              <Shimmer />
+            )}
+          </ProgressRail>
+        )}
         <div className="flex-1 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
             <span className="text-sm text-on-surface-secondary truncate max-w-md">
-              {label}
-              {detail && <span className="text-on-surface-dim ml-2">— {detail}</span>}
+              <span className="font-medium">{label}</span>
+              {subtitle && <span className="text-on-surface-dim ml-1">{subtitle}</span>}
             </span>
           </div>
           <div className="flex items-center gap-4">
+            <SpeedBadge speedBytes={downloadSpeedBytes} show={showSpeed && showInlineProgress} />
             <button
               type="button"
               onClick={() => openLog(logPosition ?? undefined)}

@@ -34,6 +34,9 @@ interface ProgressEvent {
   buildPhase?: string
   packageName?: string
   progressPercent?: number
+  bytesDownloaded?: number
+  bytesTotal?: number
+  bytesPerSecond?: number
   logPosition?: number
 }
 
@@ -326,6 +329,9 @@ async function applyCommand(): Promise<{ messages: string[]; cancelled: boolean 
               buildPhase: data?.buildPhase,
               packageName: data?.packageName,
               progressPercent: data?.progressPercent,
+              bytesDownloaded: data?.bytesDownloaded,
+              bytesTotal: data?.bytesTotal,
+              bytesPerSecond: data?.bytesPerSecond,
               logPosition: data?.logPosition,
             })
           } catch (sendErr) {

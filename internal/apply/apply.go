@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/emulators/symlink"
+	"github.com/fnune/kyaraben/internal/hardware"
 	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/logging"
 	"github.com/fnune/kyaraben/internal/model"
@@ -29,6 +31,9 @@ type Progress struct {
 	BuildPhase      string // "downloading", "extracting", "installed", "skipped"
 	PackageName     string
 	ProgressPercent int
+	BytesDownloaded int64
+	BytesTotal      int64
+	BytesPerSecond  int64
 }
 
 type Result struct {
@@ -443,22 +448,17 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 }
 
 func (a *Applier) installPackages(ctx context.Context, emulatorIDs []model.EmulatorID, frontendIDs []model.FrontendID, opts Options) ([]packages.InstalledBinary, []packages.InstalledCore, []packages.InstalledIcon, error) {
+	installPlan := a.buildInstallPlan(emulatorIDs, frontendIDs)
+	packageDownloadSizes, packageTotals, totalBytes, packageArchiveTypes := a.buildPackageSizes(installPlan)
+	aggregator := newProgressAggregator(packageTotals, packageDownloadSizes, packageArchiveTypes, totalBytes, opts.OnProgress)
+
 	seenPackages := make(map[string]bool)
 	var binaries []packages.InstalledBinary
 	var coreNames []string
 	var icons []packages.InstalledIcon
 
 	progressFn := func(p packages.InstallProgress) {
-		var percent int
-		if p.BytesTotal > 0 {
-			percent = int(p.BytesDownloaded * 100 / p.BytesTotal)
-		}
-		opts.OnProgress(Progress{
-			Step:            "build",
-			BuildPhase:      p.Phase,
-			PackageName:     p.PackageName,
-			ProgressPercent: percent,
-		})
+		aggregator.onPackageProgress(p)
 	}
 
 	for _, emuID := range emulatorIDs {
@@ -540,6 +540,495 @@ func (a *Applier) installPackages(ctx context.Context, emulatorIDs []model.Emula
 	}
 
 	return binaries, nil, icons, nil
+}
+
+type installPlan struct {
+	packageNames []string
+	coreNames    []string
+}
+
+func (a *Applier) buildInstallPlan(emulatorIDs []model.EmulatorID, frontendIDs []model.FrontendID) installPlan {
+	plan := installPlan{
+		packageNames: make([]string, 0),
+		coreNames:    make([]string, 0),
+	}
+	seenPackages := make(map[string]bool)
+
+	for _, emuID := range emulatorIDs {
+		emu, err := a.Registry.GetEmulator(emuID)
+		if err != nil {
+			continue
+		}
+
+		if strings.HasPrefix(string(emuID), "retroarch:") {
+			coreName := strings.TrimPrefix(string(emuID), "retroarch:")
+			plan.coreNames = append(plan.coreNames, coreName)
+			continue
+		}
+
+		pkgName := emu.Package.PackageName()
+		if seenPackages[pkgName] {
+			continue
+		}
+		seenPackages[pkgName] = true
+		plan.packageNames = append(plan.packageNames, pkgName)
+	}
+
+	for _, feID := range frontendIDs {
+		fe, err := a.Registry.GetFrontend(feID)
+		if err != nil {
+			continue
+		}
+
+		pkgName := fe.Package.PackageName()
+		if seenPackages[pkgName] {
+			continue
+		}
+		seenPackages[pkgName] = true
+		plan.packageNames = append(plan.packageNames, pkgName)
+	}
+
+	if len(plan.coreNames) > 0 {
+		if !seenPackages["retroarch"] {
+			seenPackages["retroarch"] = true
+			plan.packageNames = append(plan.packageNames, "retroarch")
+		}
+	}
+
+	return plan
+}
+
+func (a *Applier) buildPackageSizes(plan installPlan) (map[string]int64, map[string]int64, int64, map[string]string) {
+	v := versions.MustGet()
+	targetName := hardware.DetectTarget().Name
+
+	installed := make(map[string]bool)
+	packageDownloadSizes := make(map[string]int64)
+	packageTotals := make(map[string]int64)
+	packageArchiveTypes := make(map[string]string)
+	installList := make([]string, 0, len(plan.packageNames)+1)
+
+	for _, pkgName := range plan.packageNames {
+		installList = append(installList, pkgName)
+		installed[pkgName] = a.Installer.IsEmulatorInstalled(pkgName)
+		downloadSize := packageDownloadSize(pkgName, targetName, v, a.Installer)
+		packageDownloadSizes[pkgName] = downloadSize
+		packageArchiveTypes[pkgName] = packageArchiveType(pkgName, targetName, v, a.Installer)
+	}
+
+	if len(plan.coreNames) > 0 {
+		installList = append(installList, "retroarch-cores")
+		installed["retroarch-cores"] = packages.RetroArchCoresInstalled(a.Installer.PackagesDir(), plan.coreNames, v)
+		packageDownloadSizes["retroarch-cores"] = coreDownloadSize(plan.coreNames, targetName, v)
+		packageArchiveTypes["retroarch-cores"] = coreArchiveType(targetName, v)
+	}
+
+	summary := packages.CalculateChangeSummary(installList, nil, installed, func(pkgName string) int64 {
+		return packageDownloadSizes[pkgName]
+	})
+
+	downloadSizes := make(map[string]int64, len(summary.PackagesToDownload))
+	var totalBytes int64
+	for _, pkgName := range summary.PackagesToDownload {
+		downloadSize := packageDownloadSizes[pkgName]
+		downloadSizes[pkgName] = downloadSize
+		archiveType := packageArchiveTypes[pkgName]
+		totalSize := downloadSize
+		if archiveType != "" {
+			totalSize += extractionWeight(downloadSize)
+		}
+		packageTotals[pkgName] = totalSize
+		totalBytes += totalSize
+	}
+
+	return downloadSizes, packageTotals, totalBytes, packageArchiveTypes
+}
+
+func packageDownloadSize(pkgName string, targetName string, v *versions.Versions, installer packages.Installer) int64 {
+	spec, ok := v.GetEmulator(pkgName)
+	if !ok {
+		return 0
+	}
+	version := installer.ResolveVersion(pkgName)
+	entry := spec.GetVersion(version)
+	if entry == nil {
+		entry = spec.GetDefault()
+	}
+	if entry == nil {
+		return 0
+	}
+	target := entry.SelectTarget(targetName)
+	if target == "" {
+		return 0
+	}
+	build := entry.Target(target)
+	if build == nil {
+		return 0
+	}
+	return build.Size
+}
+
+func coreDownloadSize(coreNames []string, targetName string, v *versions.Versions) int64 {
+	if len(coreNames) == 0 {
+		return 0
+	}
+
+	version := v.RetroArchCores.Default
+	if version == "" {
+		return 0
+	}
+	build, ok := v.RetroArchCores.Versions[version]
+	if !ok {
+		return 0
+	}
+
+	selectedTarget := selectCoresTargetName(build, targetName)
+	if selectedTarget != "" {
+		if targetBuild, ok := build.Targets[selectedTarget]; ok && targetBuild.Size > 0 {
+			return targetBuild.Size
+		}
+	}
+
+	var total int64
+	for _, coreName := range coreNames {
+		total += v.GetCoreSize(coreName)
+	}
+	return total
+}
+
+func packageArchiveType(pkgName string, targetName string, v *versions.Versions, installer packages.Installer) string {
+	spec, ok := v.GetEmulator(pkgName)
+	if !ok {
+		return ""
+	}
+	version := installer.ResolveVersion(pkgName)
+	entry := spec.GetVersion(version)
+	if entry == nil {
+		entry = spec.GetDefault()
+	}
+	if entry == nil {
+		return ""
+	}
+	target := entry.SelectTarget(targetName)
+	if target == "" {
+		return ""
+	}
+	return entry.ArchiveType(target, spec)
+}
+
+func coreArchiveType(targetName string, v *versions.Versions) string {
+	version := v.RetroArchCores.Default
+	if version == "" {
+		return ""
+	}
+	build, ok := v.RetroArchCores.Versions[version]
+	if !ok {
+		return ""
+	}
+
+	selectedTarget := selectCoresTargetName(build, targetName)
+	if selectedTarget == "" {
+		return ""
+	}
+
+	url, _, ok := v.RetroArchCores.GetCoresURL(selectedTarget)
+	if !ok {
+		return ""
+	}
+	return archiveTypeFromURL(url)
+}
+
+func archiveTypeFromURL(url string) string {
+	switch {
+	case strings.HasSuffix(url, ".tar.zst"):
+		return "tar.zst"
+	case strings.HasSuffix(url, ".tar.gz"), strings.HasSuffix(url, ".tgz"):
+		return "tar.gz"
+	case strings.HasSuffix(url, ".tar.xz"):
+		return "tar.xz"
+	case strings.HasSuffix(url, ".zip"):
+		return "zip"
+	case strings.HasSuffix(url, ".7z"):
+		return "7z"
+	default:
+		return ""
+	}
+}
+
+func selectCoresTargetName(build versions.RetroArchCoresBuild, detected string) string {
+	if _, ok := build.Targets[detected]; ok {
+		return detected
+	}
+
+	if fallback, ok := versions.TargetFallback[detected]; ok {
+		if _, ok := build.Targets[fallback.String()]; ok {
+			return fallback.String()
+		}
+	}
+
+	return ""
+}
+
+func extractionWeight(downloadSize int64) int64 {
+	const (
+		minWeight = int64(12 * 1024 * 1024)
+		maxWeight = int64(160 * 1024 * 1024)
+	)
+	if downloadSize <= 0 {
+		return minWeight
+	}
+	weight := downloadSize / 2
+	if weight < minWeight {
+		return minWeight
+	}
+	if weight > maxWeight {
+		return maxWeight
+	}
+	return weight
+}
+
+type progressAggregator struct {
+	packageTotals     map[string]int64
+	downloadTotals    map[string]int64
+	extractWeights    map[string]int64
+	completedBytes    int64
+	packageBytes      map[string]int64
+	extractBytes      map[string]int64
+	completedPackages map[string]bool
+	totalBytes        int64
+	lastReportedBytes int64
+	speedTracker      *packages.SpeedTracker
+	onProgress        func(Progress)
+	extracting        map[string]*extractionProgress
+	extractTickerStop chan struct{}
+	mu                sync.Mutex
+}
+
+type extractionProgress struct {
+	start    time.Time
+	weight   int64
+	duration time.Duration
+}
+
+func newProgressAggregator(packageTotals map[string]int64, downloadTotals map[string]int64, packageArchiveTypes map[string]string, totalBytes int64, onProgress func(Progress)) *progressAggregator {
+	extractWeights := make(map[string]int64, len(packageTotals))
+	for pkgName, total := range packageTotals {
+		downloadSize := downloadTotals[pkgName]
+		weight := total - downloadSize
+		if weight <= 0 && packageArchiveTypes[pkgName] != "" {
+			weight = extractionWeight(downloadSize)
+		}
+		if weight > 0 {
+			extractWeights[pkgName] = weight
+		}
+	}
+	return &progressAggregator{
+		packageTotals:     packageTotals,
+		downloadTotals:    downloadTotals,
+		extractWeights:    extractWeights,
+		completedBytes:    0,
+		packageBytes:      make(map[string]int64),
+		extractBytes:      make(map[string]int64),
+		completedPackages: make(map[string]bool),
+		totalBytes:        totalBytes,
+		lastReportedBytes: 0,
+		speedTracker:      packages.NewSpeedTracker(3 * time.Second),
+		onProgress:        onProgress,
+		extracting:        make(map[string]*extractionProgress),
+	}
+}
+
+func (a *progressAggregator) onPackageProgress(p packages.InstallProgress) {
+	if a == nil {
+		return
+	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	if p.PackageName == "" {
+		return
+	}
+
+	if p.BytesDownloaded > 0 {
+		a.packageBytes[p.PackageName] = p.BytesDownloaded
+	}
+
+	if p.Phase == "skipped" {
+		a.markSkipped(p.PackageName)
+		a.emitProgressLocked(p)
+		return
+	}
+
+	if p.Phase == "extracting" {
+		a.startExtractionLocked(p.PackageName)
+	}
+
+	if p.Phase == "installed" {
+		a.markCompleted(p.PackageName)
+	}
+
+	a.emitProgressLocked(p)
+}
+
+func (a *progressAggregator) markSkipped(pkgName string) {
+	if a.completedPackages[pkgName] {
+		return
+	}
+	a.completedPackages[pkgName] = true
+	if expected, ok := a.packageTotals[pkgName]; ok {
+		a.totalBytes -= expected
+		delete(a.packageTotals, pkgName)
+	}
+	delete(a.packageBytes, pkgName)
+	delete(a.downloadTotals, pkgName)
+	delete(a.extractBytes, pkgName)
+	delete(a.extractWeights, pkgName)
+	delete(a.extracting, pkgName)
+	a.maybeStopExtractionTickerLocked()
+}
+
+func (a *progressAggregator) markCompleted(pkgName string) {
+	if a.completedPackages[pkgName] {
+		return
+	}
+	a.completedPackages[pkgName] = true
+	a.completedBytes += a.packageBytes[pkgName] + a.extractBytes[pkgName]
+	delete(a.packageBytes, pkgName)
+	delete(a.extractBytes, pkgName)
+	delete(a.extracting, pkgName)
+	a.maybeStopExtractionTickerLocked()
+}
+
+func (a *progressAggregator) emitProgressLocked(p packages.InstallProgress) {
+	var inFlight int64
+	for pkgName, bytes := range a.packageBytes {
+		inFlight += bytes + a.extractBytes[pkgName]
+	}
+	bytesDownloaded := a.completedBytes + inFlight
+	if a.totalBytes > 0 && bytesDownloaded > a.totalBytes {
+		bytesDownloaded = a.totalBytes
+	}
+
+	if bytesDownloaded > a.lastReportedBytes {
+		a.speedTracker.Record(bytesDownloaded - a.lastReportedBytes)
+		a.lastReportedBytes = bytesDownloaded
+	}
+
+	percent := 0
+	if a.totalBytes > 0 {
+		percent = int(bytesDownloaded * 100 / a.totalBytes)
+		if percent > 100 {
+			percent = 100
+		}
+	}
+
+	a.onProgress(Progress{
+		Step:            "build",
+		BuildPhase:      p.Phase,
+		PackageName:     p.PackageName,
+		ProgressPercent: percent,
+		BytesDownloaded: bytesDownloaded,
+		BytesTotal:      a.totalBytes,
+		BytesPerSecond:  a.speedTracker.BytesPerSecond(),
+	})
+
+}
+
+func (a *progressAggregator) startExtractionLocked(pkgName string) {
+	if a.completedPackages[pkgName] {
+		return
+	}
+	if _, ok := a.extracting[pkgName]; ok {
+		return
+	}
+	weight := a.extractWeights[pkgName]
+	if weight <= 0 {
+		return
+	}
+	duration := extractionDuration(a.downloadTotals[pkgName])
+	a.extracting[pkgName] = &extractionProgress{
+		start:    time.Now(),
+		weight:   weight,
+		duration: duration,
+	}
+	a.startExtractionTickerLocked()
+}
+
+func (a *progressAggregator) startExtractionTickerLocked() {
+	if a.extractTickerStop != nil {
+		return
+	}
+	stop := make(chan struct{})
+	a.extractTickerStop = stop
+	go func() {
+		ticker := time.NewTicker(250 * time.Millisecond)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				a.advanceExtraction()
+			case <-stop:
+				return
+			}
+		}
+	}()
+}
+
+func (a *progressAggregator) maybeStopExtractionTickerLocked() {
+	if len(a.extracting) != 0 {
+		return
+	}
+	if a.extractTickerStop != nil {
+		close(a.extractTickerStop)
+		a.extractTickerStop = nil
+	}
+}
+
+func (a *progressAggregator) advanceExtraction() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	updated := false
+	for pkgName, progress := range a.extracting {
+		elapsed := time.Since(progress.start)
+		if progress.duration <= 0 {
+			progress.duration = time.Second
+		}
+		next := int64(float64(progress.weight) * elapsed.Seconds() / progress.duration.Seconds())
+		if next > progress.weight {
+			next = progress.weight
+		}
+		if next < 0 {
+			next = 0
+		}
+		if next > a.extractBytes[pkgName] {
+			a.extractBytes[pkgName] = next
+			updated = true
+		}
+	}
+
+	if updated {
+		a.emitProgressLocked(packages.InstallProgress{Phase: "extracting"})
+	}
+}
+
+func extractionDuration(downloadSize int64) time.Duration {
+	const (
+		minDuration = 6 * time.Second
+		maxDuration = 45 * time.Second
+	)
+	if downloadSize <= 0 {
+		return minDuration
+	}
+	seconds := time.Duration(downloadSize/(20*1024*1024)) * time.Second
+	if seconds < minDuration {
+		return minDuration
+	}
+	if seconds > maxDuration {
+		return maxDuration
+	}
+	return seconds
 }
 
 var log = logging.New("apply")

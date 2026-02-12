@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { IconButton } from '@/lib/IconButton'
 import { Input } from '@/lib/Input'
 import { FolderIcon } from '@/lib/icons'
+import { PathText } from '@/lib/PathText'
 import { useToast } from '@/lib/ToastContext'
 
 export interface SettingsProps {
@@ -29,9 +30,13 @@ export function Settings({ userStore, onUserStoreChange }: SettingsProps) {
     try {
       const error = await window.electron.invoke('open_path', userStore)
       if (error) {
-        showToast(`Could not open folder: ${error}`, 'error')
+        showToast(`Could not open folder: ${error}.`, 'error')
       } else {
-        showToast(`Opening ${userStore}`)
+        showToast(
+          <span>
+            Opening <PathText>{userStore}</PathText>.
+          </span>,
+        )
       }
     } finally {
       setOpening(false)

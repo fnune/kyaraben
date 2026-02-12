@@ -93,6 +93,9 @@ export interface ProgressEvent {
   buildPhase?: string;
   packageName?: string;
   progressPercent?: number /* int */;
+  bytesDownloaded?: number /* int64 */;
+  bytesTotal?: number /* int64 */;
+  bytesPerSecond?: number /* int64 */;
   logPosition: number /* int64 */;
 }
 export interface ApplyResult {

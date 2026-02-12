@@ -1,54 +1,16 @@
 import { useEffect, useRef } from 'react'
-
-export interface Step {
-  id: string
-  label: string
-  status: 'pending' | 'in_progress' | 'completed' | 'error' | 'cancelled'
-  message?: string
-  output?: readonly string[]
-  buildPhase?: string
-  packageName?: string
-  progressPercent?: number
-}
+import type { ProgressStep } from '@/types/ui'
+import { ProgressBar, ProgressRail, Shimmer } from '@/lib/progressWidgets'
+import { SpeedBadge } from '@/components/SpeedBadge/SpeedBadge'
+import { getDownloadSpeedBytes, getStepSubtitle } from '@/lib/progressUtils'
 
 export interface ProgressStepsProps {
-  steps: readonly Step[]
+  steps: readonly ProgressStep[]
   error?: string
   cancelled?: boolean
 }
 
-function formatBuildProgress(step: Step): string | null {
-  switch (step.buildPhase) {
-    case 'evaluating':
-      return 'Preparing...'
-    case 'installing':
-      return step.packageName ? `Installing ${step.packageName}...` : null
-    default:
-      return null
-  }
-}
-
-function Shimmer() {
-  return (
-    <div className="h-full w-1/3 bg-linear-to-r from-transparent via-accent to-transparent animate-[shimmer_1.5s_infinite]" />
-  )
-}
-
-function ProgressBar({ percent }: { readonly percent: number }) {
-  return (
-    <>
-      <div
-        className="absolute inset-y-0 left-0 bg-accent rounded-full transition-all duration-300"
-        style={{ width: `${percent}%` }}
-      />
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="h-full w-1/3 bg-linear-to-r from-transparent via-white/20 to-transparent animate-[shimmer_1.5s_infinite]" />
-      </div>
-    </>
-  )
-}
-
-function StepIcon({ status }: { readonly status: Step['status'] }) {
+function StepIcon({ status }: { readonly status: ProgressStep['status'] }) {
   switch (status) {
     case 'completed':
       return <span className="text-status-ok">✓</span>
@@ -61,6 +23,10 @@ function StepIcon({ status }: { readonly status: Step['status'] }) {
     default:
       return <span className="text-on-surface-dim">○</span>
   }
+}
+
+function StepSubtitle({ children }: { readonly children: React.ReactNode }) {
+  return <span className="text-sm ml-1">{children}</span>
 }
 
 function OutputPre({
@@ -92,9 +58,9 @@ function OutputPre({
         {output.join('\n')}
       </pre>
       {isInProgress && (
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-surface rounded-b overflow-hidden pointer-events-none">
+        <ProgressRail className="absolute bottom-0 left-0 right-0 h-1 bg-surface rounded-b pointer-events-none">
           {hasProgress ? <ProgressBar percent={progressPercent} /> : <Shimmer />}
-        </div>
+        </ProgressRail>
       )}
     </div>
   )
@@ -110,42 +76,39 @@ export function ProgressSteps({ steps, error, cancelled }: ProgressStepsProps) {
       {steps.length > 0 && (
         <ol className="space-y-2">
           {steps.map((step) => {
-            const buildProgress =
-              step.id === 'build' && step.status === 'in_progress'
-                ? formatBuildProgress(step)
-                : null
+            const subtitle = getStepSubtitle(step)
+            const computedPercent =
+              step.bytesTotal && step.bytesTotal > 0
+                ? Math.min(100, Math.floor(((step.bytesDownloaded ?? 0) * 100) / step.bytesTotal))
+                : undefined
+            const progressPercent = step.progressPercent ?? computedPercent
+            const showSpeed = step.id === 'build' && step.status === 'in_progress'
+            const downloadSpeedBytes = getDownloadSpeedBytes(step)
 
             return (
               <li key={step.id}>
                 <div
-                  className="flex items-center gap-2 min-w-0"
+                  className="grid grid-cols-[18px_1fr] items-center gap-2 min-w-0"
                   title={step.message ? `${step.label} ${step.message}` : step.label}
                 >
-                  <StepIcon status={step.status} />
-                  <span className="text-on-surface-secondary truncate">
-                    <span className="font-medium">{step.label}</span>
-                    {step.id === 'build' && step.status === 'completed' && (
-                      <span className="text-sm"> - Done</span>
-                    )}
-                    {step.id === 'build' && step.status === 'in_progress' && buildProgress && (
-                      <span className="text-sm"> - {buildProgress}</span>
-                    )}
-                    {step.id === 'build' &&
-                      step.status === 'in_progress' &&
-                      !buildProgress &&
-                      step.message && <span className="text-sm"> {step.message}</span>}
-                    {step.id !== 'build' && step.message && (
-                      <span className="text-sm"> {step.message}</span>
-                    )}
+                  <span className="flex items-center justify-center w-[18px]">
+                    <StepIcon status={step.status} />
                   </span>
+                  <div className="flex items-center justify-between gap-3 min-w-0 flex-1">
+                    <span className="text-on-surface-secondary truncate">
+                      <span className="font-medium">{step.label}</span>
+                      {subtitle && <StepSubtitle>{subtitle}</StepSubtitle>}
+                    </span>
+                    <SpeedBadge speedBytes={downloadSpeedBytes} show={showSpeed} />
+                  </div>
                 </div>
                 {step.output && step.output.length > 0 && (
                   <div className="mt-1 ml-6">
                     <OutputPre
                       output={step.output}
                       isInProgress={step.status === 'in_progress'}
-                      {...(step.id === 'build' && step.progressPercent !== undefined
-                        ? { progressPercent: step.progressPercent }
+                      {...(step.id === 'build' && progressPercent !== undefined
+                        ? { progressPercent }
                         : {})}
                     />
                   </div>

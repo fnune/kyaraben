@@ -324,6 +324,9 @@ func parse(data string) (*Versions, error) {
 							if sha, ok := targetData["sha256"].(string); ok {
 								target.SHA256 = sha
 							}
+							if size, ok := targetData["size"].(int64); ok {
+								target.Size = size
+							}
 							build.Targets[targetName] = target
 						}
 					}

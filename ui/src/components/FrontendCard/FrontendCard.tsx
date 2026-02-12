@@ -50,7 +50,7 @@ export function FrontendCard({
             <img src={logo} alt="" className="w-full h-full object-contain" />
           </div>
         )}
-        <div className="flex-1 space-y-1">
+        <div className="flex-1 space-y-0.5">
           <div className="flex items-center gap-2">
             <span className="text-on-surface font-medium text-sm">{frontend.name}</span>
             <div className="ml-auto flex items-center gap-3">
