@@ -278,9 +278,11 @@ export function InstallationView() {
           {!installStatus?.installed && (
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-on-surface-secondary">Install to PATH</p>
+                <p className="text-sm text-on-surface-secondary">Add to applications menu</p>
                 <p className="text-xs text-on-surface-dim">
-                  Add Kyaraben to your applications menu and <code>$PATH</code>
+                  Adds <pre className="inline">kyaraben</pre> and{' '}
+                  <pre className="inline">kyaraben-ui</pre> to{' '}
+                  <pre className="inline">~/.local/bin</pre>
                 </p>
               </div>
               <Button onClick={handleInstall} disabled={installing}>
@@ -303,7 +305,7 @@ export function InstallationView() {
             <div>
               <p className="text-sm text-on-surface-secondary">Uninstall Kyaraben</p>
               <p className="text-xs text-on-surface-dim">
-                Remove all managed files (preserves ROMs and saves)
+                Remove all managed files (preserves your emulation folder)
               </p>
             </div>
             <Button variant="danger" onClick={handleUninstall}>
@@ -329,7 +331,7 @@ export function InstallationView() {
         </p>
         <ul className="space-y-1">
           <PathItem
-            path={`${preview.preserved.userStore} (ROMs, saves, BIOS)`}
+            path={`${preview.preserved.userStore} (emulation folder)`}
             variant="preserved"
           />
           <PathItem path={`${preview.preserved.configDir} (config)`} variant="preserved" />
