@@ -9,6 +9,7 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/emulators/symlink"
 	"github.com/fnune/kyaraben/internal/launcher"
+	"github.com/fnune/kyaraben/internal/logging"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/packages"
 	"github.com/fnune/kyaraben/internal/registry"
@@ -117,6 +118,11 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	if opts.OnProgress == nil {
 		opts.OnProgress = func(Progress) {}
 	}
+
+	logging.SetOutputHook(func(line string) {
+		opts.OnProgress(Progress{Step: "build", Output: line})
+	})
+	defer logging.SetOutputHook(nil)
 
 	enabledEmulators := a.collectEnabledEmulators(cfg)
 	emulatorsToInstall := make([]model.EmulatorID, 0, len(enabledEmulators))
@@ -238,9 +244,9 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		return nil, err
 	}
 
-	opts.OnProgress(Progress{Step: "gc"})
+	opts.OnProgress(Progress{Step: "cleanup", Message: "Removing unused package versions"})
 	if err := a.garbageCollect(emulatorsToInstall, frontendsToInstall); err != nil {
-		opts.OnProgress(Progress{Step: "gc", Message: "Skipped (cleanup failed, will retry next time)"})
+		opts.OnProgress(Progress{Step: "cleanup", Message: "Skipped (cleanup failed, will retry next time)"})
 	}
 
 	manifest, err := model.LoadManifest(a.ManifestPath)
@@ -248,8 +254,9 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		return nil, fmt.Errorf("loading manifest: %w", err)
 	}
 
+	opts.OnProgress(Progress{Step: "finalize", Message: "Creating desktop entries and emulator configs"})
+
 	if a.LauncherManager != nil {
-		opts.OnProgress(Progress{Step: "desktop"})
 
 		launcherBinaries := toLauncherBinaries(installedBinaries)
 		if err := a.LauncherManager.GenerateWrappers(launcherBinaries); err != nil {
@@ -274,8 +281,6 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		manifest.DesktopFiles = generatedFiles.DesktopFiles
 		manifest.IconFiles = generatedFiles.IconFiles
 	}
-
-	opts.OnProgress(Progress{Step: "config"})
 
 	configResults := make([]emulators.ApplyResult, len(allPatches))
 	var backups []BackupInfo
@@ -444,10 +449,15 @@ func (a *Applier) installPackages(ctx context.Context, emulatorIDs []model.Emula
 	var icons []packages.InstalledIcon
 
 	progressFn := func(p packages.InstallProgress) {
+		var percent int
+		if p.BytesTotal > 0 {
+			percent = int(p.BytesDownloaded * 100 / p.BytesTotal)
+		}
 		opts.OnProgress(Progress{
-			Step:        "build",
-			BuildPhase:  p.Phase,
-			PackageName: p.PackageName,
+			Step:            "build",
+			BuildPhase:      p.Phase,
+			PackageName:     p.PackageName,
+			ProgressPercent: percent,
 		})
 	}
 
@@ -500,6 +510,11 @@ func (a *Applier) installPackages(ctx context.Context, emulatorIDs []model.Emula
 			return nil, nil, nil, fmt.Errorf("installing frontend %s: %w", pkgName, err)
 		}
 		binaries = append(binaries, *binary)
+
+		icon, err := a.installIconForPackage(ctx, pkgName, fe.Launcher.Binary)
+		if err == nil && icon != nil {
+			icons = append(icons, *icon)
+		}
 	}
 
 	if len(coreNames) > 0 {
@@ -511,12 +526,9 @@ func (a *Applier) installPackages(ctx context.Context, emulatorIDs []model.Emula
 			}
 			binaries = append(binaries, *binary)
 
-			emu, err := a.Registry.GetEmulator(model.EmulatorIDRetroArch)
-			if err == nil {
-				icon, err := a.installEmulatorIcon(ctx, emu)
-				if err == nil && icon != nil {
-					icons = append(icons, *icon)
-				}
+			icon, err := a.installIconForPackage(ctx, "retroarch", "retroarch")
+			if err == nil && icon != nil {
+				icons = append(icons, *icon)
 			}
 		}
 
@@ -530,17 +542,34 @@ func (a *Applier) installPackages(ctx context.Context, emulatorIDs []model.Emula
 	return binaries, nil, icons, nil
 }
 
+var log = logging.New("apply")
+
 func (a *Applier) installEmulatorIcon(ctx context.Context, emu model.Emulator) (*packages.InstalledIcon, error) {
 	pkgName := emu.Package.PackageName()
+	return a.installIconForPackage(ctx, pkgName, emu.Launcher.Binary)
+}
+
+func (a *Applier) installIconForPackage(ctx context.Context, pkgName, binaryName string) (*packages.InstalledIcon, error) {
 	v, err := versionsGet()
 	if err != nil {
+		log.Debug("Failed to get versions for icon: %v", err)
 		return nil, nil
 	}
 	spec, ok := v.GetEmulator(pkgName)
-	if !ok || spec.IconURL == "" {
+	if !ok {
+		log.Debug("No version spec found for package %s", pkgName)
 		return nil, nil
 	}
-	return a.Installer.InstallIcon(ctx, emu.Launcher.Binary, spec.IconURL, spec.IconSHA256)
+	if spec.IconURL == "" {
+		log.Debug("No icon URL configured for package %s", pkgName)
+		return nil, nil
+	}
+	icon, err := a.Installer.InstallIcon(ctx, binaryName, spec.IconURL, spec.IconSHA256)
+	if err != nil {
+		log.Debug("Failed to install icon for %s: %v", pkgName, err)
+		return nil, err
+	}
+	return icon, nil
 }
 
 func (a *Applier) garbageCollect(emulatorIDs []model.EmulatorID, frontendIDs []model.FrontendID) error {

@@ -51,12 +51,7 @@ COPY --from=builder /app/ui/package.json ./ui/
 COPY --from=builder /app/ui/playwright.config.ts ./ui/
 COPY --from=builder /app/ui/e2e ./ui/e2e/
 COPY --from=builder /app/scripts/run-e2e-tests.sh ./scripts/
-
-# Set up fake nix-portable for fast, deterministic tests
-RUN chmod +x /app/ui/e2e/fixtures/fake-nix-portable
-ENV KYARABEN_NIX_PORTABLE_PATH=/app/ui/e2e/fixtures/fake-nix-portable
-ENV FAKE_NIX_STORE=/root/.local/state/kyaraben/fake-store
-ENV FAKE_NIX_PROGRESS=1
+COPY --from=builder /app/scripts/run-ui-e2e.sh ./scripts/
 
 # Run the e2e test script
 CMD ["bash", "/app/scripts/run-e2e-tests.sh"]

@@ -42,7 +42,7 @@ export function useUpdateChecker(
   }, [])
 
   useEffect(() => {
-    const timer = setTimeout(async () => {
+    const runCheck = async () => {
       const result = await daemon.checkForUpdates()
       if (result.ok) {
         setUpdateInfo(result.data)
@@ -51,8 +51,8 @@ export function useUpdateChecker(
           setUpdateDismissed(false)
         }
       }
-    }, 5000)
-    return () => clearTimeout(timer)
+    }
+    runCheck()
   }, [])
 
   const handleUpdate = useCallback(async () => {

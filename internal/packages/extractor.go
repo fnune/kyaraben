@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/bodgit/sevenzip"
 	"github.com/klauspost/compress/zstd"
 	"github.com/ulikunitz/xz"
 )
@@ -32,6 +33,8 @@ func (e OSExtractor) Extract(archivePath, destDir, archiveType string) error {
 		return extractZip(archivePath, destDir)
 	case "appimage":
 		return installAppImage(archivePath, destDir)
+	case "7z":
+		return extract7z(archivePath, destDir)
 	default:
 		return fmt.Errorf("unsupported archive type: %s", archiveType)
 	}
@@ -91,17 +94,8 @@ func extractTar(archivePath, destDir string, decompress decompressor) error {
 				return err
 			}
 		case tar.TypeSymlink:
-			linkTarget := header.Linkname
-			if filepath.IsAbs(linkTarget) {
-				return fmt.Errorf("absolute symlink in archive: %s -> %s", header.Name, linkTarget)
-			}
-			resolvedTarget := filepath.Join(filepath.Dir(target), linkTarget)
-			resolvedTarget = filepath.Clean(resolvedTarget)
-			if !strings.HasPrefix(resolvedTarget, destDir) {
-				return fmt.Errorf("symlink escapes destination: %s -> %s", header.Name, linkTarget)
-			}
-			if err := os.Symlink(linkTarget, target); err != nil {
-				return fmt.Errorf("creating symlink %s: %w", target, err)
+			if err := createSafeSymlink(destDir, target, header.Linkname); err != nil {
+				return err
 			}
 		}
 	}
@@ -120,6 +114,24 @@ func extractZip(archivePath, destDir string) error {
 			return err
 		}
 
+		mode := f.FileInfo().Mode()
+
+		if mode&os.ModeSymlink != 0 {
+			rc, err := f.Open()
+			if err != nil {
+				return fmt.Errorf("opening zip symlink %s: %w", f.Name, err)
+			}
+			linkTarget, err := io.ReadAll(rc)
+			_ = rc.Close()
+			if err != nil {
+				return fmt.Errorf("reading zip symlink %s: %w", f.Name, err)
+			}
+			if err := createSafeSymlink(destDir, target, string(linkTarget)); err != nil {
+				return err
+			}
+			continue
+		}
+
 		if f.FileInfo().IsDir() {
 			if err := os.MkdirAll(target, 0755); err != nil {
 				return fmt.Errorf("creating directory %s: %w", target, err)
@@ -136,7 +148,7 @@ func extractZip(archivePath, destDir string) error {
 			return fmt.Errorf("opening zip entry %s: %w", f.Name, err)
 		}
 
-		err = writeFile(target, rc, f.FileInfo().Mode())
+		err = writeFile(target, rc, mode)
 		_ = rc.Close()
 		if err != nil {
 			return err
@@ -173,6 +185,21 @@ func installAppImage(srcPath, destDir string) error {
 	return dst.Close()
 }
 
+func createSafeSymlink(destDir, target, linkTarget string) error {
+	if filepath.IsAbs(linkTarget) {
+		return fmt.Errorf("absolute symlink target: %s -> %s", target, linkTarget)
+	}
+	resolvedTarget := filepath.Join(filepath.Dir(target), linkTarget)
+	resolvedTarget = filepath.Clean(resolvedTarget)
+	if !strings.HasPrefix(resolvedTarget, filepath.Clean(destDir)+string(filepath.Separator)) && resolvedTarget != filepath.Clean(destDir) {
+		return fmt.Errorf("symlink escapes destination: %s -> %s", target, linkTarget)
+	}
+	if err := os.Symlink(linkTarget, target); err != nil {
+		return fmt.Errorf("creating symlink %s: %w", target, err)
+	}
+	return nil
+}
+
 func sanitizePath(destDir, name string) (string, error) {
 	cleaned := filepath.Clean(name)
 	if strings.HasPrefix(cleaned, "..") || filepath.IsAbs(cleaned) {
@@ -206,6 +233,63 @@ func writeFile(path string, r io.Reader, mode os.FileMode) error {
 	}
 
 	return f.Close()
+}
+
+func extract7z(archivePath, destDir string) error {
+	r, err := sevenzip.OpenReader(archivePath)
+	if err != nil {
+		return fmt.Errorf("opening 7z: %w", err)
+	}
+	defer func() { _ = r.Close() }()
+
+	for _, f := range r.File {
+		target, err := sanitizePath(destDir, f.Name)
+		if err != nil {
+			return err
+		}
+
+		mode := f.FileInfo().Mode()
+
+		if mode&os.ModeSymlink != 0 {
+			rc, err := f.Open()
+			if err != nil {
+				return fmt.Errorf("opening 7z symlink %s: %w", f.Name, err)
+			}
+			linkTarget, err := io.ReadAll(rc)
+			_ = rc.Close()
+			if err != nil {
+				return fmt.Errorf("reading 7z symlink %s: %w", f.Name, err)
+			}
+			if err := createSafeSymlink(destDir, target, string(linkTarget)); err != nil {
+				return err
+			}
+			continue
+		}
+
+		if f.FileInfo().IsDir() {
+			if err := os.MkdirAll(target, 0755); err != nil {
+				return fmt.Errorf("creating directory %s: %w", target, err)
+			}
+			continue
+		}
+
+		if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+			return fmt.Errorf("creating parent dir for %s: %w", target, err)
+		}
+
+		rc, err := f.Open()
+		if err != nil {
+			return fmt.Errorf("opening 7z entry %s: %w", f.Name, err)
+		}
+
+		err = writeFile(target, rc, mode)
+		_ = rc.Close()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 var _ Extractor = OSExtractor{}

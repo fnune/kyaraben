@@ -93,10 +93,10 @@ export interface ProgressEvent {
   buildPhase?: string;
   packageName?: string;
   progressPercent?: number /* int */;
+  logPosition: number /* int64 */;
 }
 export interface ApplyResult {
   success: boolean;
-  storePath: string;
 }
 export interface CancelledResponse {
   message: string;

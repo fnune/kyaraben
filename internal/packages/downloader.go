@@ -9,7 +9,10 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
+
+	"github.com/fnune/kyaraben/internal/version"
 )
 
 type DownloadProgress struct {
@@ -65,6 +68,7 @@ func (d *HTTPDownloader) downloadFromURL(ctx context.Context, url string, req Do
 	if err != nil {
 		return fmt.Errorf("creating request: %w", err)
 	}
+	httpReq.Header.Set("User-Agent", "kyaraben/"+version.Get())
 
 	resp, err := d.Client.Do(httpReq)
 	if err != nil {
@@ -76,7 +80,7 @@ func (d *HTTPDownloader) downloadFromURL(ctx context.Context, url string, req Do
 		return fmt.Errorf("downloading %s: status %d", url, resp.StatusCode)
 	}
 
-	tmpFile, err := os.CreateTemp("", "kyaraben-download-*")
+	tmpFile, err := os.CreateTemp(filepath.Dir(req.DestPath), "kyaraben-download-*")
 	if err != nil {
 		return fmt.Errorf("creating temp file: %w", err)
 	}

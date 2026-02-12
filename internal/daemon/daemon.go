@@ -327,7 +327,7 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	versionOverrides, err := cfg.BuildVersionOverrides(d.reg.GetEmulator)
+	versionOverrides, err := cfg.BuildVersionOverrides(d.reg.GetEmulator, d.reg.GetFrontend)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
@@ -375,6 +375,8 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 		BaseDirResolver: model.OSBaseDirResolver{},
 	}
 
+	logPosition := logging.CurrentPosition()
+
 	opts := apply.Options{
 		OnProgress: func(p apply.Progress) {
 			event := Event{
@@ -386,6 +388,7 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 					BuildPhase:      p.BuildPhase,
 					PackageName:     p.PackageName,
 					ProgressPercent: p.ProgressPercent,
+					LogPosition:     logPosition,
 				},
 			}
 			if emit != nil {
@@ -558,7 +561,7 @@ func (d *Daemon) handleCancelApply() []Event {
 func (d *Daemon) handleGetSystems() []Event {
 	systems := d.reg.AllSystems()
 	vers, _ := versions.Get()
-	currentArch := hardware.DetectTarget().Arch
+	detectedTarget := hardware.DetectTarget().Name
 
 	result := make(GetSystemsResponse, 0, len(systems))
 	for _, sys := range systems {
@@ -579,7 +582,7 @@ func (d *Daemon) handleGetSystems() []Event {
 					ref.AvailableVersions = availableVersions
 
 					if entry := spec.GetDefault(); entry != nil {
-						if target := entry.DefaultTargetForArch(currentArch); target != "" {
+						if target := entry.SelectTarget(detectedTarget); target != "" {
 							if build := entry.Target(target); build != nil && build.Size > 0 {
 								ref.DownloadBytes = build.Size
 							}
@@ -620,7 +623,7 @@ func (d *Daemon) handleGetSystems() []Event {
 func (d *Daemon) handleGetFrontends() []Event {
 	frontends := d.reg.AllFrontends()
 	vers, _ := versions.Get()
-	currentArch := hardware.DetectTarget().Arch
+	detectedTarget := hardware.DetectTarget().Name
 
 	result := make(GetFrontendsResponse, 0, len(frontends))
 	for _, fe := range frontends {
@@ -637,7 +640,7 @@ func (d *Daemon) handleGetFrontends() []Event {
 				ref.AvailableVersions = availableVersions
 
 				if entry := spec.GetDefault(); entry != nil {
-					if target := entry.DefaultTargetForArch(currentArch); target != "" {
+					if target := entry.SelectTarget(detectedTarget); target != "" {
 						if build := entry.Target(target); build != nil && build.Size > 0 {
 							ref.DownloadBytes = build.Size
 						}

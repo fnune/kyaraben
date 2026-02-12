@@ -41,7 +41,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	if err != nil {
 		return fmt.Errorf("creating installer: %w", err)
 	}
-	versionOverrides, err := cfg.BuildVersionOverrides(registry.GetEmulator)
+	versionOverrides, err := cfg.BuildVersionOverrides(registry.GetEmulator, registry.GetFrontend)
 	if err != nil {
 		return err
 	}

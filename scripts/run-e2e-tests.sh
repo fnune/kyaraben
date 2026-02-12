@@ -6,7 +6,6 @@ set -e
 
 # Setup
 mkdir -p /root/.local/state/kyaraben /root/.local/share/kyaraben
-rm -rf /root/.local/share/kyaraben/nix-portable/.nix-portable
 
 # Extract AppImage (FUSE not available in Docker)
 cd /app/ui/release
@@ -33,4 +32,4 @@ echo "Running Playwright tests..."
 env KYARABEN_APPIMAGE=/app/ui/release/squashfs-root/kyaraben-ui \
     APPDIR=/app/ui/release/squashfs-root \
     DISPLAY=:99 \
-    npm run test:e2e --prefix /app/ui
+    /app/scripts/run-ui-e2e.sh npm run test:e2e --prefix /app/ui
