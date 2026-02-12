@@ -5,17 +5,13 @@
 //	~/.local/state/kyaraben/
 //	├── bin/              # wrapper scripts for emulator binaries (add to PATH)
 //	├── cores/            # symlinks to RetroArch cores (libretro_directory)
-//	├── current           # symlink to active nix profile (real store path)
-//	├── current-virtual   # nix-managed symlink (indirect GC root, virtual store path)
 //	├── syncthing/        # sync device pairings and identity (user data)
 //	├── kyaraben.log      # application log
 //	└── build/            # regenerable via 'kyaraben apply'
-//	    ├── nix/          # nix-portable store (multi-GB)
-//	    ├── flake/        # generated flake.nix
 //	    └── manifest.json # tracks installed emulators and configs
 //
 // We use STATE rather than DATA because this data is:
-//   - Machine-specific (nix store paths contain hashes that won't work elsewhere)
+//   - Machine-specific (installed package paths are local to the machine)
 //   - Mostly regenerable (kyaraben apply rebuilds build/ from config)
 //   - Not user data (the actual user data is in ~/Emulation and ~/.config/<emulator>)
 //

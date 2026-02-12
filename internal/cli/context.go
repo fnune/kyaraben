@@ -2,6 +2,9 @@ package cli
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/packages"
@@ -45,7 +48,11 @@ func (c *Context) NewInstaller() (packages.Installer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("getting state directory: %w", err)
 	}
-	downloader := &packages.HTTPDownloader{}
+	if useFakeInstaller() {
+		packagesDir := filepath.Join(stateDir, "packages")
+		return packages.NewFakeInstaller(packagesDir), nil
+	}
+	downloader := packages.NewHTTPDownloader()
 	extractor := &packages.OSExtractor{}
 	return packages.NewPackageInstaller(stateDir, downloader, extractor), nil
 }
@@ -56,4 +63,9 @@ func (c *Context) NewUserStore(cfg *model.KyarabenConfig) (*store.UserStore, err
 
 func (c *Context) stateDir() (string, error) {
 	return paths.KyarabenStateDir()
+}
+
+func useFakeInstaller() bool {
+	value := strings.TrimSpace(strings.ToLower(os.Getenv("KYARABEN_E2E_FAKE_INSTALLER")))
+	return value == "1" || value == "true" || value == "yes"
 }

@@ -344,7 +344,7 @@ func TestApplySucceedsWhenGCFails(t *testing.T) {
 
 	var gcSteps []Progress
 	for _, p := range progressSteps {
-		if p.Step == "gc" {
+		if p.Step == "cleanup" {
 			gcSteps = append(gcSteps, p)
 		}
 	}
@@ -445,19 +445,150 @@ func TestApplyWithFakeInstallerE2E(t *testing.T) {
 	}
 
 	hasBuild := false
-	hasConfig := false
+	hasFinalize := false
 	for _, p := range progressEvents {
 		if p.Step == "build" {
 			hasBuild = true
 		}
-		if p.Step == "config" {
-			hasConfig = true
+		if p.Step == "finalize" {
+			hasFinalize = true
 		}
 	}
 	if !hasBuild {
 		t.Error("Expected build progress events")
 	}
-	if !hasConfig {
-		t.Error("Expected config progress events")
+	if !hasFinalize {
+		t.Error("Expected finalize progress events")
+	}
+}
+
+func TestApplyInstallsFrontend(t *testing.T) {
+	tmpDir := t.TempDir()
+	manifestPath := filepath.Join(tmpDir, "manifest.json")
+	userStorePath := filepath.Join(tmpDir, "Emulation")
+	packagesDir := filepath.Join(tmpDir, "packages")
+
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{
+			UserStore: userStorePath,
+		},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDGBA: {model.EmulatorIDMGBA},
+		},
+		Frontends: map[model.FrontendID]model.FrontendConfig{
+			model.FrontendIDESDE: {Enabled: true},
+		},
+	}
+
+	reg := registry.NewDefault()
+	userStore, err := store.NewUserStore(userStorePath)
+	if err != nil {
+		t.Fatalf("Failed to create user store: %v", err)
+	}
+
+	installer := packages.NewFakeInstaller(packagesDir)
+	installer.Versions["mgba"] = "0.10.3"
+	installer.Versions["es-de"] = "3.0.0"
+
+	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
+
+	applier := &Applier{
+		Installer:       installer,
+		ConfigWriter:    configWriter,
+		Registry:        reg,
+		ManifestPath:    manifestPath,
+		BaseDirResolver: fakeBaseDirResolver{root: tmpDir},
+	}
+
+	_, err = applier.Apply(context.Background(), cfg, userStore, Options{})
+	if err != nil {
+		t.Fatalf("Apply failed: %v", err)
+	}
+
+	manifest, err := model.LoadManifest(manifestPath)
+	if err != nil {
+		t.Fatalf("Failed to load manifest: %v", err)
+	}
+
+	if _, ok := manifest.InstalledFrontends[model.FrontendIDESDE]; !ok {
+		t.Error("ES-DE frontend should be in manifest")
+	}
+
+	if esde, ok := manifest.InstalledFrontends[model.FrontendIDESDE]; ok {
+		if esde.Version != "3.0.0" {
+			t.Errorf("ES-DE version = %q, want 3.0.0", esde.Version)
+		}
+	}
+
+	binaryPath := filepath.Join(packagesDir, "es-de", "bin", "es-de")
+	if _, err := os.Stat(binaryPath); os.IsNotExist(err) {
+		t.Errorf("ES-DE binary should be installed at %s", binaryPath)
+	}
+}
+
+type iconTrackingInstaller struct {
+	*packages.FakeInstaller
+	iconCalls []string
+}
+
+func (i *iconTrackingInstaller) InstallIcon(ctx context.Context, binaryName, url, sha256 string) (*packages.InstalledIcon, error) {
+	i.iconCalls = append(i.iconCalls, binaryName)
+	return i.FakeInstaller.InstallIcon(ctx, binaryName, url, sha256)
+}
+
+func TestApplyInstallsFrontendIcon(t *testing.T) {
+	tmpDir := t.TempDir()
+	manifestPath := filepath.Join(tmpDir, "manifest.json")
+	userStorePath := filepath.Join(tmpDir, "Emulation")
+	packagesDir := filepath.Join(tmpDir, "packages")
+
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{
+			UserStore: userStorePath,
+		},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDGBA: {model.EmulatorIDMGBA},
+		},
+		Frontends: map[model.FrontendID]model.FrontendConfig{
+			model.FrontendIDESDE: {Enabled: true},
+		},
+	}
+
+	reg := registry.NewDefault()
+	userStore, err := store.NewUserStore(userStorePath)
+	if err != nil {
+		t.Fatalf("Failed to create user store: %v", err)
+	}
+
+	fakeInstaller := packages.NewFakeInstaller(packagesDir)
+	fakeInstaller.Versions["mgba"] = "0.10.3"
+	fakeInstaller.Versions["es-de"] = "3.0.0"
+	installer := &iconTrackingInstaller{FakeInstaller: fakeInstaller}
+
+	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
+
+	applier := &Applier{
+		Installer:       installer,
+		ConfigWriter:    configWriter,
+		Registry:        reg,
+		ManifestPath:    manifestPath,
+		BaseDirResolver: fakeBaseDirResolver{root: tmpDir},
+	}
+
+	_, err = applier.Apply(context.Background(), cfg, userStore, Options{})
+	if err != nil {
+		t.Fatalf("Apply failed: %v", err)
+	}
+
+	hasESDE := false
+	for _, name := range installer.iconCalls {
+		if name == "es-de" {
+			hasESDE = true
+			break
+		}
+	}
+
+	if !hasESDE {
+		t.Errorf("InstallIcon should be called for es-de, got calls for: %v", installer.iconCalls)
 	}
 }

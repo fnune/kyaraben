@@ -1,7 +1,9 @@
 package packages
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"io"
 	"os"
@@ -106,6 +108,9 @@ func (i *PackageInstaller) resolveSpec(name string) (*versions.VersionEntry, *ve
 }
 
 func (i *PackageInstaller) ResolveVersion(name string) string {
+	if name == "retroarch-cores" {
+		return versions.MustGet().RetroArchCores.Default
+	}
 	entry, _, err := i.resolveSpec(name)
 	if err != nil {
 		return ""
@@ -156,23 +161,21 @@ func (i *PackageInstaller) InstallEmulator(ctx context.Context, name string, onP
 	binaryPath := entry.BinaryPathForTarget(target, spec)
 
 	pkgDir := i.packageDir(name, entry.Version)
-
-	binaryName := name
-	if binaryPath != "" {
-		binaryName = filepath.Base(binaryPath)
-	}
-
-	installedPath := filepath.Join(pkgDir, "bin", binaryName)
-	if _, err := os.Stat(installedPath); err == nil {
+	installedPath := filepath.Join(pkgDir, "bin", name)
+	cache := &packageCache{pkgDir: pkgDir, expectedHash: build.SHA256}
+	if cache.isValid(installedPath) {
 		if onProgress != nil {
 			onProgress(InstallProgress{PackageName: name, Phase: "skipped"})
 		}
-		return &InstalledBinary{Name: binaryName, Path: installedPath}, nil
+		return &InstalledBinary{Name: name, Path: installedPath}, nil
 	}
+	cache.invalidate()
 
 	if err := os.MkdirAll(i.downloadsDir, 0755); err != nil {
 		return nil, fmt.Errorf("creating downloads dir: %w", err)
 	}
+
+	log.Info("Downloading %s %s", name, entry.Version)
 
 	downloadDest := filepath.Join(i.downloadsDir, name+"-"+entry.Version+".download")
 	defer func() { _ = os.Remove(downloadDest) }()
@@ -214,7 +217,7 @@ func (i *PackageInstaller) InstallEmulator(ctx context.Context, name string, onP
 		if err := os.MkdirAll(binDir, 0755); err != nil {
 			return nil, fmt.Errorf("creating bin dir: %w", err)
 		}
-		destPath := filepath.Join(binDir, binaryName)
+		destPath := filepath.Join(binDir, name)
 		if err := copyFileExec(downloadDest, destPath); err != nil {
 			return nil, fmt.Errorf("installing binary: %w", err)
 		}
@@ -232,7 +235,7 @@ func (i *PackageInstaller) InstallEmulator(ctx context.Context, name string, onP
 		}
 
 		srcPath := filepath.Join(extractDir, binaryPath)
-		destPath := filepath.Join(binDir, binaryName)
+		destPath := filepath.Join(binDir, name)
 		if err := copyFileExec(srcPath, destPath); err != nil {
 			_ = os.RemoveAll(tmpDir)
 			return nil, fmt.Errorf("installing extracted binary: %w", err)
@@ -251,26 +254,32 @@ func (i *PackageInstaller) InstallEmulator(ctx context.Context, name string, onP
 		return nil, fmt.Errorf("finalizing package install: %w", err)
 	}
 
-	installedPath = filepath.Join(pkgDir, "bin", binaryName)
+	cache.markValid()
+
+	installedPath = filepath.Join(pkgDir, "bin", name)
 	if onProgress != nil {
 		onProgress(InstallProgress{PackageName: name, Phase: "installed"})
 	}
 
 	log.Info("Installed %s %s to %s", name, entry.Version, pkgDir)
-	return &InstalledBinary{Name: binaryName, Path: installedPath}, nil
+	return &InstalledBinary{Name: name, Path: installedPath}, nil
 }
 
 func (i *PackageInstaller) InstallCores(ctx context.Context, coreNames []string, onProgress func(InstallProgress)) ([]InstalledCore, error) {
 	v := versions.MustGet()
-	arch := hardware.DetectTarget().Arch
-	url, sha256, ok := v.RetroArchCores.GetCoresURL(arch)
+	targetName := i.selectCoresTarget(v)
+	if targetName == "" {
+		return nil, fmt.Errorf("no RetroArch cores bundle for this system")
+	}
+	url, sha256, ok := v.RetroArchCores.GetCoresURL(targetName)
 	if !ok {
-		return nil, fmt.Errorf("no RetroArch cores bundle for %s", arch)
+		return nil, fmt.Errorf("no RetroArch cores bundle for target %s", targetName)
 	}
 
 	version := v.RetroArchCores.Default
 	pkgDir := i.packageDir("retroarch-cores", version)
 	coresDir := filepath.Join(pkgDir, "lib", "retroarch", "cores")
+	cache := &packageCache{pkgDir: pkgDir, expectedHash: sha256}
 
 	allPresent := true
 	for _, coreName := range coreNames {
@@ -283,16 +292,19 @@ func (i *PackageInstaller) InstallCores(ctx context.Context, coreNames []string,
 			break
 		}
 	}
-	if allPresent {
+	if allPresent && cache.isValid(coresDir) {
 		if onProgress != nil {
 			onProgress(InstallProgress{PackageName: "retroarch-cores", Phase: "skipped"})
 		}
 		return i.buildCoresList(coreNames, coresDir, v), nil
 	}
+	cache.invalidate()
 
 	if err := os.MkdirAll(i.downloadsDir, 0755); err != nil {
 		return nil, fmt.Errorf("creating downloads dir: %w", err)
 	}
+
+	log.Info("Downloading RetroArch cores bundle %s", version)
 
 	downloadDest := filepath.Join(i.downloadsDir, "retroarch-cores-"+version+".download")
 	defer func() { _ = os.Remove(downloadDest) }()
@@ -371,6 +383,8 @@ func (i *PackageInstaller) InstallCores(ctx context.Context, coreNames []string,
 		return nil, fmt.Errorf("finalizing cores install: %w", err)
 	}
 
+	cache.markValid()
+
 	coresDir = filepath.Join(pkgDir, "lib", "retroarch", "cores")
 	if onProgress != nil {
 		onProgress(InstallProgress{PackageName: "retroarch-cores", Phase: "installed"})
@@ -402,7 +416,9 @@ func (i *PackageInstaller) InstallIcon(ctx context.Context, binaryName, url, sha
 	destPath := filepath.Join(iconsDir, filename)
 
 	if _, err := os.Stat(destPath); err == nil {
-		return &InstalledIcon{Name: binaryName, Filename: filename, Path: destPath}, nil
+		if sha256Hash != "" && verifyFileHash(destPath, sha256Hash) {
+			return &InstalledIcon{Name: binaryName, Filename: filename, Path: destPath}, nil
+		}
 	}
 
 	if err := os.MkdirAll(iconsDir, 0755); err != nil {
@@ -418,6 +434,54 @@ func (i *PackageInstaller) InstallIcon(ctx context.Context, binaryName, url, sha
 	}
 
 	return &InstalledIcon{Name: binaryName, Filename: filename, Path: destPath}, nil
+}
+
+type packageCache struct {
+	pkgDir       string
+	expectedHash string
+}
+
+func (c *packageCache) markerPath() string {
+	return filepath.Join(c.pkgDir, ".sha256")
+}
+
+func (c *packageCache) isValid(installedPath string) bool {
+	if _, err := os.Stat(installedPath); err != nil {
+		return false
+	}
+	data, err := os.ReadFile(c.markerPath())
+	if err != nil {
+		return false
+	}
+	return strings.TrimSpace(string(data)) == c.expectedHash
+}
+
+func (c *packageCache) invalidate() {
+	_ = os.RemoveAll(c.pkgDir)
+}
+
+func (c *packageCache) markValid() {
+	_ = os.WriteFile(c.markerPath(), []byte(c.expectedHash), 0644)
+}
+
+func verifyFileHash(path, expectedHash string) bool {
+	expected, err := parseSHA256(expectedHash)
+	if err != nil {
+		return false
+	}
+
+	f, err := os.Open(path)
+	if err != nil {
+		return false
+	}
+	defer func() { _ = f.Close() }()
+
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return false
+	}
+
+	return bytes.Equal(h.Sum(nil), expected)
 }
 
 func (i *PackageInstaller) GarbageCollect(keep map[string]string) error {
@@ -467,12 +531,31 @@ func (i *PackageInstaller) GarbageCollect(keep map[string]string) error {
 }
 
 func (i *PackageInstaller) selectTarget(entry *versions.VersionEntry) string {
-	detected := hardware.DetectTarget()
-	target := detected.Name
-	if entry.Target(target) != nil {
-		return target
+	return entry.SelectTarget(hardware.DetectTarget().Name)
+}
+
+func (i *PackageInstaller) selectCoresTarget(v *versions.Versions) string {
+	detected := hardware.DetectTarget().Name
+	version := v.RetroArchCores.Default
+	if version == "" {
+		return ""
 	}
-	return entry.DefaultTargetForArch(detected.Arch)
+	build, ok := v.RetroArchCores.Versions[version]
+	if !ok {
+		return ""
+	}
+
+	if _, ok := build.Targets[detected]; ok {
+		return detected
+	}
+
+	if fallback, ok := versions.TargetFallback[detected]; ok {
+		if _, ok := build.Targets[fallback.String()]; ok {
+			return fallback.String()
+		}
+	}
+
+	return ""
 }
 
 func detectArchiveType(url string) string {

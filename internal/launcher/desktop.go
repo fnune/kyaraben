@@ -164,18 +164,6 @@ func UpdateIconCachesWithAppsDir(themeDir, applicationsDir string) []string {
 		}
 	}
 
-	for _, kbuildsycoca := range []string{"kbuildsycoca6", "kbuildsycoca5"} {
-		if _, err := exec.LookPath(kbuildsycoca); err == nil {
-			cmd := exec.Command(kbuildsycoca)
-			if err := cmd.Run(); err != nil {
-				log.Debug("%s failed: %v", kbuildsycoca, err)
-			} else {
-				refreshed = append(refreshed, kbuildsycoca)
-			}
-			break
-		}
-	}
-
 	return refreshed
 }
 

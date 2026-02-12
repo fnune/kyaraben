@@ -12,7 +12,8 @@ const kyarabenStateDir = path.join(stateDir, 'kyaraben')
 app.setPath('userData', path.join(kyarabenStateDir, 'ui'))
 
 // Protocol types for daemon communication.
-// Source of truth: internal/daemon/types.go
+// Source of truth: internal/daemon/protocol.go (ProgressEvent)
+// Generated types: src/types/daemon.gen.ts
 // Keep these in sync when modifying the protocol.
 interface DaemonCommand {
   type: string
@@ -24,6 +25,16 @@ interface DaemonEvent {
   type: string
   id?: string
   data: unknown
+}
+
+interface ProgressEvent {
+  step: string
+  message: string
+  output?: string
+  buildPhase?: string
+  packageName?: string
+  progressPercent?: number
+  logPosition?: number
 }
 
 // Daemon process handle
@@ -99,12 +110,12 @@ function spawnInTerminal(command: string): { success: boolean; error?: string; c
 
   const userTerminal = process.env.TERMINAL
   if (userTerminal && trySpawn(userTerminal, ['-e', 'sh', '-c', command])) {
-    console.error(`[kyaraben] Opened terminal: ${userTerminal} (from $TERMINAL)`)
+    console.error(`[kyaraben] Opened terminal: ${userTerminal} (from $TERMINAL): ${command}`)
     return { success: true }
   }
 
   if (trySpawn('xdg-terminal-exec', [command])) {
-    console.error('[kyaraben] Opened terminal: xdg-terminal-exec (freedesktop default)')
+    console.error(`[kyaraben] Opened terminal: xdg-terminal-exec (freedesktop default): ${command}`)
     return { success: true }
   }
 
@@ -118,7 +129,9 @@ function spawnInTerminal(command: string): { success: boolean; error?: string; c
       ).trim()
       const gnomeTerminal = gsettingsOutput.replace(/^'|'$/g, '')
       if (gnomeTerminal && trySpawn(gnomeTerminal, ['--', 'sh', '-c', command])) {
-        console.error(`[kyaraben] Opened terminal: ${gnomeTerminal} (GNOME default from gsettings)`)
+        console.error(
+          `[kyaraben] Opened terminal: ${gnomeTerminal} (GNOME default from gsettings): ${command}`,
+        )
         return { success: true }
       }
     } catch {
@@ -127,7 +140,7 @@ function spawnInTerminal(command: string): { success: boolean; error?: string; c
   }
 
   if (desktop.includes('kde') && trySpawn('konsole', ['-e', 'sh', '-c', command])) {
-    console.error('[kyaraben] Opened terminal: konsole (KDE default)')
+    console.error(`[kyaraben] Opened terminal: konsole (KDE default): ${command}`)
     return { success: true }
   }
 
@@ -153,7 +166,7 @@ function spawnInTerminal(command: string): { success: boolean; error?: string; c
 
   for (const term of fallbacks) {
     if (trySpawn(term.cmd, term.args)) {
-      console.error(`[kyaraben] Opened terminal: ${term.cmd} (fallback)`)
+      console.error(`[kyaraben] Opened terminal: ${term.cmd} (fallback): ${command}`)
       return { success: true }
     }
   }
@@ -299,14 +312,7 @@ async function applyCommand(): Promise<{ messages: string[]; cancelled: boolean 
 
     const handleEvent = (event: DaemonEvent) => {
       if (event.type === 'progress') {
-        const data = event.data as {
-          step?: string
-          message?: string
-          output?: string
-          buildPhase?: string
-          packageName?: string
-          progressPercent?: number
-        }
+        const data = event.data as ProgressEvent | undefined
         const msg = data?.message
         if (msg) messages.push(msg)
 
@@ -320,6 +326,7 @@ async function applyCommand(): Promise<{ messages: string[]; cancelled: boolean 
               buildPhase: data?.buildPhase,
               packageName: data?.packageName,
               progressPercent: data?.progressPercent,
+              logPosition: data?.logPosition,
             })
           } catch (sendErr) {
             console.error('[kyaraben] Failed to send progress:', sendErr)
@@ -473,9 +480,11 @@ function setupIpcHandlers(): void {
     return { success: true }
   })
 
-  ipcMain.handle('open_log_tail', () => {
+  ipcMain.handle('open_log_tail', (_event, position?: number) => {
     const logPath = path.join(kyarabenStateDir, 'kyaraben.log')
-    return spawnInTerminal(`tail -f "${logPath}"`)
+    const cmd =
+      position !== undefined ? `tail -c +${position} -f "${logPath}"` : `tail -f "${logPath}"`
+    return spawnInTerminal(cmd)
   })
 
   ipcMain.handle('launch_cli_uninstall', () => {
