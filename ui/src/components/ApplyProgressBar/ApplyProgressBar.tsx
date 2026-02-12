@@ -10,8 +10,8 @@ export interface ApplyProgressBarProps {
 }
 
 export function ApplyProgressBar({ currentView, onNavigateToSystems }: ApplyProgressBarProps) {
-  const { status, progressSteps, cancel } = useApply()
-  const handleOpenLog = useOpenLog()
+  const { status, progressSteps, cancel, logPosition } = useApply()
+  const openLog = useOpenLog()
   const [confirmingCancel, setConfirmingCancel] = useState(false)
   const [cancelling, setCancelling] = useState(false)
 
@@ -62,7 +62,7 @@ export function ApplyProgressBar({ currentView, onNavigateToSystems }: ApplyProg
           <div className="flex items-center gap-4">
             <button
               type="button"
-              onClick={handleOpenLog}
+              onClick={() => openLog(logPosition ?? undefined)}
               className="text-on-surface-muted hover:text-on-surface-secondary hover:underline text-sm"
             >
               Open log in terminal

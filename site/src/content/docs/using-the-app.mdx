@@ -159,15 +159,9 @@ directory and syncs it as a unit.
 
 ## Under the hood
 
-Kyaraben uses [nix-portable](https://github.com/DavHau/nix-portable) to
-install emulators reproducibly and in isolation. Nix is a package manager that
-identifies every package by a cryptographic hash of its inputs, so the same
-configuration always produces the same result.
-
-You never interact with Nix directly. It is an implementation detail bundled
-inside the AppImage. If you have Nix installed on your system, kyaraben does
-not interfere with it. Kyaraben uses its own Nix store, completely separate
-from any system-level Nix installation.
+Kyaraben downloads emulator binaries directly and verifies their hashes before
+installing them. Packages live under `~/.local/state/kyaraben/packages/` and
+are managed entirely by kyaraben.
 
 ## Guarantees
 

@@ -107,8 +107,8 @@ test.describe('Kyaraben App', () => {
   test('can change emulation folder path', async () => {
     const input = page.getByPlaceholder('~/Emulation')
     await input.clear()
-    await input.fill('~/TestEmulation')
-    await expect(input).toHaveValue('~/TestEmulation')
+    await input.fill('~/EmulationTest')
+    await expect(input).toHaveValue('~/EmulationTest')
 
     await input.clear()
     await input.fill('~/Emulation')

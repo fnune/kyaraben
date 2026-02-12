@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"text/template"
 )
 
@@ -14,7 +13,7 @@ type GeneratedDesktop struct {
 	Name          string
 	GenericName   string
 	CategoriesStr string
-	LaunchArgs    string // Command-line arguments to pass to the emulator
+	LaunchArgs    string
 }
 
 const desktopTemplate = `[Desktop Entry]
@@ -52,9 +51,8 @@ type GeneratedFiles struct {
 	IconFiles    []string
 }
 
-func (m *Manager) GenerateDesktopFiles(entries []GeneratedDesktop, previousFiles *GeneratedFiles) (*GeneratedFiles, error) {
+func (m *Manager) GenerateDesktopFiles(entries []GeneratedDesktop, icons []InstalledIcon, previousFiles *GeneratedFiles) (*GeneratedFiles, error) {
 	appsDir := m.ApplicationsDir()
-	iconsDir := m.IconsDir()
 
 	if previousFiles != nil {
 		for _, f := range previousFiles.DesktopFiles {
@@ -73,16 +71,17 @@ func (m *Manager) GenerateDesktopFiles(entries []GeneratedDesktop, previousFiles
 		return nil, fmt.Errorf("creating applications directory: %w", err)
 	}
 
-	if err := os.MkdirAll(iconsDir, 0755); err != nil {
-		return nil, fmt.Errorf("creating icons directory: %w", err)
-	}
-
 	tmpl, err := template.New("desktop").Parse(desktopTemplate)
 	if err != nil {
 		return nil, fmt.Errorf("parsing desktop template: %w", err)
 	}
 
 	result := &GeneratedFiles{}
+
+	iconsByName := make(map[string]InstalledIcon, len(icons))
+	for _, icon := range icons {
+		iconsByName[icon.Name] = icon
+	}
 
 	for _, entry := range entries {
 		desktopPath, err := m.generateDesktopFile(tmpl, entry)
@@ -91,11 +90,13 @@ func (m *Manager) GenerateDesktopFiles(entries []GeneratedDesktop, previousFiles
 		}
 		result.DesktopFiles = append(result.DesktopFiles, desktopPath)
 
-		iconPath, err := m.copyStoreIcon(entry.BinaryName)
-		if err != nil {
-			log.Debug("No icon for %s: %v", entry.BinaryName, err)
-		} else {
-			result.IconFiles = append(result.IconFiles, iconPath)
+		if icon, ok := iconsByName[entry.BinaryName]; ok {
+			iconPath, err := m.installIcon(icon)
+			if err != nil {
+				log.Debug("Failed to install icon for %s: %v", entry.BinaryName, err)
+			} else {
+				result.IconFiles = append(result.IconFiles, iconPath)
+			}
 		}
 	}
 
@@ -145,7 +146,6 @@ func UpdateIconCaches(themeDir string) []string {
 func UpdateIconCachesWithAppsDir(themeDir, applicationsDir string) []string {
 	var refreshed []string
 
-	// GTK-based DEs (GNOME, XFCE, etc.)
 	if _, err := exec.LookPath("gtk-update-icon-cache"); err == nil {
 		cmd := exec.Command("gtk-update-icon-cache", "-f", "-t", themeDir)
 		if err := cmd.Run(); err != nil {
@@ -155,7 +155,6 @@ func UpdateIconCachesWithAppsDir(themeDir, applicationsDir string) []string {
 		}
 	}
 
-	// Desktop database (freedesktop.org standard)
 	if _, err := exec.LookPath("update-desktop-database"); err == nil {
 		cmd := exec.Command("update-desktop-database", applicationsDir)
 		if err := cmd.Run(); err != nil {
@@ -165,29 +164,7 @@ func UpdateIconCachesWithAppsDir(themeDir, applicationsDir string) []string {
 		}
 	}
 
-	// KDE Plasma
-	for _, kbuildsycoca := range []string{"kbuildsycoca6", "kbuildsycoca5"} {
-		if _, err := exec.LookPath(kbuildsycoca); err == nil {
-			cmd := exec.Command(kbuildsycoca)
-			if err := cmd.Run(); err != nil {
-				log.Debug("%s failed: %v", kbuildsycoca, err)
-			} else {
-				refreshed = append(refreshed, kbuildsycoca)
-			}
-			break
-		}
-	}
-
 	return refreshed
-}
-
-func (m *Manager) virtualToRealStorePath(virtualPath string) string {
-	const nixStorePrefix = "/nix/store/"
-	if !strings.HasPrefix(virtualPath, nixStorePrefix) {
-		return virtualPath
-	}
-	hashAndName := strings.TrimPrefix(virtualPath, nixStorePrefix)
-	return filepath.Join(m.nixPortableLocation, ".nix-portable", "nix", "store", hashAndName)
 }
 
 type desktopTemplateData struct {
@@ -230,53 +207,23 @@ func (m *Manager) generateDesktopFile(tmpl *template.Template, entry GeneratedDe
 	return desktopPath, nil
 }
 
-// copyStoreIcon copies an icon from the nix store profile to the user's icons directory.
-func (m *Manager) copyStoreIcon(binary string) (string, error) {
-	storeIconsDir := filepath.Join(m.CurrentLink(), "share", "icons")
-
-	entries, err := os.ReadDir(storeIconsDir)
-	if err != nil {
-		return "", fmt.Errorf("reading store icons dir: %w", err)
-	}
-
-	var symlinkPath string
-	var ext string
-	for _, entry := range entries {
-		name := entry.Name()
-		if strings.HasPrefix(name, binary+".") {
-			symlinkPath = filepath.Join(storeIconsDir, name)
-			ext = filepath.Ext(name)
-			break
-		}
-	}
-
-	if symlinkPath == "" {
-		return "", fmt.Errorf("icon not found for %s", binary)
-	}
-
-	// Icons in the profile are symlinks to /nix/store/... virtual paths.
-	// On nix-portable systems, we need to convert to the real path.
-	virtualTarget, err := os.Readlink(symlinkPath)
-	if err != nil {
-		return "", fmt.Errorf("reading icon symlink: %w", err)
-	}
-	realPath := m.virtualToRealStorePath(virtualTarget)
-
-	iconData, err := os.ReadFile(realPath)
-	if err != nil {
-		return "", fmt.Errorf("reading source icon: %w", err)
-	}
-
+func (m *Manager) installIcon(icon InstalledIcon) (string, error) {
+	ext := filepath.Ext(icon.Filename)
 	destDir := m.iconsDirForExt(ext)
 	if err := os.MkdirAll(destDir, 0755); err != nil {
 		return "", fmt.Errorf("creating icons directory: %w", err)
 	}
 
-	destPath := filepath.Join(destDir, "kyaraben-"+binary+ext)
-	if err := os.WriteFile(destPath, iconData, 0644); err != nil {
+	destPath := filepath.Join(destDir, "kyaraben-"+icon.Name+ext)
+	data, err := os.ReadFile(icon.Path)
+	if err != nil {
+		return "", fmt.Errorf("reading icon file: %w", err)
+	}
+
+	if err := os.WriteFile(destPath, data, 0644); err != nil {
 		return "", fmt.Errorf("writing icon: %w", err)
 	}
 
-	log.Debug("Copied icon: %s -> %s", symlinkPath, destPath)
+	log.Debug("Installed icon: %s -> %s", icon.Path, destPath)
 	return destPath, nil
 }

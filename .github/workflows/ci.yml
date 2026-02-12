@@ -24,8 +24,6 @@ jobs:
 
       - name: Test
         run: go test -race ./...
-        env:
-          KYARABEN_NIX_PORTABLE_PATH: ${{ github.workspace }}/ui/e2e/fixtures/fake-nix-portable
 
   go-lint:
     runs-on: ubuntu-latest

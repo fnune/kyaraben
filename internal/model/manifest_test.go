@@ -52,7 +52,7 @@ func TestLoadManifest_Existing(t *testing.T) {
     "duckstation": {
       "id": "duckstation",
       "version": "1.0.0",
-      "store_path": "/nix/store/abc-duckstation",
+      "package_path": "/test/packages",
       "installed": "2024-01-15T10:00:00Z"
     }
   },
@@ -131,10 +131,10 @@ func TestManifest_Save_WritesValidJSON(t *testing.T) {
 
 	m := NewManifest()
 	m.AddEmulator(InstalledEmulator{
-		ID:        "test-emu",
-		Version:   "2.0.0",
-		StorePath: "/nix/store/xyz",
-		Installed: time.Date(2024, 1, 15, 10, 0, 0, 0, time.UTC),
+		ID:          "test-emu",
+		Version:     "2.0.0",
+		PackagePath: "/test/packages",
+		Installed:   time.Date(2024, 1, 15, 10, 0, 0, 0, time.UTC),
 	})
 
 	if err := m.Save(path); err != nil {
@@ -159,9 +159,9 @@ func TestManifest_AddEmulator(t *testing.T) {
 	m := NewManifest()
 
 	emu1 := InstalledEmulator{
-		ID:        "emu1",
-		Version:   "1.0.0",
-		StorePath: "/nix/store/a",
+		ID:          "emu1",
+		Version:     "1.0.0",
+		PackagePath: "/test/packages",
 	}
 	m.AddEmulator(emu1)
 

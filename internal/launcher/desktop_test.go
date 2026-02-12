@@ -35,44 +35,24 @@ func TestGenerateDesktopFiles(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	profileDir := filepath.Join(tmpDir, "kyaraben")
-	npLocation := filepath.Join(tmpDir, "nix-portable")
 	homeDir := filepath.Join(tmpDir, "home")
 
-	// Create the fake nix-portable store structure
-	realIconsDir := filepath.Join(npLocation, ".nix-portable", "nix", "store", "abc123-icons", "share", "icons")
-	if err := os.MkdirAll(realIconsDir, 0755); err != nil {
-		t.Fatalf("creating real icons dir: %v", err)
+	iconsDir := filepath.Join(tmpDir, "icons")
+	if err := os.MkdirAll(iconsDir, 0755); err != nil {
+		t.Fatalf("creating icons dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(realIconsDir, "eden.svg"), []byte("<svg></svg>"), 0644); err != nil {
+	edenIconPath := filepath.Join(iconsDir, "eden.svg")
+	if err := os.WriteFile(edenIconPath, []byte("<svg></svg>"), 0644); err != nil {
 		t.Fatalf("writing eden icon: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(realIconsDir, "duckstation.png"), []byte("fake png"), 0644); err != nil {
+	duckstationIconPath := filepath.Join(iconsDir, "duckstation.png")
+	if err := os.WriteFile(duckstationIconPath, []byte("fake png"), 0644); err != nil {
 		t.Fatalf("writing duckstation icon: %v", err)
-	}
-
-	// Create the profile with symlinks pointing to virtual /nix/store paths
-	currentDir := filepath.Join(npLocation, ".nix-portable", "nix", "store", "xyz789-profile")
-	profileIconsDir := filepath.Join(currentDir, "share", "icons")
-	if err := os.MkdirAll(profileIconsDir, 0755); err != nil {
-		t.Fatalf("creating profile icons dir: %v", err)
-	}
-	if err := os.Symlink("/nix/store/abc123-icons/share/icons/eden.svg", filepath.Join(profileIconsDir, "eden.svg")); err != nil {
-		t.Fatalf("creating eden symlink: %v", err)
-	}
-	if err := os.Symlink("/nix/store/abc123-icons/share/icons/duckstation.png", filepath.Join(profileIconsDir, "duckstation.png")); err != nil {
-		t.Fatalf("creating duckstation symlink: %v", err)
 	}
 
 	dataDir := filepath.Join(tmpDir, "data")
 	resolver := fakeBaseDirResolver{homeDir: homeDir}
-	m := &Manager{profileDir: profileDir, dataDir: dataDir, nixPortableLocation: npLocation, resolver: resolver}
-
-	if err := os.MkdirAll(profileDir, 0755); err != nil {
-		t.Fatalf("creating profile dir: %v", err)
-	}
-	if err := os.Symlink(currentDir, m.CurrentLink()); err != nil {
-		t.Fatalf("creating current symlink: %v", err)
-	}
+	m := &Manager{profileDir: profileDir, dataDir: dataDir, resolver: resolver}
 
 	entries := []GeneratedDesktop{
 		{
@@ -89,15 +69,20 @@ func TestGenerateDesktopFiles(t *testing.T) {
 		},
 	}
 
-	result, err := m.GenerateDesktopFiles(entries, nil)
+	icons := []InstalledIcon{
+		{Name: "eden", Filename: "eden.svg", Path: edenIconPath},
+		{Name: "duckstation", Filename: "duckstation.png", Path: duckstationIconPath},
+	}
+
+	result, err := m.GenerateDesktopFiles(entries, icons, nil)
 	if err != nil {
 		t.Fatalf("GenerateDesktopFiles() error = %v", err)
 	}
 	if len(result.DesktopFiles) != 2 {
-		t.Errorf("GenerateDesktopFiles() should return 2 desktop files, got %d", len(result.DesktopFiles))
+		t.Errorf("should return 2 desktop files, got %d", len(result.DesktopFiles))
 	}
 	if len(result.IconFiles) != 2 {
-		t.Errorf("GenerateDesktopFiles() should return 2 icon files, got %d", len(result.IconFiles))
+		t.Errorf("should return 2 icon files, got %d", len(result.IconFiles))
 	}
 
 	edenPath := filepath.Join(m.ApplicationsDir(), "eden.desktop")
@@ -120,44 +105,14 @@ func TestGenerateDesktopFiles(t *testing.T) {
 		t.Errorf("eden.desktop should contain Categories, got:\n%s", contentStr)
 	}
 
-	edenIconPath := filepath.Join(m.iconsDirForExt(".svg"), "kyaraben-eden.svg")
-	if _, err := os.Stat(edenIconPath); err != nil {
+	edenIcon := filepath.Join(m.iconsDirForExt(".svg"), "kyaraben-eden.svg")
+	if _, err := os.Stat(edenIcon); err != nil {
 		t.Errorf("kyaraben-eden.svg should exist in scalable/apps: %v", err)
 	}
 
-	duckstationIconPath := filepath.Join(m.iconsDirForExt(".png"), "kyaraben-duckstation.png")
-	if _, err := os.Stat(duckstationIconPath); err != nil {
+	duckstationIcon := filepath.Join(m.iconsDirForExt(".png"), "kyaraben-duckstation.png")
+	if _, err := os.Stat(duckstationIcon); err != nil {
 		t.Errorf("kyaraben-duckstation.png should exist in 256x256/apps: %v", err)
-	}
-}
-
-func TestVirtualToRealStorePath(t *testing.T) {
-	m := &Manager{nixPortableLocation: "/home/user/.local/state/kyaraben/build/nix"}
-
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "typical virtual path",
-			input:    "/nix/store/abc123-retroarch/share/applications/retroarch.desktop",
-			expected: "/home/user/.local/state/kyaraben/build/nix/.nix-portable/nix/store/abc123-retroarch/share/applications/retroarch.desktop",
-		},
-		{
-			name:     "non-nix path unchanged",
-			input:    "/usr/share/applications/foo.desktop",
-			expected: "/usr/share/applications/foo.desktop",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := m.virtualToRealStorePath(tt.input)
-			if result != tt.expected {
-				t.Errorf("got %s, expected %s", result, tt.expected)
-			}
-		})
 	}
 }
 
