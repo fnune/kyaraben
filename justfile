@@ -89,56 +89,81 @@ clean-emu-configs:
     #!/usr/bin/env bash
     set -euo pipefail
 
+    # XDG config dirs
     config_dirs=(
-        "$HOME/.config/duckstation"
-        "$HOME/.config/retroarch"
         "$HOME/.config/azahar"
         "$HOME/.config/Cemu"
+        "$HOME/.config/dolphin-emu"
+        "$HOME/.config/duckstation"
         "$HOME/.config/flycast"
         "$HOME/.config/melonDS"
         "$HOME/.config/mgba"
         "$HOME/.config/PCSX2"
         "$HOME/.config/ppsspp"
+        "$HOME/.config/retroarch"
         "$HOME/.config/rpcs3"
+    )
+
+    # XDG data dirs (for emulators using symlinks)
+    data_dirs=(
+        "$HOME/.local/share/Cemu"
+        "$HOME/.local/share/dolphin-emu"
+    )
+
+    # Frontend dirs
+    frontend_dirs=(
         "$HOME/ES-DE"
     )
 
-    # Also check for opaque dirs
-    opaque_base="$HOME/.local/share/kyaraben/opaque"
-    if [ -d "$opaque_base" ]; then
-        for dir in "$opaque_base"/*; do
-            [ -d "$dir" ] && config_dirs+=("$dir")
-        done
-    fi
+    all_dirs=("${config_dirs[@]}" "${data_dirs[@]}" "${frontend_dirs[@]}")
 
-    echo "Emulator config directories that will be removed:"
+    echo "Emulator directories that will be removed:"
     echo
+    echo "Config (~/.config/):"
     found=0
     for dir in "${config_dirs[@]}"; do
         if [ -d "$dir" ]; then
             size=$(du -sh "$dir" 2>/dev/null | cut -f1)
             echo "  [EXISTS] $dir ($size)"
             found=$((found + 1))
-        else
-            echo "  [MISSING] $dir"
+        fi
+    done
+
+    echo
+    echo "Data (~/.local/share/):"
+    for dir in "${data_dirs[@]}"; do
+        if [ -d "$dir" ] || [ -L "$dir" ]; then
+            size=$(du -sh "$dir" 2>/dev/null | cut -f1 || echo "symlink")
+            echo "  [EXISTS] $dir ($size)"
+            found=$((found + 1))
+        fi
+    done
+
+    echo
+    echo "Frontends:"
+    for dir in "${frontend_dirs[@]}"; do
+        if [ -d "$dir" ]; then
+            size=$(du -sh "$dir" 2>/dev/null | cut -f1)
+            echo "  [EXISTS] $dir ($size)"
+            found=$((found + 1))
         fi
     done
     echo
 
     if [ $found -eq 0 ]; then
-        echo "No config directories found to remove."
+        echo "No directories found to remove."
         exit 0
     fi
 
-    echo "This will remove $found directories."
+    echo "This will remove $found directories/symlinks."
     read -p "Continue? [y/N] " confirm
     if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
         echo "Aborted."
         exit 1
     fi
 
-    for dir in "${config_dirs[@]}"; do
-        if [ -d "$dir" ]; then
+    for dir in "${all_dirs[@]}"; do
+        if [ -d "$dir" ] || [ -L "$dir" ]; then
             echo "Removing $dir..."
             rm -rf "$dir"
         fi
