@@ -1,0 +1,8 @@
+export const OPTIONAL_PROVISION_ICON = '+'
+export const OPTIONAL_PROVISION_COLOR = 'text-accent'
+export const PROVISION_FOUND_ICON = '✓'
+export const PROVISION_FOUND_COLOR = 'text-status-ok'
+export const PROVISION_MISSING_ICON = '✗'
+export const PROVISION_MISSING_COLOR = 'text-status-error'
+export const PROVISION_NOT_NEEDED_ICON = '-'
+export const PROVISION_NOT_NEEDED_COLOR = 'text-on-surface-dim'
