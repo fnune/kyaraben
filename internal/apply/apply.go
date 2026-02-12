@@ -3,7 +3,6 @@ package apply
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -11,27 +10,29 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/symlink"
 	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/model"
-	"github.com/fnune/kyaraben/internal/nix"
+	"github.com/fnune/kyaraben/internal/packages"
 	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/store"
 	"github.com/fnune/kyaraben/internal/version"
+	"github.com/fnune/kyaraben/internal/versions"
 )
 
-const nixBuildTimeout = 30 * time.Minute
+var versionsGet = versions.Get
+
+const installTimeout = 30 * time.Minute
 
 type Progress struct {
 	Step            string
 	Message         string
-	Output          string // Optional streaming output line (e.g., from nix build)
-	BuildPhase      string // evaluating, installing
-	PackageName     string // Current package being processed
-	ProgressPercent int    // 0-100 progress percentage
+	Output          string
+	BuildPhase      string // "downloading", "extracting", "installed", "skipped"
+	PackageName     string
+	ProgressPercent int
 }
 
 type Result struct {
-	StorePath string
-	Patches   []model.ConfigPatch
-	Backups   []BackupInfo
+	Patches []model.ConfigPatch
+	Backups []BackupInfo
 }
 
 type BackupInfo struct {
@@ -103,8 +104,7 @@ func (a *Applier) Preflight(ctx context.Context, cfg *model.KyarabenConfig, user
 }
 
 type Applier struct {
-	NixClient       nix.NixClient
-	FlakeGenerator  *nix.FlakeGenerator
+	Installer       packages.Installer
 	ConfigWriter    *emulators.ConfigWriter
 	Registry        *registry.Registry
 	ManifestPath    string
@@ -116,10 +116,6 @@ type Applier struct {
 func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStore *store.UserStore, opts Options) (*Result, error) {
 	if opts.OnProgress == nil {
 		opts.OnProgress = func(Progress) {}
-	}
-
-	if !opts.DryRun && !a.NixClient.IsAvailable() {
-		return nil, fmt.Errorf("nix is not available (nix-portable not found)")
 	}
 
 	enabledEmulators := a.collectEnabledEmulators(cfg)
@@ -232,104 +228,18 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		}
 	}
 
-	if err := a.NixClient.EnsureFlakeDir(); err != nil {
-		return nil, fmt.Errorf("creating flake directory: %w", err)
-	}
-
-	genResult, err := a.FlakeGenerator.Generate(a.NixClient.GetFlakePath(), emulatorsToInstall, frontendsToInstall)
-	if err != nil {
-		return nil, fmt.Errorf("generating flake: %w", err)
-	}
-
-	for _, skipped := range genResult.SkippedEmulators {
-		opts.OnProgress(Progress{Step: "build", Message: fmt.Sprintf("Warning: emulator '%s' is no longer supported and will be skipped", skipped)})
-	}
-	for _, skipped := range genResult.SkippedFrontends {
-		opts.OnProgress(Progress{Step: "build", Message: fmt.Sprintf("Warning: frontend '%s' is no longer supported and will be skipped", skipped)})
-	}
-
-	resolvedVersions := a.FlakeGenerator.GetResolvedVersions(emulatorsToInstall)
-	resolvedFrontendVersions := a.FlakeGenerator.GetResolvedFrontendVersions(frontendsToInstall)
-
-	expectedPackages := a.FlakeGenerator.GetExpectedPackages(emulatorsToInstall, frontendsToInstall)
-	a.NixClient.SetExpectedPackages(expectedPackages)
-	defer a.NixClient.SetExpectedPackages(nil)
-
-	a.NixClient.SetOutputCallback(func(line string) {
-		opts.OnProgress(Progress{Step: "build", Output: line})
-	})
-	defer a.NixClient.SetOutputCallback(nil)
-
-	a.NixClient.SetProgressCallback(func(p nix.BuildProgress) {
-		opts.OnProgress(Progress{
-			Step:            "build",
-			BuildPhase:      string(p.Phase),
-			PackageName:     p.PackageName,
-			ProgressPercent: p.ProgressPercent,
-		})
-	})
-	defer a.NixClient.SetProgressCallback(nil)
+	installCtx, cancel := context.WithTimeout(ctx, installTimeout)
+	defer cancel()
 
 	opts.OnProgress(Progress{Step: "build", Message: "This may take a while on first run"})
 
-	buildCtx, cancel := context.WithTimeout(ctx, nixBuildTimeout)
-	defer cancel()
-
-	flakeRef := a.FlakeGenerator.DefaultFlakeRef(string(genResult.Path))
-
-	var profileLink string
-	if a.LauncherManager != nil {
-		profileLink = a.LauncherManager.CurrentLink()
-	}
-
-	var storePath string
-	if profileLink != "" {
-		// nix build --out-link registers an indirect GC root pointing to
-		// the symlink it creates. nix GC follows it and keeps the target
-		// alive, but only recognises paths under /nix/store/. We keep this
-		// virtual-path symlink separate from the profile link (which uses
-		// the real nix-portable filesystem path) so GC can find it.
-		virtualLink := profileLink + "-virtual"
-
-		if _, err := os.Lstat(virtualLink); err == nil {
-			if err := os.Remove(virtualLink); err != nil {
-				return nil, fmt.Errorf("removing existing virtual link: %w", err)
-			}
-		}
-
-		opts.OnProgress(Progress{Step: "build", Output: "$ nix build " + flakeRef})
-		if err := a.NixClient.BuildWithLink(buildCtx, flakeRef, virtualLink); err != nil {
-			return nil, fmt.Errorf("building emulators: %w", err)
-		}
-		target, err := os.Readlink(virtualLink)
-		if err != nil {
-			return nil, fmt.Errorf("reading virtual link: %w", err)
-		}
-
-		// nix-portable virtualizes /nix/store, so the symlink target doesn't exist
-		// on the real filesystem. Translate to the real store path for the profile link.
-		realTarget := a.NixClient.RealStorePath(target)
-
-		if _, err := os.Lstat(profileLink); err == nil {
-			if err := os.Remove(profileLink); err != nil {
-				return nil, fmt.Errorf("removing existing profile link: %w", err)
-			}
-		}
-		if err := os.Symlink(realTarget, profileLink); err != nil {
-			return nil, fmt.Errorf("creating profile link: %w", err)
-		}
-		storePath = realTarget
-	} else {
-		opts.OnProgress(Progress{Step: "build", Output: "$ nix build " + flakeRef})
-		var err error
-		storePath, err = a.NixClient.Build(buildCtx, flakeRef)
-		if err != nil {
-			return nil, fmt.Errorf("building emulators: %w", err)
-		}
+	installedBinaries, installedCores, installedIcons, err := a.installPackages(installCtx, emulatorsToInstall, frontendsToInstall, opts)
+	if err != nil {
+		return nil, err
 	}
 
 	opts.OnProgress(Progress{Step: "gc"})
-	if err := a.NixClient.GarbageCollect(buildCtx); err != nil {
+	if err := a.garbageCollect(emulatorsToInstall, frontendsToInstall); err != nil {
 		opts.OnProgress(Progress{Step: "gc", Message: "Skipped (cleanup failed, will retry next time)"})
 	}
 
@@ -341,17 +251,13 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	if a.LauncherManager != nil {
 		opts.OnProgress(Progress{Step: "desktop"})
 
-		persistentNixPortable, err := a.NixClient.EnsurePersistentNixPortable()
-		if err != nil {
-			return nil, fmt.Errorf("ensuring persistent nix-portable: %w", err)
-		}
-		a.LauncherManager.SetNixPortableBinary(persistentNixPortable)
-		a.LauncherManager.SetNixPortableLocation(a.NixClient.GetNixPortableLocation())
-		packageInfo := a.buildPackageInfo(emulatorsToInstall, frontendsToInstall)
-		if err := a.LauncherManager.GenerateWrappers(packageInfo); err != nil {
+		launcherBinaries := toLauncherBinaries(installedBinaries)
+		if err := a.LauncherManager.GenerateWrappers(launcherBinaries); err != nil {
 			return nil, fmt.Errorf("generating launcher wrappers: %w", err)
 		}
-		if err := a.LauncherManager.GenerateCoreSymlinks(); err != nil {
+
+		launcherCores := toLauncherCores(installedCores)
+		if err := a.LauncherManager.GenerateCoreSymlinks(launcherCores); err != nil {
 			return nil, fmt.Errorf("generating core symlinks: %w", err)
 		}
 
@@ -360,7 +266,8 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 			IconFiles:    manifest.IconFiles,
 		}
 		desktopEntries := a.buildDesktopEntries(emulatorsToInstall, frontendsToInstall, userStore)
-		generatedFiles, err := a.LauncherManager.GenerateDesktopFiles(desktopEntries, previousFiles)
+		launcherIcons := toLauncherIcons(installedIcons)
+		generatedFiles, err := a.LauncherManager.GenerateDesktopFiles(desktopEntries, launcherIcons, previousFiles)
 		if err != nil {
 			return nil, fmt.Errorf("generating desktop files: %w", err)
 		}
@@ -419,8 +326,6 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		}
 	}
 
-	// Check for cancellation before committing manifest changes.
-	// This prevents saving partial state if the user cancelled during config application.
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
 	}
@@ -428,33 +333,40 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	newInstalledEmulators := make(map[model.EmulatorID]model.InstalledEmulator)
 	now := time.Now()
 	for _, emuID := range emulatorsToInstall {
-		version := resolvedVersions[emuID]
-		if version == "" {
-			version = "unknown"
+		emu, err := a.Registry.GetEmulator(emuID)
+		if err != nil {
+			continue
+		}
+		resolvedVersion := a.Installer.ResolveVersion(emu.Package.PackageName())
+		if resolvedVersion == "" {
+			resolvedVersion = "unknown"
 		}
 		newInstalledEmulators[emuID] = model.InstalledEmulator{
-			ID:        emuID,
-			Version:   version,
-			StorePath: storePath,
-			Installed: now,
+			ID:          emuID,
+			Version:     resolvedVersion,
+			PackagePath: a.Installer.PackagesDir(),
+			Installed:   now,
 		}
 	}
 
 	newInstalledFrontends := make(map[model.FrontendID]model.InstalledFrontend)
 	for _, feID := range frontendsToInstall {
-		version := resolvedFrontendVersions[feID]
-		if version == "" {
-			version = "unknown"
+		fe, err := a.Registry.GetFrontend(feID)
+		if err != nil {
+			continue
+		}
+		resolvedVersion := a.Installer.ResolveVersion(fe.Package.PackageName())
+		if resolvedVersion == "" {
+			resolvedVersion = "unknown"
 		}
 		newInstalledFrontends[feID] = model.InstalledFrontend{
-			ID:        feID,
-			Version:   version,
-			StorePath: storePath,
-			Installed: now,
+			ID:          feID,
+			Version:     resolvedVersion,
+			PackagePath: a.Installer.PackagesDir(),
+			Installed:   now,
 		}
 	}
 
-	// Build new managed configs list (emulator patches only, not frontend patches)
 	emulatorPatchCount := len(patchEmulators)
 	newManagedConfigs := make([]model.ManagedConfig, 0, emulatorPatchCount)
 	for i, patch := range allPatches {
@@ -485,18 +397,15 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		})
 	}
 
-	// Final cancellation check before committing to disk
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
 	}
 
-	// Build set of enabled emulators for filtering stale configs
 	enabledEmuSet := make(map[model.EmulatorID]bool)
 	for _, emuID := range emulatorsToInstall {
 		enabledEmuSet[emuID] = true
 	}
 
-	// Filter out ManagedConfigs where no emulator is still enabled
 	filteredConfigs := make([]model.ManagedConfig, 0, len(manifest.ManagedConfigs))
 	for _, cfg := range manifest.ManagedConfigs {
 		for _, emuID := range cfg.EmulatorIDs {
@@ -523,10 +432,139 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	}
 
 	return &Result{
-		StorePath: storePath,
-		Patches:   allPatches,
-		Backups:   backups,
+		Patches: allPatches,
+		Backups: backups,
 	}, nil
+}
+
+func (a *Applier) installPackages(ctx context.Context, emulatorIDs []model.EmulatorID, frontendIDs []model.FrontendID, opts Options) ([]packages.InstalledBinary, []packages.InstalledCore, []packages.InstalledIcon, error) {
+	seenPackages := make(map[string]bool)
+	var binaries []packages.InstalledBinary
+	var coreNames []string
+	var icons []packages.InstalledIcon
+
+	progressFn := func(p packages.InstallProgress) {
+		opts.OnProgress(Progress{
+			Step:        "build",
+			BuildPhase:  p.Phase,
+			PackageName: p.PackageName,
+		})
+	}
+
+	for _, emuID := range emulatorIDs {
+		emu, err := a.Registry.GetEmulator(emuID)
+		if err != nil {
+			continue
+		}
+
+		if strings.HasPrefix(string(emuID), "retroarch:") {
+			coreName := strings.TrimPrefix(string(emuID), "retroarch:")
+			coreNames = append(coreNames, coreName)
+			continue
+		}
+
+		pkgName := emu.Package.PackageName()
+		if seenPackages[pkgName] {
+			continue
+		}
+		seenPackages[pkgName] = true
+
+		binary, err := a.Installer.InstallEmulator(ctx, pkgName, progressFn)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("installing %s: %w", pkgName, err)
+		}
+		binaries = append(binaries, *binary)
+
+		if emu.Launcher.Binary != "" {
+			icon, err := a.installEmulatorIcon(ctx, emu)
+			if err == nil && icon != nil {
+				icons = append(icons, *icon)
+			}
+		}
+	}
+
+	for _, feID := range frontendIDs {
+		fe, err := a.Registry.GetFrontend(feID)
+		if err != nil {
+			continue
+		}
+
+		pkgName := fe.Package.PackageName()
+		if seenPackages[pkgName] {
+			continue
+		}
+		seenPackages[pkgName] = true
+
+		binary, err := a.Installer.InstallEmulator(ctx, pkgName, progressFn)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("installing frontend %s: %w", pkgName, err)
+		}
+		binaries = append(binaries, *binary)
+	}
+
+	if len(coreNames) > 0 {
+		if pkgName := "retroarch"; !seenPackages[pkgName] {
+			seenPackages[pkgName] = true
+			binary, err := a.Installer.InstallEmulator(ctx, pkgName, progressFn)
+			if err != nil {
+				return nil, nil, nil, fmt.Errorf("installing retroarch: %w", err)
+			}
+			binaries = append(binaries, *binary)
+
+			emu, err := a.Registry.GetEmulator(model.EmulatorIDRetroArch)
+			if err == nil {
+				icon, err := a.installEmulatorIcon(ctx, emu)
+				if err == nil && icon != nil {
+					icons = append(icons, *icon)
+				}
+			}
+		}
+
+		cores, err := a.Installer.InstallCores(ctx, coreNames, progressFn)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("installing cores: %w", err)
+		}
+		return binaries, cores, icons, nil
+	}
+
+	return binaries, nil, icons, nil
+}
+
+func (a *Applier) installEmulatorIcon(ctx context.Context, emu model.Emulator) (*packages.InstalledIcon, error) {
+	pkgName := emu.Package.PackageName()
+	v, err := versionsGet()
+	if err != nil {
+		return nil, nil
+	}
+	spec, ok := v.GetEmulator(pkgName)
+	if !ok || spec.IconURL == "" {
+		return nil, nil
+	}
+	return a.Installer.InstallIcon(ctx, emu.Launcher.Binary, spec.IconURL, spec.IconSHA256)
+}
+
+func (a *Applier) garbageCollect(emulatorIDs []model.EmulatorID, frontendIDs []model.FrontendID) error {
+	keep := make(map[string]string)
+	for _, emuID := range emulatorIDs {
+		emu, err := a.Registry.GetEmulator(emuID)
+		if err != nil {
+			continue
+		}
+		pkgName := emu.Package.PackageName()
+		keep[pkgName] = a.Installer.ResolveVersion(pkgName)
+	}
+	for _, feID := range frontendIDs {
+		fe, err := a.Registry.GetFrontend(feID)
+		if err != nil {
+			continue
+		}
+		pkgName := fe.Package.PackageName()
+		keep[pkgName] = a.Installer.ResolveVersion(pkgName)
+	}
+	if len(keep) > 0 {
+		keep["retroarch-cores"] = a.Installer.ResolveVersion("retroarch-cores")
+	}
+	return a.Installer.GarbageCollect(keep)
 }
 
 func ComputeDiffs(patches []model.ConfigPatch) ([]*emulators.ConfigDiff, error) {
@@ -539,45 +577,6 @@ func ComputeDiffs(patches []model.ConfigPatch) ([]*emulators.ConfigDiff, error) 
 		diffs = append(diffs, diff)
 	}
 	return diffs, nil
-}
-
-func (a *Applier) buildPackageInfo(emulatorIDs []model.EmulatorID, frontendIDs []model.FrontendID) []launcher.EmulatorPackageInfo {
-	seenBinaries := make(map[string]bool)
-	var info []launcher.EmulatorPackageInfo
-
-	for _, emuID := range emulatorIDs {
-		emu, err := a.Registry.GetEmulator(emuID)
-		if err != nil || emu.Launcher.Binary == "" {
-			continue
-		}
-
-		if seenBinaries[emu.Launcher.Binary] {
-			continue
-		}
-		seenBinaries[emu.Launcher.Binary] = true
-
-		info = append(info, launcher.EmulatorPackageInfo{
-			BinaryName: emu.Launcher.Binary,
-		})
-	}
-
-	for _, feID := range frontendIDs {
-		fe, err := a.Registry.GetFrontend(feID)
-		if err != nil || fe.Launcher.Binary == "" {
-			continue
-		}
-
-		if seenBinaries[fe.Launcher.Binary] {
-			continue
-		}
-		seenBinaries[fe.Launcher.Binary] = true
-
-		info = append(info, launcher.EmulatorPackageInfo{
-			BinaryName: fe.Launcher.Binary,
-		})
-	}
-
-	return info
 }
 
 func (a *Applier) buildDesktopEntries(emulatorIDs []model.EmulatorID, frontendIDs []model.FrontendID, store model.StoreReader) []launcher.GeneratedDesktop {
@@ -644,7 +643,6 @@ func (a *Applier) buildDesktopEntries(emulatorIDs []model.EmulatorID, frontendID
 	return entries
 }
 
-// collectEnabledEmulators returns a deduplicated set of emulator IDs from the config.
 func (a *Applier) collectEnabledEmulators(cfg *model.KyarabenConfig) map[model.EmulatorID]bool {
 	enabled := make(map[model.EmulatorID]bool)
 	for _, emulators := range cfg.Systems {
@@ -653,4 +651,28 @@ func (a *Applier) collectEnabledEmulators(cfg *model.KyarabenConfig) map[model.E
 		}
 	}
 	return enabled
+}
+
+func toLauncherBinaries(binaries []packages.InstalledBinary) []launcher.InstalledBinary {
+	result := make([]launcher.InstalledBinary, len(binaries))
+	for i, b := range binaries {
+		result[i] = launcher.InstalledBinary{Name: b.Name, Path: b.Path}
+	}
+	return result
+}
+
+func toLauncherCores(cores []packages.InstalledCore) []launcher.InstalledCore {
+	result := make([]launcher.InstalledCore, len(cores))
+	for i, c := range cores {
+		result[i] = launcher.InstalledCore{Filename: c.Filename, Path: c.Path}
+	}
+	return result
+}
+
+func toLauncherIcons(icons []packages.InstalledIcon) []launcher.InstalledIcon {
+	result := make([]launcher.InstalledIcon, len(icons))
+	for i, ic := range icons {
+		result[i] = launcher.InstalledIcon{Name: ic.Name, Filename: ic.Filename, Path: ic.Path}
+	}
+	return result
 }

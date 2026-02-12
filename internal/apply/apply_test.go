@@ -2,7 +2,6 @@ package apply
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,7 +11,7 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/emulators/symlink"
 	"github.com/fnune/kyaraben/internal/model"
-	"github.com/fnune/kyaraben/internal/nix"
+	"github.com/fnune/kyaraben/internal/packages"
 	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/store"
 	"github.com/fnune/kyaraben/internal/versions"
@@ -41,49 +40,11 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-type mockNixClient struct {
-	storePath string
-	flakePath string
-	gcError   error
-}
-
-func (m *mockNixClient) IsAvailable() bool { return true }
-func (m *mockNixClient) Build(ctx context.Context, flakeRef string) (string, error) {
-	return m.storePath, nil
-}
-func (m *mockNixClient) BuildWithLink(ctx context.Context, flakeRef string, outLink string) error {
-	return nil
-}
-func (m *mockNixClient) BuildMultiple(ctx context.Context, flakeRefs []string) (map[string]string, error) {
-	return nil, nil
-}
-func (m *mockNixClient) Eval(ctx context.Context, expr string) (json.RawMessage, error) {
-	return nil, nil
-}
-func (m *mockNixClient) FlakeUpdate(ctx context.Context, flakePath string) error { return nil }
-func (m *mockNixClient) GetVersion(ctx context.Context) (string, error)          { return "2.18.0", nil }
-func (m *mockNixClient) EnsureFlakeDir() error                                   { return nil }
-func (m *mockNixClient) GetFlakePath() string                                    { return m.flakePath }
-func (m *mockNixClient) FlakeCheck(ctx context.Context, flakePath string) error  { return nil }
-func (m *mockNixClient) SetOutputCallback(cb func(string))                       {}
-func (m *mockNixClient) SetProgressCallback(cb func(nix.BuildProgress))          {}
-func (m *mockNixClient) SetExpectedPackages(packages []nix.ExpectedPackage)      {}
-func (m *mockNixClient) EnsurePersistentNixPortable() (string, error)            { return "", nil }
-func (m *mockNixClient) GetPersistentNixPortablePath() string                    { return "" }
-func (m *mockNixClient) GetNixPortableBinary() string                            { return "" }
-func (m *mockNixClient) GetNixPortableLocation() string                          { return "" }
-func (m *mockNixClient) RealStorePath(path string) string                        { return path }
-func (m *mockNixClient) GarbageCollect(ctx context.Context) error                { return m.gcError }
-
 func TestUnmanagedEntriesExcludedFromManifest(t *testing.T) {
 	tmpDir := t.TempDir()
 	manifestPath := filepath.Join(tmpDir, "manifest.json")
 	userStorePath := filepath.Join(tmpDir, "Emulation")
-	flakePath := filepath.Join(tmpDir, "flake")
-
-	if err := os.MkdirAll(flakePath, 0755); err != nil {
-		t.Fatalf("Failed to create flake dir: %v", err)
-	}
+	packagesDir := filepath.Join(tmpDir, "packages")
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
@@ -100,16 +61,14 @@ func TestUnmanagedEntriesExcludedFromManifest(t *testing.T) {
 		t.Fatalf("Failed to create user store: %v", err)
 	}
 
-	flakeGen := nix.NewFlakeGenerator(reg, reg)
+	installer := packages.NewFakeInstaller(packagesDir)
 	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
 
 	applier := &Applier{
-		NixClient:       &mockNixClient{storePath: "/nix/store/test-path", flakePath: flakePath},
-		FlakeGenerator:  flakeGen,
+		Installer:       installer,
 		ConfigWriter:    configWriter,
 		Registry:        reg,
 		ManifestPath:    manifestPath,
-		LauncherManager: nil,
 		BaseDirResolver: fakeBaseDirResolver{root: tmpDir},
 	}
 
@@ -150,27 +109,23 @@ func TestApplyRemovesUnenabledEmulatorsFromManifest(t *testing.T) {
 	tmpDir := t.TempDir()
 	manifestPath := filepath.Join(tmpDir, "manifest.json")
 	userStorePath := filepath.Join(tmpDir, "Emulation")
-	flakePath := filepath.Join(tmpDir, "flake")
-
-	if err := os.MkdirAll(flakePath, 0755); err != nil {
-		t.Fatalf("Failed to create flake dir: %v", err)
-	}
+	packagesDir := filepath.Join(tmpDir, "packages")
 
 	oldManifest := &model.Manifest{
 		Version:     1,
 		LastApplied: time.Now().Add(-time.Hour),
 		InstalledEmulators: map[model.EmulatorID]model.InstalledEmulator{
 			model.EmulatorIDMGBA: {
-				ID:        model.EmulatorIDMGBA,
-				Version:   "0.10.0",
-				StorePath: "/nix/store/old-path",
-				Installed: time.Now().Add(-time.Hour),
+				ID:          model.EmulatorIDMGBA,
+				Version:     "0.10.0",
+				PackagePath: "/old/packages",
+				Installed:   time.Now().Add(-time.Hour),
 			},
 			model.EmulatorIDRetroArchBsnes: {
-				ID:        model.EmulatorIDRetroArchBsnes,
-				Version:   "1.22.0",
-				StorePath: "/nix/store/old-path",
-				Installed: time.Now().Add(-time.Hour),
+				ID:          model.EmulatorIDRetroArchBsnes,
+				Version:     "1.22.0",
+				PackagePath: "/old/packages",
+				Installed:   time.Now().Add(-time.Hour),
 			},
 		},
 	}
@@ -193,16 +148,14 @@ func TestApplyRemovesUnenabledEmulatorsFromManifest(t *testing.T) {
 		t.Fatalf("Failed to create user store: %v", err)
 	}
 
-	flakeGen := nix.NewFlakeGenerator(reg, reg)
+	installer := packages.NewFakeInstaller(packagesDir)
 	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
 
 	applier := &Applier{
-		NixClient:       &mockNixClient{storePath: "/nix/store/new-path", flakePath: flakePath},
-		FlakeGenerator:  flakeGen,
+		Installer:       installer,
 		ConfigWriter:    configWriter,
 		Registry:        reg,
 		ManifestPath:    manifestPath,
-		LauncherManager: nil,
 		BaseDirResolver: fakeBaseDirResolver{root: tmpDir},
 	}
 
@@ -233,11 +186,7 @@ func TestApplyCreatesEmulatorStatesDirectories(t *testing.T) {
 	tmpDir := t.TempDir()
 	manifestPath := filepath.Join(tmpDir, "manifest.json")
 	userStorePath := filepath.Join(tmpDir, "Emulation")
-	flakePath := filepath.Join(tmpDir, "flake")
-
-	if err := os.MkdirAll(flakePath, 0755); err != nil {
-		t.Fatalf("Failed to create flake dir: %v", err)
-	}
+	packagesDir := filepath.Join(tmpDir, "packages")
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
@@ -255,16 +204,14 @@ func TestApplyCreatesEmulatorStatesDirectories(t *testing.T) {
 		t.Fatalf("Failed to create user store: %v", err)
 	}
 
-	flakeGen := nix.NewFlakeGenerator(reg, reg)
+	installer := packages.NewFakeInstaller(packagesDir)
 	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
 
 	applier := &Applier{
-		NixClient:       &mockNixClient{storePath: "/nix/store/test-path", flakePath: flakePath},
-		FlakeGenerator:  flakeGen,
+		Installer:       installer,
 		ConfigWriter:    configWriter,
 		Registry:        reg,
 		ManifestPath:    manifestPath,
-		LauncherManager: nil,
 		BaseDirResolver: fakeBaseDirResolver{root: tmpDir},
 	}
 
@@ -292,11 +239,7 @@ func TestApplyCreatesSymlinksForSymlinkProviders(t *testing.T) {
 	tmpDir := t.TempDir()
 	manifestPath := filepath.Join(tmpDir, "manifest.json")
 	userStorePath := filepath.Join(tmpDir, "Emulation")
-	flakePath := filepath.Join(tmpDir, "flake")
-
-	if err := os.MkdirAll(flakePath, 0755); err != nil {
-		t.Fatalf("Failed to create flake dir: %v", err)
-	}
+	packagesDir := filepath.Join(tmpDir, "packages")
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
@@ -313,18 +256,15 @@ func TestApplyCreatesSymlinksForSymlinkProviders(t *testing.T) {
 		t.Fatalf("Failed to create user store: %v", err)
 	}
 
-	flakeGen := nix.NewFlakeGenerator(reg, reg)
+	installer := packages.NewFakeInstaller(packagesDir)
 	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
-
 	fakeSymlinkCreator := &symlink.FakeCreator{}
 
 	applier := &Applier{
-		NixClient:       &mockNixClient{storePath: "/nix/store/test-path", flakePath: flakePath},
-		FlakeGenerator:  flakeGen,
+		Installer:       installer,
 		ConfigWriter:    configWriter,
 		Registry:        reg,
 		ManifestPath:    manifestPath,
-		LauncherManager: nil,
 		BaseDirResolver: fakeBaseDirResolver{root: tmpDir},
 		SymlinkCreator:  fakeSymlinkCreator,
 	}
@@ -362,11 +302,7 @@ func TestApplySucceedsWhenGCFails(t *testing.T) {
 	tmpDir := t.TempDir()
 	manifestPath := filepath.Join(tmpDir, "manifest.json")
 	userStorePath := filepath.Join(tmpDir, "Emulation")
-	flakePath := filepath.Join(tmpDir, "flake")
-
-	if err := os.MkdirAll(flakePath, 0755); err != nil {
-		t.Fatalf("Failed to create flake dir: %v", err)
-	}
+	packagesDir := filepath.Join(tmpDir, "packages")
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
@@ -383,17 +319,14 @@ func TestApplySucceedsWhenGCFails(t *testing.T) {
 		t.Fatalf("Failed to create user store: %v", err)
 	}
 
-	flakeGen := nix.NewFlakeGenerator(reg, reg)
+	installer := packages.NewFakeInstaller(packagesDir)
+	origGC := installer.GarbageCollect
+	_ = origGC
 	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
 
 	var progressSteps []Progress
 	applier := &Applier{
-		NixClient: &mockNixClient{
-			storePath: "/nix/store/test-path",
-			flakePath: flakePath,
-			gcError:   fmt.Errorf("nix store gc failed: Operation not permitted"),
-		},
-		FlakeGenerator:  flakeGen,
+		Installer:       &failingGCInstaller{FakeInstaller: installer},
 		ConfigWriter:    configWriter,
 		Registry:        reg,
 		ManifestPath:    manifestPath,
@@ -421,5 +354,110 @@ func TestApplySucceedsWhenGCFails(t *testing.T) {
 	}
 	if gcSteps[1].Message == "" {
 		t.Error("GC failure should report a message")
+	}
+}
+
+type failingGCInstaller struct {
+	*packages.FakeInstaller
+}
+
+func (f *failingGCInstaller) GarbageCollect(keep map[string]string) error {
+	return fmt.Errorf("gc failed: Operation not permitted")
+}
+
+func TestApplyWithFakeInstallerE2E(t *testing.T) {
+	tmpDir := t.TempDir()
+	manifestPath := filepath.Join(tmpDir, "manifest.json")
+	userStorePath := filepath.Join(tmpDir, "Emulation")
+	packagesDir := filepath.Join(tmpDir, "packages")
+
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{
+			UserStore: userStorePath,
+		},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDGBA:  {model.EmulatorIDMGBA},
+			model.SystemIDSNES: {model.EmulatorIDRetroArchBsnes},
+			model.SystemIDPSX:  {model.EmulatorIDDuckStation},
+		},
+	}
+
+	reg := registry.NewDefault()
+	userStore, err := store.NewUserStore(userStorePath)
+	if err != nil {
+		t.Fatalf("Failed to create user store: %v", err)
+	}
+
+	installer := packages.NewFakeInstaller(packagesDir)
+	installer.Versions["mgba"] = "0.10.3"
+	installer.Versions["duckstation"] = "v0.1-10655"
+	installer.Versions["retroarch"] = "1.22.0"
+
+	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
+
+	var progressEvents []Progress
+	applier := &Applier{
+		Installer:       installer,
+		ConfigWriter:    configWriter,
+		Registry:        reg,
+		ManifestPath:    manifestPath,
+		BaseDirResolver: fakeBaseDirResolver{root: tmpDir},
+	}
+
+	result, err := applier.Apply(context.Background(), cfg, userStore, Options{
+		OnProgress: func(p Progress) {
+			progressEvents = append(progressEvents, p)
+		},
+	})
+	if err != nil {
+		t.Fatalf("Apply failed: %v", err)
+	}
+
+	if len(result.Patches) == 0 {
+		t.Error("Expected config patches to be generated")
+	}
+
+	manifest, err := model.LoadManifest(manifestPath)
+	if err != nil {
+		t.Fatalf("Failed to load manifest: %v", err)
+	}
+
+	if len(manifest.InstalledEmulators) < 3 {
+		t.Errorf("Expected at least 3 installed emulators, got %d", len(manifest.InstalledEmulators))
+	}
+
+	if mgba, ok := manifest.InstalledEmulators[model.EmulatorIDMGBA]; ok {
+		if mgba.Version != "0.10.3" {
+			t.Errorf("mGBA version = %q, want 0.10.3", mgba.Version)
+		}
+	} else {
+		t.Error("mGBA should be in manifest")
+	}
+
+	for id, emu := range manifest.InstalledEmulators {
+		if emu.PackagePath != packagesDir {
+			t.Errorf("InstalledEmulators[%s].PackagePath = %q, want %q", id, emu.PackagePath, packagesDir)
+		}
+	}
+
+	if len(installer.GCCalls) != 1 {
+		t.Errorf("Expected 1 GC call, got %d", len(installer.GCCalls))
+	}
+
+	hasBuild := false
+	hasConfig := false
+	for _, p := range progressEvents {
+		if p.Step == "build" {
+			hasBuild = true
+		}
+		if p.Step == "config" {
+			hasConfig = true
+		}
+	}
+	if !hasBuild {
+		t.Error("Expected build progress events")
+	}
+	if !hasConfig {
+		t.Error("Expected config progress events")
 	}
 }
