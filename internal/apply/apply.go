@@ -3,6 +3,7 @@ package apply
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -236,6 +237,9 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 			if err := userStore.InitializeForEmulator(sys, emuID, emu.PathUsage); err != nil {
 				return nil, fmt.Errorf("initializing %s for %s: %w", sys, emuID, err)
 			}
+			if err := ensureProvisionDirs(userStore, sys, emu); err != nil {
+				return nil, fmt.Errorf("preparing provision directories for %s/%s: %w", sys, emuID, err)
+			}
 		}
 	}
 
@@ -455,6 +459,7 @@ func (a *Applier) installPackages(ctx context.Context, emulatorIDs []model.Emula
 	seenPackages := make(map[string]bool)
 	var binaries []packages.InstalledBinary
 	var coreNames []string
+	var cores []packages.InstalledCore
 	var icons []packages.InstalledIcon
 
 	progressFn := func(p packages.InstallProgress) {
@@ -532,14 +537,27 @@ func (a *Applier) installPackages(ctx context.Context, emulatorIDs []model.Emula
 			}
 		}
 
-		cores, err := a.Installer.InstallCores(ctx, coreNames, progressFn)
-		if err != nil {
-			return nil, nil, nil, fmt.Errorf("installing cores: %w", err)
+		var coreErr error
+		cores, coreErr = a.Installer.InstallCores(ctx, coreNames, progressFn)
+		if coreErr != nil {
+			return nil, nil, nil, fmt.Errorf("installing cores: %w", coreErr)
 		}
-		return binaries, cores, icons, nil
 	}
 
-	return binaries, nil, icons, nil
+	return binaries, cores, icons, nil
+}
+
+func ensureProvisionDirs(userStore *store.UserStore, sys model.SystemID, emu model.Emulator) error {
+	for _, group := range emu.ProvisionGroups {
+		baseDir := group.BaseDirFor(userStore, sys)
+		if baseDir == "" {
+			continue
+		}
+		if err := os.MkdirAll(baseDir, 0o755); err != nil {
+			return fmt.Errorf("creating %s: %w", baseDir, err)
+		}
+	}
+	return nil
 }
 
 type installPlan struct {
