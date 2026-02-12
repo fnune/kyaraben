@@ -17,6 +17,7 @@ const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
   summary: 'Applying configuration',
   store: 'Setting up emulation folder',
   build: 'Installing emulators',
+  gc: 'Cleaning up',
   desktop: 'Adding to application menu',
   config: 'Configuring emulators',
 }
