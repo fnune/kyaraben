@@ -1,9 +1,11 @@
 package versions
 
 import (
+	"context"
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestMain(m *testing.M) {
@@ -28,8 +30,7 @@ func TestURLTemplateExpansion(t *testing.T) {
 		target   string
 		expected string
 	}{
-		{"amd64", "https://github.com/eden-emulator/Releases/releases/download/v0.1.0/Eden-Linux-v0.1.0-amd64-clang-pgo.AppImage"},
-		{"legacy", "https://github.com/eden-emulator/Releases/releases/download/v0.1.0/Eden-Linux-v0.1.0-legacy-clang-pgo.AppImage"},
+		{"x64", "https://github.com/eden-emulator/Releases/releases/download/v0.1.0/Eden-Linux-v0.1.0-amd64-clang-pgo.AppImage"},
 		{"steamdeck", "https://github.com/eden-emulator/Releases/releases/download/v0.1.0/Eden-Linux-v0.1.0-steamdeck-clang-pgo.AppImage"},
 		{"rog-ally", "https://github.com/eden-emulator/Releases/releases/download/v0.1.0/Eden-Linux-v0.1.0-rog-ally-clang-pgo.AppImage"},
 		{"aarch64", "https://github.com/eden-emulator/Releases/releases/download/v0.1.0/Eden-Linux-v0.1.0-aarch64-clang-pgo.AppImage"},
@@ -43,7 +44,7 @@ func TestURLTemplateExpansion(t *testing.T) {
 	}
 }
 
-func TestDefaultTargetForArch(t *testing.T) {
+func TestSelectTarget(t *testing.T) {
 	v := MustGet()
 	spec, ok := v.GetEmulator("eden")
 	if !ok {
@@ -54,49 +55,22 @@ func TestDefaultTargetForArch(t *testing.T) {
 		t.Fatal("eden default version not found")
 	}
 
-	x86Target := entry.DefaultTargetForArch("x86_64")
-	if x86Target == "" {
-		t.Error("DefaultTargetForArch(x86_64) returned empty string")
-	}
-	if target := entry.Target(x86Target); target == nil || target.Arch != "x86_64" {
-		t.Errorf("DefaultTargetForArch(x86_64) = %s, which is not a valid x86_64 target", x86Target)
-	}
-
-	// Test aarch64 with v0.1.0 which has that target
-	entry010 := spec.GetVersion("v0.1.0")
-	if entry010 == nil {
-		t.Fatal("eden v0.1.0 not found")
-	}
-	armTarget := entry010.DefaultTargetForArch("aarch64")
-	if armTarget == "" {
-		t.Error("DefaultTargetForArch(aarch64) returned empty string for v0.1.0")
-	}
-	if target := entry010.Target(armTarget); target == nil || target.Arch != "aarch64" {
-		t.Errorf("DefaultTargetForArch(aarch64) = %s, which is not a valid aarch64 target", armTarget)
-	}
-}
-
-func TestTargetsForArch(t *testing.T) {
-	v := MustGet()
-	spec, ok := v.GetEmulator("eden")
-	if !ok {
-		t.Fatal("eden emulator not found")
+	tests := []struct {
+		detected string
+		expected string
+	}{
+		{"steamdeck", "steamdeck"},
+		{"rog-ally", "rog-ally"},
+		{"aarch64", "aarch64"},
+		{"amd64", "x64"},
+		{"unknown", ""},
 	}
 
-	// Test with v0.1.0 which has multiple targets
-	entry := spec.GetVersion("v0.1.0")
-	if entry == nil {
-		t.Fatal("eden v0.1.0 not found")
-	}
-
-	x86Targets := entry.TargetsForArch("x86_64")
-	if len(x86Targets) != 4 {
-		t.Errorf("expected 4 x86_64 targets for v0.1.0, got %d: %v", len(x86Targets), x86Targets)
-	}
-
-	armTargets := entry.TargetsForArch("aarch64")
-	if len(armTargets) != 1 {
-		t.Errorf("expected 1 aarch64 target for v0.1.0, got %d: %v", len(armTargets), armTargets)
+	for _, tt := range tests {
+		got := entry.SelectTarget(tt.detected)
+		if got != tt.expected {
+			t.Errorf("SelectTarget(%s) = %q, want %q", tt.detected, got, tt.expected)
+		}
 	}
 }
 
@@ -109,10 +83,10 @@ func TestArchiveType(t *testing.T) {
 		target   string
 		expected string
 	}{
-		{"eden is direct AppImage", "eden", "amd64", ""},
+		{"eden is direct AppImage", "eden", "x64", ""},
 		{"duckstation is direct AppImage", "duckstation", "x64", ""},
-		{"retroarch is 7z", "retroarch", "x86_64", "7z"},
-		{"melonds is zip", "melonds", "x86_64", "zip"},
+		{"retroarch is 7z", "retroarch", "x64", "7z"},
+		{"melonds is zip", "melonds", "x64", "zip"},
 	}
 
 	for _, tt := range tests {
@@ -142,8 +116,8 @@ func TestBinaryPathForTarget(t *testing.T) {
 		target   string
 		expected string
 	}{
-		{"eden has no binary path (direct)", "eden", "amd64", ""},
-		{"retroarch x86_64 has per-target binary path", "retroarch", "x86_64", "RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage"},
+		{"eden has no binary path (direct)", "eden", "x64", ""},
+		{"retroarch x64 has per-target binary path", "retroarch", "x64", "RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage"},
 	}
 
 	for _, tt := range tests {
@@ -190,7 +164,7 @@ func TestURLWithReleaseTag(t *testing.T) {
 	// Dolphin URL should use release_tag substitution
 	spec, _ := v.GetEmulator("dolphin")
 	entry := spec.GetDefault()
-	url := entry.URL("x86_64", spec)
+	url := entry.URL("x64", spec)
 	if entry.ReleaseTag != "" {
 		// URL should contain the release tag, not just the version
 		if !strings.Contains(url, entry.ReleaseTag) {
@@ -284,4 +258,87 @@ func TestGetCoreSize(t *testing.T) {
 	if unknownSize != 0 {
 		t.Errorf("GetCoreSize(nonexistent_core) = %d, want 0", unknownSize)
 	}
+}
+
+func TestVersionsTomlIntegrity(t *testing.T) {
+	t.Parallel()
+	v := MustGet()
+
+	for name, spec := range v.Emulators {
+		spec := spec
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			entry := spec.GetDefault()
+			if entry == nil {
+				t.Fatal("no default version")
+			}
+			if len(entry.Targets) == 0 {
+				t.Fatal("no targets defined")
+			}
+
+			target := entry.SelectTarget("x64")
+			if target == "" {
+				target = entry.SelectTarget("amd64")
+			}
+			if target == "" {
+				t.Errorf("no target for x64/amd64")
+			}
+
+			first := entry.SelectTarget("amd64")
+			for i := 0; i < 10; i++ {
+				if entry.SelectTarget("amd64") != first {
+					t.Error("SelectTarget is non-deterministic")
+					break
+				}
+			}
+
+			for targetName := range entry.Targets {
+				url := entry.URL(targetName, &spec)
+				if url == "" {
+					t.Errorf("target %s: empty URL", targetName)
+				}
+				if !strings.HasPrefix(url, "https://") {
+					t.Errorf("target %s: URL not https: %s", targetName, url)
+				}
+				if strings.Contains(url, "{") {
+					t.Errorf("target %s: unsubstituted placeholder in URL: %s", targetName, url)
+				}
+
+				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				size, err := FetchSize(ctx, url)
+				cancel()
+				if err != nil {
+					t.Errorf("target %s: URL not reachable: %v", targetName, err)
+				} else if size == 0 {
+					t.Errorf("target %s: URL returned zero size", targetName)
+				}
+			}
+		})
+	}
+
+	t.Run("retroarch-cores", func(t *testing.T) {
+		t.Parallel()
+		if v.RetroArchCores.Default == "" {
+			t.Fatal("no default version")
+		}
+		build, ok := v.RetroArchCores.Versions[v.RetroArchCores.Default]
+		if !ok {
+			t.Fatalf("default version %q not in Versions", v.RetroArchCores.Default)
+		}
+		if len(build.Targets) == 0 {
+			t.Fatal("no targets")
+		}
+		url, _, ok := v.RetroArchCores.GetCoresURL("x64")
+		if !ok {
+			t.Fatal("no x64 target")
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if size, err := FetchSize(ctx, url); err != nil {
+			t.Errorf("URL not reachable: %v", err)
+		} else if size == 0 {
+			t.Error("URL returned zero size")
+		}
+	})
 }

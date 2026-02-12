@@ -1,4 +1,4 @@
-# Kyaraben development container with Go and Nix
+# Kyaraben development container with Go
 # Build: podman build -t kyaraben-dev -f Containerfile.dev .
 # Run:   podman run -it --rm -v "$(pwd):/workspace:Z" kyaraben-dev
 
@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     sudo \
     make \
+    just \
     && rm -rf /var/lib/apt/lists/*
 
 # Create dev user
@@ -20,19 +21,15 @@ RUN useradd -m -s /bin/bash dev && \
 USER dev
 WORKDIR /home/dev
 
-# Install Nix (single-user mode)
-RUN curl -L https://nixos.org/nix/install | sh -s -- --no-daemon
+# Install Go
+ARG GO_VERSION=1.24.0
+RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" | sudo tar -C /usr/local -xzf -
 
-# Enable flakes
-RUN mkdir -p ~/.config/nix && \
-    echo "experimental-features = nix-command flakes" > ~/.config/nix/nix.conf
+ENV PATH="/usr/local/go/bin:${PATH}"
 
-# Install Go via Nix
-RUN . ~/.nix-profile/etc/profile.d/nix.sh && \
-    nix profile install nixpkgs#go nixpkgs#golangci-lint nixpkgs#just
-
-# Set up shell
-RUN echo '. ~/.nix-profile/etc/profile.d/nix.sh' >> ~/.bashrc
+# Install golangci-lint
+RUN /usr/local/go/bin/go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.5
+ENV PATH="/home/dev/go/bin:${PATH}"
 
 WORKDIR /workspace
 CMD ["/bin/bash"]

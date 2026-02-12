@@ -33,8 +33,7 @@
         "from": "binaries/",
         "to": "binaries/",
         "filter": [
-          "kyaraben-*",
-          "nix-portable-*"
+          "kyaraben-*"
         ]
       }
     ],

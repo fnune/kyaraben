@@ -107,6 +107,7 @@ export function createFixture(config?: ConfigFixture, manifest?: ManifestFixture
     XDG_STATE_HOME: stateDir,
     XDG_DATA_HOME: dataDir,
     HOME: tmpDir,
+    KYARABEN_E2E_FAKE_INSTALLER: '1',
   }
 
   return {
@@ -202,34 +203,6 @@ function generateConfigToml(config: ConfigFixture, defaultUserStore: string): st
   return lines.join('\n')
 }
 
-export function setupFakeNixPortable(fixture: TestFixture): void {
-  const fakeNixSrc = path.join(__dirname, 'fake-nix-portable')
-  const fakeNixDest = path.join(fixture.stateDir, 'fake-nix-portable')
-
-  fs.copyFileSync(fakeNixSrc, fakeNixDest)
-  fs.chmodSync(fakeNixDest, 0o755)
-
-  const fakeStore = path.join(
-    fixture.stateDir,
-    'kyaraben',
-    'build',
-    'nix',
-    '.nix-portable',
-    'nix',
-    'store',
-  )
-  fs.mkdirSync(fakeStore, { recursive: true })
-
-  fixture.env.KYARABEN_NIX_PORTABLE_PATH = fakeNixDest
-  fixture.env.FAKE_NIX_STORE = fakeStore
-  fixture.env.FAKE_NIX_PROGRESS = '1'
-  // Default binaries and cores for fake nix builds
-  fixture.env.FAKE_NIX_BINARIES =
-    'es-de,retroarch,duckstation-qt,mgba,bsnes,pcsx2-qt,ppsspp,dolphin-emu,melonDS,azahar,cemu,vita3k,rpcs3'
-  fixture.env.FAKE_NIX_CORES =
-    'mgba_libretro.so,bsnes_libretro.so,snes9x_libretro.so,mednafen_psx_libretro.so,mednafen_saturn_libretro.so'
-}
-
 export function createBiosDirectory(fixture: TestFixture, systemId: SystemID): string {
   const biosDir = path.join(fixture.userStore, 'bios', systemId)
   fs.mkdirSync(biosDir, { recursive: true })
@@ -272,13 +245,13 @@ export const presets = {
         [EmulatorIDRetroArchBsnes]: {
           id: EmulatorIDRetroArchBsnes,
           version: '115.0.0',
-          storePath: '/nix/store/fake-hash-bsnes',
+          storePath: '/tmp/kyaraben-packages/bsnes',
           installed: new Date().toISOString(),
         },
         [EmulatorIDMGBA]: {
           id: EmulatorIDMGBA,
           version: '0.10.3',
-          storePath: '/nix/store/fake-hash-mgba',
+          storePath: '/tmp/kyaraben-packages/mgba',
           installed: new Date().toISOString(),
         },
       },
@@ -324,7 +297,7 @@ export const presets = {
         [EmulatorIDRetroArchBsnes]: {
           id: EmulatorIDRetroArchBsnes,
           version: '114.0.0',
-          storePath: '/nix/store/fake-hash-bsnes-old',
+          storePath: '/tmp/kyaraben-packages/bsnes-old',
           installed: new Date(Date.now() - 86400000).toISOString(),
         },
       },

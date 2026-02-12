@@ -180,8 +180,11 @@ func NewDefaultConfig() *KyarabenConfig {
 }
 
 // BuildVersionOverrides returns a map from package names to pinned versions
-// based on the emulator versions configured in the emulators section.
-func (c *KyarabenConfig) BuildVersionOverrides(getEmulator func(EmulatorID) (Emulator, error)) (map[string]string, error) {
+// based on the emulator and frontend versions configured in the config.
+func (c *KyarabenConfig) BuildVersionOverrides(
+	getEmulator func(EmulatorID) (Emulator, error),
+	getFrontend func(FrontendID) (Frontend, error),
+) (map[string]string, error) {
 	overrides := make(map[string]string)
 	for emuID, emuConf := range c.Emulators {
 		if emuConf.Version == "" {
@@ -192,6 +195,16 @@ func (c *KyarabenConfig) BuildVersionOverrides(getEmulator func(EmulatorID) (Emu
 			return nil, fmt.Errorf("unknown emulator %q: %w", emuID, err)
 		}
 		overrides[emu.Package.PackageName()] = emuConf.Version
+	}
+	for feID, feConf := range c.Frontends {
+		if feConf.Version == "" {
+			continue
+		}
+		fe, err := getFrontend(feID)
+		if err != nil {
+			return nil, fmt.Errorf("unknown frontend %q: %w", feID, err)
+		}
+		overrides[fe.Package.PackageName()] = feConf.Version
 	}
 	return overrides, nil
 }

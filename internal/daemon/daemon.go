@@ -19,7 +19,7 @@ import (
 	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/logging"
 	"github.com/fnune/kyaraben/internal/model"
-	"github.com/fnune/kyaraben/internal/nix"
+	"github.com/fnune/kyaraben/internal/packages"
 	"github.com/fnune/kyaraben/internal/paths"
 	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/status"
@@ -36,8 +36,7 @@ type Daemon struct {
 	stateDir        string
 	manifestPath    string
 	reg             *registry.Registry
-	nixClient       nix.NixClient
-	flakeGenerator  *nix.FlakeGenerator
+	installer       packages.Installer
 	configWriter    *emulators.ConfigWriter
 	launcherManager *launcher.Manager
 
@@ -45,14 +44,13 @@ type Daemon struct {
 	applyCancelFunc context.CancelFunc
 }
 
-func New(configPath, stateDir, manifestPath string, reg *registry.Registry, nixClient nix.NixClient, flakeGenerator *nix.FlakeGenerator, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager) *Daemon {
+func New(configPath, stateDir, manifestPath string, reg *registry.Registry, installer packages.Installer, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager) *Daemon {
 	return &Daemon{
 		configPath:      configPath,
 		stateDir:        stateDir,
 		manifestPath:    manifestPath,
 		reg:             reg,
-		nixClient:       nixClient,
-		flakeGenerator:  flakeGenerator,
+		installer:       installer,
 		configWriter:    configWriter,
 		launcherManager: launcherManager,
 	}
@@ -329,11 +327,11 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	versionOverrides, err := cfg.BuildVersionOverrides(d.reg.GetEmulator)
+	versionOverrides, err := cfg.BuildVersionOverrides(d.reg.GetEmulator, d.reg.GetFrontend)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
-	d.flakeGenerator.SetVersionOverrides(versionOverrides)
+	d.installer.SetVersionOverrides(versionOverrides)
 
 	userStore, err := store.NewUserStore(cfg.Global.UserStore)
 	if err != nil {
@@ -369,14 +367,15 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 	}()
 
 	applier := &apply.Applier{
-		NixClient:       d.nixClient,
-		FlakeGenerator:  d.flakeGenerator,
+		Installer:       d.installer,
 		ConfigWriter:    d.configWriter,
 		Registry:        d.reg,
 		ManifestPath:    d.manifestPath,
 		LauncherManager: d.launcherManager,
 		BaseDirResolver: model.OSBaseDirResolver{},
 	}
+
+	logPosition := logging.CurrentPosition()
 
 	opts := apply.Options{
 		OnProgress: func(p apply.Progress) {
@@ -389,6 +388,7 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 					BuildPhase:      p.BuildPhase,
 					PackageName:     p.PackageName,
 					ProgressPercent: p.ProgressPercent,
+					LogPosition:     logPosition,
 				},
 			}
 			if emit != nil {
@@ -397,7 +397,7 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 		},
 	}
 
-	result, err := applier.Apply(ctx, cfg, userStore, opts)
+	_, err = applier.Apply(ctx, cfg, userStore, opts)
 	if ctx.Err() != nil {
 		return []Event{{
 			Type: EventTypeCancelled,
@@ -415,8 +415,7 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 	return []Event{{
 		Type: EventTypeResult,
 		Data: ApplyResult{
-			Success:   true,
-			StorePath: result.StorePath,
+			Success: true,
 		},
 	}}
 }
@@ -433,8 +432,7 @@ func (d *Daemon) handlePreflight() []Event {
 	}
 
 	applier := &apply.Applier{
-		NixClient:       d.nixClient,
-		FlakeGenerator:  d.flakeGenerator,
+		Installer:       d.installer,
 		ConfigWriter:    d.configWriter,
 		Registry:        d.reg,
 		ManifestPath:    d.manifestPath,
@@ -563,7 +561,7 @@ func (d *Daemon) handleCancelApply() []Event {
 func (d *Daemon) handleGetSystems() []Event {
 	systems := d.reg.AllSystems()
 	vers, _ := versions.Get()
-	currentArch := hardware.DetectTarget().Arch
+	detectedTarget := hardware.DetectTarget().Name
 
 	result := make(GetSystemsResponse, 0, len(systems))
 	for _, sys := range systems {
@@ -584,7 +582,7 @@ func (d *Daemon) handleGetSystems() []Event {
 					ref.AvailableVersions = availableVersions
 
 					if entry := spec.GetDefault(); entry != nil {
-						if target := entry.DefaultTargetForArch(currentArch); target != "" {
+						if target := entry.SelectTarget(detectedTarget); target != "" {
 							if build := entry.Target(target); build != nil && build.Size > 0 {
 								ref.DownloadBytes = build.Size
 							}
@@ -625,7 +623,7 @@ func (d *Daemon) handleGetSystems() []Event {
 func (d *Daemon) handleGetFrontends() []Event {
 	frontends := d.reg.AllFrontends()
 	vers, _ := versions.Get()
-	currentArch := hardware.DetectTarget().Arch
+	detectedTarget := hardware.DetectTarget().Name
 
 	result := make(GetFrontendsResponse, 0, len(frontends))
 	for _, fe := range frontends {
@@ -642,7 +640,7 @@ func (d *Daemon) handleGetFrontends() []Event {
 				ref.AvailableVersions = availableVersions
 
 				if entry := spec.GetDefault(); entry != nil {
-					if target := entry.DefaultTargetForArch(currentArch); target != "" {
+					if target := entry.SelectTarget(detectedTarget); target != "" {
 						if build := entry.Target(target); build != nil && build.Size > 0 {
 							ref.DownloadBytes = build.Size
 						}

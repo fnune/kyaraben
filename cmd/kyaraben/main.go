@@ -12,15 +12,14 @@ import (
 )
 
 var CLI struct {
-	Apply          cli.ApplyCmd         `cmd:"" help:"Apply configuration: install emulators and generate configs."`
-	Doctor         cli.DoctorCmd        `cmd:"" help:"Check provision status (BIOS files, etc.)."`
-	Status         cli.StatusCmd        `cmd:"" help:"Show current state."`
-	Init           cli.InitCmd          `cmd:"" help:"Initialize a new kyaraben configuration."`
-	Uninstall      cli.UninstallCmd     `cmd:"" help:"Remove kyaraben-managed files."`
-	Daemon         cli.DaemonCmd        `cmd:"" help:"Run in daemon mode for UI communication."`
-	Sync           cli.SyncCmd          `cmd:"" help:"Manage sync settings and status."`
-	ValidateFlake  cli.ValidateFlakeCmd `cmd:"" help:"Validate Nix flake for all emulators (CI check)."`
-	CheckDownloads cli.ValidateURLsCmd  `cmd:"" help:"Validate download URLs and show sizes (CI check)."`
+	Apply          cli.ApplyCmd        `cmd:"" help:"Apply configuration: install emulators and generate configs."`
+	Doctor         cli.DoctorCmd       `cmd:"" help:"Check provision status (BIOS files, etc.)."`
+	Status         cli.StatusCmd       `cmd:"" help:"Show current state."`
+	Init           cli.InitCmd         `cmd:"" help:"Initialize a new kyaraben configuration."`
+	Uninstall      cli.UninstallCmd    `cmd:"" help:"Remove kyaraben-managed files."`
+	Daemon         cli.DaemonCmd       `cmd:"" help:"Run in daemon mode for UI communication."`
+	Sync           cli.SyncCmd         `cmd:"" help:"Manage sync settings and status."`
+	CheckDownloads cli.ValidateURLsCmd `cmd:"" help:"Validate download URLs and show sizes (CI check)."`
 
 	Config string `short:"c" help:"Path to config file." type:"path"`
 }
