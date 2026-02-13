@@ -45,9 +45,13 @@ build: ensure generate-types _sidecar
 e2e: _container-e2e-build
     podman run -it --rm kyaraben-cli-e2e
 
-# Run Playwright UI e2e tests in container (headless)
-ui-e2e: _container-electron-e2e-build
-    podman run --network=host --ipc=host --rm kyaraben-electron-e2e
+# Run Playwright UI e2e tests (run 'just build' first)
+ui-e2e *args: _extract-appimage
+    #!/usr/bin/env bash
+    cd ui && \
+        KYARABEN_APPIMAGE="$(pwd)/../.sandbox/app/kyaraben-ui" \
+        APPDIR="$(pwd)/../.sandbox/app" \
+        ../scripts/run-ui-e2e.sh npx playwright test {{ args }}
 
 # Run Playwright UI e2e tests with interactive UI (run 'just build' first)
 ui-e2e-ui *args: _extract-appimage
@@ -189,9 +193,6 @@ _sidecar:
 
 _container-e2e-build:
     podman build -t kyaraben-cli-e2e -f Containerfile.cli-e2e .
-
-_container-electron-e2e-build:
-    podman build -t kyaraben-electron-e2e -f Containerfile.electron-e2e .
 
 _container-sandbox-build:
     podman build -t kyaraben-sandbox -f Containerfile.sandbox \

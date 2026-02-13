@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
-import type { ProgressStep } from '@/types/ui'
-import { ProgressBar, ProgressRail, Shimmer } from '@/lib/progressWidgets'
 import { SpeedBadge } from '@/components/SpeedBadge/SpeedBadge'
 import { getDownloadSpeedBytes, getStepSubtitle } from '@/lib/progressUtils'
+import { ProgressBar, ProgressRail, Shimmer } from '@/lib/progressWidgets'
+import type { ProgressStep } from '@/types/ui'
 
 export interface ProgressStepsProps {
   steps: readonly ProgressStep[]

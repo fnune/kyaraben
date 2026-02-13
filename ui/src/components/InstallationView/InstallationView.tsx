@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/lib/Button'
 import type { UpdateInfo } from '@/lib/daemon'
-import { PathText } from '@/lib/PathText'
 import {
   applyUpdate,
   checkForUpdates,
@@ -14,6 +13,7 @@ import {
   openPath,
   readFile,
 } from '@/lib/daemon'
+import { PathText } from '@/lib/PathText'
 import type { InstallStatus, UninstallPreviewResponse } from '@/types/daemon'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
