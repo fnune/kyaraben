@@ -63,24 +63,24 @@ export function useUpdateChecker(
 
     const downloadResult = await daemon.downloadUpdate(updateInfo.downloadUrl)
     if (!downloadResult.ok) {
-      showToast(downloadResult.error.message || 'Download failed', 'error')
+      showToast(downloadResult.error.message || 'Download failed.', 'error')
       setIsDownloading(false)
       return
     }
     if (!downloadResult.data.success || !downloadResult.data.path) {
-      showToast(downloadResult.data.error || 'Download failed', 'error')
+      showToast(downloadResult.data.error || 'Download failed.', 'error')
       setIsDownloading(false)
       return
     }
 
     const applyResult = await daemon.applyUpdate(downloadResult.data.path)
     if (!applyResult.ok) {
-      showToast(applyResult.error.message || 'Update failed', 'error')
+      showToast(applyResult.error.message || 'Update failed.', 'error')
       setIsDownloading(false)
       return
     }
     if (!applyResult.data.success) {
-      showToast(applyResult.data.error || 'Update failed', 'error')
+      showToast(applyResult.data.error || 'Update failed.', 'error')
       setIsDownloading(false)
     }
   }, [updateInfo, showToast])

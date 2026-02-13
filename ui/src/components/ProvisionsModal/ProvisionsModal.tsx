@@ -1,5 +1,6 @@
 import { ProvisionSummary } from '@/components/ProvisionSummary/ProvisionSummary'
 import { FolderIcon, PlayIcon } from '@/lib/icons'
+import { PathText } from '@/lib/PathText'
 import { Modal } from '@/lib/Modal'
 import {
   OPTIONAL_PROVISION_COLOR,
@@ -102,10 +103,14 @@ function ProvisionAction({
       {isInline ? (
         <>
           <span className="hidden sm:inline">Open</span>
-          <span className="hidden md:inline truncate max-w-32">{expectedPath}</span>
+          <span className="hidden md:inline truncate max-w-32">
+            <PathText>{expectedPath}</PathText>
+          </span>
         </>
       ) : (
-        <span className="truncate">Open {expectedPath}</span>
+        <span className="truncate">
+          Open <PathText>{expectedPath}</PathText>
+        </span>
       )}
     </button>
   )
@@ -153,7 +158,7 @@ export function ProvisionsModal({
 
   const handleOpenFolder = (path: string) => {
     window.electron.invoke('open_path', path)
-    showToast(`Opening ${path}`)
+    showToast(`Opening ${path}.`)
   }
 
   const found = provisions.filter((p) => p.status === 'found')

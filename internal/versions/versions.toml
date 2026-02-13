@@ -9,6 +9,7 @@ default = "1.22.2"
 [retroarch-cores."1.22.2".targets.x64]
 variant = "x86_64"
 sha256 = "sha256-S37Y3JfUvwNfzhgsZLVljHZi4unl1CEpU4r71LYJYwc="
+size = 274237400
 
 # Core filenames inside the archive (used to extract only what we need)
 # Format: core_name = "filename_in_archive"
@@ -61,18 +62,22 @@ size = 61660569
 [eden."v0.1.0".targets.x64]
 variant = "amd64"
 sha256 = "sha256-+1lBCtlau8ttdy2olhNvlir/bn/sSpUz+6Ofo+GZ0dg="
+size = 65671333
 
 [eden."v0.1.0".targets.steamdeck]
 variant = "steamdeck"
 sha256 = "sha256-n8xlLPoRxxHwlICf2QYU7iLVxq2EnRwG1de7gLwdOOY="
+size = 61832340
 
 [eden."v0.1.0".targets.rog-ally]
 variant = "rog-ally"
 sha256 = "sha256-UsGMjjJTdB4hzeSyIrN6aAgrckExgcxKVrdZz5mkhqo="
+size = 62100086
 
 [eden."v0.1.0".targets.aarch64]
 variant = "aarch64"
 sha256 = "sha256-KDYSvNknaApwDQXflb/Y1zhjWKhZsBOSfYRQPRCJI0M="
+size = 61443821
 
 # ============================================================================
 # DUCKSTATION - PlayStation emulator

@@ -388,6 +388,9 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 					BuildPhase:      p.BuildPhase,
 					PackageName:     p.PackageName,
 					ProgressPercent: p.ProgressPercent,
+					BytesDownloaded: p.BytesDownloaded,
+					BytesTotal:      p.BytesTotal,
+					BytesPerSecond:  p.BytesPerSecond,
 					LogPosition:     logPosition,
 				},
 			}

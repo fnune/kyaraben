@@ -75,6 +75,9 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
       buildPhase?: string
       packageName?: string
       progressPercent?: number
+      bytesDownloaded?: number
+      bytesTotal?: number
+      bytesPerSecond?: number
       logPosition?: number
     }) => {
       if (!logPositionCaptured && data.logPosition !== undefined) {
@@ -103,6 +106,10 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
             : prev
         ).map((s) => {
           if (s.id === data.step) {
+            const nextProgressPercent =
+              data.progressPercent !== undefined
+                ? Math.max(s.progressPercent ?? 0, data.progressPercent)
+                : s.progressPercent
             return {
               ...s,
               status: 'in_progress' as const,
@@ -112,7 +119,10 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
               }),
               ...(data.buildPhase && { buildPhase: data.buildPhase }),
               ...(data.packageName && { packageName: data.packageName }),
-              ...(data.progressPercent !== undefined && { progressPercent: data.progressPercent }),
+              ...(nextProgressPercent !== undefined && { progressPercent: nextProgressPercent }),
+              ...(data.bytesDownloaded !== undefined && { bytesDownloaded: data.bytesDownloaded }),
+              ...(data.bytesTotal !== undefined && { bytesTotal: data.bytesTotal }),
+              ...(data.bytesPerSecond !== undefined && { bytesPerSecond: data.bytesPerSecond }),
             }
           }
           if (isNewStep && s.status === 'in_progress') {
@@ -145,7 +155,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
             status: s.status === 'in_progress' ? 'cancelled' : s.status,
           })),
         )
-        showToast('Installation cancelled', 'info')
+        showToast('Installation cancelled.', 'info')
         return false
       }
 
@@ -157,7 +167,6 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
         console.error('Failed to install Kyaraben:', err)
       })
 
-      showToast('Installation complete', 'success')
       return true
     } catch (err) {
       console.error('Apply failed:', err)
@@ -167,7 +176,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
       setProgressSteps((prev) =>
         prev.map((s) => ({ ...s, status: s.status === 'in_progress' ? 'error' : s.status })),
       )
-      showToast('Installation failed', 'error')
+      showToast('Installation failed.', 'error')
       return false
     } finally {
       window.electron.off('apply:progress')
