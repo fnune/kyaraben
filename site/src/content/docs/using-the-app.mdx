@@ -147,10 +147,11 @@ Your <UserStore /> (default `~/Emulation`) has a consistent structure:
 ```
 
 Kyaraben uses symlinks to redirect emulator data directories to your
+
 <UserStore />. For example, Dolphin normally stores GameCube saves in
-`~/.local/share/dolphin-emu/GC/`. Kyaraben creates a symlink from that location
-to `~/Emulation/saves/gamecube/`. The emulator runs with its default settings;
-the symlink transparently redirects data to your managed location.
+`~/.local/share/dolphin-emu/GC/`. Kyaraben creates a symlink from that location to
+`~/Emulation/saves/gamecube/`. The emulator runs with its default settings; the symlink
+transparently redirects data to your managed location.
 
 A few emulators have complex internal directory structures that resist symlinks
 (virtual filesystems, interlinked databases). These use an `opaque/` directory
