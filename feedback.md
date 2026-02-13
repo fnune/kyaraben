@@ -24,9 +24,16 @@ What we won't do: full performance tuning, per-game settings, target-specific op
 - Audit system extensions against ES-DE bundled config: ensure kyaraben's extension lists are complete for each system
 - Flycast CLI hotkey issue: save state hotkeys don't work when launching via CLI (known upstream issue)
 - Config change detection bug: kyaraben silently overwrites manually edited keys without warning. Repro: (1) apply sets Cemu check_update=false, (2) user enables update check in UI (check_update=true), (3) apply overwrites to false with no backup prompt. Expected: warning that a managed key was modified externally
+- Path usage fixes:
+    - NES says it uses `~/Emulation/bios/nes` but I think it doesn't
+- I'm not sure this is being used `rgui_browser_directory = ~/Emulation/roms/nes` or if it's working, we should check
+- Scrolling down while a select dropdown is open makes the dropdown follow the scroll so it detaches from the initial location
+- Kyaraben should fetch provision status on focus so that when users add files and come back to Kyaraben to check things update
+    - We could even show a toast notification if we find something new
 
 ## Important
 
+- Retroarch is configured to use `system_directory = ~/Emulation/bios`, however is this correct? The only retroarch core (I think) that needs provisions is Beetle Saturn, is it going to find them there?
 - Expand BIOS hash data: import comprehensive hash alternatives from EmuDeck/RetroDECK into provision Hashes arrays. Current data is minimal; these projects have 30+ PSX hashes, 71+ PS2 hashes, etc.
 - Environment variable security: KYARABEN_* env vars (KYARABEN_RELEASES_URL, KYARABEN_VERSION, KYARABEN_NIX_PORTABLE_PATH) are useful for testing but could be risky in production if accidentally set. Consider adding a "test mode" flag that must be set to enable these overrides, or prefix them with KYARABEN_TEST_ to make intent clear
 - Garbage collection: nix store grows unbounded, need a way to trigger cleanup via nix-portable and show space freed
