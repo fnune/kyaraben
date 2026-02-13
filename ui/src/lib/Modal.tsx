@@ -34,7 +34,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-6 pb-4 shrink-0">
+        <div className="flex items-center justify-between p-6 pb-2 shrink-0">
           <h2 id="modal-title" className="font-heading text-lg font-semibold text-on-surface">
             {title}
           </h2>

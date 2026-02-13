@@ -1,5 +1,16 @@
+import { ProvisionSummary } from '@/components/ProvisionSummary/ProvisionSummary'
 import { FolderIcon, PlayIcon } from '@/lib/icons'
 import { Modal } from '@/lib/Modal'
+import {
+  OPTIONAL_PROVISION_COLOR,
+  OPTIONAL_PROVISION_ICON,
+  PROVISION_FOUND_COLOR,
+  PROVISION_FOUND_ICON,
+  PROVISION_MISSING_COLOR,
+  PROVISION_MISSING_ICON,
+  PROVISION_NOT_NEEDED_COLOR,
+  PROVISION_NOT_NEEDED_ICON,
+} from '@/lib/provisionStatus'
 import { useToast } from '@/lib/ToastContext'
 import type { ProvisionResult } from '@/types/daemon'
 
@@ -154,6 +165,7 @@ export function ProvisionsModal({
   return (
     <Modal open={open} onClose={onClose} title={`${emulatorName} provisions`}>
       <div className="space-y-4">
+        <ProvisionSummary provisions={provisions} size="sm" />
         {found.length > 0 && (
           <div>
             <p className="text-sm text-on-surface-muted mb-2">Found</p>
@@ -230,10 +242,12 @@ function ProvisionRow({
   }
 
   const getIcon = () => {
-    if (isFound) return { icon: '✓', color: 'text-status-ok' }
-    if (isGroupSatisfied && !isOptional) return { icon: '-', color: 'text-on-surface-dim' }
-    if (isOptional) return { icon: '?', color: 'text-accent' }
-    return { icon: '✗', color: 'text-status-error' }
+    if (isFound) return { icon: PROVISION_FOUND_ICON, color: PROVISION_FOUND_COLOR }
+    if (isGroupSatisfied && !isOptional) {
+      return { icon: PROVISION_NOT_NEEDED_ICON, color: PROVISION_NOT_NEEDED_COLOR }
+    }
+    if (isOptional) return { icon: OPTIONAL_PROVISION_ICON, color: OPTIONAL_PROVISION_COLOR }
+    return { icon: PROVISION_MISSING_ICON, color: PROVISION_MISSING_COLOR }
   }
 
   const { icon, color } = getIcon()
