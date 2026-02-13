@@ -15,7 +15,6 @@ What we won't do: full performance tuning, per-game settings, target-specific op
 
 ## Low-hanging fruit
 
-- Provision UI bug: provisions with `ImportViaUI` show both "Place <file> in this directory" AND "Import in emulator" messages, which is confusing/redundant
 - Refactor Provision struct: Filename, Hashes, and FilePattern are mutually exclusive validation strategies but modeled as optional fields on the same struct. Consider an interface or union type: `FilenameProvision` (just check file exists), `HashedProvision` (check file exists with valid hash), `DirectoryProvision` (check directory contains files matching a glob pattern like `*.nca`). This would make the validation logic cleaner and prevent invalid combinations.
 - RetroArch cores bundle gets cleaned up after install and thus needs to redownload every time
     - Maybe consider keeping it around instead of cleaning it up
