@@ -41,31 +41,35 @@ func (cmd *DoctorCmd) Run(ctx *Context) error {
 		}
 
 		for _, prov := range sys.Provisions {
-			label := prov.Filename
+			kindLabel := prov.DisplayName
 			if prov.Description != "" {
-				label = fmt.Sprintf("%s (%s)", prov.Filename, prov.Description)
+				kindLabel = fmt.Sprintf("%s (%s)", kindLabel, prov.Description)
 			}
 
 			switch prov.Status {
 			case model.ProvisionFound:
-				fmt.Printf("    %s %s - found, verified\n", checkMark(), label)
+				verifiedAs := prov.DisplayName
+				if prov.VerifiedDisplayName != "" {
+					verifiedAs = prov.VerifiedDisplayName
+				}
+				fmt.Printf("    %s %s - verified (%s)\n", checkMark(), kindLabel, verifiedAs)
 			case model.ProvisionMissing:
 				if prov.GroupRequired && !prov.GroupSatisfied {
-					fmt.Printf("    %s %s - MISSING (%s)\n", crossMark(), label, prov.GroupMessage)
-					if prov.Instructions != "" {
+					fmt.Printf("    %s %s - MISSING\n", crossMark(), kindLabel)
+					if prov.ImportViaUI {
+						fmt.Printf("      Import %s via emulator\n", prov.DisplayName)
+					} else if prov.Instructions != "" {
 						fmt.Printf("      %s\n", prov.Instructions)
 					}
 				} else if prov.GroupRequired {
-					fmt.Printf("    %s %s - not found (group satisfied)\n", dashMark(), label)
+					fmt.Printf("    %s %s - not found (group satisfied)\n", dashMark(), kindLabel)
 				} else {
-					fmt.Printf("    %s %s - not found (optional)\n", dashMark(), label)
+					fmt.Printf("    %s %s - not found (optional)\n", dashMark(), kindLabel)
 				}
 			case model.ProvisionInvalid:
-				fmt.Printf("    %s %s - INVALID HASH\n", crossMark(), label)
+				fmt.Printf("    %s %s - INVALID HASH\n", crossMark(), kindLabel)
 			}
 		}
-
-		fmt.Printf("    Expected location: %s\n", sys.BiosDir)
 		fmt.Println()
 	}
 
