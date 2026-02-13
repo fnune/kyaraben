@@ -14,16 +14,7 @@ func (Definition) Emulator() model.Emulator {
 		Name:    "Azahar",
 		Systems: []model.SystemID{model.SystemIDN3DS},
 		Package: model.AppImageRef("azahar"),
-		ProvisionGroups: []model.ProvisionGroup{
-			{
-				MinRequired: 0,
-				Message:     "Decryption keys (only needed for encrypted ROM dumps)",
-				Provisions: []model.Provision{
-					model.FileProvision(model.ProvisionKeys, "aes_keys.txt", "AES keys").WithImportViaUI(),
-					model.FileProvision(model.ProvisionKeys, "seeddb.bin", "Seed DB").WithImportViaUI(),
-				},
-			},
-		},
+		ProvisionGroups: nil,
 		StateKinds: []model.StateKind{
 			model.StateSaves,
 			model.StateSavestates,
