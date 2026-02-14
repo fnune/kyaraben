@@ -204,8 +204,9 @@ func (i *PackageInstaller) InstallEmulator(ctx context.Context, name string, onP
 		return nil, fmt.Errorf("downloading %s: %w", name, err)
 	}
 
-	if onProgress != nil {
+	if archiveType != "" && onProgress != nil {
 		onProgress(InstallProgress{PackageName: name, Phase: "extracting"})
+		log.Info("Extracting %s %s", name, entry.Version)
 	}
 
 	tmpDir := pkgDir + ".tmp"
@@ -336,6 +337,8 @@ func (i *PackageInstaller) InstallCores(ctx context.Context, coreNames []string,
 	if onProgress != nil {
 		onProgress(InstallProgress{PackageName: "retroarch-cores", Phase: "extracting"})
 	}
+
+	log.Info("Extracting RetroArch cores bundle %s", version)
 
 	extractDir := filepath.Join(i.downloadsDir, "retroarch-cores-extract")
 	_ = os.RemoveAll(extractDir)

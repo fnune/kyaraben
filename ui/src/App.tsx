@@ -27,7 +27,7 @@ import type {
   System,
   SystemID,
 } from '@/types/daemon'
-import type { View } from '@/types/ui'
+import type { ApplyStatus, View } from '@/types/ui'
 
 function parseStatusResponse(data: StatusResponse) {
   const versions = new Map<EmulatorID, string>()
@@ -145,6 +145,8 @@ function AppContent() {
 
   const { onCompleteRef } = useApply()
   const { showToast } = useToast()
+  const { status: applyStatus } = useApply()
+  const lastApplyStatus = useRef<ApplyStatus | null>(null)
 
   const {
     updateInfo,
@@ -219,7 +221,7 @@ function AppContent() {
         savedConfigState.current = cloneConfigState(parsed)
         setConfigReady(true)
       } else {
-        showToast('Failed to load configuration', 'error')
+        showToast('Failed to load configuration.', 'error')
       }
 
       if (statusResult.ok) {
@@ -272,13 +274,38 @@ function AppContent() {
     init()
   }, [showToast, setShowApplyBanner])
 
+  useEffect(() => {
+    if (applyStatus === lastApplyStatus.current) return
+    if (applyStatus === 'success') {
+      if (currentView !== 'systems') {
+        showToast(
+          <span>
+            Installation complete.{' '}
+            <button
+              type="button"
+              className="underline hover:no-underline"
+              onClick={() => setCurrentView('systems')}
+            >
+              Go to systems
+            </button>
+          </span>,
+          'success',
+          8000,
+        )
+      } else {
+        showToast('Installation complete.', 'success')
+      }
+    }
+    lastApplyStatus.current = applyStatus
+  }, [applyStatus, currentView, setCurrentView, showToast])
+
   useOnWindowFocus(async () => {
     const result = await daemon.runDoctor()
     if (result.ok) {
       setProvisions((prev) => {
         const newlyFound = getNewlyFoundProvisions(prev, result.data)
         if (newlyFound.length > 0) {
-          showToast(`Found ${newlyFound.join(', ')}`, 'success')
+          showToast(`Found ${newlyFound.join(', ')}.`, 'success')
         }
         return result.data
       })

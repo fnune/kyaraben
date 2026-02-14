@@ -209,6 +209,33 @@ func TestMultipleVersions(t *testing.T) {
 	}
 }
 
+func TestAllPackagesHaveSize(t *testing.T) {
+	v := MustGet()
+	for name, spec := range v.Emulators {
+		for version, entry := range spec.Versions {
+			for target, build := range entry.Targets {
+				if build.Size == 0 {
+					t.Errorf("%s %s %s: missing size", name, version, target)
+				}
+			}
+		}
+	}
+
+	version := v.RetroArchCores.Default
+	if version == "" {
+		t.Fatal("retroarch-cores default version missing")
+	}
+	build, ok := v.RetroArchCores.Versions[version]
+	if !ok {
+		t.Fatalf("retroarch-cores version %s not found", version)
+	}
+	for target, targetBuild := range build.Targets {
+		if targetBuild.SHA256 != "" && targetBuild.Size == 0 {
+			t.Errorf("retroarch-cores %s: missing size", target)
+		}
+	}
+}
+
 func TestGetEmulator(t *testing.T) {
 	v := MustGet()
 

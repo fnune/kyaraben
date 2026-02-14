@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/lib/Button'
 import type { UpdateInfo } from '@/lib/daemon'
+import { PathText } from '@/lib/PathText'
 import {
   applyUpdate,
   checkForUpdates,
@@ -18,10 +19,14 @@ import type { InstallStatus, UninstallPreviewResponse } from '@/types/daemon'
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="p-4 bg-surface-alt rounded-card">
-      <h3 className="text-sm font-medium text-on-surface mb-3">{title}</h3>
+      <h3 className="text-sm font-medium text-on-surface mb-1">{title}</h3>
       {children}
     </div>
   )
+}
+
+function SectionIntro({ children }: { children: React.ReactNode }) {
+  return <p className="text-sm text-on-surface-muted mb-1">{children}</p>
 }
 
 function PathItem({
@@ -294,7 +299,9 @@ export function InstallationView() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-on-surface-secondary">Edit configuration</p>
-                <p className="text-xs text-on-surface-dim">{configPath}</p>
+                <p className="text-xs text-on-surface-dim">
+                  <PathText>{configPath}</PathText>
+                </p>
               </div>
               <Button variant="secondary" onClick={() => openPath(configPath)}>
                 Open
@@ -326,9 +333,7 @@ export function InstallationView() {
       </Section>
 
       <Section title="Preserved on uninstall">
-        <p className="text-sm text-on-surface-muted mb-2">
-          These directories will not be removed when uninstalling:
-        </p>
+        <SectionIntro>These directories will not be removed when uninstalling:</SectionIntro>
         <ul className="space-y-1">
           <PathItem
             path={`${preview.preserved.userStore} (emulation folder)`}

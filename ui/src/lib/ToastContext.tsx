@@ -1,9 +1,10 @@
-import { createContext, type ReactNode, useCallback, useContext, useState } from 'react'
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react'
 
 interface Toast {
   id: number
   content: ReactNode
   type: 'error' | 'success' | 'info'
+  expiresAt: number
 }
 
 interface ToastContextValue {
@@ -20,10 +21,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const showToast = useCallback(
     (content: ReactNode, type: Toast['type'] = 'info', duration = 5000) => {
       const id = nextId++
-      setToasts((prev) => [...prev, { id, content, type }])
-      setTimeout(() => {
-        setToasts((prev) => prev.filter((t) => t.id !== id))
-      }, duration)
+      const expiresAt = Date.now() + duration
+      setToasts((prev) => [...prev, { id, content, type, expiresAt }])
     },
     [],
   )
@@ -48,23 +47,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2">
         {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            className={`
-              ${getStyles(toast.type)}
-              px-3 py-1.5 rounded border text-xs backdrop-blur-xs
-              shadow-xs flex items-center gap-2
-            `}
-          >
-            {toast.content}
-            <button
-              type="button"
-              onClick={() => dismiss(toast.id)}
-              className="opacity-50 hover:opacity-100 transition-opacity"
-            >
-              ✕
-            </button>
-          </div>
+          <ToastItem key={toast.id} toast={toast} onDismiss={dismiss} getStyles={getStyles} />
         ))}
       </div>
     </ToastContext.Provider>
@@ -77,4 +60,68 @@ export function useToast() {
     throw new Error('useToast must be used within a ToastProvider')
   }
   return context
+}
+
+function ToastItem({
+  toast,
+  onDismiss,
+  getStyles,
+}: {
+  readonly toast: Toast
+  readonly onDismiss: (id: number) => void
+  readonly getStyles: (type: Toast['type']) => string
+}) {
+  const timeoutRef = useRef<number | null>(null)
+  const remainingRef = useRef<number>(toast.expiresAt - Date.now())
+
+  const clearTimer = () => {
+    if (timeoutRef.current !== null) {
+      window.clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
+  }
+
+  const startTimer = useCallback(() => {
+    clearTimer()
+    const remaining = remainingRef.current
+    if (remaining <= 0) {
+      onDismiss(toast.id)
+      return
+    }
+    timeoutRef.current = window.setTimeout(() => {
+      onDismiss(toast.id)
+    }, remaining)
+  }, [onDismiss, toast.id])
+
+  useEffect(() => {
+    remainingRef.current = toast.expiresAt - Date.now()
+    startTimer()
+    return () => clearTimer()
+  }, [startTimer, toast.expiresAt])
+
+  return (
+    <div
+      className={`
+        ${getStyles(toast.type)}
+        px-3 py-1.5 rounded border text-xs backdrop-blur-xs
+        shadow-xs flex items-center gap-2
+      `}
+      onMouseEnter={() => {
+        remainingRef.current = toast.expiresAt - Date.now()
+        clearTimer()
+      }}
+      onMouseLeave={() => {
+        startTimer()
+      }}
+    >
+      {toast.content}
+      <button
+        type="button"
+        onClick={() => onDismiss(toast.id)}
+        className="opacity-50 hover:opacity-100 transition-opacity"
+      >
+        ✕
+      </button>
+    </div>
+  )
 }

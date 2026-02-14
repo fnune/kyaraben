@@ -135,13 +135,13 @@ export function EmulatorSubcard({
   const handleLaunch = () => {
     if (onLaunch) {
       onLaunch()
-      showToast(`Launching ${emulator.name}`)
+      showToast(`Launching ${emulator.name}.`)
     }
   }
 
   const handleOpenFolder = (path: string) => {
     window.electron.invoke('open_path', path)
-    showToast(`Opening ${path}`)
+    showToast(`Opening ${path}.`)
   }
 
   const logo = getEmulatorLogo(emulator.id)
@@ -156,7 +156,7 @@ export function EmulatorSubcard({
             <img src={logo} alt="" className="w-full h-full object-contain" />
           </div>
         )}
-        <div className="flex-1 space-y-1">
+        <div className="flex-1 space-y-0.5">
           <div className="flex items-center gap-2">
             <span className="text-on-surface font-medium text-sm">{emulator.name}</span>
             <div className="ml-auto flex items-center gap-3">

@@ -107,6 +107,9 @@ type ProgressEvent struct {
 	BuildPhase      string `json:"buildPhase,omitempty"`
 	PackageName     string `json:"packageName,omitempty"`
 	ProgressPercent int    `json:"progressPercent,omitempty"`
+	BytesDownloaded int64  `json:"bytesDownloaded,omitempty"`
+	BytesTotal      int64  `json:"bytesTotal,omitempty"`
+	BytesPerSecond  int64  `json:"bytesPerSecond,omitempty"`
 	LogPosition     int64  `json:"logPosition"`
 }
 
