@@ -281,23 +281,23 @@ function PairingSection({
   }, [onStartPairing])
 
   if (!isRunning) {
-    if (status.serviceError) {
-      return (
-        <Section title="Syncthing failed to start">
-          <div className="space-y-3">
-            <p className="text-sm text-status-error">The syncthing service failed. Recent logs:</p>
-            <pre className="text-xs text-on-surface-muted bg-surface-raised p-3 rounded-sm overflow-x-auto whitespace-pre-wrap">
-              {status.serviceError}
-            </pre>
-          </div>
-        </Section>
-      )
-    }
     return (
-      <Section title="Pair a device">
-        <div className="flex items-center gap-3">
-          <Spinner />
-          <span className="text-sm text-on-surface-muted">Waiting for syncthing to start...</span>
+      <Section title="Syncthing not running">
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <Spinner />
+            <span className="text-sm text-on-surface-muted">Waiting for syncthing to start...</span>
+          </div>
+          {status.serviceError && (
+            <details className="text-sm">
+              <summary className="text-on-surface-muted cursor-pointer hover:text-on-surface">
+                Service logs
+              </summary>
+              <pre className="mt-2 text-xs text-on-surface-muted bg-surface-raised p-3 rounded-sm overflow-x-auto whitespace-pre-wrap">
+                {status.serviceError}
+              </pre>
+            </details>
+          )}
         </div>
       </Section>
     )

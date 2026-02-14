@@ -156,21 +156,24 @@ type ServiceStatus struct {
 func (s *SystemdUnit) Status() ServiceStatus {
 	unitName := s.unitName()
 
-	output, err := exec.Command("systemctl", "--user", "is-failed", unitName).Output()
-	if err == nil && strings.TrimSpace(string(output)) == "failed" {
-		logs, _ := exec.Command("journalctl", "--user", "-u", unitName, "-n", "5", "--no-pager", "-o", "cat").Output()
-		return ServiceStatus{
-			Active:  "failed",
-			Failed:  true,
-			Message: strings.TrimSpace(string(logs)),
+	output, _ := exec.Command("systemctl", "--user", "is-active", unitName).Output()
+	active := strings.TrimSpace(string(output))
+
+	status := ServiceStatus{
+		Active: active,
+		Failed: active == "failed",
+	}
+
+	if active != "active" && active != "activating" {
+		logs, _ := exec.Command("journalctl", "--user", "-u", unitName, "-n", "10", "--no-pager", "-o", "cat").Output()
+		if len(logs) > 0 {
+			status.Message = strings.TrimSpace(string(logs))
+		} else if active == "inactive" {
+			status.Message = "Service is not running. It may not have been started yet."
+		} else if active == "" {
+			status.Message = "Service unit not found. Sync may not be fully configured."
 		}
 	}
 
-	output, _ = exec.Command("systemctl", "--user", "is-active", unitName).Output()
-	active := strings.TrimSpace(string(output))
-
-	return ServiceStatus{
-		Active: active,
-		Failed: false,
-	}
+	return status
 }
