@@ -319,7 +319,12 @@ function AppContent() {
         })
         if (unseen.length > 0) {
           const descriptions = unseen
-            .map((prov) => prov.displayName || prov.filename)
+            .map((prov) => {
+              if (prov.description && prov.description !== prov.displayName) {
+                return `${prov.displayName} (${prov.description})`
+              }
+              return prov.displayName
+            })
             .join(', ')
           showToast(`Found ${descriptions}.`, 'success')
         }
