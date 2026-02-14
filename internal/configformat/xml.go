@@ -2,21 +2,23 @@ package configformat
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/beevik/etree"
+	"github.com/twpayne/go-vfs/v5"
 
 	"github.com/fnune/kyaraben/internal/model"
 )
 
-type xmlHandler struct{}
+type xmlHandler struct {
+	fs vfs.FS
+}
 
 func (h *xmlHandler) Read(path string) (map[string]map[string]string, error) {
 	result := make(map[string]map[string]string)
 	result[""] = make(map[string]string)
 
-	data, err := os.ReadFile(path)
+	data, err := h.fs.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -55,12 +57,12 @@ func (h *xmlHandler) readXMLElement(elem *etree.Element, path []string, result m
 }
 
 func (h *xmlHandler) Apply(path string, entries []model.ConfigEntry) (ApplyResult, error) {
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+	if err := vfs.MkdirAll(h.fs, filepath.Dir(path), 0755); err != nil {
 		return ApplyResult{}, fmt.Errorf("creating config directory: %w", err)
 	}
 
 	doc := etree.NewDocument()
-	if data, err := os.ReadFile(path); err == nil {
+	if data, err := h.fs.ReadFile(path); err == nil {
 		if err := doc.ReadFromBytes(data); err != nil {
 			doc = etree.NewDocument()
 		}
@@ -74,11 +76,16 @@ func (h *xmlHandler) Apply(path string, entries []model.ConfigEntry) (ApplyResul
 	}
 
 	doc.Indent(2)
-	if err := doc.WriteToFile(path); err != nil {
+	xmlBytes, err := doc.WriteToBytes()
+	if err != nil {
+		return ApplyResult{}, fmt.Errorf("encoding XML: %w", err)
+	}
+
+	if err := h.fs.WriteFile(path, xmlBytes, 0644); err != nil {
 		return ApplyResult{}, fmt.Errorf("writing XML file: %w", err)
 	}
 
-	hash, err := hashFile(path)
+	hash, err := hashFileWithFS(h.fs, path)
 	if err != nil {
 		return ApplyResult{}, fmt.Errorf("hashing config file: %w", err)
 	}

@@ -2,21 +2,23 @@ package configformat
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
+	"github.com/twpayne/go-vfs/v5"
 
 	"github.com/fnune/kyaraben/internal/model"
 )
 
-type tomlHandler struct{}
+type tomlHandler struct {
+	fs vfs.FS
+}
 
 func (h *tomlHandler) Read(path string) (map[string]map[string]string, error) {
 	result := make(map[string]map[string]string)
 	result[""] = make(map[string]string)
 
-	data, err := os.ReadFile(path)
+	data, err := h.fs.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -31,12 +33,12 @@ func (h *tomlHandler) Read(path string) (map[string]map[string]string, error) {
 }
 
 func (h *tomlHandler) Apply(path string, entries []model.ConfigEntry) (ApplyResult, error) {
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+	if err := vfs.MkdirAll(h.fs, filepath.Dir(path), 0755); err != nil {
 		return ApplyResult{}, fmt.Errorf("creating config directory: %w", err)
 	}
 
 	existing := make(map[string]interface{})
-	if data, err := os.ReadFile(path); err == nil {
+	if data, err := h.fs.ReadFile(path); err == nil {
 		if _, err := toml.Decode(string(data), &existing); err != nil {
 			return ApplyResult{}, fmt.Errorf("parsing existing TOML: %w", err)
 		}
@@ -49,7 +51,7 @@ func (h *tomlHandler) Apply(path string, entries []model.ConfigEntry) (ApplyResu
 		setNestedValue(existing, entry.Path, entry.Value)
 	}
 
-	f, err := os.Create(path)
+	f, err := h.fs.Create(path)
 	if err != nil {
 		return ApplyResult{}, fmt.Errorf("creating config file: %w", err)
 	}
@@ -64,7 +66,7 @@ func (h *tomlHandler) Apply(path string, entries []model.ConfigEntry) (ApplyResu
 		return ApplyResult{}, fmt.Errorf("encoding TOML: %w", err)
 	}
 
-	hash, err := hashFile(path)
+	hash, err := hashFileWithFS(h.fs, path)
 	if err != nil {
 		return ApplyResult{}, fmt.Errorf("hashing config file: %w", err)
 	}

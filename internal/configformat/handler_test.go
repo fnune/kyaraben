@@ -1,31 +1,30 @@
 package configformat
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/twpayne/go-vfs/v5/vfst"
 )
 
 func TestINIHandler_Read(t *testing.T) {
-	tmpDir := t.TempDir()
-	path := filepath.Join(tmpDir, "test.ini")
-
-	content := `; Comment
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/test.ini": `; Comment
 [section1]
 key1 = value1
 key2 = value2
 
 [section2]
 key3 = value3
-`
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-		t.Fatalf("writing file: %v", err)
+`,
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer cleanup()
 
-	handler := &iniHandler{}
-	result, err := handler.Read(path)
+	handler := GetHandlerWithFS(fs, model.ConfigFormatINI)
+	result, err := handler.Read("/test.ini")
 	if err != nil {
 		t.Fatalf("Read: %v", err)
 	}
@@ -42,28 +41,33 @@ key3 = value3
 }
 
 func TestINIHandler_Apply(t *testing.T) {
-	tmpDir := t.TempDir()
-	path := filepath.Join(tmpDir, "test.ini")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	handler := &iniHandler{}
+	handler := GetHandlerWithFS(fs, model.ConfigFormatINI)
 	entries := []model.ConfigEntry{
 		{Path: []string{"section1", "key1"}, Value: "value1"},
 		{Path: []string{"section1", "key2"}, Value: "value2"},
 	}
 
-	result, err := handler.Apply(path, entries)
+	result, err := handler.Apply("/config/test.ini", entries)
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 
-	if result.Path != path {
-		t.Errorf("expected path %s, got %s", path, result.Path)
+	if result.Path != "/config/test.ini" {
+		t.Errorf("expected path /config/test.ini, got %s", result.Path)
 	}
 	if result.BaselineHash == "" {
 		t.Error("expected non-empty hash")
 	}
 
-	readResult, err := handler.Read(path)
+	readResult, err := handler.Read("/config/test.ini")
 	if err != nil {
 		t.Fatalf("Read: %v", err)
 	}
@@ -74,19 +78,19 @@ func TestINIHandler_Apply(t *testing.T) {
 }
 
 func TestCFGHandler_Read(t *testing.T) {
-	tmpDir := t.TempDir()
-	path := filepath.Join(tmpDir, "test.cfg")
-
-	content := `# Comment
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/test.cfg": `# Comment
 key1 = "value1"
 key2 = "value2"
-`
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-		t.Fatalf("writing file: %v", err)
+`,
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer cleanup()
 
-	handler := &cfgHandler{}
-	result, err := handler.Read(path)
+	handler := GetHandlerWithFS(fs, model.ConfigFormatCFG)
+	result, err := handler.Read("/test.cfg")
 	if err != nil {
 		t.Fatalf("Read: %v", err)
 	}
@@ -100,25 +104,30 @@ key2 = "value2"
 }
 
 func TestCFGHandler_Apply(t *testing.T) {
-	tmpDir := t.TempDir()
-	path := filepath.Join(tmpDir, "test.cfg")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	handler := &cfgHandler{}
+	handler := GetHandlerWithFS(fs, model.ConfigFormatCFG)
 	entries := []model.ConfigEntry{
 		{Path: []string{"key1"}, Value: "value1"},
 		{Path: []string{"key2"}, Value: "value2"},
 	}
 
-	result, err := handler.Apply(path, entries)
+	result, err := handler.Apply("/config/test.cfg", entries)
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 
-	if result.Path != path {
-		t.Errorf("expected path %s, got %s", path, result.Path)
+	if result.Path != "/config/test.cfg" {
+		t.Errorf("expected path /config/test.cfg, got %s", result.Path)
 	}
 
-	readResult, err := handler.Read(path)
+	readResult, err := handler.Read("/config/test.cfg")
 	if err != nil {
 		t.Fatalf("Read: %v", err)
 	}
@@ -129,23 +138,23 @@ func TestCFGHandler_Apply(t *testing.T) {
 }
 
 func TestTOMLHandler_Read(t *testing.T) {
-	tmpDir := t.TempDir()
-	path := filepath.Join(tmpDir, "test.toml")
-
-	content := `# Comment
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/test.toml": `# Comment
 [section1]
 key1 = "value1"
 key2 = "value2"
 
 [section2]
 key3 = "value3"
-`
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-		t.Fatalf("writing file: %v", err)
+`,
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer cleanup()
 
-	handler := &tomlHandler{}
-	result, err := handler.Read(path)
+	handler := GetHandlerWithFS(fs, model.ConfigFormatTOML)
+	result, err := handler.Read("/test.toml")
 	if err != nil {
 		t.Fatalf("Read: %v", err)
 	}
@@ -159,25 +168,30 @@ key3 = "value3"
 }
 
 func TestTOMLHandler_Apply(t *testing.T) {
-	tmpDir := t.TempDir()
-	path := filepath.Join(tmpDir, "test.toml")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	handler := &tomlHandler{}
+	handler := GetHandlerWithFS(fs, model.ConfigFormatTOML)
 	entries := []model.ConfigEntry{
 		{Path: []string{"section1", "key1"}, Value: "value1"},
 		{Path: []string{"section1", "key2"}, Value: "value2"},
 	}
 
-	result, err := handler.Apply(path, entries)
+	result, err := handler.Apply("/config/test.toml", entries)
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 
-	if result.Path != path {
-		t.Errorf("expected path %s, got %s", path, result.Path)
+	if result.Path != "/config/test.toml" {
+		t.Errorf("expected path /config/test.toml, got %s", result.Path)
 	}
 
-	readResult, err := handler.Read(path)
+	readResult, err := handler.Read("/config/test.toml")
 	if err != nil {
 		t.Fatalf("Read: %v", err)
 	}
@@ -188,22 +202,22 @@ func TestTOMLHandler_Apply(t *testing.T) {
 }
 
 func TestYAMLHandler_Read(t *testing.T) {
-	tmpDir := t.TempDir()
-	path := filepath.Join(tmpDir, "test.yaml")
-
-	content := `# Comment
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/test.yaml": `# Comment
 section1:
   key1: value1
   key2: value2
 section2:
   key3: value3
-`
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-		t.Fatalf("writing file: %v", err)
+`,
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer cleanup()
 
-	handler := &yamlHandler{}
-	result, err := handler.Read(path)
+	handler := GetHandlerWithFS(fs, model.ConfigFormatYAML)
+	result, err := handler.Read("/test.yaml")
 	if err != nil {
 		t.Fatalf("Read: %v", err)
 	}
@@ -217,25 +231,30 @@ section2:
 }
 
 func TestYAMLHandler_Apply(t *testing.T) {
-	tmpDir := t.TempDir()
-	path := filepath.Join(tmpDir, "test.yaml")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	handler := &yamlHandler{}
+	handler := GetHandlerWithFS(fs, model.ConfigFormatYAML)
 	entries := []model.ConfigEntry{
 		{Path: []string{"section1", "key1"}, Value: "value1"},
 		{Path: []string{"section1", "key2"}, Value: "value2"},
 	}
 
-	result, err := handler.Apply(path, entries)
+	result, err := handler.Apply("/config/test.yaml", entries)
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 
-	if result.Path != path {
-		t.Errorf("expected path %s, got %s", path, result.Path)
+	if result.Path != "/config/test.yaml" {
+		t.Errorf("expected path /config/test.yaml, got %s", result.Path)
 	}
 
-	readResult, err := handler.Read(path)
+	readResult, err := handler.Read("/config/test.yaml")
 	if err != nil {
 		t.Fatalf("Read: %v", err)
 	}
@@ -246,10 +265,8 @@ func TestYAMLHandler_Apply(t *testing.T) {
 }
 
 func TestXMLHandler_Read(t *testing.T) {
-	tmpDir := t.TempDir()
-	path := filepath.Join(tmpDir, "test.xml")
-
-	content := `<config>
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/test.xml": `<config>
   <section1>
     <key1>value1</key1>
     <key2>value2</key2>
@@ -257,13 +274,15 @@ func TestXMLHandler_Read(t *testing.T) {
   <section2>
     <key3>value3</key3>
   </section2>
-</config>`
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-		t.Fatalf("writing file: %v", err)
+</config>`,
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer cleanup()
 
-	handler := &xmlHandler{}
-	result, err := handler.Read(path)
+	handler := GetHandlerWithFS(fs, model.ConfigFormatXML)
+	result, err := handler.Read("/test.xml")
 	if err != nil {
 		t.Fatalf("Read: %v", err)
 	}
@@ -277,25 +296,30 @@ func TestXMLHandler_Read(t *testing.T) {
 }
 
 func TestXMLHandler_Apply(t *testing.T) {
-	tmpDir := t.TempDir()
-	path := filepath.Join(tmpDir, "test.xml")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	handler := &xmlHandler{}
+	handler := GetHandlerWithFS(fs, model.ConfigFormatXML)
 	entries := []model.ConfigEntry{
 		{Path: []string{"config", "section1", "key1"}, Value: "value1"},
 		{Path: []string{"config", "section1", "key2"}, Value: "value2"},
 	}
 
-	result, err := handler.Apply(path, entries)
+	result, err := handler.Apply("/config/test.xml", entries)
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 
-	if result.Path != path {
-		t.Errorf("expected path %s, got %s", path, result.Path)
+	if result.Path != "/config/test.xml" {
+		t.Errorf("expected path /config/test.xml, got %s", result.Path)
 	}
 
-	readResult, err := handler.Read(path)
+	readResult, err := handler.Read("/config/test.xml")
 	if err != nil {
 		t.Fatalf("Read: %v", err)
 	}
@@ -306,16 +330,16 @@ func TestXMLHandler_Apply(t *testing.T) {
 }
 
 func TestRawHandler_Read(t *testing.T) {
-	tmpDir := t.TempDir()
-	path := filepath.Join(tmpDir, "test.raw")
-
-	content := "raw content here"
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-		t.Fatalf("writing file: %v", err)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/test.raw": "raw content here",
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer cleanup()
 
-	handler := &rawHandler{}
-	result, err := handler.Read(path)
+	handler := GetHandlerWithFS(fs, model.ConfigFormatRaw)
+	result, err := handler.Read("/test.raw")
 	if err != nil {
 		t.Fatalf("Read: %v", err)
 	}
@@ -326,24 +350,29 @@ func TestRawHandler_Read(t *testing.T) {
 }
 
 func TestRawHandler_Apply(t *testing.T) {
-	tmpDir := t.TempDir()
-	path := filepath.Join(tmpDir, "test.raw")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	handler := &rawHandler{}
+	handler := GetHandlerWithFS(fs, model.ConfigFormatRaw)
 	entries := []model.ConfigEntry{
 		{Path: []string{}, Value: "raw content"},
 	}
 
-	result, err := handler.Apply(path, entries)
+	result, err := handler.Apply("/config/test.raw", entries)
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 
-	if result.Path != path {
-		t.Errorf("expected path %s, got %s", path, result.Path)
+	if result.Path != "/config/test.raw" {
+		t.Errorf("expected path /config/test.raw, got %s", result.Path)
 	}
 
-	data, err := os.ReadFile(path)
+	data, err := fs.ReadFile("/config/test.raw")
 	if err != nil {
 		t.Fatalf("reading file: %v", err)
 	}

@@ -3,21 +3,23 @@ package configformat
 import (
 	"bufio"
 	"fmt"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/twpayne/go-vfs/v5"
 )
 
-type iniHandler struct{}
+type iniHandler struct {
+	fs vfs.FS
+}
 
 func (h *iniHandler) Read(path string) (map[string]map[string]string, error) {
 	result := make(map[string]map[string]string)
 	result[""] = make(map[string]string)
 
-	f, err := os.Open(path)
+	f, err := h.fs.Open(path)
 	if err != nil {
 		return nil, err
 	}
@@ -59,14 +61,14 @@ func (h *iniHandler) Read(path string) (map[string]map[string]string, error) {
 }
 
 func (h *iniHandler) Apply(path string, entries []model.ConfigEntry) (ApplyResult, error) {
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+	if err := vfs.MkdirAll(h.fs, filepath.Dir(path), 0755); err != nil {
 		return ApplyResult{}, fmt.Errorf("creating config directory: %w", err)
 	}
 
 	sections := make(map[string]map[string]string)
 	currentSection := ""
 
-	if data, err := os.Open(path); err == nil {
+	if data, err := h.fs.Open(path); err == nil {
 		scanner := bufio.NewScanner(data)
 		for scanner.Scan() {
 			line := strings.TrimSpace(scanner.Text())
@@ -104,7 +106,7 @@ func (h *iniHandler) Apply(path string, entries []model.ConfigEntry) (ApplyResul
 		sections[section][key] = entry.Value
 	}
 
-	f, err := os.Create(path)
+	f, err := h.fs.Create(path)
 	if err != nil {
 		return ApplyResult{}, fmt.Errorf("creating config file: %w", err)
 	}
@@ -138,7 +140,7 @@ func (h *iniHandler) Apply(path string, entries []model.ConfigEntry) (ApplyResul
 		_, _ = fmt.Fprintln(f)
 	}
 
-	hash, err := hashFile(path)
+	hash, err := hashFileWithFS(h.fs, path)
 	if err != nil {
 		return ApplyResult{}, fmt.Errorf("hashing config file: %w", err)
 	}
