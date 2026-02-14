@@ -15,24 +15,14 @@ func (Definition) Emulator() model.Emulator {
 				MinRequired: 1,
 				Message:     "Encryption keys required for encrypted games",
 				Provisions: []model.Provision{
-					{
-						Kind:        model.ProvisionKeys,
-						Filename:    "aes_keys.txt",
-						Description: "AES keys",
-						ImportViaUI: true,
-					},
+					model.FileProvision(model.ProvisionKeys, "aes_keys.txt", "AES keys").WithImportViaUI(),
 				},
 			},
 			{
 				MinRequired: 0,
 				Message:     "Seed database (optional, for some encrypted games)",
 				Provisions: []model.Provision{
-					{
-						Kind:        model.ProvisionKeys,
-						Filename:    "seeddb.bin",
-						Description: "Seed DB",
-						ImportViaUI: true,
-					},
+					model.FileProvision(model.ProvisionKeys, "seeddb.bin", "Seed DB").WithImportViaUI(),
 				},
 			},
 		},

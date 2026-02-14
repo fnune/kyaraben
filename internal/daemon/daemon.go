@@ -309,9 +309,12 @@ func (d *Daemon) handleDoctor() []Event {
 				GroupRequired:  prov.GroupRequired,
 				GroupSatisfied: prov.GroupSatisfied,
 				GroupSize:      prov.GroupSize,
+				DisplayName:    prov.DisplayName,
+				Instructions:   prov.Instructions,
 			}
 		}
-		response[string(sys.EmulatorID)] = provisions
+		key := string(sys.SystemID) + ":" + string(sys.EmulatorID)
+		response[key] = provisions
 	}
 
 	return []Event{{

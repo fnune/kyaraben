@@ -19,7 +19,7 @@ func (Definition) Emulator() model.Emulator {
 		Package: model.AppImageRef("retroarch"),
 		ProvisionGroups: []model.ProvisionGroup{{
 			MinRequired: 1,
-			Message:     "At least one BIOS required",
+			Message:     "BIOS required (no HLE fallback available)",
 			Provisions:  saturnBIOSProvisions,
 		}},
 		StateKinds: []model.StateKind{
@@ -64,15 +64,15 @@ func coreOverrideConfig(store model.StoreReader) model.ConfigPatch {
 }
 
 var saturnBIOSProvisions = []model.Provision{
-	{Kind: model.ProvisionBIOS, Filename: "sega_101.bin", Description: "Japan", Hashes: []string{"85ec9ca47d8f6807718151cbcca8b964"}},
-	{Kind: model.ProvisionBIOS, Filename: "sega_100.bin", Description: "Japan", Hashes: []string{"af5828fdff51384f99b3c4926be27762"}},
-	{Kind: model.ProvisionBIOS, Filename: "sega_100a.bin", Description: "Japan alternate", Hashes: []string{"f273555d7d91e8a5a6bfd9bcf066331c"}},
-	{Kind: model.ProvisionBIOS, Filename: "sega1003.bin", Description: "Japan v1.003", Hashes: []string{"74570fed4d44b2682b560c8cd44b8b6a"}},
-	{Kind: model.ProvisionBIOS, Filename: "mpr-17933.bin", Description: "US/EU", Hashes: []string{"3240872c70984b6cbfda1586cab68dbe"}},
-	{Kind: model.ProvisionBIOS, Filename: "mpr-18100.bin", Description: "US/EU v1.01", Hashes: []string{"cb2cebc1b6e573b7c44523d037edcd45"}},
-	{Kind: model.ProvisionBIOS, Filename: "saturn_bios.bin", Description: "Generic", Hashes: []string{"af5828fdff51384f99b3c4926be27762"}},
-	{Kind: model.ProvisionBIOS, Filename: "hisaturn.bin", Description: "Hi-Saturn Japan", Hashes: []string{"3ea3202e2634cb47cb90f3a05c015010"}},
-	{Kind: model.ProvisionBIOS, Filename: "vsaturn.bin", Description: "V-Saturn Japan", Hashes: []string{"ac4e4b6522e200c0d23d371a8cecbfd3"}},
-	{Kind: model.ProvisionBIOS, Filename: "mpr-18811-mx.ic1", Description: "KOF95 cartridge", Hashes: []string{"255113ba943c92a54facd25a10fd780c"}},
-	{Kind: model.ProvisionBIOS, Filename: "mpr-19367-mx.ic1", Description: "Ultraman cartridge", Hashes: []string{"1cd19988d1d72a3e7caa0b73234c96b4"}},
+	model.HashedProvision(model.ProvisionBIOS, "sega_101.bin", "Japan", []string{"85ec9ca47d8f6807718151cbcca8b964"}),
+	model.HashedProvision(model.ProvisionBIOS, "sega_100.bin", "Japan", []string{"af5828fdff51384f99b3c4926be27762"}),
+	model.HashedProvision(model.ProvisionBIOS, "sega_100a.bin", "Japan alternate", []string{"f273555d7d91e8a5a6bfd9bcf066331c"}),
+	model.HashedProvision(model.ProvisionBIOS, "sega1003.bin", "Japan v1.003", []string{"74570fed4d44b2682b560c8cd44b8b6a"}),
+	model.HashedProvision(model.ProvisionBIOS, "mpr-17933.bin", "US/EU", []string{"3240872c70984b6cbfda1586cab68dbe"}),
+	model.HashedProvision(model.ProvisionBIOS, "mpr-18100.bin", "US/EU v1.01", []string{"cb2cebc1b6e573b7c44523d037edcd45"}),
+	model.HashedProvision(model.ProvisionBIOS, "saturn_bios.bin", "Generic", []string{"af5828fdff51384f99b3c4926be27762"}),
+	model.HashedProvision(model.ProvisionBIOS, "hisaturn.bin", "Hi-Saturn Japan", []string{"3ea3202e2634cb47cb90f3a05c015010"}),
+	model.HashedProvision(model.ProvisionBIOS, "vsaturn.bin", "V-Saturn Japan", []string{"ac4e4b6522e200c0d23d371a8cecbfd3"}),
+	model.HashedProvision(model.ProvisionBIOS, "mpr-18811-mx.ic1", "KOF95 cartridge", []string{"255113ba943c92a54facd25a10fd780c"}),
+	model.HashedProvision(model.ProvisionBIOS, "mpr-19367-mx.ic1", "Ultraman cartridge", []string{"1cd19988d1d72a3e7caa0b73234c96b4"}),
 }

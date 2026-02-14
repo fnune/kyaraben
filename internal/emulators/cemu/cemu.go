@@ -18,12 +18,9 @@ func (Definition) Emulator() model.Emulator {
 		ProvisionGroups: []model.ProvisionGroup{{
 			MinRequired: 1,
 			Message:     "Encryption keys required",
-			Provisions: []model.Provision{{
-				Kind:        model.ProvisionKeys,
-				Filename:    "keys.txt",
-				Description: "Wii U keys",
-				ImportViaUI: true,
-			}},
+			Provisions: []model.Provision{
+				model.FileProvision(model.ProvisionKeys, "keys.txt", "Wii U keys").WithImportViaUI(),
+			},
 		}},
 		StateKinds: []model.StateKind{
 			model.StateSaves,

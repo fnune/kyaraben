@@ -1,4 +1,4 @@
-import { CopyIcon, FolderIcon, PlayIcon } from '@/lib/icons'
+import { FolderIcon, PlayIcon } from '@/lib/icons'
 import { Modal } from '@/lib/Modal'
 import { useToast } from '@/lib/ToastContext'
 import type { ProvisionResult } from '@/types/daemon'
@@ -16,39 +16,6 @@ const KIND_LABELS: Record<string, string> = {
   bios: 'BIOS',
   keys: 'Keys',
   firmware: 'Firmware',
-}
-
-export interface CopyableFilenameProps {
-  readonly filename: string
-  readonly disabled?: boolean
-  readonly className?: string
-}
-
-export function CopyableFilename({ filename, disabled, className = '' }: CopyableFilenameProps) {
-  const { showToast } = useToast()
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(filename)
-    showToast(`Copied ${filename}`)
-  }
-
-  return (
-    <>
-      <code className={`text-xs text-on-surface-dim truncate ${className}`}>{filename}</code>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation()
-          handleCopy()
-        }}
-        disabled={disabled}
-        className={`p-0.5 text-on-surface-muted rounded-sm transition-colors shrink-0 ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:text-on-surface'}`}
-        aria-label={`Copy ${filename}`}
-      >
-        <CopyIcon />
-      </button>
-    </>
-  )
 }
 
 export function getKindLabel(kind: string): string {
@@ -283,7 +250,15 @@ function ProvisionRow({
         {statusLabel && <span className="text-xs text-on-surface-dim">{statusLabel}</span>}
       </div>
       <div className="flex items-center gap-1 ml-5">
-        <CopyableFilename filename={provision.filename} disabled={disabled} />
+        <span className="text-xs text-on-surface-dim truncate">
+          {isFound ? (
+            <>
+              Verified (<code className="text-xs">{provision.displayName}</code>)
+            </>
+          ) : (
+            provision.instructions
+          )}
+        </span>
         <div className="ml-auto">
           <ProvisionAction
             provision={provision}

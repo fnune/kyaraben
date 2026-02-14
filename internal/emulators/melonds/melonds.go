@@ -17,31 +17,17 @@ func (Definition) Emulator() model.Emulator {
 		ProvisionGroups: []model.ProvisionGroup{
 			{
 				MinRequired: 0,
-				Message:     "Native BIOS (optional, both needed for native mode)",
+				Message:     "Native BIOS (optional, improves accuracy and enables DS menu)",
 				Provisions: []model.Provision{
-					{
-						Kind:        model.ProvisionBIOS,
-						Filename:    "bios7.bin",
-						Description: "ARM7",
-						Hashes:      []string{"df692a80a5b1bc90728bc3dfc76cd948"},
-					},
-					{
-						Kind:        model.ProvisionBIOS,
-						Filename:    "bios9.bin",
-						Description: "ARM9",
-						Hashes:      []string{"a392174eb3e572fed6447e956bde4b25"},
-					},
+					model.HashedProvision(model.ProvisionBIOS, "bios7.bin", "ARM7", []string{"df692a80a5b1bc90728bc3dfc76cd948"}),
+					model.HashedProvision(model.ProvisionBIOS, "bios9.bin", "ARM9", []string{"a392174eb3e572fed6447e956bde4b25"}),
 				},
 			},
 			{
 				MinRequired: 0,
-				Message:     "Native firmware (optional)",
+				Message:     "Native firmware (optional, required for DSi mode and WiFi)",
 				Provisions: []model.Provision{
-					{
-						Kind:     model.ProvisionFirmware,
-						Filename: "firmware.bin",
-						Hashes:   []string{"e45033d9b0fa6b0de071292bba7c9d13"},
-					},
+					model.HashedProvision(model.ProvisionFirmware, "firmware.bin", "", []string{"e45033d9b0fa6b0de071292bba7c9d13"}),
 				},
 			},
 		},

@@ -16,12 +16,10 @@ func (Definition) Emulator() model.Emulator {
 		Package: model.AppImageRef("mgba"),
 		ProvisionGroups: []model.ProvisionGroup{{
 			MinRequired: 0,
-			Message:     "BIOS (optional, mGBA has HLE fallback)",
-			Provisions: []model.Provision{{
-				Kind:     model.ProvisionBIOS,
-				Filename: "gba_bios.bin",
-				Hashes:   []string{"a860e8c0b6d573d191e4ec7db1b1e4f6"},
-			}},
+			Message:     "BIOS (optional, enables boot animation and improves compatibility)",
+			Provisions: []model.Provision{
+				model.HashedProvision(model.ProvisionBIOS, "gba_bios.bin", "", []string{"a860e8c0b6d573d191e4ec7db1b1e4f6"}).ForSystems(model.SystemIDGBA),
+			},
 		}},
 		StateKinds: []model.StateKind{
 			model.StateSaves,

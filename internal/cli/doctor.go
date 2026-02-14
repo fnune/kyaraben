@@ -52,6 +52,9 @@ func (cmd *DoctorCmd) Run(ctx *Context) error {
 			case model.ProvisionMissing:
 				if prov.GroupRequired && !prov.GroupSatisfied {
 					fmt.Printf("    %s %s - MISSING (%s)\n", crossMark(), label, prov.GroupMessage)
+					if prov.Instructions != "" {
+						fmt.Printf("      %s\n", prov.Instructions)
+					}
 				} else if prov.GroupRequired {
 					fmt.Printf("    %s %s - not found (group satisfied)\n", dashMark(), label)
 				} else {

@@ -67,9 +67,8 @@ export interface InstalledFrontend {
   version: string;
 }
 /**
- * DoctorResponse uses map[string] because tygo can't generate valid TypeScript
- * for map[EmulatorID] (index signatures don't support union types).
- * The TypeScript type is manually defined as Record<EmulatorID, ProvisionResult[]>.
+ * DoctorResponse maps "systemId:emulatorId" to provisions for that system/emulator pair.
+ * Uses map[string] because tygo can't generate valid TypeScript for union index types.
  */
 export type DoctorResponse = { [key: string]: ProvisionResult[]};
 export interface ProvisionResult {
@@ -84,6 +83,8 @@ export interface ProvisionResult {
   groupRequired: boolean;
   groupSatisfied: boolean;
   groupSize: number /* int */;
+  displayName: string;
+  instructions?: string;
 }
 export interface ProgressEvent {
   step: string;
