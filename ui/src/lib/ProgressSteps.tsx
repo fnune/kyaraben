@@ -72,7 +72,7 @@ export function ProgressSteps({ steps, error, cancelled }: ProgressStepsProps) {
   }
 
   return (
-    <div className="mt-6 p-4 bg-surface-alt rounded-card">
+    <div className="p-4 bg-surface-alt rounded-card">
       {steps.length > 0 && (
         <ol className="space-y-2">
           {steps.map((step) => {
