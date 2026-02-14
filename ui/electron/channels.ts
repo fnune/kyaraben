@@ -18,6 +18,8 @@ const DAEMON_CHANNELS = [
   'sync_cancel_pairing',
   'sync_pending',
   'sync_enable',
+  'sync_revert_folder',
+  'sync_local_changes',
   'uninstall_preview',
   'refresh_icon_caches',
 ] as const

@@ -1,11 +1,17 @@
 import { useCallback, useState } from 'react'
 import { Button } from '@/lib/Button'
 import { formatBytes } from '@/lib/changeUtils'
-import { openPath } from '@/lib/daemon'
+import { getSyncLocalChanges, openPath, revertSyncFolder } from '@/lib/daemon'
 import { Input } from '@/lib/Input'
 import { FolderIcon, TrashIcon } from '@/lib/icons'
 import { Spinner } from '@/lib/Spinner'
-import type { SyncDevice, SyncFolder, SyncMode, SyncStatusResponse } from '@/types/daemon'
+import type {
+  SyncDevice,
+  SyncFolder,
+  SyncLocalChange,
+  SyncMode,
+  SyncStatusResponse,
+} from '@/types/daemon'
 
 export interface SyncViewProps {
   readonly status: SyncStatusResponse | null
@@ -14,6 +20,7 @@ export interface SyncViewProps {
   readonly onCancelPairing: () => Promise<void>
   readonly onJoinPrimary: (code: string) => Promise<{ ok: boolean; error?: string }>
   readonly onEnableSync: (mode: SyncMode) => Promise<void>
+  readonly onRefresh: () => void
   readonly pairingCode: string | null
   readonly pairingProgress: string | null
   readonly pairingError: string | null
@@ -97,36 +104,124 @@ function DeviceRow({
   )
 }
 
-function FolderRow({ folder }: { readonly folder: SyncFolder }) {
+function FolderRow({
+  folder,
+  onRefresh,
+}: {
+  readonly folder: SyncFolder
+  readonly onRefresh: () => void
+}) {
+  const [showChanges, setShowChanges] = useState(false)
+  const [changes, setChanges] = useState<SyncLocalChange[] | null>(null)
+  const [loadingChanges, setLoadingChanges] = useState(false)
+  const [reverting, setReverting] = useState(false)
+
   const isSyncing = folder.state === 'syncing' || folder.needSize > 0
+  const hasLocalChanges = folder.receiveOnlyChanges > 0
+  const isReceiveOnly = folder.type === 'receiveonly'
+  const sizeDiffers = isReceiveOnly && folder.localSize !== folder.globalSize
   const percent =
     folder.globalSize > 0 ? Math.round((folder.localSize / folder.globalSize) * 100) : 100
 
+  const handleShowChanges = useCallback(async () => {
+    if (showChanges) {
+      setShowChanges(false)
+      return
+    }
+    setLoadingChanges(true)
+    const result = await getSyncLocalChanges({ folderId: folder.id })
+    if (result.ok) {
+      setChanges(result.data.changes)
+    }
+    setLoadingChanges(false)
+    setShowChanges(true)
+  }, [folder.id, showChanges])
+
+  const handleRevert = useCallback(async () => {
+    setReverting(true)
+    await revertSyncFolder({ folderId: folder.id })
+    setReverting(false)
+    setShowChanges(false)
+    setChanges(null)
+    onRefresh()
+  }, [folder.id, onRefresh])
+
+  const getStatusIndicator = () => {
+    if (hasLocalChanges) return 'bg-status-warn'
+    if (isSyncing) return 'bg-status-warn'
+    return 'bg-status-ok'
+  }
+
   return (
-    <div className="flex items-center justify-between py-2 border-b border-outline last:border-0">
-      <div className="flex items-center gap-2 min-w-0 flex-1">
-        <span
-          className={`w-2 h-2 rounded-full flex-shrink-0 ${isSyncing ? 'bg-status-warn' : 'bg-status-ok'}`}
-        />
-        <span className="font-medium text-on-surface truncate">{folder.label}</span>
+    <div className="py-2 border-b border-outline last:border-0">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getStatusIndicator()}`} />
+          <span className="font-medium text-on-surface truncate">{folder.label}</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-on-surface-muted flex-shrink-0">
+          {isSyncing ? (
+            <span>
+              {percent}% ({formatBytes(folder.needSize)} left)
+            </span>
+          ) : sizeDiffers ? (
+            <span>
+              {formatBytes(folder.localSize)} / {formatBytes(folder.globalSize)}
+            </span>
+          ) : (
+            <span>{formatBytes(folder.globalSize)}</span>
+          )}
+          <button
+            type="button"
+            onClick={() => openPath(folder.path)}
+            className="p-1 text-on-surface-muted hover:text-on-surface-secondary rounded"
+            title="Open folder"
+          >
+            <FolderIcon className="w-4 h-4" />
+          </button>
+        </div>
       </div>
-      <div className="flex items-center gap-2 text-xs text-on-surface-muted flex-shrink-0">
-        {isSyncing ? (
-          <span>
-            {percent}% ({formatBytes(folder.needSize)} left)
-          </span>
-        ) : (
-          <span>{formatBytes(folder.globalSize)}</span>
-        )}
-        <button
-          type="button"
-          onClick={() => openPath(folder.path)}
-          className="p-1 text-on-surface-muted hover:text-on-surface-secondary rounded"
-          title="Open folder"
-        >
-          <FolderIcon className="w-4 h-4" />
-        </button>
-      </div>
+      {hasLocalChanges && (
+        <div className="mt-2 ml-4 p-2 bg-status-warn/10 border border-status-warn/30 rounded text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-status-warn">
+              {folder.receiveOnlyChanges} local change{folder.receiveOnlyChanges === 1 ? '' : 's'}{' '}
+              differ from remote
+            </span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleShowChanges}
+                className="text-accent hover:underline"
+                disabled={loadingChanges}
+              >
+                {loadingChanges ? 'Loading...' : showChanges ? 'Hide' : 'Show'}
+              </button>
+              <button
+                type="button"
+                onClick={handleRevert}
+                className="text-accent hover:underline"
+                disabled={reverting}
+              >
+                {reverting ? 'Reverting...' : 'Revert'}
+              </button>
+            </div>
+          </div>
+          {showChanges && changes && changes.length > 0 && (
+            <div className="mt-2 max-h-32 overflow-y-auto">
+              {changes.map((c, i) => (
+                <div key={i} className="py-0.5 text-on-surface-muted truncate">
+                  <span className="text-on-surface-secondary">{c.action}</span> {c.path}
+                  {c.size > 0 && <span className="text-on-surface-muted"> ({formatBytes(c.size)})</span>}
+                </div>
+              ))}
+            </div>
+          )}
+          {showChanges && changes && changes.length === 0 && (
+            <div className="mt-2 text-on-surface-muted">No details available</div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -405,6 +500,7 @@ export function SyncView({
   onCancelPairing,
   onJoinPrimary,
   onEnableSync,
+  onRefresh,
   pairingCode,
   pairingProgress,
   pairingError,
@@ -468,7 +564,7 @@ export function SyncView({
         <Section title="Synced folders">
           <div className="border border-outline rounded-card px-3 bg-surface">
             {sortedFolders.map((folder) => (
-              <FolderRow key={folder.id} folder={folder} />
+              <FolderRow key={folder.id} folder={folder} onRefresh={onRefresh} />
             ))}
           </div>
         </Section>

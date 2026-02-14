@@ -112,16 +112,18 @@ func (c *Client) GetConnections(ctx context.Context) (map[string]ConnectionInfo,
 }
 
 type FolderStatus struct {
-	State       string `json:"state"`
-	GlobalFiles int    `json:"globalFiles"`
-	GlobalBytes int64  `json:"globalBytes"`
-	LocalFiles  int    `json:"localFiles"`
-	LocalBytes  int64  `json:"localBytes"`
-	NeedFiles   int    `json:"needFiles"`
-	NeedBytes   int64  `json:"needBytes"`
-	PullErrors  int    `json:"pullErrors"`
-	InSyncFiles int    `json:"inSyncFiles"`
-	InSyncBytes int64  `json:"inSyncBytes"`
+	State                  string `json:"state"`
+	GlobalFiles            int    `json:"globalFiles"`
+	GlobalBytes            int64  `json:"globalBytes"`
+	LocalFiles             int    `json:"localFiles"`
+	LocalBytes             int64  `json:"localBytes"`
+	NeedFiles              int    `json:"needFiles"`
+	NeedBytes              int64  `json:"needBytes"`
+	PullErrors             int    `json:"pullErrors"`
+	InSyncFiles            int    `json:"inSyncFiles"`
+	InSyncBytes            int64  `json:"inSyncBytes"`
+	ReceiveOnlyTotalItems  int    `json:"receiveOnlyTotalItems"`
+	ReceiveOnlyChangedSize int64  `json:"receiveOnlyChangedBytes"`
 }
 
 func (c *Client) GetFolderStatus(ctx context.Context, folderID string) (*FolderStatus, error) {
@@ -141,6 +143,66 @@ func (c *Client) GetFolderStatus(ctx context.Context, folderID string) (*FolderS
 	}
 
 	return &status, nil
+}
+
+func (c *Client) RevertFolder(ctx context.Context, folderID string) error {
+	resp, err := c.doRequest(ctx, http.MethodPost, "/rest/db/revert?folder="+folderID, nil)
+	if err != nil {
+		return fmt.Errorf("reverting folder: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+	return nil
+}
+
+type LocalChange struct {
+	Action   string `json:"action"`
+	Type     string `json:"type"`
+	Path     string `json:"path"`
+	Modified string `json:"modified"`
+	Size     int64  `json:"size"`
+}
+
+type localChangedResponse struct {
+	Files []struct {
+		Action   string `json:"action"`
+		Type     string `json:"type"`
+		Name     string `json:"name"`
+		Modified string `json:"modified"`
+		Size     int64  `json:"size"`
+	} `json:"files"`
+}
+
+func (c *Client) GetLocalChanges(ctx context.Context, folderID string) ([]LocalChange, error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/db/localchanged?folder="+folderID, nil)
+	if err != nil {
+		return nil, fmt.Errorf("getting local changes: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+
+	var response localChangedResponse
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("decoding response: %w", err)
+	}
+
+	changes := make([]LocalChange, len(response.Files))
+	for i, f := range response.Files {
+		changes[i] = LocalChange{
+			Action:   f.Action,
+			Type:     f.Type,
+			Path:     f.Name,
+			Modified: f.Modified,
+			Size:     f.Size,
+		}
+	}
+	return changes, nil
 }
 
 func (c *Client) IsRunning(ctx context.Context) bool {
@@ -301,6 +363,58 @@ func (c *Client) Restart(ctx context.Context) error {
 		return fmt.Errorf("restarting syncthing: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
+	return nil
+}
+
+type PendingFolder struct {
+	ID         string
+	Label      string
+	OfferedBy  string
+	DeviceName string
+}
+
+func (c *Client) GetPendingFolders(ctx context.Context) ([]PendingFolder, error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/cluster/pending/folders", nil)
+	if err != nil {
+		return nil, fmt.Errorf("getting pending folders: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+
+	var pending map[string]map[string]struct {
+		Label string `json:"label"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&pending); err != nil {
+		return nil, fmt.Errorf("decoding pending folders: %w", err)
+	}
+
+	var result []PendingFolder
+	for folderID, devices := range pending {
+		for deviceID, info := range devices {
+			result = append(result, PendingFolder{
+				ID:        folderID,
+				Label:     info.Label,
+				OfferedBy: deviceID,
+			})
+		}
+	}
+	return result, nil
+}
+
+func (c *Client) DismissPendingFolder(ctx context.Context, folderID, deviceID string) error {
+	url := fmt.Sprintf("/rest/cluster/pending/folders?folder=%s&device=%s", folderID, deviceID)
+	resp, err := c.doRequest(ctx, http.MethodDelete, url, nil)
+	if err != nil {
+		return fmt.Errorf("dismissing pending folder: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNotFound {
+		return fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
 	return nil
 }
 
