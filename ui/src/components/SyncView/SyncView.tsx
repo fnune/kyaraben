@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { Button } from '@/lib/Button'
 import { Input } from '@/lib/Input'
-import type { SyncDevice, SyncStatusResponse } from '@/types/daemon'
+import { Spinner } from '@/lib/Spinner'
+import type { SyncDevice, SyncMode, SyncStatusResponse } from '@/types/daemon'
 
 export interface SyncViewProps {
   readonly status: SyncStatusResponse | null
@@ -12,22 +13,46 @@ export interface SyncViewProps {
   readonly onJoinPrimary: (code: string, pairingAddr: string) => Promise<void>
   readonly onPause: () => Promise<void>
   readonly onResume: () => Promise<void>
+  readonly onEnableSync: (mode: SyncMode) => Promise<void>
   readonly pairingCode: string | null
   readonly pairingProgress: string | null
+  readonly isEnabling: boolean
 }
 
-function truncateDeviceId(id: string): string {
-  if (id.length > 20) {
-    return `${id.slice(0, 7)}...${id.slice(-7)}`
-  }
-  return id
-}
+function Section({
+  title,
+  children,
+  collapsible = false,
+  defaultCollapsed = false,
+}: {
+  title: string
+  children: React.ReactNode
+  collapsible?: boolean
+  defaultCollapsed?: boolean
+}) {
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed)
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="p-4 bg-surface-alt rounded-card">
-      <h3 className="text-sm font-medium text-on-surface mb-3">{title}</h3>
-      {children}
+      {collapsible ? (
+        <button
+          type="button"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="flex items-center gap-2 w-full text-left"
+        >
+          <span
+            className={`transition-transform text-xs text-on-surface-muted ${isCollapsed ? '' : 'rotate-90'}`}
+          >
+            ▶
+          </span>
+          <h3 className="text-sm font-medium text-on-surface">{title}</h3>
+        </button>
+      ) : (
+        <h3 className="text-sm font-medium text-on-surface mb-3">{title}</h3>
+      )}
+      {(!collapsible || !isCollapsed) && (
+        <div className={collapsible ? 'mt-3' : ''}>{children}</div>
+      )}
     </div>
   )
 }
@@ -45,8 +70,10 @@ function DeviceRow({
         <span
           className={`w-2 h-2 rounded-full ${device.connected ? 'bg-status-ok' : 'bg-outline'}`}
         />
-        <span className="font-medium text-on-surface">{device.name}</span>
-        <span className="text-xs text-on-surface-dim">{truncateDeviceId(device.id)}</span>
+        <span className="font-medium text-on-surface">{device.name || 'Unknown device'}</span>
+        <span className="text-xs text-on-surface-muted">
+          {device.connected ? 'connected' : 'offline'}
+        </span>
       </div>
       <button
         type="button"
@@ -59,16 +86,64 @@ function DeviceRow({
   )
 }
 
-function DisabledState() {
+function DisabledState({
+  onEnable,
+  isEnabling,
+}: {
+  readonly onEnable: (mode: SyncMode) => Promise<void>
+  readonly isEnabling: boolean
+}) {
+  const [selectedMode, setSelectedMode] = useState<SyncMode>('primary')
+
+  const handleEnable = useCallback(async () => {
+    await onEnable(selectedMode)
+  }, [onEnable, selectedMode])
+
   return (
     <div className="p-6">
-      <Section title="Sync is not enabled">
-        <p className="text-sm text-on-surface-muted mb-4">Enable sync in your config.toml:</p>
-        <pre className="bg-surface-raised text-on-surface-secondary p-3 rounded-sm text-sm font-mono">
-          {`[sync]
-enabled = true
-mode = "primary"  # or "secondary"`}
-        </pre>
+      <Section title="Enable sync">
+        <p className="text-sm text-on-surface-muted mb-4">
+          Sync your saves, states, and screenshots across devices using Syncthing.
+        </p>
+
+        {isEnabling ? (
+          <div className="flex items-center gap-3">
+            <Spinner />
+            <span className="text-sm text-on-surface-muted">Installing syncthing...</span>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="sync-mode"
+                  value="primary"
+                  checked={selectedMode === 'primary'}
+                  onChange={() => setSelectedMode('primary')}
+                  className="accent-accent"
+                />
+                <span className="text-sm text-on-surface">Primary</span>
+                <span className="text-xs text-on-surface-muted">
+                  - this device hosts the main copy
+                </span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="sync-mode"
+                  value="secondary"
+                  checked={selectedMode === 'secondary'}
+                  onChange={() => setSelectedMode('secondary')}
+                  className="accent-accent"
+                />
+                <span className="text-sm text-on-surface">Secondary</span>
+                <span className="text-xs text-on-surface-muted">- syncs from a primary device</span>
+              </label>
+            </div>
+            <Button onClick={handleEnable}>Enable sync</Button>
+          </div>
+        )}
       </Section>
     </div>
   )
@@ -93,6 +168,7 @@ function PairingSection({
   const [joinAddr, setJoinAddr] = useState('')
   const [isJoining, setIsJoining] = useState(false)
   const isPairing = status.pairing || pairingCode !== null
+  const isRunning = status.running ?? false
 
   const handleJoin = useCallback(
     async (code: string, addr: string) => {
@@ -108,6 +184,17 @@ function PairingSection({
     [onJoinPrimary],
   )
 
+  if (!isRunning) {
+    return (
+      <Section title="Pair a device">
+        <div className="flex items-center gap-3">
+          <Spinner />
+          <span className="text-sm text-on-surface-muted">Waiting for syncthing to start...</span>
+        </div>
+      </Section>
+    )
+  }
+
   if (isPairing) {
     return (
       <Section title="Pairing in progress">
@@ -121,9 +208,7 @@ function PairingSection({
             </code>
           </div>
         )}
-        {pairingProgress && (
-          <p className="text-sm text-on-surface-muted mb-3">{pairingProgress}</p>
-        )}
+        {pairingProgress && <p className="text-sm text-on-surface-muted mb-3">{pairingProgress}</p>}
         <Button variant="secondary" onClick={onCancelPairing}>
           Cancel pairing
         </Button>
@@ -165,6 +250,19 @@ function PairingSection({
   )
 }
 
+function StatusBadge({ label, ok }: { label: string; ok: boolean }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs ${
+        ok ? 'bg-status-ok/10 text-status-ok' : 'bg-outline/50 text-on-surface-muted'
+      }`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${ok ? 'bg-status-ok' : 'bg-outline'}`} />
+      {label}
+    </span>
+  )
+}
+
 export function SyncView({
   status,
   onAddDevice,
@@ -174,8 +272,10 @@ export function SyncView({
   onJoinPrimary,
   onPause,
   onResume,
+  onEnableSync,
   pairingCode,
   pairingProgress,
+  isEnabling,
 }: SyncViewProps) {
   const [newDeviceId, setNewDeviceId] = useState('')
   const [newDeviceName, setNewDeviceName] = useState('')
@@ -193,131 +293,112 @@ export function SyncView({
     }
   }
 
-  const handleOpenGui = () => {
-    if (status?.guiURL) {
-      window.open(status.guiURL, '_blank')
-    }
-  }
-
   if (!status?.enabled) {
-    return <DisabledState />
+    return <DisabledState onEnable={onEnableSync} isEnabling={isEnabling} />
   }
 
   const connectedCount = status.devices?.filter((d) => d.connected).length ?? 0
   const totalDevices = status.devices?.length ?? 0
-  const isSyncing = status.state === 'syncing'
 
   return (
     <div className="p-6 space-y-6">
-      <Section title="Status">
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-on-surface-muted">Mode</span>
-            <span className="font-medium text-on-surface capitalize">{status.mode}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-on-surface-muted">Running</span>
-            <span
-              className={`font-medium ${status.running ? 'text-status-ok' : 'text-status-error'}`}
-            >
-              {status.running ? 'Yes' : 'No'}
-            </span>
-          </div>
-          {totalDevices > 0 && (
-            <div className="flex justify-between">
-              <span className="text-on-surface-muted">Connected devices</span>
-              <span className="font-medium text-on-surface">
-                {connectedCount}/{totalDevices}
-              </span>
-            </div>
-          )}
-          {status.running && (
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="secondary" onClick={isSyncing ? onPause : onResume}>
-                {isSyncing ? 'Pause sync' : 'Resume sync'}
-              </Button>
-            </div>
-          )}
-        </div>
-      </Section>
-
-      {status.deviceId && (
-        <Section title="This device ID">
-          <div className="flex items-center gap-2">
-            <code className="flex-1 bg-surface-raised text-on-surface-secondary px-3 py-2 rounded-sm text-xs break-all font-mono">
-              {status.deviceId}
-            </code>
-            <button
-              type="button"
-              onClick={() => {
-                if (status.deviceId) {
-                  navigator.clipboard.writeText(status.deviceId)
-                }
-              }}
-              className="px-3 py-2 text-xs bg-surface-raised text-on-surface-secondary rounded-sm hover:bg-outline"
-            >
-              Copy
-            </button>
-          </div>
-        </Section>
-      )}
-
-      {status.running && (
-        <PairingSection
-          status={status}
-          pairingCode={pairingCode}
-          pairingProgress={pairingProgress}
-          onStartPairing={onStartPairing}
-          onCancelPairing={onCancelPairing}
-          onJoinPrimary={onJoinPrimary}
-        />
-      )}
+      <div className="flex items-center gap-2">
+        <StatusBadge label={status.mode ?? 'unknown'} ok={true} />
+        <StatusBadge label={status.running ? 'running' : 'stopped'} ok={status.running ?? false} />
+      </div>
 
       <Section title="Paired devices">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-sm text-on-surface-muted">
-            {totalDevices === 0
-              ? 'No devices paired'
-              : `${totalDevices} device${totalDevices === 1 ? '' : 's'}`}
-          </span>
-          {status.guiURL && (
-            <button
-              type="button"
-              onClick={handleOpenGui}
-              className="text-xs text-accent hover:text-accent-hover"
-            >
-              Open Syncthing UI
-            </button>
-          )}
-        </div>
-
-        {status.devices && status.devices.length > 0 && (
-          <div className="border border-outline rounded-card px-3 bg-surface">
-            {status.devices.map((device) => (
-              <DeviceRow
-                key={device.id}
-                device={device}
-                onRemove={() => onRemoveDevice(device.id)}
-              />
-            ))}
-          </div>
+        {totalDevices === 0 ? (
+          <p className="text-sm text-on-surface-muted">
+            No devices paired yet. Pair a device to start syncing.
+          </p>
+        ) : (
+          <>
+            <p className="text-sm text-on-surface-muted mb-3">
+              {connectedCount} of {totalDevices} device{totalDevices === 1 ? '' : 's'} connected
+            </p>
+            <div className="border border-outline rounded-card px-3 bg-surface">
+              {status.devices?.map((device) => (
+                <DeviceRow
+                  key={device.id}
+                  device={device}
+                  onRemove={() => onRemoveDevice(device.id)}
+                />
+              ))}
+            </div>
+          </>
         )}
       </Section>
 
-      <Section title="Add a device manually">
-        <p className="text-sm text-on-surface-muted mb-3">
-          For cross-network pairing, add a device by its Syncthing device ID.
-        </p>
-        <div className="space-y-3">
-          <Input value={newDeviceId} onChange={setNewDeviceId} placeholder="Device ID" />
-          <Input
-            value={newDeviceName}
-            onChange={setNewDeviceName}
-            placeholder="Friendly name (optional)"
-          />
-          <Button onClick={handleAddDevice} disabled={!newDeviceId.trim() || isAdding}>
-            {isAdding ? 'Adding...' : 'Add device'}
-          </Button>
+      <PairingSection
+        status={status}
+        pairingCode={pairingCode}
+        pairingProgress={pairingProgress}
+        onStartPairing={onStartPairing}
+        onCancelPairing={onCancelPairing}
+        onJoinPrimary={onJoinPrimary}
+      />
+
+      <Section title="Advanced" collapsible defaultCollapsed>
+        <div className="space-y-4">
+          {status.deviceId && (
+            <div>
+              <p className="text-sm text-on-surface-muted mb-2">
+                This device ID (for manual pairing):
+              </p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 bg-surface-raised text-on-surface-secondary px-3 py-2 rounded-sm text-xs break-all font-mono">
+                  {status.deviceId}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (status.deviceId) {
+                      navigator.clipboard.writeText(status.deviceId)
+                    }
+                  }}
+                  className="px-3 py-2 text-xs bg-surface-raised text-on-surface-secondary rounded-sm hover:bg-outline"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div>
+            <p className="text-sm text-on-surface-muted mb-2">
+              Add device by ID (for cross-network):
+            </p>
+            <div className="space-y-2">
+              <Input value={newDeviceId} onChange={setNewDeviceId} placeholder="Device ID" />
+              <Input
+                value={newDeviceName}
+                onChange={setNewDeviceName}
+                placeholder="Friendly name (optional)"
+              />
+              <Button
+                variant="secondary"
+                onClick={handleAddDevice}
+                disabled={!newDeviceId.trim() || isAdding}
+              >
+                {isAdding ? 'Adding...' : 'Add device'}
+              </Button>
+            </div>
+          </div>
+
+          {status.running && (
+            <div>
+              <p className="text-sm text-on-surface-muted mb-2">Pause or resume syncing:</p>
+              <div className="flex gap-2">
+                <Button variant="secondary" onClick={onPause}>
+                  Pause
+                </Button>
+                <Button variant="secondary" onClick={onResume}>
+                  Resume
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </Section>
     </div>

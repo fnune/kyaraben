@@ -119,18 +119,13 @@ func (f *SecondaryPairingFlow) Run(ctx context.Context, code string) (*PairResul
 	}
 
 	var offer PairingOffer
-	found := false
 	for {
 		select {
 		case o, ok := <-offers:
 			if !ok {
-				if !found {
-					return nil, fmt.Errorf("no primaries found on the network")
-				}
-				goto pair
+				return nil, fmt.Errorf("no primaries found on the network")
 			}
 			offer = o
-			found = true
 			f.emit("Found: %s (%s)", offer.Hostname, offer.PairingAddr)
 			goto pair
 		case <-ctx.Done():
@@ -142,7 +137,7 @@ pair:
 	f.emit("Pairing...")
 
 	pairingClient := NewPairingClient()
-	result, err := pairingClient.Pair(ctx, offer.PairingAddr, code, localID, localName)
+	result, err := pairingClient.Pair(ctx, offer.PairingAddr, code, localID, localName, string(f.cfg.SyncConfig.Mode))
 	if err != nil {
 		return nil, fmt.Errorf("pairing with primary: %w", err)
 	}

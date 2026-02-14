@@ -184,6 +184,10 @@ clean-emu-configs:
 
     echo "Done."
 
+# Watch mDNS kyaraben service advertisements (for debugging sync pairing)
+watch-mdns:
+    go run ./cmd/test-mdns-browse
+
 # --- Internal targets (prefixed with _) ---
 
  

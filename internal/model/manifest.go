@@ -43,6 +43,7 @@ type KyarabenInstall struct {
 
 // SyncthingInstall tracks Syncthing installation paths for clean uninstall.
 type SyncthingInstall struct {
+	Version         string `json:"version,omitempty"`
 	BinaryPath      string `json:"binary_path,omitempty"`
 	ConfigDir       string `json:"config_dir,omitempty"`
 	DataDir         string `json:"data_dir,omitempty"`

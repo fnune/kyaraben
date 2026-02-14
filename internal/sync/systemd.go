@@ -17,7 +17,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart={{.BinaryPath}} serve --no-browser --no-default-folder --config={{.ConfigDir}} --data={{.DataDir}} --gui-address=127.0.0.1:{{.GUIPort}} --gui-apikey={{.APIKey}}
+ExecStart={{.BinaryPath}} serve --no-browser --config={{.ConfigDir}} --data={{.DataDir}} --gui-address=127.0.0.1:{{.GUIPort}} --gui-apikey={{.APIKey}}
 Restart=on-failure
 RestartSec=10
 Environment=STNODEFAULTFOLDER=1

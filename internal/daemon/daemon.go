@@ -118,6 +118,8 @@ func (d *Daemon) HandleWithEmit(cmd Command, emit func(Event)) []Event {
 		return d.handleSyncPause()
 	case CommandTypeSyncResume:
 		return d.handleSyncResume()
+	case CommandTypeSyncPending:
+		return d.handleSyncPending()
 	case CommandTypeUninstallPreview:
 		return d.handleUninstallPreview()
 	case CommandTypeUninstall:
@@ -130,6 +132,8 @@ func (d *Daemon) HandleWithEmit(cmd Command, emit func(Event)) []Event {
 		return d.handleRefreshIconCaches()
 	case CommandTypePreflight:
 		return d.handlePreflight()
+	case CommandTypeSyncEnable:
+		return d.handleSyncEnable(nil, emit)
 	default:
 		return d.errorResponse(fmt.Sprintf("unknown command: %s", cmd.Type))
 	}
@@ -149,6 +153,10 @@ func (d *Daemon) HandleSyncRemoveDevice(cmd SyncRemoveDeviceCommand, emit func(E
 
 func (d *Daemon) HandleInstallKyaraben(cmd InstallKyarabenCommand, emit func(Event)) []Event {
 	return d.handleInstallKyaraben(&cmd.Data)
+}
+
+func (d *Daemon) HandleSyncEnable(cmd SyncEnableCommand, emit func(Event)) []Event {
+	return d.handleSyncEnable(&cmd.Data, emit)
 }
 
 func (d *Daemon) errorResponse(msg string) []Event {
@@ -445,6 +453,12 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 
 	if _, err := d.launcherManager.InstallKyaraben("", ""); err != nil {
 		log.Debug("Failed to install Kyaraben to PATH: %v", err)
+	}
+
+	if cfg.Sync.Enabled {
+		if err := d.updateSyncConfig(cfg, userStore.Root()); err != nil {
+			log.Info("Failed to update sync config: %v", err)
+		}
 	}
 
 	return []Event{{
@@ -805,6 +819,10 @@ func (d *Daemon) handleSyncStatus() []Event {
 	}
 
 	client := syncpkg.NewClient(cfg.Sync)
+	loadedKey := d.loadSyncAPIKey()
+	if loadedKey != "" {
+		client.SetAPIKey(loadedKey)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -1044,7 +1062,7 @@ func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest) []Event {
 	localName := hostname + "-kyaraben"
 
 	pairingClient := syncpkg.NewPairingClient()
-	result, err := pairingClient.Pair(ctx, data.PairingAddr, data.Code, localID, localName)
+	result, err := pairingClient.Pair(ctx, data.PairingAddr, data.Code, localID, localName, string(cfg.Sync.Mode))
 	if err != nil {
 		return d.errorResponse(fmt.Sprintf("pairing failed: %v", err))
 	}
@@ -1082,9 +1100,113 @@ func (d *Daemon) handleSyncCancelPairing() []Event {
 	}}
 }
 
-func (d *Daemon) handleSyncPause() []Event {
+func (d *Daemon) handleSyncEnable(data *SyncEnableRequest, emit func(Event)) []Event {
+	if data == nil || data.Mode == "" {
+		return d.errorResponse("mode is required")
+	}
+
+	mode := model.SyncMode(data.Mode)
+	if mode != model.SyncModePrimary && mode != model.SyncModeSecondary {
+		return d.errorResponse("mode must be 'primary' or 'secondary'")
+	}
+
 	cfg, err := d.loadConfig()
 	if err != nil {
+		return d.errorResponse(err.Error())
+	}
+
+	if cfg.Sync.Enabled {
+		return d.errorResponse("sync is already enabled")
+	}
+
+	cfg.Sync.Enabled = true
+	cfg.Sync.Mode = mode
+
+	userStore, err := store.NewDefaultUserStore(cfg.Global.UserStore)
+	if err != nil {
+		return d.errorResponse(err.Error())
+	}
+
+	allSystems := make([]model.SystemID, 0, len(cfg.Systems))
+	for sysID := range cfg.Systems {
+		allSystems = append(allSystems, sysID)
+	}
+
+	emitProgress := func(phase, message string, percent int) {
+		if emit != nil {
+			emit(Event{
+				Type: EventTypeProgress,
+				Data: SyncEnableProgressEvent{
+					Phase:   phase,
+					Message: message,
+					Percent: percent,
+				},
+			})
+		}
+	}
+
+	go func() {
+		emitProgress("installing", "Installing syncthing...", 0)
+
+		setup := syncpkg.NewDefaultSetup(d.installer, d.stateDir)
+		result, err := setup.Install(context.Background(), cfg.Sync, userStore.Root(), allSystems, func(p packages.InstallProgress) {
+			percent := 0
+			if p.BytesTotal > 0 {
+				percent = int(p.BytesDownloaded * 80 / p.BytesTotal)
+			}
+			emitProgress("installing", p.Phase, percent)
+		})
+		if err != nil {
+			emit(Event{Type: EventTypeError, Data: ErrorResponse{Error: err.Error()}})
+			return
+		}
+
+		emitProgress("configuring", "Saving configuration...", 90)
+
+		path := d.configPath
+		if path == "" {
+			path, _ = model.DefaultConfigPath()
+		}
+		if err := d.configStore.Save(cfg, path); err != nil {
+			emit(Event{Type: EventTypeError, Data: ErrorResponse{Error: err.Error()}})
+			return
+		}
+
+		emitProgress("configuring", "Updating manifest...", 95)
+
+		manifest, err := d.loadManifest()
+		if err != nil {
+			emit(Event{Type: EventTypeError, Data: ErrorResponse{Error: err.Error()}})
+			return
+		}
+		manifest.SyncthingInstall = &model.SyncthingInstall{
+			Version:         d.installer.ResolveVersion("syncthing"),
+			BinaryPath:      result.SyncthingBinary,
+			ConfigDir:       result.ConfigDir,
+			DataDir:         result.DataDir,
+			SystemdUnitPath: result.SystemdUnitPath,
+		}
+		if saveErr := manifest.SaveWithBackup(d.manifestPath); saveErr != nil {
+			emit(Event{Type: EventTypeError, Data: ErrorResponse{Error: saveErr.Error()}})
+			return
+		}
+
+		emitProgress("complete", "Sync enabled successfully", 100)
+
+		emit(Event{
+			Type: EventTypeResult,
+			Data: SyncEnableResponse{Success: true},
+		})
+	}()
+
+	return nil
+}
+
+func (d *Daemon) handleSyncPause() []Event {
+	log.Info("Handling sync_pause command")
+	cfg, err := d.loadConfig()
+	if err != nil {
+		log.Info("Failed to load config: %v", err)
 		return d.errorResponse(err.Error())
 	}
 
@@ -1092,15 +1214,19 @@ func (d *Daemon) handleSyncPause() []Event {
 	loadedKey := d.loadSyncAPIKey()
 	if loadedKey != "" {
 		client.SetAPIKey(loadedKey)
+	} else {
+		log.Info("No API key loaded for sync pause")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if err := client.PauseSync(ctx); err != nil {
+		log.Info("Pause sync failed: %v", err)
 		return d.errorResponse(fmt.Sprintf("pausing sync: %v", err))
 	}
 
+	log.Info("Sync paused successfully")
 	return []Event{{
 		Type: EventTypeResult,
 		Data: SyncPauseResponse{Success: true},
@@ -1108,9 +1234,47 @@ func (d *Daemon) handleSyncPause() []Event {
 }
 
 func (d *Daemon) handleSyncResume() []Event {
+	log.Info("Handling sync_resume command")
+	cfg, err := d.loadConfig()
+	if err != nil {
+		log.Info("Failed to load config: %v", err)
+		return d.errorResponse(err.Error())
+	}
+
+	client := syncpkg.NewClient(cfg.Sync)
+	loadedKey := d.loadSyncAPIKey()
+	if loadedKey != "" {
+		client.SetAPIKey(loadedKey)
+	} else {
+		log.Info("No API key loaded for sync resume")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := client.ResumeSync(ctx); err != nil {
+		log.Info("Resume sync failed: %v", err)
+		return d.errorResponse(fmt.Sprintf("resuming sync: %v", err))
+	}
+
+	log.Info("Sync resumed successfully")
+	return []Event{{
+		Type: EventTypeResult,
+		Data: SyncResumeResponse{Success: true},
+	}}
+}
+
+func (d *Daemon) handleSyncPending() []Event {
 	cfg, err := d.loadConfig()
 	if err != nil {
 		return d.errorResponse(err.Error())
+	}
+
+	if !cfg.Sync.Enabled {
+		return []Event{{
+			Type: EventTypeResult,
+			Data: SyncPendingResponse{Pending: false},
+		}}
 	}
 
 	client := syncpkg.NewClient(cfg.Sync)
@@ -1122,13 +1286,25 @@ func (d *Daemon) handleSyncResume() []Event {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := client.ResumeSync(ctx); err != nil {
-		return d.errorResponse(fmt.Sprintf("resuming sync: %v", err))
+	if !client.IsRunning(ctx) {
+		return []Event{{
+			Type: EventTypeResult,
+			Data: SyncPendingResponse{Pending: false},
+		}}
+	}
+
+	pending, err := client.GetPendingStatus(ctx)
+	if err != nil {
+		return d.errorResponse(fmt.Sprintf("getting sync pending status: %v", err))
 	}
 
 	return []Event{{
 		Type: EventTypeResult,
-		Data: SyncResumeResponse{Success: true},
+		Data: SyncPendingResponse{
+			Pending:    pending.TotalFiles > 0,
+			TotalFiles: pending.TotalFiles,
+			TotalBytes: pending.TotalBytes,
+		},
 	}}
 }
 
@@ -1139,6 +1315,65 @@ func (d *Daemon) loadSyncAPIKey() string {
 		return ""
 	}
 	return strings.TrimSpace(string(data))
+}
+
+func (d *Daemon) updateSyncConfig(cfg *model.KyarabenConfig, userStorePath string) error {
+	allSystems := make([]model.SystemID, 0, len(cfg.Systems))
+	for sysID := range cfg.Systems {
+		allSystems = append(allSystems, sysID)
+	}
+
+	manifest, err := d.loadManifest()
+	if err != nil {
+		return fmt.Errorf("loading manifest: %w", err)
+	}
+
+	expectedVersion := d.installer.ResolveVersion("syncthing")
+	installedVersion := ""
+	if manifest.SyncthingInstall != nil {
+		installedVersion = manifest.SyncthingInstall.Version
+	}
+
+	if installedVersion != expectedVersion {
+		log.Info("Updating syncthing from %s to %s", installedVersion, expectedVersion)
+		setup := syncpkg.NewDefaultSetup(d.installer, d.stateDir)
+		result, installErr := setup.Install(context.Background(), cfg.Sync, userStorePath, allSystems, nil)
+		if installErr != nil {
+			return fmt.Errorf("updating syncthing: %w", installErr)
+		}
+		manifest.SyncthingInstall = &model.SyncthingInstall{
+			Version:         expectedVersion,
+			BinaryPath:      result.SyncthingBinary,
+			ConfigDir:       result.ConfigDir,
+			DataDir:         result.DataDir,
+			SystemdUnitPath: result.SystemdUnitPath,
+		}
+		if saveErr := manifest.SaveWithBackup(d.manifestPath); saveErr != nil {
+			return fmt.Errorf("saving manifest: %w", saveErr)
+		}
+	} else {
+		setup := syncpkg.NewDefaultSetup(d.installer, d.stateDir)
+		if err := setup.UpdateConfig(cfg.Sync, userStorePath, allSystems); err != nil {
+			return err
+		}
+	}
+
+	client := syncpkg.NewClient(cfg.Sync)
+	loadedKey := d.loadSyncAPIKey()
+	if loadedKey != "" {
+		client.SetAPIKey(loadedKey)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if client.IsRunning(ctx) {
+		if err := client.Restart(ctx); err != nil {
+			log.Info("Syncthing restart requested (may take a moment)")
+		}
+	}
+
+	return nil
 }
 
 func (d *Daemon) persistPairedDevice(cfg *model.KyarabenConfig, peerDeviceID, peerName string, mode model.SyncMode) {

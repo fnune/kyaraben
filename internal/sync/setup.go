@@ -92,6 +92,29 @@ func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, userStorePath
 	}, nil
 }
 
+func (s *Setup) UpdateConfig(cfg model.SyncConfig, userStorePath string, allSystems []model.SystemID) error {
+	if !cfg.Enabled {
+		return nil
+	}
+
+	configDir := filepath.Join(s.stateDir, "syncthing", "config")
+
+	apiKey, err := s.loadOrGenerateAPIKey(configDir)
+	if err != nil {
+		return fmt.Errorf("loading API key: %w", err)
+	}
+
+	configGen := NewConfigGenerator(s.fs, cfg, userStorePath, allSystems)
+	configGen.SetAPIKey(apiKey)
+
+	if err := configGen.WriteConfig(configDir); err != nil {
+		return fmt.Errorf("writing syncthing config: %w", err)
+	}
+
+	log.Info("Updated syncthing config with %d systems", len(allSystems))
+	return nil
+}
+
 func (s *Setup) Disable() error {
 	unitGen := NewSystemdUnit(s.fs)
 	return unitGen.Disable()
