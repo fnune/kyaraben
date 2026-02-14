@@ -20,12 +20,13 @@ What we won't do: full performance tuning, per-game settings, target-specific op
 - Provisions that require importing things via UI will always remain incomplete: need a way to check that they're working. How might we detect this?
 - Dolphin autoupdate prompt: needs a default config to disable the built-in autoupdate mechanism
 - Backup prompt for opaque-dir emulators: emulators like Vita3K store config inside their opaque directory, which triggers "Create backups before modifying?" prompt on every apply. Need to figure out how to handle config files that live inside opaque dirs
-- Cheats directory layout: decide between per-emulator (`~/Emulation/cheats/{emulator}/`) or per-system (`~/Emulation/cheats/{system}/`). Some emulators support configurable cheat paths (melonDS, Flycast, PCSX2)
-- DLC and updates directory layout: similar to cheats, figure out folder structure for user-provided DLC and game updates. This could help solve the provision problem where some files must be imported via emulator UI (e.g., Cemu keys.txt, 3DS system files). If kyaraben manages these directories, we could check for installed content. Wii U title structure: 00050000 (games), 0005000c (DLC), 0005000e (patches) per WiiUBrew
 - Audit system extensions against ES-DE bundled config: ensure kyaraben's extension lists are complete for each system
 - Flycast CLI hotkey issue: save state hotkeys don't work when launching via CLI (known upstream issue)
 - Kyaraben should fetch provision status on focus so that when users add files and come back to Kyaraben to check things update
     - We could even show a toast notification if we find something new
+- Cheats directory layout: decide between per-emulator (`~/Emulation/cheats/{emulator}/`) or per-system (`~/Emulation/cheats/{system}/`). Some emulators support configurable cheat paths (melonDS, Flycast, PCSX2)
+- DLC, patches and updates directory layout: similar to cheats, figure out folder structure for user-provided DLC and game updates. This could help solve the provision problem where some files must be imported via emulator UI (e.g., Cemu keys.txt, 3DS system files). If kyaraben manages these directories, we could check for installed content. Wii U title structure: 00050000 (games), 0005000c (DLC), 0005000e (patches) per WiiUBrew
+- Eden provision summary display: when optional provisions are satisfied (e.g., firmware found), the "(1 optional)" text shows in yellow instead of green. Should satisfied optional provisions show as green?
 
 ## Important
 
