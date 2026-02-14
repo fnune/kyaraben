@@ -40,6 +40,7 @@ What we won't do: full performance tuning, per-game settings, target-specific op
 - We add symlinks for emulator for which we can't configure routes
     - What should we do with those symlinks when Kyaraben uninstalls?
 - Garbage collection: nix store grows unbounded, need a way to trigger cleanup via nix-portable and show space freed
+- What happens when an emulator updates versions and our config setup no longer works? Can we version our strategy for each emulator?
 - ES-DE as non-Steam application: add to Steam for Steam Deck game mode launch
 - ARM (aarch64) support: needed for Raspberry Pi, Pinebook Pro, Apple Silicon with Asahi Linux, and other ARM Linux devices. Analysis:
   - Code already supports ARM: hardware detection returns aarch64 target, flake generation handles single-arch and multi-arch packages gracefully
