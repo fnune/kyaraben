@@ -200,6 +200,43 @@ func TestGenerateWrappersSkipsRetroArchCoreWrappers(t *testing.T) {
 	}
 }
 
+func TestUnlink(t *testing.T) {
+	tmpDir := t.TempDir()
+	profileDir := filepath.Join(tmpDir, "kyaraben")
+
+	if err := os.MkdirAll(profileDir, 0755); err != nil {
+		t.Fatalf("creating profile dir: %v", err)
+	}
+
+	m := &Manager{profileDir: profileDir}
+
+	t.Run("removes both current and gc root links", func(t *testing.T) {
+		if err := os.Symlink("/nix/store/abc", m.CurrentLink()); err != nil {
+			t.Fatalf("creating current link: %v", err)
+		}
+		if err := os.Symlink("/nix/store/abc", m.GCRootLink()); err != nil {
+			t.Fatalf("creating gc root link: %v", err)
+		}
+
+		if err := m.Unlink(); err != nil {
+			t.Fatalf("Unlink() error = %v", err)
+		}
+
+		if _, err := os.Lstat(m.CurrentLink()); !os.IsNotExist(err) {
+			t.Error("current link should be removed")
+		}
+		if _, err := os.Lstat(m.GCRootLink()); !os.IsNotExist(err) {
+			t.Error("gc root link should be removed")
+		}
+	})
+
+	t.Run("succeeds when no links exist", func(t *testing.T) {
+		if err := m.Unlink(); err != nil {
+			t.Fatalf("Unlink() should succeed with no links, got: %v", err)
+		}
+	})
+}
+
 func TestGenerateCoreSymlinks(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("XDG_STATE_HOME", tmpDir)
