@@ -321,6 +321,9 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		}
 	}
 
+	opts.OnProgress(Progress{Step: "gc", Output: "Cleaning up unused store paths..."})
+	_ = a.NixClient.GarbageCollect(buildCtx)
+
 	manifest, err := model.LoadManifest(a.ManifestPath)
 	if err != nil {
 		return nil, fmt.Errorf("loading manifest: %w", err)

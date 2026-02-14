@@ -71,6 +71,7 @@ func (m *mockNixClient) GetPersistentNixPortablePath() string                   
 func (m *mockNixClient) GetNixPortableBinary() string                            { return "" }
 func (m *mockNixClient) GetNixPortableLocation() string                          { return "" }
 func (m *mockNixClient) RealStorePath(path string) string                        { return path }
+func (m *mockNixClient) GarbageCollect(ctx context.Context) error                { return nil }
 
 func TestUnmanagedEntriesExcludedFromManifest(t *testing.T) {
 	tmpDir := t.TempDir()
