@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ChangeNotch } from '@/components/ChangeNotch/ChangeNotch'
 import { getEmulatorLogo } from '@/components/EmulatorLogo/EmulatorLogo'
 import { PathsModal } from '@/components/PathsModal/PathsModal'
+import { ProvisionSummary } from '@/components/ProvisionSummary/ProvisionSummary'
 import {
   getKindLabel,
   ProvisionActionInline,
@@ -45,24 +46,12 @@ function ProvisionsSummary({
   readonly onClick: () => void
   readonly onLaunch?: () => void
 }) {
-  const foundCount = provisions.filter((p) => p.status === 'found').length
   const unsatisfiedRequired = provisions.filter(
     (p) => p.status !== 'found' && p.groupRequired && !p.groupSatisfied,
   )
-  const missingOptionalCount = provisions.filter(
-    (p) => p.status !== 'found' && !p.groupRequired,
-  ).length
 
   const firstUnsatisfied = unsatisfiedRequired[0]
   const hasError = firstUnsatisfied !== undefined
-  const allFound = foundCount === provisions.length
-
-  const icon = hasError ? '✗' : allFound ? '✓' : foundCount > 0 ? '✓' : '?'
-  const iconColor = hasError
-    ? 'text-status-error'
-    : allFound || foundCount > 0
-      ? 'text-status-ok'
-      : 'text-accent'
 
   const getText = () => {
     if (hasError) {
@@ -83,24 +72,7 @@ function ProvisionsSummary({
         </>
       )
     }
-    if (allFound) {
-      return (
-        <span className="text-on-surface-muted">
-          {provisions.length} file{provisions.length > 1 ? 's' : ''} ready
-        </span>
-      )
-    }
-    if (foundCount > 0) {
-      return (
-        <>
-          <span className="text-on-surface-muted">{foundCount} ready</span>
-          {missingOptionalCount > 0 && (
-            <span className="text-on-surface-dim ml-2">{missingOptionalCount} optional</span>
-          )}
-        </>
-      )
-    }
-    return <span className="text-on-surface-muted">{provisions.length} optional</span>
+    return null
   }
 
   const actionProvision = firstUnsatisfied ?? provisions[0]
@@ -111,8 +83,11 @@ function ProvisionsSummary({
       onClick={onClick}
       className="flex items-center text-xs px-3 py-1.5 w-full hover:bg-surface-raised/50 transition-colors text-left"
     >
-      <span className={iconColor}>{icon}</span>
-      <span className="ml-2">{getText()}</span>
+      {hasError ? (
+        <ProvisionSummary provisions={provisions} overrideLabel={getText()} />
+      ) : (
+        <ProvisionSummary provisions={provisions} />
+      )}
       <ProvisionActionInline
         provision={actionProvision}
         disabled={disabled}
