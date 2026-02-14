@@ -53,9 +53,8 @@ const flakeTemplate = `{
   description = "Kyaraben-managed emulator environment";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/{{ .NixpkgsCommit }}";
-  inputs.retroarch-cores.url = "github:NixOS/nixpkgs/{{ .RetroArchCoresCommit }}";
 
-  outputs = { self, nixpkgs, retroarch-cores }:
+  outputs = { self, nixpkgs }:
     let
       forAllSystems = f: nixpkgs.lib.genAttrs [ "x86_64-linux" "aarch64-linux" ] (system: f {
         inherit system;
@@ -63,14 +62,10 @@ const flakeTemplate = `{
           inherit system;
           config.allowUnfree = true;
         };
-        pkgs-rac = import retroarch-cores {
-          inherit system;
-          config.allowUnfree = true;
-        };
         arch = if system == "x86_64-linux" then "x86_64" else "aarch64";
       });
     in {
-      packages = forAllSystems ({ system, pkgs, pkgs-rac, arch }: {
+      packages = forAllSystems ({ system, pkgs, arch }: {
 {{- range .Packages }}
         {{ .Name }} = {{ .Expr }};
 {{- end }}
@@ -88,14 +83,18 @@ const flakeTemplate = `{
 {{- end }}
 {{- if .RetroArchCores }}
 
-        retroarch-cores = pkgs.symlinkJoin {
-          name = "kyaraben-retroarch-cores";
-          paths = [
-{{- range .RetroArchCores }}
-            pkgs-rac.libretro.{{ . }}
+        retroarch-cores = let
+          coresBundle = pkgs.fetchurl {
+            url = "{{ .RetroArchCoresURL }}";
+            sha256 = "{{ .RetroArchCoresSHA256 }}";
+          };
+        in pkgs.runCommand "kyaraben-retroarch-cores" {} ''
+          mkdir -p $out/lib/retroarch/cores
+          ${pkgs.p7zip}/bin/7z x -o$TMPDIR ${coresBundle}
+{{- range .RetroArchCoreFiles }}
+          install -m644 $TMPDIR/RetroArch-Linux*/cores/{{ . }} $out/lib/retroarch/cores/
 {{- end }}
-          ];
-        };
+        '';
 {{- end }}
 
         default = pkgs.symlinkJoin {
@@ -280,20 +279,40 @@ func (fg *FlakeGenerator) Generate(baseDir string, emulatorIDs []model.EmulatorI
 		return nil, fmt.Errorf("creating flake.nix: %w", err)
 	}
 
+	var retroArchCoresURL, retroArchCoresSHA256 string
+	var retroArchCoreFiles []string
+	if len(retroArchCores) > 0 {
+		arch := "x86_64" // TODO: detect runtime arch
+		url, sha256, ok := v.RetroArchCores.GetCoresURL(arch)
+		if ok {
+			retroArchCoresURL = url
+			retroArchCoresSHA256 = sha256
+			for _, coreName := range retroArchCores {
+				if filename, ok := v.RetroArchCores.Files[coreName]; ok {
+					retroArchCoreFiles = append(retroArchCoreFiles, filename)
+				}
+			}
+		}
+	}
+
 	data := struct {
 		NixpkgsCommit        string
-		RetroArchCoresCommit string
 		Packages             []PackageInfo
 		Launchers            []LauncherTemplateInfo
 		Icons                []IconInfo
 		RetroArchCores       []string
+		RetroArchCoresURL    string
+		RetroArchCoresSHA256 string
+		RetroArchCoreFiles   []string
 	}{
 		NixpkgsCommit:        v.Nixpkgs.Commit,
-		RetroArchCoresCommit: v.RetroArchCores.Commit,
 		Packages:             packages,
 		Launchers:            launchers,
 		Icons:                icons,
 		RetroArchCores:       retroArchCores,
+		RetroArchCoresURL:    retroArchCoresURL,
+		RetroArchCoresSHA256: retroArchCoresSHA256,
+		RetroArchCoreFiles:   retroArchCoreFiles,
 	}
 
 	execErr := tmpl.Execute(f, data)

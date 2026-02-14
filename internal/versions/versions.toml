@@ -4,11 +4,26 @@
 [nixpkgs]
 commit = "fa83fd837f3098e3e678e6cf017b2b36102c7211" # https://github.com/NixOS/nixpkgs/commits/nixos-25.11
 
+# RetroArch cores bundle from buildbot (same source as RetroArch itself)
+# Contains all cores in one archive, we extract only what we need
 [retroarch-cores]
-commit = "d03088749a110d52a4739348f39a63f84bb0be14" # hydra-cached libretro cores
+url_template = "https://buildbot.libretro.com/stable/{version}/linux/{arch}/RetroArch_cores.7z"
+default = "1.22.2"
 
-# Core sizes in bytes. To measure:
-#   find ~/.local/state/kyaraben/build/nix/.nix-portable/nix/store -name "*_libretro.so" -exec ls -la {} \;
+[retroarch-cores."1.22.2".targets.x86_64]
+arch = "x86_64"
+sha256 = "sha256-S37Y3JfUvwNfzhgsZLVljHZi4unl1CEpU4r71LYJYwc="
+
+# Core filenames inside the archive (used to extract only what we need)
+# Format: core_name = "filename_in_archive"
+[retroarch-cores.files]
+bsnes = "bsnes_libretro.so"
+mesen = "mesen_libretro.so"
+genesis_plus_gx = "genesis_plus_gx_libretro.so"
+mupen64plus = "mupen64plus_next_libretro.so"
+beetle_saturn = "mednafen_saturn_libretro.so"
+
+# Core sizes in bytes (for progress indication)
 [retroarch-cores.sizes]
 bsnes = 6362240
 mesen = 3783048
