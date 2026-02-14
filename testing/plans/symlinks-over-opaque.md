@@ -128,7 +128,7 @@ Current opaque emulators:
 - [x] cemu (Wii U) - game saves at usr/save/00050000/, screenshots at ~/.local/share/Cemu/screenshots/
 - [x] azahar (3DS)
 - [x] eden (Switch)
-- [ ] ppsspp (PSP)
+- [x] ppsspp (PSP)
 - [ ] rpcs3 (PS3)
 - [ ] vita3k (PS Vita)
 

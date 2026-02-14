@@ -1,6 +1,10 @@
 package ppsspp
 
-import "github.com/fnune/kyaraben/internal/model"
+import (
+	"path/filepath"
+
+	"github.com/fnune/kyaraben/internal/model"
+)
 
 type Definition struct{}
 
@@ -30,8 +34,9 @@ func (Definition) Emulator() model.Emulator {
 			},
 		},
 		PathUsage: model.PathUsage{
+			UsesSavesDir:       true,
+			UsesStatesDir:      true,
 			UsesScreenshotsDir: true,
-			OpaqueContents:     "MemStick (saves, savestates, textures)",
 		},
 	}
 }
@@ -49,13 +54,24 @@ var configTarget = model.ConfigTarget{
 type Config struct{}
 
 func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	// PPSSPP stores saves relative to the memstick directory
-	// Use opaque dir since PPSSPP manages its own directory structure internally
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
-			{Path: []string{"General", "MemStickDirectory"}, Value: store.EmulatorOpaqueDir(model.EmulatorIDPPSSPP)},
-			{Path: []string{"General", "ScreenshotsPath"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDPPSSPP)},
+			{Path: []string{"General", "CurrentDirectory"}, Value: store.SystemRomsDir(model.SystemIDPSP)},
 		},
 	}}, nil
+}
+
+func (c *Config) Symlinks(store model.StoreReader, resolver model.BaseDirResolver) ([]model.SymlinkSpec, error) {
+	configDir, err := resolver.UserConfigDir()
+	if err != nil {
+		return nil, err
+	}
+	pspDir := filepath.Join(configDir, "ppsspp", "PSP")
+
+	return []model.SymlinkSpec{
+		{Source: filepath.Join(pspDir, "SAVEDATA"), Target: store.SystemSavesDir(model.SystemIDPSP)},
+		{Source: filepath.Join(pspDir, "PPSSPP_STATE"), Target: store.EmulatorStatesDir(model.EmulatorIDPPSSPP)},
+		{Source: filepath.Join(pspDir, "SCREENSHOT"), Target: store.EmulatorScreenshotsDir(model.EmulatorIDPPSSPP)},
+	}, nil
 }
