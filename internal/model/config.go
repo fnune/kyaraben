@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
+	"github.com/twpayne/go-vfs/v5"
 
 	"github.com/fnune/kyaraben/internal/paths"
 )
@@ -58,24 +59,33 @@ func DefaultUserStore() string {
 	return "~/Emulation"
 }
 
-// LoadConfig loads the kyaraben configuration from a file.
-func LoadConfig(path string) (*KyarabenConfig, error) {
-	var cfg KyarabenConfig
-	_, err := toml.DecodeFile(path, &cfg)
+type ConfigStore struct {
+	fs vfs.FS
+}
+
+func NewConfigStore(fs vfs.FS) *ConfigStore {
+	return &ConfigStore{fs: fs}
+}
+
+func (s *ConfigStore) Load(path string) (*KyarabenConfig, error) {
+	data, err := s.fs.ReadFile(path)
 	if err != nil {
+		return nil, fmt.Errorf("reading config: %w", err)
+	}
+	var cfg KyarabenConfig
+	if _, err := toml.Decode(string(data), &cfg); err != nil {
 		return nil, fmt.Errorf("decoding config: %w", err)
 	}
 	return &cfg, nil
 }
 
-// SaveConfig writes the kyaraben configuration to a file.
-func SaveConfig(cfg *KyarabenConfig, path string) error {
+func (s *ConfigStore) Save(cfg *KyarabenConfig, path string) error {
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := vfs.MkdirAll(s.fs, dir, 0755); err != nil {
 		return fmt.Errorf("creating config directory: %w", err)
 	}
 
-	f, err := os.Create(path)
+	f, err := s.fs.Create(path)
 	if err != nil {
 		return fmt.Errorf("creating config file: %w", err)
 	}
@@ -93,17 +103,28 @@ func SaveConfig(cfg *KyarabenConfig, path string) error {
 	return nil
 }
 
-// ExpandUserStore expands ~ in the user store path.
-func (c *KyarabenConfig) ExpandUserStore() (string, error) {
+func LoadConfig(path string) (*KyarabenConfig, error) {
+	return NewConfigStore(vfs.OSFS).Load(path)
+}
+
+func SaveConfig(cfg *KyarabenConfig, path string) error {
+	return NewConfigStore(vfs.OSFS).Save(cfg, path)
+}
+
+func (c *KyarabenConfig) ExpandUserStoreWith(homeDir string) string {
 	path := c.Global.UserStore
-	if len(path) > 0 && path[0] == '~' {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", fmt.Errorf("expanding home directory: %w", err)
-		}
-		path = filepath.Join(home, path[1:])
+	if len(path) > 0 && path[0] == '~' && homeDir != "" {
+		path = filepath.Join(homeDir, path[1:])
 	}
-	return path, nil
+	return path
+}
+
+func (c *KyarabenConfig) ExpandUserStore() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("expanding home directory: %w", err)
+	}
+	return c.ExpandUserStoreWith(home), nil
 }
 
 func (c *KyarabenConfig) EnabledSystems() []SystemID {

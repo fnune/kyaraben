@@ -6,20 +6,27 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/twpayne/go-vfs/v5"
+
 	"github.com/fnune/kyaraben/internal/model"
 )
 
 type UserStore struct {
+	fs       vfs.FS
 	path     string
 	resolved string
 }
 
-func NewUserStore(path string) (*UserStore, error) {
+func NewUserStore(fs vfs.FS, path string) (*UserStore, error) {
 	resolved, err := expandPath(path)
 	if err != nil {
 		return nil, err
 	}
-	return &UserStore{path: path, resolved: resolved}, nil
+	return &UserStore{fs: fs, path: path, resolved: resolved}, nil
+}
+
+func NewDefaultUserStore(path string) (*UserStore, error) {
+	return NewUserStore(vfs.OSFS, path)
 }
 
 func (s *UserStore) Path() string {
@@ -81,7 +88,7 @@ func (s *UserStore) EmulatorOpaqueDir(emu model.EmulatorID) string {
 func (s *UserStore) Initialize() error {
 	for _, dir := range s.Directories() {
 		path := filepath.Join(s.resolved, dir)
-		if err := os.MkdirAll(path, 0755); err != nil {
+		if err := vfs.MkdirAll(s.fs, path, 0755); err != nil {
 			return fmt.Errorf("creating %s: %w", dir, err)
 		}
 	}
@@ -108,7 +115,7 @@ func (s *UserStore) InitializeForEmulator(sys model.SystemID, emu model.Emulator
 	}
 
 	for _, dir := range dirs {
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := vfs.MkdirAll(s.fs, dir, 0755); err != nil {
 			return fmt.Errorf("creating %s: %w", dir, err)
 		}
 	}
@@ -116,14 +123,14 @@ func (s *UserStore) InitializeForEmulator(sys model.SystemID, emu model.Emulator
 }
 
 func (s *UserStore) Exists() bool {
-	info, err := os.Stat(s.resolved)
+	info, err := s.fs.Stat(s.resolved)
 	return err == nil && info.IsDir()
 }
 
 func (s *UserStore) IsInitialized() bool {
 	for _, dir := range s.Directories() {
 		path := filepath.Join(s.resolved, dir)
-		info, err := os.Stat(path)
+		info, err := s.fs.Stat(path)
 		if err != nil || !info.IsDir() {
 			return false
 		}

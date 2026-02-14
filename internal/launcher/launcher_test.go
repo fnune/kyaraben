@@ -2,31 +2,28 @@ package launcher
 
 import (
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/twpayne/go-vfs/v5/vfst"
 )
 
 func TestGenerateWrappers(t *testing.T) {
-	tmpDir := t.TempDir()
-	profileDir := filepath.Join(tmpDir, "kyaraben")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/kyaraben":               &vfst.Dir{Perm: 0755},
+		"/packages/eden/bin/eden": "#!/bin/sh\necho eden",
+		"/packages/mgba/bin/mgba": "#!/bin/sh\necho mgba",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	edenBinaryPath := filepath.Join(tmpDir, "packages", "eden", "bin", "eden")
-	mgbaBinaryPath := filepath.Join(tmpDir, "packages", "mgba", "bin", "mgba")
-	if err := os.MkdirAll(filepath.Dir(edenBinaryPath), 0755); err != nil {
-		t.Fatalf("creating eden dir: %v", err)
-	}
-	if err := os.MkdirAll(filepath.Dir(mgbaBinaryPath), 0755); err != nil {
-		t.Fatalf("creating mgba dir: %v", err)
-	}
-	if err := os.WriteFile(edenBinaryPath, []byte("#!/bin/sh\necho eden"), 0755); err != nil {
-		t.Fatalf("creating eden binary: %v", err)
-	}
-	if err := os.WriteFile(mgbaBinaryPath, []byte("#!/bin/sh\necho mgba"), 0755); err != nil {
-		t.Fatalf("creating mgba binary: %v", err)
-	}
+	profileDir := "/kyaraben"
+	edenBinaryPath := "/packages/eden/bin/eden"
+	mgbaBinaryPath := "/packages/mgba/bin/mgba"
 
-	m := &Manager{profileDir: profileDir}
+	m := &Manager{fs: fs, profileDir: profileDir}
 
 	binaries := []InstalledBinary{
 		{Name: "eden", Path: edenBinaryPath},
@@ -38,8 +35,8 @@ func TestGenerateWrappers(t *testing.T) {
 	}
 
 	t.Run("wrapper executes real binary path", func(t *testing.T) {
-		wrapperPath := filepath.Join(m.BinDir(), "eden")
-		content, err := os.ReadFile(wrapperPath)
+		wrapperPath := m.BinDir() + "/eden"
+		content, err := fs.ReadFile(wrapperPath)
 		if err != nil {
 			t.Fatalf("reading wrapper: %v", err)
 		}
@@ -50,7 +47,7 @@ func TestGenerateWrappers(t *testing.T) {
 			t.Errorf("wrapper should exec real binary path %s, got:\n%s", edenBinaryPath, wrapperStr)
 		}
 
-		info, err := os.Stat(wrapperPath)
+		info, err := fs.Stat(wrapperPath)
 		if err != nil {
 			t.Fatalf("stat wrapper: %v", err)
 		}
@@ -69,67 +66,86 @@ func TestGenerateWrappers(t *testing.T) {
 			t.Fatalf("GenerateWrappers() error = %v", err)
 		}
 
-		hiddenWrapperPath := filepath.Join(m.BinDir(), ".hidden")
-		if _, err := os.Stat(hiddenWrapperPath); !os.IsNotExist(err) {
+		hiddenWrapperPath := m.BinDir() + "/.hidden"
+		if _, err := fs.Stat(hiddenWrapperPath); err == nil {
 			t.Error("hidden binaries should not be wrapped")
 		}
 	})
 }
 
 func TestGenerateWrappersEmpty(t *testing.T) {
-	tmpDir := t.TempDir()
-	m := &Manager{profileDir: filepath.Join(tmpDir, "kyaraben")}
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/kyaraben": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	m := &Manager{fs: fs, profileDir: "/kyaraben"}
 
 	if err := m.GenerateWrappers(nil); err != nil {
 		t.Fatalf("GenerateWrappers(nil) error = %v", err)
 	}
 
-	if _, err := os.Stat(m.BinDir()); os.IsNotExist(err) {
+	if _, err := fs.Stat(m.BinDir()); err != nil {
 		t.Error("bin dir should be created even for empty binaries list")
 	}
 }
 
+func TestGenerateCoreSymlinksEmpty(t *testing.T) {
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/kyaraben": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	m := &Manager{fs: fs, profileDir: "/kyaraben"}
+
+	if err := m.GenerateCoreSymlinks(nil); err != nil {
+		t.Fatalf("GenerateCoreSymlinks(nil) error = %v", err)
+	}
+}
+
 func TestGenerateCoreSymlinks(t *testing.T) {
-	tmpDir := t.TempDir()
-	t.Setenv("XDG_STATE_HOME", tmpDir)
-
-	profileDir := filepath.Join(tmpDir, "kyaraben")
-	m := &Manager{profileDir: profileDir}
-
-	corePath := filepath.Join(tmpDir, "packages", "retroarch-cores", "lib", "retroarch", "cores", "bsnes_libretro.so")
-	if err := os.MkdirAll(filepath.Dir(corePath), 0755); err != nil {
-		t.Fatalf("creating core dir: %v", err)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/kyaraben":                      &vfst.Dir{Perm: 0755},
+		"/packages/retroarch/cores/a.so": "fake core a",
+		"/packages/retroarch/cores/b.so": "fake core b",
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
-	if err := os.WriteFile(corePath, []byte("fake core"), 0644); err != nil {
-		t.Fatalf("creating core: %v", err)
-	}
+	defer cleanup()
+
+	m := &Manager{fs: fs, profileDir: "/kyaraben"}
 
 	cores := []InstalledCore{
-		{Filename: "bsnes_libretro.so", Path: corePath},
+		{Filename: "core_a.so", Path: "/packages/retroarch/cores/a.so"},
+		{Filename: "core_b.so", Path: "/packages/retroarch/cores/b.so"},
 	}
 
 	if err := m.GenerateCoreSymlinks(cores); err != nil {
 		t.Fatalf("GenerateCoreSymlinks() error = %v", err)
 	}
 
-	coresDir := filepath.Join(tmpDir, "kyaraben", "cores")
-	generatedSymlink := filepath.Join(coresDir, "bsnes_libretro.so")
+	coresDir := m.CoresDir()
 
-	target, err := os.Readlink(generatedSymlink)
+	info, err := fs.Lstat(coresDir + "/core_a.so")
 	if err != nil {
-		t.Fatalf("reading generated symlink: %v", err)
+		t.Fatalf("symlink core_a.so not found: %v", err)
+	}
+	if info.Mode()&os.ModeSymlink == 0 {
+		t.Error("core_a.so should be a symlink")
 	}
 
-	if target != corePath {
-		t.Errorf("symlink target = %q, want %q", target, corePath)
+	info, err = fs.Lstat(coresDir + "/core_b.so")
+	if err != nil {
+		t.Fatalf("symlink core_b.so not found: %v", err)
 	}
-}
-
-func TestGenerateCoreSymlinksEmpty(t *testing.T) {
-	tmpDir := t.TempDir()
-	m := &Manager{profileDir: filepath.Join(tmpDir, "kyaraben")}
-
-	if err := m.GenerateCoreSymlinks(nil); err != nil {
-		t.Fatalf("GenerateCoreSymlinks(nil) error = %v", err)
+	if info.Mode()&os.ModeSymlink == 0 {
+		t.Error("core_b.so should be a symlink")
 	}
 }

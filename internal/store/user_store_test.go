@@ -1,16 +1,16 @@
 package store
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
+
+	"github.com/twpayne/go-vfs/v5/vfst"
 
 	"github.com/fnune/kyaraben/internal/model"
 )
 
-func mustNewUserStore(t *testing.T, path string) *UserStore {
+func mustNewUserStore(t *testing.T, fs *vfst.TestFS, path string) *UserStore {
 	t.Helper()
-	s, err := NewUserStore(path)
+	s, err := NewUserStore(fs, path)
 	if err != nil {
 		t.Fatalf("NewUserStore(%q) failed: %v", path, err)
 	}
@@ -18,36 +18,43 @@ func mustNewUserStore(t *testing.T, path string) *UserStore {
 }
 
 func TestUserStoreInitialize(t *testing.T) {
-	tmpDir := t.TempDir()
-	store := mustNewUserStore(t, tmpDir)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/emulation": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	// Initialize should create all directories
+	store := mustNewUserStore(t, fs, "/emulation")
+
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Initialize failed: %v", err)
 	}
 
-	// Verify directories exist
-	for _, dir := range []string{"roms", "bios", "saves", "states", "screenshots"} {
-		path := filepath.Join(tmpDir, dir)
-		info, err := os.Stat(path)
-		if err != nil {
-			t.Errorf("Directory %s not created: %v", dir, err)
-			continue
-		}
-		if !info.IsDir() {
-			t.Errorf("%s is not a directory", dir)
-		}
-	}
+	vfst.RunTests(t, fs, "",
+		vfst.TestPath("/emulation/roms", vfst.TestIsDir()),
+		vfst.TestPath("/emulation/bios", vfst.TestIsDir()),
+		vfst.TestPath("/emulation/saves", vfst.TestIsDir()),
+		vfst.TestPath("/emulation/states", vfst.TestIsDir()),
+		vfst.TestPath("/emulation/screenshots", vfst.TestIsDir()),
+	)
 
-	// IsInitialized should return true
 	if !store.IsInitialized() {
 		t.Error("IsInitialized returned false after Initialize")
 	}
 }
 
 func TestUserStoreInitializeForEmulator(t *testing.T) {
-	tmpDir := t.TempDir()
-	store := mustNewUserStore(t, tmpDir)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/emulation": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	store := mustNewUserStore(t, fs, "/emulation")
 
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Initialize failed: %v", err)
@@ -57,29 +64,25 @@ func TestUserStoreInitializeForEmulator(t *testing.T) {
 		t.Fatalf("InitializeForEmulator failed: %v", err)
 	}
 
-	expectedDirs := []string{
-		filepath.Join(tmpDir, "roms", "snes"),
-		filepath.Join(tmpDir, "bios", "snes"),
-		filepath.Join(tmpDir, "saves", "snes"),
-		filepath.Join(tmpDir, "states", "retroarch:bsnes"),
-		filepath.Join(tmpDir, "screenshots", "retroarch"),
-	}
-
-	for _, dir := range expectedDirs {
-		info, err := os.Stat(dir)
-		if err != nil {
-			t.Errorf("Directory not created: %s: %v", dir, err)
-			continue
-		}
-		if !info.IsDir() {
-			t.Errorf("%s is not a directory", dir)
-		}
-	}
+	vfst.RunTests(t, fs, "",
+		vfst.TestPath("/emulation/roms/snes", vfst.TestIsDir()),
+		vfst.TestPath("/emulation/bios/snes", vfst.TestIsDir()),
+		vfst.TestPath("/emulation/saves/snes", vfst.TestIsDir()),
+		vfst.TestPath("/emulation/states/retroarch:bsnes", vfst.TestIsDir()),
+		vfst.TestPath("/emulation/screenshots/retroarch", vfst.TestIsDir()),
+	)
 }
 
 func TestUserStoreInitializeForOpaqueEmulator(t *testing.T) {
-	tmpDir := t.TempDir()
-	store := mustNewUserStore(t, tmpDir)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/emulation": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	store := mustNewUserStore(t, fs, "/emulation")
 
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Initialize failed: %v", err)
@@ -93,38 +96,32 @@ func TestUserStoreInitializeForOpaqueEmulator(t *testing.T) {
 		t.Fatalf("InitializeForEmulator failed: %v", err)
 	}
 
-	expectedDirs := []string{
-		filepath.Join(tmpDir, "roms", "ps3"),
-		filepath.Join(tmpDir, "screenshots", "rpcs3"),
-		filepath.Join(tmpDir, "opaque", "rpcs3"),
-	}
-
-	for _, dir := range expectedDirs {
-		info, err := os.Stat(dir)
-		if err != nil {
-			t.Errorf("Directory not created: %s: %v", dir, err)
-			continue
-		}
-		if !info.IsDir() {
-			t.Errorf("%s is not a directory", dir)
-		}
-	}
+	vfst.RunTests(t, fs, "",
+		vfst.TestPath("/emulation/roms/ps3", vfst.TestIsDir()),
+		vfst.TestPath("/emulation/screenshots/rpcs3", vfst.TestIsDir()),
+		vfst.TestPath("/emulation/opaque/rpcs3", vfst.TestIsDir()),
+	)
 
 	unexpectedDirs := []string{
-		filepath.Join(tmpDir, "bios", "ps3"),
-		filepath.Join(tmpDir, "saves", "ps3"),
-		filepath.Join(tmpDir, "states", "rpcs3"),
+		"/emulation/bios/ps3",
+		"/emulation/saves/ps3",
+		"/emulation/states/rpcs3",
 	}
-
 	for _, dir := range unexpectedDirs {
-		if _, err := os.Stat(dir); err == nil {
+		if _, err := fs.Stat(dir); err == nil {
 			t.Errorf("Directory should not have been created: %s", dir)
 		}
 	}
 }
 
 func TestUserStorePaths(t *testing.T) {
-	store := mustNewUserStore(t, "/home/user/Emulation")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	store := mustNewUserStore(t, fs, "/home/user/Emulation")
 
 	tests := []struct {
 		name string
@@ -149,7 +146,13 @@ func TestUserStorePaths(t *testing.T) {
 }
 
 func TestUserStoreSystemPaths(t *testing.T) {
-	store := mustNewUserStore(t, "/home/user/Emulation")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	store := mustNewUserStore(t, fs, "/home/user/Emulation")
 
 	tests := []struct {
 		name   string
@@ -173,7 +176,13 @@ func TestUserStoreSystemPaths(t *testing.T) {
 }
 
 func TestUserStoreEmulatorPaths(t *testing.T) {
-	store := mustNewUserStore(t, "/home/user/Emulation")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	store := mustNewUserStore(t, fs, "/home/user/Emulation")
 
 	got := store.EmulatorStatesDir(model.EmulatorIDRetroArchBsnes)
 	want := "/home/user/Emulation/states/retroarch:bsnes"
@@ -195,23 +204,26 @@ func TestUserStoreEmulatorPaths(t *testing.T) {
 }
 
 func TestUserStoreExists(t *testing.T) {
-	tmpDir := t.TempDir()
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/existing": &vfst.Dir{Perm: 0755},
+		"/file":     "test content",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	store := mustNewUserStore(t, filepath.Join(tmpDir, "nonexistent"))
+	store := mustNewUserStore(t, fs, "/nonexistent")
 	if store.Exists() {
 		t.Error("Exists returned true for non-existent directory")
 	}
 
-	store = mustNewUserStore(t, tmpDir)
+	store = mustNewUserStore(t, fs, "/existing")
 	if !store.Exists() {
 		t.Error("Exists returned false for existing directory")
 	}
 
-	filePath := filepath.Join(tmpDir, "file")
-	if err := os.WriteFile(filePath, []byte("test"), 0644); err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
-	store = mustNewUserStore(t, filePath)
+	store = mustNewUserStore(t, fs, "/file")
 	if store.Exists() {
 		t.Error("Exists returned true for file (not directory)")
 	}

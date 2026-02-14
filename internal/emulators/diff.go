@@ -4,12 +4,26 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"os"
 	"strings"
+
+	"github.com/twpayne/go-vfs/v5"
 
 	"github.com/fnune/kyaraben/internal/configformat"
 	"github.com/fnune/kyaraben/internal/model"
 )
+
+type DiffComputer struct {
+	fs       vfs.FS
+	resolver model.BaseDirResolver
+}
+
+func NewDiffComputer(fs vfs.FS, resolver model.BaseDirResolver) *DiffComputer {
+	return &DiffComputer{fs: fs, resolver: resolver}
+}
+
+func NewDefaultDiffComputer() *DiffComputer {
+	return NewDiffComputer(vfs.OSFS, &model.OSBaseDirResolver{})
+}
 
 type ConfigDiff struct {
 	Path         string
@@ -73,7 +87,11 @@ const (
 )
 
 func ComputeDiffWithBaseline(patch model.ConfigPatch, baseline *model.ManagedConfig) (*ConfigDiff, error) {
-	diff, err := ComputeDiff(patch)
+	return NewDefaultDiffComputer().ComputeDiffWithBaseline(patch, baseline)
+}
+
+func (d *DiffComputer) ComputeDiffWithBaseline(patch model.ConfigPatch, baseline *model.ManagedConfig) (*ConfigDiff, error) {
+	diff, err := d.ComputeDiff(patch)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +100,7 @@ func ComputeDiffWithBaseline(patch model.ConfigPatch, baseline *model.ManagedCon
 		return diff, nil
 	}
 
-	currentHash, err := hashConfigFile(diff.Path)
+	currentHash, err := d.hashConfigFile(diff.Path)
 	if err != nil {
 		return diff, nil
 	}
@@ -90,7 +108,7 @@ func ComputeDiffWithBaseline(patch model.ConfigPatch, baseline *model.ManagedCon
 	if currentHash != baseline.BaselineHash {
 		diff.UserModified = true
 
-		current, err := readConfig(diff.Path, patch.Target.Format)
+		current, err := d.readConfig(diff.Path, patch.Target.Format)
 		if err != nil {
 			return diff, nil
 		}
@@ -100,7 +118,7 @@ func ComputeDiffWithBaseline(patch model.ConfigPatch, baseline *model.ManagedCon
 			key := mk.Path[len(mk.Path)-1]
 
 			if sectionMap, ok := current[section]; ok {
-				if currentVal, ok := sectionMap[key]; ok && configformat.NormalizePath(currentVal) != configformat.NormalizePath(mk.Value) {
+				if currentVal, ok := sectionMap[key]; ok && configformat.NormalizePath(currentVal, d.homeDir()) != configformat.NormalizePath(mk.Value, d.homeDir()) {
 					diff.UserChanges = append(diff.UserChanges, UserChange{
 						Path:          mk.Path,
 						BaselineValue: mk.Value,
@@ -114,8 +132,8 @@ func ComputeDiffWithBaseline(patch model.ConfigPatch, baseline *model.ManagedCon
 	return diff, nil
 }
 
-func hashConfigFile(path string) (string, error) {
-	data, err := os.ReadFile(path)
+func (d *DiffComputer) hashConfigFile(path string) (string, error) {
+	data, err := d.fs.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
@@ -123,8 +141,17 @@ func hashConfigFile(path string) (string, error) {
 	return hex.EncodeToString(hash[:]), nil
 }
 
+func (d *DiffComputer) homeDir() string {
+	home, _ := d.resolver.UserHomeDir()
+	return home
+}
+
 func ComputeDiff(patch model.ConfigPatch) (*ConfigDiff, error) {
-	path, err := patch.Target.Resolve()
+	return NewDefaultDiffComputer().ComputeDiff(patch)
+}
+
+func (d *DiffComputer) ComputeDiff(patch model.ConfigPatch) (*ConfigDiff, error) {
+	path, err := patch.Target.ResolveWith(d.resolver)
 	if err != nil {
 		return nil, fmt.Errorf("resolving config path: %w", err)
 	}
@@ -137,9 +164,9 @@ func ComputeDiff(patch model.ConfigPatch) (*ConfigDiff, error) {
 
 	current := make(map[string]map[string]string)
 
-	if _, err := os.Stat(path); err == nil {
+	if _, err := d.fs.Stat(path); err == nil {
 		diff.IsNewFile = false
-		current, err = readConfig(path, patch.Target.Format)
+		current, err = d.readConfig(path, patch.Target.Format)
 		if err != nil {
 			return nil, fmt.Errorf("reading current config: %w", err)
 		}
@@ -174,7 +201,7 @@ func ComputeDiff(patch model.ConfigPatch) (*ConfigDiff, error) {
 			continue
 		}
 
-		if configformat.NormalizePath(oldValue) != configformat.NormalizePath(newValue) {
+		if configformat.NormalizePath(oldValue, d.homeDir()) != configformat.NormalizePath(newValue, d.homeDir()) {
 			diff.Changes = append(diff.Changes, ConfigChange{
 				Type:     ChangeModify,
 				Path:     entry.Path,
@@ -318,7 +345,7 @@ func (d *ConfigDiff) FormatWithColor(useColor bool) string {
 	return sb.String()
 }
 
-func readConfig(path string, format model.ConfigFormat) (map[string]map[string]string, error) {
-	handler := configformat.GetHandler(format)
+func (d *DiffComputer) readConfig(path string, format model.ConfigFormat) (map[string]map[string]string, error) {
+	handler := configformat.NewHandler(d.fs, format)
 	return handler.Read(path)
 }

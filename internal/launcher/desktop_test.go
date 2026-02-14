@@ -5,6 +5,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/twpayne/go-vfs/v5"
+	"github.com/twpayne/go-vfs/v5/vfst"
 )
 
 type fakeBaseDirResolver struct {
@@ -32,27 +35,27 @@ func (r fakeBaseDirResolver) UserDataDir() (string, error) {
 }
 
 func TestGenerateDesktopFiles(t *testing.T) {
-	tmpDir := t.TempDir()
-
-	profileDir := filepath.Join(tmpDir, "kyaraben")
-	homeDir := filepath.Join(tmpDir, "home")
-
-	iconsDir := filepath.Join(tmpDir, "icons")
-	if err := os.MkdirAll(iconsDir, 0755); err != nil {
-		t.Fatalf("creating icons dir: %v", err)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/kyaraben":              &vfst.Dir{Perm: 0755},
+		"/home":                  &vfst.Dir{Perm: 0755},
+		"/icons/eden.svg":        "<svg></svg>",
+		"/icons/duckstation.png": "fake png",
+		"/data":                  &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
-	edenIconPath := filepath.Join(iconsDir, "eden.svg")
-	if err := os.WriteFile(edenIconPath, []byte("<svg></svg>"), 0644); err != nil {
-		t.Fatalf("writing eden icon: %v", err)
-	}
-	duckstationIconPath := filepath.Join(iconsDir, "duckstation.png")
-	if err := os.WriteFile(duckstationIconPath, []byte("fake png"), 0644); err != nil {
-		t.Fatalf("writing duckstation icon: %v", err)
-	}
+	defer cleanup()
 
-	dataDir := filepath.Join(tmpDir, "data")
+	profileDir := "/kyaraben"
+	homeDir := "/home"
+	dataDir := "/data"
+
+	edenIconPath := "/icons/eden.svg"
+	duckstationIconPath := "/icons/duckstation.png"
+
 	resolver := fakeBaseDirResolver{homeDir: homeDir}
-	m := &Manager{profileDir: profileDir, dataDir: dataDir, resolver: resolver}
+	m := &Manager{fs: fs, profileDir: profileDir, dataDir: dataDir, resolver: resolver}
 
 	entries := []GeneratedDesktop{
 		{
@@ -85,8 +88,8 @@ func TestGenerateDesktopFiles(t *testing.T) {
 		t.Errorf("should return 2 icon files, got %d", len(result.IconFiles))
 	}
 
-	edenPath := filepath.Join(m.ApplicationsDir(), "eden.desktop")
-	content, err := os.ReadFile(edenPath)
+	edenPath := m.ApplicationsDir() + "/eden.desktop"
+	content, err := fs.ReadFile(edenPath)
 	if err != nil {
 		t.Fatalf("reading eden.desktop: %v", err)
 	}
@@ -105,31 +108,37 @@ func TestGenerateDesktopFiles(t *testing.T) {
 		t.Errorf("eden.desktop should contain Categories, got:\n%s", contentStr)
 	}
 
-	edenIcon := filepath.Join(m.iconsDirForExt(".svg"), "kyaraben-eden.svg")
-	if _, err := os.Stat(edenIcon); err != nil {
+	edenIcon := m.iconsDirForExt(".svg") + "/kyaraben-eden.svg"
+	if _, err := fs.Stat(edenIcon); err != nil {
 		t.Errorf("kyaraben-eden.svg should exist in scalable/apps: %v", err)
 	}
 
-	duckstationIcon := filepath.Join(m.iconsDirForExt(".png"), "kyaraben-duckstation.png")
-	if _, err := os.Stat(duckstationIcon); err != nil {
+	duckstationIcon := m.iconsDirForExt(".png") + "/kyaraben-duckstation.png"
+	if _, err := fs.Stat(duckstationIcon); err != nil {
 		t.Errorf("kyaraben-duckstation.png should exist in 256x256/apps: %v", err)
 	}
 }
 
 func TestInstallKyarabenWithAppImage(t *testing.T) {
-	tmpDir := t.TempDir()
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/kyaraben":             &vfst.Dir{Perm: 0755},
+		"/home":                 &vfst.Dir{Perm: 0755},
+		"/Kyaraben.AppImage":    "fake appimage content",
+		"/bin/kyaraben-current": "fake current executable",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	homeDir := filepath.Join(tmpDir, "home")
+	homeDir := "/home"
 	binDir := filepath.Join(homeDir, ".local", "bin")
 	appsDir := filepath.Join(homeDir, ".local", "share", "applications")
 
 	resolver := fakeBaseDirResolver{homeDir: homeDir}
-	m := &Manager{profileDir: filepath.Join(tmpDir, "kyaraben"), resolver: resolver}
+	m := &Manager{fs: fs, profileDir: "/kyaraben", resolver: resolver, executablePath: "/bin/kyaraben-current"}
 
-	appImagePath := filepath.Join(tmpDir, "Kyaraben.AppImage")
-	if err := os.WriteFile(appImagePath, []byte("fake appimage content"), 0755); err != nil {
-		t.Fatalf("creating fake AppImage: %v", err)
-	}
+	appImagePath := "/Kyaraben.AppImage"
 
 	result, err := m.InstallKyaraben(appImagePath, "")
 	if err != nil {
@@ -146,11 +155,19 @@ func TestInstallKyarabenWithAppImage(t *testing.T) {
 		t.Errorf("DesktopPath = %s, want %s", result.DesktopPath, filepath.Join(appsDir, "kyaraben.desktop"))
 	}
 
-	if _, err := os.Stat(result.AppPath); err != nil {
+	if _, err := fs.Stat(result.AppPath); err != nil {
 		t.Errorf("AppImage not copied: %v", err)
 	}
 
-	content, err := os.ReadFile(result.DesktopPath)
+	cliContent, err := fs.ReadFile(result.CLIPath)
+	if err != nil {
+		t.Fatalf("reading CLI: %v", err)
+	}
+	if string(cliContent) != "fake current executable" {
+		t.Errorf("CLI should be copied from executablePath, got: %s", cliContent)
+	}
+
+	content, err := fs.ReadFile(result.DesktopPath)
 	if err != nil {
 		t.Fatalf("reading desktop file: %v", err)
 	}
@@ -160,30 +177,32 @@ func TestInstallKyarabenWithAppImage(t *testing.T) {
 }
 
 func TestInstallKyarabenWithSidecar(t *testing.T) {
-	tmpDir := t.TempDir()
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/kyaraben":          &vfst.Dir{Perm: 0755},
+		"/home":              &vfst.Dir{Perm: 0755},
+		"/Kyaraben.AppImage": "fake appimage",
+		"/kyaraben-sidecar":  "fake sidecar binary",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	homeDir := filepath.Join(tmpDir, "home")
+	homeDir := "/home"
 	binDir := filepath.Join(homeDir, ".local", "bin")
 
 	resolver := fakeBaseDirResolver{homeDir: homeDir}
-	m := &Manager{profileDir: filepath.Join(tmpDir, "kyaraben"), resolver: resolver}
+	m := &Manager{fs: fs, profileDir: "/kyaraben", resolver: resolver}
 
-	appImagePath := filepath.Join(tmpDir, "Kyaraben.AppImage")
-	if err := os.WriteFile(appImagePath, []byte("fake appimage"), 0755); err != nil {
-		t.Fatalf("creating fake AppImage: %v", err)
-	}
-
-	sidecarPath := filepath.Join(tmpDir, "kyaraben-sidecar")
-	if err := os.WriteFile(sidecarPath, []byte("fake sidecar binary"), 0755); err != nil {
-		t.Fatalf("creating fake sidecar: %v", err)
-	}
+	appImagePath := "/Kyaraben.AppImage"
+	sidecarPath := "/kyaraben-sidecar"
 
 	result, err := m.InstallKyaraben(appImagePath, sidecarPath)
 	if err != nil {
 		t.Fatalf("InstallKyaraben() error = %v", err)
 	}
 
-	cliContent, err := os.ReadFile(result.CLIPath)
+	cliContent, err := fs.ReadFile(result.CLIPath)
 	if err != nil {
 		t.Fatalf("reading CLI: %v", err)
 	}
@@ -191,7 +210,7 @@ func TestInstallKyarabenWithSidecar(t *testing.T) {
 		t.Errorf("CLI should be a copy of sidecar, got: %s", cliContent)
 	}
 
-	info, err := os.Lstat(result.CLIPath)
+	info, err := fs.Lstat(result.CLIPath)
 	if err != nil {
 		t.Fatalf("stat CLI: %v", err)
 	}
@@ -204,67 +223,32 @@ func TestInstallKyarabenWithSidecar(t *testing.T) {
 	}
 }
 
-func TestInstallKyarabenCLIOnly(t *testing.T) {
-	tmpDir := t.TempDir()
-
-	homeDir := filepath.Join(tmpDir, "home")
-	binDir := filepath.Join(homeDir, ".local", "bin")
-	appsDir := filepath.Join(homeDir, ".local", "share", "applications")
-
-	resolver := fakeBaseDirResolver{homeDir: homeDir}
-	m := &Manager{profileDir: filepath.Join(tmpDir, "kyaraben"), resolver: resolver}
-
-	result, err := m.InstallKyaraben("", "")
-	if err != nil {
-		t.Fatalf("InstallKyaraben() error = %v", err)
-	}
-
-	if result.AppPath != "" {
-		t.Errorf("AppPath should be empty for CLI-only install, got %s", result.AppPath)
-	}
-	if result.CLIPath != filepath.Join(binDir, "kyaraben") {
-		t.Errorf("CLIPath = %s, want %s", result.CLIPath, filepath.Join(binDir, "kyaraben"))
-	}
-	if result.DesktopPath != filepath.Join(appsDir, "kyaraben.desktop") {
-		t.Errorf("DesktopPath = %s, want %s", result.DesktopPath, filepath.Join(appsDir, "kyaraben.desktop"))
-	}
-
-	info, err := os.Stat(result.CLIPath)
-	if err != nil {
-		t.Fatalf("stat CLI: %v", err)
-	}
-	if info.Size() == 0 {
-		t.Error("CLI should be a copy of current executable")
-	}
-
-	content, err := os.ReadFile(result.DesktopPath)
-	if err != nil {
-		t.Fatalf("reading desktop file: %v", err)
-	}
-	if !strings.Contains(string(content), "Exec="+result.CLIPath) {
-		t.Errorf("desktop file should exec CLI, got:\n%s", content)
-	}
-}
-
 func TestGetInstallStatus(t *testing.T) {
-	tmpDir := t.TempDir()
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/kyaraben": &vfst.Dir{Perm: 0755},
+		"/home":     &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	homeDir := filepath.Join(tmpDir, "home")
+	homeDir := "/home"
 	binDir := filepath.Join(homeDir, ".local", "bin")
 	appsDir := filepath.Join(homeDir, ".local", "share", "applications")
 
 	resolver := fakeBaseDirResolver{homeDir: homeDir}
-	m := &Manager{profileDir: filepath.Join(tmpDir, "kyaraben"), resolver: resolver}
+	m := &Manager{fs: fs, profileDir: "/kyaraben", resolver: resolver}
 
 	status := m.GetInstallStatus()
 	if status.AppPath != "" || status.CLIPath != "" || status.DesktopPath != "" {
 		t.Error("GetInstallStatus should return empty paths when nothing installed")
 	}
 
-	if err := os.MkdirAll(binDir, 0755); err != nil {
+	if err := vfs.MkdirAll(fs, binDir, 0755); err != nil {
 		t.Fatalf("creating bin dir: %v", err)
 	}
-	if err := os.MkdirAll(appsDir, 0755); err != nil {
+	if err := vfs.MkdirAll(fs, appsDir, 0755); err != nil {
 		t.Fatalf("creating apps dir: %v", err)
 	}
 
@@ -272,13 +256,13 @@ func TestGetInstallStatus(t *testing.T) {
 	cliPath := filepath.Join(binDir, "kyaraben")
 	desktopPath := filepath.Join(appsDir, "kyaraben.desktop")
 
-	if err := os.WriteFile(appPath, []byte("fake"), 0755); err != nil {
+	if err := fs.WriteFile(appPath, []byte("fake"), 0755); err != nil {
 		t.Fatalf("creating app: %v", err)
 	}
-	if err := os.WriteFile(cliPath, []byte("fake"), 0755); err != nil {
+	if err := fs.WriteFile(cliPath, []byte("fake"), 0755); err != nil {
 		t.Fatalf("creating cli: %v", err)
 	}
-	if err := os.WriteFile(desktopPath, []byte("fake"), 0644); err != nil {
+	if err := fs.WriteFile(desktopPath, []byte("fake"), 0644); err != nil {
 		t.Fatalf("creating desktop: %v", err)
 	}
 

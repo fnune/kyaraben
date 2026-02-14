@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/twpayne/go-vfs/v5"
+
 	"github.com/fnune/kyaraben/internal/hardware"
 	"github.com/fnune/kyaraben/internal/logging"
 	"github.com/fnune/kyaraben/internal/versions"
@@ -59,6 +61,7 @@ type Installer interface {
 }
 
 type PackageInstaller struct {
+	fs           vfs.FS
 	packagesDir  string
 	downloadsDir string
 	downloader   Downloader
@@ -66,14 +69,19 @@ type PackageInstaller struct {
 	overrides    map[string]string
 }
 
-func NewPackageInstaller(stateDir string, downloader Downloader, extractor Extractor) *PackageInstaller {
+func NewPackageInstaller(fs vfs.FS, stateDir string, downloader Downloader, extractor Extractor) *PackageInstaller {
 	return &PackageInstaller{
+		fs:           fs,
 		packagesDir:  filepath.Join(stateDir, "packages"),
 		downloadsDir: filepath.Join(stateDir, "downloads"),
 		downloader:   downloader,
 		extractor:    extractor,
 		overrides:    make(map[string]string),
 	}
+}
+
+func NewDefaultPackageInstaller(stateDir string, downloader Downloader, extractor Extractor) *PackageInstaller {
+	return NewPackageInstaller(vfs.OSFS, stateDir, downloader, extractor)
 }
 
 func (i *PackageInstaller) SetVersionOverrides(overrides map[string]string) {
@@ -140,7 +148,7 @@ func (i *PackageInstaller) IsEmulatorInstalled(name string) bool {
 
 	pkgDir := i.packageDir(name, entry.Version)
 	fullPath := filepath.Join(pkgDir, "bin", filepath.Base(binaryPath))
-	_, err = os.Stat(fullPath)
+	_, err = i.fs.Stat(fullPath)
 	return err == nil
 }
 
@@ -162,7 +170,7 @@ func (i *PackageInstaller) InstallEmulator(ctx context.Context, name string, onP
 
 	pkgDir := i.packageDir(name, entry.Version)
 	installedPath := filepath.Join(pkgDir, "bin", name)
-	cache := &packageCache{pkgDir: pkgDir, expectedHash: build.SHA256}
+	cache := &packageCache{fs: i.fs, pkgDir: pkgDir, expectedHash: build.SHA256}
 	if cache.isValid(installedPath) {
 		if onProgress != nil {
 			onProgress(InstallProgress{PackageName: name, Phase: "skipped"})
@@ -171,14 +179,14 @@ func (i *PackageInstaller) InstallEmulator(ctx context.Context, name string, onP
 	}
 	cache.invalidate()
 
-	if err := os.MkdirAll(i.downloadsDir, 0755); err != nil {
+	if err := vfs.MkdirAll(i.fs, i.downloadsDir, 0755); err != nil {
 		return nil, fmt.Errorf("creating downloads dir: %w", err)
 	}
 
 	log.Info("Downloading %s %s", name, entry.Version)
 
 	downloadDest := filepath.Join(i.downloadsDir, name+"-"+entry.Version+".download")
-	defer func() { _ = os.Remove(downloadDest) }()
+	defer func() { _ = i.fs.Remove(downloadDest) }()
 
 	if onProgress != nil {
 		onProgress(InstallProgress{PackageName: name, Phase: "downloading"})
@@ -210,48 +218,47 @@ func (i *PackageInstaller) InstallEmulator(ctx context.Context, name string, onP
 	}
 
 	tmpDir := pkgDir + ".tmp"
-	_ = os.RemoveAll(tmpDir)
+	_ = i.fs.RemoveAll(tmpDir)
 
 	if archiveType == "" {
-		// Direct binary (AppImage)
 		binDir := filepath.Join(tmpDir, "bin")
-		if err := os.MkdirAll(binDir, 0755); err != nil {
+		if err := vfs.MkdirAll(i.fs, binDir, 0755); err != nil {
 			return nil, fmt.Errorf("creating bin dir: %w", err)
 		}
 		destPath := filepath.Join(binDir, name)
-		if err := copyFileExec(downloadDest, destPath); err != nil {
+		if err := i.copyFileExec(downloadDest, destPath); err != nil {
 			return nil, fmt.Errorf("installing binary: %w", err)
 		}
 	} else {
 		extractDir := filepath.Join(tmpDir, "extracted")
 		if err := i.extractor.Extract(downloadDest, extractDir, archiveType); err != nil {
-			_ = os.RemoveAll(tmpDir)
+			_ = i.fs.RemoveAll(tmpDir)
 			return nil, fmt.Errorf("extracting %s: %w", name, err)
 		}
 
 		binDir := filepath.Join(tmpDir, "bin")
-		if err := os.MkdirAll(binDir, 0755); err != nil {
-			_ = os.RemoveAll(tmpDir)
+		if err := vfs.MkdirAll(i.fs, binDir, 0755); err != nil {
+			_ = i.fs.RemoveAll(tmpDir)
 			return nil, fmt.Errorf("creating bin dir: %w", err)
 		}
 
 		srcPath := filepath.Join(extractDir, binaryPath)
 		destPath := filepath.Join(binDir, name)
-		if err := copyFileExec(srcPath, destPath); err != nil {
-			_ = os.RemoveAll(tmpDir)
+		if err := i.copyFileExec(srcPath, destPath); err != nil {
+			_ = i.fs.RemoveAll(tmpDir)
 			return nil, fmt.Errorf("installing extracted binary: %w", err)
 		}
 
-		_ = os.RemoveAll(extractDir)
+		_ = i.fs.RemoveAll(extractDir)
 	}
 
-	_ = os.RemoveAll(pkgDir)
-	if err := os.MkdirAll(filepath.Dir(pkgDir), 0755); err != nil {
-		_ = os.RemoveAll(tmpDir)
+	_ = i.fs.RemoveAll(pkgDir)
+	if err := vfs.MkdirAll(i.fs, filepath.Dir(pkgDir), 0755); err != nil {
+		_ = i.fs.RemoveAll(tmpDir)
 		return nil, fmt.Errorf("creating package parent dir: %w", err)
 	}
-	if err := os.Rename(tmpDir, pkgDir); err != nil {
-		_ = os.RemoveAll(tmpDir)
+	if err := i.fs.Rename(tmpDir, pkgDir); err != nil {
+		_ = i.fs.RemoveAll(tmpDir)
 		return nil, fmt.Errorf("finalizing package install: %w", err)
 	}
 
@@ -280,7 +287,7 @@ func (i *PackageInstaller) InstallCores(ctx context.Context, coreNames []string,
 	version := v.RetroArchCores.Default
 	pkgDir := i.packageDir("retroarch-cores", version)
 	coresDir := filepath.Join(pkgDir, "lib", "retroarch", "cores")
-	cache := &packageCache{pkgDir: pkgDir, expectedHash: sha256}
+	cache := &packageCache{fs: i.fs, pkgDir: pkgDir, expectedHash: sha256}
 
 	allPresent := true
 	for _, coreName := range coreNames {
@@ -288,7 +295,7 @@ func (i *PackageInstaller) InstallCores(ctx context.Context, coreNames []string,
 		if !ok {
 			continue
 		}
-		if _, err := os.Stat(filepath.Join(coresDir, filename)); err != nil {
+		if _, err := i.fs.Stat(filepath.Join(coresDir, filename)); err != nil {
 			allPresent = false
 			break
 		}
@@ -301,14 +308,14 @@ func (i *PackageInstaller) InstallCores(ctx context.Context, coreNames []string,
 	}
 	cache.invalidate()
 
-	if err := os.MkdirAll(i.downloadsDir, 0755); err != nil {
+	if err := vfs.MkdirAll(i.fs, i.downloadsDir, 0755); err != nil {
 		return nil, fmt.Errorf("creating downloads dir: %w", err)
 	}
 
 	log.Info("Downloading RetroArch cores bundle %s", version)
 
 	downloadDest := filepath.Join(i.downloadsDir, "retroarch-cores-"+version+".download")
-	defer func() { _ = os.Remove(downloadDest) }()
+	defer func() { _ = i.fs.Remove(downloadDest) }()
 
 	if onProgress != nil {
 		onProgress(InstallProgress{PackageName: "retroarch-cores", Phase: "downloading"})
@@ -341,8 +348,8 @@ func (i *PackageInstaller) InstallCores(ctx context.Context, coreNames []string,
 	log.Info("Extracting RetroArch cores bundle %s", version)
 
 	extractDir := filepath.Join(i.downloadsDir, "retroarch-cores-extract")
-	_ = os.RemoveAll(extractDir)
-	defer func() { _ = os.RemoveAll(extractDir) }()
+	_ = i.fs.RemoveAll(extractDir)
+	defer func() { _ = i.fs.RemoveAll(extractDir) }()
 
 	archiveType := detectArchiveType(url)
 	if err := i.extractor.Extract(downloadDest, extractDir, archiveType); err != nil {
@@ -350,9 +357,9 @@ func (i *PackageInstaller) InstallCores(ctx context.Context, coreNames []string,
 	}
 
 	tmpDir := pkgDir + ".tmp"
-	_ = os.RemoveAll(tmpDir)
+	_ = i.fs.RemoveAll(tmpDir)
 	tmpCoresDir := filepath.Join(tmpDir, "lib", "retroarch", "cores")
-	if err := os.MkdirAll(tmpCoresDir, 0755); err != nil {
+	if err := vfs.MkdirAll(i.fs, tmpCoresDir, 0755); err != nil {
 		return nil, fmt.Errorf("creating cores dir: %w", err)
 	}
 
@@ -363,26 +370,26 @@ func (i *PackageInstaller) InstallCores(ctx context.Context, coreNames []string,
 			continue
 		}
 
-		src, err := findFile(extractDir, filename)
+		src, err := i.findFile(extractDir, filename)
 		if err != nil {
-			_ = os.RemoveAll(tmpDir)
+			_ = i.fs.RemoveAll(tmpDir)
 			return nil, fmt.Errorf("finding core %s in archive: %w", coreName, err)
 		}
 
 		dest := filepath.Join(tmpCoresDir, filename)
-		if err := copyFileMode(src, dest, 0644); err != nil {
-			_ = os.RemoveAll(tmpDir)
+		if err := i.copyFileMode(src, dest, 0644); err != nil {
+			_ = i.fs.RemoveAll(tmpDir)
 			return nil, fmt.Errorf("installing core %s: %w", coreName, err)
 		}
 	}
 
-	_ = os.RemoveAll(pkgDir)
-	if err := os.MkdirAll(filepath.Dir(pkgDir), 0755); err != nil {
-		_ = os.RemoveAll(tmpDir)
+	_ = i.fs.RemoveAll(pkgDir)
+	if err := vfs.MkdirAll(i.fs, filepath.Dir(pkgDir), 0755); err != nil {
+		_ = i.fs.RemoveAll(tmpDir)
 		return nil, fmt.Errorf("creating package parent dir: %w", err)
 	}
-	if err := os.Rename(tmpDir, pkgDir); err != nil {
-		_ = os.RemoveAll(tmpDir)
+	if err := i.fs.Rename(tmpDir, pkgDir); err != nil {
+		_ = i.fs.RemoveAll(tmpDir)
 		return nil, fmt.Errorf("finalizing cores install: %w", err)
 	}
 
@@ -418,13 +425,13 @@ func (i *PackageInstaller) InstallIcon(ctx context.Context, binaryName, url, sha
 	iconsDir := filepath.Join(i.packagesDir, "icons")
 	destPath := filepath.Join(iconsDir, filename)
 
-	if _, err := os.Stat(destPath); err == nil {
-		if sha256Hash != "" && verifyFileHash(destPath, sha256Hash) {
+	if _, err := i.fs.Stat(destPath); err == nil {
+		if sha256Hash != "" && i.verifyFileHash(destPath, sha256Hash) {
 			return &InstalledIcon{Name: binaryName, Filename: filename, Path: destPath}, nil
 		}
 	}
 
-	if err := os.MkdirAll(iconsDir, 0755); err != nil {
+	if err := vfs.MkdirAll(i.fs, iconsDir, 0755); err != nil {
 		return nil, fmt.Errorf("creating icons dir: %w", err)
 	}
 
@@ -440,6 +447,7 @@ func (i *PackageInstaller) InstallIcon(ctx context.Context, binaryName, url, sha
 }
 
 type packageCache struct {
+	fs           vfs.FS
 	pkgDir       string
 	expectedHash string
 }
@@ -449,10 +457,10 @@ func (c *packageCache) markerPath() string {
 }
 
 func (c *packageCache) isValid(installedPath string) bool {
-	if _, err := os.Stat(installedPath); err != nil {
+	if _, err := c.fs.Stat(installedPath); err != nil {
 		return false
 	}
-	data, err := os.ReadFile(c.markerPath())
+	data, err := c.fs.ReadFile(c.markerPath())
 	if err != nil {
 		return false
 	}
@@ -460,20 +468,20 @@ func (c *packageCache) isValid(installedPath string) bool {
 }
 
 func (c *packageCache) invalidate() {
-	_ = os.RemoveAll(c.pkgDir)
+	_ = c.fs.RemoveAll(c.pkgDir)
 }
 
 func (c *packageCache) markValid() {
-	_ = os.WriteFile(c.markerPath(), []byte(c.expectedHash), 0644)
+	_ = c.fs.WriteFile(c.markerPath(), []byte(c.expectedHash), 0644)
 }
 
-func verifyFileHash(path, expectedHash string) bool {
+func (i *PackageInstaller) verifyFileHash(path, expectedHash string) bool {
 	expected, err := parseSHA256(expectedHash)
 	if err != nil {
 		return false
 	}
 
-	f, err := os.Open(path)
+	f, err := i.fs.Open(path)
 	if err != nil {
 		return false
 	}
@@ -488,7 +496,7 @@ func verifyFileHash(path, expectedHash string) bool {
 }
 
 func (i *PackageInstaller) GarbageCollect(keep map[string]string) error {
-	entries, err := os.ReadDir(i.packagesDir)
+	entries, err := i.fs.ReadDir(i.packagesDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -507,7 +515,7 @@ func (i *PackageInstaller) GarbageCollect(keep map[string]string) error {
 		}
 
 		keepVersion, wantKeep := keep[name]
-		versionDirs, err := os.ReadDir(filepath.Join(i.packagesDir, name))
+		versionDirs, err := i.fs.ReadDir(filepath.Join(i.packagesDir, name))
 		if err != nil {
 			continue
 		}
@@ -521,12 +529,12 @@ func (i *PackageInstaller) GarbageCollect(keep map[string]string) error {
 			}
 			toRemove := filepath.Join(i.packagesDir, name, vd.Name())
 			log.Info("Removing unused package: %s", toRemove)
-			_ = os.RemoveAll(toRemove)
+			_ = i.fs.RemoveAll(toRemove)
 		}
 
-		remaining, _ := os.ReadDir(filepath.Join(i.packagesDir, name))
+		remaining, _ := i.fs.ReadDir(filepath.Join(i.packagesDir, name))
 		if len(remaining) == 0 {
-			_ = os.Remove(filepath.Join(i.packagesDir, name))
+			_ = i.fs.Remove(filepath.Join(i.packagesDir, name))
 		}
 	}
 
@@ -578,9 +586,9 @@ func detectArchiveType(url string) string {
 	}
 }
 
-func findFile(root, filename string) (string, error) {
+func (i *PackageInstaller) findFile(root, filename string) (string, error) {
 	var found string
-	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+	err := vfs.Walk(i.fs, root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
@@ -590,7 +598,7 @@ func findFile(root, filename string) (string, error) {
 		}
 		return nil
 	})
-	if err != nil {
+	if err != nil && err != filepath.SkipAll {
 		return "", err
 	}
 	if found == "" {
@@ -599,32 +607,16 @@ func findFile(root, filename string) (string, error) {
 	return found, nil
 }
 
-func copyFileExec(src, dst string) error {
-	return copyFileMode(src, dst, 0755)
+func (i *PackageInstaller) copyFileExec(src, dst string) error {
+	return i.copyFileMode(src, dst, 0755)
 }
 
-func copyFileMode(src, dst string, mode os.FileMode) error {
-	in, err := os.Open(src)
+func (i *PackageInstaller) copyFileMode(src, dst string, mode os.FileMode) error {
+	data, err := i.fs.ReadFile(src)
 	if err != nil {
 		return err
 	}
-	defer func() { _ = in.Close() }()
-
-	out, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
-	if err != nil {
-		return err
-	}
-
-	if _, err := copyWithBuffer(out, in); err != nil {
-		_ = out.Close()
-		return err
-	}
-
-	return out.Close()
-}
-
-func copyWithBuffer(dst *os.File, src *os.File) (int64, error) {
-	return io.Copy(dst, src)
+	return i.fs.WriteFile(dst, data, mode)
 }
 
 type ConcurrentInstaller struct {

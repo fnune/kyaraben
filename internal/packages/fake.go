@@ -2,18 +2,24 @@ package packages
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 	"sync"
+
+	"github.com/twpayne/go-vfs/v5"
 
 	"github.com/fnune/kyaraben/internal/versions"
 )
 
 type FakeDownloader struct {
+	fs      vfs.FS
 	Content []byte
 	Error   error
 	Calls   []DownloadRequest
 	mu      sync.Mutex
+}
+
+func NewFakeDownloader(fs vfs.FS, content []byte) *FakeDownloader {
+	return &FakeDownloader{fs: fs, Content: content}
 }
 
 func (f *FakeDownloader) Download(ctx context.Context, req DownloadRequest) error {
@@ -23,15 +29,16 @@ func (f *FakeDownloader) Download(ctx context.Context, req DownloadRequest) erro
 	if f.Error != nil {
 		return f.Error
 	}
-	if err := os.MkdirAll(filepath.Dir(req.DestPath), 0755); err != nil {
+	if err := vfs.MkdirAll(f.fs, filepath.Dir(req.DestPath), 0755); err != nil {
 		return err
 	}
-	return os.WriteFile(req.DestPath, f.Content, 0644)
+	return f.fs.WriteFile(req.DestPath, f.Content, 0644)
 }
 
 var _ Downloader = (*FakeDownloader)(nil)
 
 type FakeExtractor struct {
+	fs    vfs.FS
 	Files map[string]string // relative path -> content
 	Error error
 	Calls []fakeExtractCall
@@ -43,6 +50,10 @@ type fakeExtractCall struct {
 	ArchiveType string
 }
 
+func NewFakeExtractor(fs vfs.FS, files map[string]string) *FakeExtractor {
+	return &FakeExtractor{fs: fs, Files: files}
+}
+
 func (f *FakeExtractor) Extract(archivePath, destDir, archiveType string) error {
 	f.Calls = append(f.Calls, fakeExtractCall{archivePath, destDir, archiveType})
 	if f.Error != nil {
@@ -50,10 +61,10 @@ func (f *FakeExtractor) Extract(archivePath, destDir, archiveType string) error 
 	}
 	for relPath, content := range f.Files {
 		fullPath := filepath.Join(destDir, relPath)
-		if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
+		if err := vfs.MkdirAll(f.fs, filepath.Dir(fullPath), 0755); err != nil {
 			return err
 		}
-		if err := os.WriteFile(fullPath, []byte(content), 0755); err != nil {
+		if err := f.fs.WriteFile(fullPath, []byte(content), 0755); err != nil {
 			return err
 		}
 	}
@@ -63,6 +74,7 @@ func (f *FakeExtractor) Extract(archivePath, destDir, archiveType string) error 
 var _ Extractor = (*FakeExtractor)(nil)
 
 type FakeInstaller struct {
+	fs           vfs.FS
 	Binaries     map[string]*InstalledBinary
 	Cores        []InstalledCore
 	Icons        map[string]*InstalledIcon
@@ -75,8 +87,9 @@ type FakeInstaller struct {
 	packagesDir  string
 }
 
-func NewFakeInstaller(dir string) *FakeInstaller {
+func NewFakeInstaller(fs vfs.FS, dir string) *FakeInstaller {
 	return &FakeInstaller{
+		fs:          fs,
 		Binaries:    make(map[string]*InstalledBinary),
 		Icons:       make(map[string]*InstalledIcon),
 		Installed:   make(map[string]bool),
@@ -93,10 +106,10 @@ func (f *FakeInstaller) InstallEmulator(ctx context.Context, name string, onProg
 		return b, nil
 	}
 	binPath := filepath.Join(f.packagesDir, name, "bin", name)
-	if err := os.MkdirAll(filepath.Dir(binPath), 0755); err != nil {
+	if err := vfs.MkdirAll(f.fs, filepath.Dir(binPath), 0755); err != nil {
 		return nil, err
 	}
-	if err := os.WriteFile(binPath, []byte("#!/bin/sh\n"), 0755); err != nil {
+	if err := f.fs.WriteFile(binPath, []byte("#!/bin/sh\n"), 0755); err != nil {
 		return nil, err
 	}
 	if f.Installed != nil {
@@ -113,7 +126,7 @@ func (f *FakeInstaller) InstallCores(ctx context.Context, coreNames []string, on
 		return f.Cores, nil
 	}
 	coresDir := filepath.Join(f.packagesDir, "retroarch-cores", "lib", "retroarch", "cores")
-	if err := os.MkdirAll(coresDir, 0755); err != nil {
+	if err := vfs.MkdirAll(f.fs, coresDir, 0755); err != nil {
 		return nil, err
 	}
 	coreFiles := versions.MustGet().RetroArchCores.Files
@@ -124,7 +137,7 @@ func (f *FakeInstaller) InstallCores(ctx context.Context, coreNames []string, on
 			filename = mapped
 		}
 		corePath := filepath.Join(coresDir, filename)
-		if err := os.WriteFile(corePath, []byte("fake core"), 0644); err != nil {
+		if err := f.fs.WriteFile(corePath, []byte("fake core"), 0644); err != nil {
 			return nil, err
 		}
 		installed = append(installed, InstalledCore{Filename: filename, Path: corePath})
@@ -140,10 +153,10 @@ func (f *FakeInstaller) InstallIcon(ctx context.Context, binaryName, url, sha256
 		return icon, nil
 	}
 	iconPath := filepath.Join(f.packagesDir, "icons", binaryName+".png")
-	if err := os.MkdirAll(filepath.Dir(iconPath), 0755); err != nil {
+	if err := vfs.MkdirAll(f.fs, filepath.Dir(iconPath), 0755); err != nil {
 		return nil, err
 	}
-	if err := os.WriteFile(iconPath, []byte("fake icon"), 0644); err != nil {
+	if err := f.fs.WriteFile(iconPath, []byte("fake icon"), 0644); err != nil {
 		return nil, err
 	}
 	return &InstalledIcon{Name: binaryName, Filename: binaryName + ".png", Path: iconPath}, nil

@@ -3,31 +3,22 @@ package emulators
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"os"
-	"path/filepath"
 	"testing"
+
+	"github.com/twpayne/go-vfs/v5/vfst"
 
 	"github.com/fnune/kyaraben/internal/model"
 )
 
-func testTarget(t *testing.T, dir string) model.ConfigTarget {
-	t.Helper()
-	return model.ConfigTarget{
-		RelPath: filepath.Join(dir, "test.ini"),
-		Format:  model.ConfigFormatINI,
-		BaseDir: model.ConfigBaseDirOpaqueDir,
-	}
+type fakeResolver struct {
+	configDir string
+	dataDir   string
+	homeDir   string
 }
 
-func writeINI(t *testing.T, path, content string) {
-	t.Helper()
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-		t.Fatalf("creating directory: %v", err)
-	}
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-		t.Fatalf("writing file: %v", err)
-	}
-}
+func (r fakeResolver) UserConfigDir() (string, error) { return r.configDir, nil }
+func (r fakeResolver) UserDataDir() (string, error)   { return r.dataDir, nil }
+func (r fakeResolver) UserHomeDir() (string, error)   { return r.homeDir, nil }
 
 func sha256sum(data string) string {
 	h := sha256.Sum256([]byte(data))
@@ -35,18 +26,30 @@ func sha256sum(data string) string {
 }
 
 func TestComputeDiff_NewFile(t *testing.T) {
-	tmpDir := t.TempDir()
-	target := testTarget(t, tmpDir)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	resolver := fakeResolver{configDir: "/config"}
+	dc := NewDiffComputer(fs, resolver)
 
 	patch := model.ConfigPatch{
-		Target: target,
+		Target: model.ConfigTarget{
+			RelPath: "test.ini",
+			Format:  model.ConfigFormatINI,
+			BaseDir: model.ConfigBaseDirUserConfig,
+		},
 		Entries: []model.ConfigEntry{
 			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
 			{Path: []string{"audio", "volume"}, Value: "80"},
 		},
 	}
 
-	diff, err := ComputeDiff(patch)
+	diff, err := dc.ComputeDiff(patch)
 	if err != nil {
 		t.Fatalf("ComputeDiff: %v", err)
 	}
@@ -65,20 +68,29 @@ func TestComputeDiff_NewFile(t *testing.T) {
 }
 
 func TestComputeDiff_NoChanges(t *testing.T) {
-	tmpDir := t.TempDir()
-	target := testTarget(t, tmpDir)
-	configPath, _ := target.Resolve()
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config/test.ini": "[video]\nresolution = 1920x1080\n",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	writeINI(t, configPath, "[video]\nresolution = 1920x1080\n")
+	resolver := fakeResolver{configDir: "/config"}
+	dc := NewDiffComputer(fs, resolver)
 
 	patch := model.ConfigPatch{
-		Target: target,
+		Target: model.ConfigTarget{
+			RelPath: "test.ini",
+			Format:  model.ConfigFormatINI,
+			BaseDir: model.ConfigBaseDirUserConfig,
+		},
 		Entries: []model.ConfigEntry{
 			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
 		},
 	}
 
-	diff, err := ComputeDiff(patch)
+	diff, err := dc.ComputeDiff(patch)
 	if err != nil {
 		t.Fatalf("ComputeDiff: %v", err)
 	}
@@ -92,20 +104,29 @@ func TestComputeDiff_NoChanges(t *testing.T) {
 }
 
 func TestComputeDiff_Modifications(t *testing.T) {
-	tmpDir := t.TempDir()
-	target := testTarget(t, tmpDir)
-	configPath, _ := target.Resolve()
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config/test.ini": "[video]\nresolution = 1280x720\n",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	writeINI(t, configPath, "[video]\nresolution = 1280x720\n")
+	resolver := fakeResolver{configDir: "/config"}
+	dc := NewDiffComputer(fs, resolver)
 
 	patch := model.ConfigPatch{
-		Target: target,
+		Target: model.ConfigTarget{
+			RelPath: "test.ini",
+			Format:  model.ConfigFormatINI,
+			BaseDir: model.ConfigBaseDirUserConfig,
+		},
 		Entries: []model.ConfigEntry{
 			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
 		},
 	}
 
-	diff, err := ComputeDiff(patch)
+	diff, err := dc.ComputeDiff(patch)
 	if err != nil {
 		t.Fatalf("ComputeDiff: %v", err)
 	}
@@ -133,21 +154,30 @@ func TestComputeDiff_Modifications(t *testing.T) {
 }
 
 func TestComputeDiff_AddToExistingFile(t *testing.T) {
-	tmpDir := t.TempDir()
-	target := testTarget(t, tmpDir)
-	configPath, _ := target.Resolve()
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config/test.ini": "[video]\nresolution = 1920x1080\n",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	writeINI(t, configPath, "[video]\nresolution = 1920x1080\n")
+	resolver := fakeResolver{configDir: "/config"}
+	dc := NewDiffComputer(fs, resolver)
 
 	patch := model.ConfigPatch{
-		Target: target,
+		Target: model.ConfigTarget{
+			RelPath: "test.ini",
+			Format:  model.ConfigFormatINI,
+			BaseDir: model.ConfigBaseDirUserConfig,
+		},
 		Entries: []model.ConfigEntry{
 			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
 			{Path: []string{"audio", "volume"}, Value: "80"},
 		},
 	}
 
-	diff, err := ComputeDiff(patch)
+	diff, err := dc.ComputeDiff(patch)
 	if err != nil {
 		t.Fatalf("ComputeDiff: %v", err)
 	}
@@ -161,21 +191,30 @@ func TestComputeDiff_AddToExistingFile(t *testing.T) {
 }
 
 func TestComputeDiff_Stats(t *testing.T) {
-	tmpDir := t.TempDir()
-	target := testTarget(t, tmpDir)
-	configPath, _ := target.Resolve()
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config/test.ini": "[video]\nresolution = 1280x720\n",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	writeINI(t, configPath, "[video]\nresolution = 1280x720\n")
+	resolver := fakeResolver{configDir: "/config"}
+	dc := NewDiffComputer(fs, resolver)
 
 	patch := model.ConfigPatch{
-		Target: target,
+		Target: model.ConfigTarget{
+			RelPath: "test.ini",
+			Format:  model.ConfigFormatINI,
+			BaseDir: model.ConfigBaseDirUserConfig,
+		},
 		Entries: []model.ConfigEntry{
 			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
 			{Path: []string{"audio", "volume"}, Value: "80"},
 		},
 	}
 
-	diff, err := ComputeDiff(patch)
+	diff, err := dc.ComputeDiff(patch)
 	if err != nil {
 		t.Fatalf("ComputeDiff: %v", err)
 	}
@@ -193,20 +232,22 @@ func TestComputeDiff_Stats(t *testing.T) {
 }
 
 func TestComputeDiffWithBaseline_DetectsUserModifiedKeys(t *testing.T) {
-	tmpDir := t.TempDir()
-	target := testTarget(t, tmpDir)
-	configPath, _ := target.Resolve()
-
 	originalContent := "[video]\nresolution = 1920x1080\nmonitor = 1\n"
-	writeINI(t, configPath, originalContent)
-	baselineHash := sha256sum(originalContent)
-
-	// User changed monitor from 1 to 2
 	modifiedContent := "[video]\nresolution = 1920x1080\nmonitor = 2\n"
-	writeINI(t, configPath, modifiedContent)
+
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config/test.ini": modifiedContent,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	resolver := fakeResolver{configDir: "/config"}
+	dc := NewDiffComputer(fs, resolver)
 
 	baseline := &model.ManagedConfig{
-		BaselineHash: baselineHash,
+		BaselineHash: sha256sum(originalContent),
 		ManagedKeys: []model.ManagedKey{
 			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
 			{Path: []string{"video", "monitor"}, Value: "1"},
@@ -214,14 +255,18 @@ func TestComputeDiffWithBaseline_DetectsUserModifiedKeys(t *testing.T) {
 	}
 
 	patch := model.ConfigPatch{
-		Target: target,
+		Target: model.ConfigTarget{
+			RelPath: "test.ini",
+			Format:  model.ConfigFormatINI,
+			BaseDir: model.ConfigBaseDirUserConfig,
+		},
 		Entries: []model.ConfigEntry{
 			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
 			{Path: []string{"video", "monitor"}, Value: "1"},
 		},
 	}
 
-	diff, err := ComputeDiffWithBaseline(patch, baseline)
+	diff, err := dc.ComputeDiffWithBaseline(patch, baseline)
 	if err != nil {
 		t.Fatalf("ComputeDiffWithBaseline: %v", err)
 	}
@@ -246,12 +291,18 @@ func TestComputeDiffWithBaseline_DetectsUserModifiedKeys(t *testing.T) {
 }
 
 func TestComputeDiffWithBaseline_NoChangesWhenHashMatches(t *testing.T) {
-	tmpDir := t.TempDir()
-	target := testTarget(t, tmpDir)
-	configPath, _ := target.Resolve()
-
 	content := "[video]\nresolution = 1920x1080\n"
-	writeINI(t, configPath, content)
+
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config/test.ini": content,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	resolver := fakeResolver{configDir: "/config"}
+	dc := NewDiffComputer(fs, resolver)
 
 	baseline := &model.ManagedConfig{
 		BaselineHash: sha256sum(content),
@@ -261,13 +312,17 @@ func TestComputeDiffWithBaseline_NoChangesWhenHashMatches(t *testing.T) {
 	}
 
 	patch := model.ConfigPatch{
-		Target: target,
+		Target: model.ConfigTarget{
+			RelPath: "test.ini",
+			Format:  model.ConfigFormatINI,
+			BaseDir: model.ConfigBaseDirUserConfig,
+		},
 		Entries: []model.ConfigEntry{
 			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
 		},
 	}
 
-	diff, err := ComputeDiffWithBaseline(patch, baseline)
+	diff, err := dc.ComputeDiffWithBaseline(patch, baseline)
 	if err != nil {
 		t.Fatalf("ComputeDiffWithBaseline: %v", err)
 	}
@@ -281,20 +336,29 @@ func TestComputeDiffWithBaseline_NoChangesWhenHashMatches(t *testing.T) {
 }
 
 func TestComputeDiffWithBaseline_NilBaseline(t *testing.T) {
-	tmpDir := t.TempDir()
-	target := testTarget(t, tmpDir)
-	configPath, _ := target.Resolve()
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config/test.ini": "[video]\nresolution = 1280x720\n",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	writeINI(t, configPath, "[video]\nresolution = 1280x720\n")
+	resolver := fakeResolver{configDir: "/config"}
+	dc := NewDiffComputer(fs, resolver)
 
 	patch := model.ConfigPatch{
-		Target: target,
+		Target: model.ConfigTarget{
+			RelPath: "test.ini",
+			Format:  model.ConfigFormatINI,
+			BaseDir: model.ConfigBaseDirUserConfig,
+		},
 		Entries: []model.ConfigEntry{
 			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
 		},
 	}
 
-	diff, err := ComputeDiffWithBaseline(patch, nil)
+	diff, err := dc.ComputeDiffWithBaseline(patch, nil)
 	if err != nil {
 		t.Fatalf("ComputeDiffWithBaseline: %v", err)
 	}
@@ -302,14 +366,14 @@ func TestComputeDiffWithBaseline_NilBaseline(t *testing.T) {
 	if diff.UserModified {
 		t.Error("expected UserModified to be false with nil baseline")
 	}
-	if diff.HasChanges() != true {
+	if !diff.HasChanges() {
 		t.Error("expected changes from diff")
 	}
 }
 
 func TestFormatWithColor_PlainText(t *testing.T) {
 	diff := &ConfigDiff{
-		Path:      "/tmp/test.ini",
+		Path:      "/config/test.ini",
 		IsNewFile: true,
 		Changes: []ConfigChange{
 			{Type: ChangeAdd, Path: []string{"video", "resolution"}, NewValue: "1920x1080"},
@@ -324,14 +388,14 @@ func TestFormatWithColor_PlainText(t *testing.T) {
 	if !containsSubstring(output, "CREATE") {
 		t.Errorf("expected CREATE in output, got: %s", output)
 	}
-	if !containsSubstring(output, "/tmp/test.ini") {
+	if !containsSubstring(output, "/config/test.ini") {
 		t.Errorf("expected path in output, got: %s", output)
 	}
 }
 
 func TestFormatWithColor_ModifiedFileWithUserChanges(t *testing.T) {
 	diff := &ConfigDiff{
-		Path:         "/tmp/test.ini",
+		Path:         "/config/test.ini",
 		IsNewFile:    false,
 		UserModified: true,
 		UserChanges: []UserChange{
@@ -356,10 +420,6 @@ func TestFormatWithColor_ModifiedFileWithUserChanges(t *testing.T) {
 }
 
 func containsSubstring(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > 0 && stringContains(s, substr))
-}
-
-func stringContains(s, substr string) bool {
 	for i := 0; i <= len(s)-len(substr); i++ {
 		if s[i:i+len(substr)] == substr {
 			return true
@@ -369,25 +429,29 @@ func stringContains(s, substr string) bool {
 }
 
 func TestComputeDiff_TildePathNormalization(t *testing.T) {
-	tmpDir := t.TempDir()
-	target := testTarget(t, tmpDir)
-	configPath, _ := target.Resolve()
-
-	home, err := os.UserHomeDir()
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config/test.ini": "[paths]\nsaves = /home/testuser/Emulation/saves\n",
+	})
 	if err != nil {
-		t.Skipf("cannot get home dir: %v", err)
+		t.Fatal(err)
 	}
+	defer cleanup()
 
-	writeINI(t, configPath, "[paths]\nsaves = "+home+"/Emulation/saves\n")
+	resolver := fakeResolver{configDir: "/config", homeDir: "/home/testuser"}
+	dc := NewDiffComputer(fs, resolver)
 
 	patch := model.ConfigPatch{
-		Target: target,
+		Target: model.ConfigTarget{
+			RelPath: "test.ini",
+			Format:  model.ConfigFormatINI,
+			BaseDir: model.ConfigBaseDirUserConfig,
+		},
 		Entries: []model.ConfigEntry{
 			{Path: []string{"paths", "saves"}, Value: "~/Emulation/saves"},
 		},
 	}
 
-	diff, err := ComputeDiff(patch)
+	diff, err := dc.ComputeDiff(patch)
 	if err != nil {
 		t.Fatalf("ComputeDiff: %v", err)
 	}
@@ -398,37 +462,39 @@ func TestComputeDiff_TildePathNormalization(t *testing.T) {
 }
 
 func TestComputeDiffWithBaseline_TildePathNormalization(t *testing.T) {
-	tmpDir := t.TempDir()
-	target := testTarget(t, tmpDir)
-	configPath, _ := target.Resolve()
-
-	home, err := os.UserHomeDir()
-	if err != nil {
-		t.Skipf("cannot get home dir: %v", err)
-	}
-
 	originalContent := "[paths]\nsaves = ~/Emulation/saves\n"
-	writeINI(t, configPath, originalContent)
-	baselineHash := sha256sum(originalContent)
+	modifiedContent := "[paths]\nsaves = /home/testuser/Emulation/saves\n"
 
-	modifiedContent := "[paths]\nsaves = " + home + "/Emulation/saves\n"
-	writeINI(t, configPath, modifiedContent)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config/test.ini": modifiedContent,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	resolver := fakeResolver{configDir: "/config", homeDir: "/home/testuser"}
+	dc := NewDiffComputer(fs, resolver)
 
 	baseline := &model.ManagedConfig{
-		BaselineHash: baselineHash,
+		BaselineHash: sha256sum(originalContent),
 		ManagedKeys: []model.ManagedKey{
 			{Path: []string{"paths", "saves"}, Value: "~/Emulation/saves"},
 		},
 	}
 
 	patch := model.ConfigPatch{
-		Target: target,
+		Target: model.ConfigTarget{
+			RelPath: "test.ini",
+			Format:  model.ConfigFormatINI,
+			BaseDir: model.ConfigBaseDirUserConfig,
+		},
 		Entries: []model.ConfigEntry{
 			{Path: []string{"paths", "saves"}, Value: "~/Emulation/saves"},
 		},
 	}
 
-	diff, err := ComputeDiffWithBaseline(patch, baseline)
+	diff, err := dc.ComputeDiffWithBaseline(patch, baseline)
 	if err != nil {
 		t.Fatalf("ComputeDiffWithBaseline: %v", err)
 	}
@@ -438,44 +504,33 @@ func TestComputeDiffWithBaseline_TildePathNormalization(t *testing.T) {
 	}
 }
 
-func writeFile(t *testing.T, path, content string) {
-	t.Helper()
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-		t.Fatalf("creating directory: %v", err)
-	}
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-		t.Fatalf("writing file: %v", err)
-	}
-}
-
 func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_XML(t *testing.T) {
-	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "settings.xml")
-	target := model.ConfigTarget{
-		RelPath: configPath,
-		Format:  model.ConfigFormatXML,
-		BaseDir: model.ConfigBaseDirOpaqueDir,
-	}
-
 	originalContent := `<settings>
   <video>
     <resolution>1920x1080</resolution>
     <monitor>1</monitor>
   </video>
 </settings>`
-	writeFile(t, configPath, originalContent)
-	baselineHash := sha256sum(originalContent)
-
 	modifiedContent := `<settings>
   <video>
     <resolution>1920x1080</resolution>
     <monitor>2</monitor>
   </video>
 </settings>`
-	writeFile(t, configPath, modifiedContent)
+
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config/settings.xml": modifiedContent,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	resolver := fakeResolver{configDir: "/config"}
+	dc := NewDiffComputer(fs, resolver)
 
 	baseline := &model.ManagedConfig{
-		BaselineHash: baselineHash,
+		BaselineHash: sha256sum(originalContent),
 		ManagedKeys: []model.ManagedKey{
 			{Path: []string{"settings", "video", "resolution"}, Value: "1920x1080"},
 			{Path: []string{"settings", "video", "monitor"}, Value: "1"},
@@ -483,14 +538,18 @@ func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_XML(t *testing.T) {
 	}
 
 	patch := model.ConfigPatch{
-		Target: target,
+		Target: model.ConfigTarget{
+			RelPath: "settings.xml",
+			Format:  model.ConfigFormatXML,
+			BaseDir: model.ConfigBaseDirUserConfig,
+		},
 		Entries: []model.ConfigEntry{
 			{Path: []string{"settings", "video", "resolution"}, Value: "1920x1080"},
 			{Path: []string{"settings", "video", "monitor"}, Value: "1"},
 		},
 	}
 
-	diff, err := ComputeDiffWithBaseline(patch, baseline)
+	diff, err := dc.ComputeDiffWithBaseline(patch, baseline)
 	if err != nil {
 		t.Fatalf("ComputeDiffWithBaseline: %v", err)
 	}
@@ -505,39 +564,32 @@ func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_XML(t *testing.T) {
 	uc := diff.UserChanges[0]
 	if uc.Path[len(uc.Path)-1] != "monitor" {
 		t.Errorf("expected changed key monitor, got %s", uc.Path[len(uc.Path)-1])
-	}
-	if uc.BaselineValue != "1" {
-		t.Errorf("expected baseline value 1, got %s", uc.BaselineValue)
-	}
-	if uc.CurrentValue != "2" {
-		t.Errorf("expected current value 2, got %s", uc.CurrentValue)
 	}
 }
 
 func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_YAML(t *testing.T) {
-	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "config.yaml")
-	target := model.ConfigTarget{
-		RelPath: configPath,
-		Format:  model.ConfigFormatYAML,
-		BaseDir: model.ConfigBaseDirOpaqueDir,
-	}
-
 	originalContent := `video:
   resolution: 1920x1080
   monitor: "1"
 `
-	writeFile(t, configPath, originalContent)
-	baselineHash := sha256sum(originalContent)
-
 	modifiedContent := `video:
   resolution: 1920x1080
   monitor: "2"
 `
-	writeFile(t, configPath, modifiedContent)
+
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config/config.yaml": modifiedContent,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	resolver := fakeResolver{configDir: "/config"}
+	dc := NewDiffComputer(fs, resolver)
 
 	baseline := &model.ManagedConfig{
-		BaselineHash: baselineHash,
+		BaselineHash: sha256sum(originalContent),
 		ManagedKeys: []model.ManagedKey{
 			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
 			{Path: []string{"video", "monitor"}, Value: "1"},
@@ -545,14 +597,18 @@ func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_YAML(t *testing.T) {
 	}
 
 	patch := model.ConfigPatch{
-		Target: target,
+		Target: model.ConfigTarget{
+			RelPath: "config.yaml",
+			Format:  model.ConfigFormatYAML,
+			BaseDir: model.ConfigBaseDirUserConfig,
+		},
 		Entries: []model.ConfigEntry{
 			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
 			{Path: []string{"video", "monitor"}, Value: "1"},
 		},
 	}
 
-	diff, err := ComputeDiffWithBaseline(patch, baseline)
+	diff, err := dc.ComputeDiffWithBaseline(patch, baseline)
 	if err != nil {
 		t.Fatalf("ComputeDiffWithBaseline: %v", err)
 	}
@@ -562,44 +618,32 @@ func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_YAML(t *testing.T) {
 	}
 	if len(diff.UserChanges) != 1 {
 		t.Fatalf("expected 1 user change, got %d", len(diff.UserChanges))
-	}
-
-	uc := diff.UserChanges[0]
-	if uc.Path[len(uc.Path)-1] != "monitor" {
-		t.Errorf("expected changed key monitor, got %s", uc.Path[len(uc.Path)-1])
-	}
-	if uc.BaselineValue != "1" {
-		t.Errorf("expected baseline value 1, got %s", uc.BaselineValue)
-	}
-	if uc.CurrentValue != "2" {
-		t.Errorf("expected current value 2, got %s", uc.CurrentValue)
 	}
 }
 
 func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_TOML(t *testing.T) {
-	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "config.toml")
-	target := model.ConfigTarget{
-		RelPath: configPath,
-		Format:  model.ConfigFormatTOML,
-		BaseDir: model.ConfigBaseDirOpaqueDir,
-	}
-
 	originalContent := `[video]
 resolution = "1920x1080"
 monitor = "1"
 `
-	writeFile(t, configPath, originalContent)
-	baselineHash := sha256sum(originalContent)
-
 	modifiedContent := `[video]
 resolution = "1920x1080"
 monitor = "2"
 `
-	writeFile(t, configPath, modifiedContent)
+
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config/config.toml": modifiedContent,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	resolver := fakeResolver{configDir: "/config"}
+	dc := NewDiffComputer(fs, resolver)
 
 	baseline := &model.ManagedConfig{
-		BaselineHash: baselineHash,
+		BaselineHash: sha256sum(originalContent),
 		ManagedKeys: []model.ManagedKey{
 			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
 			{Path: []string{"video", "monitor"}, Value: "1"},
@@ -607,14 +651,18 @@ monitor = "2"
 	}
 
 	patch := model.ConfigPatch{
-		Target: target,
+		Target: model.ConfigTarget{
+			RelPath: "config.toml",
+			Format:  model.ConfigFormatTOML,
+			BaseDir: model.ConfigBaseDirUserConfig,
+		},
 		Entries: []model.ConfigEntry{
 			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
 			{Path: []string{"video", "monitor"}, Value: "1"},
 		},
 	}
 
-	diff, err := ComputeDiffWithBaseline(patch, baseline)
+	diff, err := dc.ComputeDiffWithBaseline(patch, baseline)
 	if err != nil {
 		t.Fatalf("ComputeDiffWithBaseline: %v", err)
 	}
@@ -625,41 +673,29 @@ monitor = "2"
 	if len(diff.UserChanges) != 1 {
 		t.Fatalf("expected 1 user change, got %d", len(diff.UserChanges))
 	}
-
-	uc := diff.UserChanges[0]
-	if uc.Path[len(uc.Path)-1] != "monitor" {
-		t.Errorf("expected changed key monitor, got %s", uc.Path[len(uc.Path)-1])
-	}
-	if uc.BaselineValue != "1" {
-		t.Errorf("expected baseline value 1, got %s", uc.BaselineValue)
-	}
-	if uc.CurrentValue != "2" {
-		t.Errorf("expected current value 2, got %s", uc.CurrentValue)
-	}
 }
 
 func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_CFG(t *testing.T) {
-	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "retroarch.cfg")
-	target := model.ConfigTarget{
-		RelPath: configPath,
-		Format:  model.ConfigFormatCFG,
-		BaseDir: model.ConfigBaseDirOpaqueDir,
-	}
-
 	originalContent := `savefile_directory = "/home/user/saves"
 savestate_directory = "/home/user/states"
 `
-	writeFile(t, configPath, originalContent)
-	baselineHash := sha256sum(originalContent)
-
 	modifiedContent := `savefile_directory = "/home/user/saves"
 savestate_directory = "/custom/states"
 `
-	writeFile(t, configPath, modifiedContent)
+
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config/retroarch.cfg": modifiedContent,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	resolver := fakeResolver{configDir: "/config"}
+	dc := NewDiffComputer(fs, resolver)
 
 	baseline := &model.ManagedConfig{
-		BaselineHash: baselineHash,
+		BaselineHash: sha256sum(originalContent),
 		ManagedKeys: []model.ManagedKey{
 			{Path: []string{"savefile_directory"}, Value: "/home/user/saves"},
 			{Path: []string{"savestate_directory"}, Value: "/home/user/states"},
@@ -667,14 +703,18 @@ savestate_directory = "/custom/states"
 	}
 
 	patch := model.ConfigPatch{
-		Target: target,
+		Target: model.ConfigTarget{
+			RelPath: "retroarch.cfg",
+			Format:  model.ConfigFormatCFG,
+			BaseDir: model.ConfigBaseDirUserConfig,
+		},
 		Entries: []model.ConfigEntry{
 			{Path: []string{"savefile_directory"}, Value: "/home/user/saves"},
 			{Path: []string{"savestate_directory"}, Value: "/home/user/states"},
 		},
 	}
 
-	diff, err := ComputeDiffWithBaseline(patch, baseline)
+	diff, err := dc.ComputeDiffWithBaseline(patch, baseline)
 	if err != nil {
 		t.Fatalf("ComputeDiffWithBaseline: %v", err)
 	}

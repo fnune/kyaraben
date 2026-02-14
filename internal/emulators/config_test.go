@@ -1,10 +1,11 @@
 package emulators
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/twpayne/go-vfs/v5/vfst"
 
 	"github.com/fnune/kyaraben/internal/emulators/cemu"
 	"github.com/fnune/kyaraben/internal/emulators/dolphin"
@@ -90,17 +91,6 @@ func TestDuckStationGenerate(t *testing.T) {
 
 	if !strings.Contains(patch.Target.RelPath, "duckstation") {
 		t.Errorf("expected RelPath to contain 'duckstation', got %s", patch.Target.RelPath)
-	}
-
-	path, err := patch.Target.Resolve()
-	if err != nil {
-		t.Fatalf("Resolve() error = %v", err)
-	}
-
-	configDir, _ := os.UserConfigDir()
-	expectedPath := filepath.Join(configDir, "duckstation", "settings.ini")
-	if path != expectedPath {
-		t.Errorf("resolved path = %q, want %q", path, expectedPath)
 	}
 
 	expectedKeys := map[string]bool{
@@ -298,7 +288,7 @@ func TestDolphinGenerate(t *testing.T) {
 
 func TestDolphinSymlinks(t *testing.T) {
 	store := &fakeStoreReader{root: "/emulation"}
-	resolver := fakeBaseDirResolver{root: "/home/user"}
+	resolver := fakeBaseDirResolver{configDir: "/home/user/.config", homeDir: "/home/user", dataDir: "/home/user/.local/share"}
 	gen := dolphin.Definition{}.ConfigGenerator()
 
 	provider, ok := gen.(model.SymlinkProvider)
@@ -617,7 +607,7 @@ func TestGeneratedEntriesContainStorePaths(t *testing.T) {
 
 func TestCemuSymlinks(t *testing.T) {
 	store := &fakeStoreReader{root: "/emulation"}
-	resolver := fakeBaseDirResolver{root: "/home/user"}
+	resolver := fakeBaseDirResolver{configDir: "/home/user/.config", homeDir: "/home/user", dataDir: "/home/user/.local/share"}
 	gen := cemu.Definition{}.ConfigGenerator()
 
 	provider, ok := gen.(model.SymlinkProvider)
@@ -682,7 +672,7 @@ func TestEdenGenerate(t *testing.T) {
 
 func TestEdenSymlinks(t *testing.T) {
 	store := &fakeStoreReader{root: "/emulation"}
-	resolver := fakeBaseDirResolver{root: "/home/user"}
+	resolver := fakeBaseDirResolver{configDir: "/home/user/.config", homeDir: "/home/user", dataDir: "/home/user/.local/share"}
 	gen := eden.Definition{}.ConfigGenerator()
 
 	provider, ok := gen.(model.SymlinkProvider)
@@ -720,36 +710,41 @@ func TestEdenSymlinks(t *testing.T) {
 }
 
 type fakeBaseDirResolver struct {
-	root string
+	configDir string
+	homeDir   string
+	dataDir   string
 }
 
 func (f fakeBaseDirResolver) UserConfigDir() (string, error) {
-	return filepath.Join(f.root, ".config"), nil
+	return f.configDir, nil
 }
 
 func (f fakeBaseDirResolver) UserHomeDir() (string, error) {
-	return f.root, nil
+	return f.homeDir, nil
 }
 
 func (f fakeBaseDirResolver) UserDataDir() (string, error) {
-	return filepath.Join(f.root, ".local", "share"), nil
+	return f.dataDir, nil
 }
 
 func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
-	tmpDir := t.TempDir()
-	writer := NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
-
 	t.Run("CFG format", func(t *testing.T) {
-		path := filepath.Join(tmpDir, "test.cfg")
-		if err := os.WriteFile(path, []byte("menu_driver = \"ozone\"\n"), 0644); err != nil {
+		fs, cleanup, err := vfst.NewTestFS(map[string]any{
+			"/config/test.cfg": "menu_driver = \"ozone\"\n",
+		})
+		if err != nil {
 			t.Fatal(err)
 		}
+		defer cleanup()
+
+		resolver := fakeBaseDirResolver{configDir: "/config"}
+		writer := NewConfigWriter(fs, resolver)
 
 		patch := model.ConfigPatch{
 			Target: model.ConfigTarget{
-				RelPath: path,
+				RelPath: "test.cfg",
 				Format:  model.ConfigFormatCFG,
-				BaseDir: model.ConfigBaseDirOpaqueDir,
+				BaseDir: model.ConfigBaseDirUserConfig,
 			},
 			Entries: []model.ConfigEntry{
 				{Path: []string{"menu_driver"}, Value: "rgui", Unmanaged: true},
@@ -761,7 +756,7 @@ func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		content, _ := os.ReadFile(path)
+		content, _ := fs.ReadFile("/config/test.cfg")
 		if !strings.Contains(string(content), `menu_driver = "ozone"`) {
 			t.Errorf("unmanaged entry was overwritten: %s", content)
 		}
@@ -771,13 +766,22 @@ func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
 	})
 
 	t.Run("CFG format fresh file", func(t *testing.T) {
-		path := filepath.Join(tmpDir, "fresh.cfg")
+		fs, cleanup, err := vfst.NewTestFS(map[string]any{
+			"/config": &vfst.Dir{Perm: 0755},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer cleanup()
+
+		resolver := fakeBaseDirResolver{configDir: "/config"}
+		writer := NewConfigWriter(fs, resolver)
 
 		patch := model.ConfigPatch{
 			Target: model.ConfigTarget{
-				RelPath: path,
+				RelPath: "fresh.cfg",
 				Format:  model.ConfigFormatCFG,
-				BaseDir: model.ConfigBaseDirOpaqueDir,
+				BaseDir: model.ConfigBaseDirUserConfig,
 			},
 			Entries: []model.ConfigEntry{
 				{Path: []string{"menu_driver"}, Value: "rgui", Unmanaged: true},
@@ -788,23 +792,29 @@ func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		content, _ := os.ReadFile(path)
+		content, _ := fs.ReadFile("/config/fresh.cfg")
 		if !strings.Contains(string(content), `menu_driver = "rgui"`) {
 			t.Errorf("unmanaged entry was not written to fresh file: %s", content)
 		}
 	})
 
 	t.Run("INI format", func(t *testing.T) {
-		path := filepath.Join(tmpDir, "test.ini")
-		if err := os.WriteFile(path, []byte("[Section]\nkey = existing\n"), 0644); err != nil {
+		fs, cleanup, err := vfst.NewTestFS(map[string]any{
+			"/config/test.ini": "[Section]\nkey = existing\n",
+		})
+		if err != nil {
 			t.Fatal(err)
 		}
+		defer cleanup()
+
+		resolver := fakeBaseDirResolver{configDir: "/config"}
+		writer := NewConfigWriter(fs, resolver)
 
 		patch := model.ConfigPatch{
 			Target: model.ConfigTarget{
-				RelPath: path,
+				RelPath: "test.ini",
 				Format:  model.ConfigFormatINI,
-				BaseDir: model.ConfigBaseDirOpaqueDir,
+				BaseDir: model.ConfigBaseDirUserConfig,
 			},
 			Entries: []model.ConfigEntry{
 				{Path: []string{"Section", "key"}, Value: "new", Unmanaged: true},
@@ -816,7 +826,7 @@ func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		content, _ := os.ReadFile(path)
+		content, _ := fs.ReadFile("/config/test.ini")
 		if !strings.Contains(string(content), "key = existing") {
 			t.Errorf("unmanaged entry was overwritten: %s", content)
 		}
@@ -826,16 +836,22 @@ func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
 	})
 
 	t.Run("YAML format", func(t *testing.T) {
-		path := filepath.Join(tmpDir, "test.yaml")
-		if err := os.WriteFile(path, []byte("nested:\n  key: existing\n"), 0644); err != nil {
+		fs, cleanup, err := vfst.NewTestFS(map[string]any{
+			"/config/test.yaml": "nested:\n  key: existing\n",
+		})
+		if err != nil {
 			t.Fatal(err)
 		}
+		defer cleanup()
+
+		resolver := fakeBaseDirResolver{configDir: "/config"}
+		writer := NewConfigWriter(fs, resolver)
 
 		patch := model.ConfigPatch{
 			Target: model.ConfigTarget{
-				RelPath: path,
+				RelPath: "test.yaml",
 				Format:  model.ConfigFormatYAML,
-				BaseDir: model.ConfigBaseDirOpaqueDir,
+				BaseDir: model.ConfigBaseDirUserConfig,
 			},
 			Entries: []model.ConfigEntry{
 				{Path: []string{"nested", "key"}, Value: "new", Unmanaged: true},
@@ -847,7 +863,7 @@ func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		content, _ := os.ReadFile(path)
+		content, _ := fs.ReadFile("/config/test.yaml")
 		if !strings.Contains(string(content), "key: existing") {
 			t.Errorf("unmanaged entry was overwritten: %s", content)
 		}
@@ -857,16 +873,22 @@ func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
 	})
 
 	t.Run("XML format", func(t *testing.T) {
-		path := filepath.Join(tmpDir, "test.xml")
-		if err := os.WriteFile(path, []byte("<root><key>existing</key></root>"), 0644); err != nil {
+		fs, cleanup, err := vfst.NewTestFS(map[string]any{
+			"/config/test.xml": "<root><key>existing</key></root>",
+		})
+		if err != nil {
 			t.Fatal(err)
 		}
+		defer cleanup()
+
+		resolver := fakeBaseDirResolver{configDir: "/config"}
+		writer := NewConfigWriter(fs, resolver)
 
 		patch := model.ConfigPatch{
 			Target: model.ConfigTarget{
-				RelPath: path,
+				RelPath: "test.xml",
 				Format:  model.ConfigFormatXML,
-				BaseDir: model.ConfigBaseDirOpaqueDir,
+				BaseDir: model.ConfigBaseDirUserConfig,
 			},
 			Entries: []model.ConfigEntry{
 				{Path: []string{"root", "key"}, Value: "new", Unmanaged: true},
@@ -878,7 +900,7 @@ func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		content, _ := os.ReadFile(path)
+		content, _ := fs.ReadFile("/config/test.xml")
 		if !strings.Contains(string(content), "<key>existing</key>") {
 			t.Errorf("unmanaged entry was overwritten: %s", content)
 		}
@@ -888,26 +910,40 @@ func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
 	})
 }
 
-func TestConfigTargetResolveIntegration(t *testing.T) {
-	targets := []model.ConfigTarget{
-		{RelPath: "test/config.ini", Format: model.ConfigFormatINI, BaseDir: model.ConfigBaseDirUserConfig},
-		{RelPath: "test/config.cfg", Format: model.ConfigFormatCFG, BaseDir: model.ConfigBaseDirUserData},
-		{RelPath: ".testrc", Format: model.ConfigFormatINI, BaseDir: model.ConfigBaseDirHome},
+func TestConfigTargetResolve(t *testing.T) {
+	resolver := fakeBaseDirResolver{
+		configDir: "/home/user/.config",
+		homeDir:   "/home/user",
+		dataDir:   "/home/user/.local/share",
 	}
 
-	for _, target := range targets {
-		path, err := target.Resolve()
+	tests := []struct {
+		target   model.ConfigTarget
+		expected string
+	}{
+		{
+			target:   model.ConfigTarget{RelPath: "test/config.ini", BaseDir: model.ConfigBaseDirUserConfig},
+			expected: "/home/user/.config/test/config.ini",
+		},
+		{
+			target:   model.ConfigTarget{RelPath: "test/config.cfg", BaseDir: model.ConfigBaseDirUserData},
+			expected: "/home/user/.local/share/test/config.cfg",
+		},
+		{
+			target:   model.ConfigTarget{RelPath: ".testrc", BaseDir: model.ConfigBaseDirHome},
+			expected: "/home/user/.testrc",
+		},
+	}
+
+	for _, tt := range tests {
+		path, err := tt.target.ResolveWith(resolver)
 		if err != nil {
-			t.Errorf("Resolve() for %s failed: %v", target.RelPath, err)
+			t.Errorf("ResolveWith() for %s failed: %v", tt.target.RelPath, err)
 			continue
 		}
 
-		if !filepath.IsAbs(path) {
-			t.Errorf("Resolve() returned non-absolute path: %s", path)
-		}
-
-		if !strings.HasSuffix(path, target.RelPath) {
-			t.Errorf("Resolve() path %q doesn't end with RelPath %q", path, target.RelPath)
+		if path != tt.expected {
+			t.Errorf("ResolveWith() = %q, want %q", path, tt.expected)
 		}
 	}
 }

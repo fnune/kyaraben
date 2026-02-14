@@ -2,6 +2,7 @@ package packages
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -11,6 +12,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/twpayne/go-vfs/v5"
 
 	"github.com/fnune/kyaraben/internal/version"
 )
@@ -32,11 +35,13 @@ type Downloader interface {
 }
 
 type HTTPDownloader struct {
+	fs     vfs.FS
 	Client *http.Client
 }
 
-func NewHTTPDownloader() *HTTPDownloader {
+func NewDownloader(fs vfs.FS) *HTTPDownloader {
 	return &HTTPDownloader{
+		fs: fs,
 		Client: &http.Client{
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				if len(via) >= 10 {
@@ -46,6 +51,10 @@ func NewHTTPDownloader() *HTTPDownloader {
 			},
 		},
 	}
+}
+
+func NewHTTPDownloader() *HTTPDownloader {
+	return NewDownloader(vfs.OSFS)
 }
 
 func (d *HTTPDownloader) Download(ctx context.Context, req DownloadRequest) error {
@@ -80,12 +89,16 @@ func (d *HTTPDownloader) downloadFromURL(ctx context.Context, url string, req Do
 		return fmt.Errorf("downloading %s: status %d", url, resp.StatusCode)
 	}
 
-	tmpFile, err := os.CreateTemp(filepath.Dir(req.DestPath), "kyaraben-download-*")
+	tmpPath, err := d.createTempFile(filepath.Dir(req.DestPath))
 	if err != nil {
 		return fmt.Errorf("creating temp file: %w", err)
 	}
-	tmpPath := tmpFile.Name()
-	defer func() { _ = os.Remove(tmpPath) }()
+	defer func() { _ = d.fs.Remove(tmpPath) }()
+
+	tmpFile, err := d.fs.OpenFile(tmpPath, os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("opening temp file: %w", err)
+	}
 
 	hasher := sha256.New()
 	var written int64
@@ -130,11 +143,26 @@ func (d *HTTPDownloader) downloadFromURL(ctx context.Context, url string, req Do
 		}
 	}
 
-	if err := os.Rename(tmpPath, req.DestPath); err != nil {
+	if err := d.fs.Rename(tmpPath, req.DestPath); err != nil {
 		return fmt.Errorf("moving download to %s: %w", req.DestPath, err)
 	}
 
 	return nil
+}
+
+func (d *HTTPDownloader) createTempFile(dir string) (string, error) {
+	var randBytes [8]byte
+	if _, err := rand.Read(randBytes[:]); err != nil {
+		return "", fmt.Errorf("generating random bytes: %w", err)
+	}
+	name := fmt.Sprintf("kyaraben-download-%x", randBytes)
+	path := filepath.Join(dir, name)
+	f, err := d.fs.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
+	if err != nil {
+		return "", err
+	}
+	_ = f.Close()
+	return path, nil
 }
 
 func parseSHA256(hash string) ([]byte, error) {
