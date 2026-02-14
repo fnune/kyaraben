@@ -92,7 +92,7 @@ const flakeTemplate = `{
           mkdir -p $out/lib/retroarch/cores
           ${pkgs.p7zip}/bin/7z x -o$TMPDIR ${coresBundle}
 {{- range .RetroArchCoreFiles }}
-          install -m644 $TMPDIR/RetroArch-Linux*/cores/{{ . }} $out/lib/retroarch/cores/
+          install -m644 $TMPDIR/RetroArch-Linux-*/RetroArch-Linux-*.AppImage.home/.config/retroarch/cores/{{ . }} $out/lib/retroarch/cores/
 {{- end }}
         '';
 {{- end }}
