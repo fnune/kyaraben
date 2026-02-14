@@ -190,7 +190,7 @@ export function EmulatorSubcard({
         <div className="flex-1 space-y-1">
           <div className="flex items-center gap-2">
             <span className="text-on-surface font-medium text-sm">{emulator.name}</span>
-            <div className="ml-auto flex items-center gap-1.5">
+            <div className="ml-auto flex items-center gap-3">
               <VersionSelector
                 defaultVersion={emulator.defaultVersion}
                 availableVersions={emulator.availableVersions}
@@ -198,6 +198,7 @@ export function EmulatorSubcard({
                 onChange={onVersionChange}
                 disabled={!enabled}
               />
+              <ToggleSwitch enabled={enabled} onChange={onToggle} />
             </div>
           </div>
           <div className="flex items-center gap-2 text-xs text-on-surface-muted">
@@ -258,8 +259,6 @@ export function EmulatorSubcard({
             )}
           </div>
         </div>
-
-        <ToggleSwitch enabled={enabled} onChange={onToggle} />
       </div>
 
       {provisions.length > 0 && (
