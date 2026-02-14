@@ -13,8 +13,8 @@ var versionsData string
 
 // Versions holds all version information parsed from versions.toml.
 type Versions struct {
-	RetroArchCores RetroArchCoresSpec      `toml:"retroarch-cores"`
-	Emulators      map[string]EmulatorSpec // Populated after parsing
+	RetroArchCores RetroArchCoresSpec     `toml:"retroarch-cores"`
+	Packages       map[string]PackageSpec // Populated after parsing
 }
 
 type RetroArchCoresSpec struct {
@@ -49,8 +49,8 @@ func (r *RetroArchCoresSpec) GetCoresURL(targetName string) (string, string, boo
 	return url, target.SHA256, true
 }
 
-// EmulatorSpec describes all available versions of an emulator.
-type EmulatorSpec struct {
+// PackageSpec describes all available versions of a package.
+type PackageSpec struct {
 	URLTemplate string                  // URL template with {version}, {release_tag}, {variant} placeholders
 	BinaryPath  string                  // Default binary path for archives
 	Default     string                  // Default version string
@@ -60,7 +60,7 @@ type EmulatorSpec struct {
 }
 
 // GetVersion returns a specific version entry, or nil if not found.
-func (e *EmulatorSpec) GetVersion(version string) *VersionEntry {
+func (e *PackageSpec) GetVersion(version string) *VersionEntry {
 	if v, ok := e.Versions[version]; ok {
 		return &v
 	}
@@ -68,12 +68,12 @@ func (e *EmulatorSpec) GetVersion(version string) *VersionEntry {
 }
 
 // GetDefault returns the default version entry.
-func (e *EmulatorSpec) GetDefault() *VersionEntry {
+func (e *PackageSpec) GetDefault() *VersionEntry {
 	return e.GetVersion(e.Default)
 }
 
 // AvailableVersions returns all version strings.
-func (e *EmulatorSpec) AvailableVersions() []string {
+func (e *PackageSpec) AvailableVersions() []string {
 	versions := make([]string, 0, len(e.Versions))
 	for v := range e.Versions {
 		versions = append(versions, v)
@@ -81,7 +81,7 @@ func (e *EmulatorSpec) AvailableVersions() []string {
 	return versions
 }
 
-// VersionEntry describes a specific version of an emulator.
+// VersionEntry describes a specific version of a package.
 type VersionEntry struct {
 	Version    string                 // The version string (copied from map key)
 	ReleaseTag string                 // For repos where tag != version
@@ -99,7 +99,7 @@ func (v *VersionEntry) EffectiveReleaseTag() string {
 }
 
 // URL returns the download URL for a given target.
-func (v *VersionEntry) URL(target string, spec *EmulatorSpec) string {
+func (v *VersionEntry) URL(target string, spec *PackageSpec) string {
 	if t := v.Target(target); t != nil && t.URL != "" {
 		return t.URL
 	}
@@ -140,7 +140,7 @@ func (v *VersionEntry) SelectTarget(detectedName string) string {
 
 // BinaryPathForTarget returns the path to the binary inside an archive.
 // Priority: target-specific > version-specific > spec-level > empty.
-func (v *VersionEntry) BinaryPathForTarget(target string, spec *EmulatorSpec) string {
+func (v *VersionEntry) BinaryPathForTarget(target string, spec *PackageSpec) string {
 	if t := v.Target(target); t != nil && t.BinaryPath != "" {
 		return t.BinaryPath
 	}
@@ -151,7 +151,7 @@ func (v *VersionEntry) BinaryPathForTarget(target string, spec *EmulatorSpec) st
 }
 
 // ArchiveType returns the archive type based on URL extension.
-func (v *VersionEntry) ArchiveType(target string, spec *EmulatorSpec) string {
+func (v *VersionEntry) ArchiveType(target string, spec *PackageSpec) string {
 	url := v.URL(target, spec)
 	switch {
 	case strings.HasSuffix(url, ".7z"):
@@ -206,8 +206,8 @@ func ParseTargetName(s string) (TargetName, bool) {
 	return t, ok
 }
 
-// Known emulator and frontend names for parsing
-var emulatorNames = []string{
+// Known package names for parsing
+var packageNames = []string{
 	"eden",
 	"duckstation",
 	"pcsx2",
@@ -224,9 +224,9 @@ var emulatorNames = []string{
 	"es-de",
 }
 
-// GetEmulator returns the EmulatorSpec for a given emulator name.
-func (v *Versions) GetEmulator(name string) (*EmulatorSpec, bool) {
-	spec, ok := v.Emulators[name]
+// GetPackage returns the PackageSpec for a given package name.
+func (v *Versions) GetPackage(name string) (*PackageSpec, bool) {
+	spec, ok := v.Packages[name]
 	if !ok {
 		return nil, false
 	}
@@ -281,7 +281,7 @@ func parse(data string) (*Versions, error) {
 	}
 
 	v := &Versions{
-		Emulators: make(map[string]EmulatorSpec),
+		Packages: make(map[string]PackageSpec),
 	}
 
 	if racRaw, ok := raw["retroarch-cores"].(map[string]interface{}); ok {
@@ -336,25 +336,25 @@ func parse(data string) (*Versions, error) {
 		}
 	}
 
-	for _, name := range emulatorNames {
-		emuRaw, ok := raw[name].(map[string]interface{})
+	for _, name := range packageNames {
+		pkgRaw, ok := raw[name].(map[string]interface{})
 		if !ok {
 			continue
 		}
 
-		spec, err := parseEmulatorSpec(emuRaw)
+		spec, err := parsePackageSpec(pkgRaw)
 		if err != nil {
-			return nil, fmt.Errorf("parsing emulator %s: %w", name, err)
+			return nil, fmt.Errorf("parsing package %s: %w", name, err)
 		}
-		v.Emulators[name] = spec
+		v.Packages[name] = spec
 	}
 
 	return v, nil
 }
 
-// parseEmulatorSpec parses a single emulator's specification from raw TOML data.
-func parseEmulatorSpec(raw map[string]interface{}) (EmulatorSpec, error) {
-	spec := EmulatorSpec{
+// parsePackageSpec parses a single package specification from raw TOML data.
+func parsePackageSpec(raw map[string]interface{}) (PackageSpec, error) {
+	spec := PackageSpec{
 		Versions: make(map[string]VersionEntry),
 	}
 

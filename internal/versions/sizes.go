@@ -65,7 +65,7 @@ func FetchAllSizes(ctx context.Context) <-chan SizeInfo {
 			return
 		}
 
-		for name, spec := range v.Emulators {
+		for name, spec := range v.Packages {
 			for version, entry := range spec.Versions {
 				for targetName := range entry.Targets {
 					select {
