@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { type ReactNode, useRef } from 'react'
 
 export interface ModalProps {
   open: boolean
@@ -8,6 +8,8 @@ export interface ModalProps {
 }
 
 export function Modal({ open, onClose, title, children }: ModalProps) {
+  const mouseDownOnBackdrop = useRef(false)
+
   if (!open) return null
 
   return (
@@ -16,7 +18,14 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       aria-modal="true"
       aria-labelledby="modal-title"
       className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
+      onMouseDown={(e) => {
+        mouseDownOnBackdrop.current = e.target === e.currentTarget
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && mouseDownOnBackdrop.current) {
+          onClose()
+        }
+      }}
       onKeyDown={(e) => e.key === 'Escape' && onClose()}
     >
       <div
