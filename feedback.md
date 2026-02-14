@@ -15,6 +15,7 @@ What we won't do: full performance tuning, per-game settings, target-specific op
 
 ## Low-hanging fruit
 
+- Provision UI bug: provisions with `ImportViaUI` show both "Place <file> in this directory" AND "Import in emulator" messages, which is confusing/redundant
 - Refactor Provision struct: Filename, Hashes, and FilePattern are mutually exclusive validation strategies but modeled as optional fields on the same struct. Consider an interface or union type: `FilenameProvision` (just check file exists), `HashedProvision` (check file exists with valid hash), `DirectoryProvision` (check directory contains files matching a glob pattern like `*.nca`). This would make the validation logic cleaner and prevent invalid combinations.
 - RetroArch cores bundle gets cleaned up after install and thus needs to redownload every time
     - Maybe consider keeping it around instead of cleaning it up
@@ -74,6 +75,11 @@ What we won't do: full performance tuning, per-game settings, target-specific op
     - Is it a good idea to add text for users such as README.md files? Or any other more popular format?
     - What else can be improved?
 - Since we moved to the new style, contrast isn't great. It's not easy to tell which emulators are installed and which aren't, and disabled styles leave things with very low contrast.
+- Systems view needs rethinking:
+    - Needs a way to search/filter emulators faster
+    - Hard to quickly visualize what is and isn't installed
+    - Fights semantically with Installation view: Systems shows what will/won't be installed, Installation shows raw paths and tools to uninstall/update kyaraben itself
+    - Not clear if this scales well or is easy to understand
 - Kyaraben shows the download size for each thing that's enabled. However, the full nix store created by kyaraben may exceed the size of the install shown to the user, because of the created Nix closure. How much bigger is it? How can we communicate this?
 - We add symlinks for emulator for which we can't configure routes
     - What should we do with those symlinks when Kyaraben uninstalls?
