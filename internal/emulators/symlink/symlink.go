@@ -69,3 +69,20 @@ func CreateAll(creator model.SymlinkCreator, specs []model.SymlinkSpec) error {
 	}
 	return nil
 }
+
+func Remove(source string) error {
+	info, err := os.Lstat(source)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("checking %s: %w", source, err)
+	}
+	if info.Mode()&os.ModeSymlink == 0 {
+		return fmt.Errorf("%s is not a symlink, refusing to remove", source)
+	}
+	if err := os.Remove(source); err != nil {
+		return fmt.Errorf("removing symlink %s: %w", source, err)
+	}
+	return nil
+}

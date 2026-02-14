@@ -40,6 +40,7 @@ type StatusResponse struct {
 	EnabledSystems          []model.SystemID    `json:"enabledSystems"`
 	InstalledEmulators      []InstalledEmulator `json:"installedEmulators"`
 	InstalledFrontends      []InstalledFrontend `json:"installedFrontends"`
+	Symlinks                []SymlinkInfo       `json:"symlinks,omitempty"`
 	LastApplied             string              `json:"lastApplied"`
 	HealthWarning           string              `json:"healthWarning,omitempty"`
 	KyarabenVersion         string              `json:"kyarabenVersion"`
@@ -63,6 +64,12 @@ type ManagedConfigInfo struct {
 type ManagedKeyInfo struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
+}
+
+type SymlinkInfo struct {
+	Source     string           `json:"source"`
+	Target     string           `json:"target"`
+	EmulatorID model.EmulatorID `json:"emulatorId"`
 }
 
 type EmulatorPaths struct {

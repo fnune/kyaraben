@@ -6,6 +6,7 @@ import {
   test,
 } from '@playwright/test'
 import {
+  buildEnv,
   createFixture,
   EmulatorIDRetroArchBsnes,
   presets,
@@ -20,10 +21,7 @@ async function launchWithFixture(
   const app = await electron.launch({
     executablePath: appImagePath,
     args: ['--no-sandbox'],
-    env: {
-      ...process.env,
-      ...fixture.env,
-    },
+    env: buildEnv(fixture),
   })
 
   const page = await app.firstWindow()
@@ -260,10 +258,7 @@ test.describe('Apply flow', () => {
     app = await electron.launch({
       executablePath: getAppImagePath(),
       args: ['--no-sandbox'],
-      env: {
-        ...process.env,
-        ...fixture.env,
-      },
+      env: buildEnv(fixture),
     })
 
     page = await app.firstWindow()
@@ -329,10 +324,7 @@ test.describe('Enable all flow', () => {
     app = await electron.launch({
       executablePath: getAppImagePath(),
       args: ['--no-sandbox'],
-      env: {
-        ...process.env,
-        ...fixture.env,
-      },
+      env: buildEnv(fixture),
     })
 
     page = await app.firstWindow()
