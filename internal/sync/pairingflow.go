@@ -14,6 +14,7 @@ const pairingTimeout = 5 * time.Minute
 
 type PairingFlowConfig struct {
 	SyncConfig model.SyncConfig
+	Instance   string
 	Advertiser Advertiser
 	Browser    Browser
 	Client     SyncClient
@@ -44,6 +45,9 @@ func (f *PrimaryPairingFlow) Run(ctx context.Context) (*PairResult, string, erro
 
 	hostname, _ := os.Hostname()
 	localName := hostname + "-kyaraben"
+	if f.cfg.Instance != "" {
+		localName = hostname + "-kyaraben-" + f.cfg.Instance
+	}
 
 	listener, err := net.Listen("tcp", "0.0.0.0:0")
 	if err != nil {
@@ -110,6 +114,9 @@ func (f *SecondaryPairingFlow) Run(ctx context.Context, code string) (*PairResul
 
 	hostname, _ := os.Hostname()
 	localName := hostname + "-kyaraben"
+	if f.cfg.Instance != "" {
+		localName = hostname + "-kyaraben-" + f.cfg.Instance
+	}
 
 	f.emit("Searching for primary...")
 

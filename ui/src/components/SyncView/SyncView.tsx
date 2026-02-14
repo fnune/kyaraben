@@ -1,21 +1,18 @@
 import { useCallback, useState } from 'react'
 import { Button } from '@/lib/Button'
 import { formatBytes } from '@/lib/changeUtils'
+import { openPath } from '@/lib/daemon'
 import { Input } from '@/lib/Input'
+import { FolderIcon, TrashIcon } from '@/lib/icons'
 import { Spinner } from '@/lib/Spinner'
 import type { SyncDevice, SyncFolder, SyncMode, SyncStatusResponse } from '@/types/daemon'
-import { SyncStateSynced } from '@/types/daemon'
-import { SyncStatusBanner } from './SyncStatusBanner'
 
 export interface SyncViewProps {
   readonly status: SyncStatusResponse | null
-  readonly onAddDevice: (deviceId: string, name: string) => Promise<void>
   readonly onRemoveDevice: (deviceId: string) => Promise<void>
   readonly onStartPairing: () => Promise<void>
   readonly onCancelPairing: () => Promise<void>
   readonly onJoinPrimary: (code: string) => Promise<void>
-  readonly onPause: () => Promise<void>
-  readonly onResume: () => Promise<void>
   readonly onEnableSync: (mode: SyncMode) => Promise<void>
   readonly pairingCode: string | null
   readonly pairingProgress: string | null
@@ -89,9 +86,10 @@ function DeviceRow({
       <button
         type="button"
         onClick={onRemove}
-        className="text-xs text-status-error hover:text-status-error"
+        className="p-1.5 text-on-surface-muted hover:text-on-surface-secondary rounded"
+        title="Remove device"
       >
-        Remove
+        <TrashIcon className="w-4 h-4" />
       </button>
     </div>
   )
@@ -110,14 +108,22 @@ function FolderRow({ folder }: { readonly folder: SyncFolder }) {
         />
         <span className="font-medium text-on-surface truncate">{folder.label}</span>
       </div>
-      <div className="flex items-center gap-3 text-xs text-on-surface-muted flex-shrink-0">
+      <div className="flex items-center gap-2 text-xs text-on-surface-muted flex-shrink-0">
         {isSyncing ? (
           <span>
-            {percent}% ({formatBytes(folder.needSize)} remaining)
+            {percent}% ({formatBytes(folder.needSize)} left)
           </span>
         ) : (
           <span>{formatBytes(folder.globalSize)}</span>
         )}
+        <button
+          type="button"
+          onClick={() => openPath(folder.path)}
+          className="p-1 text-on-surface-muted hover:text-on-surface-secondary rounded"
+          title="Open folder"
+        >
+          <FolderIcon className="w-4 h-4" />
+        </button>
       </div>
     </div>
   )
@@ -205,6 +211,7 @@ function PairingSection({
   const [isJoining, setIsJoining] = useState(false)
   const isPairing = status.pairing || pairingCode !== null
   const isRunning = status.running ?? false
+  const hasDevices = (status.devices?.length ?? 0) > 0
 
   const handleJoin = useCallback(
     async (code: string) => {
@@ -252,6 +259,10 @@ function PairingSection({
   }
 
   if (status.mode === 'secondary') {
+    if (hasDevices) {
+      return null
+    }
+
     if (isJoining) {
       return (
         <Section title="Joining primary">
@@ -311,63 +322,31 @@ function StatusBadge({ label, ok }: { label: string; ok: boolean }) {
 
 export function SyncView({
   status,
-  onAddDevice,
   onRemoveDevice,
   onStartPairing,
   onCancelPairing,
   onJoinPrimary,
-  onPause,
-  onResume,
   onEnableSync,
   pairingCode,
   pairingProgress,
   isEnabling,
 }: SyncViewProps) {
-  const [newDeviceId, setNewDeviceId] = useState('')
-  const [newDeviceName, setNewDeviceName] = useState('')
-  const [isAdding, setIsAdding] = useState(false)
-
-  const handleAddDevice = async () => {
-    if (!newDeviceId.trim()) return
-    setIsAdding(true)
-    try {
-      await onAddDevice(newDeviceId.trim(), newDeviceName.trim())
-      setNewDeviceId('')
-      setNewDeviceName('')
-    } finally {
-      setIsAdding(false)
-    }
-  }
-
   if (!status?.enabled) {
     return <DisabledState onEnable={onEnableSync} isEnabling={isEnabling} />
   }
 
   const connectedCount = status.devices?.filter((d) => d.connected).length ?? 0
   const totalDevices = status.devices?.length ?? 0
-  const isPaused = status.paused ?? false
-  const state = status.state ?? SyncStateSynced
-  const progress = status.progress ?? null
+
+  const sortedFolders = status.folders
+    ? [...status.folders].sort((a, b) => a.label.localeCompare(b.label))
+    : []
 
   return (
     <div className="p-6 space-y-6">
-      {status.running && (
-        <SyncStatusBanner state={state} progress={progress} paused={isPaused} onResume={onResume} />
-      )}
-
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <StatusBadge label={status.mode ?? 'unknown'} ok={true} />
-          <StatusBadge
-            label={status.running ? 'running' : 'stopped'}
-            ok={status.running ?? false}
-          />
-        </div>
-        {status.running && !isPaused && (
-          <Button variant="secondary" onClick={onPause}>
-            Pause sync
-          </Button>
-        )}
+      <div className="flex items-center gap-2">
+        <StatusBadge label={status.mode ?? 'unknown'} ok={true} />
+        <StatusBadge label={status.running ? 'running' : 'stopped'} ok={status.running ?? false} />
       </div>
 
       <Section title="Paired devices">
@@ -402,64 +381,15 @@ export function SyncView({
         onJoinPrimary={onJoinPrimary}
       />
 
-      {status.folders && status.folders.length > 0 && (
+      {sortedFolders.length > 0 && (
         <Section title="Synced folders" collapsible defaultCollapsed>
           <div className="border border-outline rounded-card px-3 bg-surface">
-            {status.folders.map((folder) => (
+            {sortedFolders.map((folder) => (
               <FolderRow key={folder.id} folder={folder} />
             ))}
           </div>
         </Section>
       )}
-
-      <Section title="Advanced" collapsible defaultCollapsed>
-        <div className="space-y-4">
-          {status.deviceId && (
-            <div>
-              <p className="text-sm text-on-surface-muted mb-2">
-                This device ID (for manual pairing):
-              </p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 bg-surface-raised text-on-surface-secondary px-3 py-2 rounded-sm text-xs break-all font-mono">
-                  {status.deviceId}
-                </code>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (status.deviceId) {
-                      navigator.clipboard.writeText(status.deviceId)
-                    }
-                  }}
-                  className="px-3 py-2 text-xs bg-surface-raised text-on-surface-secondary rounded-sm hover:bg-outline"
-                >
-                  Copy
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div>
-            <p className="text-sm text-on-surface-muted mb-2">
-              Add device by ID (for cross-network):
-            </p>
-            <div className="space-y-2">
-              <Input value={newDeviceId} onChange={setNewDeviceId} placeholder="Device ID" />
-              <Input
-                value={newDeviceName}
-                onChange={setNewDeviceName}
-                placeholder="Friendly name (optional)"
-              />
-              <Button
-                variant="secondary"
-                onClick={handleAddDevice}
-                disabled={!newDeviceId.trim() || isAdding}
-              >
-                {isAdding ? 'Adding...' : 'Add device'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </Section>
     </div>
   )
 }
