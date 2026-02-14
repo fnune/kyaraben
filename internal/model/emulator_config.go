@@ -25,7 +25,6 @@ const (
 	ConfigBaseDirUserConfig ConfigBaseDir = "user_config"
 	ConfigBaseDirUserData   ConfigBaseDir = "user_data"
 	ConfigBaseDirHome       ConfigBaseDir = "home"
-	ConfigBaseDirOpaqueDir  ConfigBaseDir = "opaque_dir"
 )
 
 type ConfigTarget struct {
@@ -68,9 +67,6 @@ func (ct ConfigTarget) ResolveWith(resolver BaseDirResolver) (string, error) {
 	var baseDir string
 
 	switch ct.BaseDir {
-	case ConfigBaseDirOpaqueDir:
-		return ct.RelPath, nil
-
 	case ConfigBaseDirUserConfig:
 		dir, err := resolver.UserConfigDir()
 		if err != nil {
@@ -110,10 +106,6 @@ func (ct ConfigTarget) ResolveDir() (string, error) {
 func (ct ConfigTarget) ResolveDirWith(resolver BaseDirResolver) (string, error) {
 	if ct.RelPath == "" {
 		return "", fmt.Errorf("empty RelPath")
-	}
-
-	if ct.BaseDir == ConfigBaseDirOpaqueDir {
-		return ct.rejectDangerousPaths(resolver, ct.RelPath)
 	}
 
 	if !strings.Contains(ct.RelPath, string(filepath.Separator)) {

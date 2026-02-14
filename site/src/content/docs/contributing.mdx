@@ -99,8 +99,7 @@ UserStore (e.g., ~/Emulation)
 ├── bios/
 ├── saves/           # Structured by system
 ├── states/          # Structured by emulator
-├── screenshots/
-└── opaque/          # Emulators with complex internal structures
+└── screenshots/
 ```
 
 ### Package structure
@@ -169,6 +168,36 @@ Events: `ready`, `result`, `progress`, `error`, `cancelled`.
 The `TestAllDefinitions` test in `internal/registry/registry_test.go` validates
 that all definitions have required fields and that cross-references are valid.
 
+### Integration principles
+
+The goal is that users enable a system, run apply, and the emulator is
+immediately ready to use with paths pointing to the user store. If the user
+has data from another kyaraben installation (ROMs, saves, BIOS files in the
+expected locations), kyaraben should pick them up without reconfiguration.
+
+Kyaraben assumes it is the only tool installing these emulators. If the user
+has existing installations from their package manager or other tools, kyaraben
+may conflict with them. When kyaraben uninstalls a system, it removes the
+emulator configuration it created.
+
+The first-run experience should be "launch and play", not "configure before
+you can play". Suppress setup wizards and first-run prompts where possible.
+
+When an emulator does not fully cooperate with kyaraben's configuration model,
+handle the workaround in the implementation:
+
+- Emulators that lack config options for certain paths need symlinks from
+  their fixed data locations to the user store
+- Emulators that require user interaction (initial setup, BIOS installation
+  through the emulator's own UI) should surface this through the provisions
+  system: the UI shows users where to place files, opens directories on click,
+  and install-check provisions verify that required actions were completed
+- Game library configuration varies: some emulators can be pre-configured with
+  ROM directories, others require the user to manually browse to them
+
+The goal is that users can discover and resolve issues from within kyaraben
+(UI or CLI) or the emulators themselves, without needing external documentation.
+
 ### Emulator installation methods
 
 When adding support for an emulator, follow this priority order:
@@ -195,14 +224,20 @@ When integrating an emulator, follow this priority order for configuring paths:
 2. Symlinks: if the emulator stores data in fixed locations that cannot be
    configured via text, learn the directory structure and create symlinks from
    those locations to the user store. Implement the `SymlinkProvider` interface.
-3. Opaque directory: as a last resort for emulators with complex internal
-   structures that resist symlinks (virtual filesystems, interlinked databases,
-   frequent format changes), use an opaque directory and sync it as a unit.
 
-Prefer explicit configuration over CLI flags for paths. CLI flags like
-`-u <dir>` or `-mlc <dir>` create kyaraben-specific launch commands that
-diverge from default behavior and complicate debugging. When symlinks work,
-the emulator runs identically to a manual installation.
+Symlinks work by redirecting specific subdirectories from the emulator's data
+location to kyaraben's standard locations:
+
+```
+~/.local/share/dolphin-emu/GC/          → ~/Emulation/saves/gamecube/
+~/.local/share/dolphin-emu/Wii/         → ~/Emulation/saves/wii/
+~/.local/share/dolphin-emu/StateSaves/  → ~/Emulation/states/dolphin/
+~/.local/share/dolphin-emu/ScreenShots/ → ~/Emulation/screenshots/dolphin/
+```
+
+When symlinks work, the emulator runs identically to a manual installation.
+Prefer this over CLI flags like `-u <dir>` which create kyaraben-specific
+launch commands that diverge from default behavior and complicate debugging.
 
 ## Dependency management
 

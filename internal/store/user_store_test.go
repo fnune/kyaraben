@@ -69,44 +69,6 @@ func TestUserStoreInitializeForEmulator(t *testing.T) {
 	)
 }
 
-func TestUserStoreInitializeForOpaqueEmulator(t *testing.T) {
-	t.Parallel()
-	fs := testutil.NewTestFS(t, map[string]any{
-		"/emulation": &vfst.Dir{Perm: 0755},
-	})
-
-	store := mustNewUserStore(t, fs, "/emulation")
-
-	if err := store.Initialize(); err != nil {
-		t.Fatalf("Initialize failed: %v", err)
-	}
-
-	pathUsage := model.PathUsage{
-		UsesScreenshotsDir: true,
-		OpaqueContents:     "dev_hdd0, dev_flash (firmware, saves, game data)",
-	}
-	if err := store.InitializeForEmulator(model.SystemIDPS3, model.EmulatorIDRPCS3, pathUsage); err != nil {
-		t.Fatalf("InitializeForEmulator failed: %v", err)
-	}
-
-	vfst.RunTests(t, fs, "",
-		vfst.TestPath("/emulation/roms/ps3", vfst.TestIsDir()),
-		vfst.TestPath("/emulation/screenshots/rpcs3", vfst.TestIsDir()),
-		vfst.TestPath("/emulation/opaque/rpcs3", vfst.TestIsDir()),
-	)
-
-	unexpectedDirs := []string{
-		"/emulation/bios/ps3",
-		"/emulation/saves/ps3",
-		"/emulation/states/rpcs3",
-	}
-	for _, dir := range unexpectedDirs {
-		if _, err := fs.Stat(dir); err == nil {
-			t.Errorf("Directory should not have been created: %s", dir)
-		}
-	}
-}
-
 func TestUserStorePaths(t *testing.T) {
 	t.Parallel()
 	fs := testutil.NewTestFS(t, map[string]any{})

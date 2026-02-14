@@ -63,10 +63,6 @@ func (f *fakeStoreReader) SystemRomsDir(sys model.SystemID) string {
 	return filepath.Join(f.root, "roms", string(sys))
 }
 
-func (f *fakeStoreReader) EmulatorOpaqueDir(emu model.EmulatorID) string {
-	return filepath.Join(f.root, "opaque", string(emu))
-}
-
 func TestDuckStationGenerate(t *testing.T) {
 	t.Parallel()
 
@@ -501,47 +497,103 @@ func TestVita3KGenerate(t *testing.T) {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	if len(patches) != 1 {
-		t.Fatalf("expected 1 patch, got %d", len(patches))
+	if len(patches) != 2 {
+		t.Fatalf("expected 2 patches, got %d", len(patches))
 	}
 
-	patch := patches[0]
+	configPatch := patches[0]
+	userPatch := patches[1]
 
-	if patch.Target.Format != model.ConfigFormatYAML {
-		t.Errorf("expected YAML format, got %s", patch.Target.Format)
+	if configPatch.Target.Format != model.ConfigFormatYAML {
+		t.Errorf("expected YAML format for config, got %s", configPatch.Target.Format)
 	}
 
-	// Vita3K now uses -c CLI arg to set config location, so config is inside opaque dir
-	if patch.Target.BaseDir != model.ConfigBaseDirOpaqueDir {
-		t.Errorf("expected opaque dir base dir, got %s", patch.Target.BaseDir)
+	if configPatch.Target.BaseDir != model.ConfigBaseDirUserConfig {
+		t.Errorf("expected user config base dir, got %s", configPatch.Target.BaseDir)
 	}
 
-	if !strings.Contains(patch.Target.RelPath, "opaque/vita3k") {
-		t.Errorf("expected RelPath to contain 'opaque/vita3k', got %s", patch.Target.RelPath)
+	if configPatch.Target.RelPath != "Vita3K/config.yml" {
+		t.Errorf("expected RelPath 'Vita3K/config.yml', got %s", configPatch.Target.RelPath)
 	}
 
-	foundPrefPath := false
-	for _, entry := range patch.Entries {
-		if entry.Key() == "pref-path" {
-			foundPrefPath = true
-			if !strings.Contains(entry.Value, "vita3k") {
-				t.Errorf("pref-path should contain 'vita3k', got %s", entry.Value)
-			}
+	expectedEntries := map[string]string{
+		"show-welcome":      "false",
+		"check-for-updates": "false",
+		"user-auto-connect": "true",
+		"bgm-volume":        "0",
+	}
+
+	for _, entry := range configPatch.Entries {
+		expected, ok := expectedEntries[entry.Key()]
+		if !ok {
+			t.Errorf("unexpected config entry: %s", entry.Key())
+			continue
+		}
+		if entry.Value != expected {
+			t.Errorf("expected %s=%s, got %s", entry.Key(), expected, entry.Value)
+		}
+		delete(expectedEntries, entry.Key())
+	}
+
+	for key := range expectedEntries {
+		t.Errorf("missing expected config entry: %s", key)
+	}
+
+	if userPatch.Target.Format != model.ConfigFormatRaw {
+		t.Errorf("expected Raw format for user.xml, got %s", userPatch.Target.Format)
+	}
+
+	if userPatch.Target.BaseDir != model.ConfigBaseDirUserData {
+		t.Errorf("expected user data base dir for user.xml, got %s", userPatch.Target.BaseDir)
+	}
+
+	if !strings.Contains(userPatch.Target.RelPath, "user.xml") {
+		t.Errorf("expected RelPath to contain 'user.xml', got %s", userPatch.Target.RelPath)
+	}
+
+	if len(userPatch.Entries) != 1 || !strings.Contains(userPatch.Entries[0].Value, "Kyaraben") {
+		t.Error("user.xml should contain 'Kyaraben' user")
+	}
+}
+
+func TestVita3KSymlinks(t *testing.T) {
+	t.Parallel()
+
+	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+
+	gen := vita3k.Definition{}.ConfigGenerator()
+
+	provider, ok := gen.(model.SymlinkProvider)
+	if !ok {
+		t.Fatal("Vita3K config generator should implement SymlinkProvider")
+	}
+
+	specs, err := provider.Symlinks(store, resolver)
+	if err != nil {
+		t.Fatalf("Symlinks() error = %v", err)
+	}
+
+	if len(specs) != 3 {
+		t.Fatalf("expected 3 symlink specs, got %d", len(specs))
+	}
+
+	expectedSources := map[string]bool{
+		"/home/user/.local/share/Vita3K/Vita3K/ux0/user/00/savedata": false,
+		"/home/user/.local/share/Vita3K/screenshots":                 false,
+		"/emulation/roms/psvita/installed":                           false,
+	}
+
+	for _, spec := range specs {
+		if _, ok := expectedSources[spec.Source]; ok {
+			expectedSources[spec.Source] = true
 		}
 	}
 
-	if !foundPrefPath {
-		t.Error("expected pref-path entry not found")
-	}
-
-	// Test LaunchArgsProvider interface
-	provider, ok := gen.(model.LaunchArgsProvider)
-	if !ok {
-		t.Fatal("Vita3K config generator should implement LaunchArgsProvider")
-	}
-	args := provider.LaunchArgs(store)
-	if len(args) != 2 || args[0] != "-c" {
-		t.Errorf("expected LaunchArgs to return [-c, <path>], got %v", args)
+	for source, found := range expectedSources {
+		if !found {
+			t.Errorf("expected symlink source %q not found", source)
+		}
 	}
 }
 

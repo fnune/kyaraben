@@ -360,6 +360,60 @@ func TestRawHandler_Apply(t *testing.T) {
 	}
 }
 
+func TestRawHandler_ApplyUnmanaged(t *testing.T) {
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/config/existing.raw": "user content",
+	})
+
+	handler := NewHandler(fs, model.ConfigFormatRaw)
+	entries := []model.ConfigEntry{
+		{Value: "new content", Unmanaged: true},
+	}
+
+	_, err := handler.Apply("/config/existing.raw", entries)
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+
+	data, err := fs.ReadFile("/config/existing.raw")
+	if err != nil {
+		t.Fatalf("reading file: %v", err)
+	}
+
+	if string(data) != "user content" {
+		t.Errorf("expected existing content preserved, got '%s'", string(data))
+	}
+}
+
+func TestRawHandler_ApplyUnmanagedCreatesIfMissing(t *testing.T) {
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/config": &vfst.Dir{Perm: 0755},
+	})
+
+	handler := NewHandler(fs, model.ConfigFormatRaw)
+	entries := []model.ConfigEntry{
+		{Value: "new content", Unmanaged: true},
+	}
+
+	_, err := handler.Apply("/config/new.raw", entries)
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+
+	data, err := fs.ReadFile("/config/new.raw")
+	if err != nil {
+		t.Fatalf("reading file: %v", err)
+	}
+
+	if string(data) != "new content" {
+		t.Errorf("expected new content, got '%s'", string(data))
+	}
+}
+
 func TestGetHandler(t *testing.T) {
 	t.Parallel()
 

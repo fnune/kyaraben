@@ -43,7 +43,8 @@ func (Definition) Emulator() model.Emulator {
 			},
 		},
 		PathUsage: model.PathUsage{
-			OpaqueContents: "config, ux0 (apps, saves, screenshots)",
+			UsesSavesDir:       true,
+			UsesScreenshotsDir: true,
 		},
 	}
 }
@@ -52,25 +53,73 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 	return &Config{}
 }
 
-type Config struct{}
-
-func (c *Config) LaunchArgs(store model.StoreReader) []string {
-	return []string{"-c", store.EmulatorOpaqueDir(model.EmulatorIDVita3K)}
+var configTarget = model.ConfigTarget{
+	RelPath: "Vita3K/config.yml",
+	Format:  model.ConfigFormatYAML,
+	BaseDir: model.ConfigBaseDirUserConfig,
 }
 
-func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	opaqueDir := store.EmulatorOpaqueDir(model.EmulatorIDVita3K)
+var userTarget = model.ConfigTarget{
+	RelPath: "Vita3K/Vita3K/ux0/user/00/user.xml",
+	Format:  model.ConfigFormatRaw,
+	BaseDir: model.ConfigBaseDirUserData,
+}
 
-	configTarget := model.ConfigTarget{
-		RelPath: filepath.Join(opaqueDir, "config.yml"),
-		Format:  model.ConfigFormatYAML,
-		BaseDir: model.ConfigBaseDirOpaqueDir,
+const userXML = `<?xml version="1.0" encoding="utf-8"?>
+<user id="00" name="Kyaraben">
+	<avatar>default</avatar>
+	<sort-apps-list type="4" state="1" />
+	<theme use-background="true">
+		<content-id>default</content-id>
+	</theme>
+	<start-screen type="default">
+		<path></path>
+	</start-screen>
+	<backgrounds />
+</user>
+`
+
+type Config struct{}
+
+func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
+	return []model.ConfigPatch{
+		{
+			Target: configTarget,
+			Entries: []model.ConfigEntry{
+				{Path: []string{"show-welcome"}, Value: "false"},
+				{Path: []string{"check-for-updates"}, Value: "false"},
+				{Path: []string{"user-auto-connect"}, Value: "true"},
+				{Path: []string{"bgm-volume"}, Value: "0"},
+			},
+		},
+		{
+			Target:  userTarget,
+			Entries: []model.ConfigEntry{{Value: userXML, Unmanaged: true}},
+		},
+	}, nil
+}
+
+func (c *Config) Symlinks(store model.StoreReader, resolver model.BaseDirResolver) ([]model.SymlinkSpec, error) {
+	dataDir, err := resolver.UserDataDir()
+	if err != nil {
+		return nil, err
 	}
 
-	return []model.ConfigPatch{{
-		Target: configTarget,
-		Entries: []model.ConfigEntry{
-			{Path: []string{"pref-path"}, Value: opaqueDir},
+	vita3kDataDir := filepath.Join(dataDir, "Vita3K", "Vita3K")
+	vita3kScreenshotsDir := filepath.Join(dataDir, "Vita3K", "screenshots")
+
+	return []model.SymlinkSpec{
+		{
+			Source: filepath.Join(vita3kDataDir, "ux0", "user", "00", "savedata"),
+			Target: store.SystemSavesDir(model.SystemIDPSVita),
 		},
-	}}, nil
+		{
+			Source: vita3kScreenshotsDir,
+			Target: store.EmulatorScreenshotsDir(model.EmulatorIDVita3K),
+		},
+		{
+			Source: filepath.Join(store.SystemRomsDir(model.SystemIDPSVita), "installed"),
+			Target: filepath.Join(vita3kDataDir, "ux0", "app"),
+		},
+	}, nil
 }
