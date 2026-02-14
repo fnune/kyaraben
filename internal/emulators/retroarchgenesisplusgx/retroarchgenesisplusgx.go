@@ -19,8 +19,13 @@ func (Definition) Emulator() model.Emulator {
 			model.StateSavestates,
 			model.StateScreenshots,
 		},
-		Launcher:  retroarch.LauncherWithCore(libretroCoreName),
-		PathUsage: model.StandardPathUsage(),
+		Launcher: retroarch.LauncherWithCore(libretroCoreName),
+		PathUsage: model.PathUsage{
+			UsesBiosDir:        false,
+			UsesSavesDir:       true,
+			UsesStatesDir:      true,
+			UsesScreenshotsDir: true,
+		},
 	}
 }
 
