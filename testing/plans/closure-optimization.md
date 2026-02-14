@@ -21,17 +21,24 @@ Expected savings: ~500-600 MB (eliminates duplicate glibc, gcc-lib, systemd, ffm
 
 Note: Only x86_64 hash added for now. Need to add aarch64 hash (requires fetching from buildbot).
 
-### Phase 2: Investigate Qt/GTK deps
+### Phase 2: Investigate Qt/GTK deps (RESOLVED)
 
-Why are Qt6 (270 MB) and GTK (70 MB) in the closure? Check what depends on them.
+Qt6 (270 MB) and GTK (70 MB) were dependencies of the nixpkgs libretro cores (retroarch-bare).
+Eliminated by phase 1 - no longer in closure.
 
-### Phase 3: Investigate gcc/python deps
+### Phase 3: Investigate gcc/python deps (RESOLVED)
 
-Why are gcc (249 MB) and python (113 MB) in the runtime closure? Should only be build deps.
+Full gcc (249 MB) and python (113 MB) were build dependencies of nixpkgs libretro cores.
+Eliminated by phase 1 - only small gcc-lib and hook scripts remain.
 
-### Phase 4: Avoid source tarball bloat
+### Phase 4: Avoid source tarball bloat (TODO)
 
-Either prevent caching or run GC after build.
+Two nixpkgs source tarballs remain (572 MB total):
+- These are cached for flake evaluation
+- Could run `nix-collect-garbage` after each build
+- Or accept as cost of nix-portable approach
+
+Potential savings: ~570 MB if GC'd, but would slow down subsequent evaluations.
 
 ## The problem
 
@@ -98,7 +105,9 @@ Before optimizing, we should measure:
 
 Add CI checks to track closure size regressions.
 
-## Measurements (2026-02-10)
+## Measurements
+
+### Before optimization (2026-02-10)
 
 Full install with all emulators + frontends enabled:
 
@@ -106,9 +115,28 @@ Full install with all emulators + frontends enabled:
 |--------|-------|
 | Total nix store size | 4.3 GB |
 | Packages in store | 1108 |
-| Derivation files | 4075 |
-| Packages built locally | 47 |
-| Packages fetched from cache | 428 |
+
+### After phase 1 (buildbot cores)
+
+| Metric | Value | Change |
+|--------|-------|--------|
+| Total nix store size | 3.0 GB | -1.3 GB (30%) |
+| Packages in store | 425 | -683 packages |
+
+What was eliminated:
+- Qt6 (qtbase, qtdeclarative): ~270 MB gone
+- GTK3/4: ~70 MB gone
+- retroarch-bare: 19 MB gone
+- flite, freepats, wildmidi: ~100 MB gone
+- Duplicate systemd, ffmpeg: ~100 MB gone
+- One nixpkgs source tarball: ~300 MB gone
+- genesis-plus-gx no longer builds from source
+
+What remains:
+- 3x glibc (90 MB): probably unavoidable with nix-portable
+- 2x source tarballs (572 MB): could be GC'd after build
+- git-minimal (48 MB): needed for flake fetching
+- kyaraben-retroarch-cores: 16 MB (just the .so files we need)
 
 ### Locally built packages
 
