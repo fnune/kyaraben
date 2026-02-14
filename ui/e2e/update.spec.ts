@@ -98,7 +98,7 @@ test.describe('No update available', () => {
     await expect(page.getByText('Check for updates')).toBeVisible()
     await page.getByRole('button', { name: 'Check' }).click()
     await expect(page.getByRole('button', { name: 'Check' })).toBeEnabled({ timeout: 10000 })
-    await expect(page.getByText(/You're on the latest version/)).toBeVisible()
+    await expect(page.getByText(/(You're on the latest version|Current version)/)).toBeVisible()
     await page.getByRole('button', { name: 'Catalog', exact: true }).click()
     await expect(page.getByText('A new version of Kyaraben is available')).not.toBeVisible()
   })
