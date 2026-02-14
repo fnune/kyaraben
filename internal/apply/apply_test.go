@@ -298,6 +298,66 @@ func TestApplyCreatesSymlinksForSymlinkProviders(t *testing.T) {
 	}
 }
 
+func TestApplyCreatesProvisionDirectories(t *testing.T) {
+	tmpDir := t.TempDir()
+	manifestPath := filepath.Join(tmpDir, "manifest.json")
+	userStorePath := filepath.Join(tmpDir, "Emulation")
+	packagesDir := filepath.Join(tmpDir, "packages")
+
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{
+			UserStore: userStorePath,
+		},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDGameCube: {model.EmulatorIDDolphin},
+		},
+	}
+
+	reg := registry.NewDefault()
+	userStore, err := store.NewUserStore(userStorePath)
+	if err != nil {
+		t.Fatalf("Failed to create user store: %v", err)
+	}
+
+	installer := packages.NewFakeInstaller(packagesDir)
+	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
+
+	applier := &Applier{
+		Installer:       installer,
+		ConfigWriter:    configWriter,
+		Registry:        reg,
+		ManifestPath:    manifestPath,
+		BaseDirResolver: fakeBaseDirResolver{root: tmpDir},
+		SymlinkCreator:  &symlink.FakeCreator{},
+	}
+
+	if _, err := applier.Apply(context.Background(), cfg, userStore, Options{}); err != nil {
+		t.Fatalf("Apply failed: %v", err)
+	}
+
+	paths := []string{
+		filepath.Join(userStorePath, "saves", "gamecube", "USA"),
+		filepath.Join(userStorePath, "saves", "gamecube", "EUR"),
+		filepath.Join(userStorePath, "saves", "gamecube", "JAP"),
+		filepath.Join(userStorePath, "bios", "gba"),
+	}
+
+	for _, path := range paths {
+		assertDirExists(t, path)
+	}
+}
+
+func assertDirExists(t *testing.T, path string) {
+	t.Helper()
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("directory %s missing: %v", path, err)
+	}
+	if !info.IsDir() {
+		t.Fatalf("%s exists but is not a directory", path)
+	}
+}
+
 func TestApplySucceedsWhenGCFails(t *testing.T) {
 	tmpDir := t.TempDir()
 	manifestPath := filepath.Join(tmpDir, "manifest.json")

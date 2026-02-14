@@ -191,11 +191,6 @@ func TestRunSystemResult(t *testing.T) {
 		t.Errorf("EmulatorName: got %s, want DuckStation", sys.EmulatorName)
 	}
 
-	expectedBiosDir := filepath.Join(userStorePath, "bios", "psx")
-	if sys.BiosDir != expectedBiosDir {
-		t.Errorf("BiosDir: got %s, want %s", sys.BiosDir, expectedBiosDir)
-	}
-
 	if len(sys.Provisions) == 0 {
 		t.Error("PSX should have provisions defined")
 	}

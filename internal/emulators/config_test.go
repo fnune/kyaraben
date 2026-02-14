@@ -354,23 +354,34 @@ func TestMGBAGenerate(t *testing.T) {
 		t.Errorf("expected INI format, got %s", patch.Target.Format)
 	}
 
-	// Verify mGBA has BIOS path configured
-	expectedKeys := map[string]bool{
-		"bios":           false,
-		"savegamePath":   false,
-		"savestatePath":  false,
-		"screenshotPath": false,
+	// Verify mGBA sets the expected BIOS and Qt settings
+	expectedFullPaths := map[string]bool{
+		"bios":                    false,
+		"gb.bios":                 false,
+		"gbc.bios":                false,
+		"sgb.bios":                false,
+		"gba.bios":                false,
+		"ports.qt.bios":           false,
+		"ports.qt.gb.bios":        false,
+		"ports.qt.gbc.bios":       false,
+		"ports.qt.sgb.bios":       false,
+		"ports.qt.gba.bios":       false,
+		"ports.qt.useBios":        false,
+		"ports.qt.savegamePath":   false,
+		"ports.qt.savestatePath":  false,
+		"ports.qt.screenshotPath": false,
+		"ports.qt.showLibrary":    false,
 	}
 
 	for _, entry := range patch.Entries {
-		if _, ok := expectedKeys[entry.Key()]; ok {
-			expectedKeys[entry.Key()] = true
+		if _, ok := expectedFullPaths[entry.FullPath()]; ok {
+			expectedFullPaths[entry.FullPath()] = true
 		}
 	}
 
-	for key, found := range expectedKeys {
+	for fullPath, found := range expectedFullPaths {
 		if !found {
-			t.Errorf("expected key %q not found in entries", key)
+			t.Errorf("expected config entry %q not found", fullPath)
 		}
 	}
 }
