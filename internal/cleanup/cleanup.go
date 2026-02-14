@@ -1,21 +1,35 @@
 package cleanup
 
 import (
-	"os"
+	"io/fs"
 	"path/filepath"
 
 	"github.com/fnune/kyaraben/internal/logging"
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/twpayne/go-vfs/v5"
 )
 
 var log = logging.New("cleanup")
 
-func RemoveConfigDirs(configs []model.ManagedConfig) []string {
+type Cleaner struct {
+	fs       vfs.FS
+	resolver model.BaseDirResolver
+}
+
+func New(fileSystem vfs.FS, resolver model.BaseDirResolver) *Cleaner {
+	return &Cleaner{fs: fileSystem, resolver: resolver}
+}
+
+func NewDefault() *Cleaner {
+	return &Cleaner{fs: vfs.OSFS, resolver: model.OSBaseDirResolver{}}
+}
+
+func (c *Cleaner) RemoveConfigDirs(configs []model.ManagedConfig) []string {
 	seen := make(map[string]bool)
 	var removed []string
 
 	for _, cfg := range configs {
-		dir, err := cfg.Target.ResolveDir()
+		dir, err := cfg.Target.ResolveDirWith(c.resolver)
 		if err != nil {
 			continue
 		}
@@ -24,11 +38,11 @@ func RemoveConfigDirs(configs []model.ManagedConfig) []string {
 		}
 		seen[dir] = true
 
-		if !dirExists(dir) {
+		if !c.dirExists(dir) {
 			continue
 		}
 
-		if err := forceRemoveAll(dir); err != nil {
+		if err := c.forceRemoveAll(dir); err != nil {
 			log.Info("Could not remove config directory %s: %v", dir, err)
 			continue
 		}
@@ -38,16 +52,16 @@ func RemoveConfigDirs(configs []model.ManagedConfig) []string {
 	return removed
 }
 
-func CollectConfigDirs(configs []model.ManagedConfig) []string {
+func (c *Cleaner) CollectConfigDirs(configs []model.ManagedConfig) []string {
 	seen := make(map[string]bool)
 	var dirs []string
 
 	for _, cfg := range configs {
-		dir, err := cfg.Target.ResolveDir()
+		dir, err := cfg.Target.ResolveDirWith(c.resolver)
 		if err != nil {
 			continue
 		}
-		if !seen[dir] && dirExists(dir) {
+		if !seen[dir] && c.dirExists(dir) {
 			seen[dir] = true
 			dirs = append(dirs, dir)
 		}
@@ -56,46 +70,54 @@ func CollectConfigDirs(configs []model.ManagedConfig) []string {
 	return dirs
 }
 
-func dirExists(path string) bool {
-	info, err := os.Stat(path)
+func (c *Cleaner) dirExists(path string) bool {
+	info, err := c.fs.Stat(path)
 	return err == nil && info.IsDir()
 }
 
-func forceRemoveAll(path string) error {
-	if err := forceChmodRecursive(path); err != nil {
+func (c *Cleaner) forceRemoveAll(path string) error {
+	if err := c.forceChmodRecursive(path); err != nil {
 		return err
 	}
-	return os.RemoveAll(path)
+	return c.fs.RemoveAll(path)
 }
 
-func forceChmodRecursive(path string) error {
-	info, err := os.Lstat(path)
+func (c *Cleaner) forceChmodRecursive(path string) error {
+	info, err := c.fs.Lstat(path)
 	if err != nil {
 		return err
 	}
 
-	if info.Mode()&os.ModeSymlink != 0 {
+	if info.Mode()&fs.ModeSymlink != 0 {
 		return nil
 	}
 
 	if !info.IsDir() {
-		return os.Chmod(path, 0644)
+		return c.fs.Chmod(path, 0644)
 	}
 
-	if err := os.Chmod(path, 0755); err != nil {
+	if err := c.fs.Chmod(path, 0755); err != nil {
 		return err
 	}
 
-	entries, err := os.ReadDir(path)
+	entries, err := c.fs.ReadDir(path)
 	if err != nil {
 		return err
 	}
 
 	for _, entry := range entries {
-		if err := forceChmodRecursive(filepath.Join(path, entry.Name())); err != nil {
+		if err := c.forceChmodRecursive(filepath.Join(path, entry.Name())); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func RemoveConfigDirs(configs []model.ManagedConfig) []string {
+	return NewDefault().RemoveConfigDirs(configs)
+}
+
+func CollectConfigDirs(configs []model.ManagedConfig) []string {
+	return NewDefault().CollectConfigDirs(configs)
 }

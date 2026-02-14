@@ -18,7 +18,9 @@ require (
 	github.com/klauspost/compress v1.18.4 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
+	github.com/twpayne/go-vfs/v5 v5.0.5 // indirect
 	github.com/ulikunitz/xz v0.5.15 // indirect
 	go4.org v0.0.0-20200411211856-f5505b9728dd // indirect
+	golang.org/x/sys v0.17.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 )
