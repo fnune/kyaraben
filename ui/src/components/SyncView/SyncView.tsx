@@ -152,7 +152,7 @@ function FolderRow({
 
   const getStatusIndicator = () => {
     if (hasLocalChanges) return 'bg-status-warn'
-    if (isSyncing) return 'bg-status-warn'
+    if (isSyncing) return 'bg-accent animate-pulse'
     return 'bg-status-ok'
   }
 
@@ -214,9 +214,15 @@ function FolderRow({
           {showChanges && changes && changes.length > 0 && (
             <div className="mt-1 max-h-32 overflow-y-auto">
               {changes.map((c, i) => {
-                const label = c.type.includes('DELETED')
-                  ? 'deleted'
-                  : c.action || 'modified'
+                const typeLC = (c.type || '').toLowerCase()
+                const actionLC = (c.action || '').toLowerCase()
+                let label = 'changed'
+                if (typeLC.includes('deleted') || actionLC === 'deleted') {
+                  label = 'deleted'
+                } else if (actionLC === 'added' || typeLC.includes('added')) {
+                  label = 'added'
+                }
+                console.log('Local change:', { type: c.type, action: c.action, path: c.path })
                 return (
                   <div key={i} className="py-0.5 text-on-surface-muted truncate">
                     <span className="text-status-error">{label}</span> {c.path}
