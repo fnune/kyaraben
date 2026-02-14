@@ -51,12 +51,12 @@ Note: game directory uses index 3 because 1=INSTALLED and 2=SYSTEM are built-in 
 ## Implementation
 
 Kyaraben now:
-- Configures nand/sdmc directly to `saves/n3ds/{nand,sdmc}/`
+- Configures sdmc directly to `saves/n3ds/`
 - Sets `use_custom_storage=true` so paths are respected
 - Configures screenshot path via `Paths\screenshotPath`
 - Symlinks `~/.local/share/azahar-emu/states/` to `states/azahar/` (no config option for states)
 - Uses game directory index 3 to preserve INSTALLED/SYSTEM virtual directories
-- Provisions are optional (only needed for encrypted ROM dumps)
+- No provisions: Azahar removed encrypted game support in 2025, ROMs must be pre-decrypted
 
 ## Reference
 
