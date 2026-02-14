@@ -35,9 +35,9 @@
   --sl-color-purple-low: hsl(269, 80%, 90%);
   --sl-color-purple: hsl(269, 90%, 60%);
   --sl-color-purple-high: hsl(269, 90%, 30%);
-  --sl-color-orange-low: hsl(41, 90%, 88%);
-  --sl-color-orange: hsl(41, 90%, 60%);
-  --sl-color-orange-high: hsl(41, 80%, 25%);
+  --sl-color-orange-low: hsl(32, 83%, 88%);
+  --sl-color-orange: hsl(32, 83%, 50%);
+  --sl-color-orange-high: hsl(32, 83%, 29%);
   --sl-color-red-low: hsl(339, 80%, 90%);
   --sl-color-red: hsl(339, 90%, 60%);
   --sl-color-red-high: hsl(339, 80%, 30%);
