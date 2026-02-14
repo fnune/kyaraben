@@ -178,6 +178,7 @@ export interface SyncStatusResponse {
   folders?: SyncFolder[];
   pairing?: boolean;
   progress?: SyncProgress;
+  serviceError?: string;
 }
 export interface SyncProgress {
   needFiles: number /* int64 */;

@@ -281,6 +281,18 @@ function PairingSection({
   }, [onStartPairing])
 
   if (!isRunning) {
+    if (status.serviceError) {
+      return (
+        <Section title="Syncthing failed to start">
+          <div className="space-y-3">
+            <p className="text-sm text-status-error">The syncthing service failed. Recent logs:</p>
+            <pre className="text-xs text-on-surface-muted bg-surface-raised p-3 rounded-sm overflow-x-auto whitespace-pre-wrap">
+              {status.serviceError}
+            </pre>
+          </div>
+        </Section>
+      )
+    }
     return (
       <Section title="Pair a device">
         <div className="flex items-center gap-3">

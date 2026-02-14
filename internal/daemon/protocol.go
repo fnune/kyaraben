@@ -198,16 +198,17 @@ const (
 )
 
 type SyncStatusResponse struct {
-	Enabled  bool          `json:"enabled"`
-	Mode     string        `json:"mode,omitempty"`
-	Running  bool          `json:"running,omitempty"`
-	DeviceID string        `json:"deviceId,omitempty"`
-	GUIURL   string        `json:"guiURL,omitempty"`
-	State    SyncState     `json:"state,omitempty"`
-	Devices  []SyncDevice  `json:"devices,omitempty"`
-	Folders  []SyncFolder  `json:"folders,omitempty"`
-	Pairing  bool          `json:"pairing,omitempty"`
-	Progress *SyncProgress `json:"progress,omitempty"`
+	Enabled      bool          `json:"enabled"`
+	Mode         string        `json:"mode,omitempty"`
+	Running      bool          `json:"running,omitempty"`
+	DeviceID     string        `json:"deviceId,omitempty"`
+	GUIURL       string        `json:"guiURL,omitempty"`
+	State        SyncState     `json:"state,omitempty"`
+	Devices      []SyncDevice  `json:"devices,omitempty"`
+	Folders      []SyncFolder  `json:"folders,omitempty"`
+	Pairing      bool          `json:"pairing,omitempty"`
+	Progress     *SyncProgress `json:"progress,omitempty"`
+	ServiceError string        `json:"serviceError,omitempty"`
 }
 
 type SyncProgress struct {
