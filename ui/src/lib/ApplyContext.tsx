@@ -26,6 +26,7 @@ interface ApplyConfig {
   systems: Record<string, string[]>
   emulators: Record<string, { version?: string }>
   frontends?: Record<string, { enabled: boolean; version?: string }>
+  summaryMessage?: string
 }
 
 function hasConflicts(data: PreflightResponse): boolean {
@@ -54,6 +55,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const [preflightData, setPreflightData] = useState<PreflightResponse | null>(null)
   const onCompleteRef = useRef<(() => void) | null>(null)
+  const summaryMessageRef = useRef<string | null>(null)
   const { showToast } = useToast()
 
   const runApply = useCallback(async (): Promise<boolean> => {
@@ -66,6 +68,11 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
       setProgressSteps((prev) => {
         const existing = prev.find((s) => s.id === data.step)
         const isNewStep = !existing
+
+        const effectiveMessage =
+          data.step === 'summary' && summaryMessageRef.current
+            ? summaryMessageRef.current
+            : data.message
 
         return (
           isNewStep
@@ -83,7 +90,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
             return {
               ...s,
               status: 'in_progress' as const,
-              ...(data.message && { message: data.message }),
+              ...(effectiveMessage && { message: effectiveMessage }),
               ...(data.output && {
                 output: [...(s.output ?? []), data.output].slice(-MAX_OUTPUT_LINES),
               }),
@@ -152,6 +159,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
     async (config: ApplyConfig): Promise<boolean> => {
       setError(null)
       setPreflightData(null)
+      summaryMessageRef.current = config.summaryMessage ?? null
 
       const configResult = await daemon.setConfig({
         userStore: config.userStore,

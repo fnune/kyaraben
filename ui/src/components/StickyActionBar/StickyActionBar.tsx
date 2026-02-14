@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { BottomBar } from '@/lib/BottomBar'
 import { Button } from '@/lib/Button'
-import { type ChangeSummary, formatBytes } from '@/lib/changeUtils'
+import { CHANGE_CONFIG, type ChangeSummary, formatBytes, getChangeGroups } from '@/lib/changeUtils'
 
 export interface StickyActionBarProps {
   readonly changes: ChangeSummary
-  readonly onApply: () => void
+  readonly onApply: (changes: ChangeSummary) => void
   readonly onDiscard: () => void
   readonly applying?: boolean
 }
@@ -37,12 +37,30 @@ export function StickyActionBar({
 
   const netBytes = changes.downloadBytes - changes.freeBytes
   const hasSize = changes.downloadBytes > 0 || changes.freeBytes > 0
+  const changeGroups = getChangeGroups(changes)
 
   return (
     <BottomBar>
-      <div className="flex items-center gap-4 text-sm">
+      <div className="flex items-center gap-4 text-sm min-w-0">
+        {changeGroups.length > 0 && (
+          <div className="flex items-center gap-3 min-w-0">
+            {changeGroups.map(({ type, items }) => {
+              const config = CHANGE_CONFIG[type]
+              const names = items.map((i) => i.name).join(', ')
+              return (
+                <span
+                  key={type}
+                  className={`flex items-center gap-1.5 min-w-0 ${config.textColor}`}
+                >
+                  <span className="shrink-0">{config.icon}</span>
+                  <span className="truncate">{names}</span>
+                </span>
+              )
+            })}
+          </div>
+        )}
         {hasSize && (
-          <div className="flex items-center gap-2 font-mono">
+          <div className="flex items-center gap-2 font-mono shrink-0">
             {changes.downloadBytes > 0 && (
               <span className="text-status-ok">+{formatBytes(changes.downloadBytes)}</span>
             )}
@@ -57,21 +75,23 @@ export function StickyActionBar({
             )}
           </div>
         )}
+      </div>
+
+      <div className="flex items-center gap-4 shrink-0 ml-4">
         {changes.hasConfigChanges && (
           <button
             type="button"
             onClick={handleDiscard}
             disabled={applying}
-            className="text-accent hover:text-accent-hover hover:underline disabled:opacity-50"
+            className="text-sm text-accent hover:text-accent-hover hover:underline disabled:opacity-50"
           >
             {confirmingDiscard ? 'Click again to confirm' : 'Discard changes'}
           </button>
         )}
+        <Button onClick={() => onApply(changes)} disabled={applying}>
+          {applying ? 'Applying...' : 'Apply'}
+        </Button>
       </div>
-
-      <Button onClick={onApply} disabled={applying}>
-        {applying ? 'Applying...' : 'Apply'}
-      </Button>
     </BottomBar>
   )
 }
