@@ -175,7 +175,7 @@ func (c *Client) AddDevice(ctx context.Context, deviceID, name string) error {
 		Name:              name,
 		Addresses:         []string{"dynamic"},
 		Compression:       "metadata",
-		AutoAcceptFolders: true,
+		AutoAcceptFolders: false,
 	}
 
 	resp, err := c.doRequest(ctx, http.MethodPut, "/rest/config/devices/"+deviceID, dev)
