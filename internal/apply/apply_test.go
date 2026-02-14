@@ -187,9 +187,7 @@ func TestApplyRemovesConfigDirsForDisabledEmulators(t *testing.T) {
 	manifestPath := filepath.Join(tmpDir, "manifest.json")
 	userStorePath := filepath.Join(tmpDir, "Emulation")
 	packagesDir := filepath.Join(tmpDir, "packages")
-	configDir := filepath.Join(tmpDir, "config")
-
-	t.Setenv("XDG_CONFIG_HOME", configDir)
+	configDir := filepath.Join(tmpDir, ".config")
 
 	mgbaConfigDir := filepath.Join(configDir, "mgba")
 	if err := os.MkdirAll(mgbaConfigDir, 0755); err != nil {
