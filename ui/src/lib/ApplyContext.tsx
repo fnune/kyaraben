@@ -17,9 +17,8 @@ const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
   summary: 'Applying configuration',
   store: 'Setting up emulation folder',
   build: 'Installing emulators',
-  gc: 'Cleaning up',
-  desktop: 'Adding to application menu',
-  config: 'Configuring emulators',
+  cleanup: 'Cleaning up',
+  finalize: 'Finalizing',
 }
 
 interface ApplyConfig {
@@ -41,6 +40,7 @@ interface ApplyContextValue {
   progressSteps: readonly ProgressStep[]
   error: string | null
   preflightData: PreflightResponse | null
+  logPosition: number | null
   apply: (config: ApplyConfig) => Promise<boolean>
   confirmApply: () => Promise<boolean>
   cancel: () => Promise<void>
@@ -55,6 +55,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
   const [progressSteps, setProgressSteps] = useState<readonly ProgressStep[]>([])
   const [error, setError] = useState<string | null>(null)
   const [preflightData, setPreflightData] = useState<PreflightResponse | null>(null)
+  const [logPosition, setLogPosition] = useState<number | null>(null)
   const onCompleteRef = useRef<(() => void) | null>(null)
   const summaryMessageRef = useRef<string | null>(null)
   const { showToast } = useToast()
@@ -62,8 +63,10 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
   const runApply = useCallback(async (): Promise<boolean> => {
     setStatus('applying')
     setProgressSteps([])
+    setLogPosition(null)
 
     const MAX_OUTPUT_LINES = 10000
+    let logPositionCaptured = false
 
     const progressHandler = (data: {
       step: string
@@ -72,7 +75,12 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
       buildPhase?: string
       packageName?: string
       progressPercent?: number
+      logPosition?: number
     }) => {
+      if (!logPositionCaptured && data.logPosition !== undefined) {
+        setLogPosition(data.logPosition)
+        logPositionCaptured = true
+      }
       setProgressSteps((prev) => {
         const existing = prev.find((s) => s.id === data.step)
         const isNewStep = !existing
@@ -218,6 +226,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
     setProgressSteps([])
     setError(null)
     setPreflightData(null)
+    setLogPosition(null)
   }, [])
 
   return (
@@ -227,6 +236,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
         progressSteps,
         error,
         preflightData,
+        logPosition,
         apply,
         confirmApply,
         cancel,

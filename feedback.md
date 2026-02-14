@@ -16,6 +16,10 @@ What we won't do: full performance tuning, per-game settings, target-specific op
 ## Low-hanging fruit
 
 - Refactor Provision struct: Filename, Hashes, and FilePattern are mutually exclusive validation strategies but modeled as optional fields on the same struct. Consider an interface or union type: `FilenameProvision` (just check file exists), `HashedProvision` (check file exists with valid hash), `DirectoryProvision` (check directory contains files matching a glob pattern like `*.nca`). This would make the validation logic cleaner and prevent invalid combinations.
+- RetroArch cores bundle gets cleaned up after install and thus needs to redownload every time
+    - Maybe consider keeping it around instead of cleaning it up
+- Eden .desktop icon is broken (does not show)
+    - All the other icons seem to be working fine
 - Nix build progress indication: we implemented a basic progress parser but it has limitations:
   - Nix builds happen in multiple waves (dependencies first, then actual packages) with separate "these N derivations will be built" announcements, making counts misleading
   - The closure contains many packages users don't care about (build tools, libraries) - ~400 deps before the actual emulators

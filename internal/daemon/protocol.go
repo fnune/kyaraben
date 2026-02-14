@@ -107,6 +107,7 @@ type ProgressEvent struct {
 	BuildPhase      string `json:"buildPhase,omitempty"`
 	PackageName     string `json:"packageName,omitempty"`
 	ProgressPercent int    `json:"progressPercent,omitempty"`
+	LogPosition     int64  `json:"logPosition"`
 }
 
 type ApplyResult struct {

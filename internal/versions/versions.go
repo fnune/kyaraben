@@ -13,13 +13,8 @@ var versionsData string
 
 // Versions holds all version information parsed from versions.toml.
 type Versions struct {
-	Nixpkgs        NixpkgsVersion          `toml:"nixpkgs"`
 	RetroArchCores RetroArchCoresSpec      `toml:"retroarch-cores"`
 	Emulators      map[string]EmulatorSpec // Populated after parsing
-}
-
-type NixpkgsVersion struct {
-	Commit string `toml:"commit"`
 }
 
 type RetroArchCoresSpec struct {
@@ -34,8 +29,8 @@ type RetroArchCoresBuild struct {
 	Targets map[string]TargetBuild
 }
 
-// GetCoresURL returns the URL for the cores bundle for the given arch.
-func (r *RetroArchCoresSpec) GetCoresURL(arch string) (string, string, bool) {
+// GetCoresURL returns the URL for the cores bundle for the given target name.
+func (r *RetroArchCoresSpec) GetCoresURL(targetName string) (string, string, bool) {
 	version := r.Default
 	if version == "" {
 		return "", "", false
@@ -44,19 +39,19 @@ func (r *RetroArchCoresSpec) GetCoresURL(arch string) (string, string, bool) {
 	if !ok {
 		return "", "", false
 	}
-	target, ok := build.Targets[arch]
+	target, ok := build.Targets[targetName]
 	if !ok {
 		return "", "", false
 	}
 	url := r.URLTemplate
 	url = strings.ReplaceAll(url, "{version}", version)
-	url = strings.ReplaceAll(url, "{arch}", arch)
+	url = strings.ReplaceAll(url, "{variant}", target.Variant)
 	return url, target.SHA256, true
 }
 
 // EmulatorSpec describes all available versions of an emulator.
 type EmulatorSpec struct {
-	URLTemplate string                  // URL template with {version}, {target}, {release_tag}, {arch} placeholders
+	URLTemplate string                  // URL template with {version}, {release_tag}, {variant} placeholders
 	BinaryPath  string                  // Default binary path for archives
 	Default     string                  // Default version string
 	IconURL     string                  // URL to download icon from
@@ -109,10 +104,9 @@ func (v *VersionEntry) URL(target string, spec *EmulatorSpec) string {
 		return t.URL
 	}
 	url := strings.ReplaceAll(spec.URLTemplate, "{version}", v.Version)
-	url = strings.ReplaceAll(url, "{target}", target)
 	url = strings.ReplaceAll(url, "{release_tag}", v.EffectiveReleaseTag())
 	if t := v.Target(target); t != nil {
-		url = strings.ReplaceAll(url, "{arch}", t.Arch)
+		url = strings.ReplaceAll(url, "{variant}", t.Variant)
 	}
 	return url
 }
@@ -125,22 +119,20 @@ func (v *VersionEntry) Target(name string) *TargetBuild {
 	return nil
 }
 
-// TargetsForArch returns all target names available for a given architecture.
-func (v *VersionEntry) TargetsForArch(arch string) []string {
-	var targets []string
-	for name, t := range v.Targets {
-		if t.Arch == arch {
-			targets = append(targets, name)
-		}
-	}
-	return targets
+// TargetFallback maps detected hardware names to canonical target names.
+var TargetFallback = map[string]TargetName{
+	"amd64": TargetX64,
 }
 
-// DefaultTargetForArch returns the first target matching the given architecture.
-func (v *VersionEntry) DefaultTargetForArch(arch string) string {
-	for name, t := range v.Targets {
-		if t.Arch == arch {
-			return name
+// SelectTarget returns the best matching target for the given detected target name.
+// It tries exact match first, then falls back to x64 for x86_64-compatible targets.
+func (v *VersionEntry) SelectTarget(detectedName string) string {
+	if v.Target(detectedName) != nil {
+		return detectedName
+	}
+	if fallback, ok := TargetFallback[detectedName]; ok {
+		if v.Target(fallback.String()) != nil {
+			return fallback.String()
 		}
 	}
 	return ""
@@ -177,16 +169,45 @@ func (v *VersionEntry) ArchiveType(target string, spec *EmulatorSpec) string {
 
 // TargetBuild describes a build for a specific hardware target.
 type TargetBuild struct {
-	Arch       string `toml:"arch"`
+	Variant    string `toml:"variant"` // String used in URL construction
 	SHA256     string `toml:"sha256"`
 	BinaryPath string `toml:"binary_path"`
 	Size       int64  `toml:"size"`
 	URL        string `toml:"url"`
 }
 
+// TargetName represents a valid target identifier. The unexported field ensures
+// only predefined values can be used - code outside this package cannot construct
+// arbitrary TargetName values.
+type TargetName struct {
+	name string
+}
+
+func (t TargetName) String() string { return t.name }
+
+var (
+	TargetX64       = TargetName{"x64"}
+	TargetAarch64   = TargetName{"aarch64"}
+	TargetSteamdeck = TargetName{"steamdeck"}
+	TargetRogAlly   = TargetName{"rog-ally"}
+)
+
+var validTargets = map[string]TargetName{
+	"x64":       TargetX64,
+	"aarch64":   TargetAarch64,
+	"steamdeck": TargetSteamdeck,
+	"rog-ally":  TargetRogAlly,
+}
+
+// ParseTargetName validates and returns a TargetName from a string.
+// Returns false if the string is not a valid target name.
+func ParseTargetName(s string) (TargetName, bool) {
+	t, ok := validTargets[s]
+	return t, ok
+}
+
 // Known emulator and frontend names for parsing
 var emulatorNames = []string{
-	"nix-portable",
 	"eden",
 	"duckstation",
 	"pcsx2",
@@ -263,12 +284,6 @@ func parse(data string) (*Versions, error) {
 		Emulators: make(map[string]EmulatorSpec),
 	}
 
-	if nixpkgsRaw, ok := raw["nixpkgs"].(map[string]interface{}); ok {
-		if commit, ok := nixpkgsRaw["commit"].(string); ok {
-			v.Nixpkgs.Commit = commit
-		}
-	}
-
 	if racRaw, ok := raw["retroarch-cores"].(map[string]interface{}); ok {
 		if urlTemplate, ok := racRaw["url_template"].(string); ok {
 			v.RetroArchCores.URLTemplate = urlTemplate
@@ -298,10 +313,13 @@ func parse(data string) (*Versions, error) {
 				if targetsRaw, ok := versionRaw["targets"].(map[string]interface{}); ok {
 					build := RetroArchCoresBuild{Targets: make(map[string]TargetBuild)}
 					for targetName, targetVal := range targetsRaw {
+						if _, ok := ParseTargetName(targetName); !ok {
+							return nil, fmt.Errorf("retroarch-cores: invalid target name %q", targetName)
+						}
 						if targetData, ok := targetVal.(map[string]interface{}); ok {
 							target := TargetBuild{}
-							if arch, ok := targetData["arch"].(string); ok {
-								target.Arch = arch
+							if variant, ok := targetData["variant"].(string); ok {
+								target.Variant = variant
 							}
 							if sha, ok := targetData["sha256"].(string); ok {
 								target.SHA256 = sha
@@ -408,14 +426,17 @@ func parseVersionEntry(version string, raw map[string]interface{}) (VersionEntry
 
 	if targetsRaw, ok := raw["targets"].(map[string]interface{}); ok {
 		for targetName, targetValue := range targetsRaw {
+			if _, ok := ParseTargetName(targetName); !ok {
+				return entry, fmt.Errorf("invalid target name %q", targetName)
+			}
 			targetRaw, ok := targetValue.(map[string]interface{})
 			if !ok {
 				continue
 			}
 
 			target := TargetBuild{}
-			if v, ok := targetRaw["arch"].(string); ok {
-				target.Arch = v
+			if v, ok := targetRaw["variant"].(string); ok {
+				target.Variant = v
 			}
 			if v, ok := targetRaw["sha256"].(string); ok {
 				target.SHA256 = v

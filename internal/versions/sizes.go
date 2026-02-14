@@ -66,10 +66,6 @@ func FetchAllSizes(ctx context.Context) <-chan SizeInfo {
 		}
 
 		for name, spec := range v.Emulators {
-			if name == "nix-portable" {
-				continue
-			}
-
 			for version, entry := range spec.Versions {
 				for targetName := range entry.Targets {
 					select {
@@ -109,34 +105,4 @@ func FormatSize(bytes int64) string {
 		exp++
 	}
 	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
-}
-
-// GetEmulatorSize returns the download size for an emulator's default version and target.
-func GetEmulatorSize(name string, arch string) (int64, error) {
-	v, err := Get()
-	if err != nil {
-		return 0, err
-	}
-
-	spec, ok := v.GetEmulator(name)
-	if !ok {
-		return 0, fmt.Errorf("unknown emulator: %s", name)
-	}
-
-	entry := spec.GetDefault()
-	if entry == nil {
-		return 0, fmt.Errorf("no default version for %s", name)
-	}
-
-	target := entry.DefaultTargetForArch(arch)
-	if target == "" {
-		return 0, fmt.Errorf("no target for arch %s", arch)
-	}
-
-	build := entry.Target(target)
-	if build == nil {
-		return 0, fmt.Errorf("target %s not found", target)
-	}
-
-	return build.Size, nil
 }

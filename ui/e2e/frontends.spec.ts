@@ -5,14 +5,12 @@ import {
   type Page,
   test,
 } from '@playwright/test'
-import { createFixture, presets, setupFakeNixPortable, type TestFixture } from './fixtures'
+import { createFixture, presets, type TestFixture } from './fixtures'
 
 async function launchWithFixture(
   fixture: TestFixture,
   appImagePath: string,
 ): Promise<{ app: ElectronApplication; page: Page }> {
-  setupFakeNixPortable(fixture)
-
   const app = await electron.launch({
     executablePath: appImagePath,
     args: ['--no-sandbox'],

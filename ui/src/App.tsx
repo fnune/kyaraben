@@ -12,6 +12,7 @@ import * as daemon from '@/lib/daemon'
 import { useOnWindowFocus } from '@/lib/hooks/useOnWindowFocus'
 import { useUpdateChecker } from '@/lib/hooks/useUpdateChecker'
 import { getNewlyFoundProvisions } from '@/lib/provisions'
+import { Spinner } from '@/lib/Spinner'
 import { ToastProvider, useToast } from '@/lib/ToastContext'
 import type {
   ConfigResponse,
@@ -54,7 +55,35 @@ function parseStatusResponse(data: StatusResponse) {
   return { versions, execLines, configs, feVersions, paths }
 }
 
-function parseConfigResponse(data: ConfigResponse) {
+interface ConfigState {
+  userStore: string
+  systemEmulators: Map<SystemID, EmulatorID[]>
+  emulatorVersions: Map<EmulatorID, string | null>
+  enabledFrontends: Map<FrontendID, boolean>
+  frontendVersions: Map<FrontendID, string | null>
+}
+
+function emptyConfigState(): ConfigState {
+  return {
+    userStore: '',
+    systemEmulators: new Map(),
+    emulatorVersions: new Map(),
+    enabledFrontends: new Map(),
+    frontendVersions: new Map(),
+  }
+}
+
+function cloneConfigState(state: ConfigState): ConfigState {
+  return {
+    userStore: state.userStore,
+    systemEmulators: new Map(state.systemEmulators),
+    emulatorVersions: new Map(state.emulatorVersions),
+    enabledFrontends: new Map(state.enabledFrontends),
+    frontendVersions: new Map(state.frontendVersions),
+  }
+}
+
+function parseConfigResponse(data: ConfigResponse): ConfigState {
   const systemEmulators = new Map<SystemID, EmulatorID[]>()
   const emulatorVersions = new Map<EmulatorID, string | null>()
   const enabledFrontends = new Map<FrontendID, boolean>()
@@ -83,21 +112,19 @@ function parseConfigResponse(data: ConfigResponse) {
     }
   }
 
-  return { systemEmulators, emulatorVersions, enabledFrontends, frontendVersions }
+  return {
+    userStore: data.userStore,
+    systemEmulators,
+    emulatorVersions,
+    enabledFrontends,
+    frontendVersions,
+  }
 }
 
 function AppContent() {
   const [currentView, setCurrentView] = useState<View>('systems')
   const [systems, setSystems] = useState<readonly System[]>([])
   const [frontends, setFrontends] = useState<readonly FrontendRef[]>([])
-  const [systemEmulators, setSystemEmulators] = useState<Map<SystemID, EmulatorID[]>>(new Map())
-  const [enabledFrontends, setEnabledFrontends] = useState<Map<FrontendID, boolean>>(new Map())
-  const [emulatorVersions, setEmulatorVersions] = useState<Map<EmulatorID, string | null>>(
-    new Map(),
-  )
-  const [frontendVersions, setFrontendVersions] = useState<Map<FrontendID, string | null>>(
-    new Map(),
-  )
   const [installedVersions, setInstalledVersions] = useState<Map<EmulatorID, string>>(new Map())
   const [installedFrontendVersions, setInstalledFrontendVersions] = useState<
     Map<FrontendID, string>
@@ -110,14 +137,11 @@ function AppContent() {
     Map<EmulatorID, Record<string, EmulatorPaths>>
   >(new Map())
   const [provisions, setProvisions] = useState<DoctorResponse>({})
-  const [userStore, setUserStore] = useState('~/Emulation')
+  const [configState, setConfigState] = useState<ConfigState>(emptyConfigState)
+  const [configReady, setConfigReady] = useState(false)
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null)
 
-  const savedSystemEmulators = useRef<Map<SystemID, EmulatorID[]>>(new Map())
-  const savedEmulatorVersions = useRef<Map<EmulatorID, string | null>>(new Map())
-  const savedEnabledFrontends = useRef<Map<FrontendID, boolean>>(new Map())
-  const savedFrontendVersions = useRef<Map<FrontendID, string | null>>(new Map())
-  const savedUserStore = useRef('~/Emulation')
+  const savedConfigState = useRef<ConfigState>(emptyConfigState())
 
   const { onCompleteRef } = useApply()
   const { showToast } = useToast()
@@ -161,11 +185,7 @@ function AppContent() {
 
     if (configResult.ok) {
       const parsed = parseConfigResponse(configResult.data)
-      savedSystemEmulators.current = new Map(parsed.systemEmulators)
-      savedEmulatorVersions.current = new Map(parsed.emulatorVersions)
-      savedEnabledFrontends.current = new Map(parsed.enabledFrontends)
-      savedFrontendVersions.current = new Map(parsed.frontendVersions)
-      savedUserStore.current = configResult.data.userStore
+      savedConfigState.current = cloneConfigState(parsed)
     }
   }, [])
 
@@ -194,17 +214,12 @@ function AppContent() {
       }
 
       if (configResult.ok) {
-        setUserStore(configResult.data.userStore)
-        savedUserStore.current = configResult.data.userStore
         const parsed = parseConfigResponse(configResult.data)
-        setSystemEmulators(parsed.systemEmulators)
-        setEmulatorVersions(parsed.emulatorVersions)
-        setEnabledFrontends(parsed.enabledFrontends)
-        setFrontendVersions(parsed.frontendVersions)
-        savedSystemEmulators.current = new Map(parsed.systemEmulators)
-        savedEmulatorVersions.current = new Map(parsed.emulatorVersions)
-        savedEnabledFrontends.current = new Map(parsed.enabledFrontends)
-        savedFrontendVersions.current = new Map(parsed.frontendVersions)
+        setConfigState(parsed)
+        savedConfigState.current = cloneConfigState(parsed)
+        setConfigReady(true)
+      } else {
+        showToast('Failed to load configuration', 'error')
       }
 
       if (statusResult.ok) {
@@ -272,8 +287,8 @@ function AppContent() {
 
   const handleEmulatorToggle = useCallback(
     (emulatorId: EmulatorID, enabled: boolean) => {
-      setSystemEmulators((prev) => {
-        const next = new Map(prev)
+      setConfigState((prev) => {
+        const next = new Map(prev.systemEmulators)
 
         for (const system of systems) {
           const hasEmulator = system.emulators.some((e) => e.id === emulatorId)
@@ -294,44 +309,44 @@ function AppContent() {
             }
           }
         }
-        return next
+        return { ...prev, systemEmulators: next }
       })
     },
     [systems],
   )
 
-  const enabledEmulators = new Set(Array.from(systemEmulators.values()).flat())
+  const enabledEmulators = new Set(Array.from(configState.systemEmulators.values()).flat())
 
   const handleVersionChange = useCallback((emulatorId: EmulatorID, version: string | null) => {
-    setEmulatorVersions((prev) => {
-      const next = new Map(prev)
+    setConfigState((prev) => {
+      const next = new Map(prev.emulatorVersions)
       if (version === null) {
         next.delete(emulatorId)
       } else {
         next.set(emulatorId, version)
       }
-      return next
+      return { ...prev, emulatorVersions: next }
     })
   }, [])
 
   const handleFrontendToggle = useCallback((frontendId: FrontendID, enabled: boolean) => {
-    setEnabledFrontends((prev) => {
-      const next = new Map(prev)
+    setConfigState((prev) => {
+      const next = new Map(prev.enabledFrontends)
       next.set(frontendId, enabled)
-      return next
+      return { ...prev, enabledFrontends: next }
     })
   }, [])
 
   const handleFrontendVersionChange = useCallback(
     (frontendId: FrontendID, version: string | null) => {
-      setFrontendVersions((prev) => {
-        const next = new Map(prev)
+      setConfigState((prev) => {
+        const next = new Map(prev.frontendVersions)
         if (version === null) {
           next.delete(frontendId)
         } else {
           next.set(frontendId, version)
         }
-        return next
+        return { ...prev, frontendVersions: next }
       })
     },
     [],
@@ -362,7 +377,7 @@ function AppContent() {
     for (const sys of systems) {
       newSystemEmulators.set(sys.id, [sys.defaultEmulatorId])
     }
-    setSystemEmulators(newSystemEmulators)
+    setConfigState((prev) => ({ ...prev, systemEmulators: newSystemEmulators }))
 
     showToast('All systems enabled. Use "Discard changes" to undo.', 'success')
   }, [systems, showToast])
@@ -371,11 +386,7 @@ function AppContent() {
     const [configResult, statusResult] = await Promise.all([daemon.getConfig(), daemon.getStatus()])
 
     if (configResult.ok) {
-      const parsed = parseConfigResponse(configResult.data)
-      setSystemEmulators(parsed.systemEmulators)
-      setEmulatorVersions(parsed.emulatorVersions)
-      setEnabledFrontends(parsed.enabledFrontends)
-      setFrontendVersions(parsed.frontendVersions)
+      setConfigState(parseConfigResponse(configResult.data))
     }
 
     if (statusResult.ok) {
@@ -391,66 +402,81 @@ function AppContent() {
   }, [])
 
   const hasConfigChanges = (() => {
-    if (userStore !== savedUserStore.current) return true
+    if (!configReady) return false
+    if (configState.userStore !== savedConfigState.current.userStore) return true
 
-    if (systemEmulators.size !== savedSystemEmulators.current.size) return true
-    for (const [sysId, emuIds] of systemEmulators) {
-      const savedIds = savedSystemEmulators.current.get(sysId)
+    if (configState.systemEmulators.size !== savedConfigState.current.systemEmulators.size)
+      return true
+    for (const [sysId, emuIds] of configState.systemEmulators) {
+      const savedIds = savedConfigState.current.systemEmulators.get(sysId)
       if (!savedIds || emuIds.length !== savedIds.length) return true
       if (!emuIds.every((id, i) => savedIds[i] === id)) return true
     }
-    for (const sysId of savedSystemEmulators.current.keys()) {
-      if (!systemEmulators.has(sysId)) return true
+    for (const sysId of savedConfigState.current.systemEmulators.keys()) {
+      if (!configState.systemEmulators.has(sysId)) return true
     }
 
-    if (emulatorVersions.size !== savedEmulatorVersions.current.size) return true
-    for (const [emuId, version] of emulatorVersions) {
-      if (savedEmulatorVersions.current.get(emuId) !== version) return true
+    if (configState.emulatorVersions.size !== savedConfigState.current.emulatorVersions.size)
+      return true
+    for (const [emuId, version] of configState.emulatorVersions) {
+      if (savedConfigState.current.emulatorVersions.get(emuId) !== version) return true
     }
-    for (const emuId of savedEmulatorVersions.current.keys()) {
-      if (!emulatorVersions.has(emuId)) return true
-    }
-
-    if (enabledFrontends.size !== savedEnabledFrontends.current.size) return true
-    for (const [feId, enabled] of enabledFrontends) {
-      if (savedEnabledFrontends.current.get(feId) !== enabled) return true
-    }
-    for (const feId of savedEnabledFrontends.current.keys()) {
-      if (!enabledFrontends.has(feId)) return true
+    for (const emuId of savedConfigState.current.emulatorVersions.keys()) {
+      if (!configState.emulatorVersions.has(emuId)) return true
     }
 
-    if (frontendVersions.size !== savedFrontendVersions.current.size) return true
-    for (const [feId, version] of frontendVersions) {
-      if (savedFrontendVersions.current.get(feId) !== version) return true
+    if (configState.enabledFrontends.size !== savedConfigState.current.enabledFrontends.size)
+      return true
+    for (const [feId, enabled] of configState.enabledFrontends) {
+      if (savedConfigState.current.enabledFrontends.get(feId) !== enabled) return true
     }
-    for (const feId of savedFrontendVersions.current.keys()) {
-      if (!frontendVersions.has(feId)) return true
+    for (const feId of savedConfigState.current.enabledFrontends.keys()) {
+      if (!configState.enabledFrontends.has(feId)) return true
+    }
+
+    if (configState.frontendVersions.size !== savedConfigState.current.frontendVersions.size)
+      return true
+    for (const [feId, version] of configState.frontendVersions) {
+      if (savedConfigState.current.frontendVersions.get(feId) !== version) return true
+    }
+    for (const feId of savedConfigState.current.frontendVersions.keys()) {
+      if (!configState.frontendVersions.has(feId)) return true
     }
 
     return false
   })()
 
   const renderView = () => {
+    if (!configReady) {
+      return (
+        <div className="h-full flex items-center justify-center text-on-surface-muted">
+          <div className="flex items-center gap-3">
+            <Spinner />
+            <span className="text-sm">Loading configuration...</span>
+          </div>
+        </div>
+      )
+    }
     switch (currentView) {
       case 'systems':
         return (
           <SystemsView
             systems={systems}
             frontends={frontends}
-            systemEmulators={systemEmulators}
+            systemEmulators={configState.systemEmulators}
             enabledEmulators={enabledEmulators}
-            enabledFrontends={enabledFrontends}
-            emulatorVersions={emulatorVersions}
-            frontendVersions={frontendVersions}
+            enabledFrontends={configState.enabledFrontends}
+            emulatorVersions={configState.emulatorVersions}
+            frontendVersions={configState.frontendVersions}
             installedVersions={installedVersions}
             installedFrontendVersions={installedFrontendVersions}
             installedExecLines={installedExecLines}
             managedConfigs={managedConfigs}
             installedPaths={installedPaths}
             provisions={provisions}
-            userStore={userStore}
+            userStore={configState.userStore}
             hasConfigChanges={hasConfigChanges}
-            onUserStoreChange={setUserStore}
+            onUserStoreChange={(value) => setConfigState((prev) => ({ ...prev, userStore: value }))}
             onEmulatorToggle={handleEmulatorToggle}
             onVersionChange={handleVersionChange}
             onFrontendToggle={handleFrontendToggle}

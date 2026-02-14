@@ -124,8 +124,8 @@ func TestPackageInstallerInstallArchive(t *testing.T) {
 		t.Fatalf("InstallEmulator: %v", err)
 	}
 
-	if binary.Name != "melonDS-x86_64.AppImage" {
-		t.Errorf("binary name = %q", binary.Name)
+	if binary.Name != "melonds" {
+		t.Errorf("binary name = %q, want melonds", binary.Name)
 	}
 
 	if _, err := os.Stat(binary.Path); err != nil {
