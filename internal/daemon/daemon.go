@@ -383,10 +383,12 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 			event := Event{
 				Type: EventTypeProgress,
 				Data: ProgressEvent{
-					Step:    p.Step,
-					Message: p.Message,
-					Output:  p.Output,
-					Speed:   p.Speed,
+					Step:            p.Step,
+					Message:         p.Message,
+					Output:          p.Output,
+					BuildPhase:      p.BuildPhase,
+					PackageName:     p.PackageName,
+					ProgressPercent: p.ProgressPercent,
 				},
 			}
 			if emit != nil {

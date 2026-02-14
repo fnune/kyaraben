@@ -14,6 +14,14 @@ import (
 	"github.com/fnune/kyaraben/internal/nix"
 )
 
+func isTerminal() bool {
+	fi, err := os.Stdout.Stat()
+	if err != nil {
+		return false
+	}
+	return fi.Mode()&os.ModeCharDevice != 0
+}
+
 type ApplyCmd struct {
 	DryRun bool `help:"Show what would be done without making changes."`
 }
@@ -86,21 +94,58 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	}
 
 	buildMsgPrinted := false
+	lastProgressLine := ""
+	isTTY := isTerminal()
+
+	clearProgress := func() {
+		if isTTY && lastProgressLine != "" {
+			fmt.Print("\r" + strings.Repeat(" ", len(lastProgressLine)) + "\r")
+			lastProgressLine = ""
+		}
+	}
+
 	opts := apply.Options{
 		DryRun:        cmd.DryRun,
 		CreateBackups: createBackups,
 		OnProgress: func(p apply.Progress) {
 			switch p.Step {
 			case "store":
+				clearProgress()
 				fmt.Println(p.Message)
 			case "build":
 				if !buildMsgPrinted {
 					buildMsgPrinted = true
-					fmt.Println("Installing emulators (this may take a while on first run)...")
+					fmt.Println("Installing emulators...")
+				}
+
+				var line string
+				switch p.BuildPhase {
+				case "evaluating":
+					line = "  Preparing..."
+				case "installing":
+					if p.PackageName != "" {
+						if p.ProgressPercent > 0 {
+							line = fmt.Sprintf("  Installing %s... (%d%%)", p.PackageName, p.ProgressPercent)
+						} else {
+							line = fmt.Sprintf("  Installing %s...", p.PackageName)
+						}
+					}
+				}
+
+				if line != "" && isTTY {
+					if len(line) < len(lastProgressLine) {
+						padding := strings.Repeat(" ", len(lastProgressLine)-len(line))
+						fmt.Print("\r" + line + padding)
+					} else {
+						fmt.Print("\r" + line)
+					}
+					lastProgressLine = line
 				}
 			case "desktop":
+				clearProgress()
 				fmt.Println("Adding to application menu...")
 			case "config":
+				clearProgress()
 				fmt.Println("Configuring emulators...")
 			}
 		},

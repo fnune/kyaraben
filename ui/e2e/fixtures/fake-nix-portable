@@ -18,18 +18,39 @@ simulate_progress() {
   if [[ "$FAKE_NIX_PROGRESS" == "1" ]]; then
     echo "evaluating derivation..." >&2
     [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.2 || true
-    echo "these 1 derivations will be built:" >&2
-    echo "  /nix/store/fake-hash-$pkg.drv" >&2
-    [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.3 || true
-    echo "building '/nix/store/fake-hash-$pkg.drv'..." >&2
-    echo "$pkg> unpacking sources" >&2
+
+    # Simulate multiple packages for a more realistic progress display
+    local packages=("$pkg" "retroarch" "es-de")
+    local download_packages=("libretro-bsnes" "libretro-mgba")
+
+    echo "these ${#download_packages[@]} paths will be fetched (45.6 MiB download):" >&2
+    for dp in "${download_packages[@]}"; do
+      echo "  /nix/store/fake-hash-$dp" >&2
+    done
     [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.2 || true
-    echo "$pkg> configuring" >&2
+
+    for dp in "${download_packages[@]}"; do
+      echo "copying path '/nix/store/fake-hash-$dp' from 'https://cache.nixos.org'..." >&2
+      [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.15 || true
+    done
+
+    echo "these ${#packages[@]} derivations will be built:" >&2
+    for p in "${packages[@]}"; do
+      echo "  /nix/store/fake-hash-$p.drv" >&2
+    done
     [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.2 || true
-    echo "$pkg> building" >&2
-    [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.3 || true
-    echo "$pkg> installing" >&2
-    [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.1 || true
+
+    for p in "${packages[@]}"; do
+      echo "building '/nix/store/fake-hash-$p.drv'..." >&2
+      echo "$p> unpacking sources" >&2
+      [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.1 || true
+      echo "$p> configuring" >&2
+      [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.1 || true
+      echo "$p> building" >&2
+      [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.15 || true
+      echo "$p> installing" >&2
+      [[ "$FAKE_NIX_SLOW" == "1" ]] && sleep 0.05 || true
+    done
   fi
 }
 

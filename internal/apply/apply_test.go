@@ -64,6 +64,8 @@ func (m *mockNixClient) EnsureFlakeDir() error                                  
 func (m *mockNixClient) GetFlakePath() string                                    { return m.flakePath }
 func (m *mockNixClient) FlakeCheck(ctx context.Context, flakePath string) error  { return nil }
 func (m *mockNixClient) SetOutputCallback(cb func(string))                       {}
+func (m *mockNixClient) SetProgressCallback(cb func(nix.BuildProgress))          {}
+func (m *mockNixClient) SetExpectedPackages(packages []nix.ExpectedPackage)      {}
 func (m *mockNixClient) EnsurePersistentNixPortable() (string, error)            { return "", nil }
 func (m *mockNixClient) GetPersistentNixPortablePath() string                    { return "" }
 func (m *mockNixClient) GetNixPortableBinary() string                            { return "" }

@@ -6,12 +6,46 @@ export interface Step {
   status: 'pending' | 'in_progress' | 'completed' | 'error' | 'cancelled'
   message?: string
   output?: readonly string[]
+  buildPhase?: string
+  packageName?: string
+  progressPercent?: number
 }
 
 export interface ProgressStepsProps {
   steps: readonly Step[]
   error?: string
   cancelled?: boolean
+}
+
+function formatBuildProgress(step: Step): string | null {
+  switch (step.buildPhase) {
+    case 'evaluating':
+      return 'Preparing...'
+    case 'installing':
+      return step.packageName ? `Installing ${step.packageName}...` : null
+    default:
+      return null
+  }
+}
+
+function Shimmer() {
+  return (
+    <div className="h-full w-1/3 bg-linear-to-r from-transparent via-accent to-transparent animate-[shimmer_1.5s_infinite]" />
+  )
+}
+
+function ProgressBar({ percent }: { readonly percent: number }) {
+  return (
+    <>
+      <div
+        className="absolute inset-y-0 left-0 bg-accent rounded-full transition-all duration-300"
+        style={{ width: `${percent}%` }}
+      />
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="h-full w-1/3 bg-linear-to-r from-transparent via-white/20 to-transparent animate-[shimmer_1.5s_infinite]" />
+      </div>
+    </>
+  )
 }
 
 function StepIcon({ status }: { readonly status: Step['status'] }) {
@@ -31,10 +65,12 @@ function StepIcon({ status }: { readonly status: Step['status'] }) {
 
 function OutputPre({
   output,
-  showShimmer,
+  isInProgress,
+  progressPercent,
 }: {
   readonly output: readonly string[]
-  readonly showShimmer: boolean
+  readonly isInProgress: boolean
+  readonly progressPercent?: number
 }) {
   const preRef = useRef<HTMLPreElement>(null)
 
@@ -45,6 +81,8 @@ function OutputPre({
     }
   }, [output])
 
+  const hasProgress = progressPercent !== undefined && progressPercent > 0
+
   return (
     <div className="relative">
       <pre
@@ -53,9 +91,9 @@ function OutputPre({
       >
         {output.join('\n')}
       </pre>
-      {showShimmer && (
+      {isInProgress && (
         <div className="absolute bottom-0 left-0 right-0 h-1 bg-surface rounded-b overflow-hidden pointer-events-none">
-          <div className="h-full w-1/3 bg-linear-to-r from-transparent via-accent to-transparent animate-[shimmer_1.5s_infinite]" />
+          {hasProgress ? <ProgressBar percent={progressPercent} /> : <Shimmer />}
         </div>
       )}
     </div>
@@ -71,25 +109,50 @@ export function ProgressSteps({ steps, error, cancelled }: ProgressStepsProps) {
     <div className="mt-6 p-4 bg-surface-alt rounded-card">
       {steps.length > 0 && (
         <ol className="space-y-2">
-          {steps.map((step) => (
-            <li key={step.id}>
-              <div
-                className="flex items-center gap-2 min-w-0"
-                title={step.message ? `${step.label} ${step.message}` : step.label}
-              >
-                <StepIcon status={step.status} />
-                <span className="text-on-surface-secondary truncate">
-                  <span className="font-medium">{step.label}</span>
-                  {step.message && <span className="text-sm"> {step.message}</span>}
-                </span>
-              </div>
-              {step.output && step.output.length > 0 && (
-                <div className="mt-1 ml-6">
-                  <OutputPre output={step.output} showShimmer={step.status === 'in_progress'} />
+          {steps.map((step) => {
+            const buildProgress =
+              step.id === 'build' && step.status === 'in_progress'
+                ? formatBuildProgress(step)
+                : null
+
+            return (
+              <li key={step.id}>
+                <div
+                  className="flex items-center gap-2 min-w-0"
+                  title={step.message ? `${step.label} ${step.message}` : step.label}
+                >
+                  <StepIcon status={step.status} />
+                  <span className="text-on-surface-secondary truncate">
+                    <span className="font-medium">{step.label}</span>
+                    {step.id === 'build' && step.status === 'completed' && (
+                      <span className="text-sm"> - Done</span>
+                    )}
+                    {step.id === 'build' && step.status === 'in_progress' && buildProgress && (
+                      <span className="text-sm"> - {buildProgress}</span>
+                    )}
+                    {step.id === 'build' &&
+                      step.status === 'in_progress' &&
+                      !buildProgress &&
+                      step.message && <span className="text-sm"> {step.message}</span>}
+                    {step.id !== 'build' && step.message && (
+                      <span className="text-sm"> {step.message}</span>
+                    )}
+                  </span>
                 </div>
-              )}
-            </li>
-          ))}
+                {step.output && step.output.length > 0 && (
+                  <div className="mt-1 ml-6">
+                    <OutputPre
+                      output={step.output}
+                      isInProgress={step.status === 'in_progress'}
+                      {...(step.id === 'build' && step.progressPercent !== undefined
+                        ? { progressPercent: step.progressPercent }
+                        : {})}
+                    />
+                  </div>
+                )}
+              </li>
+            )
+          })}
         </ol>
       )}
 

@@ -112,6 +112,12 @@ func (f *FakeClient) GetNixPortableLocation() string {
 func (f *FakeClient) SetOutputCallback(fn func(line string)) {
 }
 
+func (f *FakeClient) SetProgressCallback(fn func(BuildProgress)) {
+}
+
+func (f *FakeClient) SetExpectedPackages(packages []ExpectedPackage) {
+}
+
 func (f *FakeClient) GetPersistentNixPortablePath() string {
 	return "/fake/persistent-nix-portable"
 }
