@@ -674,6 +674,16 @@ function setupIpcHandlers(): void {
     return event.data
   })
 
+  ipcMain.handle('sync_revert_folder', async (_, data: { folderId: string }) => {
+    const event = await sendCommand({ type: 'sync_revert_folder', data })
+    return event.data
+  })
+
+  ipcMain.handle('sync_local_changes', async (_, data: { folderId: string }) => {
+    const event = await sendCommand({ type: 'sync_local_changes', data })
+    return event.data
+  })
+
   ipcMain.handle('sync_pause', async () => {
     console.log('[sync] Pause requested')
     try {
