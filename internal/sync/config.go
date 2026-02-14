@@ -3,8 +3,9 @@ package sync
 import (
 	"encoding/xml"
 	"fmt"
-	"os"
 	"path/filepath"
+
+	"github.com/twpayne/go-vfs/v5"
 
 	"github.com/fnune/kyaraben/internal/model"
 )
@@ -77,6 +78,7 @@ type XMLVersioningParam struct {
 }
 
 type ConfigGenerator struct {
+	fs         vfs.FS
 	syncConfig model.SyncConfig
 	userStore  string
 	deviceID   string
@@ -84,12 +86,17 @@ type ConfigGenerator struct {
 	allSystems []model.SystemID
 }
 
-func NewConfigGenerator(syncConfig model.SyncConfig, userStore string, allSystems []model.SystemID) *ConfigGenerator {
+func NewConfigGenerator(fs vfs.FS, syncConfig model.SyncConfig, userStore string, allSystems []model.SystemID) *ConfigGenerator {
 	return &ConfigGenerator{
+		fs:         fs,
 		syncConfig: syncConfig,
 		userStore:  userStore,
 		allSystems: allSystems,
 	}
+}
+
+func NewDefaultConfigGenerator(syncConfig model.SyncConfig, userStore string, allSystems []model.SystemID) *ConfigGenerator {
+	return NewConfigGenerator(vfs.OSFS, syncConfig, userStore, allSystems)
 }
 
 func (g *ConfigGenerator) SetDeviceID(id string) {
@@ -270,7 +277,7 @@ func (g *ConfigGenerator) WriteConfig(configDir string) error {
 		return err
 	}
 
-	if err := os.MkdirAll(configDir, 0700); err != nil {
+	if err := vfs.MkdirAll(g.fs, configDir, 0700); err != nil {
 		return fmt.Errorf("creating config dir: %w", err)
 	}
 
@@ -284,7 +291,7 @@ func (g *ConfigGenerator) WriteConfig(configDir string) error {
 	xmlHeader := []byte(xml.Header)
 	data = append(xmlHeader, data...)
 
-	if err := os.WriteFile(configPath, data, 0600); err != nil {
+	if err := g.fs.WriteFile(configPath, data, 0600); err != nil {
 		return fmt.Errorf("writing config: %w", err)
 	}
 
