@@ -1,17 +1,13 @@
 # Kyaraben version pinning
-# To compute hashes: nix-prefetch-url <url> && nix hash convert --to sri --hash-algo sha256 <hash>
-
-[nixpkgs]
-commit = "fa83fd837f3098e3e678e6cf017b2b36102c7211" # https://github.com/NixOS/nixpkgs/commits/nixos-25.11
 
 # RetroArch cores bundle from buildbot (same source as RetroArch itself)
 # Contains all cores in one archive, we extract only what we need
 [retroarch-cores]
-url_template = "https://buildbot.libretro.com/stable/{version}/linux/{arch}/RetroArch_cores.7z"
+url_template = "https://buildbot.libretro.com/stable/{version}/linux/{variant}/RetroArch_cores.7z"
 default = "1.22.2"
 
-[retroarch-cores."1.22.2".targets.x86_64]
-arch = "x86_64"
+[retroarch-cores."1.22.2".targets.x64]
+variant = "x86_64"
 sha256 = "sha256-S37Y3JfUvwNfzhgsZLVljHZi4unl1CEpU4r71LYJYwc="
 
 # Core filenames inside the archive (used to extract only what we need)
@@ -20,8 +16,8 @@ sha256 = "sha256-S37Y3JfUvwNfzhgsZLVljHZi4unl1CEpU4r71LYJYwc="
 bsnes = "bsnes_libretro.so"
 mesen = "mesen_libretro.so"
 genesis_plus_gx = "genesis_plus_gx_libretro.so"
-mupen64plus = "mupen64plus_next_libretro.so"
-beetle_saturn = "mednafen_saturn_libretro.so"
+mupen64plus_next = "mupen64plus_next_libretro.so"
+mednafen_saturn = "mednafen_saturn_libretro.so"
 
 # Core sizes in bytes (for progress indication)
 [retroarch-cores.sizes]
@@ -37,72 +33,46 @@ mednafen_saturn = 8316472
 # ============================================================================
 
 [eden]
-url_template = "https://github.com/eden-emulator/Releases/releases/download/{version}/Eden-Linux-{version}-{target}-clang-pgo.AppImage"
+url_template = "https://github.com/eden-emulator/Releases/releases/download/{version}/Eden-Linux-{version}-{variant}-clang-pgo.AppImage"
 default = "v0.1.1"
-icon_url = "https://git.eden-emu.dev/eden-emu/eden/raw/commit/a82cf247fd7b4244b4477afdb1f7860b5b4e9b92/dist/dev.eden_emu.eden.svg"
-icon_sha256 = "sha256-XrRaJfrcYvw10SO0/hlGKw5///7X3T8Ukg5UMrOFl2k="
+icon_url = "https://raw.githubusercontent.com/eden-emulator/eden-emulator.github.io/655bb7bc8dd49db97b39c2d6be93d12be17dab92/src/assets/eden_logo.png"
+icon_sha256 = "sha256-Jq+A1OX5+JkEI9SdOQFuqFzH8/zzbu9jqcxF59P5iiE="
 
-[eden."v0.1.1".targets.amd64]
-arch = "x86_64"
+[eden."v0.1.1".targets.x64]
+variant = "amd64"
 sha256 = "sha256-g7x10zM/55z2avdETcpRJ56O1oN8cndbzl9UAiOJZF8="
 size = 66274509
 
-[eden."v0.1.1".targets.legacy]
-arch = "x86_64"
-sha256 = "sha256-sArRWvGMEdgJ3JfL/aPXbKbwQS/CE8DSoQS1qu27zsw="
-size = 66169242
-
 [eden."v0.1.1".targets.steamdeck]
-arch = "x86_64"
+variant = "steamdeck"
 sha256 = "sha256-TSqAXu6nZElt6jTyy7NCU6YGmhwlWvucEzDuB5wNShM="
 size = 65225523
 
 [eden."v0.1.1".targets.rog-ally]
-arch = "x86_64"
+variant = "rog-ally"
 sha256 = "sha256-F0dVNkaiDTR/f8T8A2x7Id5pA+vr9EnU9njEERObcPw="
 size = 61974938
 
 [eden."v0.1.1".targets.aarch64]
-arch = "aarch64"
+variant = "aarch64"
 sha256 = "sha256-6iU5RV5gogxpJUFwWi0p2y4r8IRvAcuxSwcpCIWsG6E="
 size = 61660569
 
-[eden."v0.1.0".targets.amd64]
-arch = "x86_64"
+[eden."v0.1.0".targets.x64]
+variant = "amd64"
 sha256 = "sha256-+1lBCtlau8ttdy2olhNvlir/bn/sSpUz+6Ofo+GZ0dg="
 
-[eden."v0.1.0".targets.legacy]
-arch = "x86_64"
-sha256 = "sha256-kgzfHSinWcwTJk+HZwz5FvNNOzUG3iExcQYb2qxfnN4="
-
 [eden."v0.1.0".targets.steamdeck]
-arch = "x86_64"
+variant = "steamdeck"
 sha256 = "sha256-n8xlLPoRxxHwlICf2QYU7iLVxq2EnRwG1de7gLwdOOY="
 
 [eden."v0.1.0".targets.rog-ally]
-arch = "x86_64"
+variant = "rog-ally"
 sha256 = "sha256-UsGMjjJTdB4hzeSyIrN6aAgrckExgcxKVrdZz5mkhqo="
 
 [eden."v0.1.0".targets.aarch64]
-arch = "aarch64"
+variant = "aarch64"
 sha256 = "sha256-KDYSvNknaApwDQXflb/Y1zhjWKhZsBOSfYRQPRCJI0M="
-
-# ============================================================================
-# NIX-PORTABLE - Bootstrap tool
-# https://github.com/DavHau/nix-portable/releases
-# ============================================================================
-
-[nix-portable]
-url_template = "https://github.com/DavHau/nix-portable/releases/download/{version}/nix-portable-{arch}"
-default = "v012"
-
-[nix-portable."v012".targets.x86_64]
-arch = "x86_64"
-sha256 = "sha256-tAnFWQTJCaw+raP7EjMxn4aomd0boxo93TMNBkFBxyg="
-
-[nix-portable."v012".targets.aarch64]
-arch = "aarch64"
-sha256 = "sha256-r0HY3v25+hfuNhIg7gWgx1jT5iMThKP5aaMU+RM3ROo="
 
 # ============================================================================
 # DUCKSTATION - PlayStation emulator
@@ -110,18 +80,18 @@ sha256 = "sha256-r0HY3v25+hfuNhIg7gWgx1jT5iMThKP5aaMU+RM3ROo="
 # ============================================================================
 
 [duckstation]
-url_template = "https://github.com/stenzek/duckstation/releases/download/{version}/DuckStation-{target}.AppImage"
+url_template = "https://github.com/stenzek/duckstation/releases/download/{version}/DuckStation-{variant}.AppImage"
 default = "v0.1-10655"
 icon_url = "https://github.com/stenzek/duckstation/raw/016c08b9c35a0ccf4196b21bc10c7d057af689d8/data/resources/images/duck.png"
 icon_sha256 = "sha256-qR+lWCmOZKt/wT6MFXPKtCx/p0IUCOgRNdjb8CLdwv4="
 
 [duckstation."v0.1-10655".targets.x64]
-arch = "x86_64"
+variant = "x64"
 sha256 = "sha256-/fmHmyseqXVJ26OdhQUuZYrDWxnu0jKJvkaOGpGtoOc="
 size = 89860710
 
-[duckstation."v0.1-10655".targets.arm64]
-arch = "aarch64"
+[duckstation."v0.1-10655".targets.aarch64]
+variant = "arm64"
 sha256 = "sha256-WzUXY082lu4gcmss/rPNzzgBzQppyTxIWZruUR5uaLE="
 size = 81788928
 
@@ -137,7 +107,7 @@ icon_url = "https://github.com/PCSX2/pcsx2/raw/fe7935ce0e9c2457eb2586897c3cbc5ee
 icon_sha256 = "sha256-vyHthTMThVUN2IWrbkfXYQGbj6I1O+iUG30MoZxa+z4="
 
 [pcsx2."v2.6.3".targets.x64]
-arch = "x86_64"
+variant = "x86_64"
 sha256 = "sha256-jOfehhPBewCwECilEt0bgZmLZibrvpOgZ+DrIK7t1b8="
 size = 71725056
 
@@ -147,18 +117,18 @@ size = 71725056
 # ============================================================================
 
 [ppsspp]
-url_template = "https://github.com/hrydgard/ppsspp/releases/download/{version}/PPSSPP-{version}-anylinux-{target}.AppImage"
+url_template = "https://github.com/hrydgard/ppsspp/releases/download/{version}/PPSSPP-{version}-anylinux-{variant}.AppImage"
 default = "v1.19.3"
 icon_url = "https://github.com/hrydgard/ppsspp/raw/7c2632cd551fdc50856d304ae22fc5ecf41111b2/icons/hicolor/256x256/apps/ppsspp.png"
 icon_sha256 = "sha256-il19tCxn2RhdAgz6QE6p4IYuEToagHMZp2HsdL1kZp4="
 
-[ppsspp."v1.19.3".targets.x86_64]
-arch = "x86_64"
+[ppsspp."v1.19.3".targets.x64]
+variant = "x86_64"
 sha256 = "sha256-VA8xfB7WZhiUFn0tziG2IpWFfhqRInSYLacEjPIlZGY="
 size = 69103206
 
 [ppsspp."v1.19.3".targets.aarch64]
-arch = "aarch64"
+variant = "aarch64"
 sha256 = "sha256-ugtlnflAX9qOfzlOKCgrcaseFfgp+rHFfB1CPFpQzv4="
 size = 64486809
 
@@ -168,18 +138,18 @@ size = 64486809
 # ============================================================================
 
 [mgba]
-url_template = "https://github.com/mgba-emu/mgba/releases/download/{version}/mGBA-{version}-appimage-{target}.appimage"
+url_template = "https://github.com/mgba-emu/mgba/releases/download/{version}/mGBA-{version}-appimage-{variant}.appimage"
 default = "0.10.5"
 icon_url = "https://raw.githubusercontent.com/mgba-emu/mgba/95dd33cf9f05595cc285604df230eda106a330f6/res/mgba-256.png"
 icon_sha256 = "sha256-DV/Ot8C2vn/YD6jmVsXC/CpyQpB1kPjHZMMIEVqD7qg="
 
 [mgba."0.10.5".targets.x64]
-arch = "x86_64"
+variant = "x64"
 sha256 = "sha256-/fClwViOFgbDgxVzXPSKn53KNXPzKjlH68lW+Cl+hc0="
 size = 25165824
 
-[mgba."0.10.5".targets.arm64]
-arch = "aarch64"
+[mgba."0.10.5".targets.aarch64]
+variant = "arm64"
 sha256 = "sha256-3jy/Q3vh1TJMOFO6ug2v6jMRMiojgpNV1YMwiUfgWOg="
 size = 24536678
 
@@ -195,12 +165,12 @@ icon_url = "https://github.com/cemu-project/Cemu/raw/ba82dc57d64fe8fc1b268e24fa5
 icon_sha256 = "sha256-ZFipm4vVTkSFfvoPgr/WA15+By5+CA4zMOTiz+icvTM="
 
 [cemu."2.6".targets.x64]
-arch = "x86_64"
+variant = "x86_64"
 sha256 = "sha256-DCDErrgAuxPZurlHTvRab4/N5kAsrZsyrCobvQMYYxM="
 size = 61423960
 
 [cemu."2.4".targets.x64]
-arch = "x86_64"
+variant = "x86_64"
 sha256 = "sha256-kqHwgSMICb0Kwwsij3LG2Meqfqo+Vt9M+K1U1MmScJc="
 size = 61235610
 
@@ -216,7 +186,7 @@ icon_url = "https://github.com/azahar-emu/azahar/raw/dd65ef47491ff659b02ed125741
 icon_sha256 = "sha256-faLnIedyniDyjzgYf9ct6I9PEKVcQH3bkcMhktGqmV8="
 
 [azahar."2124.3".targets.x64]
-arch = "x86_64"
+variant = "x86_64"
 sha256 = "sha256-HkmgFkvxmZC/REe8KF8jmXuSMYnzbt18/r/TGO9e2vM="
 size = 101396070
 
@@ -226,7 +196,7 @@ size = 101396070
 # ============================================================================
 
 [dolphin]
-url_template = "https://github.com/pkgforge-dev/Dolphin-emu-AppImage/releases/download/{release_tag}/Dolphin_Emulator-{version}-anylinux-{target}.AppImage"
+url_template = "https://github.com/pkgforge-dev/Dolphin-emu-AppImage/releases/download/{release_tag}/Dolphin_Emulator-{version}-anylinux-{variant}.AppImage"
 default = "2512"
 icon_url = "https://github.com/dolphin-emu/dolphin/raw/6711d77b9901ed0a4418203db49ed4d8576e6fe0/Data/Sys/Resources/dolphin_logo.png"
 icon_sha256 = "sha256-sPmm3QD91J6kr57PPY7zTjyh0uKgsW8Hq+yp0+bBovw="
@@ -234,13 +204,13 @@ icon_sha256 = "sha256-sPmm3QD91J6kr57PPY7zTjyh0uKgsW8Hq+yp0+bBovw="
 [dolphin."2512"]
 release_tag = "2512@2026-01-26_1769467304"
 
-[dolphin."2512".targets.x86_64]
-arch = "x86_64"
+[dolphin."2512".targets.x64]
+variant = "x86_64"
 sha256 = "sha256-+zW7dA5VGPU5vUAaUf6RCGGhAppOAm+8KzD5LH976c4="
 size = 67318374
 
 [dolphin."2512".targets.aarch64]
-arch = "aarch64"
+variant = "aarch64"
 sha256 = "sha256-dkymxq8mVOkRyFiBXCH9OiqOF7eKRbV9K9s9N2wH3Wo="
 size = 71198720
 
@@ -250,19 +220,19 @@ size = 71198720
 # ============================================================================
 
 [melonds]
-url_template = "https://github.com/melonDS-emu/melonDS/releases/download/{version}/melonDS-{version}-appimage-{target}.zip"
+url_template = "https://github.com/melonDS-emu/melonDS/releases/download/{version}/melonDS-{version}-appimage-{variant}.zip"
 default = "1.1"
 icon_url = "https://github.com/melonDS-emu/melonDS/raw/182e462486f126507a29ad6ee1ee9a447afe35bc/res/icon/melon_256x256.png"
 icon_sha256 = "sha256-4NTddCHB0exuyPUR+eqDiq64XhnF/LLJ+VCgQTSbYaA="
 
-[melonds."1.1".targets.x86_64]
-arch = "x86_64"
+[melonds."1.1".targets.x64]
+variant = "x86_64"
 sha256 = "sha256-vzd0IKLpXyzSzdoX1TcrUcJTT4WLA4257G0SlVSHUSQ="
 binary_path = "melonDS-x86_64.AppImage"
 size = 34287206
 
 [melonds."1.1".targets.aarch64]
-arch = "aarch64"
+variant = "aarch64"
 sha256 = "sha256-xTeuAY1tzt/p2gMXodXAFj5pIB4jq/oWP6KmPkN6zgk="
 binary_path = "melonDS-aarch64.AppImage"
 size = 33342259
@@ -273,7 +243,7 @@ size = 33342259
 # ============================================================================
 
 [vita3k]
-url_template = "https://github.com/Vita3K/Vita3K-builds/releases/download/{release_tag}/Vita3K-{target}.AppImage"
+url_template = "https://github.com/Vita3K/Vita3K-builds/releases/download/{release_tag}/Vita3K-{variant}.AppImage"
 default = "3912"
 icon_url = "https://github.com/Vita3K/Vita3K/raw/750a516d8fb8ffaaa063db3d226d8f382db58063/data/image/icon.png"
 icon_sha256 = "sha256-lW+0WbQ+hdg/gnjk+9vA//eDZmbhvwAoNqmaLLvAWMs="
@@ -281,8 +251,8 @@ icon_sha256 = "sha256-lW+0WbQ+hdg/gnjk+9vA//eDZmbhvwAoNqmaLLvAWMs="
 [vita3k."3912"]
 release_tag = "3912"
 
-[vita3k."3912".targets.x86_64]
-arch = "x86_64"
+[vita3k."3912".targets.x64]
+variant = "x86_64"
 sha256 = "sha256-EEwgm67R4FphMVkCwmL0tCbZtkH25vhneVwZuifh22w="
 size = 22964019
 
@@ -301,7 +271,7 @@ icon_sha256 = "sha256-++YdZ65VMc6SYFcfB3uTrHTHvYGRztfwi+Ktg3x2+d0="
 release_tag = "build-fbd5bbcfa32a83aea9823dae1a34e637f6e56d5e"
 
 [rpcs3."0.0.39-18718-fbd5bbcf".targets.x64]
-arch = "x86_64"
+variant = "x86_64"
 sha256 = "sha256-sxcprFVtUiYa4IVpGy+HI2kgAE/KozWEwbAeStmxtMI="
 size = 95703826
 
@@ -311,13 +281,13 @@ size = 95703826
 # ============================================================================
 
 [flycast]
-url_template = "https://github.com/flyinghead/flycast/releases/download/v{version}/flycast-{target}.AppImage"
+url_template = "https://github.com/flyinghead/flycast/releases/download/v{version}/flycast-{variant}.AppImage"
 default = "2.6"
 icon_url = "https://github.com/flyinghead/flycast/raw/21eb24f86d785b1c631161f03057b22c160182c0/shell/linux/flycast.png"
 icon_sha256 = "sha256-Im6VDsp4HVCu82Oz8xJZ45dwRkgOJBQJ7kTcJev2tuQ="
 
-[flycast."2.6".targets.x86_64]
-arch = "x86_64"
+[flycast."2.6".targets.x64]
+variant = "x86_64"
 sha256 = "sha256-upuvtFJ7u3JHxrRg2/nuOauiTGy2nCLpsCH3iG60Cx8="
 size = 19818086
 
@@ -334,13 +304,13 @@ icon_url = "https://gitlab.com/es-de/emulationstation-de/-/raw/9a2deb803700c3f9c
 icon_sha256 = "sha256-hsZGRNcl/wAzSTMtt3Z2rtbBTKKU5zjA1baYSC4EMWA="
 
 [es-de."3.4.0".targets.x64]
-arch = "x86_64"
+variant = "x86_64"
 url = "https://gitlab.com/es-de/emulationstation-de/-/package_files/246875981/download"
 sha256 = "sha256-TLZs/JIwmXEc+g7d2D22R0SmKU4C4//Rnuhn93qI7H4="
 size = 129931768
 
 [es-de."3.4.0".targets.steamdeck]
-arch = "x86_64"
+variant = "x86_64"
 url = "https://gitlab.com/es-de/emulationstation-de/-/package_files/246876039/download"
 sha256 = "sha256-/RaIA4KO3QaDPlxboj36Nmujvs58BUMpVU+8Qj5+lws="
 size = 129931768
@@ -351,14 +321,13 @@ size = 129931768
 # ============================================================================
 
 [retroarch]
-url_template = "https://buildbot.libretro.com/stable/{version}/linux/{target}/RetroArch.7z"
+url_template = "https://buildbot.libretro.com/stable/{version}/linux/{variant}/RetroArch.7z"
 default = "1.22.2"
 icon_url = "https://raw.githubusercontent.com/libretro/RetroArch/bed2dc3b6cb35173f79e19bbb91a5f9436803f13/media/ico_src/icon.svg"
 icon_sha256 = "sha256-rsb78xEhAOOnBxZbofDFs0O8hiMB2B6SM0kJMK0QJYM="
 
-[retroarch."1.22.2".targets.x86_64]
-arch = "x86_64"
+[retroarch."1.22.2".targets.x64]
+variant = "x86_64"
 sha256 = "sha256-fWLamiE5fW4blJB4XO2+r9JieBtQEVB2c2++infvMOk="
 binary_path = "RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage"
 size = 179415654
-

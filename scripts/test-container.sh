@@ -2,11 +2,11 @@
 # Test kyaraben in isolated containers using Podman
 #
 # Usage:
-#   ./scripts/test-container.sh           # Quick tests (no Nix)
-#   ./scripts/test-container.sh quick     # Quick tests (no Nix)
-#   ./scripts/test-container.sh nix       # Full Nix E2E tests (slower)
+#   ./scripts/test-container.sh           # Quick tests
+#   ./scripts/test-container.sh quick     # Quick tests
+#   ./scripts/test-container.sh cli-e2e   # Full CLI E2E tests
 #   ./scripts/test-container.sh shell     # Drop into quick test container
-#   ./scripts/test-container.sh nix-shell # Drop into Nix E2E container
+#   ./scripts/test-container.sh cli-shell # Drop into CLI E2E container
 
 set -euo pipefail
 
@@ -16,16 +16,16 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_ROOT"
 
 IMAGE_QUICK="kyaraben-test"
-IMAGE_NIX="kyaraben-nix-e2e"
+IMAGE_CLI="kyaraben-cli-e2e"
 
 build_quick() {
     echo "Building quick test container..."
     podman build -t "$IMAGE_QUICK" -f Containerfile .
 }
 
-build_nix() {
-    echo "Building Nix E2E test container (this may take a while)..."
-    podman build -t "$IMAGE_NIX" -f Containerfile.nix-e2e .
+build_cli() {
+    echo "Building CLI E2E test container..."
+    podman build -t "$IMAGE_CLI" -f Containerfile.cli-e2e .
 }
 
 run_quick() {
@@ -62,11 +62,10 @@ run_quick() {
     '
 }
 
-run_nix() {
-    echo "Running Nix E2E tests in container..."
-    echo "This will actually build emulators via Nix - may take 5-15 minutes on first run."
+run_cli() {
+    echo "Running CLI E2E tests in container..."
     echo ""
-    podman run --rm "$IMAGE_NIX"
+    podman run --rm "$IMAGE_CLI"
 }
 
 shell_quick() {
@@ -74,9 +73,9 @@ shell_quick() {
     podman run -it --rm "$IMAGE_QUICK" /bin/bash
 }
 
-shell_nix() {
-    echo "Starting shell in Nix E2E container..."
-    podman run -it --rm "$IMAGE_NIX" /bin/bash
+shell_cli() {
+    echo "Starting shell in CLI E2E container..."
+    podman run -it --rm "$IMAGE_CLI" /bin/bash
 }
 
 case "${1:-quick}" in
@@ -84,32 +83,32 @@ case "${1:-quick}" in
         build_quick
         run_quick
         ;;
-    nix|full)
-        build_nix
-        run_nix
+    cli-e2e|full)
+        build_cli
+        run_cli
         ;;
     shell)
         build_quick
         shell_quick
         ;;
-    nix-shell)
-        build_nix
-        shell_nix
+    cli-shell)
+        build_cli
+        shell_cli
         ;;
     build-quick)
         build_quick
         ;;
-    build-nix)
-        build_nix
+    build-cli)
+        build_cli
         ;;
     *)
-        echo "Usage: $0 [quick|nix|shell|nix-shell|build-quick|build-nix]"
+        echo "Usage: $0 [quick|cli-e2e|shell|cli-shell|build-quick|build-cli]"
         echo ""
         echo "Commands:"
-        echo "  quick      - Run quick CLI tests (no Nix, fast)"
-        echo "  nix        - Run full Nix E2E tests (builds emulators, slow)"
+        echo "  quick      - Run quick CLI tests"
+        echo "  cli-e2e    - Run full CLI E2E tests"
         echo "  shell      - Drop into quick test container"
-        echo "  nix-shell  - Drop into Nix E2E container"
+        echo "  cli-shell  - Drop into CLI E2E container"
         exit 1
         ;;
 esac

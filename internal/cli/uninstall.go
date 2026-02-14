@@ -66,7 +66,7 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 	fmt.Println()
 
 	if dirExists(kyarabenStateDir) {
-		fmt.Printf("  %s (nix store, manifest, state)\n", kyarabenStateDir)
+		fmt.Printf("  %s (manifest, state)\n", kyarabenStateDir)
 	}
 
 	if manifest.KyarabenInstall != nil {
@@ -224,8 +224,8 @@ func fileExists(path string) bool {
 	return err == nil && !info.IsDir()
 }
 
-// forceRemoveAll removes a directory tree, even if it contains read-only files
-// (like nix store paths). It works by recursively fixing permissions before
+// forceRemoveAll removes a directory tree, even if it contains read-only files.
+// It works by recursively fixing permissions before
 // descending into directories, which is necessary because WalkDir can't enter
 // directories without execute permission.
 func forceRemoveAll(path string) error {
@@ -278,7 +278,7 @@ func waitForProcess(pid int) {
 
 func sendNotification(title, body string) error {
 	cmd := exec.Command("/usr/bin/notify-send", title, body)
-	// Use minimal env to avoid nix's LD_LIBRARY_PATH breaking system binaries
+	// Use minimal env to avoid env var conflicts with system binaries
 	cmd.Env = []string{
 		"DISPLAY=" + os.Getenv("DISPLAY"),
 		"DBUS_SESSION_BUS_ADDRESS=" + os.Getenv("DBUS_SESSION_BUS_ADDRESS"),

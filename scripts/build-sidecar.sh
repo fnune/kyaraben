@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Build the Go CLI as an Electron sidecar binary
 # Sidecars are named with target triple suffix for platform detection
-# Also downloads nix-portable for bundling
 
 set -euo pipefail
 
@@ -53,6 +52,3 @@ cd "$PROJECT_ROOT"
 CGO_ENABLED=0 go build -ldflags="-X github.com/fnune/kyaraben/internal/version.Version=$VERSION" -o "$BINARIES_DIR/$OUTPUT_NAME" ./cmd/kyaraben
 
 echo "Built: $BINARIES_DIR/$OUTPUT_NAME"
-
-# Download nix-portable for bundling (Linux only)
-"$SCRIPT_DIR/download-nix-portable.sh" "$BINARIES_DIR"

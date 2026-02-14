@@ -21,7 +21,7 @@ while IFS= read -r line; do
   if [[ "$line" =~ ^\[([a-z0-9_-]+)\]$ ]]; then
     section="${BASH_REMATCH[1]}"
     # Skip special sections
-    if [[ "$section" != "nixpkgs" && "$section" != "retroarch-cores" && "$section" != "nix-portable" && ! "$section" =~ \. ]]; then
+    if [[ "$section" != "retroarch-cores" && ! "$section" =~ \. ]]; then
       current_emulator="$section"
     else
       current_emulator=""

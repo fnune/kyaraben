@@ -108,8 +108,9 @@ export function SystemsView({
     apply,
     confirmApply,
     reset,
+    logPosition,
   } = useApply()
-  const handleOpenLog = useOpenLog()
+  const openLog = useOpenLog()
   const isApplying = applyStatus === 'applying'
   const showProgress = applyStatus !== 'idle' && applyStatus !== 'reviewing'
 
@@ -270,7 +271,7 @@ export function SystemsView({
             <div className="flex items-center gap-4">
               <button
                 type="button"
-                onClick={handleOpenLog}
+                onClick={() => openLog(logPosition ?? undefined)}
                 className="text-on-surface-muted hover:text-on-surface-secondary hover:underline text-sm"
               >
                 Open log in terminal

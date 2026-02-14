@@ -4,50 +4,58 @@ default:
     @just --list
 
 # Generate TypeScript types from Go
-generate-types:
+generate-types: ensure
     go run github.com/gzuidhof/tygo@v0.2.20 generate
 
+# Install project dependencies
+ensure:
+    go mod download
+    cd ui && npm ci
+    cd site && npm ci
+
 # Run the Electron app in development mode
-dev: _ensure-ui-deps generate-types _sidecar
+dev: generate-types _sidecar
     cd ui && npm run dev
 
 # Run all checks (lint + test)
-check: lint test
+check: ensure lint test
     cd ui && npm run typecheck && npm run lint
+    cd site && npm run fmt:check
 
 # Run Go tests
-test:
+test: ensure
     go test ./...
 
 # Run Go linter
-lint:
+lint: ensure
     golangci-lint run
 
 # Format all code
-fmt:
-    gofmt -w .
-    goimports -w -local github.com/fnune/kyaraben .
+fmt: ensure
+    gofmt -w cmd internal test
+    goimports -w -local github.com/fnune/kyaraben cmd internal test
     cd ui && npm run lint:fix
     cd site && npm run fmt
 
 # Build release AppImage
-build: _ensure-ui-deps generate-types _sidecar
+build: ensure generate-types _sidecar
     cd ui && npm run electron:build
 
-# Run CLI e2e tests in container (nix builds)
+# Run CLI e2e tests in container
 e2e: _container-e2e-build
-    podman run -it --rm kyaraben-nix-e2e
+    podman run -it --rm kyaraben-cli-e2e
 
 # Run Playwright UI e2e tests in container (headless)
 ui-e2e: _container-electron-e2e-build
-    podman run --ipc=host --rm kyaraben-electron-e2e
+    podman run --network=host --ipc=host --rm kyaraben-electron-e2e
 
 # Run Playwright UI e2e tests with interactive UI (run 'just build' first)
 ui-e2e-ui *args: _extract-appimage
     #!/usr/bin/env bash
-    cd ui && KYARABEN_APPIMAGE="$(pwd)/../.sandbox/app/kyaraben-ui" \
+    cd ui && \
+        KYARABEN_APPIMAGE="$(pwd)/../.sandbox/app/kyaraben-ui" \
         APPDIR="$(pwd)/../.sandbox/app" \
-        npx playwright test --ui {{ args }}
+        ../scripts/run-ui-e2e.sh npx playwright test --ui {{ args }}
 
 # Run app in sandbox container for manual testing (persistent state)
 sandbox: build _container-sandbox-build _extract-appimage
@@ -67,11 +75,11 @@ sandbox: build _container-sandbox-build _extract-appimage
         kyaraben-sandbox
 
 # Run site development server
-site-dev: _ensure-site-deps
+site-dev: ensure
     cd site && npm run dev
 
 # Build documentation site
-site-build: _ensure-site-deps
+site-build: ensure
     cd site && npm run build
 
 # Clean build artifacts
@@ -79,7 +87,7 @@ clean:
     rm -f kyaraben
     rm -rf ui/dist ui/dist-electron ui/release ui/binaries
 
-# Clean all sandbox state (chmod needed because nix store paths are read-only)
+# Clean all sandbox state (chmod needed for read-only paths)
 clean-sandbox:
     chmod -R u+w .sandbox 2>/dev/null || true
     rm -rf .sandbox
@@ -173,17 +181,13 @@ clean-emu-configs:
 
 # --- Internal targets (prefixed with _) ---
 
-_ensure-ui-deps:
-    cd ui && npm ci
-
-_ensure-site-deps:
-    cd site && npm ci
+ 
 
 _sidecar:
     ./scripts/build-sidecar.sh
 
 _container-e2e-build:
-    podman build -t kyaraben-nix-e2e -f Containerfile.nix-e2e .
+    podman build -t kyaraben-cli-e2e -f Containerfile.cli-e2e .
 
 _container-electron-e2e-build:
     podman build -t kyaraben-electron-e2e -f Containerfile.electron-e2e .

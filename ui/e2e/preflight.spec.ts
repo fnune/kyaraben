@@ -7,13 +7,7 @@ import {
   type Page,
   test,
 } from '@playwright/test'
-import {
-  createFixture,
-  EmulatorIDMGBA,
-  SystemIDGBA,
-  setupFakeNixPortable,
-  type TestFixture,
-} from './fixtures'
+import { createFixture, EmulatorIDMGBA, SystemIDGBA, type TestFixture } from './fixtures'
 
 function getAppImagePath(): string {
   const appImagePath = process.env.KYARABEN_APPIMAGE
@@ -63,7 +57,7 @@ test.describe('Config conflict review', () => {
         [EmulatorIDMGBA]: {
           id: EmulatorIDMGBA,
           version: '0.10.3',
-          store_path: '/nix/store/fake-hash-mgba',
+          store_path: path.join(fixture.stateDir, 'kyaraben', 'packages', 'mgba'),
           installed: new Date().toISOString(),
         },
       },
@@ -96,8 +90,6 @@ test.describe('Config conflict review', () => {
       path.join(fixture.stateDir, 'kyaraben', 'build', 'manifest.json'),
       JSON.stringify(manifest, null, 2),
     )
-
-    setupFakeNixPortable(fixture)
 
     app = await electron.launch({
       executablePath: getAppImagePath(),

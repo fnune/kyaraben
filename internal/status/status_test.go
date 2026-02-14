@@ -183,10 +183,10 @@ func TestGetWithManifest(t *testing.T) {
 		LastApplied: time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC),
 		InstalledEmulators: map[model.EmulatorID]model.InstalledEmulator{
 			model.EmulatorIDMGBA: {
-				ID:        model.EmulatorIDMGBA,
-				Version:   "latest",
-				StorePath: "/nix/store/abc123",
-				Installed: time.Now(),
+				ID:          model.EmulatorIDMGBA,
+				Version:     "latest",
+				PackagePath: "/test/packages",
+				Installed:   time.Now(),
 			},
 		},
 	}
@@ -240,10 +240,10 @@ func TestGetWithVersionPinning(t *testing.T) {
 		LastApplied: time.Now(),
 		InstalledEmulators: map[model.EmulatorID]model.InstalledEmulator{
 			model.EmulatorIDDuckStation: {
-				ID:        model.EmulatorIDDuckStation,
-				Version:   "v0.1-10655",
-				StorePath: "/nix/store/abc123",
-				Installed: time.Now(),
+				ID:          model.EmulatorIDDuckStation,
+				Version:     "v0.1-10655",
+				PackagePath: "/test/packages",
+				Installed:   time.Now(),
 			},
 		},
 	}
@@ -290,10 +290,10 @@ func TestGetManagedConfigsIncludesKeys(t *testing.T) {
 		LastApplied: time.Now(),
 		InstalledEmulators: map[model.EmulatorID]model.InstalledEmulator{
 			model.EmulatorIDMGBA: {
-				ID:        model.EmulatorIDMGBA,
-				Version:   "latest",
-				StorePath: "/nix/store/abc123",
-				Installed: time.Now(),
+				ID:          model.EmulatorIDMGBA,
+				Version:     "latest",
+				PackagePath: "/test/packages",
+				Installed:   time.Now(),
 			},
 		},
 		ManagedConfigs: []model.ManagedConfig{
@@ -358,16 +358,16 @@ func TestGetRetroArchCoreIncludesSharedConfig(t *testing.T) {
 		LastApplied: time.Now(),
 		InstalledEmulators: map[model.EmulatorID]model.InstalledEmulator{
 			model.EmulatorIDRetroArchBsnes: {
-				ID:        model.EmulatorIDRetroArchBsnes,
-				Version:   "latest",
-				StorePath: "/nix/store/abc123",
-				Installed: time.Now(),
+				ID:          model.EmulatorIDRetroArchBsnes,
+				Version:     "latest",
+				PackagePath: "/test/packages",
+				Installed:   time.Now(),
 			},
 			model.EmulatorIDRetroArchMesen: {
-				ID:        model.EmulatorIDRetroArchMesen,
-				Version:   "latest",
-				StorePath: "/nix/store/def456",
-				Installed: time.Now(),
+				ID:          model.EmulatorIDRetroArchMesen,
+				Version:     "latest",
+				PackagePath: "/test/packages",
+				Installed:   time.Now(),
 			},
 		},
 		ManagedConfigs: []model.ManagedConfig{

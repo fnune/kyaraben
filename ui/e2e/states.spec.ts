@@ -10,7 +10,6 @@ import {
   EmulatorIDRetroArchBsnes,
   presets,
   SystemIDSNES,
-  setupFakeNixPortable,
   type TestFixture,
 } from './fixtures'
 
@@ -18,8 +17,6 @@ async function launchWithFixture(
   fixture: TestFixture,
   appImagePath: string,
 ): Promise<{ app: ElectronApplication; page: Page }> {
-  setupFakeNixPortable(fixture)
-
   const app = await electron.launch({
     executablePath: appImagePath,
     args: ['--no-sandbox'],
@@ -259,8 +256,6 @@ test.describe('Apply flow', () => {
   test.beforeAll(async () => {
     const preset = presets.freshInstall()
     fixture = createFixture(preset.config, preset.manifest)
-    setupFakeNixPortable(fixture)
-    fixture.env.FAKE_NIX_SLOW = '1'
 
     app = await electron.launch({
       executablePath: getAppImagePath(),
@@ -337,8 +332,6 @@ test.describe('Enable all flow', () => {
   test.beforeAll(async () => {
     const preset = presets.freshInstall()
     fixture = createFixture(preset.config, preset.manifest)
-    setupFakeNixPortable(fixture)
-    fixture.env.FAKE_NIX_SLOW = '1'
 
     app = await electron.launch({
       executablePath: getAppImagePath(),

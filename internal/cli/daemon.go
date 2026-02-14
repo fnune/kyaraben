@@ -11,35 +11,33 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/model"
-	"github.com/fnune/kyaraben/internal/nix"
-	"github.com/fnune/kyaraben/internal/paths"
 )
 
 type DaemonCmd struct{}
 
 func (cmd *DaemonCmd) Run(ctx *Context) error {
 	registry := ctx.NewRegistry()
-	nixClient, err := ctx.NewNixClient()
+	installer, err := ctx.NewInstaller()
 	if err != nil {
-		return fmt.Errorf("creating nix client: %w", err)
+		return fmt.Errorf("creating installer: %w", err)
 	}
-	flakeGenerator := nix.NewFlakeGenerator(registry, registry)
 	configWriter := emulators.NewConfigWriter(model.OSBaseDirResolver{})
 	launcherManager, err := launcher.NewManager()
 	if err != nil {
 		return fmt.Errorf("creating launcher manager: %w", err)
 	}
 
-	stateDir, err := paths.KyarabenStateDir()
-	if err != nil {
-		return fmt.Errorf("getting state dir: %w", err)
-	}
 	manifestPath, err := model.DefaultManifestPath()
 	if err != nil {
 		return fmt.Errorf("getting manifest path: %w", err)
 	}
 
-	d := daemon.New(ctx.ConfigPath, stateDir, manifestPath, registry, nixClient, flakeGenerator, configWriter, launcherManager)
+	stateDir, err := ctx.stateDir()
+	if err != nil {
+		return fmt.Errorf("getting state dir: %w", err)
+	}
+
+	d := daemon.New(ctx.ConfigPath, stateDir, manifestPath, registry, installer, configWriter, launcherManager)
 
 	scanner := bufio.NewScanner(os.Stdin)
 	encoder := json.NewEncoder(os.Stdout)

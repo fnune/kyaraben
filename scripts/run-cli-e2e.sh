@@ -4,10 +4,8 @@ set -euo pipefail
 echo "=== Kyaraben CLI E2E Tests ==="
 echo ""
 echo "Kyaraben location: $(which kyaraben)"
-echo "Using fake nix-portable: $KYARABEN_NIX_PORTABLE_PATH"
+echo "Using fake installer: ${KYARABEN_E2E_FAKE_INSTALLER:-0}"
 echo ""
-
-mkdir -p "$FAKE_NIX_STORE"
 
 echo "1. Initialize with default systems..."
 kyaraben init -u ~/Emulation -f
@@ -22,7 +20,7 @@ echo "3. Run doctor (SNES has no required provisions)..."
 kyaraben doctor
 echo ""
 
-echo "4. Apply configuration (uses fake nix-portable)..."
+echo "4. Apply configuration..."
 echo ""
 kyaraben apply
 echo ""

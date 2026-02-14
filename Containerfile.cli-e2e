@@ -1,0 +1,28 @@
+# Kyaraben CLI E2E test container
+# Build: podman build -t kyaraben-cli-e2e -f Containerfile.cli-e2e .
+# Run:   podman run -it --rm kyaraben-cli-e2e
+
+FROM docker.io/library/golang:1.24-bookworm AS builder
+
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+
+RUN go build -o /app/kyaraben ./cmd/kyaraben
+RUN go test ./... -v
+
+FROM docker.io/library/debian:bookworm-slim
+
+RUN useradd -m -s /bin/bash testuser
+
+USER testuser
+WORKDIR /home/testuser
+
+COPY --from=builder --chown=testuser:testuser /app/kyaraben /usr/local/bin/kyaraben
+COPY --chown=testuser:testuser scripts/run-cli-e2e.sh /home/testuser/run-e2e.sh
+RUN chmod +x /home/testuser/run-e2e.sh
+
+ENV KYARABEN_E2E_FAKE_INSTALLER=1
+
+CMD ["/home/testuser/run-e2e.sh"]
