@@ -1,7 +1,7 @@
-import { useEffect } from 'react'
 import { BottomBar } from '@/lib/BottomBar'
 import { Button } from '@/lib/Button'
 import { openPath } from '@/lib/daemon'
+import { useScrollToTop } from '@/lib/useScrollToTop'
 import type { ConfigChangeDetail, ConfigFileDiff, PreflightResponse } from '@/types/daemon'
 
 export interface ConfigDiffReviewProps {
@@ -113,9 +113,7 @@ function FileDiff({ diff }: { readonly diff: ConfigFileDiff }) {
 }
 
 export function ConfigDiffReview({ data, onConfirm, onCancel }: ConfigDiffReviewProps) {
-  useEffect(() => {
-    window.scrollTo(0, 0)
-  }, [])
+  useScrollToTop()
 
   const conflictDiffs = data.diffs.filter(
     (d) => d.userModified && d.hasChanges && (d.userChanges?.length ?? 0) > 0,

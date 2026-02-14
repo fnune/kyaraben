@@ -480,7 +480,7 @@ function AppContent() {
 
       <div className="flex-1 flex flex-col min-[720px]:flex-row min-h-0">
         <Sidebar currentView={currentView} onNavigate={setCurrentView} syncStatus={syncStatus} />
-        <main className="flex-1 overflow-y-auto">{renderView()}</main>
+        <main id="main-content" className="flex-1 overflow-y-auto">{renderView()}</main>
       </div>
 
       <BottomBarSlot />
