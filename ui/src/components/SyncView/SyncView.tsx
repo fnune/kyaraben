@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react'
 import { Button } from '@/lib/Button'
+import { formatBytes } from '@/lib/changeUtils'
 import { Input } from '@/lib/Input'
 import { Spinner } from '@/lib/Spinner'
-import type { SyncDevice, SyncMode, SyncStatusResponse } from '@/types/daemon'
+import type { SyncDevice, SyncFolder, SyncMode, SyncStatusResponse } from '@/types/daemon'
 import { SyncStateSynced } from '@/types/daemon'
 import { SyncStatusBanner } from './SyncStatusBanner'
 
@@ -92,6 +93,32 @@ function DeviceRow({
       >
         Remove
       </button>
+    </div>
+  )
+}
+
+function FolderRow({ folder }: { readonly folder: SyncFolder }) {
+  const isSyncing = folder.state === 'syncing' || folder.needSize > 0
+  const percent =
+    folder.globalSize > 0 ? Math.round((folder.localSize / folder.globalSize) * 100) : 100
+
+  return (
+    <div className="flex items-center justify-between py-2 border-b border-outline last:border-0">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <span
+          className={`w-2 h-2 rounded-full flex-shrink-0 ${isSyncing ? 'bg-status-warn' : 'bg-status-ok'}`}
+        />
+        <span className="font-medium text-on-surface truncate">{folder.label}</span>
+      </div>
+      <div className="flex items-center gap-3 text-xs text-on-surface-muted flex-shrink-0">
+        {isSyncing ? (
+          <span>
+            {percent}% ({formatBytes(folder.needSize)} remaining)
+          </span>
+        ) : (
+          <span>{formatBytes(folder.globalSize)}</span>
+        )}
+      </div>
     </div>
   )
 }
@@ -374,6 +401,16 @@ export function SyncView({
         onCancelPairing={onCancelPairing}
         onJoinPrimary={onJoinPrimary}
       />
+
+      {status.folders && status.folders.length > 0 && (
+        <Section title="Synced folders" collapsible defaultCollapsed>
+          <div className="border border-outline rounded-card px-3 bg-surface">
+            {status.folders.map((folder) => (
+              <FolderRow key={folder.id} folder={folder} />
+            ))}
+          </div>
+        </Section>
+      )}
 
       <Section title="Advanced" collapsible defaultCollapsed>
         <div className="space-y-4">
