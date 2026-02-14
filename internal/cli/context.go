@@ -17,16 +17,13 @@ import (
 
 type Context struct {
 	ConfigPath string
+	Instance   string
 }
 
 func (c *Context) LoadConfig() (*model.KyarabenConfig, error) {
-	path := c.ConfigPath
-	if path == "" {
-		var err error
-		path, err = model.DefaultConfigPath()
-		if err != nil {
-			return nil, err
-		}
+	path, err := c.GetConfigPath()
+	if err != nil {
+		return nil, err
 	}
 
 	cfg, err := model.LoadConfig(path)
@@ -40,13 +37,20 @@ func (c *Context) GetConfigPath() (string, error) {
 	if c.ConfigPath != "" {
 		return c.ConfigPath, nil
 	}
-	return model.DefaultConfigPath()
+	defaultPath, err := model.DefaultConfigPath()
+	if err != nil {
+		return "", err
+	}
+	if c.Instance != "" {
+		return strings.TrimSuffix(defaultPath, ".yaml") + "-" + c.Instance + ".yaml", nil
+	}
+	return defaultPath, nil
 }
 
 func (c *Context) NewRegistry() *registry.Registry { return registry.NewDefault() }
 
 func (c *Context) NewInstaller() (packages.Installer, error) {
-	stateDir, err := paths.KyarabenStateDir()
+	stateDir, err := c.stateDir()
 	if err != nil {
 		return nil, fmt.Errorf("getting state directory: %w", err)
 	}
@@ -64,7 +68,14 @@ func (c *Context) NewUserStore(cfg *model.KyarabenConfig) (*store.UserStore, err
 }
 
 func (c *Context) stateDir() (string, error) {
-	return paths.KyarabenStateDir()
+	baseDir, err := paths.KyarabenStateDir()
+	if err != nil {
+		return "", err
+	}
+	if c.Instance != "" {
+		return baseDir + "-" + c.Instance, nil
+	}
+	return baseDir, nil
 }
 
 func useFakeInstaller() bool {
