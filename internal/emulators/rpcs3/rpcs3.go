@@ -1,6 +1,7 @@
 package rpcs3
 
 import (
+	"os"
 	"path/filepath"
 
 	"github.com/fnune/kyaraben/internal/model"
@@ -17,9 +18,24 @@ func (Definition) Emulator() model.Emulator {
 		ProvisionGroups: []model.ProvisionGroup{{
 			MinRequired: 1,
 			Message:     "Firmware required (provides system libraries and OS)",
-			Provisions: []model.Provision{
-				model.FileProvision(model.ProvisionFirmware, "PS3UPDAT.PUP", "Official firmware").WithImportViaUI(),
+			BaseDir: func(store model.StoreReader, sys model.SystemID) string {
+				configDir, err := os.UserConfigDir()
+				if err != nil {
+					return ""
+				}
+				return filepath.Join(configDir, "rpcs3")
 			},
+			Provisions: []model.Provision{{
+				Kind:        model.ProvisionFirmware,
+				Description: "Official firmware",
+				Strategy: model.ImportStrategy{
+					Pattern:             "dev_flash/sys/*",
+					Filename:            "PS3UPDAT.PUP",
+					VerifiedDescription: "firmware installed",
+					Instructions:        "Import via File > Install Firmware",
+				},
+				ImportViaUI: true,
+			}},
 		}},
 		StateKinds: []model.StateKind{
 			model.StateSaves,

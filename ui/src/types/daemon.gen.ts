@@ -84,6 +84,7 @@ export interface ProvisionResult {
   groupSatisfied: boolean;
   groupSize: number /* int */;
   displayName: string;
+  verifiedDisplayName?: string;
   instructions?: string;
 }
 export interface ProgressEvent {
