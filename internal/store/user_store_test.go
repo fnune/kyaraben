@@ -3,12 +3,14 @@ package store
 import (
 	"testing"
 
+	"github.com/twpayne/go-vfs/v5"
 	"github.com/twpayne/go-vfs/v5/vfst"
 
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/testutil"
 )
 
-func mustNewUserStore(t *testing.T, fs *vfst.TestFS, path string) *UserStore {
+func mustNewUserStore(t *testing.T, fs vfs.FS, path string) *UserStore {
 	t.Helper()
 	s, err := NewUserStore(fs, path)
 	if err != nil {
@@ -18,13 +20,10 @@ func mustNewUserStore(t *testing.T, fs *vfst.TestFS, path string) *UserStore {
 }
 
 func TestUserStoreInitialize(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/emulation": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	store := mustNewUserStore(t, fs, "/emulation")
 
@@ -46,13 +45,10 @@ func TestUserStoreInitialize(t *testing.T) {
 }
 
 func TestUserStoreInitializeForEmulator(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/emulation": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	store := mustNewUserStore(t, fs, "/emulation")
 
@@ -74,13 +70,10 @@ func TestUserStoreInitializeForEmulator(t *testing.T) {
 }
 
 func TestUserStoreInitializeForOpaqueEmulator(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/emulation": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	store := mustNewUserStore(t, fs, "/emulation")
 
@@ -115,11 +108,8 @@ func TestUserStoreInitializeForOpaqueEmulator(t *testing.T) {
 }
 
 func TestUserStorePaths(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
+	t.Parallel()
+	fs := testutil.NewTestFS(t, map[string]any{})
 
 	store := mustNewUserStore(t, fs, "/home/user/Emulation")
 
@@ -146,11 +136,8 @@ func TestUserStorePaths(t *testing.T) {
 }
 
 func TestUserStoreSystemPaths(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
+	t.Parallel()
+	fs := testutil.NewTestFS(t, map[string]any{})
 
 	store := mustNewUserStore(t, fs, "/home/user/Emulation")
 
@@ -176,11 +163,8 @@ func TestUserStoreSystemPaths(t *testing.T) {
 }
 
 func TestUserStoreEmulatorPaths(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
+	t.Parallel()
+	fs := testutil.NewTestFS(t, map[string]any{})
 
 	store := mustNewUserStore(t, fs, "/home/user/Emulation")
 
@@ -204,14 +188,11 @@ func TestUserStoreEmulatorPaths(t *testing.T) {
 }
 
 func TestUserStoreExists(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/existing": &vfst.Dir{Perm: 0755},
 		"/file":     "test content",
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	store := mustNewUserStore(t, fs, "/nonexistent")
 	if store.Exists() {

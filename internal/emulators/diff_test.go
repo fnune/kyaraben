@@ -8,17 +8,8 @@ import (
 	"github.com/twpayne/go-vfs/v5/vfst"
 
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/testutil"
 )
-
-type fakeResolver struct {
-	configDir string
-	dataDir   string
-	homeDir   string
-}
-
-func (r fakeResolver) UserConfigDir() (string, error) { return r.configDir, nil }
-func (r fakeResolver) UserDataDir() (string, error)   { return r.dataDir, nil }
-func (r fakeResolver) UserHomeDir() (string, error)   { return r.homeDir, nil }
 
 func sha256sum(data string) string {
 	h := sha256.Sum256([]byte(data))
@@ -26,15 +17,12 @@ func sha256sum(data string) string {
 }
 
 func TestComputeDiff_NewFile(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
-	resolver := fakeResolver{configDir: "/config"}
+	resolver := testutil.FakeResolver{ConfigDir: "/config"}
 	dc := NewDiffComputer(fs, resolver)
 
 	patch := model.ConfigPatch{
@@ -68,15 +56,12 @@ func TestComputeDiff_NewFile(t *testing.T) {
 }
 
 func TestComputeDiff_NoChanges(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config/test.ini": "[video]\nresolution = 1920x1080\n",
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
-	resolver := fakeResolver{configDir: "/config"}
+	resolver := testutil.FakeResolver{ConfigDir: "/config"}
 	dc := NewDiffComputer(fs, resolver)
 
 	patch := model.ConfigPatch{
@@ -104,15 +89,12 @@ func TestComputeDiff_NoChanges(t *testing.T) {
 }
 
 func TestComputeDiff_Modifications(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config/test.ini": "[video]\nresolution = 1280x720\n",
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
-	resolver := fakeResolver{configDir: "/config"}
+	resolver := testutil.FakeResolver{ConfigDir: "/config"}
 	dc := NewDiffComputer(fs, resolver)
 
 	patch := model.ConfigPatch{
@@ -154,15 +136,12 @@ func TestComputeDiff_Modifications(t *testing.T) {
 }
 
 func TestComputeDiff_AddToExistingFile(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config/test.ini": "[video]\nresolution = 1920x1080\n",
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
-	resolver := fakeResolver{configDir: "/config"}
+	resolver := testutil.FakeResolver{ConfigDir: "/config"}
 	dc := NewDiffComputer(fs, resolver)
 
 	patch := model.ConfigPatch{
@@ -191,15 +170,12 @@ func TestComputeDiff_AddToExistingFile(t *testing.T) {
 }
 
 func TestComputeDiff_Stats(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config/test.ini": "[video]\nresolution = 1280x720\n",
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
-	resolver := fakeResolver{configDir: "/config"}
+	resolver := testutil.FakeResolver{ConfigDir: "/config"}
 	dc := NewDiffComputer(fs, resolver)
 
 	patch := model.ConfigPatch{
@@ -232,18 +208,15 @@ func TestComputeDiff_Stats(t *testing.T) {
 }
 
 func TestComputeDiffWithBaseline_DetectsUserModifiedKeys(t *testing.T) {
+	t.Parallel()
 	originalContent := "[video]\nresolution = 1920x1080\nmonitor = 1\n"
 	modifiedContent := "[video]\nresolution = 1920x1080\nmonitor = 2\n"
 
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config/test.ini": modifiedContent,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
-	resolver := fakeResolver{configDir: "/config"}
+	resolver := testutil.FakeResolver{ConfigDir: "/config"}
 	dc := NewDiffComputer(fs, resolver)
 
 	baseline := &model.ManagedConfig{
@@ -291,17 +264,14 @@ func TestComputeDiffWithBaseline_DetectsUserModifiedKeys(t *testing.T) {
 }
 
 func TestComputeDiffWithBaseline_NoChangesWhenHashMatches(t *testing.T) {
+	t.Parallel()
 	content := "[video]\nresolution = 1920x1080\n"
 
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config/test.ini": content,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
-	resolver := fakeResolver{configDir: "/config"}
+	resolver := testutil.FakeResolver{ConfigDir: "/config"}
 	dc := NewDiffComputer(fs, resolver)
 
 	baseline := &model.ManagedConfig{
@@ -336,15 +306,12 @@ func TestComputeDiffWithBaseline_NoChangesWhenHashMatches(t *testing.T) {
 }
 
 func TestComputeDiffWithBaseline_NilBaseline(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config/test.ini": "[video]\nresolution = 1280x720\n",
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
-	resolver := fakeResolver{configDir: "/config"}
+	resolver := testutil.FakeResolver{ConfigDir: "/config"}
 	dc := NewDiffComputer(fs, resolver)
 
 	patch := model.ConfigPatch{
@@ -372,6 +339,7 @@ func TestComputeDiffWithBaseline_NilBaseline(t *testing.T) {
 }
 
 func TestFormatWithColor_PlainText(t *testing.T) {
+	t.Parallel()
 	diff := &ConfigDiff{
 		Path:      "/config/test.ini",
 		IsNewFile: true,
@@ -394,6 +362,7 @@ func TestFormatWithColor_PlainText(t *testing.T) {
 }
 
 func TestFormatWithColor_ModifiedFileWithUserChanges(t *testing.T) {
+	t.Parallel()
 	diff := &ConfigDiff{
 		Path:         "/config/test.ini",
 		IsNewFile:    false,
@@ -429,15 +398,12 @@ func containsSubstring(s, substr string) bool {
 }
 
 func TestComputeDiff_TildePathNormalization(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config/test.ini": "[paths]\nsaves = /home/testuser/Emulation/saves\n",
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
-	resolver := fakeResolver{configDir: "/config", homeDir: "/home/testuser"}
+	resolver := testutil.FakeResolver{ConfigDir: "/config", HomeDir: "/home/testuser"}
 	dc := NewDiffComputer(fs, resolver)
 
 	patch := model.ConfigPatch{
@@ -462,18 +428,15 @@ func TestComputeDiff_TildePathNormalization(t *testing.T) {
 }
 
 func TestComputeDiffWithBaseline_TildePathNormalization(t *testing.T) {
+	t.Parallel()
 	originalContent := "[paths]\nsaves = ~/Emulation/saves\n"
 	modifiedContent := "[paths]\nsaves = /home/testuser/Emulation/saves\n"
 
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config/test.ini": modifiedContent,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
-	resolver := fakeResolver{configDir: "/config", homeDir: "/home/testuser"}
+	resolver := testutil.FakeResolver{ConfigDir: "/config", HomeDir: "/home/testuser"}
 	dc := NewDiffComputer(fs, resolver)
 
 	baseline := &model.ManagedConfig{
@@ -505,6 +468,7 @@ func TestComputeDiffWithBaseline_TildePathNormalization(t *testing.T) {
 }
 
 func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_XML(t *testing.T) {
+	t.Parallel()
 	originalContent := `<settings>
   <video>
     <resolution>1920x1080</resolution>
@@ -518,15 +482,11 @@ func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_XML(t *testing.T) {
   </video>
 </settings>`
 
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config/settings.xml": modifiedContent,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
-	resolver := fakeResolver{configDir: "/config"}
+	resolver := testutil.FakeResolver{ConfigDir: "/config"}
 	dc := NewDiffComputer(fs, resolver)
 
 	baseline := &model.ManagedConfig{
@@ -568,6 +528,7 @@ func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_XML(t *testing.T) {
 }
 
 func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_YAML(t *testing.T) {
+	t.Parallel()
 	originalContent := `video:
   resolution: 1920x1080
   monitor: "1"
@@ -577,15 +538,11 @@ func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_YAML(t *testing.T) {
   monitor: "2"
 `
 
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config/config.yaml": modifiedContent,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
-	resolver := fakeResolver{configDir: "/config"}
+	resolver := testutil.FakeResolver{ConfigDir: "/config"}
 	dc := NewDiffComputer(fs, resolver)
 
 	baseline := &model.ManagedConfig{
@@ -622,6 +579,7 @@ func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_YAML(t *testing.T) {
 }
 
 func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_TOML(t *testing.T) {
+	t.Parallel()
 	originalContent := `[video]
 resolution = "1920x1080"
 monitor = "1"
@@ -631,15 +589,11 @@ resolution = "1920x1080"
 monitor = "2"
 `
 
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config/config.toml": modifiedContent,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
-	resolver := fakeResolver{configDir: "/config"}
+	resolver := testutil.FakeResolver{ConfigDir: "/config"}
 	dc := NewDiffComputer(fs, resolver)
 
 	baseline := &model.ManagedConfig{
@@ -676,6 +630,7 @@ monitor = "2"
 }
 
 func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_CFG(t *testing.T) {
+	t.Parallel()
 	originalContent := `savefile_directory = "/home/user/saves"
 savestate_directory = "/home/user/states"
 `
@@ -683,15 +638,11 @@ savestate_directory = "/home/user/states"
 savestate_directory = "/custom/states"
 `
 
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config/retroarch.cfg": modifiedContent,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
-	resolver := fakeResolver{configDir: "/config"}
+	resolver := testutil.FakeResolver{ConfigDir: "/config"}
 	dc := NewDiffComputer(fs, resolver)
 
 	baseline := &model.ManagedConfig{

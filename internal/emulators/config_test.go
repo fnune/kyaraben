@@ -20,6 +20,7 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/rpcs3"
 	"github.com/fnune/kyaraben/internal/emulators/vita3k"
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/testutil"
 )
 
 type fakeStoreReader struct {
@@ -67,6 +68,8 @@ func (f *fakeStoreReader) EmulatorOpaqueDir(emu model.EmulatorID) string {
 }
 
 func TestDuckStationGenerate(t *testing.T) {
+	t.Parallel()
+
 	store := &fakeStoreReader{root: "/emulation"}
 	gen := duckstation.Definition{}.ConfigGenerator()
 
@@ -115,6 +118,8 @@ func TestDuckStationGenerate(t *testing.T) {
 }
 
 func TestRetroArchCoresGenerate(t *testing.T) {
+	t.Parallel()
+
 	store := &fakeStoreReader{root: "/emulation"}
 
 	gen := retroarchbsnes.Definition{}.ConfigGenerator()
@@ -150,6 +155,8 @@ func collectKeys(entries []model.ConfigEntry) map[string]bool {
 }
 
 func TestMelonDSGenerate(t *testing.T) {
+	t.Parallel()
+
 	store := &fakeStoreReader{root: "/emulation"}
 	gen := melonds.Definition{}.ConfigGenerator()
 
@@ -195,6 +202,8 @@ func TestMelonDSGenerate(t *testing.T) {
 }
 
 func TestFlycastGenerate(t *testing.T) {
+	t.Parallel()
+
 	store := &fakeStoreReader{root: "/emulation"}
 	gen := flycast.Definition{}.ConfigGenerator()
 
@@ -241,6 +250,8 @@ func TestFlycastGenerate(t *testing.T) {
 }
 
 func TestDolphinGenerate(t *testing.T) {
+	t.Parallel()
+
 	store := &fakeStoreReader{root: "/emulation"}
 	gen := dolphin.Definition{}.ConfigGenerator()
 
@@ -287,8 +298,10 @@ func TestDolphinGenerate(t *testing.T) {
 }
 
 func TestDolphinSymlinks(t *testing.T) {
+	t.Parallel()
+
 	store := &fakeStoreReader{root: "/emulation"}
-	resolver := fakeBaseDirResolver{configDir: "/home/user/.config", homeDir: "/home/user", dataDir: "/home/user/.local/share"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
 	gen := dolphin.Definition{}.ConfigGenerator()
 
 	provider, ok := gen.(model.SymlinkProvider)
@@ -326,6 +339,8 @@ func TestDolphinSymlinks(t *testing.T) {
 }
 
 func TestMGBAGenerate(t *testing.T) {
+	t.Parallel()
+
 	store := &fakeStoreReader{root: "/emulation"}
 	gen := mgba.Definition{}.ConfigGenerator()
 
@@ -377,6 +392,8 @@ func TestMGBAGenerate(t *testing.T) {
 }
 
 func TestRetroArchCoreOverrideContainsSystemDirectory(t *testing.T) {
+	t.Parallel()
+
 	store := &fakeStoreReader{root: "/emulation"}
 	gen := retroarchbeetlesaturn.Definition{}.ConfigGenerator()
 
@@ -417,6 +434,8 @@ func TestRetroArchCoreOverrideContainsSystemDirectory(t *testing.T) {
 }
 
 func TestRetroArchSharedConfigEnablesSorting(t *testing.T) {
+	t.Parallel()
+
 	store := &fakeStoreReader{root: "/emulation"}
 	gen := retroarchbsnes.Definition{}.ConfigGenerator()
 
@@ -472,6 +491,8 @@ func TestRetroArchSharedConfigEnablesSorting(t *testing.T) {
 }
 
 func TestVita3KGenerate(t *testing.T) {
+	t.Parallel()
+
 	store := &fakeStoreReader{root: "/emulation"}
 	gen := vita3k.Definition{}.ConfigGenerator()
 
@@ -525,6 +546,8 @@ func TestVita3KGenerate(t *testing.T) {
 }
 
 func TestRPCS3Generate(t *testing.T) {
+	t.Parallel()
+
 	store := &fakeStoreReader{root: "/emulation"}
 	gen := rpcs3.Definition{}.ConfigGenerator()
 
@@ -582,6 +605,8 @@ func TestRPCS3Generate(t *testing.T) {
 }
 
 func TestGeneratedEntriesContainStorePaths(t *testing.T) {
+	t.Parallel()
+
 	store := &fakeStoreReader{root: "/test/emulation"}
 	gen := duckstation.Definition{}.ConfigGenerator()
 
@@ -606,8 +631,10 @@ func TestGeneratedEntriesContainStorePaths(t *testing.T) {
 }
 
 func TestCemuSymlinks(t *testing.T) {
+	t.Parallel()
+
 	store := &fakeStoreReader{root: "/emulation"}
-	resolver := fakeBaseDirResolver{configDir: "/home/user/.config", homeDir: "/home/user", dataDir: "/home/user/.local/share"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
 	gen := cemu.Definition{}.ConfigGenerator()
 
 	provider, ok := gen.(model.SymlinkProvider)
@@ -643,6 +670,8 @@ func TestCemuSymlinks(t *testing.T) {
 }
 
 func TestEdenGenerate(t *testing.T) {
+	t.Parallel()
+
 	store := &fakeStoreReader{root: "/emulation"}
 	gen := eden.Definition{}.ConfigGenerator()
 
@@ -671,8 +700,10 @@ func TestEdenGenerate(t *testing.T) {
 }
 
 func TestEdenSymlinks(t *testing.T) {
+	t.Parallel()
+
 	store := &fakeStoreReader{root: "/emulation"}
-	resolver := fakeBaseDirResolver{configDir: "/home/user/.config", homeDir: "/home/user", dataDir: "/home/user/.local/share"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
 	gen := eden.Definition{}.ConfigGenerator()
 
 	provider, ok := gen.(model.SymlinkProvider)
@@ -709,35 +740,17 @@ func TestEdenSymlinks(t *testing.T) {
 	}
 }
 
-type fakeBaseDirResolver struct {
-	configDir string
-	homeDir   string
-	dataDir   string
-}
-
-func (f fakeBaseDirResolver) UserConfigDir() (string, error) {
-	return f.configDir, nil
-}
-
-func (f fakeBaseDirResolver) UserHomeDir() (string, error) {
-	return f.homeDir, nil
-}
-
-func (f fakeBaseDirResolver) UserDataDir() (string, error) {
-	return f.dataDir, nil
-}
-
 func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
+	t.Parallel()
+
 	t.Run("CFG format", func(t *testing.T) {
-		fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		t.Parallel()
+
+		fs := testutil.NewTestFS(t, map[string]any{
 			"/config/test.cfg": "menu_driver = \"ozone\"\n",
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer cleanup()
 
-		resolver := fakeBaseDirResolver{configDir: "/config"}
+		resolver := testutil.FakeResolver{ConfigDir: "/config"}
 		writer := NewConfigWriter(fs, resolver)
 
 		patch := model.ConfigPatch{
@@ -766,15 +779,13 @@ func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
 	})
 
 	t.Run("CFG format fresh file", func(t *testing.T) {
-		fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		t.Parallel()
+
+		fs := testutil.NewTestFS(t, map[string]any{
 			"/config": &vfst.Dir{Perm: 0755},
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer cleanup()
 
-		resolver := fakeBaseDirResolver{configDir: "/config"}
+		resolver := testutil.FakeResolver{ConfigDir: "/config"}
 		writer := NewConfigWriter(fs, resolver)
 
 		patch := model.ConfigPatch{
@@ -799,15 +810,13 @@ func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
 	})
 
 	t.Run("INI format", func(t *testing.T) {
-		fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		t.Parallel()
+
+		fs := testutil.NewTestFS(t, map[string]any{
 			"/config/test.ini": "[Section]\nkey = existing\n",
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer cleanup()
 
-		resolver := fakeBaseDirResolver{configDir: "/config"}
+		resolver := testutil.FakeResolver{ConfigDir: "/config"}
 		writer := NewConfigWriter(fs, resolver)
 
 		patch := model.ConfigPatch{
@@ -836,15 +845,13 @@ func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
 	})
 
 	t.Run("YAML format", func(t *testing.T) {
-		fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		t.Parallel()
+
+		fs := testutil.NewTestFS(t, map[string]any{
 			"/config/test.yaml": "nested:\n  key: existing\n",
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer cleanup()
 
-		resolver := fakeBaseDirResolver{configDir: "/config"}
+		resolver := testutil.FakeResolver{ConfigDir: "/config"}
 		writer := NewConfigWriter(fs, resolver)
 
 		patch := model.ConfigPatch{
@@ -873,15 +880,13 @@ func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
 	})
 
 	t.Run("XML format", func(t *testing.T) {
-		fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		t.Parallel()
+
+		fs := testutil.NewTestFS(t, map[string]any{
 			"/config/test.xml": "<root><key>existing</key></root>",
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer cleanup()
 
-		resolver := fakeBaseDirResolver{configDir: "/config"}
+		resolver := testutil.FakeResolver{ConfigDir: "/config"}
 		writer := NewConfigWriter(fs, resolver)
 
 		patch := model.ConfigPatch{
@@ -911,10 +916,12 @@ func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
 }
 
 func TestConfigTargetResolve(t *testing.T) {
-	resolver := fakeBaseDirResolver{
-		configDir: "/home/user/.config",
-		homeDir:   "/home/user",
-		dataDir:   "/home/user/.local/share",
+	t.Parallel()
+
+	resolver := testutil.FakeResolver{
+		ConfigDir: "/home/user/.config",
+		HomeDir:   "/home/user",
+		DataDir:   "/home/user/.local/share",
 	}
 
 	tests := []struct {
