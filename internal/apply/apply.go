@@ -284,32 +284,39 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 
 	var storePath string
 	if profileLink != "" {
-		// Remove existing symlink before building - nix won't overwrite it
+		// nix build --out-link registers an indirect GC root pointing to
+		// the symlink it creates. nix GC follows it and keeps the target
+		// alive, but only recognises paths under /nix/store/. We keep this
+		// virtual-path symlink separate from the profile link (which uses
+		// the real nix-portable filesystem path) so GC can find it.
+		virtualLink := profileLink + "-virtual"
+
+		if _, err := os.Lstat(virtualLink); err == nil {
+			if err := os.Remove(virtualLink); err != nil {
+				return nil, fmt.Errorf("removing existing virtual link: %w", err)
+			}
+		}
+
+		opts.OnProgress(Progress{Step: "build", Output: "$ nix build " + flakeRef})
+		if err := a.NixClient.BuildWithLink(buildCtx, flakeRef, virtualLink); err != nil {
+			return nil, fmt.Errorf("building emulators: %w", err)
+		}
+		target, err := os.Readlink(virtualLink)
+		if err != nil {
+			return nil, fmt.Errorf("reading virtual link: %w", err)
+		}
+
+		// nix-portable virtualizes /nix/store, so the symlink target doesn't exist
+		// on the real filesystem. Translate to the real store path for the profile link.
+		realTarget := a.NixClient.RealStorePath(target)
+
 		if _, err := os.Lstat(profileLink); err == nil {
 			if err := os.Remove(profileLink); err != nil {
 				return nil, fmt.Errorf("removing existing profile link: %w", err)
 			}
 		}
-
-		opts.OnProgress(Progress{Step: "build", Output: "$ nix build " + flakeRef})
-		if err := a.NixClient.BuildWithLink(buildCtx, flakeRef, profileLink); err != nil {
-			return nil, fmt.Errorf("building emulators: %w", err)
-		}
-		target, err := os.Readlink(profileLink)
-		if err != nil {
-			return nil, fmt.Errorf("reading profile link: %w", err)
-		}
-
-		// nix-portable virtualizes /nix/store, so the symlink target doesn't exist
-		// on the real filesystem. Translate to the real store path.
-		realTarget := a.NixClient.RealStorePath(target)
-		if realTarget != target {
-			if err := os.Remove(profileLink); err != nil {
-				return nil, fmt.Errorf("removing old profile link: %w", err)
-			}
-			if err := os.Symlink(realTarget, profileLink); err != nil {
-				return nil, fmt.Errorf("creating real profile link: %w", err)
-			}
+		if err := os.Symlink(realTarget, profileLink); err != nil {
+			return nil, fmt.Errorf("creating profile link: %w", err)
 		}
 		storePath = realTarget
 	} else {
@@ -321,8 +328,10 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		}
 	}
 
-	opts.OnProgress(Progress{Step: "gc", Output: "Cleaning up unused store paths..."})
-	_ = a.NixClient.GarbageCollect(buildCtx)
+	opts.OnProgress(Progress{Step: "gc"})
+	if err := a.NixClient.GarbageCollect(buildCtx); err != nil {
+		opts.OnProgress(Progress{Step: "gc", Message: "Skipped (cleanup failed, will retry next time)"})
+	}
 
 	manifest, err := model.LoadManifest(a.ManifestPath)
 	if err != nil {
