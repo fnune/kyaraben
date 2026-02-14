@@ -126,8 +126,8 @@ Conclusion: symlink approach works for Dolphin.
 Current opaque emulators:
 - [x] dolphin (GameCube/Wii)
 - [x] cemu (Wii U) - game saves at usr/save/00050000/, screenshots at ~/.local/share/Cemu/screenshots/
-- [ ] azahar (3DS)
-- [ ] eden (Switch)
+- [x] azahar (3DS)
+- [x] eden (Switch)
 - [ ] ppsspp (PSP)
 - [ ] rpcs3 (PS3)
 - [ ] vita3k (PS Vita)

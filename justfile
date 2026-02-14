@@ -99,7 +99,7 @@ clean-emu-configs:
 
     # XDG config dirs
     config_dirs=(
-        "$HOME/.config/azahar"
+        "$HOME/.config/azahar-emu"
         "$HOME/.config/Cemu"
         "$HOME/.config/dolphin-emu"
         "$HOME/.config/duckstation"
@@ -114,6 +114,7 @@ clean-emu-configs:
 
     # XDG data dirs (for emulators using symlinks)
     data_dirs=(
+        "$HOME/.local/share/azahar-emu"
         "$HOME/.local/share/Cemu"
         "$HOME/.local/share/dolphin-emu"
     )
