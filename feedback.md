@@ -47,6 +47,8 @@ What we won't do: full performance tuning, per-game settings, target-specific op
 - Kyaraben shows the download size for each thing that's enabled. However, the full nix store created by kyaraben may exceed the size of the install shown to the user, because of the created Nix closure. How much bigger is it? How can we communicate this?
 - We add symlinks for emulator for which we can't configure routes
     - What should we do with those symlinks when Kyaraben uninstalls?
+    - Actually, kyaraben says it deletes Emulator config files, so should we follow the same approach here?
+    - How do we avoid nuking user directory things if the symlinks point to user directory folders? These may be critical (e.g. saves)
 - Garbage collection: nix store grows unbounded, need a way to trigger cleanup via nix-portable and show space freed
 - What happens when an emulator updates versions and our config setup no longer works? Can we version our strategy for each emulator?
 - ES-DE as non-Steam application: add to Steam for Steam Deck game mode launch
