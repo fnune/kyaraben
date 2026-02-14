@@ -1,0 +1,207 @@
+package configformat
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/fnune/kyaraben/internal/model"
+)
+
+type ApplyResult struct {
+	Path         string
+	BaselineHash string
+}
+
+type Handler interface {
+	Read(path string) (map[string]map[string]string, error)
+	Apply(path string, entries []model.ConfigEntry) (ApplyResult, error)
+}
+
+var handlers = map[model.ConfigFormat]Handler{
+	model.ConfigFormatINI:  &iniHandler{},
+	model.ConfigFormatCFG:  &cfgHandler{},
+	model.ConfigFormatTOML: &tomlHandler{},
+	model.ConfigFormatYAML: &yamlHandler{},
+	model.ConfigFormatXML:  &xmlHandler{},
+	model.ConfigFormatRaw:  &rawHandler{},
+}
+
+func GetHandler(format model.ConfigFormat) Handler {
+	if h, ok := handlers[format]; ok {
+		return h
+	}
+	return &iniHandler{}
+}
+
+func SectionKey(path []string) string {
+	if len(path) == 0 {
+		return ""
+	}
+	return strings.Join(path, ".")
+}
+
+func Unquote(v string) string {
+	if len(v) >= 2 && v[0] == '"' && v[len(v)-1] == '"' {
+		return v[1 : len(v)-1]
+	}
+	return v
+}
+
+func NormalizePath(v string) string {
+	v = Unquote(v)
+	if strings.HasPrefix(v, "~/") {
+		if home, err := os.UserHomeDir(); err == nil {
+			return filepath.Join(home, v[2:])
+		}
+	}
+	return v
+}
+
+func hashFile(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	hash := sha256.Sum256(data)
+	return hex.EncodeToString(hash[:]), nil
+}
+
+func flattenNestedMap(m map[string]interface{}, prefix []string, result map[string]map[string]string) {
+	for k, v := range m {
+		path := append(prefix, k)
+		switch val := v.(type) {
+		case map[string]interface{}:
+			flattenNestedMap(val, path, result)
+		case string:
+			section := SectionKey(path[:len(path)-1])
+			if result[section] == nil {
+				result[section] = make(map[string]string)
+			}
+			result[section][k] = val
+		default:
+			section := SectionKey(path[:len(path)-1])
+			if result[section] == nil {
+				result[section] = make(map[string]string)
+			}
+			result[section][k] = toString(val)
+		}
+	}
+}
+
+func toString(v interface{}) string {
+	switch val := v.(type) {
+	case string:
+		return val
+	case int:
+		return intToString(val)
+	case int64:
+		return int64ToString(val)
+	case float64:
+		return float64ToString(val)
+	case bool:
+		if val {
+			return "true"
+		}
+		return "false"
+	default:
+		return ""
+	}
+}
+
+func intToString(n int) string {
+	if n == 0 {
+		return "0"
+	}
+	neg := n < 0
+	if neg {
+		n = -n
+	}
+	var digits []byte
+	for n > 0 {
+		digits = append([]byte{byte('0' + n%10)}, digits...)
+		n /= 10
+	}
+	if neg {
+		digits = append([]byte{'-'}, digits...)
+	}
+	return string(digits)
+}
+
+func int64ToString(n int64) string {
+	return intToString(int(n))
+}
+
+func float64ToString(f float64) string {
+	if f == float64(int64(f)) {
+		return int64ToString(int64(f))
+	}
+	return strings.TrimRight(strings.TrimRight(floatFormat(f), "0"), ".")
+}
+
+func floatFormat(f float64) string {
+	neg := f < 0
+	if neg {
+		f = -f
+	}
+	intPart := int64(f)
+	fracPart := f - float64(intPart)
+
+	result := int64ToString(intPart)
+	if fracPart > 0 {
+		result += "."
+		for i := 0; i < 6 && fracPart > 0; i++ {
+			fracPart *= 10
+			digit := int(fracPart)
+			result += string(byte('0' + digit))
+			fracPart -= float64(digit)
+		}
+	}
+	if neg {
+		result = "-" + result
+	}
+	return result
+}
+
+func setNestedValue(m map[string]interface{}, path []string, value string) {
+	if len(path) == 0 {
+		return
+	}
+
+	if len(path) == 1 {
+		m[path[0]] = value
+		return
+	}
+
+	key := path[0]
+	if m[key] == nil {
+		m[key] = make(map[string]interface{})
+	}
+
+	if nested, ok := m[key].(map[string]interface{}); ok {
+		setNestedValue(nested, path[1:], value)
+	} else {
+		nested := make(map[string]interface{})
+		m[key] = nested
+		setNestedValue(nested, path[1:], value)
+	}
+}
+
+func hasNestedValue(m map[string]interface{}, path []string) bool {
+	if len(path) == 0 {
+		return false
+	}
+
+	if len(path) == 1 {
+		_, exists := m[path[0]]
+		return exists
+	}
+
+	key := path[0]
+	if nested, ok := m[key].(map[string]interface{}); ok {
+		return hasNestedValue(nested, path[1:])
+	}
+	return false
+}

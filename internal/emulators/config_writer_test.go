@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fnune/kyaraben/internal/configformat"
 	"github.com/fnune/kyaraben/internal/model"
 )
 
@@ -13,23 +14,15 @@ func TestApplyYAML(t *testing.T) {
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "test", "config.yml")
 
-	writer := NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
-
-	patch := model.ConfigPatch{
-		Target: model.ConfigTarget{
-			RelPath: "test/config.yml",
-			Format:  model.ConfigFormatYAML,
-			BaseDir: model.ConfigBaseDirUserConfig,
-		},
-		Entries: []model.ConfigEntry{
-			{Path: []string{"pref-path"}, Value: "/home/user/data"},
-			{Path: []string{"VFS", "$(EmulatorDir)"}, Value: "/home/user/emulator"},
-		},
+	entries := []model.ConfigEntry{
+		{Path: []string{"pref-path"}, Value: "/home/user/data"},
+		{Path: []string{"VFS", "$(EmulatorDir)"}, Value: "/home/user/emulator"},
 	}
 
-	result, err := writer.applyYAML(configPath, patch.Entries)
+	handler := configformat.GetHandler(model.ConfigFormatYAML)
+	result, err := handler.Apply(configPath, entries)
 	if err != nil {
-		t.Fatalf("applyYAML() error = %v", err)
+		t.Fatalf("Apply() error = %v", err)
 	}
 
 	if result.Path != configPath {
@@ -57,23 +50,15 @@ func TestApplyXML(t *testing.T) {
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "test", "config.xml")
 
-	writer := NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
-
-	patch := model.ConfigPatch{
-		Target: model.ConfigTarget{
-			RelPath: "test/config.xml",
-			Format:  model.ConfigFormatXML,
-			BaseDir: model.ConfigBaseDirUserConfig,
-		},
-		Entries: []model.ConfigEntry{
-			{Path: []string{"content", "GamePaths", "Entry"}, Value: "/home/user/roms"},
-			{Path: []string{"content", "mlc_path"}, Value: "/home/user/mlc"},
-		},
+	entries := []model.ConfigEntry{
+		{Path: []string{"content", "GamePaths", "Entry"}, Value: "/home/user/roms"},
+		{Path: []string{"content", "mlc_path"}, Value: "/home/user/mlc"},
 	}
 
-	result, err := writer.applyXML(configPath, patch.Entries)
+	handler := configformat.GetHandler(model.ConfigFormatXML)
+	result, err := handler.Apply(configPath, entries)
 	if err != nil {
-		t.Fatalf("applyXML() error = %v", err)
+		t.Fatalf("Apply() error = %v", err)
 	}
 
 	if result.Path != configPath {
@@ -109,20 +94,14 @@ other:
 		t.Fatalf("writing existing config: %v", err)
 	}
 
-	writer := NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
-
-	patch := model.ConfigPatch{
-		Target: model.ConfigTarget{
-			Format: model.ConfigFormatYAML,
-		},
-		Entries: []model.ConfigEntry{
-			{Path: []string{"new-key"}, Value: "new-value"},
-		},
+	entries := []model.ConfigEntry{
+		{Path: []string{"new-key"}, Value: "new-value"},
 	}
 
-	_, err := writer.applyYAML(configPath, patch.Entries)
+	handler := configformat.GetHandler(model.ConfigFormatYAML)
+	_, err := handler.Apply(configPath, entries)
 	if err != nil {
-		t.Fatalf("applyYAML() error = %v", err)
+		t.Fatalf("Apply() error = %v", err)
 	}
 
 	content, err := os.ReadFile(configPath)
