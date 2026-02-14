@@ -19,7 +19,7 @@ import (
 	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/logging"
 	"github.com/fnune/kyaraben/internal/model"
-	"github.com/fnune/kyaraben/internal/nix"
+	"github.com/fnune/kyaraben/internal/packages"
 	"github.com/fnune/kyaraben/internal/paths"
 	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/status"
@@ -36,8 +36,7 @@ type Daemon struct {
 	stateDir        string
 	manifestPath    string
 	reg             *registry.Registry
-	nixClient       nix.NixClient
-	flakeGenerator  *nix.FlakeGenerator
+	installer       packages.Installer
 	configWriter    *emulators.ConfigWriter
 	launcherManager *launcher.Manager
 
@@ -45,14 +44,13 @@ type Daemon struct {
 	applyCancelFunc context.CancelFunc
 }
 
-func New(configPath, stateDir, manifestPath string, reg *registry.Registry, nixClient nix.NixClient, flakeGenerator *nix.FlakeGenerator, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager) *Daemon {
+func New(configPath, stateDir, manifestPath string, reg *registry.Registry, installer packages.Installer, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager) *Daemon {
 	return &Daemon{
 		configPath:      configPath,
 		stateDir:        stateDir,
 		manifestPath:    manifestPath,
 		reg:             reg,
-		nixClient:       nixClient,
-		flakeGenerator:  flakeGenerator,
+		installer:       installer,
 		configWriter:    configWriter,
 		launcherManager: launcherManager,
 	}
@@ -333,7 +331,7 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
-	d.flakeGenerator.SetVersionOverrides(versionOverrides)
+	d.installer.SetVersionOverrides(versionOverrides)
 
 	userStore, err := store.NewUserStore(cfg.Global.UserStore)
 	if err != nil {
@@ -369,8 +367,7 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 	}()
 
 	applier := &apply.Applier{
-		NixClient:       d.nixClient,
-		FlakeGenerator:  d.flakeGenerator,
+		Installer:       d.installer,
 		ConfigWriter:    d.configWriter,
 		Registry:        d.reg,
 		ManifestPath:    d.manifestPath,
@@ -397,7 +394,7 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 		},
 	}
 
-	result, err := applier.Apply(ctx, cfg, userStore, opts)
+	_, err = applier.Apply(ctx, cfg, userStore, opts)
 	if ctx.Err() != nil {
 		return []Event{{
 			Type: EventTypeCancelled,
@@ -415,8 +412,7 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 	return []Event{{
 		Type: EventTypeResult,
 		Data: ApplyResult{
-			Success:   true,
-			StorePath: result.StorePath,
+			Success: true,
 		},
 	}}
 }
@@ -433,8 +429,7 @@ func (d *Daemon) handlePreflight() []Event {
 	}
 
 	applier := &apply.Applier{
-		NixClient:       d.nixClient,
-		FlakeGenerator:  d.flakeGenerator,
+		Installer:       d.installer,
 		ConfigWriter:    d.configWriter,
 		Registry:        d.reg,
 		ManifestPath:    d.manifestPath,

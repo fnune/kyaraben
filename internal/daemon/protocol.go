@@ -110,8 +110,7 @@ type ProgressEvent struct {
 }
 
 type ApplyResult struct {
-	Success   bool   `json:"success"`
-	StorePath string `json:"storePath"`
+	Success bool `json:"success"`
 }
 
 type CancelledResponse struct {
