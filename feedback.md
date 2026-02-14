@@ -18,6 +18,8 @@ What we won't do: full performance tuning, per-game settings, target-specific op
 - Refactor Provision struct: Filename, Hashes, and FilePattern are mutually exclusive validation strategies but modeled as optional fields on the same struct. Consider an interface or union type: `FilenameProvision` (just check file exists), `HashedProvision` (check file exists with valid hash), `DirectoryProvision` (check directory contains files matching a glob pattern like `*.nca`). This would make the validation logic cleaner and prevent invalid combinations.
 - Cemu says it has required provisions but games launch fine: investigate whether the provision check is wrong or if Cemu has fallback behavior
 - Provisions that require importing things via UI will always remain incomplete: need a way to check that they're working. How might we detect this?
+- Add a "Disable all systems" button for convenience
+- Add a way to apply even if no changes have happened (maybe even via keyboard shortcut for development)
 - Dolphin autoupdate prompt: needs a default config to disable the built-in autoupdate mechanism
 - Backup prompt for opaque-dir emulators: emulators like Vita3K store config inside their opaque directory, which triggers "Create backups before modifying?" prompt on every apply. Need to figure out how to handle config files that live inside opaque dirs
 - Audit system extensions against ES-DE bundled config: ensure kyaraben's extension lists are complete for each system
