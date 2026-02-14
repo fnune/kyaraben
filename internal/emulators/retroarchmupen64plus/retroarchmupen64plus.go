@@ -38,7 +38,6 @@ type Config struct{}
 func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
 	return []model.ConfigPatch{
 		retroarch.SharedConfig(store),
-		coreOverrideConfig(store),
 	}, nil
 }
 
@@ -46,16 +45,4 @@ func (c *Config) Symlinks(store model.StoreReader, resolver model.BaseDirResolve
 	return retroarch.CoreSymlinks(model.EmulatorIDRetroArchMupen64Plus, store, resolver)
 }
 
-const (
-	libretroCoreName = "mupen64plus_next_libretro"
-	shortCoreName    = "mupen64plus_next"
-)
-
-func coreOverrideConfig(store model.StoreReader) model.ConfigPatch {
-	return model.ConfigPatch{
-		Target: retroarch.CoreOverrideTarget(shortCoreName),
-		Entries: []model.ConfigEntry{
-			{Path: []string{"rgui_browser_directory"}, Value: store.SystemRomsDir(model.SystemIDN64)},
-		},
-	}
-}
+const libretroCoreName = "mupen64plus_next_libretro"
