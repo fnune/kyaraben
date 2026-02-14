@@ -898,7 +898,6 @@ func (d *Daemon) handleSyncStatus() []Event {
 			State:    SyncState(syncStatus.OverallState()),
 			Devices:  devices,
 			Folders:  folders,
-			Paused:   syncStatus.Paused,
 			Progress: progress,
 		},
 	}}
@@ -916,36 +915,59 @@ func (d *Daemon) handleSyncRemoveDevice(data *SyncRemoveDeviceRequest) []Event {
 
 	deviceID := strings.ToUpper(strings.TrimSpace(data.DeviceID))
 
+	client := syncpkg.NewClient(cfg.Sync)
+	loadedKey := d.loadSyncAPIKey()
+	if loadedKey != "" {
+		client.SetAPIKey(loadedKey)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var removedName string
+	if devices, err := client.GetConfiguredDevices(ctx); err == nil {
+		for _, dev := range devices {
+			if strings.ToUpper(dev.ID) == deviceID {
+				removedName = dev.Name
+				break
+			}
+		}
+	}
+
+	if err := client.RemoveDevice(ctx, deviceID); err != nil {
+		return d.errorResponse(fmt.Sprintf("failed to remove device from syncthing: %v", err))
+	}
+
 	found := -1
 	for i, dev := range cfg.Sync.Devices {
 		if strings.ToUpper(dev.ID) == deviceID || strings.EqualFold(dev.Name, deviceID) {
 			found = i
+			if removedName == "" {
+				removedName = dev.Name
+			}
 			break
 		}
 	}
 
-	if found == -1 {
-		return d.errorResponse("device not found")
-	}
+	if found != -1 {
+		cfg.Sync.Devices = append(cfg.Sync.Devices[:found], cfg.Sync.Devices[found+1:]...)
 
-	removed := cfg.Sync.Devices[found]
-	cfg.Sync.Devices = append(cfg.Sync.Devices[:found], cfg.Sync.Devices[found+1:]...)
+		path := d.configPath
+		if path == "" {
+			path, _ = d.paths.ConfigPath()
+		}
 
-	path := d.configPath
-	if path == "" {
-		path, _ = d.paths.ConfigPath()
-	}
-
-	if err := d.configStore.Save(cfg, path); err != nil {
-		return d.errorResponse(err.Error())
+		if err := d.configStore.Save(cfg, path); err != nil {
+			log.Error("Failed to update kyaraben config after device removal: %v", err)
+		}
 	}
 
 	return []Event{{
 		Type: EventTypeResult,
 		Data: SyncRemoveDeviceResponse{
 			Success:  true,
-			DeviceID: removed.ID,
-			Name:     removed.Name,
+			DeviceID: deviceID,
+			Name:     removedName,
 		},
 	}}
 }

@@ -12,10 +12,11 @@ export interface SyncViewProps {
   readonly onRemoveDevice: (deviceId: string) => Promise<void>
   readonly onStartPairing: () => Promise<void>
   readonly onCancelPairing: () => Promise<void>
-  readonly onJoinPrimary: (code: string) => Promise<void>
+  readonly onJoinPrimary: (code: string) => Promise<{ ok: boolean; error?: string }>
   readonly onEnableSync: (mode: SyncMode) => Promise<void>
   readonly pairingCode: string | null
   readonly pairingProgress: string | null
+  readonly pairingError: string | null
   readonly isEnabling: boolean
 }
 
@@ -196,6 +197,7 @@ function PairingSection({
   status,
   pairingCode,
   pairingProgress,
+  pairingError,
   onStartPairing,
   onCancelPairing,
   onJoinPrimary,
@@ -203,28 +205,48 @@ function PairingSection({
   readonly status: SyncStatusResponse
   readonly pairingCode: string | null
   readonly pairingProgress: string | null
+  readonly pairingError: string | null
   readonly onStartPairing: () => Promise<void>
   readonly onCancelPairing: () => Promise<void>
-  readonly onJoinPrimary: (code: string) => Promise<void>
+  readonly onJoinPrimary: (code: string) => Promise<{ ok: boolean; error?: string }>
 }) {
   const [joinCode, setJoinCode] = useState('')
   const [isJoining, setIsJoining] = useState(false)
+  const [isStartingPairing, setIsStartingPairing] = useState(false)
+  const [localError, setLocalError] = useState<string | null>(null)
   const isPairing = status.pairing || pairingCode !== null
   const isRunning = status.running ?? false
   const hasDevices = (status.devices?.length ?? 0) > 0
 
+  const displayError = localError || pairingError
+
   const handleJoin = useCallback(
     async (code: string) => {
       setIsJoining(true)
+      setLocalError(null)
       try {
-        await onJoinPrimary(code)
-        setJoinCode('')
+        const result = await onJoinPrimary(code)
+        if (result.ok) {
+          setJoinCode('')
+        } else {
+          setLocalError(result.error ?? 'Failed to join primary')
+        }
       } finally {
         setIsJoining(false)
       }
     },
     [onJoinPrimary],
   )
+
+  const handleStartPairing = useCallback(async () => {
+    setIsStartingPairing(true)
+    setLocalError(null)
+    try {
+      await onStartPairing()
+    } finally {
+      setIsStartingPairing(false)
+    }
+  }, [onStartPairing])
 
   if (!isRunning) {
     return (
@@ -289,9 +311,21 @@ function PairingSection({
             automatically on your local network.
           </p>
           <Input value={joinCode} onChange={setJoinCode} placeholder="Pairing code (e.g. 6MDLRF)" />
+          {displayError && <p className="text-sm text-status-error">{displayError}</p>}
           <Button onClick={() => handleJoin(joinCode.trim())} disabled={!joinCode.trim()}>
             Join primary
           </Button>
+        </div>
+      </Section>
+    )
+  }
+
+  if (isStartingPairing) {
+    return (
+      <Section title="Pair a device">
+        <div className="flex items-center gap-3">
+          <Spinner />
+          <span className="text-sm text-on-surface-muted">Starting pairing...</span>
         </div>
       </Section>
     )
@@ -302,7 +336,7 @@ function PairingSection({
       <p className="text-sm text-on-surface-muted mb-3">
         Start pairing to connect another device on your local network.
       </p>
-      <Button onClick={onStartPairing}>Start pairing</Button>
+      <Button onClick={handleStartPairing}>Start pairing</Button>
     </Section>
   )
 }
@@ -329,6 +363,7 @@ export function SyncView({
   onEnableSync,
   pairingCode,
   pairingProgress,
+  pairingError,
   isEnabling,
 }: SyncViewProps) {
   if (!status?.enabled) {
@@ -376,18 +411,32 @@ export function SyncView({
         status={status}
         pairingCode={pairingCode}
         pairingProgress={pairingProgress}
+        pairingError={pairingError}
         onStartPairing={onStartPairing}
         onCancelPairing={onCancelPairing}
         onJoinPrimary={onJoinPrimary}
       />
 
       {sortedFolders.length > 0 && (
-        <Section title="Synced folders" collapsible defaultCollapsed>
+        <Section title="Synced folders">
           <div className="border border-outline rounded-card px-3 bg-surface">
             {sortedFolders.map((folder) => (
               <FolderRow key={folder.id} folder={folder} />
             ))}
           </div>
+        </Section>
+      )}
+
+      {status.guiURL && (
+        <Section title="Advanced" collapsible defaultCollapsed>
+          <a
+            href={status.guiURL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-accent hover:underline"
+          >
+            Open Syncthing web interface
+          </a>
         </Section>
       )}
     </div>

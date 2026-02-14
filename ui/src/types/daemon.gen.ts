@@ -163,11 +163,10 @@ export interface SetConfigResponse {
 export const SyncStateDisabled = "disabled";
 export const SyncStateSynced = "synced";
 export const SyncStateSyncing = "syncing";
-export const SyncStatePaused = "paused";
 export const SyncStateDisconnected = "disconnected";
 export const SyncStateConflict = "conflict";
 export const SyncStateError = "error";
-export type SyncState = typeof SyncStateDisabled | typeof SyncStateSynced | typeof SyncStateSyncing | typeof SyncStatePaused | typeof SyncStateDisconnected | typeof SyncStateConflict | typeof SyncStateError;
+export type SyncState = typeof SyncStateDisabled | typeof SyncStateSynced | typeof SyncStateSyncing | typeof SyncStateDisconnected | typeof SyncStateConflict | typeof SyncStateError;
 export interface SyncStatusResponse {
   enabled: boolean;
   mode?: string;
@@ -178,7 +177,6 @@ export interface SyncStatusResponse {
   devices?: SyncDevice[];
   folders?: SyncFolder[];
   pairing?: boolean;
-  paused?: boolean;
   progress?: SyncProgress;
 }
 export interface SyncProgress {

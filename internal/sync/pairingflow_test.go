@@ -163,11 +163,12 @@ func TestPrimaryPairingFlowWithFakes(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	pairDone := make(chan error, 1)
 	go func() {
 		time.Sleep(100 * time.Millisecond)
 
 		if !fakeAdvertiser.IsAdvertising() {
-			t.Error("expected advertiser to be advertising")
+			pairDone <- fmt.Errorf("expected advertiser to be advertising")
 			return
 		}
 
@@ -187,19 +188,21 @@ func TestPrimaryPairingFlowWithFakes(t *testing.T) {
 		}
 
 		if code == "" {
-			t.Error("no pairing code found in messages")
+			pairDone <- fmt.Errorf("no pairing code found in messages")
 			return
 		}
 
 		_, err := client.Pair(ctx, addr, code, "SECONDARY-DEVICE-ID", "steamdeck", "secondary")
-		if err != nil {
-			t.Errorf("pair: %v", err)
-		}
+		pairDone <- err
 	}()
 
 	result, _, err := flow.Run(ctx)
 	if err != nil {
 		t.Fatalf("primary flow: %v", err)
+	}
+
+	if pairErr := <-pairDone; pairErr != nil {
+		t.Fatalf("pair goroutine: %v", pairErr)
 	}
 
 	if result.PeerDeviceID != "SECONDARY-DEVICE-ID" {
