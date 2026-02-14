@@ -24,7 +24,7 @@ Required files:
 - [x] Hash verification works (n/a for keys - filename only check)
 
 Notes:
-- Keys (`.keys` files) and firmware (`.nca` files) coexist in `~/Emulation/bios/switch/`
+- Keys (`*.keys` files) and firmware (`*.nca` files) coexist in `~/Emulation/bios/switch/`
 - Both `~/.local/share/eden/keys/` and `~/.local/share/eden/nand/system/Contents/registered/` symlink to `bios/switch/`
 - Eden source confirms keys import is just a file copy (no transformation)
 
@@ -154,7 +154,7 @@ Based on recon, what needs to sync for this emulator:
 
 - Save data location: `saves/switch/`
 - Save state location: N/A
-- Keys and firmware: `bios/switch/` (keys are `.keys` files, firmware are `.nca` files)
+- Keys and firmware: `bios/switch/` (keys are `*.keys` files, firmware are `*.nca` files)
 - Screenshots: `screenshots/eden/`
 - Updates/DLC: Not synced (installed per-device via Eden UI)
 - Shader cache: Should NOT sync (machine-specific)
