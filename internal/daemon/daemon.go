@@ -48,6 +48,10 @@ type Daemon struct {
 
 	mu              sync.Mutex
 	applyCancelFunc context.CancelFunc
+
+	pairingMu         sync.Mutex
+	pairingCancelFunc context.CancelFunc
+	pairingActive     bool
 }
 
 func New(fs vfs.FS, configPath, stateDir, manifestPath string, reg *registry.Registry, installer packages.Installer, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager) *Daemon {
@@ -108,6 +112,12 @@ func (d *Daemon) HandleWithEmit(cmd Command, emit func(Event)) []Event {
 		return d.handleSyncAddDevice(nil)
 	case CommandTypeSyncRemoveDevice:
 		return d.handleSyncRemoveDevice(nil)
+	case CommandTypeSyncCancelPairing:
+		return d.handleSyncCancelPairing()
+	case CommandTypeSyncPause:
+		return d.handleSyncPause()
+	case CommandTypeSyncResume:
+		return d.handleSyncResume()
 	case CommandTypeUninstallPreview:
 		return d.handleUninstallPreview()
 	case CommandTypeUninstall:
@@ -934,6 +944,227 @@ func (d *Daemon) handleSyncRemoveDevice(data *SyncRemoveDeviceRequest) []Event {
 	}}
 }
 
+func (d *Daemon) HandleSyncStartPairing(cmd Command, emit func(Event)) []Event {
+	return d.handleSyncStartPairing(emit)
+}
+
+func (d *Daemon) HandleSyncJoinPrimary(cmd SyncJoinPrimaryCommand) []Event {
+	return d.handleSyncJoinPrimary(&cmd.Data)
+}
+
+func (d *Daemon) handleSyncStartPairing(emit func(Event)) []Event {
+	cfg, err := d.loadConfig()
+	if err != nil {
+		return d.errorResponse(err.Error())
+	}
+
+	d.pairingMu.Lock()
+	if d.pairingActive {
+		d.pairingMu.Unlock()
+		return d.errorResponse("pairing already in progress")
+	}
+	d.pairingActive = true
+	ctx, cancel := context.WithCancel(context.Background())
+	d.pairingCancelFunc = cancel
+	d.pairingMu.Unlock()
+
+	go func() {
+		defer func() {
+			d.pairingMu.Lock()
+			d.pairingActive = false
+			d.pairingMu.Unlock()
+		}()
+
+		client := syncpkg.NewClient(cfg.Sync)
+		loadedKey := d.loadSyncAPIKey()
+		if loadedKey != "" {
+			client.SetAPIKey(loadedKey)
+		}
+
+		flow := syncpkg.NewPrimaryPairingFlow(syncpkg.PairingFlowConfig{
+			SyncConfig: cfg.Sync,
+			Advertiser: syncpkg.NewMDNSAdvertiser(),
+			Client:     client,
+			OnProgress: func(msg string) {
+				emit(Event{
+					Type: EventTypeProgress,
+					Data: SyncPairingProgressEvent{Message: msg},
+				})
+			},
+		})
+
+		result, code, err := flow.Run(ctx)
+		if err != nil {
+			emit(Event{Type: EventTypeError, Data: ErrorResponse{Error: err.Error()}})
+			return
+		}
+
+		_ = code
+
+		d.persistPairedDevice(cfg, result.PeerDeviceID, result.PeerName, model.SyncModePrimary)
+
+		emit(Event{
+			Type: EventTypeResult,
+			Data: SyncPairingCompleteResponse{
+				Success:      true,
+				PeerDeviceID: result.PeerDeviceID,
+				PeerName:     result.PeerName,
+			},
+		})
+	}()
+
+	return nil
+}
+
+func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest) []Event {
+	if data == nil || data.Code == "" || data.PairingAddr == "" {
+		return d.errorResponse("code and pairingAddr are required")
+	}
+
+	cfg, err := d.loadConfig()
+	if err != nil {
+		return d.errorResponse(err.Error())
+	}
+
+	client := syncpkg.NewClient(cfg.Sync)
+	loadedKey := d.loadSyncAPIKey()
+	if loadedKey != "" {
+		client.SetAPIKey(loadedKey)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	localID, err := client.GetDeviceID(ctx)
+	if err != nil {
+		return d.errorResponse(fmt.Sprintf("getting device ID: %v", err))
+	}
+
+	hostname, _ := os.Hostname()
+	localName := hostname + "-kyaraben"
+
+	pairingClient := syncpkg.NewPairingClient()
+	result, err := pairingClient.Pair(ctx, data.PairingAddr, data.Code, localID, localName)
+	if err != nil {
+		return d.errorResponse(fmt.Sprintf("pairing failed: %v", err))
+	}
+
+	if err := client.AddDevice(ctx, result.PeerDeviceID, result.PeerName); err != nil {
+		return d.errorResponse(fmt.Sprintf("adding device: %v", err))
+	}
+	if err := client.ShareFoldersWithDevice(ctx, result.PeerDeviceID); err != nil {
+		return d.errorResponse(fmt.Sprintf("sharing folders: %v", err))
+	}
+
+	d.persistPairedDevice(cfg, result.PeerDeviceID, result.PeerName, model.SyncModeSecondary)
+
+	return []Event{{
+		Type: EventTypeResult,
+		Data: SyncJoinPrimaryResponse{
+			Success:      true,
+			PeerDeviceID: result.PeerDeviceID,
+			PeerName:     result.PeerName,
+		},
+	}}
+}
+
+func (d *Daemon) handleSyncCancelPairing() []Event {
+	d.pairingMu.Lock()
+	defer d.pairingMu.Unlock()
+	if d.pairingCancelFunc != nil {
+		d.pairingCancelFunc()
+		d.pairingCancelFunc = nil
+	}
+	d.pairingActive = false
+	return []Event{{
+		Type: EventTypeResult,
+		Data: map[string]bool{"cancelled": true},
+	}}
+}
+
+func (d *Daemon) handleSyncPause() []Event {
+	cfg, err := d.loadConfig()
+	if err != nil {
+		return d.errorResponse(err.Error())
+	}
+
+	client := syncpkg.NewClient(cfg.Sync)
+	loadedKey := d.loadSyncAPIKey()
+	if loadedKey != "" {
+		client.SetAPIKey(loadedKey)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := client.PauseSync(ctx); err != nil {
+		return d.errorResponse(fmt.Sprintf("pausing sync: %v", err))
+	}
+
+	return []Event{{
+		Type: EventTypeResult,
+		Data: SyncPauseResponse{Success: true},
+	}}
+}
+
+func (d *Daemon) handleSyncResume() []Event {
+	cfg, err := d.loadConfig()
+	if err != nil {
+		return d.errorResponse(err.Error())
+	}
+
+	client := syncpkg.NewClient(cfg.Sync)
+	loadedKey := d.loadSyncAPIKey()
+	if loadedKey != "" {
+		client.SetAPIKey(loadedKey)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := client.ResumeSync(ctx); err != nil {
+		return d.errorResponse(fmt.Sprintf("resuming sync: %v", err))
+	}
+
+	return []Event{{
+		Type: EventTypeResult,
+		Data: SyncResumeResponse{Success: true},
+	}}
+}
+
+func (d *Daemon) loadSyncAPIKey() string {
+	keyPath := filepath.Join(d.stateDir, "syncthing", "config", ".apikey")
+	data, err := d.fs.ReadFile(keyPath)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(data))
+}
+
+func (d *Daemon) persistPairedDevice(cfg *model.KyarabenConfig, peerDeviceID, peerName string, mode model.SyncMode) {
+	for _, dev := range cfg.Sync.Devices {
+		if dev.ID == peerDeviceID {
+			return
+		}
+	}
+
+	cfg.Sync.Devices = append(cfg.Sync.Devices, model.SyncDevice{
+		ID:   peerDeviceID,
+		Name: peerName,
+	})
+	cfg.Sync.Enabled = true
+	cfg.Sync.Mode = mode
+
+	path := d.configPath
+	if path == "" {
+		path, _ = model.DefaultConfigPath()
+	}
+
+	if err := d.configStore.Save(cfg, path); err != nil {
+		log.Error("Failed to persist paired device: %v", err)
+	}
+}
+
 func (d *Daemon) handleUninstallPreview() []Event {
 	manifest, err := d.manifestStore.Load(d.manifestPath)
 	if err != nil {
@@ -997,6 +1228,21 @@ func (d *Daemon) handleUninstallPreview() []Event {
 		}
 	}
 
+	var syncthingFiles []string
+	if manifest.SyncthingInstall != nil {
+		si := manifest.SyncthingInstall
+		for _, p := range []string{si.BinaryPath, si.SystemdUnitPath} {
+			if p != "" && d.fileExists(p) {
+				syncthingFiles = append(syncthingFiles, p)
+			}
+		}
+		for _, dir := range []string{si.ConfigDir, si.DataDir} {
+			if dir != "" && d.dirExists(dir) {
+				syncthingFiles = append(syncthingFiles, dir)
+			}
+		}
+	}
+
 	var retroArchCoresDir string
 	var retroArchCoreFiles []string
 	if coresDir, err := paths.RetroArchCoresDir(); err == nil && d.dirExists(coresDir) {
@@ -1020,6 +1266,7 @@ func (d *Daemon) handleUninstallPreview() []Event {
 			IconFiles:          iconFiles,
 			ConfigFiles:        configFiles,
 			KyarabenFiles:      kyarabenFiles,
+			SyncthingFiles:     syncthingFiles,
 			Preserved: PreservedPaths{
 				UserStore: shortenPath(userStore),
 				ConfigDir: shortenPath(configDir),
@@ -1081,6 +1328,23 @@ func (d *Daemon) handleUninstall() []Event {
 				errors = append(errors, fmt.Sprintf("could not remove %s: %v", f, err))
 			} else {
 				removedFiles = append(removedFiles, f)
+			}
+		}
+	}
+
+	syncSetup := syncpkg.NewDefaultSetup(d.installer, d.stateDir)
+	if syncSetup.IsEnabled() {
+		if err := syncSetup.Disable(); err != nil {
+			errors = append(errors, fmt.Sprintf("could not disable syncthing service: %v", err))
+		}
+	}
+	if manifest.SyncthingInstall != nil {
+		si := manifest.SyncthingInstall
+		if si.SystemdUnitPath != "" && d.fileExists(si.SystemdUnitPath) {
+			if err := os.Remove(si.SystemdUnitPath); err != nil {
+				errors = append(errors, fmt.Sprintf("could not remove %s: %v", si.SystemdUnitPath, err))
+			} else {
+				removedFiles = append(removedFiles, si.SystemdUnitPath)
 			}
 		}
 	}

@@ -10,8 +10,12 @@ import type {
   StatusResponse,
   SyncAddDeviceRequest,
   SyncAddDeviceResponse,
+  SyncJoinPrimaryRequest,
+  SyncJoinPrimaryResponse,
+  SyncPauseResponse,
   SyncRemoveDeviceRequest,
   SyncRemoveDeviceResponse,
+  SyncResumeResponse,
   SyncStatusResponse,
   System,
   UninstallPreviewResponse,
@@ -65,6 +69,19 @@ export const addSyncDevice = (req: SyncAddDeviceRequest) =>
 
 export const removeSyncDevice = (req: SyncRemoveDeviceRequest) =>
   invoke<SyncRemoveDeviceResponse>('sync_remove_device', req)
+
+export const startSyncPairing = () =>
+  invoke<{ code: string }>('sync_start_pairing')
+
+export const joinSyncPrimary = (req: SyncJoinPrimaryRequest) =>
+  invoke<SyncJoinPrimaryResponse>('sync_join_primary', req)
+
+export const cancelSyncPairing = () =>
+  invoke<{ cancelled: boolean }>('sync_cancel_pairing')
+
+export const pauseSync = () => invoke<SyncPauseResponse>('sync_pause')
+
+export const resumeSync = () => invoke<SyncResumeResponse>('sync_resume')
 
 export const getUninstallPreview = () => invoke<UninstallPreviewResponse>('uninstall_preview')
 

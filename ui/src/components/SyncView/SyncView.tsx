@@ -1,12 +1,24 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Button } from '@/lib/Button'
 import { Input } from '@/lib/Input'
-import type { SyncDevice, SyncStatusResponse } from '@/types/daemon'
+import type {
+  SyncDevice,
+  SyncDiscoveredPrimary,
+  SyncStatusResponse,
+} from '@/types/daemon'
 
 export interface SyncViewProps {
   readonly status: SyncStatusResponse | null
   readonly onAddDevice: (deviceId: string, name: string) => Promise<void>
   readonly onRemoveDevice: (deviceId: string) => Promise<void>
+  readonly onStartPairing: () => Promise<void>
+  readonly onCancelPairing: () => Promise<void>
+  readonly onJoinPrimary: (code: string, pairingAddr: string) => Promise<void>
+  readonly onPause: () => Promise<void>
+  readonly onResume: () => Promise<void>
+  readonly pairingCode: string | null
+  readonly pairingProgress: string | null
+  readonly discoveredPrimaries: readonly SyncDiscoveredPrimary[]
 }
 
 function truncateDeviceId(id: string): string {
@@ -67,7 +79,140 @@ mode = "primary"  # or "secondary"`}
   )
 }
 
-export function SyncView({ status, onAddDevice, onRemoveDevice }: SyncViewProps) {
+function PairingSection({
+  status,
+  pairingCode,
+  pairingProgress,
+  discoveredPrimaries,
+  onStartPairing,
+  onCancelPairing,
+  onJoinPrimary,
+}: {
+  readonly status: SyncStatusResponse
+  readonly pairingCode: string | null
+  readonly pairingProgress: string | null
+  readonly discoveredPrimaries: readonly SyncDiscoveredPrimary[]
+  readonly onStartPairing: () => Promise<void>
+  readonly onCancelPairing: () => Promise<void>
+  readonly onJoinPrimary: (code: string, pairingAddr: string) => Promise<void>
+}) {
+  const [joinCode, setJoinCode] = useState('')
+  const [joinAddr, setJoinAddr] = useState('')
+  const [isJoining, setIsJoining] = useState(false)
+  const isPairing = status.pairing || pairingCode !== null
+
+  const handleJoin = useCallback(
+    async (code: string, addr: string) => {
+      setIsJoining(true)
+      try {
+        await onJoinPrimary(code, addr)
+        setJoinCode('')
+        setJoinAddr('')
+      } finally {
+        setIsJoining(false)
+      }
+    },
+    [onJoinPrimary],
+  )
+
+  if (isPairing) {
+    return (
+      <Section title="Pairing in progress">
+        {pairingCode && (
+          <div className="mb-4">
+            <p className="text-sm text-on-surface-muted mb-2">
+              Enter this code on the other device:
+            </p>
+            <code className="block bg-surface-raised text-on-surface px-4 py-3 rounded-sm text-2xl font-mono text-center tracking-widest">
+              {pairingCode}
+            </code>
+          </div>
+        )}
+        {pairingProgress && (
+          <p className="text-sm text-on-surface-muted mb-3">{pairingProgress}</p>
+        )}
+        <Button variant="secondary" onClick={onCancelPairing}>
+          Cancel pairing
+        </Button>
+      </Section>
+    )
+  }
+
+  if (status.mode === 'secondary') {
+    return (
+      <Section title="Join a primary device">
+        <div className="space-y-3">
+          <p className="text-sm text-on-surface-muted">
+            Enter the pairing code shown on the primary device.
+          </p>
+          {discoveredPrimaries.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs text-on-surface-dim">Found on network:</p>
+              {discoveredPrimaries.map((primary) => (
+                <button
+                  key={primary.pairingAddr}
+                  type="button"
+                  onClick={() => setJoinAddr(primary.pairingAddr)}
+                  className={`w-full text-left px-3 py-2 rounded-sm text-sm border ${
+                    joinAddr === primary.pairingAddr
+                      ? 'border-accent bg-surface-raised'
+                      : 'border-outline bg-surface'
+                  }`}
+                >
+                  {primary.hostname}
+                  <span className="text-xs text-on-surface-dim ml-2">
+                    ({primary.pairingAddr})
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+          <Input
+            value={joinCode}
+            onChange={setJoinCode}
+            placeholder="Pairing code"
+          />
+          {discoveredPrimaries.length === 0 && (
+            <Input
+              value={joinAddr}
+              onChange={setJoinAddr}
+              placeholder="Primary address (e.g. 192.168.1.100:43210)"
+            />
+          )}
+          <Button
+            onClick={() => handleJoin(joinCode.trim(), joinAddr.trim())}
+            disabled={!joinCode.trim() || !joinAddr.trim() || isJoining}
+          >
+            {isJoining ? 'Joining...' : 'Join primary'}
+          </Button>
+        </div>
+      </Section>
+    )
+  }
+
+  return (
+    <Section title="Pair a device">
+      <p className="text-sm text-on-surface-muted mb-3">
+        Start pairing to connect another device on your local network.
+      </p>
+      <Button onClick={onStartPairing}>Start pairing</Button>
+    </Section>
+  )
+}
+
+export function SyncView({
+  status,
+  onAddDevice,
+  onRemoveDevice,
+  onStartPairing,
+  onCancelPairing,
+  onJoinPrimary,
+  onPause,
+  onResume,
+  pairingCode,
+  pairingProgress,
+  discoveredPrimaries,
+}: SyncViewProps) {
   const [newDeviceId, setNewDeviceId] = useState('')
   const [newDeviceName, setNewDeviceName] = useState('')
   const [isAdding, setIsAdding] = useState(false)
@@ -96,6 +241,7 @@ export function SyncView({ status, onAddDevice, onRemoveDevice }: SyncViewProps)
 
   const connectedCount = status.devices?.filter((d) => d.connected).length ?? 0
   const totalDevices = status.devices?.length ?? 0
+  const isSyncing = status.state === 'syncing'
 
   return (
     <div className="p-6 space-y-6">
@@ -121,6 +267,13 @@ export function SyncView({ status, onAddDevice, onRemoveDevice }: SyncViewProps)
               </span>
             </div>
           )}
+          {status.running && (
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="secondary" onClick={isSyncing ? onPause : onResume}>
+                {isSyncing ? 'Pause sync' : 'Resume sync'}
+              </Button>
+            </div>
+          )}
         </div>
       </Section>
 
@@ -143,6 +296,18 @@ export function SyncView({ status, onAddDevice, onRemoveDevice }: SyncViewProps)
             </button>
           </div>
         </Section>
+      )}
+
+      {status.running && (
+        <PairingSection
+          status={status}
+          pairingCode={pairingCode}
+          pairingProgress={pairingProgress}
+          discoveredPrimaries={discoveredPrimaries}
+          onStartPairing={onStartPairing}
+          onCancelPairing={onCancelPairing}
+          onJoinPrimary={onJoinPrimary}
+        />
       )}
 
       <Section title="Paired devices">
@@ -176,7 +341,10 @@ export function SyncView({ status, onAddDevice, onRemoveDevice }: SyncViewProps)
         )}
       </Section>
 
-      <Section title="Add a device">
+      <Section title="Add a device manually">
+        <p className="text-sm text-on-surface-muted mb-3">
+          For cross-network pairing, add a device by its Syncthing device ID.
+        </p>
         <div className="space-y-3">
           <Input value={newDeviceId} onChange={setNewDeviceId} placeholder="Device ID" />
           <Input

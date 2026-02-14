@@ -358,6 +358,65 @@ async function applyCommand(): Promise<{ messages: string[]; cancelled: boolean 
   })
 }
 
+// Pairing streams progress events like apply
+async function pairingCommand(): Promise<{ success: boolean; peerDeviceId?: string; peerName?: string }> {
+  await ensureDaemon()
+
+  if (!daemon || !daemon.process.stdin) {
+    throw new Error('Daemon not running')
+  }
+
+  const currentDaemon = daemon
+  const stdin = daemon.process.stdin
+  const requestId = randomUUID()
+  const json = `${JSON.stringify({ type: 'sync_start_pairing', id: requestId })}\n`
+  stdin.write(json)
+
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(
+      () => {
+        currentDaemon.pending.delete(requestId)
+        reject(new Error('Pairing timeout'))
+      },
+      6 * 60 * 1000,
+    )
+
+    const handleEvent = (event: DaemonEvent) => {
+      if (event.type === 'progress') {
+        const data = event.data as { message?: string } | undefined
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          try {
+            mainWindow.webContents.send('pairing:progress', {
+              message: data?.message ?? '',
+            })
+          } catch (sendErr) {
+            console.error('[kyaraben] Failed to send pairing progress:', sendErr)
+          }
+        }
+      } else if (event.type === 'result') {
+        clearTimeout(timeout)
+        currentDaemon.pending.delete(requestId)
+        const data = event.data as { success?: boolean; peerDeviceId?: string; peerName?: string }
+        resolve({
+          success: data?.success ?? true,
+          peerDeviceId: data?.peerDeviceId,
+          peerName: data?.peerName,
+        })
+      } else if (event.type === 'cancelled') {
+        clearTimeout(timeout)
+        currentDaemon.pending.delete(requestId)
+        resolve({ success: false })
+      } else if (event.type === 'error') {
+        clearTimeout(timeout)
+        currentDaemon.pending.delete(requestId)
+        reject(new Error((event.data as { error?: string })?.error || 'Unknown error'))
+      }
+    }
+
+    currentDaemon.pending.set(requestId, { resolve: handleEvent, reject })
+  })
+}
+
 // IPC handlers
 function setupIpcHandlers(): void {
   ipcMain.handle('get_systems', async () => {
@@ -439,6 +498,38 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle('sync_remove_device', async (_, data: { deviceId: string }) => {
     const event = await sendCommand({ type: 'sync_remove_device', data })
+    return event.data
+  })
+
+  ipcMain.handle('sync_start_pairing', async () => {
+    try {
+      return await pairingCommand()
+    } catch (err) {
+      console.error('[kyaraben] Pairing failed:', err)
+      throw err
+    }
+  })
+
+  ipcMain.handle(
+    'sync_join_primary',
+    async (_, data: { code: string; pairingAddr: string }) => {
+      const event = await sendCommand({ type: 'sync_join_primary', data })
+      return event.data
+    },
+  )
+
+  ipcMain.handle('sync_cancel_pairing', async () => {
+    const event = await sendCommand({ type: 'sync_cancel_pairing' })
+    return event.data
+  })
+
+  ipcMain.handle('sync_pause', async () => {
+    const event = await sendCommand({ type: 'sync_pause' })
+    return event.data
+  })
+
+  ipcMain.handle('sync_resume', async () => {
+    const event = await sendCommand({ type: 'sync_resume' })
     return event.data
   })
 

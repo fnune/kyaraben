@@ -23,6 +23,7 @@ import type {
   FrontendRef,
   ManagedConfigInfo,
   StatusResponse,
+  SyncDiscoveredPrimary,
   SyncStatusResponse,
   System,
   SystemID,
@@ -152,6 +153,9 @@ function AppContent() {
   const [configReady, setConfigReady] = useState(false)
   const [fontsReady, setFontsReady] = useState(false)
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null)
+  const [pairingCode, setPairingCode] = useState<string | null>(null)
+  const [pairingProgress, setPairingProgress] = useState<string | null>(null)
+  const [discoveredPrimaries] = useState<SyncDiscoveredPrimary[]>([])
 
   const savedConfigState = useRef<ConfigState>(emptyConfigState())
 
@@ -316,6 +320,19 @@ function AppContent() {
     lastApplyStatus.current = applyStatus
   }, [applyStatus, currentView, showToast])
 
+  useEffect(() => {
+    const cleanup = window.electron.on('pairing:progress', (data) => {
+      const msg = data.message
+      if (msg) {
+        if (msg.startsWith('Pairing code: ')) {
+          setPairingCode(msg.replace('Pairing code: ', ''))
+        }
+        setPairingProgress(msg)
+      }
+    })
+    return cleanup
+  }, [])
+
   useOnWindowFocus(async () => {
     const result = await daemon.runDoctor()
     if (result.ok) {
@@ -424,6 +441,57 @@ function AppContent() {
 
   const handleRemoveDevice = useCallback(async (deviceId: string) => {
     const result = await daemon.removeSyncDevice({ deviceId })
+    if (result.ok) {
+      const syncResult = await daemon.getSyncStatus()
+      if (syncResult.ok) {
+        setSyncStatus(syncResult.data)
+      }
+    }
+  }, [])
+
+  const handleStartPairing = useCallback(async () => {
+    setPairingProgress('Starting pairing...')
+    const result = await daemon.startSyncPairing()
+    if (result.ok) {
+      setPairingCode(null)
+      setPairingProgress(null)
+      const syncResult = await daemon.getSyncStatus()
+      if (syncResult.ok) {
+        setSyncStatus(syncResult.data)
+      }
+    } else {
+      setPairingProgress(null)
+    }
+  }, [])
+
+  const handleCancelPairing = useCallback(async () => {
+    await daemon.cancelSyncPairing()
+    setPairingCode(null)
+    setPairingProgress(null)
+  }, [])
+
+  const handleJoinPrimary = useCallback(async (code: string, pairingAddr: string) => {
+    const result = await daemon.joinSyncPrimary({ code, pairingAddr })
+    if (result.ok) {
+      const syncResult = await daemon.getSyncStatus()
+      if (syncResult.ok) {
+        setSyncStatus(syncResult.data)
+      }
+    }
+  }, [])
+
+  const handlePauseSync = useCallback(async () => {
+    const result = await daemon.pauseSync()
+    if (result.ok) {
+      const syncResult = await daemon.getSyncStatus()
+      if (syncResult.ok) {
+        setSyncStatus(syncResult.data)
+      }
+    }
+  }, [])
+
+  const handleResumeSync = useCallback(async () => {
+    const result = await daemon.resumeSync()
     if (result.ok) {
       const syncResult = await daemon.getSyncStatus()
       if (syncResult.ok) {
@@ -553,6 +621,14 @@ function AppContent() {
             status={syncStatus}
             onAddDevice={handleAddDevice}
             onRemoveDevice={handleRemoveDevice}
+            onStartPairing={handleStartPairing}
+            onCancelPairing={handleCancelPairing}
+            onJoinPrimary={handleJoinPrimary}
+            onPause={handlePauseSync}
+            onResume={handleResumeSync}
+            pairingCode={pairingCode}
+            pairingProgress={pairingProgress}
+            discoveredPrimaries={discoveredPrimaries}
           />
         )
       default:

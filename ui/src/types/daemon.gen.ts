@@ -24,6 +24,10 @@ export interface SyncAddDeviceRequest {
 export interface SyncRemoveDeviceRequest {
   deviceId: string;
 }
+export interface SyncJoinPrimaryRequest {
+  code: string;
+  pairingAddr: string;
+}
 export interface ErrorResponse {
   error: string;
 }
@@ -172,6 +176,7 @@ export interface SyncStatusResponse {
   guiURL?: string;
   state?: SyncState;
   devices?: SyncDevice[];
+  pairing?: boolean;
 }
 export interface SyncDevice {
   id: string;
@@ -188,6 +193,32 @@ export interface SyncRemoveDeviceResponse {
   deviceId: string;
   name: string;
 }
+export interface SyncStartPairingResponse {
+  code: string;
+}
+export interface SyncPairingCompleteResponse {
+  success: boolean;
+  peerDeviceId: string;
+  peerName: string;
+}
+export interface SyncJoinPrimaryResponse {
+  success: boolean;
+  peerDeviceId: string;
+  peerName: string;
+}
+export interface SyncPairingProgressEvent {
+  message: string;
+}
+export interface SyncDiscoveredPrimary {
+  hostname: string;
+  pairingAddr: string;
+}
+export interface SyncPauseResponse {
+  success: boolean;
+}
+export interface SyncResumeResponse {
+  success: boolean;
+}
 export interface UninstallPreviewResponse {
   stateDir: string;
   stateDirExists: boolean;
@@ -196,6 +227,7 @@ export interface UninstallPreviewResponse {
   desktopFiles: string[];
   iconFiles: string[];
   configFiles: string[];
+  syncthingFiles?: string[];
   kyarabenFiles: string[];
   preserved: PreservedPaths;
 }
@@ -268,13 +300,18 @@ export const CommandTypeSetConfig = "set_config";
 export const CommandTypeSyncStatus = "sync_status";
 export const CommandTypeSyncAddDevice = "sync_add_device";
 export const CommandTypeSyncRemoveDevice = "sync_remove_device";
+export const CommandTypeSyncStartPairing = "sync_start_pairing";
+export const CommandTypeSyncJoinPrimary = "sync_join_primary";
+export const CommandTypeSyncCancelPairing = "sync_cancel_pairing";
+export const CommandTypeSyncPause = "sync_pause";
+export const CommandTypeSyncResume = "sync_resume";
 export const CommandTypeUninstallPreview = "uninstall_preview";
 export const CommandTypeUninstall = "uninstall";
 export const CommandTypeInstallKyaraben = "install_kyaraben";
 export const CommandTypeInstallStatus = "install_status";
 export const CommandTypeRefreshIconCaches = "refresh_icon_caches";
 export const CommandTypePreflight = "preflight";
-export type CommandType = typeof CommandTypeStatus | typeof CommandTypeDoctor | typeof CommandTypeApply | typeof CommandTypeCancelApply | typeof CommandTypeGetSystems | typeof CommandTypeGetFrontends | typeof CommandTypeGetConfig | typeof CommandTypeSetConfig | typeof CommandTypeSyncStatus | typeof CommandTypeSyncAddDevice | typeof CommandTypeSyncRemoveDevice | typeof CommandTypeUninstallPreview | typeof CommandTypeUninstall | typeof CommandTypeInstallKyaraben | typeof CommandTypeInstallStatus | typeof CommandTypeRefreshIconCaches | typeof CommandTypePreflight;
+export type CommandType = typeof CommandTypeStatus | typeof CommandTypeDoctor | typeof CommandTypeApply | typeof CommandTypeCancelApply | typeof CommandTypeGetSystems | typeof CommandTypeGetFrontends | typeof CommandTypeGetConfig | typeof CommandTypeSetConfig | typeof CommandTypeSyncStatus | typeof CommandTypeSyncAddDevice | typeof CommandTypeSyncRemoveDevice | typeof CommandTypeSyncStartPairing | typeof CommandTypeSyncJoinPrimary | typeof CommandTypeSyncCancelPairing | typeof CommandTypeSyncPause | typeof CommandTypeSyncResume | typeof CommandTypeUninstallPreview | typeof CommandTypeUninstall | typeof CommandTypeInstallKyaraben | typeof CommandTypeInstallStatus | typeof CommandTypeRefreshIconCaches | typeof CommandTypePreflight;
 /**
  * Command represents a command from the UI.
  */
@@ -305,6 +342,14 @@ export interface SyncRemoveDeviceCommand {
   type: CommandType;
   id?: string;
   data: SyncRemoveDeviceRequest;
+}
+/**
+ * SyncJoinPrimaryCommand includes the pairing code and selected primary.
+ */
+export interface SyncJoinPrimaryCommand {
+  type: CommandType;
+  id?: string;
+  data: SyncJoinPrimaryRequest;
 }
 /**
  * InstallKyarabenCommand includes the install options.

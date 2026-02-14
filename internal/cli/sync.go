@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -12,8 +13,11 @@ import (
 
 type SyncCmd struct {
 	Status       SyncStatusCmd       `cmd:"" help:"Show sync status."`
-	AddDevice    SyncAddDeviceCmd    `cmd:"" help:"Add a device to sync with."`
+	Pair         SyncPairCmd         `cmd:"" help:"Pair with another device on the local network."`
+	AddDevice    SyncAddDeviceCmd    `cmd:"" help:"Add a device by ID (for cross-network pairing)."`
 	RemoveDevice SyncRemoveDeviceCmd `cmd:"" help:"Remove a paired device."`
+	Pause        SyncPauseCmd        `cmd:"" help:"Pause sync."`
+	Resume       SyncResumeCmd       `cmd:"" help:"Resume sync."`
 }
 
 type SyncStatusCmd struct{}
@@ -191,6 +195,149 @@ func isValidDeviceID(id string) bool {
 		}
 	}
 	return true
+}
+
+type SyncPairCmd struct {
+	Code string `arg:"" optional:"" help:"Pairing code from the primary device. Omit to start as primary."`
+}
+
+func (cmd *SyncPairCmd) Run(cliCtx *Context) error {
+	cfg, err := cliCtx.LoadConfig()
+	if err != nil {
+		return err
+	}
+
+	configPath, err := cliCtx.GetConfigPath()
+	if err != nil {
+		return err
+	}
+
+	client := sync.NewClient(cfg.Sync)
+	ctx := context.Background()
+
+	if !client.IsRunning(ctx) {
+		return fmt.Errorf("syncthing is not running; run 'kyaraben apply' first")
+	}
+
+	progress := func(msg string) {
+		fmt.Println(msg)
+	}
+
+	if cmd.Code == "" {
+		return cmd.runPrimary(ctx, cfg, configPath, client, progress)
+	}
+	return cmd.runSecondary(ctx, cfg, configPath, client, strings.ToUpper(strings.TrimSpace(cmd.Code)), progress)
+}
+
+func (cmd *SyncPairCmd) runPrimary(ctx context.Context, cfg *model.KyarabenConfig, configPath string, client *sync.Client, progress func(string)) error {
+	flow := sync.NewPrimaryPairingFlow(sync.PairingFlowConfig{
+		SyncConfig: cfg.Sync,
+		Advertiser: sync.NewMDNSAdvertiser(),
+		Client:     client,
+		OnProgress: progress,
+	})
+
+	result, _, err := flow.Run(ctx)
+	if err != nil {
+		return fmt.Errorf("pairing: %w", err)
+	}
+
+	persistPairedDevice(cfg, configPath, result.PeerDeviceID, result.PeerName, model.SyncModePrimary)
+	fmt.Printf("Paired with %s (%s)\n", result.PeerName, truncateDeviceID(result.PeerDeviceID))
+	return nil
+}
+
+func (cmd *SyncPairCmd) runSecondary(ctx context.Context, cfg *model.KyarabenConfig, configPath string, client *sync.Client, code string, progress func(string)) error {
+	flow := sync.NewSecondaryPairingFlow(sync.PairingFlowConfig{
+		SyncConfig: cfg.Sync,
+		Browser:    sync.NewMDNSBrowser(),
+		Client:     client,
+		OnProgress: progress,
+	})
+
+	result, err := flow.Run(ctx, code)
+	if err != nil {
+		return fmt.Errorf("pairing: %w", err)
+	}
+
+	persistPairedDevice(cfg, configPath, result.PeerDeviceID, result.PeerName, model.SyncModeSecondary)
+	fmt.Printf("Paired with %s (%s)\n", result.PeerName, truncateDeviceID(result.PeerDeviceID))
+	return nil
+}
+
+func persistPairedDevice(cfg *model.KyarabenConfig, configPath, peerDeviceID, peerName string, mode model.SyncMode) {
+	for _, dev := range cfg.Sync.Devices {
+		if dev.ID == peerDeviceID {
+			return
+		}
+	}
+
+	cfg.Sync.Devices = append(cfg.Sync.Devices, model.SyncDevice{
+		ID:   peerDeviceID,
+		Name: peerName,
+	})
+	cfg.Sync.Enabled = true
+	cfg.Sync.Mode = mode
+
+	if err := model.SaveConfig(cfg, configPath); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: could not save config: %v\n", err)
+	}
+}
+
+type SyncPauseCmd struct{}
+
+func (cmd *SyncPauseCmd) Run(cliCtx *Context) error {
+	cfg, err := cliCtx.LoadConfig()
+	if err != nil {
+		return err
+	}
+
+	if !cfg.Sync.Enabled {
+		return fmt.Errorf("sync is not enabled")
+	}
+
+	client := sync.NewClient(cfg.Sync)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if !client.IsRunning(ctx) {
+		return fmt.Errorf("syncthing is not running")
+	}
+
+	if err := client.PauseSync(ctx); err != nil {
+		return fmt.Errorf("pausing sync: %w", err)
+	}
+
+	fmt.Println("Sync paused.")
+	return nil
+}
+
+type SyncResumeCmd struct{}
+
+func (cmd *SyncResumeCmd) Run(cliCtx *Context) error {
+	cfg, err := cliCtx.LoadConfig()
+	if err != nil {
+		return err
+	}
+
+	if !cfg.Sync.Enabled {
+		return fmt.Errorf("sync is not enabled")
+	}
+
+	client := sync.NewClient(cfg.Sync)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if !client.IsRunning(ctx) {
+		return fmt.Errorf("syncthing is not running")
+	}
+
+	if err := client.ResumeSync(ctx); err != nil {
+		return fmt.Errorf("resuming sync: %w", err)
+	}
+
+	fmt.Println("Sync resumed.")
+	return nil
 }
 
 func truncateDeviceID(id string) string {
