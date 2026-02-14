@@ -11,7 +11,7 @@ import { BottomBarSlot, BottomBarSlotProvider } from '@/lib/BottomBarSlot'
 import * as daemon from '@/lib/daemon'
 import { useOnWindowFocus } from '@/lib/hooks/useOnWindowFocus'
 import { useUpdateChecker } from '@/lib/hooks/useUpdateChecker'
-import { getNewlyFoundProvisions } from '@/lib/provisions'
+import { getNewlyFoundProvisions, type FoundProvision } from '@/lib/provisions'
 import { Spinner } from '@/lib/Spinner'
 import { ToastProvider, useToast } from '@/lib/ToastContext'
 import type {
@@ -71,6 +71,10 @@ function emptyConfigState(): ConfigState {
     enabledFrontends: new Map(),
     frontendVersions: new Map(),
   }
+}
+
+function keyForProvision(provision: FoundProvision) {
+  return provision.id
 }
 
 function cloneConfigState(state: ConfigState): ConfigState {
@@ -147,6 +151,7 @@ function AppContent() {
   const { showToast } = useToast()
   const { status: applyStatus } = useApply()
   const lastApplyStatus = useRef<ApplyStatus | null>(null)
+  const seenNotifications = useRef(new Set<string>())
 
   const {
     updateInfo,
@@ -304,8 +309,19 @@ function AppContent() {
     if (result.ok) {
       setProvisions((prev) => {
         const newlyFound = getNewlyFoundProvisions(prev, result.data)
-        if (newlyFound.length > 0) {
-          showToast(`Found ${newlyFound.join(', ')}.`, 'success')
+        const unseen = newlyFound.filter((prov) => {
+          const key = keyForProvision(prov)
+          if (seenNotifications.current.has(key)) {
+            return false
+          }
+          seenNotifications.current.add(key)
+          return true
+        })
+        if (unseen.length > 0) {
+          const descriptions = unseen
+            .map((prov) => prov.displayName || prov.filename)
+            .join(', ')
+          showToast(`Found ${descriptions}.`, 'success')
         }
         return result.data
       })

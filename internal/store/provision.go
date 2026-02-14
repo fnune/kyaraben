@@ -13,11 +13,11 @@ func NewProvisionChecker(userStore *UserStore) *ProvisionChecker {
 }
 
 func (pc *ProvisionChecker) Check(emu model.Emulator, sys model.SystemID) []model.ProvisionGroupResult {
-	biosDir := pc.userStore.SystemBiosDir(sys)
 	results := make([]model.ProvisionGroupResult, 0, len(emu.ProvisionGroups))
 
 	for _, group := range emu.ProvisionGroups {
-		result := pc.checkGroup(group, biosDir, sys)
+		baseDir := group.BaseDirFor(pc.userStore, sys)
+		result := pc.checkGroup(group, baseDir, sys)
 		if len(result.Results) > 0 {
 			results = append(results, result)
 		}
@@ -26,19 +26,19 @@ func (pc *ProvisionChecker) Check(emu model.Emulator, sys model.SystemID) []mode
 	return results
 }
 
-func (pc *ProvisionChecker) checkGroup(group model.ProvisionGroup, biosDir string, sys model.SystemID) model.ProvisionGroupResult {
+func (pc *ProvisionChecker) checkGroup(group model.ProvisionGroup, baseDir string, sys model.SystemID) model.ProvisionGroupResult {
 	result := model.ProvisionGroupResult{
 		Group:      group,
 		Results:    make([]model.ProvisionResult, 0, len(group.Provisions)),
 		IsRequired: group.MinRequired > 0,
-		BiosDir:    biosDir,
+		BaseDir:    baseDir,
 	}
 
 	for _, prov := range group.Provisions {
 		if !prov.AppliesToSystem(sys) {
 			continue
 		}
-		checkResult := prov.Check(biosDir)
+		checkResult := prov.Check(baseDir)
 		provResult := model.ProvisionResult{
 			Provision:  prov,
 			Status:     checkResult.Status,

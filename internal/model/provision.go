@@ -216,7 +216,20 @@ type ProvisionGroup struct {
 	Provisions  []Provision
 	MinRequired int    // 0 = optional, 1+ = at least N required
 	Message     string // Shown when requirement unsatisfied
+	BaseDir     ProvisionBaseDirFunc
 }
+
+// BaseDirFor evaluates the configured base directory or defaults to the BIOS dir.
+func (g ProvisionGroup) BaseDirFor(store StoreReader, sys SystemID) string {
+	if g.BaseDir != nil {
+		return g.BaseDir(store, sys)
+	}
+	return store.SystemBiosDir(sys)
+}
+
+// ProvisionBaseDirFunc resolves the base directory that a provision group
+// should scan for files. If nil, the default is the system BIOS directory.
+type ProvisionBaseDirFunc func(StoreReader, SystemID) string
 
 // ProvisionResult represents the outcome of checking a single provision.
 type ProvisionResult struct {
@@ -233,7 +246,7 @@ type ProvisionGroupResult struct {
 	Satisfied   int
 	IsRequired  bool
 	IsSatisfied bool
-	BiosDir     string
+	BaseDir     string
 }
 
 func findFile(biosDir, filename string) string {

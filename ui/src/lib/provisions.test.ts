@@ -6,8 +6,11 @@ function provision(
   filename: string,
   status: 'found' | 'missing',
   description = '',
+  expectedPath?: string,
+  foundPath?: string,
 ): ProvisionResult {
-  return {
+  const displayName = description || filename
+  const baseResult: ProvisionResult = {
     filename,
     kind: 'bios',
     description,
@@ -15,9 +18,16 @@ function provision(
     groupRequired: true,
     groupSatisfied: status === 'found',
     groupSize: 1,
-    displayName: filename,
+    displayName,
     instructions: `Place ${filename} in this directory`,
   }
+  if (expectedPath) {
+    baseResult.expectedPath = expectedPath
+  }
+  if (foundPath) {
+    baseResult.foundPath = foundPath
+  }
+  return baseResult
 }
 
 describe('getNewlyFoundProvisions', () => {
@@ -29,7 +39,7 @@ describe('getNewlyFoundProvisions', () => {
     expect(getNewlyFoundProvisions(provisions, provisions)).toEqual([])
   })
 
-  it('returns filenames of newly found provisions', () => {
+  it('returns metadata for newly found provisions', () => {
     const oldProvisions: DoctorResponse = {
       'retroarch:beetle-saturn': [
         provision('sega_101.bin', 'missing', 'JP'),
@@ -39,32 +49,75 @@ describe('getNewlyFoundProvisions', () => {
 
     const newProvisions: DoctorResponse = {
       'retroarch:beetle-saturn': [
-        provision('sega_101.bin', 'found', 'JP'),
+        provision(
+          'sega_101.bin',
+          'found',
+          'JP ',
+          '/home/fausto/Emulation/saves/gamecube/EUR',
+          '/home/fausto/Emulation/saves/gamecube/EUR/sega_101.bin',
+        ),
         provision('mpr-17933.bin', 'missing', 'NA/EU'),
-      ],
-    }
-
-    expect(getNewlyFoundProvisions(oldProvisions, newProvisions)).toEqual(['sega_101.bin'])
-  })
-
-  it('returns multiple filenames when multiple provisions found', () => {
-    const oldProvisions: DoctorResponse = {
-      'retroarch:beetle-saturn': [
-        provision('sega_101.bin', 'missing', 'JP'),
-        provision('mpr-17933.bin', 'missing', 'NA/EU'),
-      ],
-    }
-
-    const newProvisions: DoctorResponse = {
-      'retroarch:beetle-saturn': [
-        provision('sega_101.bin', 'found', 'JP'),
-        provision('mpr-17933.bin', 'found', 'NA/EU'),
       ],
     }
 
     expect(getNewlyFoundProvisions(oldProvisions, newProvisions)).toEqual([
-      'sega_101.bin',
-      'mpr-17933.bin',
+      {
+        id: 'retroarch:beetle-saturn:sega_101.bin',
+        emulatorId: 'retroarch:beetle-saturn',
+        filename: 'sega_101.bin',
+        displayName: 'JP ',
+        expectedPath: '/home/fausto/Emulation/saves/gamecube/EUR',
+        foundPath: '/home/fausto/Emulation/saves/gamecube/EUR/sega_101.bin',
+      },
+    ])
+  })
+
+  it('returns multiple entries when several provisions found across emulators', () => {
+    const oldProvisions: DoctorResponse = {
+      'retroarch:beetle-saturn': [
+        provision('sega_101.bin', 'missing', 'JP'),
+        provision('mpr-17933.bin', 'missing', 'NA/EU'),
+      ],
+    }
+
+    const newProvisions: DoctorResponse = {
+      'retroarch:beetle-saturn': [
+        provision(
+          'sega_101.bin',
+          'found',
+          'JP',
+          '/home/fausto/Emulation/saves/gamecube/EUR',
+          '/home/fausto/Emulation/saves/gamecube/EUR/sega_101.bin',
+        ),
+      ],
+      pcsx2: [
+        provision(
+          'ps2-bios.bin',
+          'found',
+          'PS2 BIOS',
+          '/home/fausto/Emulation/bios/ps2',
+          '/home/fausto/Emulation/bios/ps2/ps2-bios.bin',
+        ),
+      ],
+    }
+
+    expect(getNewlyFoundProvisions(oldProvisions, newProvisions)).toEqual([
+      {
+        id: 'retroarch:beetle-saturn:sega_101.bin',
+        emulatorId: 'retroarch:beetle-saturn',
+        filename: 'sega_101.bin',
+        displayName: 'JP',
+        expectedPath: '/home/fausto/Emulation/saves/gamecube/EUR',
+        foundPath: '/home/fausto/Emulation/saves/gamecube/EUR/sega_101.bin',
+      },
+      {
+        id: 'pcsx2:ps2-bios.bin',
+        emulatorId: 'pcsx2',
+        filename: 'ps2-bios.bin',
+        displayName: 'PS2 BIOS',
+        expectedPath: '/home/fausto/Emulation/bios/ps2',
+        foundPath: '/home/fausto/Emulation/bios/ps2/ps2-bios.bin',
+      },
     ])
   })
 
@@ -87,23 +140,15 @@ describe('getNewlyFoundProvisions', () => {
       'retroarch:beetle-saturn': [provision('sega_101.bin', 'found', 'JP')],
     }
 
-    expect(getNewlyFoundProvisions(oldProvisions, newProvisions)).toEqual(['sega_101.bin'])
-  })
-
-  it('handles provisions across multiple emulators', () => {
-    const oldProvisions: DoctorResponse = {
-      'retroarch:beetle-saturn': [provision('sega_101.bin', 'missing', 'JP')],
-      pcsx2: [provision('ps2-bios.bin', 'missing', 'USA')],
-    }
-
-    const newProvisions: DoctorResponse = {
-      'retroarch:beetle-saturn': [provision('sega_101.bin', 'found', 'JP')],
-      pcsx2: [provision('ps2-bios.bin', 'found', 'USA')],
-    }
-
     expect(getNewlyFoundProvisions(oldProvisions, newProvisions)).toEqual([
-      'sega_101.bin',
-      'ps2-bios.bin',
+      {
+        id: 'retroarch:beetle-saturn:sega_101.bin',
+        emulatorId: 'retroarch:beetle-saturn',
+        filename: 'sega_101.bin',
+        displayName: 'JP',
+        expectedPath: undefined,
+        foundPath: undefined,
+      },
     ])
   })
 })

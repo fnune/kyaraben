@@ -61,12 +61,13 @@ func Run(ctx context.Context, cfg *model.KyarabenConfig, reg *registry.Registry,
 			for _, gr := range groupResults {
 				for _, pr := range gr.Results {
 					hints := pr.Provision.Hints()
+					expectedPath := gr.BaseDir
 					provResult := ProvisionResult{
 						Filename:       hints.DisplayName,
 						Kind:           pr.Provision.Kind,
 						Description:    pr.Provision.Description,
 						Status:         pr.Status,
-						ExpectedPath:   gr.BiosDir,
+						ExpectedPath:   expectedPath,
 						FoundPath:      pr.FoundPath,
 						ImportViaUI:    pr.Provision.ImportViaUI,
 						GroupMessage:   gr.Group.Message,

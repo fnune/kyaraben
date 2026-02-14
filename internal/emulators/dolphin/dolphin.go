@@ -5,6 +5,7 @@
 package dolphin
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -15,19 +16,11 @@ type Definition struct{}
 
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
-		ID:      model.EmulatorIDDolphin,
-		Name:    "Dolphin",
-		Systems: []model.SystemID{model.SystemIDGameCube, model.SystemIDWii},
-		Package: model.AppImageRef("dolphin"),
-		ProvisionGroups: []model.ProvisionGroup{{
-			MinRequired: 0,
-			Message:     "GameCube IPL (optional, enables boot animation and system fonts)",
-			Provisions: []model.Provision{
-				model.HashedProvision(model.ProvisionBIOS, "usa/ipl.bin", "USA", []string{"6dac1f2a14f659a1a7fbf749892b4e41", "019e39822a9ca3029124f74dd4d55ac4"}),
-				model.HashedProvision(model.ProvisionBIOS, "eur/ipl.bin", "Europe", []string{"db92574caab77a7ec99d4605fd6f2450", "0cdda509e2da83c85bfe423dd87346cc"}),
-				model.HashedProvision(model.ProvisionBIOS, "jap/ipl.bin", "Japan", []string{"fc924a7c879b661abc37cec4f018fdf3", "81df278301dc7bdf57bb760d7393ab4d"}),
-			},
-		}},
+		ID:              model.EmulatorIDDolphin,
+		Name:            "Dolphin",
+		Systems:         []model.SystemID{model.SystemIDGameCube, model.SystemIDWii},
+		Package:         model.AppImageRef("dolphin"),
+		ProvisionGroups: buildDolphinProvisionGroups(),
 		StateKinds: []model.StateKind{
 			model.StateSaves,
 			model.StateSavestates,
@@ -77,6 +70,9 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 			{Path: []string{"General", "ISOPath1"}, Value: store.SystemRomsDir(model.SystemIDWii)},
 			{Path: []string{"General", "ISOPaths"}, Value: "2"},
 			{Path: []string{"General", "DumpPath"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDDolphin)},
+			{Path: []string{"GBA", "BIOS"}, Value: store.SystemBiosDir(model.SystemIDGBA) + "/gba_bios.bin"},
+			{Path: []string{"GBA", "SavesPath"}, Value: store.SystemSavesDir(model.SystemIDGBA)},
+			{Path: []string{"GBA", "SavesInRomPath"}, Value: "0"},
 		},
 	}}, nil
 }
@@ -94,4 +90,62 @@ func (c *Config) Symlinks(store model.StoreReader, resolver model.BaseDirResolve
 		{Source: filepath.Join(dolphinDir, "StateSaves"), Target: store.EmulatorStatesDir(model.EmulatorIDDolphin)},
 		{Source: filepath.Join(dolphinDir, "ScreenShots"), Target: store.EmulatorScreenshotsDir(model.EmulatorIDDolphin)},
 	}, nil
+}
+
+type iplRegionSpec struct {
+	Name   string
+	Dir    string
+	File   string
+	Hashes []string
+}
+
+var iplRegionSpecs = []iplRegionSpec{
+	{
+		Name:   "USA",
+		Dir:    "USA",
+		File:   "IPL.bin",
+		Hashes: []string{"6dac1f2a14f659a1a7fbf749892b4e41", "019e39822a9ca3029124f74dd4d55ac4"},
+	},
+	{
+		Name:   "Europe",
+		Dir:    "EUR",
+		File:   "IPL.bin",
+		Hashes: []string{"db92574caab77a7ec99d4605fd6f2450", "0cdda509e2da83c85bfe423dd87346cc"},
+	},
+	{
+		Name:   "Japan",
+		Dir:    "JAP",
+		File:   "IPL.bin",
+		Hashes: []string{"fc924a7c879b661abc37cec4f018fdf3", "81df278301dc7bdf57bb760d7393ab4d"},
+	},
+}
+
+func buildDolphinProvisionGroups() []model.ProvisionGroup {
+	groups := make([]model.ProvisionGroup, 0, len(iplRegionSpecs)+1)
+	for _, region := range iplRegionSpecs {
+		region := region
+		groups = append(groups, model.ProvisionGroup{
+			MinRequired: 0,
+			Message:     fmt.Sprintf("GameCube IPL (%s)", region.Name),
+			BaseDir: func(store model.StoreReader, sys model.SystemID) string {
+				return filepath.Join(store.SystemSavesDir(model.SystemIDGameCube), region.Dir)
+			},
+			Provisions: []model.Provision{
+				model.HashedProvision(model.ProvisionBIOS, region.File, region.Name, region.Hashes).ForSystems(model.SystemIDGameCube),
+			},
+		})
+	}
+
+	groups = append(groups, model.ProvisionGroup{
+		MinRequired: 0,
+		Message:     "Game Boy Advance BIOS (optional, shared with mGBA)",
+		BaseDir: func(store model.StoreReader, sys model.SystemID) string {
+			return store.SystemBiosDir(model.SystemIDGBA)
+		},
+		Provisions: []model.Provision{
+			model.HashedProvision(model.ProvisionBIOS, "gba_bios.bin", "Game Boy Advance BIOS", []string{"a860e8c0b6d573d191e4ec7db1b1e4f6"}).ForSystems(model.SystemIDGameCube),
+		},
+	})
+
+	return groups
 }
