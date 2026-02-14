@@ -30,6 +30,7 @@ What we won't do: full performance tuning, per-game settings, target-specific op
 
 - Expand BIOS hash data: import comprehensive hash alternatives from EmuDeck/RetroDECK into provision Hashes arrays. Current data is minimal; these projects have 30+ PSX hashes, 71+ PS2 hashes, etc.
 - Environment variable security: KYARABEN_* env vars (KYARABEN_RELEASES_URL, KYARABEN_VERSION, KYARABEN_NIX_PORTABLE_PATH) are useful for testing but could be risky in production if accidentally set. Consider adding a "test mode" flag that must be set to enable these overrides, or prefix them with KYARABEN_TEST_ to make intent clear
+- Since we moved to the new style, contrast isn't great. It's not easy to tell which emulators are installed and which aren't, and disabled styles leave things with very low contrast.
 - We add symlinks for emulator for which we can't configure routes
     - What should we do with those symlinks when Kyaraben uninstalls?
 - Garbage collection: nix store grows unbounded, need a way to trigger cleanup via nix-portable and show space freed
