@@ -1,6 +1,10 @@
 package rpcs3
 
-import "github.com/fnune/kyaraben/internal/model"
+import (
+	"path/filepath"
+
+	"github.com/fnune/kyaraben/internal/model"
+)
 
 type Definition struct{}
 
@@ -36,7 +40,9 @@ func (Definition) Emulator() model.Emulator {
 			},
 		},
 		PathUsage: model.PathUsage{
-			OpaqueContents: "dev_hdd0, dev_flash (firmware, saves, game data)",
+			UsesSavesDir:       true,
+			UsesStatesDir:      true,
+			UsesScreenshotsDir: true,
 		},
 	}
 }
@@ -51,24 +57,43 @@ var vfsTarget = model.ConfigTarget{
 	BaseDir: model.ConfigBaseDirUserConfig,
 }
 
+var guiTarget = model.ConfigTarget{
+	RelPath: "rpcs3/GuiConfigs/CurrentSettings.ini",
+	Format:  model.ConfigFormatINI,
+	BaseDir: model.ConfigBaseDirUserConfig,
+}
+
 type Config struct{}
 
 func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	opaqueDir := store.EmulatorOpaqueDir(model.EmulatorIDRPCS3) + "/"
-
-	return []model.ConfigPatch{{
-		Target: vfsTarget,
-		Entries: []model.ConfigEntry{
-			{Path: []string{"$(EmulatorDir)"}, Value: opaqueDir},
-			{Path: []string{"/dev_hdd0/"}, Value: "$(EmulatorDir)dev_hdd0/"},
-			{Path: []string{"/dev_hdd1/"}, Value: "$(EmulatorDir)dev_hdd1/"},
-			{Path: []string{"/dev_flash/"}, Value: "$(EmulatorDir)dev_flash/"},
-			{Path: []string{"/dev_flash2/"}, Value: "$(EmulatorDir)dev_flash2/"},
-			{Path: []string{"/dev_flash3/"}, Value: "$(EmulatorDir)dev_flash3/"},
-			{Path: []string{"/dev_usb000/"}, Value: "$(EmulatorDir)dev_usb000/"},
-			{Path: []string{"/dev_bdvd/"}, Value: ""},
-			{Path: []string{"/app_home/"}, Value: ""},
-			{Path: []string{"/games/"}, Value: store.SystemRomsDir(model.SystemIDPS3) + "/"},
+	return []model.ConfigPatch{
+		{
+			Target: vfsTarget,
+			Entries: []model.ConfigEntry{
+				{Path: []string{"/dev_hdd0/"}, Value: store.SystemSavesDir(model.SystemIDPS3) + "/"},
+				{Path: []string{"/games/"}, Value: store.SystemRomsDir(model.SystemIDPS3)},
+			},
 		},
-	}}, nil
+		{
+			Target: guiTarget,
+			Entries: []model.ConfigEntry{
+				{Path: []string{"main_window", "infoBoxEnabledWelcome"}, Value: "false"},
+				{Path: []string{"main_window", "confirmationBoxExitGame"}, Value: "false"},
+				{Path: []string{"Meta", "checkUpdateStart"}, Value: "false"},
+			},
+		},
+	}, nil
+}
+
+func (c *Config) Symlinks(store model.StoreReader, resolver model.BaseDirResolver) ([]model.SymlinkSpec, error) {
+	configDir, err := resolver.UserConfigDir()
+	if err != nil {
+		return nil, err
+	}
+	rpcs3Dir := filepath.Join(configDir, "rpcs3")
+
+	return []model.SymlinkSpec{
+		{Source: filepath.Join(rpcs3Dir, "savestates"), Target: store.EmulatorStatesDir(model.EmulatorIDRPCS3)},
+		{Source: filepath.Join(rpcs3Dir, "screenshots"), Target: store.EmulatorScreenshotsDir(model.EmulatorIDRPCS3)},
+	}, nil
 }
