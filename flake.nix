@@ -65,9 +65,6 @@
           };
           duckstation = pkgs.duckstation;
         };
-
-        # Infrastructure packages
-        packages.syncthing = pkgs.syncthing;
       }
     );
 }
