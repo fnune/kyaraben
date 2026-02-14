@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import * as daemon from '@/lib/daemon'
 import type { SyncMode, SyncStatusResponse } from '@/types/daemon'
+import { SyncStateSyncing } from '@/types/daemon'
 
 export interface UseSyncPairingResult {
   syncStatus: SyncStatusResponse | null
@@ -18,11 +19,15 @@ export interface UseSyncPairingResult {
   refreshSyncStatus: () => Promise<void>
 }
 
+const POLL_INTERVAL_SYNCING = 2000
+const POLL_INTERVAL_NORMAL = 10000
+
 export function useSyncPairing(): UseSyncPairingResult {
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null)
   const [pairingCode, setPairingCode] = useState<string | null>(null)
   const [pairingProgress, setPairingProgress] = useState<string | null>(null)
   const [isEnabling, setIsEnabling] = useState(false)
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const refreshSyncStatus = useCallback(async () => {
     const result = await daemon.getSyncStatus()
@@ -30,6 +35,25 @@ export function useSyncPairing(): UseSyncPairingResult {
       setSyncStatus(result.data)
     }
   }, [])
+
+  useEffect(() => {
+    const isSyncing = syncStatus?.state === SyncStateSyncing
+    const interval = isSyncing ? POLL_INTERVAL_SYNCING : POLL_INTERVAL_NORMAL
+
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current)
+    }
+
+    if (syncStatus?.enabled && syncStatus?.running) {
+      pollIntervalRef.current = setInterval(refreshSyncStatus, interval)
+    }
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current)
+      }
+    }
+  }, [syncStatus?.enabled, syncStatus?.running, syncStatus?.state, refreshSyncStatus])
 
   useEffect(() => {
     return window.electron.on('pairing:progress', (data) => {

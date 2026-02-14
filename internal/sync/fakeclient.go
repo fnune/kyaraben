@@ -105,12 +105,18 @@ func (c *FakeClient) GetStatus(_ context.Context) (*Status, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	var devices []DeviceStatus
+	allPaused := len(c.config.Devices) > 0
 	for _, dev := range c.config.Devices {
 		conn, ok := c.connections[dev.ID]
+		paused := ok && conn.Paused
+		if !paused {
+			allPaused = false
+		}
 		devices = append(devices, DeviceStatus{
 			ID:        dev.ID,
 			Name:      dev.Name,
 			Connected: ok && conn.Connected,
+			Paused:    paused,
 		})
 	}
 	return &Status{
@@ -118,6 +124,7 @@ func (c *FakeClient) GetStatus(_ context.Context) (*Status, error) {
 		Mode:     c.config.Mode,
 		DeviceID: c.deviceID,
 		Devices:  devices,
+		Paused:   allPaused || c.paused,
 	}, nil
 }
 

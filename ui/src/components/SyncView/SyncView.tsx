@@ -3,6 +3,8 @@ import { Button } from '@/lib/Button'
 import { Input } from '@/lib/Input'
 import { Spinner } from '@/lib/Spinner'
 import type { SyncDevice, SyncMode, SyncStatusResponse } from '@/types/daemon'
+import { SyncStateSynced } from '@/types/daemon'
+import { SyncStatusBanner } from './SyncStatusBanner'
 
 export interface SyncViewProps {
   readonly status: SyncStatusResponse | null
@@ -64,16 +66,24 @@ function DeviceRow({
   readonly device: SyncDevice
   readonly onRemove: () => void
 }) {
+  const getStatusDisplay = () => {
+    if (device.paused) {
+      return { dotClass: 'bg-status-warn', label: 'paused' }
+    }
+    if (device.connected) {
+      return { dotClass: 'bg-status-ok', label: 'connected' }
+    }
+    return { dotClass: 'bg-outline', label: 'offline' }
+  }
+
+  const { dotClass, label } = getStatusDisplay()
+
   return (
     <div className="flex items-center justify-between py-2 border-b border-outline last:border-0">
       <div className="flex items-center gap-2">
-        <span
-          className={`w-2 h-2 rounded-full ${device.connected ? 'bg-status-ok' : 'bg-outline'}`}
-        />
+        <span className={`w-2 h-2 rounded-full ${dotClass}`} />
         <span className="font-medium text-on-surface">{device.name || 'Unknown device'}</span>
-        <span className="text-xs text-on-surface-muted">
-          {device.connected ? 'connected' : 'offline'}
-        </span>
+        <span className="text-xs text-on-surface-muted">{label}</span>
       </div>
       <button
         type="button"
@@ -203,7 +213,7 @@ function PairingSection({
             <p className="text-sm text-on-surface-muted mb-2">
               Enter this code on the other device:
             </p>
-            <code className="block bg-surface-raised text-on-surface px-4 py-3 rounded-sm text-2xl font-mono text-center tracking-widest">
+            <code className="block bg-surface-raised text-on-surface px-4 py-3 rounded-sm text-2xl font-mono text-center tracking-widest tabular-nums">
               {pairingCode}
             </code>
           </div>
@@ -299,12 +309,29 @@ export function SyncView({
 
   const connectedCount = status.devices?.filter((d) => d.connected).length ?? 0
   const totalDevices = status.devices?.length ?? 0
+  const isPaused = status.paused ?? false
+  const state = status.state ?? SyncStateSynced
+  const progress = status.progress ?? null
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center gap-2">
-        <StatusBadge label={status.mode ?? 'unknown'} ok={true} />
-        <StatusBadge label={status.running ? 'running' : 'stopped'} ok={status.running ?? false} />
+      {status.running && (
+        <SyncStatusBanner state={state} progress={progress} paused={isPaused} onResume={onResume} />
+      )}
+
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <StatusBadge label={status.mode ?? 'unknown'} ok={true} />
+          <StatusBadge
+            label={status.running ? 'running' : 'stopped'}
+            ok={status.running ?? false}
+          />
+        </div>
+        {status.running && !isPaused && (
+          <Button variant="secondary" onClick={onPause}>
+            Pause sync
+          </Button>
+        )}
       </div>
 
       <Section title="Paired devices">
@@ -385,20 +412,6 @@ export function SyncView({
               </Button>
             </div>
           </div>
-
-          {status.running && (
-            <div>
-              <p className="text-sm text-on-surface-muted mb-2">Pause or resume syncing:</p>
-              <div className="flex gap-2">
-                <Button variant="secondary" onClick={onPause}>
-                  Pause
-                </Button>
-                <Button variant="secondary" onClick={onResume}>
-                  Resume
-                </Button>
-              </div>
-            </div>
-          )}
         </div>
       </Section>
     </div>

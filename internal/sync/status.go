@@ -15,12 +15,14 @@ type Status struct {
 	Devices   []DeviceStatus
 	Folders   []FolderStatusSummary
 	Conflicts []Conflict
+	Paused    bool
 }
 
 type DeviceStatus struct {
 	ID        string
 	Name      string
 	Connected bool
+	Paused    bool
 }
 
 type FolderStatusSummary struct {
@@ -62,8 +64,11 @@ func (c *Client) GetStatus(ctx context.Context) (*Status, error) {
 			ID:        dev.ID,
 			Name:      dev.Name,
 			Connected: ok && conn.Connected,
+			Paused:    ok && conn.Paused,
 		})
 	}
+
+	paused, _ := c.IsPaused(ctx)
 
 	status := &Status{
 		Enabled:  true,
@@ -71,6 +76,7 @@ func (c *Client) GetStatus(ctx context.Context) (*Status, error) {
 		DeviceID: deviceID,
 		GUIURL:   fmt.Sprintf("http://127.0.0.1:%d", c.config.Syncthing.GUIPort),
 		Devices:  devices,
+		Paused:   paused,
 	}
 
 	return status, nil
@@ -82,6 +88,7 @@ const (
 	SyncStateDisabled     OverallSyncState = "disabled"
 	SyncStateSynced       OverallSyncState = "synced"
 	SyncStateSyncing      OverallSyncState = "syncing"
+	SyncStatePaused       OverallSyncState = "paused"
 	SyncStateDisconnected OverallSyncState = "disconnected"
 	SyncStateConflict     OverallSyncState = "conflict"
 	SyncStateError        OverallSyncState = "error"
@@ -96,6 +103,14 @@ func (s *Status) OverallState() OverallSyncState {
 		return SyncStateConflict
 	}
 
+	if s.Paused {
+		return SyncStatePaused
+	}
+
+	if len(s.Devices) == 0 {
+		return SyncStateDisconnected
+	}
+
 	connectedCount := 0
 	for _, d := range s.Devices {
 		if d.Connected {
@@ -103,7 +118,7 @@ func (s *Status) OverallState() OverallSyncState {
 		}
 	}
 
-	if connectedCount == 0 && len(s.Devices) > 0 {
+	if connectedCount == 0 {
 		return SyncStateDisconnected
 	}
 

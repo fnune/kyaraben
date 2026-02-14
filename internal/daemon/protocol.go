@@ -197,26 +197,37 @@ const (
 	SyncStateDisabled     SyncState = "disabled"
 	SyncStateSynced       SyncState = "synced"
 	SyncStateSyncing      SyncState = "syncing"
+	SyncStatePaused       SyncState = "paused"
 	SyncStateDisconnected SyncState = "disconnected"
 	SyncStateConflict     SyncState = "conflict"
 	SyncStateError        SyncState = "error"
 )
 
 type SyncStatusResponse struct {
-	Enabled  bool         `json:"enabled"`
-	Mode     string       `json:"mode,omitempty"`
-	Running  bool         `json:"running,omitempty"`
-	DeviceID string       `json:"deviceId,omitempty"`
-	GUIURL   string       `json:"guiURL,omitempty"`
-	State    SyncState    `json:"state,omitempty"`
-	Devices  []SyncDevice `json:"devices,omitempty"`
-	Pairing  bool         `json:"pairing,omitempty"`
+	Enabled  bool          `json:"enabled"`
+	Mode     string        `json:"mode,omitempty"`
+	Running  bool          `json:"running,omitempty"`
+	DeviceID string        `json:"deviceId,omitempty"`
+	GUIURL   string        `json:"guiURL,omitempty"`
+	State    SyncState     `json:"state,omitempty"`
+	Devices  []SyncDevice  `json:"devices,omitempty"`
+	Pairing  bool          `json:"pairing,omitempty"`
+	Paused   bool          `json:"paused,omitempty"`
+	Progress *SyncProgress `json:"progress,omitempty"`
+}
+
+type SyncProgress struct {
+	NeedFiles   int64 `json:"needFiles"`
+	NeedBytes   int64 `json:"needBytes"`
+	GlobalBytes int64 `json:"globalBytes"`
+	Percent     int   `json:"percent"`
 }
 
 type SyncDevice struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`
 	Connected bool   `json:"connected"`
+	Paused    bool   `json:"paused,omitempty"`
 }
 
 type SyncPendingResponse struct {

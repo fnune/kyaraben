@@ -43,6 +43,7 @@ export type {
   SyncJoinPrimaryResponse,
   SyncPauseResponse,
   SyncPendingResponse,
+  SyncProgress,
   SyncRemoveDeviceCommand,
   SyncRemoveDeviceRequest,
   SyncRemoveDeviceResponse,
@@ -79,6 +80,7 @@ export {
   SyncStateDisabled,
   SyncStateDisconnected,
   SyncStateError,
+  SyncStatePaused,
   SyncStateSynced,
   SyncStateSyncing,
 } from './daemon.gen'
