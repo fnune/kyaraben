@@ -243,7 +243,7 @@ func TestGetPackage(t *testing.T) {
 	knownPackages := []string{
 		"eden", "duckstation", "pcsx2", "ppsspp", "mgba",
 		"cemu", "azahar", "dolphin", "melonds", "vita3k",
-		"rpcs3", "flycast", "retroarch",
+		"rpcs3", "flycast", "retroarch", "syncthing",
 	}
 
 	for _, name := range knownPackages {
