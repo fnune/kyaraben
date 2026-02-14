@@ -1,5 +1,6 @@
 // BIOS hash data compiled from:
 // - EmuDeck (https://github.com/dragoonDorise/EmuDeck) - GPL-3
+// - RetroDECK (https://github.com/XargonWan/RetroDECK) - GPL-3
 // - Libretro documentation (https://docs.libretro.com)
 package flycast
 
@@ -16,26 +17,7 @@ func (Definition) Emulator() model.Emulator {
 		ProvisionGroups: []model.ProvisionGroup{{
 			MinRequired: 0,
 			Message:     "BIOS files (optional, enables boot animation)",
-			Provisions: []model.Provision{
-				{
-					Kind:        model.ProvisionBIOS,
-					Filename:    "dc_boot.bin",
-					Description: "Boot ROM",
-					Hashes: []string{
-						"e10c53c2f8b90bab96ead2d368858623",
-						"d407fcf70b56acb84b8c77c93b0e5327",
-						"93a9766f14159b403178ac77417c6b68",
-					},
-				},
-				{
-					Kind:        model.ProvisionBIOS,
-					Filename:    "dc_flash.bin",
-					Description: "Flash ROM",
-					Hashes: []string{
-						"0a93f7940c455905bea6e392dfde92a4",
-					},
-				},
-			},
+			Provisions:  dreamcastBIOSProvisions,
 		}},
 		StateKinds: []model.StateKind{
 			model.StateSaves,
@@ -90,4 +72,10 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 			{Path: []string{"config", "Dreamcast.SavestatePath"}, Value: store.EmulatorStatesDir(model.EmulatorIDFlycast)},
 		},
 	}}, nil
+}
+
+var dreamcastBIOSProvisions = []model.Provision{
+	{Kind: model.ProvisionBIOS, Filename: "dc_boot.bin", Description: "Boot ROM", Hashes: []string{"e10c53c2f8b90bab96ead2d368858623", "d407fcf70b56acb84b8c77c93b0e5327", "93a9766f14159b403178ac77417c6b68"}},
+	{Kind: model.ProvisionBIOS, Filename: "dc_flash.bin", Description: "Flash ROM", Hashes: []string{"0a93f7940c455905bea6e392dfde92a4"}},
+	{Kind: model.ProvisionBIOS, Filename: "flash.bin", Description: "Flash ROM (alternate name)", Hashes: []string{"0a93f7940c455905bea6e392dfde92a4"}},
 }
