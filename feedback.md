@@ -27,7 +27,6 @@ What we won't do: full performance tuning, per-game settings, target-specific op
 - Path usage fixes:
     - NES says it uses `~/Emulation/bios/nes` but I think it doesn't
 - I'm not sure this is being used `rgui_browser_directory = ~/Emulation/roms/nes` or if it's working, we should check
-- Scrolling down while a select dropdown is open makes the dropdown follow the scroll so it detaches from the initial location
 - Kyaraben should fetch provision status on focus so that when users add files and come back to Kyaraben to check things update
     - We could even show a toast notification if we find something new
 
