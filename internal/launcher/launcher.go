@@ -18,14 +18,15 @@ var log = logging.New("launcher")
 
 type Manager struct {
 	fs             vfs.FS
+	paths          *paths.Paths
 	profileDir     string
 	dataDir        string
 	resolver       model.BaseDirResolver
 	executablePath string
 }
 
-func NewManager() (*Manager, error) {
-	stateDir, err := paths.KyarabenStateDir()
+func NewManager(p *paths.Paths) (*Manager, error) {
+	stateDir, err := p.StateDir()
 	if err != nil {
 		return nil, fmt.Errorf("getting state directory: %w", err)
 	}
@@ -35,10 +36,15 @@ func NewManager() (*Manager, error) {
 	}
 	return &Manager{
 		fs:         vfs.OSFS,
+		paths:      p,
 		profileDir: stateDir,
 		dataDir:    dataDir,
 		resolver:   model.OSBaseDirResolver{},
 	}, nil
+}
+
+func NewDefaultManager() (*Manager, error) {
+	return NewManager(paths.DefaultPaths())
 }
 
 func (m *Manager) CoresDir() string {
@@ -158,9 +164,9 @@ func (m *Manager) GenerateCoreSymlinks(cores []InstalledCore) error {
 
 const kyarabenDesktopTemplate = `[Desktop Entry]
 Type=Application
-Name=Kyaraben
+Name=Kyaraben{{if .Instance}} ({{.Instance}}){{end}}
 Comment=Declarative emulation manager
-Exec={{.ExecPath}}
+Exec={{.ExecPath}}{{if .Instance}} --instance {{.Instance}}{{end}}
 Icon=applications-games
 Terminal=false
 Categories=Game;Emulator;
@@ -193,12 +199,12 @@ func (m *Manager) InstallKyaraben(appImagePath, sidecarPath string) (*InstallRes
 	}
 
 	result := &InstallResult{
-		CLIPath:     filepath.Join(binDir, "kyaraben"),
-		DesktopPath: filepath.Join(appsDir, "kyaraben.desktop"),
+		CLIPath:     filepath.Join(binDir, m.paths.CLIBinaryName()),
+		DesktopPath: filepath.Join(appsDir, m.paths.DesktopFileName()),
 	}
 
 	if appImagePath != "" {
-		result.AppPath = filepath.Join(binDir, "kyaraben-ui")
+		result.AppPath = filepath.Join(binDir, m.paths.AppBinaryName())
 		if err := m.copyFile(appImagePath, result.AppPath); err != nil {
 			return nil, fmt.Errorf("copying AppImage: %w", err)
 		}
@@ -261,7 +267,14 @@ func (m *Manager) InstallKyaraben(appImagePath, sidecarPath string) (*InstallRes
 	}
 	defer func() { _ = f.Close() }()
 
-	if err := tmpl.Execute(f, struct{ ExecPath string }{ExecPath: execPath}); err != nil {
+	templateData := struct {
+		ExecPath string
+		Instance string
+	}{
+		ExecPath: execPath,
+		Instance: m.paths.Instance,
+	}
+	if err := tmpl.Execute(f, templateData); err != nil {
 		return nil, fmt.Errorf("writing desktop file: %w", err)
 	}
 	log.Info("Installed desktop file: %s", result.DesktopPath)
@@ -284,17 +297,17 @@ func (m *Manager) GetInstallStatus() *InstallResult {
 
 	result := &InstallResult{}
 
-	appPath := filepath.Join(binDir, "kyaraben-ui")
+	appPath := filepath.Join(binDir, m.paths.AppBinaryName())
 	if _, err := m.fs.Stat(appPath); err == nil {
 		result.AppPath = appPath
 	}
 
-	cliPath := filepath.Join(binDir, "kyaraben")
+	cliPath := filepath.Join(binDir, m.paths.CLIBinaryName())
 	if _, err := m.fs.Stat(cliPath); err == nil {
 		result.CLIPath = cliPath
 	}
 
-	desktopPath := filepath.Join(appsDir, "kyaraben.desktop")
+	desktopPath := filepath.Join(appsDir, m.paths.DesktopFileName())
 	if _, err := m.fs.Stat(desktopPath); err == nil {
 		result.DesktopPath = desktopPath
 	}

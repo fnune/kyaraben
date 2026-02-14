@@ -4,9 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-
-	"github.com/fnune/kyaraben/internal/model"
-	"github.com/fnune/kyaraben/internal/status"
 )
 
 type StatusCmd struct{}
@@ -30,12 +27,12 @@ func (cmd *StatusCmd) Run(ctx *Context) error {
 	if err != nil {
 		return err
 	}
-	manifestPath, err := model.DefaultManifestPath()
+	manifestPath, err := ctx.GetPaths().ManifestPath()
 	if err != nil {
 		return err
 	}
 
-	result, err := status.Get(context.Background(), cfg, configPath, registry, userStore, manifestPath)
+	result, err := ctx.NewStatusGetter().Get(context.Background(), cfg, configPath, registry, userStore, manifestPath)
 	if err != nil {
 		return err
 	}

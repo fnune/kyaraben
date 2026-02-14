@@ -44,6 +44,10 @@ func (f *fakeStoreReader) SystemRomsDir(sys model.SystemID) string {
 	return filepath.Join(f.root, "roms", string(sys))
 }
 
+func (f *fakeStoreReader) CoresDir() string {
+	return "/state/cores"
+}
+
 func TestBuildCommandPassesSavesDir(t *testing.T) {
 	store := &fakeStoreReader{root: "/emulation"}
 

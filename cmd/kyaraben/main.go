@@ -8,6 +8,7 @@ import (
 
 	"github.com/fnune/kyaraben/internal/cli"
 	"github.com/fnune/kyaraben/internal/logging"
+	"github.com/fnune/kyaraben/internal/paths"
 	"github.com/fnune/kyaraben/internal/versions"
 )
 
@@ -26,7 +27,13 @@ var CLI struct {
 }
 
 func main() {
-	_ = logging.Init()
+	ctx := kong.Parse(&CLI,
+		kong.Name("kyaraben"),
+		kong.Description("Declarative emulation manager"),
+		kong.UsageOnError(),
+	)
+
+	_ = logging.InitWithPaths(paths.NewPaths(CLI.Instance))
 	defer logging.Close()
 
 	if err := versions.Init(); err != nil {
@@ -34,16 +41,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctx := kong.Parse(&CLI,
-		kong.Name("kyaraben"),
-		kong.Description("Declarative emulation manager"),
-		kong.UsageOnError(),
-	)
-
-	err := ctx.Run(&cli.Context{
-		ConfigPath: CLI.Config,
-		Instance:   CLI.Instance,
-	})
+	err := ctx.Run(cli.NewDefaultContext(CLI.Instance, CLI.Config))
 	if err != nil {
 		logging.Error("command failed: %v", err)
 		ctx.FatalIfErrorf(err)

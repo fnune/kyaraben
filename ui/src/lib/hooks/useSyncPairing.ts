@@ -12,7 +12,7 @@ export interface UseSyncPairingResult {
   handleRemoveDevice: (deviceId: string) => Promise<void>
   handleStartPairing: () => Promise<void>
   handleCancelPairing: () => Promise<void>
-  handleJoinPrimary: (code: string, pairingAddr: string) => Promise<void>
+  handleJoinPrimary: (code: string) => Promise<void>
   handlePauseSync: () => Promise<void>
   handleResumeSync: () => Promise<void>
   handleEnableSync: (mode: SyncMode) => Promise<void>
@@ -106,8 +106,8 @@ export function useSyncPairing(): UseSyncPairingResult {
   }, [])
 
   const handleJoinPrimary = useCallback(
-    async (code: string, pairingAddr: string) => {
-      const result = await daemon.joinSyncPrimary({ code, pairingAddr })
+    async (code: string) => {
+      const result = await daemon.joinSyncPrimary({ code, pairingAddr: '' })
       if (result.ok) {
         await refreshSyncStatus()
       }

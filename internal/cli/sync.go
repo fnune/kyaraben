@@ -122,7 +122,7 @@ func (cmd *SyncAddDeviceCmd) Run(cliCtx *Context) error {
 		return err
 	}
 
-	if err := model.SaveConfig(cfg, configPath); err != nil {
+	if err := cliCtx.SaveConfig(cfg, configPath); err != nil {
 		return fmt.Errorf("saving config: %w", err)
 	}
 
@@ -171,7 +171,7 @@ func (cmd *SyncRemoveDeviceCmd) Run(cliCtx *Context) error {
 		return err
 	}
 
-	if err := model.SaveConfig(cfg, configPath); err != nil {
+	if err := cliCtx.SaveConfig(cfg, configPath); err != nil {
 		return fmt.Errorf("saving config: %w", err)
 	}
 
@@ -224,12 +224,12 @@ func (cmd *SyncPairCmd) Run(cliCtx *Context) error {
 	}
 
 	if cmd.Code == "" {
-		return cmd.runPrimary(ctx, cfg, configPath, client, progress)
+		return cmd.runPrimary(ctx, cfg, configPath, client, progress, cliCtx.SaveConfig)
 	}
-	return cmd.runSecondary(ctx, cfg, configPath, client, strings.ToUpper(strings.TrimSpace(cmd.Code)), progress)
+	return cmd.runSecondary(ctx, cfg, configPath, client, strings.ToUpper(strings.TrimSpace(cmd.Code)), progress, cliCtx.SaveConfig)
 }
 
-func (cmd *SyncPairCmd) runPrimary(ctx context.Context, cfg *model.KyarabenConfig, configPath string, client *sync.Client, progress func(string)) error {
+func (cmd *SyncPairCmd) runPrimary(ctx context.Context, cfg *model.KyarabenConfig, configPath string, client *sync.Client, progress func(string), saveConfig func(*model.KyarabenConfig, string) error) error {
 	flow := sync.NewPrimaryPairingFlow(sync.PairingFlowConfig{
 		SyncConfig: cfg.Sync,
 		Advertiser: sync.NewMDNSAdvertiser(),
@@ -242,12 +242,12 @@ func (cmd *SyncPairCmd) runPrimary(ctx context.Context, cfg *model.KyarabenConfi
 		return fmt.Errorf("pairing: %w", err)
 	}
 
-	persistPairedDevice(cfg, configPath, result.PeerDeviceID, result.PeerName, model.SyncModePrimary)
+	persistPairedDevice(cfg, configPath, result.PeerDeviceID, result.PeerName, model.SyncModePrimary, saveConfig)
 	fmt.Printf("Paired with %s (%s)\n", result.PeerName, truncateDeviceID(result.PeerDeviceID))
 	return nil
 }
 
-func (cmd *SyncPairCmd) runSecondary(ctx context.Context, cfg *model.KyarabenConfig, configPath string, client *sync.Client, code string, progress func(string)) error {
+func (cmd *SyncPairCmd) runSecondary(ctx context.Context, cfg *model.KyarabenConfig, configPath string, client *sync.Client, code string, progress func(string), saveConfig func(*model.KyarabenConfig, string) error) error {
 	flow := sync.NewSecondaryPairingFlow(sync.PairingFlowConfig{
 		SyncConfig: cfg.Sync,
 		Browser:    sync.NewMDNSBrowser(),
@@ -260,12 +260,12 @@ func (cmd *SyncPairCmd) runSecondary(ctx context.Context, cfg *model.KyarabenCon
 		return fmt.Errorf("pairing: %w", err)
 	}
 
-	persistPairedDevice(cfg, configPath, result.PeerDeviceID, result.PeerName, model.SyncModeSecondary)
+	persistPairedDevice(cfg, configPath, result.PeerDeviceID, result.PeerName, model.SyncModeSecondary, saveConfig)
 	fmt.Printf("Paired with %s (%s)\n", result.PeerName, truncateDeviceID(result.PeerDeviceID))
 	return nil
 }
 
-func persistPairedDevice(cfg *model.KyarabenConfig, configPath, peerDeviceID, peerName string, mode model.SyncMode) {
+func persistPairedDevice(cfg *model.KyarabenConfig, configPath, peerDeviceID, peerName string, mode model.SyncMode, saveConfig func(*model.KyarabenConfig, string) error) {
 	for _, dev := range cfg.Sync.Devices {
 		if dev.ID == peerDeviceID {
 			return
@@ -279,7 +279,7 @@ func persistPairedDevice(cfg *model.KyarabenConfig, configPath, peerDeviceID, pe
 	cfg.Sync.Enabled = true
 	cfg.Sync.Mode = mode
 
-	if err := model.SaveConfig(cfg, configPath); err != nil {
+	if err := saveConfig(cfg, configPath); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: could not save config: %v\n", err)
 	}
 }

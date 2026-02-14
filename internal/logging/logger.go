@@ -39,7 +39,11 @@ func callHook(content string) {
 // Init initializes logging to the kyaraben log file.
 // Call Close() when done to flush and close the file.
 func Init() error {
-	stateDir, err := paths.KyarabenStateDir()
+	return InitWithPaths(paths.DefaultPaths())
+}
+
+func InitWithPaths(p *paths.Paths) error {
+	stateDir, err := p.StateDir()
 	if err != nil {
 		return fmt.Errorf("getting state directory: %w", err)
 	}
@@ -67,7 +71,11 @@ func Close() {
 }
 
 func LogPath() (string, error) {
-	stateDir, err := paths.KyarabenStateDir()
+	return LogPathWithPaths(paths.DefaultPaths())
+}
+
+func LogPathWithPaths(p *paths.Paths) (string, error) {
+	stateDir, err := p.StateDir()
 	if err != nil {
 		return "", err
 	}
