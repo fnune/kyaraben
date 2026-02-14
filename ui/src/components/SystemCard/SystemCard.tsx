@@ -1,3 +1,4 @@
+import { forwardRef } from 'react'
 import { ESDE_LOGOS } from '@/assets/esde'
 import { EmulatorSubcard } from '@/components/EmulatorSubcard/EmulatorSubcard'
 import { launchEmulator } from '@/lib/daemon'
@@ -56,25 +57,32 @@ export interface SystemCardProps {
   readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
 }
 
-export function SystemCard({
-  system,
-  enabledEmulators,
-  emulatorVersions,
-  installedVersions,
-  installedExecLines,
-  managedConfigs,
-  installedPaths,
-  provisions,
-  sharedPackages,
-  onEmulatorToggle,
-  onVersionChange,
-}: SystemCardProps) {
+export const SystemCard = forwardRef<HTMLElement, SystemCardProps>(function SystemCard(
+  {
+    system,
+    enabledEmulators,
+    emulatorVersions,
+    installedVersions,
+    installedExecLines,
+    managedConfigs,
+    installedPaths,
+    provisions,
+    sharedPackages,
+    onEmulatorToggle,
+    onVersionChange,
+  },
+  ref,
+) {
   const logo = ESDE_LOGOS[system.id]
   const year = SYSTEM_YEARS[system.id]
   const logoOpacity = LOGO_OPACITIES[system.id] ?? 0.1
+  const hasInstalledEmulator = system.emulators.some((emu) => installedVersions.has(emu.id))
 
   return (
-    <article className="border border-outline rounded-card border-t-2 border-t-accent overflow-hidden bg-surface">
+    <article
+      ref={ref}
+      className={`border border-outline rounded-card overflow-hidden bg-surface ${hasInstalledEmulator ? 'border-t-2 border-t-accent' : ''}`}
+    >
       <div className="flex items-center justify-between h-14 bg-surface-alt px-4">
         <div>
           <h3 className="font-heading text-base font-semibold text-on-surface whitespace-nowrap">
@@ -121,4 +129,4 @@ export function SystemCard({
       </div>
     </article>
   )
-}
+})

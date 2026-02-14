@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApplyAfterUpdateBanner } from '@/components/ApplyAfterUpdateBanner/ApplyAfterUpdateBanner'
 import { ApplyProgressBar } from '@/components/ApplyProgressBar/ApplyProgressBar'
+import { CatalogView } from '@/components/CatalogView/CatalogView'
 import { InstallationView } from '@/components/InstallationView/InstallationView'
 import { Sidebar } from '@/components/Sidebar/Sidebar'
 import { SyncView } from '@/components/SyncView/SyncView'
-import { SystemsView } from '@/components/SystemsView/SystemsView'
 import { UpdateBanner } from '@/components/UpdateBanner/UpdateBanner'
 import { ApplyProvider, useApply } from '@/lib/ApplyContext'
 import { BottomBarSlot, BottomBarSlotProvider } from '@/lib/BottomBarSlot'
@@ -27,7 +27,14 @@ import type {
   System,
   SystemID,
 } from '@/types/daemon'
-import type { ApplyStatus, View } from '@/types/ui'
+import {
+  type ApplyStatus,
+  VIEW_CATALOG,
+  VIEW_INSTALLATION,
+  VIEW_LABELS,
+  VIEW_SYNC,
+  type View,
+} from '@/types/ui'
 
 function parseStatusResponse(data: StatusResponse) {
   const versions = new Map<EmulatorID, string>()
@@ -126,7 +133,7 @@ function parseConfigResponse(data: ConfigResponse): ConfigState {
 }
 
 function AppContent() {
-  const [currentView, setCurrentView] = useState<View>('systems')
+  const [currentView, setCurrentView] = useState<View>(VIEW_CATALOG)
   const [systems, setSystems] = useState<readonly System[]>([])
   const [frontends, setFrontends] = useState<readonly FrontendRef[]>([])
   const [installedVersions, setInstalledVersions] = useState<Map<EmulatorID, string>>(new Map())
@@ -246,7 +253,7 @@ function AppContent() {
               <button
                 type="button"
                 className="underline hover:no-underline"
-                onClick={() => setCurrentView('installation')}
+                onClick={() => setCurrentView(VIEW_INSTALLATION)}
               >
                 See details
               </button>
@@ -282,16 +289,16 @@ function AppContent() {
   useEffect(() => {
     if (applyStatus === lastApplyStatus.current) return
     if (applyStatus === 'success') {
-      if (currentView !== 'systems') {
+      if (currentView !== VIEW_CATALOG) {
         showToast(
           <span>
             Installation complete.{' '}
             <button
               type="button"
               className="underline hover:no-underline"
-              onClick={() => setCurrentView('systems')}
+              onClick={() => setCurrentView(VIEW_CATALOG)}
             >
-              Go to systems
+              Go to {VIEW_LABELS[VIEW_CATALOG].toLowerCase()}
             </button>
           </span>,
           'success',
@@ -506,9 +513,9 @@ function AppContent() {
       )
     }
     switch (currentView) {
-      case 'systems':
+      case VIEW_CATALOG:
         return (
-          <SystemsView
+          <CatalogView
             systems={systems}
             frontends={frontends}
             systemEmulators={configState.systemEmulators}
@@ -533,9 +540,9 @@ function AppContent() {
             onEnableAll={handleEnableAll}
           />
         )
-      case 'installation':
+      case VIEW_INSTALLATION:
         return <InstallationView />
-      case 'sync':
+      case VIEW_SYNC:
         return (
           <SyncView
             status={syncStatus}
@@ -569,7 +576,7 @@ function AppContent() {
 
       <div className="flex-1 flex flex-col min-[720px]:flex-row min-h-0">
         <Sidebar currentView={currentView} onNavigate={setCurrentView} syncStatus={syncStatus} />
-        <main id="main-content" className="flex-1 overflow-y-auto">
+        <main id="main-content" className="flex-1 overflow-y-scroll">
           {renderView()}
         </main>
       </div>
@@ -578,7 +585,7 @@ function AppContent() {
 
       <ApplyProgressBar
         currentView={currentView}
-        onNavigateToSystems={() => setCurrentView('systems')}
+        onNavigateToCatalog={() => setCurrentView(VIEW_CATALOG)}
       />
     </div>
   )

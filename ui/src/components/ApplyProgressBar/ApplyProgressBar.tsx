@@ -6,13 +6,14 @@ import { BottomBarPortal } from '@/lib/BottomBarSlot'
 import { getDownloadSpeedBytes, getStepSubtitle } from '@/lib/progressUtils'
 import { ProgressBar, ProgressRail, Shimmer } from '@/lib/progressWidgets'
 import { useOpenLog } from '@/lib/useOpenLog'
+import { VIEW_CATALOG } from '@/types/ui'
 
 export interface ApplyProgressBarProps {
   readonly currentView: string
-  readonly onNavigateToSystems: () => void
+  readonly onNavigateToCatalog: () => void
 }
 
-export function ApplyProgressBar({ currentView, onNavigateToSystems }: ApplyProgressBarProps) {
+export function ApplyProgressBar({ currentView, onNavigateToCatalog }: ApplyProgressBarProps) {
   const { status, progressSteps, cancel, logPosition } = useApply()
   const openLog = useOpenLog()
   const [confirmingCancel, setConfirmingCancel] = useState(false)
@@ -57,8 +58,8 @@ export function ApplyProgressBar({ currentView, onNavigateToSystems }: ApplyProg
         )
       : undefined
   const progressPercent = currentStep?.progressPercent ?? computedPercent
-  const showViewProgress = currentView !== 'systems'
-  const showInlineProgress = currentView !== 'systems'
+  const showViewProgress = currentView !== VIEW_CATALOG
+  const showInlineProgress = currentView !== VIEW_CATALOG
 
   return (
     <BottomBarPortal>
@@ -102,7 +103,7 @@ export function ApplyProgressBar({ currentView, onNavigateToSystems }: ApplyProg
             {showViewProgress && (
               <button
                 type="button"
-                onClick={onNavigateToSystems}
+                onClick={onNavigateToCatalog}
                 className="text-accent hover:text-accent-hover hover:underline text-sm"
               >
                 View progress

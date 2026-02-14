@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { UpdateInfo } from '@/lib/daemon'
 import * as daemon from '@/lib/daemon'
+import { VIEW_CATALOG, type View } from '@/types/ui'
 
 const UPDATE_DISMISSED_KEY = 'kyaraben:update-dismissed'
 const APPLY_BANNER_DISMISSED_KEY = 'kyaraben:apply-banner-dismissed'
@@ -22,7 +23,7 @@ export interface UseUpdateCheckerResult {
 
 export function useUpdateChecker(
   showToast: (message: string, variant: 'success' | 'error') => void,
-  setCurrentView: (view: 'systems' | 'installation' | 'sync') => void,
+  setCurrentView: (view: View) => void,
 ): UseUpdateCheckerResult {
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
@@ -96,7 +97,7 @@ export function useUpdateChecker(
   }, [])
 
   const handleApplyFromBanner = useCallback(() => {
-    setCurrentView('systems')
+    setCurrentView(VIEW_CATALOG)
     setApplyBannerDismissed(true)
   }, [setCurrentView])
 

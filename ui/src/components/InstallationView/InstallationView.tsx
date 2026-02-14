@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { BugReport } from '@/components/BugReport/BugReport'
 import { Button } from '@/lib/Button'
 import type { UpdateInfo } from '@/lib/daemon'
 import {
@@ -15,6 +16,7 @@ import {
 } from '@/lib/daemon'
 import { PathText } from '@/lib/PathText'
 import type { InstallStatus, UninstallPreviewResponse } from '@/types/daemon'
+import { VIEW_CATALOG, VIEW_LABELS } from '@/types/ui'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -76,6 +78,7 @@ export function InstallationView() {
   const [checkingUpdate, setCheckingUpdate] = useState(false)
   const [downloadingUpdate, setDownloadingUpdate] = useState(false)
   const [downloadProgress, setDownloadProgress] = useState(0)
+  const [bugReportOpen, setBugReportOpen] = useState(false)
 
   useEffect(() => {
     return window.electron.on('update:progress', (data) => {
@@ -221,8 +224,8 @@ export function InstallationView() {
             empty. This can happen if files were manually deleted or corrupted.
           </p>
           <p className="text-sm text-status-error/80">
-            To fix this, click Apply in the Systems tab to restore the installation state. Please
-            also consider{' '}
+            To fix this, click Apply in the {VIEW_LABELS[VIEW_CATALOG]} view to restore the
+            installation state. Please also consider{' '}
             <a
               href="https://github.com/fnune/kyaraben/issues"
               target="_blank"
@@ -310,6 +313,17 @@ export function InstallationView() {
           )}
           <div className="flex items-center justify-between">
             <div>
+              <p className="text-sm text-on-surface-secondary">Report a problem</p>
+              <p className="text-xs text-on-surface-dim">
+                Generate a bug report with system information
+              </p>
+            </div>
+            <Button variant="secondary" onClick={() => setBugReportOpen(true)}>
+              Report
+            </Button>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
               <p className="text-sm text-on-surface-secondary">Uninstall Kyaraben</p>
               <p className="text-xs text-on-surface-dim">
                 Remove all managed files (preserves your emulation folder)
@@ -321,6 +335,8 @@ export function InstallationView() {
           </div>
         </div>
       </Section>
+
+      <BugReport open={bugReportOpen} onClose={() => setBugReportOpen(false)} />
 
       <Section title="Configuration">
         {configContent ? (

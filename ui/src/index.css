@@ -24,13 +24,15 @@
 
   --color-accent: #4a52a8;
   --color-accent-hover: #3d459c;
-  --color-accent-muted: rgba(74, 82, 168, 0.1);
+  --color-accent-muted: #d8daf0;
 
   --color-outline: #aaa6a0;
   --color-outline-strong: #9a968f;
 
   --color-status-ok: #1a7a3a;
+  --color-status-ok-muted: #d4e8d9;
   --color-status-error: #b91c1c;
+  --color-status-error-muted: #f5d4d4;
   --color-status-warning: #854d0e;
 
   --color-nintendo: #e60012;

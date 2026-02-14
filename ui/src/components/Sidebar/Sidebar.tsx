@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { BugReport } from '@/components/BugReport/BugReport'
+import { SettingsIcon } from '@/lib/icons'
 import type { SyncState, SyncStatusResponse } from '@/types/daemon'
 import {
   SyncStateConflict,
@@ -9,7 +8,7 @@ import {
   SyncStateSynced,
   SyncStateSyncing,
 } from '@/types/daemon'
-import type { View } from '@/types/ui'
+import { VIEW_CATALOG, VIEW_INSTALLATION, VIEW_LABELS, VIEW_SYNC, type View } from '@/types/ui'
 
 export interface SidebarProps {
   readonly currentView: View
@@ -57,7 +56,6 @@ function NavItem({ label, active, onClick, indicator }: NavItemProps) {
 }
 
 export function Sidebar({ currentView, onNavigate, syncStatus }: SidebarProps) {
-  const [bugReportOpen, setBugReportOpen] = useState(false)
   const syncState = getSyncState(syncStatus)
   const syncDotColor = syncDotColors[syncState]
 
@@ -69,37 +67,34 @@ export function Sidebar({ currentView, onNavigate, syncStatus }: SidebarProps) {
 
       <nav className="flex-1 flex flex-row min-[720px]:flex-col min-[720px]:py-2">
         <NavItem
-          label="Systems"
-          active={currentView === 'systems'}
-          onClick={() => onNavigate('systems')}
+          label={VIEW_LABELS[VIEW_CATALOG]}
+          active={currentView === VIEW_CATALOG}
+          onClick={() => onNavigate(VIEW_CATALOG)}
         />
         <NavItem
-          label="Installation"
-          active={currentView === 'installation'}
-          onClick={() => onNavigate('installation')}
-        />
-        <NavItem
-          label="Sync"
-          active={currentView === 'sync'}
-          onClick={() => onNavigate('sync')}
+          label={VIEW_LABELS[VIEW_SYNC]}
+          active={currentView === VIEW_SYNC}
+          onClick={() => onNavigate(VIEW_SYNC)}
           indicator={<span className={`w-2 h-2 rounded-full ${syncDotColor}`} />}
         />
       </nav>
 
-      <div className="hidden min-[720px]:block p-4 border-t border-outline">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-on-surface-dim font-mono">v0.1.0</span>
-          <button
-            type="button"
-            onClick={() => setBugReportOpen(true)}
-            className="text-xs text-on-surface-dim hover:text-on-surface-secondary"
-          >
-            Report a problem
-          </button>
-        </div>
+      <div className="flex items-center justify-between p-4 min-[720px]:border-t border-l min-[720px]:border-l-0 border-outline">
+        <span className="text-xs text-on-surface-dim font-mono">v0.1.0</span>
+        <button
+          type="button"
+          onClick={() => onNavigate(VIEW_INSTALLATION)}
+          className={`p-1 rounded-sm transition-colors ${
+            currentView === VIEW_INSTALLATION
+              ? 'text-accent bg-accent-muted'
+              : 'text-on-surface-dim hover:text-on-surface-secondary hover:bg-surface-raised'
+          }`}
+          title={VIEW_LABELS[VIEW_INSTALLATION]}
+          aria-label={VIEW_LABELS[VIEW_INSTALLATION]}
+        >
+          <SettingsIcon className="w-4 h-4" />
+        </button>
       </div>
-
-      <BugReport open={bugReportOpen} onClose={() => setBugReportOpen(false)} />
     </aside>
   )
 }

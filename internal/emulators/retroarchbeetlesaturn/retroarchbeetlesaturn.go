@@ -14,7 +14,7 @@ type Definition struct{}
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
 		ID:      model.EmulatorIDRetroArchBeetleSaturn,
-		Name:    "RetroArch (Beetle Saturn)",
+		Name:    "Beetle Saturn (RetroArch)",
 		Systems: []model.SystemID{model.SystemIDSaturn},
 		Package: model.AppImageRef("retroarch"),
 		ProvisionGroups: []model.ProvisionGroup{{
