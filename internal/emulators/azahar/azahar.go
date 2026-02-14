@@ -1,6 +1,10 @@
 package azahar
 
-import "github.com/fnune/kyaraben/internal/model"
+import (
+	"path/filepath"
+
+	"github.com/fnune/kyaraben/internal/model"
+)
 
 type Definition struct{}
 
@@ -12,16 +16,10 @@ func (Definition) Emulator() model.Emulator {
 		Package: model.AppImageRef("azahar"),
 		ProvisionGroups: []model.ProvisionGroup{
 			{
-				MinRequired: 1,
-				Message:     "Encryption keys required for encrypted games",
+				MinRequired: 0,
+				Message:     "Decryption keys (only needed for encrypted ROM dumps)",
 				Provisions: []model.Provision{
 					model.FileProvision(model.ProvisionKeys, "aes_keys.txt", "AES keys").WithImportViaUI(),
-				},
-			},
-			{
-				MinRequired: 0,
-				Message:     "Seed database (optional, for some encrypted games)",
-				Provisions: []model.Provision{
 					model.FileProvision(model.ProvisionKeys, "seeddb.bin", "Seed DB").WithImportViaUI(),
 				},
 			},
@@ -45,8 +43,9 @@ func (Definition) Emulator() model.Emulator {
 			},
 		},
 		PathUsage: model.PathUsage{
+			UsesSavesDir:       true,
+			UsesStatesDir:      true,
 			UsesScreenshotsDir: true,
-			OpaqueContents:     "NAND, SDMC (saves, installed titles)",
 		},
 	}
 }
@@ -56,7 +55,7 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 }
 
 var configTarget = model.ConfigTarget{
-	RelPath: "azahar/qt-config.ini",
+	RelPath: "azahar-emu/qt-config.ini",
 	Format:  model.ConfigFormatINI,
 	BaseDir: model.ConfigBaseDirUserConfig,
 }
@@ -64,14 +63,31 @@ var configTarget = model.ConfigTarget{
 type Config struct{}
 
 func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	// Azahar (Citra fork) uses Qt INI config
 	return []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
-			{Path: []string{"Data%20Storage", "nand_directory"}, Value: store.EmulatorOpaqueDir(model.EmulatorIDAzahar) + "/nand"},
-			{Path: []string{"Data%20Storage", "sdmc_directory"}, Value: store.EmulatorOpaqueDir(model.EmulatorIDAzahar) + "/sdmc"},
-			{Path: []string{"UI", "Paths\\gamedirs\\1\\path"}, Value: store.SystemRomsDir(model.SystemIDN3DS)},
-			{Path: []string{"UI", "Screenshots\\screenshot_path"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDAzahar)},
+			{Path: []string{"Data%20Storage", "use_custom_storage"}, Value: "true"},
+			{Path: []string{"Data%20Storage", "use_custom_storage\\default"}, Value: "false"},
+			{Path: []string{"Data%20Storage", "sdmc_directory"}, Value: store.SystemSavesDir(model.SystemIDN3DS) + "/"},
+			{Path: []string{"Data%20Storage", "sdmc_directory\\default"}, Value: "false"},
+			{Path: []string{"UI", "Paths\\gamedirs\\1\\path"}, Value: "INSTALLED"},
+			{Path: []string{"UI", "Paths\\gamedirs\\2\\path"}, Value: "SYSTEM"},
+			{Path: []string{"UI", "Paths\\gamedirs\\3\\path"}, Value: store.SystemRomsDir(model.SystemIDN3DS)},
+			{Path: []string{"UI", "Paths\\gamedirs\\size"}, Value: "3"},
+			{Path: []string{"UI", "Paths\\screenshotPath"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDAzahar)},
+			{Path: []string{"UI", "Paths\\screenshotPath\\default"}, Value: "false"},
 		},
 	}}, nil
+}
+
+func (c *Config) Symlinks(store model.StoreReader, resolver model.BaseDirResolver) ([]model.SymlinkSpec, error) {
+	dataDir, err := resolver.UserDataDir()
+	if err != nil {
+		return nil, err
+	}
+	azaharDir := filepath.Join(dataDir, "azahar-emu")
+
+	return []model.SymlinkSpec{
+		{Source: filepath.Join(azaharDir, "states"), Target: store.EmulatorStatesDir(model.EmulatorIDAzahar)},
+	}, nil
 }
