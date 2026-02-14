@@ -18,6 +18,7 @@ export interface SyncViewProps {
   readonly pairingProgress: string | null
   readonly pairingError: string | null
   readonly isEnabling: boolean
+  readonly enableError: string | null
 }
 
 function Section({
@@ -130,12 +131,52 @@ function FolderRow({ folder }: { readonly folder: SyncFolder }) {
   )
 }
 
+function ModeCard({
+  title,
+  description,
+  selected,
+  onSelect,
+}: {
+  readonly title: string
+  readonly description: string
+  readonly selected: boolean
+  readonly onSelect: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`w-full text-left p-4 rounded-card border-2 transition-colors ${
+        selected
+          ? 'border-accent bg-accent/5'
+          : 'border-outline bg-surface hover:border-outline-hover'
+      }`}
+    >
+      <div className="grid grid-cols-[1rem_1fr] gap-x-3 gap-y-1 items-center">
+        <div
+          className={`w-4 h-4 rounded-full border-2 ${
+            selected ? 'border-accent bg-accent' : 'border-outline'
+          }`}
+          style={selected ? { boxShadow: 'inset 0 0 0 3px var(--color-surface)' } : undefined}
+        />
+        <span className={`font-medium ${selected ? 'text-accent' : 'text-on-surface'}`}>
+          {title}
+        </span>
+        <div />
+        <p className="text-sm text-on-surface-muted">{description}</p>
+      </div>
+    </button>
+  )
+}
+
 function DisabledState({
   onEnable,
   isEnabling,
+  enableError,
 }: {
   readonly onEnable: (mode: SyncMode) => Promise<void>
   readonly isEnabling: boolean
+  readonly enableError: string | null
 }) {
   const [selectedMode, setSelectedMode] = useState<SyncMode>('primary')
 
@@ -157,35 +198,26 @@ function DisabledState({
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="sync-mode"
-                  value="primary"
-                  checked={selectedMode === 'primary'}
-                  onChange={() => setSelectedMode('primary')}
-                  className="accent-accent"
-                />
-                <span className="text-sm text-on-surface">Primary</span>
-                <span className="text-xs text-on-surface-muted">
-                  - this device hosts the main copy
-                </span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="sync-mode"
-                  value="secondary"
-                  checked={selectedMode === 'secondary'}
-                  onChange={() => setSelectedMode('secondary')}
-                  className="accent-accent"
-                />
-                <span className="text-sm text-on-surface">Secondary</span>
-                <span className="text-xs text-on-surface-muted">- syncs from a primary device</span>
-              </label>
+            <div className="space-y-3">
+              <ModeCard
+                title="Primary"
+                description="Your main device with the ROM collection. Sends ROMs and BIOS to secondaries, syncs saves both ways."
+                selected={selectedMode === 'primary'}
+                onSelect={() => setSelectedMode('primary')}
+              />
+              <ModeCard
+                title="Secondary"
+                description="Receives ROMs from primary (read-only). Play anywhere and saves sync back automatically."
+                selected={selectedMode === 'secondary'}
+                onSelect={() => setSelectedMode('secondary')}
+              />
             </div>
             <Button onClick={handleEnable}>Enable sync</Button>
+            {enableError && (
+              <div className="p-4 bg-status-error/10 border border-status-error/30 rounded-card">
+                <p className="text-sm text-status-error">{enableError}</p>
+              </div>
+            )}
           </div>
         )}
       </Section>
@@ -365,9 +397,12 @@ export function SyncView({
   pairingProgress,
   pairingError,
   isEnabling,
+  enableError,
 }: SyncViewProps) {
   if (!status?.enabled) {
-    return <DisabledState onEnable={onEnableSync} isEnabling={isEnabling} />
+    return (
+      <DisabledState onEnable={onEnableSync} isEnabling={isEnabling} enableError={enableError} />
+    )
   }
 
   const connectedCount = status.devices?.filter((d) => d.connected).length ?? 0
