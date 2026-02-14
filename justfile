@@ -195,16 +195,18 @@ sync-instance instance: _sidecar
     set -euo pipefail
     config="$HOME/.config/kyaraben-{{ instance }}.yaml"
     if [ ! -f "$config" ]; then
-        echo "Config not found: $config"
-        echo "Create it first with different ports and user_store, e.g.:"
-        echo ""
-        echo "  sync:"
-        echo "    enabled: true"
-        echo "    mode: secondary"
-        echo "    syncthing:"
-        echo "      listen_port: 22001"
-        echo "      gui_port: 8385"
-        exit 1
+        echo "Creating config for instance '{{ instance }}'..."
+        printf '%s\n' \
+            "global:" \
+            "  user_store: ~/Emulation" \
+            "sync:" \
+            "  enabled: true" \
+            "  mode: secondary" \
+            "  syncthing:" \
+            "    listen_port: 22001" \
+            "    gui_port: 8385" \
+            > "$config"
+        echo "Created: $config"
     fi
     echo "Running kyaraben instance '{{ instance }}'"
     echo "  Config: $config"
