@@ -135,6 +135,25 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 				}
 			}(cmdID)
 			continue
+		case daemon.CommandTypeSyncEnable:
+			var enableCmd daemon.SyncEnableCommand
+			if err := json.Unmarshal(line, &enableCmd); err != nil {
+				sendEventWithID(daemon.Event{
+					Type: daemon.EventTypeError,
+					Data: map[string]string{"error": fmt.Sprintf("invalid sync_enable command: %v", err)},
+				}, cmdID)
+				continue
+			}
+			go func(id string, c daemon.SyncEnableCommand) {
+				emitForEnable := func(event daemon.Event) {
+					sendEventWithID(event, id)
+				}
+				events := d.HandleSyncEnable(c, emitForEnable)
+				for _, event := range events {
+					sendEventWithID(event, id)
+				}
+			}(cmdID, enableCmd)
+			continue
 		case daemon.CommandTypeSyncJoinPrimary:
 			var joinCmd daemon.SyncJoinPrimaryCommand
 			if err := json.Unmarshal(line, &joinCmd); err != nil {

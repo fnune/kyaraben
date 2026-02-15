@@ -335,7 +335,9 @@ async function applyCommand(): Promise<{ messages: string[]; cancelled: boolean 
               logPosition: data?.logPosition,
             })
           } catch (sendErr) {
-            console.error('[kyaraben] Failed to send progress:', sendErr)
+            console.error(
+              `[kyaraben] Failed to send progress: ${sendErr instanceof Error ? sendErr.message : String(sendErr)}`,
+            )
           }
         }
       } else if (event.type === 'result') {
@@ -359,7 +361,11 @@ async function applyCommand(): Promise<{ messages: string[]; cancelled: boolean 
 }
 
 // Pairing streams progress events like apply
-async function pairingCommand(): Promise<{ success: boolean; peerDeviceId?: string; peerName?: string }> {
+async function pairingCommand(): Promise<{
+  success: boolean
+  peerDeviceId?: string
+  peerName?: string
+}> {
   await ensureDaemon()
 
   if (!daemon || !daemon.process.stdin) {
@@ -390,7 +396,9 @@ async function pairingCommand(): Promise<{ success: boolean; peerDeviceId?: stri
               message: data?.message ?? '',
             })
           } catch (sendErr) {
-            console.error('[kyaraben] Failed to send pairing progress:', sendErr)
+            console.error(
+              `[sync] Failed to send pairing progress: ${sendErr instanceof Error ? sendErr.message : String(sendErr)}`,
+            )
           }
         }
       } else if (event.type === 'result') {
@@ -406,6 +414,61 @@ async function pairingCommand(): Promise<{ success: boolean; peerDeviceId?: stri
         clearTimeout(timeout)
         currentDaemon.pending.delete(requestId)
         resolve({ success: false })
+      } else if (event.type === 'error') {
+        clearTimeout(timeout)
+        currentDaemon.pending.delete(requestId)
+        reject(new Error((event.data as { error?: string })?.error || 'Unknown error'))
+      }
+    }
+
+    currentDaemon.pending.set(requestId, { resolve: handleEvent, reject })
+  })
+}
+
+async function syncEnableCommand(mode: string): Promise<{ success: boolean }> {
+  await ensureDaemon()
+
+  if (!daemon || !daemon.process.stdin) {
+    throw new Error('Daemon not running')
+  }
+
+  const currentDaemon = daemon
+  const stdin = daemon.process.stdin
+  const requestId = randomUUID()
+  const json = `${JSON.stringify({ type: 'sync_enable', id: requestId, data: { mode } })}\n`
+  stdin.write(json)
+
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(
+      () => {
+        currentDaemon.pending.delete(requestId)
+        reject(new Error('Sync enable timeout'))
+      },
+      10 * 60 * 1000,
+    )
+
+    const handleEvent = (event: DaemonEvent) => {
+      if (event.type === 'progress') {
+        const data = event.data as
+          | { phase?: string; message?: string; percent?: number }
+          | undefined
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          try {
+            mainWindow.webContents.send('sync_enable:progress', {
+              phase: data?.phase ?? '',
+              message: data?.message ?? '',
+              percent: data?.percent ?? 0,
+            })
+          } catch (sendErr) {
+            console.error(
+              `[sync] Failed to send enable progress: ${sendErr instanceof Error ? sendErr.message : String(sendErr)}`,
+            )
+          }
+        }
+      } else if (event.type === 'result') {
+        clearTimeout(timeout)
+        currentDaemon.pending.delete(requestId)
+        resolve({ success: true })
       } else if (event.type === 'error') {
         clearTimeout(timeout)
         currentDaemon.pending.delete(requestId)
@@ -461,7 +524,8 @@ function setupIpcHandlers(): void {
     try {
       return await applyCommand()
     } catch (err) {
-      console.error('[kyaraben] Apply failed:', err)
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error(`[kyaraben] Apply failed: ${msg}`)
       throw err
     }
   })
@@ -505,18 +569,18 @@ function setupIpcHandlers(): void {
     try {
       return await pairingCommand()
     } catch (err) {
-      console.error('[kyaraben] Pairing failed:', err)
-      throw err
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error(`[sync] Pairing failed: ${msg}`)
+      const cleanError = new Error(msg)
+      cleanError.stack = undefined
+      throw cleanError
     }
   })
 
-  ipcMain.handle(
-    'sync_join_primary',
-    async (_, data: { code: string; pairingAddr: string }) => {
-      const event = await sendCommand({ type: 'sync_join_primary', data })
-      return event.data
-    },
-  )
+  ipcMain.handle('sync_join_primary', async (_, data: { code: string; pairingAddr: string }) => {
+    const event = await sendCommand({ type: 'sync_join_primary', data })
+    return event.data
+  })
 
   ipcMain.handle('sync_cancel_pairing', async () => {
     const event = await sendCommand({ type: 'sync_cancel_pairing' })
@@ -524,13 +588,42 @@ function setupIpcHandlers(): void {
   })
 
   ipcMain.handle('sync_pause', async () => {
-    const event = await sendCommand({ type: 'sync_pause' })
-    return event.data
+    console.log('[sync] Pause requested')
+    try {
+      const event = await sendCommand({ type: 'sync_pause' })
+      console.log('[sync] Pause result:', JSON.stringify(event.data))
+      return event.data
+    } catch (err) {
+      console.error(`[sync] Pause failed: ${err instanceof Error ? err.message : String(err)}`)
+      throw err
+    }
   })
 
   ipcMain.handle('sync_resume', async () => {
-    const event = await sendCommand({ type: 'sync_resume' })
+    console.log('[sync] Resume requested')
+    try {
+      const event = await sendCommand({ type: 'sync_resume' })
+      console.log('[sync] Resume result:', JSON.stringify(event.data))
+      return event.data
+    } catch (err) {
+      console.error(`[sync] Resume failed: ${err instanceof Error ? err.message : String(err)}`)
+      throw err
+    }
+  })
+
+  ipcMain.handle('sync_pending', async () => {
+    const event = await sendCommand({ type: 'sync_pending' })
     return event.data
+  })
+
+  ipcMain.handle('sync_enable', async (_, data: { mode: string }) => {
+    try {
+      return await syncEnableCommand(data.mode)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error(`[sync] Enable failed: ${msg}`)
+      throw err
+    }
   })
 
   ipcMain.handle('uninstall_preview', async () => {

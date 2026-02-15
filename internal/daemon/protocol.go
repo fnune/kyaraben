@@ -34,6 +34,10 @@ type SyncJoinPrimaryRequest struct {
 	PairingAddr string `json:"pairingAddr"`
 }
 
+type SyncEnableRequest struct {
+	Mode string `json:"mode"`
+}
+
 // Response types
 
 type ErrorResponse struct {
@@ -215,6 +219,12 @@ type SyncDevice struct {
 	Connected bool   `json:"connected"`
 }
 
+type SyncPendingResponse struct {
+	Pending    bool  `json:"pending"`
+	TotalFiles int64 `json:"totalFiles"`
+	TotalBytes int64 `json:"totalBytes"`
+}
+
 type SyncAddDeviceResponse struct {
 	Success  bool   `json:"success"`
 	DeviceID string `json:"deviceId"`
@@ -245,6 +255,16 @@ type SyncJoinPrimaryResponse struct {
 
 type SyncPairingProgressEvent struct {
 	Message string `json:"message"`
+}
+
+type SyncEnableProgressEvent struct {
+	Phase   string `json:"phase"`
+	Message string `json:"message"`
+	Percent int    `json:"percent"`
+}
+
+type SyncEnableResponse struct {
+	Success bool `json:"success"`
 }
 
 type SyncDiscoveredPrimary struct {

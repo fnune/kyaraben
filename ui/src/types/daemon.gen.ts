@@ -28,6 +28,9 @@ export interface SyncJoinPrimaryRequest {
   code: string;
   pairingAddr: string;
 }
+export interface SyncEnableRequest {
+  mode: string;
+}
 export interface ErrorResponse {
   error: string;
 }
@@ -183,6 +186,11 @@ export interface SyncDevice {
   name: string;
   connected: boolean;
 }
+export interface SyncPendingResponse {
+  pending: boolean;
+  totalFiles: number /* int64 */;
+  totalBytes: number /* int64 */;
+}
 export interface SyncAddDeviceResponse {
   success: boolean;
   deviceId: string;
@@ -209,6 +217,14 @@ export interface SyncJoinPrimaryResponse {
 export interface SyncPairingProgressEvent {
   message: string;
 }
+export interface SyncEnableProgressEvent {
+  phase: string;
+  message: string;
+  percent: number /* int */;
+}
+export interface SyncEnableResponse {
+  success: boolean;
+}
 export interface SyncDiscoveredPrimary {
   hostname: string;
   pairingAddr: string;
@@ -227,8 +243,8 @@ export interface UninstallPreviewResponse {
   desktopFiles: string[];
   iconFiles: string[];
   configFiles: string[];
-  syncthingFiles?: string[];
   kyarabenFiles: string[];
+  syncthingFiles?: string[];
   preserved: PreservedPaths;
 }
 export interface PreservedPaths {
@@ -305,13 +321,15 @@ export const CommandTypeSyncJoinPrimary = "sync_join_primary";
 export const CommandTypeSyncCancelPairing = "sync_cancel_pairing";
 export const CommandTypeSyncPause = "sync_pause";
 export const CommandTypeSyncResume = "sync_resume";
+export const CommandTypeSyncPending = "sync_pending";
 export const CommandTypeUninstallPreview = "uninstall_preview";
 export const CommandTypeUninstall = "uninstall";
 export const CommandTypeInstallKyaraben = "install_kyaraben";
 export const CommandTypeInstallStatus = "install_status";
 export const CommandTypeRefreshIconCaches = "refresh_icon_caches";
 export const CommandTypePreflight = "preflight";
-export type CommandType = typeof CommandTypeStatus | typeof CommandTypeDoctor | typeof CommandTypeApply | typeof CommandTypeCancelApply | typeof CommandTypeGetSystems | typeof CommandTypeGetFrontends | typeof CommandTypeGetConfig | typeof CommandTypeSetConfig | typeof CommandTypeSyncStatus | typeof CommandTypeSyncAddDevice | typeof CommandTypeSyncRemoveDevice | typeof CommandTypeSyncStartPairing | typeof CommandTypeSyncJoinPrimary | typeof CommandTypeSyncCancelPairing | typeof CommandTypeSyncPause | typeof CommandTypeSyncResume | typeof CommandTypeUninstallPreview | typeof CommandTypeUninstall | typeof CommandTypeInstallKyaraben | typeof CommandTypeInstallStatus | typeof CommandTypeRefreshIconCaches | typeof CommandTypePreflight;
+export const CommandTypeSyncEnable = "sync_enable";
+export type CommandType = typeof CommandTypeStatus | typeof CommandTypeDoctor | typeof CommandTypeApply | typeof CommandTypeCancelApply | typeof CommandTypeGetSystems | typeof CommandTypeGetFrontends | typeof CommandTypeGetConfig | typeof CommandTypeSetConfig | typeof CommandTypeSyncStatus | typeof CommandTypeSyncAddDevice | typeof CommandTypeSyncRemoveDevice | typeof CommandTypeSyncStartPairing | typeof CommandTypeSyncJoinPrimary | typeof CommandTypeSyncCancelPairing | typeof CommandTypeSyncPause | typeof CommandTypeSyncResume | typeof CommandTypeSyncPending | typeof CommandTypeUninstallPreview | typeof CommandTypeUninstall | typeof CommandTypeInstallKyaraben | typeof CommandTypeInstallStatus | typeof CommandTypeRefreshIconCaches | typeof CommandTypePreflight | typeof CommandTypeSyncEnable;
 /**
  * Command represents a command from the UI.
  */
@@ -358,6 +376,14 @@ export interface InstallKyarabenCommand {
   type: CommandType;
   id?: string;
   data: InstallKyarabenRequest;
+}
+/**
+ * SyncEnableCommand includes the sync enable options.
+ */
+export interface SyncEnableCommand {
+  type: CommandType;
+  id?: string;
+  data: SyncEnableRequest;
 }
 /**
  * EventType identifies the type of event.

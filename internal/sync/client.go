@@ -201,15 +201,6 @@ func (c *Client) RemoveDevice(ctx context.Context, deviceID string) error {
 	return nil
 }
 
-type syncthingFolderConfig struct {
-	ID      string                `json:"id"`
-	Devices []syncthingFolderDev  `json:"devices"`
-}
-
-type syncthingFolderDev struct {
-	DeviceID string `json:"deviceID"`
-}
-
 func (c *Client) ShareFoldersWithDevice(ctx context.Context, deviceID string) error {
 	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/config/folders", nil)
 	if err != nil {
@@ -271,6 +262,10 @@ func (c *Client) PauseSync(ctx context.Context) error {
 		return fmt.Errorf("pausing sync: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("pausing sync: unexpected status %d", resp.StatusCode)
+	}
+	log.Info("Sync paused")
 	return nil
 }
 
@@ -280,5 +275,54 @@ func (c *Client) ResumeSync(ctx context.Context) error {
 		return fmt.Errorf("resuming sync: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("resuming sync: unexpected status %d", resp.StatusCode)
+	}
+	log.Info("Sync resumed")
 	return nil
+}
+
+func (c *Client) Restart(ctx context.Context) error {
+	resp, err := c.doRequest(ctx, http.MethodPost, "/rest/system/restart", nil)
+	if err != nil {
+		return fmt.Errorf("restarting syncthing: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	return nil
+}
+
+type PendingStatus struct {
+	TotalFiles int64
+	TotalBytes int64
+}
+
+func (c *Client) GetPendingStatus(ctx context.Context) (*PendingStatus, error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/config/folders", nil)
+	if err != nil {
+		return nil, fmt.Errorf("getting folders: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+
+	var folders []struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&folders); err != nil {
+		return nil, fmt.Errorf("decoding folders: %w", err)
+	}
+
+	var pending PendingStatus
+	for _, folder := range folders {
+		status, err := c.GetFolderStatus(ctx, folder.ID)
+		if err != nil {
+			continue
+		}
+		pending.TotalFiles += int64(status.NeedFiles)
+		pending.TotalBytes += status.NeedBytes
+	}
+
+	return &pending, nil
 }

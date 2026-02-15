@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import * as daemon from '@/lib/daemon'
-import type { SyncStatusResponse } from '@/types/daemon'
+import type { SyncMode, SyncStatusResponse } from '@/types/daemon'
 
 export interface UseSyncPairingResult {
   syncStatus: SyncStatusResponse | null
   pairingCode: string | null
   pairingProgress: string | null
+  isEnabling: boolean
   handleAddDevice: (deviceId: string, name: string) => Promise<void>
   handleRemoveDevice: (deviceId: string) => Promise<void>
   handleStartPairing: () => Promise<void>
@@ -13,6 +14,7 @@ export interface UseSyncPairingResult {
   handleJoinPrimary: (code: string, pairingAddr: string) => Promise<void>
   handlePauseSync: () => Promise<void>
   handleResumeSync: () => Promise<void>
+  handleEnableSync: (mode: SyncMode) => Promise<void>
   refreshSyncStatus: () => Promise<void>
 }
 
@@ -20,6 +22,7 @@ export function useSyncPairing(): UseSyncPairingResult {
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null)
   const [pairingCode, setPairingCode] = useState<string | null>(null)
   const [pairingProgress, setPairingProgress] = useState<string | null>(null)
+  const [isEnabling, setIsEnabling] = useState(false)
 
   const refreshSyncStatus = useCallback(async () => {
     const result = await daemon.getSyncStatus()
@@ -102,10 +105,26 @@ export function useSyncPairing(): UseSyncPairingResult {
     }
   }, [refreshSyncStatus])
 
+  const handleEnableSync = useCallback(
+    async (mode: SyncMode) => {
+      setIsEnabling(true)
+      try {
+        const result = await daemon.enableSync({ mode })
+        if (result.ok) {
+          await refreshSyncStatus()
+        }
+      } finally {
+        setIsEnabling(false)
+      }
+    },
+    [refreshSyncStatus],
+  )
+
   return {
     syncStatus,
     pairingCode,
     pairingProgress,
+    isEnabling,
     handleAddDevice,
     handleRemoveDevice,
     handleStartPairing,
@@ -113,6 +132,7 @@ export function useSyncPairing(): UseSyncPairingResult {
     handleJoinPrimary,
     handlePauseSync,
     handleResumeSync,
+    handleEnableSync,
     refreshSyncStatus,
   }
 }
