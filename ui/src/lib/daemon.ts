@@ -8,17 +8,13 @@ import type {
   PreflightResponse,
   SetConfigRequest,
   StatusResponse,
-  SyncAddDeviceRequest,
-  SyncAddDeviceResponse,
   SyncEnableRequest,
   SyncEnableResponse,
   SyncJoinPrimaryRequest,
   SyncJoinPrimaryResponse,
-  SyncPauseResponse,
   SyncPendingResponse,
   SyncRemoveDeviceRequest,
   SyncRemoveDeviceResponse,
-  SyncResumeResponse,
   SyncStatusResponse,
   System,
   UninstallPreviewResponse,
@@ -67,9 +63,6 @@ export const installApp = () => invoke<{ success: boolean }>('install_app')
 
 export const getSyncStatus = () => invoke<SyncStatusResponse>('sync_status')
 
-export const addSyncDevice = (req: SyncAddDeviceRequest) =>
-  invoke<SyncAddDeviceResponse>('sync_add_device', req)
-
 export const removeSyncDevice = (req: SyncRemoveDeviceRequest) =>
   invoke<SyncRemoveDeviceResponse>('sync_remove_device', req)
 
@@ -79,10 +72,6 @@ export const joinSyncPrimary = (req: SyncJoinPrimaryRequest) =>
   invoke<SyncJoinPrimaryResponse>('sync_join_primary', req)
 
 export const cancelSyncPairing = () => invoke<{ cancelled: boolean }>('sync_cancel_pairing')
-
-export const pauseSync = () => invoke<SyncPauseResponse>('sync_pause')
-
-export const resumeSync = () => invoke<SyncResumeResponse>('sync_resume')
 
 export const getSyncPending = () => invoke<SyncPendingResponse>('sync_pending')
 

@@ -21,13 +21,10 @@ const (
 	CommandTypeGetConfig         CommandType = "get_config"
 	CommandTypeSetConfig         CommandType = "set_config"
 	CommandTypeSyncStatus        CommandType = "sync_status"
-	CommandTypeSyncAddDevice     CommandType = "sync_add_device"
 	CommandTypeSyncRemoveDevice  CommandType = "sync_remove_device"
 	CommandTypeSyncStartPairing  CommandType = "sync_start_pairing"
 	CommandTypeSyncJoinPrimary   CommandType = "sync_join_primary"
 	CommandTypeSyncCancelPairing CommandType = "sync_cancel_pairing"
-	CommandTypeSyncPause         CommandType = "sync_pause"
-	CommandTypeSyncResume        CommandType = "sync_resume"
 	CommandTypeSyncPending       CommandType = "sync_pending"
 	CommandTypeUninstallPreview  CommandType = "uninstall_preview"
 	CommandTypeUninstall         CommandType = "uninstall"
@@ -49,13 +46,6 @@ type SetConfigCommand struct {
 	Type CommandType      `json:"type"`
 	ID   string           `json:"id,omitempty"`
 	Data SetConfigRequest `json:"data"`
-}
-
-// SyncAddDeviceCommand includes the device to add.
-type SyncAddDeviceCommand struct {
-	Type CommandType          `json:"type"`
-	ID   string               `json:"id,omitempty"`
-	Data SyncAddDeviceRequest `json:"data"`
 }
 
 // SyncRemoveDeviceCommand includes the device to remove.

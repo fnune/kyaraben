@@ -20,11 +20,6 @@ type EmulatorConfRequest struct {
 	Version string `json:"version,omitempty"`
 }
 
-type SyncAddDeviceRequest struct {
-	DeviceID string `json:"deviceId"`
-	Name     string `json:"name,omitempty"`
-}
-
 type SyncRemoveDeviceRequest struct {
 	DeviceID string `json:"deviceId"`
 }
@@ -233,6 +228,7 @@ type SyncDevice struct {
 
 type SyncFolder struct {
 	ID         string `json:"id"`
+	Path       string `json:"path"`
 	Label      string `json:"label"`
 	State      string `json:"state"`
 	GlobalSize int64  `json:"globalSize"`
@@ -244,12 +240,6 @@ type SyncPendingResponse struct {
 	Pending    bool  `json:"pending"`
 	TotalFiles int64 `json:"totalFiles"`
 	TotalBytes int64 `json:"totalBytes"`
-}
-
-type SyncAddDeviceResponse struct {
-	Success  bool   `json:"success"`
-	DeviceID string `json:"deviceId"`
-	Name     string `json:"name"`
 }
 
 type SyncRemoveDeviceResponse struct {
@@ -291,14 +281,6 @@ type SyncEnableResponse struct {
 type SyncDiscoveredPrimary struct {
 	Hostname    string `json:"hostname"`
 	PairingAddr string `json:"pairingAddr"`
-}
-
-type SyncPauseResponse struct {
-	Success bool `json:"success"`
-}
-
-type SyncResumeResponse struct {
-	Success bool `json:"success"`
 }
 
 type UninstallPreviewResponse struct {
