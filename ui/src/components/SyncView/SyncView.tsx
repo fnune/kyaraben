@@ -17,6 +17,7 @@ export interface SyncViewProps {
   readonly isConnecting: boolean
   readonly isPairing: boolean
   readonly pairingDeviceId: string | null
+  readonly pairingCode: string | null
   readonly lastSyncedAt: Date | null
   readonly onRemoveDevice: (deviceId: string) => Promise<void>
   readonly onConnectToDevice: (deviceId: string) => Promise<{ ok: boolean; error?: string }>
@@ -179,6 +180,7 @@ export function SyncView({
   isConnecting,
   isPairing,
   pairingDeviceId,
+  pairingCode,
   lastSyncedAt,
   onRemoveDevice,
   onConnectToDevice,
@@ -219,6 +221,7 @@ export function SyncView({
         isConnecting={isConnecting}
         isPairing={isPairing}
         pairingDeviceId={pairingDeviceId}
+        pairingCode={pairingCode}
         onRemoveDevice={onRemoveDevice}
         onConnectToDevice={onConnectToDevice}
         onStartPairing={onStartPairing}

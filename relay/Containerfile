@@ -1,0 +1,16 @@
+FROM docker.io/golang:1.24-alpine AS builder
+
+WORKDIR /app
+COPY go.mod ./
+RUN go mod download
+
+COPY . .
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /relay ./cmd/relay
+
+FROM docker.io/alpine:3.21
+
+RUN apk --no-cache add ca-certificates
+COPY --from=builder /relay /relay
+
+EXPOSE 8080
+ENTRYPOINT ["/relay"]

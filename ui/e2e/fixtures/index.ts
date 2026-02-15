@@ -9,6 +9,9 @@ import {
   type Folder,
   startFakeSyncthingServer,
 } from './fake-syncthing-server'
+import { type RelayServer, startRelayServer } from './relay-server'
+
+export { type RelayServer, startRelayServer }
 
 export function buildEnv(fixture: TestFixture): Record<string, string> {
   const env: Record<string, string> = {}
@@ -54,6 +57,7 @@ export interface ConfigFixture {
   sync?: {
     enabled?: boolean
     mode?: 'primary' | 'secondary'
+    relayUrl?: string
     devices?: Array<{ id: string; name: string }>
   }
 }
@@ -188,6 +192,9 @@ function generateConfigToml(config: ConfigFixture, defaultUserStore: string): st
     lines.push(`enabled = ${config.sync.enabled ?? false}`)
     if (config.sync.mode) {
       lines.push(`mode = "${config.sync.mode}"`)
+    }
+    if (config.sync.relayUrl) {
+      lines.push(`relay_url = "${config.sync.relayUrl}"`)
     }
     lines.push('')
 
@@ -390,7 +397,7 @@ export function setupFakeSyncthingApi(
   options: FakeSyncthingOptions = {},
 ): FakeSyncthingController {
   const port = nextPort++
-  const myID = options.myID ?? 'LOCAL-DEVICE-ID-FAKE-1234567890ABCDEF'
+  const myID = options.myID ?? 'LOCAL01-DEVICE2-IDFAKE3-1234567-890ABCD-EFGHIJK-LMNOPQR-STUVWXY'
 
   const controller = new FakeSyncthingController(myID)
 

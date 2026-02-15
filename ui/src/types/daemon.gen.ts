@@ -22,7 +22,8 @@ export interface SyncRemoveDeviceRequest {
 }
 export interface SyncJoinPrimaryRequest {
   code: string;
-  pairingAddr: string;
+  pairingAddr?: string;
+  deviceId?: string;
 }
 export interface SyncEnableRequest {
   mode: string;
@@ -236,6 +237,7 @@ export interface SyncRemoveDeviceResponse {
 }
 export interface SyncStartPairingResponse {
   deviceId: string;
+  code?: string;
 }
 export interface SyncPairingCompleteResponse {
   success: boolean;
@@ -250,6 +252,7 @@ export interface SyncJoinPrimaryResponse {
 export interface SyncPairingProgressEvent {
   message: string;
   deviceId?: string;
+  code?: string;
 }
 export interface SyncEnableProgressEvent {
   phase: string;

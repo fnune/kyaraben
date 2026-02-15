@@ -25,6 +25,29 @@ jobs:
       - name: Test
         run: go test -race ./...
 
+  relay-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: relay
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Build
+        run: go build ./...
+
+      - name: Test
+        run: go test -race ./...
+
+      - uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.0.2
+          working-directory: relay
+
   go-lint:
     runs-on: ubuntu-latest
     steps:
@@ -99,6 +122,11 @@ jobs:
       - name: Build Go sidecar
         run: ./scripts/build-sidecar.sh
 
+      - name: Build relay binary
+        run: |
+          mkdir -p .sandbox/relay
+          cd relay && go build -o ../.sandbox/relay/relay ./cmd/relay
+
       - name: Install UI dependencies
         run: cd ui && npm ci
 
@@ -125,4 +153,5 @@ jobs:
           cd ui
           KYARABEN_APPIMAGE="$(pwd)/release/app/kyaraben-ui" \
           APPDIR="$(pwd)/release/app" \
+          KYARABEN_RELAY_BINARY="$(pwd)/../.sandbox/relay/relay" \
           xvfb-run --auto-servernum ../scripts/run-ui-e2e.sh npx playwright test

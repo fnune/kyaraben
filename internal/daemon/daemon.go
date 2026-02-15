@@ -1128,25 +1128,61 @@ func (d *Daemon) handleSyncStartPairing(emit func(Event)) []Event {
 		return d.errorResponse(fmt.Sprintf("getting device ID: %v", err))
 	}
 
-	log.Info("Starting auto-accept loop for device %s", deviceID)
+	relayClient := syncpkg.NewRelayClient(cfg.Sync.RelayURL)
+	relayResp, err := relayClient.CreateSession(ctx, deviceID)
+	if err != nil {
+		log.Info("Failed to create relay session, falling back to device ID only: %v", err)
+		d.startAutoAcceptLoop(cfg)
+		return []Event{{
+			Type: EventTypeResult,
+			Data: SyncStartPairingResponse{DeviceID: deviceID},
+		}}
+	}
+
+	log.Info("Created relay session with code %s for device %s", relayResp.Code, deviceID)
 	d.startAutoAcceptLoop(cfg)
+	d.startRelayPollLoop(cfg, relayClient, relayResp.Code, client, emit)
 
 	return []Event{{
 		Type: EventTypeResult,
-		Data: SyncStartPairingResponse{DeviceID: deviceID},
+		Data: SyncStartPairingResponse{DeviceID: deviceID, Code: relayResp.Code},
 	}}
 }
 
 func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest, emit func(Event)) []Event {
-	if data == nil || data.Code == "" {
-		return d.errorResponse("primary device ID is required")
+	if data == nil || (data.Code == "" && data.DeviceID == "") {
+		return d.errorResponse("pairing code or device ID is required")
 	}
-	log.Info("handleSyncJoinPrimary called with code=%s", data.Code)
-	primaryDeviceID := strings.ToUpper(strings.TrimSpace(data.Code))
 
 	cfg, err := d.loadConfig()
 	if err != nil {
 		return d.errorResponse(err.Error())
+	}
+
+	var primaryDeviceID string
+	var relayCode string
+
+	if data.DeviceID != "" {
+		primaryDeviceID = strings.ToUpper(strings.TrimSpace(data.DeviceID))
+		log.Info("handleSyncJoinPrimary called with deviceId=%s", primaryDeviceID)
+	} else {
+		code := strings.ToUpper(strings.TrimSpace(data.Code))
+		if isRelayCode(code) {
+			log.Info("handleSyncJoinPrimary called with relay code=%s", code)
+			relayCode = code
+			relayClient := syncpkg.NewRelayClient(cfg.Sync.RelayURL)
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			session, err := relayClient.GetSession(ctx, code)
+			cancel()
+			if err != nil {
+				return d.errorResponse(fmt.Sprintf("invalid pairing code: %v", err))
+			}
+			primaryDeviceID = session.DeviceID
+			log.Info("Resolved relay code %s to device ID %s", code, primaryDeviceID)
+		} else {
+			primaryDeviceID = code
+			log.Info("handleSyncJoinPrimary called with device ID=%s", primaryDeviceID)
+		}
 	}
 
 	d.pairingMu.Lock()
@@ -1161,7 +1197,7 @@ func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest, emit func(E
 
 	log.Info("Starting secondary pairing flow for device %s", primaryDeviceID)
 
-	go func() {
+	go func(relayCode string) {
 		defer func() {
 			log.Info("Secondary pairing flow ended")
 			d.pairingMu.Lock()
@@ -1173,6 +1209,23 @@ func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest, emit func(E
 		loadedKey := d.loadSyncAPIKey()
 		if loadedKey != "" {
 			client.SetAPIKey(loadedKey)
+		}
+
+		localDeviceID, err := client.GetDeviceID(ctx)
+		if err != nil {
+			emit(Event{Type: EventTypeError, Data: ErrorResponse{Error: fmt.Sprintf("getting local device ID: %v", err)}})
+			return
+		}
+
+		if relayCode != "" {
+			relayClient := syncpkg.NewRelayClient(cfg.Sync.RelayURL)
+			submitCtx, submitCancel := context.WithTimeout(ctx, 10*time.Second)
+			if err := relayClient.SubmitResponse(submitCtx, relayCode, localDeviceID); err != nil {
+				log.Info("Failed to submit response to relay: %v", err)
+			} else {
+				log.Info("Submitted device ID to relay for code %s", relayCode)
+			}
+			submitCancel()
 		}
 
 		flow := syncpkg.NewSecondaryPairingFlow(syncpkg.PairingFlowConfig{
@@ -1205,7 +1258,7 @@ func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest, emit func(E
 				PeerName:     result.PeerName,
 			},
 		})
-	}()
+	}(relayCode)
 
 	return nil
 }
@@ -1710,6 +1763,71 @@ func (d *Daemon) stopAutoAcceptLoop() {
 		d.autoAcceptCancelFunc()
 		d.autoAcceptCancelFunc = nil
 	}
+}
+
+func (d *Daemon) startRelayPollLoop(cfg *model.KyarabenConfig, relayClient *syncpkg.RelayClient, code string, syncClient syncpkg.SyncClient, emit func(Event)) {
+	go func() {
+		ticker := time.NewTicker(2 * time.Second)
+		defer ticker.Stop()
+
+		timeout := time.After(5 * time.Minute)
+
+		for {
+			select {
+			case <-timeout:
+				log.Info("Relay poll loop timed out for code %s", code)
+				_ = relayClient.DeleteSession(context.Background(), code)
+				return
+			case <-ticker.C:
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				resp, err := relayClient.GetResponse(ctx, code)
+				cancel()
+				if err != nil {
+					log.Debug("Relay poll error for code %s: %v", code, err)
+					continue
+				}
+
+				if !resp.Ready {
+					continue
+				}
+
+				log.Info("Relay response ready: secondary device ID %s", resp.DeviceID)
+
+				addCtx, addCancel := context.WithTimeout(context.Background(), 10*time.Second)
+				if err := syncClient.AddDeviceAutoName(addCtx, resp.DeviceID); err != nil {
+					log.Error("Failed to add device from relay: %v", err)
+					addCancel()
+					continue
+				}
+				if err := syncClient.ShareFoldersWithDevice(addCtx, resp.DeviceID); err != nil {
+					log.Error("Failed to share folders with relay device: %v", err)
+				}
+				addCancel()
+
+				emit(Event{
+					Type: EventTypeProgress,
+					Data: SyncPairingProgressEvent{Message: "Device connected via pairing code"},
+				})
+
+				_ = relayClient.DeleteSession(context.Background(), code)
+				return
+			}
+		}
+	}()
+}
+
+func isRelayCode(s string) bool {
+	if len(s) != 6 {
+		return false
+	}
+	for _, c := range s {
+		isUpper := c >= 'A' && c <= 'Z'
+		isDigit := c >= '0' && c <= '9'
+		if !isUpper && !isDigit {
+			return false
+		}
+	}
+	return true
 }
 
 func (d *Daemon) handleUninstallPreview() []Event {
