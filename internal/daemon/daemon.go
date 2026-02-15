@@ -925,6 +925,12 @@ func (d *Daemon) handleSyncStatus() []Event {
 			Connected: dev.Connected,
 			Paused:    dev.Paused,
 		}
+		if syncStatus.Mode == model.SyncModePrimary && dev.Connected {
+			if completion, err := client.GetDeviceCompletion(ctx, dev.ID); err == nil {
+				percent := int(completion.Completion)
+				devices[i].Completion = &percent
+			}
+		}
 	}
 
 	folders := make([]SyncFolder, len(syncStatus.Folders))

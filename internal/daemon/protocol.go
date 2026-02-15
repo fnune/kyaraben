@@ -222,10 +222,11 @@ type SyncProgress struct {
 }
 
 type SyncDevice struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	Connected bool   `json:"connected"`
-	Paused    bool   `json:"paused,omitempty"`
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	Connected  bool   `json:"connected"`
+	Paused     bool   `json:"paused,omitempty"`
+	Completion *int   `json:"completion,omitempty"`
 }
 
 type SyncFolder struct {
