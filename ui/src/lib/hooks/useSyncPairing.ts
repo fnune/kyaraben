@@ -24,6 +24,7 @@ export interface UseSyncPairingResult {
   handleResetSync: () => Promise<void>
   handleStartPairing: () => Promise<void>
   handleStopPairing: () => Promise<void>
+  clearConnectionError: () => void
   refreshSyncStatus: () => Promise<void>
   refreshDiscoveredDevices: () => Promise<void>
 }
@@ -73,9 +74,14 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
   }, [])
 
   useEffect(() => {
+    refreshSyncStatus()
+  }, [refreshSyncStatus])
+
+  useEffect(() => {
     const isSyncing = syncStatus?.state === SyncStateSyncing
     const isNotRunning = syncStatus?.enabled && !syncStatus?.running
-    const isActive = isSyncing || isNotRunning
+    const isUnknown = syncStatus === null
+    const isActive = isSyncing || isNotRunning || isUnknown
 
     let interval: number
     if (isActive) {
@@ -90,9 +96,7 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
       clearInterval(pollIntervalRef.current)
     }
 
-    if (syncStatus?.enabled) {
-      pollIntervalRef.current = setInterval(refreshSyncStatus, interval)
-    }
+    pollIntervalRef.current = setInterval(refreshSyncStatus, interval)
 
     return () => {
       if (pollIntervalRef.current) {
@@ -103,6 +107,7 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
     syncStatus?.enabled,
     syncStatus?.running,
     syncStatus?.state,
+    syncStatus,
     isViewingSync,
     refreshSyncStatus,
   ])
@@ -255,6 +260,10 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
     setPairingCode(null)
   }, [])
 
+  const clearConnectionError = useCallback(() => {
+    setConnectionError(null)
+  }, [])
+
   return {
     syncStatus,
     discoveredDevices,
@@ -274,6 +283,7 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
     handleResetSync,
     handleStartPairing,
     handleStopPairing,
+    clearConnectionError,
     refreshSyncStatus,
     refreshDiscoveredDevices,
   }

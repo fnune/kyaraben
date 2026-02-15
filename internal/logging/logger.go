@@ -86,6 +86,7 @@ func LogPathWithPaths(p *paths.Paths) (string, error) {
 // Create one per package or component using New().
 type Logger struct {
 	component string
+	prefix    string
 }
 
 // New creates a logger for a specific component.
@@ -94,8 +95,25 @@ func New(component string) *Logger {
 	return &Logger{component: component}
 }
 
-func (l *Logger) Info(format string, args ...interface{}) {
+// WithPrefix returns a new logger that prepends a prefix to all messages.
+// Useful for adding context like "[pairing]" to a subset of logs.
+func (l *Logger) WithPrefix(prefix string) *Logger {
+	return &Logger{
+		component: l.component,
+		prefix:    prefix,
+	}
+}
+
+func (l *Logger) formatMessage(format string, args ...interface{}) string {
 	content := fmt.Sprintf(format, args...)
+	if l.prefix != "" {
+		return l.prefix + " " + content
+	}
+	return content
+}
+
+func (l *Logger) Info(format string, args ...interface{}) {
+	content := l.formatMessage(format, args...)
 	if logger != nil {
 		logger.Printf("[INFO] [%s] %s", l.component, content)
 	}
@@ -103,7 +121,7 @@ func (l *Logger) Info(format string, args ...interface{}) {
 }
 
 func (l *Logger) Error(format string, args ...interface{}) {
-	content := fmt.Sprintf(format, args...)
+	content := l.formatMessage(format, args...)
 	if logger != nil {
 		logger.Printf("[ERROR] [%s] %s", l.component, content)
 	}
@@ -111,7 +129,7 @@ func (l *Logger) Error(format string, args ...interface{}) {
 }
 
 func (l *Logger) Debug(format string, args ...interface{}) {
-	content := fmt.Sprintf(format, args...)
+	content := l.formatMessage(format, args...)
 	if logger != nil {
 		logger.Printf("[DEBUG] [%s] %s", l.component, content)
 	}

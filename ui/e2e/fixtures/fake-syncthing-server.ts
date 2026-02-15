@@ -32,7 +32,7 @@ export interface PendingDevice {
 }
 
 interface FolderState {
-  state: 'idle' | 'syncing' | 'error'
+  state: 'idle' | 'scanning' | 'syncing' | 'error'
   globalBytes: number
   needBytes: number
   globalFiles: number
@@ -123,7 +123,7 @@ export class FakeSyncthingController {
     })
   }
 
-  setFolderState(folderID: string, state: 'idle' | 'syncing' | 'error'): void {
+  setFolderState(folderID: string, state: 'idle' | 'scanning' | 'syncing' | 'error'): void {
     const existing = this.state.folderStates.get(folderID)
     if (existing) {
       existing.state = state
