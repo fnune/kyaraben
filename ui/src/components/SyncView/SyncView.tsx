@@ -151,7 +151,7 @@ function FolderRow({
   }, [folder.id, onRefresh])
 
   const getStatusIndicator = () => {
-    if (hasLocalChanges) return 'bg-status-warninging'
+    if (hasLocalChanges) return 'bg-status-warning'
     if (isSyncing) return 'bg-accent animate-pulse'
     return 'bg-status-ok'
   }
