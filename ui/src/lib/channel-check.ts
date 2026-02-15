@@ -20,6 +20,7 @@ type DaemonChannel = Exclude<
   | 'check_for_updates'
   | 'download_update'
   | 'apply_update'
+  | 'select_directory'
 >
 
 // This line will fail to compile if any DaemonChannel is not a valid CommandType

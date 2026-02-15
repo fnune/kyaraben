@@ -24,6 +24,7 @@ const DAEMON_CHANNELS = [
   'sync_discovered_devices',
   'uninstall_preview',
   'refresh_icon_caches',
+  'get_storage_devices',
 ] as const
 
 // Electron-only commands handled by main.ts, not the daemon.
@@ -40,6 +41,7 @@ const ELECTRON_CHANNELS = [
   'check_for_updates',
   'download_update',
   'apply_update',
+  'select_directory',
 ] as const
 
 export const INVOKE_CHANNELS = [...DAEMON_CHANNELS, ...ELECTRON_CHANNELS] as const

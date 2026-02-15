@@ -4,6 +4,7 @@ import { formatBytes } from '@/lib/changeUtils'
 import { getSyncLocalChanges, openPath, revertSyncFolder } from '@/lib/daemon'
 import { Input } from '@/lib/Input'
 import { CopyIcon, FolderIcon, TrashIcon } from '@/lib/icons'
+import { RadioCard } from '@/lib/RadioCard'
 import { Spinner } from '@/lib/Spinner'
 import type {
   SyncDevice,
@@ -241,44 +242,6 @@ function FolderRow({
   )
 }
 
-function ModeCard({
-  title,
-  description,
-  selected,
-  onSelect,
-}: {
-  readonly title: string
-  readonly description: string
-  readonly selected: boolean
-  readonly onSelect: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={`w-full text-left p-4 rounded-card border-2 transition-colors ${
-        selected
-          ? 'border-accent bg-accent/5'
-          : 'border-outline bg-surface hover:border-outline-hover'
-      }`}
-    >
-      <div className="grid grid-cols-[1rem_1fr] gap-x-3 gap-y-1 items-center">
-        <div
-          className={`w-4 h-4 rounded-full border-2 ${
-            selected ? 'border-accent bg-accent' : 'border-outline'
-          }`}
-          style={selected ? { boxShadow: 'inset 0 0 0 3px var(--color-surface)' } : undefined}
-        />
-        <span className={`font-medium ${selected ? 'text-accent' : 'text-on-surface'}`}>
-          {title}
-        </span>
-        <div />
-        <p className="text-sm text-on-surface-muted">{description}</p>
-      </div>
-    </button>
-  )
-}
-
 function DisabledState({
   status,
   onEnable,
@@ -328,17 +291,19 @@ function DisabledState({
         ) : (
           <div className="space-y-4">
             <div className="space-y-3">
-              <ModeCard
+              <RadioCard
                 title="Primary"
                 description="Your main device with the ROM collection. Sends ROMs and BIOS to secondaries, syncs saves both ways."
                 selected={selectedMode === 'primary'}
                 onSelect={() => setSelectedMode('primary')}
+                className="w-full p-4"
               />
-              <ModeCard
+              <RadioCard
                 title="Secondary"
                 description="Receives ROMs from primary (read-only). Play anywhere and saves sync back automatically."
                 selected={selectedMode === 'secondary'}
                 onSelect={() => setSelectedMode('secondary')}
+                className="w-full p-4"
               />
             </div>
             <Button onClick={handleEnable}>Enable sync</Button>

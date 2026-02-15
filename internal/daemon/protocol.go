@@ -391,3 +391,15 @@ type ConfigChangeDetail struct {
 	OldValue string `json:"oldValue,omitempty"`
 	NewValue string `json:"newValue,omitempty"`
 }
+
+type StorageDevice struct {
+	ID         string `json:"id"`
+	Label      string `json:"label"`
+	Path       string `json:"path"`
+	FreeBytes  int64  `json:"freeBytes"`
+	TotalBytes int64  `json:"totalBytes"`
+}
+
+type StorageDevicesResponse struct {
+	Devices []StorageDevice `json:"devices"`
+}

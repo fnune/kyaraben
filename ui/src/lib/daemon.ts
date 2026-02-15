@@ -8,6 +8,7 @@ import type {
   PreflightResponse,
   SetConfigRequest,
   StatusResponse,
+  StorageDevicesResponse,
   SyncDiscoveredDevicesResponse,
   SyncEnableRequest,
   SyncEnableResponse,
@@ -95,6 +96,10 @@ export const getDiscoveredDevices = () =>
   invoke<SyncDiscoveredDevicesResponse>('sync_discovered_devices')
 
 export const getUninstallPreview = () => invoke<UninstallPreviewResponse>('uninstall_preview')
+
+export const getStorageDevices = () => invoke<StorageDevicesResponse>('get_storage_devices')
+
+export const selectDirectory = () => invoke<string | null>('select_directory')
 
 export const getBugReportInfo = () => invoke<BugReportInfo>('get_bug_report_info')
 
