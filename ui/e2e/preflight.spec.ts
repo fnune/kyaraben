@@ -38,22 +38,18 @@ test.describe('Config conflict review', () => {
       undefined,
     )
 
-    // Create mgba config file with a user-modified bios value
-    const mgbaConfigDir = path.join(fixture.configDir, 'mgba')
-    fs.mkdirSync(mgbaConfigDir, { recursive: true })
+    // Create retroarch config file with a user-modified roms directory value
+    const retroarchConfigDir = path.join(fixture.configDir, 'retroarch')
+    fs.mkdirSync(retroarchConfigDir, { recursive: true })
 
-    const originalBiosValue = `${fixture.userStore}/bios/gba/gba_bios.bin`
     const configContent = [
-      '; Configuration managed by kyaraben',
-      '',
-      '[ports.qt]',
-      'bios = /user/custom/path/gba_bios.bin',
-      `savegamePath = ${fixture.userStore}/saves/gba`,
-      `savestatePath = ${fixture.userStore}/states/mgba`,
-      `screenshotPath = ${fixture.userStore}/screenshots/gba`,
+      `libretro_directory = "${fixture.userStore}/cores"`,
+      'rgui_browser_directory = "/user/custom/roms/path"',
+      'sort_savefiles_enable = "true"',
+      'sort_savestates_enable = "true"',
     ].join('\n')
 
-    fs.writeFileSync(path.join(mgbaConfigDir, 'config.ini'), configContent)
+    fs.writeFileSync(path.join(retroarchConfigDir, 'retroarch.cfg'), configContent)
 
     // Write manifest that records the original baseline (before user modified the file)
     const manifest = {
@@ -62,30 +58,22 @@ test.describe('Config conflict review', () => {
       installed_emulators: {
         [EmulatorIDRetroArchMGBA]: {
           id: EmulatorIDRetroArchMGBA,
-          version: '0.10.3',
-          store_path: path.join(fixture.stateDir, 'kyaraben', 'packages', 'mgba'),
+          version: '1.19.1',
+          package_path: path.join(fixture.stateDir, 'kyaraben', 'packages', 'retroarch'),
           installed: new Date().toISOString(),
         },
       },
       managed_configs: [
         {
-          emulator_id: EmulatorIDRetroArchMGBA,
+          emulator_ids: [EmulatorIDRetroArchMGBA],
           target: {
-            RelPath: 'mgba/config.ini',
-            Format: 'ini',
+            RelPath: 'retroarch/retroarch.cfg',
+            Format: 'cfg',
             BaseDir: 'user_config',
           },
           baseline_hash: 'hash-before-user-modified-the-file',
           last_modified: new Date().toISOString(),
-          managed_keys: [
-            { path: ['ports.qt', 'bios'], value: originalBiosValue },
-            { path: ['ports.qt', 'savegamePath'], value: `${fixture.userStore}/saves/gba` },
-            { path: ['ports.qt', 'savestatePath'], value: `${fixture.userStore}/states/mgba` },
-            {
-              path: ['ports.qt', 'screenshotPath'],
-              value: `${fixture.userStore}/screenshots/gba`,
-            },
-          ],
+          managed_regions: [{ type: 'file' }],
         },
       ],
       desktop_files: [],
@@ -124,7 +112,7 @@ test.describe('Config conflict review', () => {
     await expect(
       page.getByText('You modified settings managed by kyaraben (will be overwritten):'),
     ).toBeVisible()
-    await expect(page.getByText('mgba/config.ini')).toBeVisible()
+    await expect(page.getByText('retroarch/retroarch.cfg')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Open file' }).first()).toBeVisible()
     await expect(page.getByRole('button', { name: 'Continue and override' })).toBeVisible()
 
