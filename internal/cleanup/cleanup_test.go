@@ -1,40 +1,23 @@
 package cleanup
 
 import (
-	"path/filepath"
 	"testing"
 
 	"github.com/twpayne/go-vfs/v5/vfst"
 
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/testutil"
 )
 
-type fakeResolver struct {
-	configDir string
-	homeDir   string
-	dataDir   string
-}
-
-func (f fakeResolver) UserConfigDir() (string, error) { return f.configDir, nil }
-func (f fakeResolver) UserHomeDir() (string, error)   { return f.homeDir, nil }
-func (f fakeResolver) UserDataDir() (string, error) {
-	if f.dataDir != "" {
-		return f.dataDir, nil
-	}
-	return filepath.Join(f.homeDir, ".local", "share"), nil
-}
-
 func TestCollectConfigDirs(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config/mgba":        &vfst.Dir{Perm: 0755},
 		"/config/duckstation": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
-	resolver := fakeResolver{configDir: "/config", homeDir: "/home/user"}
+	resolver := testutil.FakeResolver{ConfigDir: "/config", HomeDir: "/home/user"}
 
 	configs := []model.ManagedConfig{
 		{
@@ -62,15 +45,13 @@ func TestCollectConfigDirs(t *testing.T) {
 }
 
 func TestCollectConfigDirsDeduplicates(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config/retroarch": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
-	resolver := fakeResolver{configDir: "/config", homeDir: "/home/user"}
+	resolver := testutil.FakeResolver{ConfigDir: "/config", HomeDir: "/home/user"}
 
 	configs := []model.ManagedConfig{
 		{
@@ -98,15 +79,13 @@ func TestCollectConfigDirsDeduplicates(t *testing.T) {
 }
 
 func TestCollectConfigDirsSkipsNonexistent(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
-	resolver := fakeResolver{configDir: "/config", homeDir: "/home/user"}
+	resolver := testutil.FakeResolver{ConfigDir: "/config", HomeDir: "/home/user"}
 
 	configs := []model.ManagedConfig{
 		{
@@ -127,15 +106,13 @@ func TestCollectConfigDirsSkipsNonexistent(t *testing.T) {
 }
 
 func TestRemoveConfigDirs(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config/mgba/config.ini": "test content",
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
-	resolver := fakeResolver{configDir: "/config", homeDir: "/home/user"}
+	resolver := testutil.FakeResolver{ConfigDir: "/config", HomeDir: "/home/user"}
 
 	configs := []model.ManagedConfig{
 		{
@@ -162,18 +139,16 @@ func TestRemoveConfigDirs(t *testing.T) {
 }
 
 func TestRemoveConfigDirsHandlesReadOnlyFiles(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config/emulator/readonly.cfg": &vfst.File{
 			Perm:     0444,
 			Contents: []byte("test"),
 		},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
-	resolver := fakeResolver{configDir: "/config", homeDir: "/home/user"}
+	resolver := testutil.FakeResolver{ConfigDir: "/config", HomeDir: "/home/user"}
 
 	configs := []model.ManagedConfig{
 		{

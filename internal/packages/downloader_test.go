@@ -10,16 +10,16 @@ import (
 	"testing"
 
 	"github.com/twpayne/go-vfs/v5/vfst"
+
+	"github.com/fnune/kyaraben/internal/testutil"
 )
 
 func TestHTTPDownloaderSuccess(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/downloads": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	content := []byte("hello world")
 	hash := sha256.Sum256(content)
@@ -34,7 +34,7 @@ func TestHTTPDownloaderSuccess(t *testing.T) {
 	dest := "/downloads/output"
 	dl := NewDownloader(fs)
 
-	err = dl.Download(context.Background(), DownloadRequest{
+	err := dl.Download(context.Background(), DownloadRequest{
 		URLs:     []string{server.URL},
 		SHA256:   sri,
 		DestPath: dest,
@@ -53,13 +53,11 @@ func TestHTTPDownloaderSuccess(t *testing.T) {
 }
 
 func TestHTTPDownloaderSHA256Mismatch(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/downloads": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("wrong content"))
@@ -72,7 +70,7 @@ func TestHTTPDownloaderSHA256Mismatch(t *testing.T) {
 	dest := "/downloads/output"
 	dl := NewDownloader(fs)
 
-	err = dl.Download(context.Background(), DownloadRequest{
+	err := dl.Download(context.Background(), DownloadRequest{
 		URLs:     []string{server.URL},
 		SHA256:   sri,
 		DestPath: dest,
@@ -83,13 +81,11 @@ func TestHTTPDownloaderSHA256Mismatch(t *testing.T) {
 }
 
 func TestHTTPDownloaderFallbackURLs(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/downloads": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	attempts := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -105,7 +101,7 @@ func TestHTTPDownloaderFallbackURLs(t *testing.T) {
 	dest := "/downloads/output"
 	dl := NewDownloader(fs)
 
-	err = dl.Download(context.Background(), DownloadRequest{
+	err := dl.Download(context.Background(), DownloadRequest{
 		URLs:     []string{server.URL + "/bad", server.URL + "/good"},
 		DestPath: dest,
 	})
@@ -118,13 +114,11 @@ func TestHTTPDownloaderFallbackURLs(t *testing.T) {
 }
 
 func TestHTTPDownloaderProgress(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/downloads": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	content := []byte("hello world test content for progress")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -136,7 +130,7 @@ func TestHTTPDownloaderProgress(t *testing.T) {
 	dl := NewDownloader(fs)
 
 	var called atomic.Int32
-	err = dl.Download(context.Background(), DownloadRequest{
+	err := dl.Download(context.Background(), DownloadRequest{
 		URLs:     []string{server.URL},
 		DestPath: dest,
 		OnProgress: func(p DownloadProgress) {
@@ -152,13 +146,11 @@ func TestHTTPDownloaderProgress(t *testing.T) {
 }
 
 func TestHTTPDownloaderCancellation(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/downloads": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		<-r.Context().Done()
@@ -171,7 +163,7 @@ func TestHTTPDownloaderCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err = dl.Download(ctx, DownloadRequest{
+	err := dl.Download(ctx, DownloadRequest{
 		URLs:     []string{server.URL},
 		DestPath: dest,
 	})
@@ -181,16 +173,14 @@ func TestHTTPDownloaderCancellation(t *testing.T) {
 }
 
 func TestHTTPDownloaderNoURLs(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/downloads": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	dl := NewDownloader(fs)
-	err = dl.Download(context.Background(), DownloadRequest{
+	err := dl.Download(context.Background(), DownloadRequest{
 		DestPath: "/downloads/output",
 	})
 	if err == nil {
@@ -199,6 +189,8 @@ func TestHTTPDownloaderNoURLs(t *testing.T) {
 }
 
 func TestParseSHA256SRI(t *testing.T) {
+	t.Parallel()
+
 	raw := sha256.Sum256([]byte("test"))
 	sri := "sha256-" + base64.StdEncoding.EncodeToString(raw[:])
 
@@ -212,6 +204,8 @@ func TestParseSHA256SRI(t *testing.T) {
 }
 
 func TestParseSHA256Hex(t *testing.T) {
+	t.Parallel()
+
 	raw := sha256.Sum256([]byte("test"))
 	hex := ""
 	for _, b := range raw {

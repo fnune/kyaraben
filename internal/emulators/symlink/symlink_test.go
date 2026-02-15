@@ -8,21 +8,19 @@ import (
 	"github.com/twpayne/go-vfs/v5/vfst"
 
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/testutil"
 )
 
 func TestCreatorCreateOnEmptyPath(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/target":          &vfst.Dir{Perm: 0755},
 		"/target/file.txt": "content",
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	creator := NewCreator(fs)
-	err = creator.Create(model.SymlinkSpec{Source: "/link", Target: "/target"})
-	if err != nil {
+	if err := creator.Create(model.SymlinkSpec{Source: "/link", Target: "/target"}); err != nil {
 		t.Fatalf("Create() error = %v", err)
 	}
 
@@ -40,17 +38,14 @@ func TestCreatorCreateOnEmptyPath(t *testing.T) {
 }
 
 func TestCreatorCreateParentDirectories(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/target": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	creator := NewCreator(fs)
-	err = creator.Create(model.SymlinkSpec{Source: "/deep/nested/link", Target: "/target"})
-	if err != nil {
+	if err := creator.Create(model.SymlinkSpec{Source: "/deep/nested/link", Target: "/target"}); err != nil {
 		t.Fatalf("Create() error = %v", err)
 	}
 
@@ -60,21 +55,18 @@ func TestCreatorCreateParentDirectories(t *testing.T) {
 }
 
 func TestCreatorUpdateWhenTargetChanges(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/old_target":         &vfst.Dir{Perm: 0755},
 		"/old_target/old.txt": "old",
 		"/new_target":         &vfst.Dir{Perm: 0755},
 		"/new_target/new.txt": "new",
 		"/link":               &vfst.Symlink{Target: "/old_target"},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	creator := NewCreator(fs)
-	err = creator.Create(model.SymlinkSpec{Source: "/link", Target: "/new_target"})
-	if err != nil {
+	if err := creator.Create(model.SymlinkSpec{Source: "/link", Target: "/new_target"}); err != nil {
 		t.Fatalf("Create() error = %v", err)
 	}
 
@@ -87,19 +79,16 @@ func TestCreatorUpdateWhenTargetChanges(t *testing.T) {
 }
 
 func TestCreatorNoopWhenTargetUnchanged(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/target":          &vfst.Dir{Perm: 0755},
 		"/target/file.txt": "content",
 		"/link":            &vfst.Symlink{Target: "/target"},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	creator := NewCreator(fs)
-	err = creator.Create(model.SymlinkSpec{Source: "/link", Target: "/target"})
-	if err != nil {
+	if err := creator.Create(model.SymlinkSpec{Source: "/link", Target: "/target"}); err != nil {
 		t.Fatalf("Create() error = %v", err)
 	}
 
@@ -109,17 +98,15 @@ func TestCreatorNoopWhenTargetUnchanged(t *testing.T) {
 }
 
 func TestCreatorErrorOnNonEmptyDirectory(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/dir_with_files/file.txt": "data",
 		"/target":                  &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	creator := NewCreator(fs)
-	err = creator.Create(model.SymlinkSpec{Source: "/dir_with_files", Target: "/target"})
+	err := creator.Create(model.SymlinkSpec{Source: "/dir_with_files", Target: "/target"})
 	if err == nil {
 		t.Fatal("expected error when source directory is non-empty")
 	}
@@ -130,18 +117,15 @@ func TestCreatorErrorOnNonEmptyDirectory(t *testing.T) {
 }
 
 func TestCreatorReplacesEmptyDirectory(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/empty_dir": &vfst.Dir{Perm: 0755},
 		"/target":    &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	creator := NewCreator(fs)
-	err = creator.Create(model.SymlinkSpec{Source: "/empty_dir", Target: "/target"})
-	if err != nil {
+	if err := creator.Create(model.SymlinkSpec{Source: "/empty_dir", Target: "/target"}); err != nil {
 		t.Fatalf("Create() error = %v", err)
 	}
 
@@ -155,23 +139,23 @@ func TestCreatorReplacesEmptyDirectory(t *testing.T) {
 }
 
 func TestCreatorErrorOnRegularFile(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/regular_file": "data",
 		"/target":       &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	creator := NewCreator(fs)
-	err = creator.Create(model.SymlinkSpec{Source: "/regular_file", Target: "/target"})
+	err := creator.Create(model.SymlinkSpec{Source: "/regular_file", Target: "/target"})
 	if err == nil {
 		t.Fatal("expected error when source is a regular file")
 	}
 }
 
 func TestCreateAllWithFakeCreator(t *testing.T) {
+	t.Parallel()
+
 	specs := []model.SymlinkSpec{
 		{Source: "/a/b", Target: "/x/y"},
 		{Source: "/c/d", Target: "/z/w"},
@@ -195,6 +179,8 @@ func TestCreateAllWithFakeCreator(t *testing.T) {
 }
 
 func TestCreateAllStopsOnError(t *testing.T) {
+	t.Parallel()
+
 	specs := []model.SymlinkSpec{
 		{Source: "/a/b", Target: "/x/y"},
 		{Source: "/c/d", Target: "/z/w"},
@@ -213,14 +199,12 @@ func TestCreateAllStopsOnError(t *testing.T) {
 }
 
 func TestRemoveSymlinkPreservesTarget(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/target/important_save.dat": "precious data",
 		"/link":                      &vfst.Symlink{Target: "/target"},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	if err := Remove(fs, "/link"); err != nil {
 		t.Fatalf("Remove() error = %v", err)
@@ -239,15 +223,13 @@ func TestRemoveSymlinkPreservesTarget(t *testing.T) {
 }
 
 func TestRemoveRefusesNonSymlink(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/real_dir": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
-	err = Remove(fs, "/real_dir")
+	err := Remove(fs, "/real_dir")
 	if err == nil {
 		t.Fatal("Remove() should error on non-symlink")
 	}
@@ -258,14 +240,11 @@ func TestRemoveRefusesNonSymlink(t *testing.T) {
 }
 
 func TestRemoveNonexistentIsNoop(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
+	t.Parallel()
 
-	err = Remove(fs, "/nonexistent/path/to/symlink")
-	if err != nil {
+	fs := testutil.NewTestFS(t, map[string]any{})
+
+	if err := Remove(fs, "/nonexistent/path/to/symlink"); err != nil {
 		t.Errorf("Remove() on nonexistent path should succeed, got: %v", err)
 	}
 }

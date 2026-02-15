@@ -7,16 +7,15 @@ import (
 	"github.com/twpayne/go-vfs/v5/vfst"
 
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/testutil"
 )
 
 func TestProvisionCheckerCheck(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/emulation": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	store := mustNewUserStore(t, fs, "/emulation")
 
@@ -67,13 +66,11 @@ func TestProvisionCheckerCheck(t *testing.T) {
 }
 
 func TestProvisionCheckerWithFile(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/emulation": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	store := mustNewUserStore(t, fs, "/emulation")
 
@@ -103,13 +100,11 @@ func TestProvisionCheckerWithFile(t *testing.T) {
 }
 
 func TestProvisionCheckerHashVerification(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/emulation": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	store := mustNewUserStore(t, fs, "/emulation")
 
@@ -159,13 +154,11 @@ func TestProvisionCheckerHashVerification(t *testing.T) {
 }
 
 func TestProvisionCheckerCaseInsensitive(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/emulation": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	store := mustNewUserStore(t, fs, "/emulation")
 
@@ -202,13 +195,11 @@ func TestProvisionCheckerCaseInsensitive(t *testing.T) {
 }
 
 func TestProvisionGroupSatisfaction(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/emulation": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	store := mustNewUserStore(t, fs, "/emulation")
 
@@ -256,13 +247,11 @@ func TestProvisionGroupSatisfaction(t *testing.T) {
 }
 
 func TestProvisionCheckerFilePattern(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/emulation": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	store := mustNewUserStore(t, fs, "/emulation")
 

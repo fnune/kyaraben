@@ -4,17 +4,26 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/twpayne/go-vfs/v5"
 	"github.com/twpayne/go-vfs/v5/vfst"
 )
 
-func TestLoadSaveConfig(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
-		"/config": &vfst.Dir{Perm: 0755},
-	})
+func newTestFS(t *testing.T, root map[string]any) vfs.FS {
+	t.Helper()
+	fs, cleanup, err := vfst.NewTestFS(root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer cleanup()
+	t.Cleanup(cleanup)
+	return fs
+}
+
+func TestLoadSaveConfig(t *testing.T) {
+	t.Parallel()
+
+	fs := newTestFS(t, map[string]any{
+		"/config": &vfst.Dir{Perm: 0755},
+	})
 
 	configPath := "/config/config.toml"
 
@@ -62,6 +71,8 @@ func TestLoadSaveConfig(t *testing.T) {
 }
 
 func TestExpandUserStore(t *testing.T) {
+	t.Parallel()
+
 	const homeDir = "/home/testuser"
 
 	tests := []struct {
@@ -101,6 +112,8 @@ func TestExpandUserStore(t *testing.T) {
 }
 
 func TestEnabledSystems(t *testing.T) {
+	t.Parallel()
+
 	cfg := &KyarabenConfig{
 		Systems: map[SystemID][]EmulatorID{
 			SystemIDSNES: {EmulatorIDRetroArchBsnes},
@@ -127,6 +140,8 @@ func TestEnabledSystems(t *testing.T) {
 }
 
 func TestEnabledEmulators(t *testing.T) {
+	t.Parallel()
+
 	cfg := &KyarabenConfig{
 		Systems: map[SystemID][]EmulatorID{
 			SystemIDSNES:     {EmulatorIDRetroArchBsnes},
@@ -156,6 +171,8 @@ func TestEnabledEmulators(t *testing.T) {
 }
 
 func TestEmulatorVersion(t *testing.T) {
+	t.Parallel()
+
 	cfg := &KyarabenConfig{
 		Systems: map[SystemID][]EmulatorID{
 			SystemIDPSX: {EmulatorIDDuckStation},

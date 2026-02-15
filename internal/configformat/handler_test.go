@@ -6,10 +6,13 @@ import (
 	"github.com/twpayne/go-vfs/v5/vfst"
 
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/testutil"
 )
 
 func TestINIHandler_Read(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/test.ini": `; Comment
 [section1]
 key1 = value1
@@ -19,10 +22,6 @@ key2 = value2
 key3 = value3
 `,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	handler := NewHandler(fs, model.ConfigFormatINI)
 	result, err := handler.Read("/test.ini")
@@ -42,13 +41,11 @@ key3 = value3
 }
 
 func TestINIHandler_Apply(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	handler := NewHandler(fs, model.ConfigFormatINI)
 	entries := []model.ConfigEntry{
@@ -79,16 +76,14 @@ func TestINIHandler_Apply(t *testing.T) {
 }
 
 func TestCFGHandler_Read(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/test.cfg": `# Comment
 key1 = "value1"
 key2 = "value2"
 `,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	handler := NewHandler(fs, model.ConfigFormatCFG)
 	result, err := handler.Read("/test.cfg")
@@ -105,13 +100,11 @@ key2 = "value2"
 }
 
 func TestCFGHandler_Apply(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	handler := NewHandler(fs, model.ConfigFormatCFG)
 	entries := []model.ConfigEntry{
@@ -139,7 +132,9 @@ func TestCFGHandler_Apply(t *testing.T) {
 }
 
 func TestTOMLHandler_Read(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/test.toml": `# Comment
 [section1]
 key1 = "value1"
@@ -149,10 +144,6 @@ key2 = "value2"
 key3 = "value3"
 `,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	handler := NewHandler(fs, model.ConfigFormatTOML)
 	result, err := handler.Read("/test.toml")
@@ -169,13 +160,11 @@ key3 = "value3"
 }
 
 func TestTOMLHandler_Apply(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	handler := NewHandler(fs, model.ConfigFormatTOML)
 	entries := []model.ConfigEntry{
@@ -203,7 +192,9 @@ func TestTOMLHandler_Apply(t *testing.T) {
 }
 
 func TestYAMLHandler_Read(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/test.yaml": `# Comment
 section1:
   key1: value1
@@ -212,10 +203,6 @@ section2:
   key3: value3
 `,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	handler := NewHandler(fs, model.ConfigFormatYAML)
 	result, err := handler.Read("/test.yaml")
@@ -232,13 +219,11 @@ section2:
 }
 
 func TestYAMLHandler_Apply(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	handler := NewHandler(fs, model.ConfigFormatYAML)
 	entries := []model.ConfigEntry{
@@ -266,7 +251,9 @@ func TestYAMLHandler_Apply(t *testing.T) {
 }
 
 func TestXMLHandler_Read(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/test.xml": `<config>
   <section1>
     <key1>value1</key1>
@@ -277,10 +264,6 @@ func TestXMLHandler_Read(t *testing.T) {
   </section2>
 </config>`,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	handler := NewHandler(fs, model.ConfigFormatXML)
 	result, err := handler.Read("/test.xml")
@@ -297,13 +280,11 @@ func TestXMLHandler_Read(t *testing.T) {
 }
 
 func TestXMLHandler_Apply(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	handler := NewHandler(fs, model.ConfigFormatXML)
 	entries := []model.ConfigEntry{
@@ -331,13 +312,11 @@ func TestXMLHandler_Apply(t *testing.T) {
 }
 
 func TestRawHandler_Read(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/test.raw": "raw content here",
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	handler := NewHandler(fs, model.ConfigFormatRaw)
 	result, err := handler.Read("/test.raw")
@@ -351,13 +330,11 @@ func TestRawHandler_Read(t *testing.T) {
 }
 
 func TestRawHandler_Apply(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/config": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	handler := NewHandler(fs, model.ConfigFormatRaw)
 	entries := []model.ConfigEntry{
@@ -384,6 +361,8 @@ func TestRawHandler_Apply(t *testing.T) {
 }
 
 func TestGetHandler(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		format model.ConfigFormat
 	}{
@@ -407,6 +386,8 @@ func TestGetHandler(t *testing.T) {
 }
 
 func TestFlattenNestedMap(t *testing.T) {
+	t.Parallel()
+
 	nested := map[string]interface{}{
 		"level1": map[string]interface{}{
 			"level2": map[string]interface{}{
@@ -428,6 +409,8 @@ func TestFlattenNestedMap(t *testing.T) {
 }
 
 func TestSetNestedValue(t *testing.T) {
+	t.Parallel()
+
 	m := make(map[string]interface{})
 	setNestedValue(m, []string{"a", "b", "c"}, "value")
 
@@ -445,6 +428,8 @@ func TestSetNestedValue(t *testing.T) {
 }
 
 func TestHasNestedValue(t *testing.T) {
+	t.Parallel()
+
 	m := map[string]interface{}{
 		"a": map[string]interface{}{
 			"b": "value",
