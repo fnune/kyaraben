@@ -43,11 +43,12 @@ type XMLFolderDevice struct {
 }
 
 type XMLDevice struct {
-	ID                string `xml:"id,attr"`
-	Name              string `xml:"name,attr"`
-	Compression       string `xml:"compression,attr"`
-	Introducer        bool   `xml:"introducer,attr"`
-	AutoAcceptFolders bool   `xml:"autoAcceptFolders,attr"`
+	ID                string   `xml:"id,attr"`
+	Name              string   `xml:"name,attr"`
+	Compression       string   `xml:"compression,attr"`
+	Introducer        bool     `xml:"introducer,attr"`
+	AutoAcceptFolders bool     `xml:"autoAcceptFolders,attr"`
+	Addresses         []string `xml:"address,omitempty"`
 }
 
 type XMLGUI struct {
@@ -64,7 +65,7 @@ type XMLOptions struct {
 	LocalAnnouncePort     int      `xml:"localAnnouncePort"`
 	RelaysEnabled         bool     `xml:"relaysEnabled"`
 	URAccepted            int      `xml:"urAccepted"`
-	AutoUpgradeEnabled    bool     `xml:"autoUpgradeIntervalH"`
+	AutoUpgradeIntervalH  int      `xml:"autoUpgradeIntervalH"`
 }
 
 type XMLVersioning struct {
@@ -135,7 +136,7 @@ func (g *ConfigGenerator) Generate() (*SyncthingXMLConfig, error) {
 			LocalAnnouncePort:     g.syncConfig.Syncthing.DiscoveryPort,
 			RelaysEnabled:         g.syncConfig.Syncthing.RelayEnabled,
 			URAccepted:            -1,
-			AutoUpgradeEnabled:    false,
+			AutoUpgradeIntervalH:  0,
 		},
 	}
 
