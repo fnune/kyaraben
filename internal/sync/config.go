@@ -249,14 +249,12 @@ func (g *ConfigGenerator) generateDevices() []XMLDevice {
 		})
 	}
 
-	isSecondary := g.syncConfig.Mode == model.SyncModeSecondary
-
 	for _, dev := range g.syncConfig.Devices {
 		devices = append(devices, XMLDevice{
 			ID:                dev.ID,
 			Name:              dev.Name,
 			Compression:       "metadata",
-			AutoAcceptFolders: isSecondary,
+			AutoAcceptFolders: false,
 		})
 	}
 
