@@ -4,7 +4,11 @@
 // - Libretro documentation (https://docs.libretro.com)
 package melonds
 
-import "github.com/fnune/kyaraben/internal/model"
+import (
+	"fmt"
+
+	"github.com/fnune/kyaraben/internal/model"
+)
 
 type Definition struct{}
 
@@ -65,17 +69,77 @@ var configTarget = model.ConfigTarget{
 
 type Config struct{}
 
-func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	return []model.ConfigPatch{{
-		Target: configTarget,
-		Entries: []model.ConfigEntry{
-			{Path: []string{"DS", "BIOS9Path"}, Value: store.SystemBiosDir(model.SystemIDNDS) + "/bios9.bin"},
-			{Path: []string{"DS", "BIOS7Path"}, Value: store.SystemBiosDir(model.SystemIDNDS) + "/bios7.bin"},
-			{Path: []string{"DS", "FirmwarePath"}, Value: store.SystemBiosDir(model.SystemIDNDS) + "/firmware.bin"},
-			{Path: []string{"Instance0", "SaveFilePath"}, Value: store.SystemSavesDir(model.SystemIDNDS)},
-			{Path: []string{"Instance0", "SavestatePath"}, Value: store.EmulatorStatesDir(model.EmulatorIDMelonDS)},
-			{Path: []string{"Instance0", "ScreenshotPath"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDMelonDS)},
-			{Path: []string{"Instance0", "LastROMFolder"}, Value: store.SystemRomsDir(model.SystemIDNDS)},
-		},
-	}}, nil
+func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
+	store := ctx.Store
+	entries := []model.ConfigEntry{
+		{Path: []string{"DS", "BIOS9Path"}, Value: store.SystemBiosDir(model.SystemIDNDS) + "/bios9.bin"},
+		{Path: []string{"DS", "BIOS7Path"}, Value: store.SystemBiosDir(model.SystemIDNDS) + "/bios7.bin"},
+		{Path: []string{"DS", "FirmwarePath"}, Value: store.SystemBiosDir(model.SystemIDNDS) + "/firmware.bin"},
+		{Path: []string{"Instance0", "SaveFilePath"}, Value: store.SystemSavesDir(model.SystemIDNDS)},
+		{Path: []string{"Instance0", "SavestatePath"}, Value: store.EmulatorStatesDir(model.EmulatorIDMelonDS)},
+		{Path: []string{"Instance0", "ScreenshotPath"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDMelonDS)},
+		{Path: []string{"Instance0", "LastROMFolder"}, Value: store.SystemRomsDir(model.SystemIDNDS)},
+	}
+
+	if cc := ctx.ControllerConfig; cc != nil {
+		entries = append(entries, padEntries(cc)...)
+		entries = append(entries, hotkeyEntries(cc)...)
+	}
+
+	return model.GenerateResult{
+		Patches: []model.ConfigPatch{{Target: configTarget, Entries: entries}},
+	}, nil
+}
+
+// melonDS uses special hat encoding for D-pad directions.
+const (
+	hatUp    = 257
+	hatRight = 258
+	hatDown  = 260
+	hatLeft  = 264
+)
+
+func padEntries(cc *model.ControllerConfig) []model.ConfigEntry {
+	south, east, west, north := cc.FaceButtons()
+	section := "Instance0"
+	return []model.ConfigEntry{
+		{Path: []string{section, "Joy_A"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[south])},
+		{Path: []string{section, "Joy_B"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[east])},
+		{Path: []string{section, "Joy_X"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[west])},
+		{Path: []string{section, "Joy_Y"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[north])},
+		{Path: []string{section, "Joy_Select"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[model.ButtonBack])},
+		{Path: []string{section, "Joy_Start"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[model.ButtonStart])},
+		{Path: []string{section, "Joy_L"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[model.ButtonLeftShoulder])},
+		{Path: []string{section, "Joy_R"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[model.ButtonRightShoulder])},
+		{Path: []string{section, "Joy_Up"}, Value: fmt.Sprintf("%d", hatUp)},
+		{Path: []string{section, "Joy_Down"}, Value: fmt.Sprintf("%d", hatDown)},
+		{Path: []string{section, "Joy_Left"}, Value: fmt.Sprintf("%d", hatLeft)},
+		{Path: []string{section, "Joy_Right"}, Value: fmt.Sprintf("%d", hatRight)},
+		{Path: []string{section, "JoystickID"}, Value: "0"},
+	}
+}
+
+func hotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
+	hk := cc.Hotkeys
+	section := "Instance0"
+	var entries []model.ConfigEntry
+
+	type mapping struct {
+		key     string
+		binding model.HotkeyBinding
+	}
+	mappings := []mapping{
+		{"HKJoy_FastForward", hk.FastForward},
+		{"HKJoy_Pause", hk.Pause},
+		{"HKJoy_FullscreenToggle", hk.ToggleFullscreen},
+	}
+	for _, m := range mappings {
+		if len(m.binding.Buttons) > 0 {
+			entries = append(entries, model.ConfigEntry{
+				Path:  []string{section, m.key},
+				Value: fmt.Sprintf("%d", model.SDLButtonIndex[m.binding.Buttons[len(m.binding.Buttons)-1]]),
+			})
+		}
+	}
+	return entries
 }
