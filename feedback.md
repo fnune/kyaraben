@@ -16,6 +16,14 @@ What we won't do: full performance tuning, per-game settings, target-specific op
 
 ## Low-hanging fruit
 
+- On Steam Deck, clicking on 'Open Syncthing web interface' opens Discover
+    - Even though Firefox is installed
+    - I suppose this is because I haven't refreshed the session?
+    - But I logged out and back in and it still happens
+    - Firefox is indeed set as default application
+- We never succeed in showing the connected device's name, we always just show 'primary (connected)' -> probably a bug?
+- The remove device trashcan button has no confirmation step
+    - It should show confirmation and inform the user as to what's going to happen
 - RetroArch cores bundle gets cleaned up after install and thus needs to redownload every time
   - Maybe consider keeping it around instead of cleaning it up
 - Add a "Disable all systems" button for convenience
