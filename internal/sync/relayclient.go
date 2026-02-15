@@ -33,7 +33,7 @@ func NewRelayClient(urls []string) (*RelayClient, error) {
 		if err != nil {
 			continue
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if resp.StatusCode == http.StatusOK {
 			return &RelayClient{
 				baseURL:    url,
