@@ -146,3 +146,31 @@ func (s *SystemdUnit) IsEnabled() bool {
 	err := exec.Command("systemctl", "--user", "is-enabled", "--quiet", s.unitName()).Run()
 	return err == nil
 }
+
+type ServiceStatus struct {
+	Active  string
+	Failed  bool
+	Message string
+}
+
+func (s *SystemdUnit) Status() ServiceStatus {
+	unitName := s.unitName()
+
+	output, err := exec.Command("systemctl", "--user", "is-failed", unitName).Output()
+	if err == nil && strings.TrimSpace(string(output)) == "failed" {
+		logs, _ := exec.Command("journalctl", "--user", "-u", unitName, "-n", "5", "--no-pager", "-o", "cat").Output()
+		return ServiceStatus{
+			Active:  "failed",
+			Failed:  true,
+			Message: strings.TrimSpace(string(logs)),
+		}
+	}
+
+	output, _ = exec.Command("systemctl", "--user", "is-active", unitName).Output()
+	active := strings.TrimSpace(string(output))
+
+	return ServiceStatus{
+		Active: active,
+		Failed: false,
+	}
+}
