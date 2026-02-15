@@ -18,6 +18,8 @@
 
 1. Unpaired device shows diff for many folders (particularly ROMs folders) even though no other device is connected - there should be no diff to display on an unpaired device with no sync history
 
+2. Need option to control whether syncing is active while a game is open in Game Mode - users may want to pause sync during gameplay to avoid I/O contention or battery drain
+
 ## Pairing issues
 
 1. (Fixed) Replaced mDNS-based pairing with syncthing's native discovery
@@ -46,3 +48,5 @@
 ## UI issues
 
 1. Long paths in provisions cards (e.g., "Open /USERDIR/saves/gamecube/EUR") don't ellipsize and overflow the card
+
+2. Some application icons missing: ES-DE, RetroArch, RPCS3 - other emulator icons work
