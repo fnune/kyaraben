@@ -12,9 +12,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/twpayne/go-vfs/v5"
+
 	"github.com/fnune/kyaraben/internal/apply"
 	"github.com/fnune/kyaraben/internal/doctor"
 	"github.com/fnune/kyaraben/internal/emulators"
+	"github.com/fnune/kyaraben/internal/emulators/symlink"
 	"github.com/fnune/kyaraben/internal/hardware"
 	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/logging"
@@ -32,6 +35,9 @@ import (
 var log = logging.New("daemon")
 
 type Daemon struct {
+	fs              vfs.FS
+	configStore     *model.ConfigStore
+	manifestStore   *model.ManifestStore
 	configPath      string
 	stateDir        string
 	manifestPath    string
@@ -44,8 +50,11 @@ type Daemon struct {
 	applyCancelFunc context.CancelFunc
 }
 
-func New(configPath, stateDir, manifestPath string, reg *registry.Registry, installer packages.Installer, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager) *Daemon {
+func New(fs vfs.FS, configPath, stateDir, manifestPath string, reg *registry.Registry, installer packages.Installer, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager) *Daemon {
 	return &Daemon{
+		fs:              fs,
+		configStore:     model.NewConfigStore(fs),
+		manifestStore:   model.NewManifestStore(fs),
 		configPath:      configPath,
 		stateDir:        stateDir,
 		manifestPath:    manifestPath,
@@ -54,6 +63,10 @@ func New(configPath, stateDir, manifestPath string, reg *registry.Registry, inst
 		configWriter:    configWriter,
 		launcherManager: launcherManager,
 	}
+}
+
+func NewDefault(configPath, stateDir, manifestPath string, reg *registry.Registry, installer packages.Installer, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager) *Daemon {
+	return New(vfs.OSFS, configPath, stateDir, manifestPath, reg, installer, configWriter, launcherManager)
 }
 
 func shortenPath(path string) string {
@@ -136,7 +149,7 @@ func (d *Daemon) errorResponse(msg string) []Event {
 }
 
 func (d *Daemon) loadManifest() (*model.Manifest, error) {
-	manifest, err := model.LoadManifest(d.manifestPath)
+	manifest, err := d.manifestStore.Load(d.manifestPath)
 	if err != nil {
 		return nil, fmt.Errorf("manifest data appears corrupted: %w. Please report this as a bug and run 'kyaraben apply' to restore your configuration", err)
 	}
@@ -152,7 +165,7 @@ func (d *Daemon) loadConfig() (*model.KyarabenConfig, error) {
 			return nil, err
 		}
 	}
-	cfg, err := model.LoadConfig(path)
+	cfg, err := d.configStore.Load(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return model.NewDefaultConfig(), nil
@@ -173,7 +186,7 @@ func (d *Daemon) handleStatus() []Event {
 		configPath, _ = model.DefaultConfigPath()
 	}
 
-	userStore, err := store.NewUserStore(cfg.Global.UserStore)
+	userStore, err := store.NewDefaultUserStore(cfg.Global.UserStore)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
@@ -291,7 +304,7 @@ func (d *Daemon) handleDoctor() []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	userStore, err := store.NewUserStore(cfg.Global.UserStore)
+	userStore, err := store.NewDefaultUserStore(cfg.Global.UserStore)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
@@ -344,7 +357,7 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 	}
 	d.installer.SetVersionOverrides(versionOverrides)
 
-	userStore, err := store.NewUserStore(cfg.Global.UserStore)
+	userStore, err := store.NewDefaultUserStore(cfg.Global.UserStore)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
@@ -377,14 +390,16 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 		d.mu.Unlock()
 	}()
 
-	applier := &apply.Applier{
-		Installer:       d.installer,
-		ConfigWriter:    d.configWriter,
-		Registry:        d.reg,
-		ManifestPath:    d.manifestPath,
-		LauncherManager: d.launcherManager,
-		BaseDirResolver: model.OSBaseDirResolver{},
-	}
+	applier := apply.NewApplier(
+		d.fs,
+		d.installer,
+		d.configWriter,
+		d.reg,
+		d.manifestPath,
+		d.launcherManager,
+		model.OSBaseDirResolver{},
+		symlink.NewCreator(d.fs),
+	)
 
 	logPosition := logging.CurrentPosition()
 
@@ -440,26 +455,28 @@ func (d *Daemon) handlePreflight() []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	userStore, err := store.NewUserStore(cfg.Global.UserStore)
+	userStore, err := store.NewDefaultUserStore(cfg.Global.UserStore)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
 
-	applier := &apply.Applier{
-		Installer:       d.installer,
-		ConfigWriter:    d.configWriter,
-		Registry:        d.reg,
-		ManifestPath:    d.manifestPath,
-		LauncherManager: d.launcherManager,
-		BaseDirResolver: model.OSBaseDirResolver{},
-	}
+	applier := apply.NewApplier(
+		d.fs,
+		d.installer,
+		d.configWriter,
+		d.reg,
+		d.manifestPath,
+		d.launcherManager,
+		model.OSBaseDirResolver{},
+		symlink.NewCreator(d.fs),
+	)
 
 	preflight, err := applier.Preflight(context.Background(), cfg, userStore)
 	if err != nil {
 		return d.errorResponse(fmt.Sprintf("preflight check: %v", err))
 	}
 
-	manifest, err := model.LoadManifest(d.manifestPath)
+	manifest, err := d.manifestStore.Load(d.manifestPath)
 	if err != nil {
 		return d.errorResponse(fmt.Sprintf("loading manifest: %v", err))
 	}
@@ -758,7 +775,7 @@ func (d *Daemon) handleSetConfig(data *SetConfigRequest) []Event {
 		path, _ = model.DefaultConfigPath()
 	}
 
-	if err := model.SaveConfig(cfg, path); err != nil {
+	if err := d.configStore.Save(cfg, path); err != nil {
 		return d.errorResponse(err.Error())
 	}
 
@@ -861,7 +878,7 @@ func (d *Daemon) handleSyncAddDevice(data *SyncAddDeviceRequest) []Event {
 		path, _ = model.DefaultConfigPath()
 	}
 
-	if err := model.SaveConfig(cfg, path); err != nil {
+	if err := d.configStore.Save(cfg, path); err != nil {
 		return d.errorResponse(err.Error())
 	}
 
@@ -907,7 +924,7 @@ func (d *Daemon) handleSyncRemoveDevice(data *SyncRemoveDeviceRequest) []Event {
 		path, _ = model.DefaultConfigPath()
 	}
 
-	if err := model.SaveConfig(cfg, path); err != nil {
+	if err := d.configStore.Save(cfg, path); err != nil {
 		return d.errorResponse(err.Error())
 	}
 
@@ -922,7 +939,7 @@ func (d *Daemon) handleSyncRemoveDevice(data *SyncRemoveDeviceRequest) []Event {
 }
 
 func (d *Daemon) handleUninstallPreview() []Event {
-	manifest, err := model.LoadManifest(d.manifestPath)
+	manifest, err := d.manifestStore.Load(d.manifestPath)
 	if err != nil {
 		log.Error("Failed to load manifest for uninstall preview: %v", err)
 		manifest = model.NewManifest()
@@ -938,14 +955,14 @@ func (d *Daemon) handleUninstallPreview() []Event {
 
 	var desktopFiles []string
 	for _, f := range manifest.DesktopFiles {
-		if fileExists(f) {
+		if d.fileExists(f) {
 			desktopFiles = append(desktopFiles, f)
 		}
 	}
 
 	var iconFiles []string
 	for _, f := range manifest.IconFiles {
-		if fileExists(f) {
+		if d.fileExists(f) {
 			iconFiles = append(iconFiles, f)
 		}
 	}
@@ -953,7 +970,7 @@ func (d *Daemon) handleUninstallPreview() []Event {
 	var configFiles []string
 	for _, cfg := range manifest.ManagedConfigs {
 		path, err := cfg.Target.Resolve()
-		if err == nil && fileExists(path) {
+		if err == nil && d.fileExists(path) {
 			configFiles = append(configFiles, path)
 		}
 	}
@@ -965,7 +982,7 @@ func (d *Daemon) handleUninstallPreview() []Event {
 			manifest.KyarabenInstall.CLIPath,
 			manifest.KyarabenInstall.DesktopPath,
 		} {
-			if p != "" && fileExists(p) {
+			if p != "" && d.fileExists(p) {
 				kyarabenFiles = append(kyarabenFiles, p)
 			}
 		}
@@ -978,7 +995,7 @@ func (d *Daemon) handleUninstallPreview() []Event {
 			filepath.Join(homeDir, ".local", "share", "applications", "kyaraben.desktop"),
 		}
 		for _, p := range kyarabenPaths {
-			if fileExists(p) {
+			if d.fileExists(p) {
 				kyarabenFiles = append(kyarabenFiles, p)
 			}
 		}
@@ -986,7 +1003,7 @@ func (d *Daemon) handleUninstallPreview() []Event {
 
 	var retroArchCoresDir string
 	var retroArchCoreFiles []string
-	if coresDir, err := paths.RetroArchCoresDir(); err == nil && dirExists(coresDir) {
+	if coresDir, err := paths.RetroArchCoresDir(); err == nil && d.dirExists(coresDir) {
 		retroArchCoresDir = coresDir
 		entries, _ := os.ReadDir(coresDir)
 		for _, entry := range entries {
@@ -1000,7 +1017,7 @@ func (d *Daemon) handleUninstallPreview() []Event {
 		Type: EventTypeResult,
 		Data: UninstallPreviewResponse{
 			StateDir:           d.stateDir,
-			StateDirExists:     dirExists(d.stateDir),
+			StateDirExists:     d.dirExists(d.stateDir),
 			RetroArchCoresDir:  retroArchCoresDir,
 			RetroArchCoreFiles: retroArchCoreFiles,
 			DesktopFiles:       desktopFiles,
@@ -1016,7 +1033,7 @@ func (d *Daemon) handleUninstallPreview() []Event {
 }
 
 func (d *Daemon) handleUninstall() []Event {
-	manifest, err := model.LoadManifest(d.manifestPath)
+	manifest, err := d.manifestStore.Load(d.manifestPath)
 	if err != nil {
 		log.Error("Failed to load manifest for uninstall: %v", err)
 		manifest = model.NewManifest()
@@ -1028,7 +1045,7 @@ func (d *Daemon) handleUninstall() []Event {
 	if manifest.KyarabenInstall != nil {
 		ki := manifest.KyarabenInstall
 		for _, path := range []string{ki.AppPath, ki.CLIPath, ki.DesktopPath} {
-			if path != "" && fileExists(path) {
+			if path != "" && d.fileExists(path) {
 				if err := os.Remove(path); err != nil {
 					errors = append(errors, fmt.Sprintf("could not remove %s: %v", path, err))
 				} else {
@@ -1043,7 +1060,7 @@ func (d *Daemon) handleUninstall() []Event {
 		if err != nil {
 			continue
 		}
-		if fileExists(path) {
+		if d.fileExists(path) {
 			if err := os.Remove(path); err != nil {
 				errors = append(errors, fmt.Sprintf("could not remove %s: %v", path, err))
 			} else {
@@ -1053,7 +1070,7 @@ func (d *Daemon) handleUninstall() []Event {
 	}
 
 	for _, f := range manifest.DesktopFiles {
-		if fileExists(f) {
+		if d.fileExists(f) {
 			if err := os.Remove(f); err != nil {
 				errors = append(errors, fmt.Sprintf("could not remove %s: %v", f, err))
 			} else {
@@ -1063,7 +1080,7 @@ func (d *Daemon) handleUninstall() []Event {
 	}
 
 	for _, f := range manifest.IconFiles {
-		if fileExists(f) {
+		if d.fileExists(f) {
 			if err := os.Remove(f); err != nil {
 				errors = append(errors, fmt.Sprintf("could not remove %s: %v", f, err))
 			} else {
@@ -1072,7 +1089,7 @@ func (d *Daemon) handleUninstall() []Event {
 		}
 	}
 
-	if dirExists(d.stateDir) {
+	if d.dirExists(d.stateDir) {
 		if err := forceRemoveAll(d.stateDir); err != nil {
 			errors = append(errors, fmt.Sprintf("could not remove %s: %v", d.stateDir, err))
 		} else {
@@ -1133,13 +1150,13 @@ func forceChmodRecursive(path string) error {
 	return nil
 }
 
-func fileExists(path string) bool {
-	info, err := os.Stat(path)
+func (d *Daemon) fileExists(path string) bool {
+	info, err := d.fs.Stat(path)
 	return err == nil && !info.IsDir()
 }
 
-func dirExists(path string) bool {
-	info, err := os.Stat(path)
+func (d *Daemon) dirExists(path string) bool {
+	info, err := d.fs.Stat(path)
 	return err == nil && info.IsDir()
 }
 
@@ -1192,7 +1209,7 @@ func (d *Daemon) handleInstallKyaraben(data *InstallKyarabenRequest) []Event {
 }
 
 func (d *Daemon) handleInstallStatus() []Event {
-	manifest, err := model.LoadManifest(d.manifestPath)
+	manifest, err := d.manifestStore.Load(d.manifestPath)
 	if err != nil {
 		log.Error("Failed to load manifest for install status: %v", err)
 		manifest = model.NewManifest()
@@ -1200,9 +1217,9 @@ func (d *Daemon) handleInstallStatus() []Event {
 
 	if manifest.KyarabenInstall != nil {
 		ki := manifest.KyarabenInstall
-		cliExists := ki.CLIPath != "" && fileExists(ki.CLIPath)
-		desktopExists := ki.DesktopPath != "" && fileExists(ki.DesktopPath)
-		appExists := ki.AppPath != "" && fileExists(ki.AppPath)
+		cliExists := ki.CLIPath != "" && d.fileExists(ki.CLIPath)
+		desktopExists := ki.DesktopPath != "" && d.fileExists(ki.DesktopPath)
+		appExists := ki.AppPath != "" && d.fileExists(ki.AppPath)
 
 		return []Event{{
 			Type: EventTypeResult,

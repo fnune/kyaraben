@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/fnune/kyaraben/internal/model"
 	"github.com/twpayne/go-vfs/v5"
+
+	"github.com/fnune/kyaraben/internal/model"
 )
 
 type rawHandler struct {

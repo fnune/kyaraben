@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/twpayne/go-vfs/v5/vfst"
+
 	"github.com/fnune/kyaraben/internal/versions"
 )
 
@@ -17,11 +19,19 @@ func TestMain(m *testing.M) {
 }
 
 func TestPackageInstallerInstallEmulator(t *testing.T) {
-	stateDir := t.TempDir()
-	dl := &FakeDownloader{Content: []byte("fake-appimage-binary")}
-	ext := &FakeExtractor{}
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/state": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	installer := NewPackageInstaller(stateDir, dl, ext)
+	stateDir := "/state"
+	dl := NewFakeDownloader(fs, []byte("fake-appimage-binary"))
+	ext := NewFakeExtractor(fs, nil)
+
+	installer := NewPackageInstaller(fs, stateDir, dl, ext)
 
 	var progressPhases []string
 	binary, err := installer.InstallEmulator(context.Background(), "mgba", func(p InstallProgress) {
@@ -35,11 +45,11 @@ func TestPackageInstallerInstallEmulator(t *testing.T) {
 		t.Errorf("binary name = %q, want %q", binary.Name, "mgba")
 	}
 
-	if _, err := os.Stat(binary.Path); err != nil {
+	if _, err := fs.Stat(binary.Path); err != nil {
 		t.Errorf("binary not found at %s", binary.Path)
 	}
 
-	info, err := os.Stat(binary.Path)
+	info, err := fs.Stat(binary.Path)
 	if err != nil {
 		t.Fatalf("stat: %v", err)
 	}
@@ -56,13 +66,21 @@ func TestPackageInstallerInstallEmulator(t *testing.T) {
 }
 
 func TestPackageInstallerSkipsAlreadyInstalled(t *testing.T) {
-	stateDir := t.TempDir()
-	dl := &FakeDownloader{Content: []byte("fake-binary")}
-	ext := &FakeExtractor{}
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/state": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	installer := NewPackageInstaller(stateDir, dl, ext)
+	stateDir := "/state"
+	dl := NewFakeDownloader(fs, []byte("fake-binary"))
+	ext := NewFakeExtractor(fs, nil)
 
-	_, err := installer.InstallEmulator(context.Background(), "mgba", nil)
+	installer := NewPackageInstaller(fs, stateDir, dl, ext)
+
+	_, err = installer.InstallEmulator(context.Background(), "mgba", nil)
 	if err != nil {
 		t.Fatalf("first install: %v", err)
 	}
@@ -88,17 +106,25 @@ func TestPackageInstallerSkipsAlreadyInstalled(t *testing.T) {
 }
 
 func TestPackageInstallerIsEmulatorInstalled(t *testing.T) {
-	stateDir := t.TempDir()
-	dl := &FakeDownloader{Content: []byte("fake-binary")}
-	ext := &FakeExtractor{}
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/state": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	installer := NewPackageInstaller(stateDir, dl, ext)
+	stateDir := "/state"
+	dl := NewFakeDownloader(fs, []byte("fake-binary"))
+	ext := NewFakeExtractor(fs, nil)
+
+	installer := NewPackageInstaller(fs, stateDir, dl, ext)
 
 	if installer.IsEmulatorInstalled("mgba") {
 		t.Error("should not be installed yet")
 	}
 
-	_, err := installer.InstallEmulator(context.Background(), "mgba", nil)
+	_, err = installer.InstallEmulator(context.Background(), "mgba", nil)
 	if err != nil {
 		t.Fatalf("install: %v", err)
 	}
@@ -109,15 +135,21 @@ func TestPackageInstallerIsEmulatorInstalled(t *testing.T) {
 }
 
 func TestPackageInstallerInstallArchive(t *testing.T) {
-	stateDir := t.TempDir()
-	dl := &FakeDownloader{Content: []byte("fake-zip-content")}
-	ext := &FakeExtractor{
-		Files: map[string]string{
-			"melonDS-x86_64.AppImage": "fake-melonds-binary",
-		},
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/state": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer cleanup()
 
-	installer := NewPackageInstaller(stateDir, dl, ext)
+	stateDir := "/state"
+	dl := NewFakeDownloader(fs, []byte("fake-zip-content"))
+	ext := NewFakeExtractor(fs, map[string]string{
+		"melonDS-x86_64.AppImage": "fake-melonds-binary",
+	})
+
+	installer := NewPackageInstaller(fs, stateDir, dl, ext)
 
 	binary, err := installer.InstallEmulator(context.Background(), "melonds", nil)
 	if err != nil {
@@ -128,7 +160,7 @@ func TestPackageInstallerInstallArchive(t *testing.T) {
 		t.Errorf("binary name = %q, want melonds", binary.Name)
 	}
 
-	if _, err := os.Stat(binary.Path); err != nil {
+	if _, err := fs.Stat(binary.Path); err != nil {
 		t.Errorf("binary not found at %s: %v", binary.Path, err)
 	}
 
@@ -141,16 +173,22 @@ func TestPackageInstallerInstallArchive(t *testing.T) {
 }
 
 func TestPackageInstallerInstallCores(t *testing.T) {
-	stateDir := t.TempDir()
-	dl := &FakeDownloader{Content: []byte("fake-cores-bundle")}
-	ext := &FakeExtractor{
-		Files: map[string]string{
-			"cores/bsnes_libretro.so": "fake-bsnes-core",
-			"cores/mesen_libretro.so": "fake-mesen-core",
-		},
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/state": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer cleanup()
 
-	installer := NewPackageInstaller(stateDir, dl, ext)
+	stateDir := "/state"
+	dl := NewFakeDownloader(fs, []byte("fake-cores-bundle"))
+	ext := NewFakeExtractor(fs, map[string]string{
+		"cores/bsnes_libretro.so": "fake-bsnes-core",
+		"cores/mesen_libretro.so": "fake-mesen-core",
+	})
+
+	installer := NewPackageInstaller(fs, stateDir, dl, ext)
 
 	cores, err := installer.InstallCores(context.Background(), []string{"bsnes", "mesen"}, nil)
 	if err != nil {
@@ -162,18 +200,26 @@ func TestPackageInstallerInstallCores(t *testing.T) {
 	}
 
 	for _, core := range cores {
-		if _, err := os.Stat(core.Path); err != nil {
+		if _, err := fs.Stat(core.Path); err != nil {
 			t.Errorf("core not found at %s: %v", core.Path, err)
 		}
 	}
 }
 
 func TestPackageInstallerInstallIcon(t *testing.T) {
-	stateDir := t.TempDir()
-	dl := &FakeDownloader{Content: []byte("fake-icon-data")}
-	ext := &FakeExtractor{}
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/state": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	installer := NewPackageInstaller(stateDir, dl, ext)
+	stateDir := "/state"
+	dl := NewFakeDownloader(fs, []byte("fake-icon-data"))
+	ext := NewFakeExtractor(fs, nil)
+
+	installer := NewPackageInstaller(fs, stateDir, dl, ext)
 
 	icon, err := installer.InstallIcon(context.Background(), "eden", "https://example.com/eden.svg", "sha256-abc123")
 	if err != nil {
@@ -184,16 +230,24 @@ func TestPackageInstallerInstallIcon(t *testing.T) {
 		t.Errorf("icon filename = %q, want eden.svg", icon.Filename)
 	}
 
-	if _, err := os.Stat(icon.Path); err != nil {
+	if _, err := fs.Stat(icon.Path); err != nil {
 		t.Errorf("icon not found at %s", icon.Path)
 	}
 }
 
 func TestPackageInstallerGarbageCollect(t *testing.T) {
-	stateDir := t.TempDir()
-	dl := &FakeDownloader{Content: []byte("fake-binary")}
-	ext := &FakeExtractor{}
-	installer := NewPackageInstaller(stateDir, dl, ext)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/state": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	stateDir := "/state"
+	dl := NewFakeDownloader(fs, []byte("fake-binary"))
+	ext := NewFakeExtractor(fs, nil)
+	installer := NewPackageInstaller(fs, stateDir, dl, ext)
 
 	_, _ = installer.InstallEmulator(context.Background(), "mgba", nil)
 	_, _ = installer.InstallEmulator(context.Background(), "eden", nil)
@@ -211,16 +265,24 @@ func TestPackageInstallerGarbageCollect(t *testing.T) {
 	}
 
 	edenDir := filepath.Join(installer.PackagesDir(), "eden")
-	if _, err := os.Stat(edenDir); !os.IsNotExist(err) {
+	if _, err := fs.Stat(edenDir); err == nil {
 		t.Error("eden should have been garbage collected")
 	}
 }
 
 func TestPackageInstallerResolveVersion(t *testing.T) {
-	stateDir := t.TempDir()
-	dl := &FakeDownloader{}
-	ext := &FakeExtractor{}
-	installer := NewPackageInstaller(stateDir, dl, ext)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/state": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	stateDir := "/state"
+	dl := NewFakeDownloader(fs, nil)
+	ext := NewFakeExtractor(fs, nil)
+	installer := NewPackageInstaller(fs, stateDir, dl, ext)
 
 	version := installer.ResolveVersion("mgba")
 	if version == "" {
@@ -229,10 +291,18 @@ func TestPackageInstallerResolveVersion(t *testing.T) {
 }
 
 func TestPackageInstallerVersionOverride(t *testing.T) {
-	stateDir := t.TempDir()
-	dl := &FakeDownloader{Content: []byte("fake-binary")}
-	ext := &FakeExtractor{}
-	installer := NewPackageInstaller(stateDir, dl, ext)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/state": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	stateDir := "/state"
+	dl := NewFakeDownloader(fs, []byte("fake-binary"))
+	ext := NewFakeExtractor(fs, nil)
+	installer := NewPackageInstaller(fs, stateDir, dl, ext)
 	installer.SetVersionOverrides(map[string]string{"eden": "v0.1.0"})
 
 	version := installer.ResolveVersion("eden")
@@ -242,10 +312,18 @@ func TestPackageInstallerVersionOverride(t *testing.T) {
 }
 
 func TestConcurrentInstallerInstallAll(t *testing.T) {
-	stateDir := t.TempDir()
-	dl := &FakeDownloader{Content: []byte("fake-binary")}
-	ext := &FakeExtractor{}
-	installer := NewPackageInstaller(stateDir, dl, ext)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/state": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	stateDir := "/state"
+	dl := NewFakeDownloader(fs, []byte("fake-binary"))
+	ext := NewFakeExtractor(fs, nil)
+	installer := NewPackageInstaller(fs, stateDir, dl, ext)
 
 	concurrent := NewConcurrentInstaller(installer, 3)
 

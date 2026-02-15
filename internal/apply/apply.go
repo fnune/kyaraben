@@ -3,10 +3,11 @@ package apply
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/twpayne/go-vfs/v5"
 
 	"github.com/fnune/kyaraben/internal/cleanup"
 	"github.com/fnune/kyaraben/internal/emulators"
@@ -20,7 +21,6 @@ import (
 	"github.com/fnune/kyaraben/internal/store"
 	"github.com/fnune/kyaraben/internal/version"
 	"github.com/fnune/kyaraben/internal/versions"
-	"github.com/twpayne/go-vfs/v5"
 )
 
 var versionsGet = versions.Get
@@ -76,7 +76,7 @@ func (a *Applier) Preflight(ctx context.Context, cfg *model.KyarabenConfig, user
 		allPatches = append(allPatches, patches...)
 	}
 
-	manifest, err := model.LoadManifest(a.ManifestPath)
+	manifest, err := a.manifestStore.Load(a.ManifestPath)
 	if err != nil {
 		return nil, fmt.Errorf("loading manifest: %w", err)
 	}
@@ -113,6 +113,8 @@ func (a *Applier) Preflight(ctx context.Context, cfg *model.KyarabenConfig, user
 }
 
 type Applier struct {
+	fs              vfs.FS
+	manifestStore   *model.ManifestStore
 	Installer       packages.Installer
 	ConfigWriter    *emulators.ConfigWriter
 	Registry        *registry.Registry
@@ -120,6 +122,24 @@ type Applier struct {
 	LauncherManager *launcher.Manager
 	BaseDirResolver model.BaseDirResolver
 	SymlinkCreator  model.SymlinkCreator
+}
+
+func NewApplier(fs vfs.FS, installer packages.Installer, configWriter *emulators.ConfigWriter, reg *registry.Registry, manifestPath string, launcherManager *launcher.Manager, resolver model.BaseDirResolver, symlinkCreator model.SymlinkCreator) *Applier {
+	return &Applier{
+		fs:              fs,
+		manifestStore:   model.NewManifestStore(fs),
+		Installer:       installer,
+		ConfigWriter:    configWriter,
+		Registry:        reg,
+		ManifestPath:    manifestPath,
+		LauncherManager: launcherManager,
+		BaseDirResolver: resolver,
+		SymlinkCreator:  symlinkCreator,
+	}
+}
+
+func NewDefaultApplier(installer packages.Installer, configWriter *emulators.ConfigWriter, reg *registry.Registry, manifestPath string, launcherManager *launcher.Manager, resolver model.BaseDirResolver, symlinkCreator model.SymlinkCreator) *Applier {
+	return NewApplier(vfs.OSFS, installer, configWriter, reg, manifestPath, launcherManager, resolver, symlinkCreator)
 }
 
 func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStore *store.UserStore, opts Options) (*Result, error) {
@@ -239,7 +259,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 			if err := userStore.InitializeForEmulator(sys, emuID, emu.PathUsage); err != nil {
 				return nil, fmt.Errorf("initializing %s for %s: %w", sys, emuID, err)
 			}
-			if err := ensureProvisionDirs(userStore, sys, emu); err != nil {
+			if err := a.ensureProvisionDirs(userStore, sys, emu); err != nil {
 				return nil, fmt.Errorf("preparing provision directories for %s/%s: %w", sys, emuID, err)
 			}
 		}
@@ -260,7 +280,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		opts.OnProgress(Progress{Step: "cleanup", Message: "Skipped (cleanup failed, will retry next time)"})
 	}
 
-	manifest, err := model.LoadManifest(a.ManifestPath)
+	manifest, err := a.manifestStore.Load(a.ManifestPath)
 	if err != nil {
 		return nil, fmt.Errorf("loading manifest: %w", err)
 	}
@@ -327,7 +347,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 
 	symlinkCreator := a.SymlinkCreator
 	if symlinkCreator == nil {
-		symlinkCreator = symlink.OSCreator{}
+		symlinkCreator = symlink.NewDefaultCreator()
 	}
 
 	var newSymlinks []model.SymlinkRecord
@@ -353,7 +373,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 
 	for _, old := range manifest.Symlinks {
 		if !enabledEmulators[old.EmulatorID] {
-			_ = symlink.Remove(old.Source)
+			_ = symlink.Remove(a.fs, old.Source)
 		}
 	}
 
@@ -370,7 +390,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 			disabledConfigs = append(disabledConfigs, cfg)
 		}
 	}
-	cleaner := cleanup.New(vfs.OSFS, a.BaseDirResolver)
+	cleaner := cleanup.New(a.fs, a.BaseDirResolver)
 	cleaner.RemoveConfigDirs(disabledConfigs)
 
 	if ctx.Err() != nil {
@@ -475,7 +495,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		}
 	}
 
-	if err := manifest.SaveWithBackup(a.ManifestPath); err != nil {
+	if err := a.manifestStore.SaveWithBackup(manifest, a.ManifestPath); err != nil {
 		return nil, fmt.Errorf("saving manifest: %w", err)
 	}
 
@@ -581,13 +601,13 @@ func (a *Applier) installPackages(ctx context.Context, emulatorIDs []model.Emula
 	return binaries, cores, icons, nil
 }
 
-func ensureProvisionDirs(userStore *store.UserStore, sys model.SystemID, emu model.Emulator) error {
+func (a *Applier) ensureProvisionDirs(userStore *store.UserStore, sys model.SystemID, emu model.Emulator) error {
 	for _, group := range emu.ProvisionGroups {
 		baseDir := group.BaseDirFor(userStore, sys)
 		if baseDir == "" {
 			continue
 		}
-		if err := os.MkdirAll(baseDir, 0o755); err != nil {
+		if err := vfs.MkdirAll(a.fs, baseDir, 0o755); err != nil {
 			return fmt.Errorf("creating %s: %w", baseDir, err)
 		}
 	}

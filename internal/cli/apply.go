@@ -7,8 +7,11 @@ import (
 	"os"
 	"strings"
 
+	"github.com/twpayne/go-vfs/v5"
+
 	"github.com/fnune/kyaraben/internal/apply"
 	"github.com/fnune/kyaraben/internal/emulators"
+	"github.com/fnune/kyaraben/internal/emulators/symlink"
 	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/model"
 )
@@ -46,7 +49,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		return err
 	}
 	installer.SetVersionOverrides(versionOverrides)
-	configWriter := emulators.NewConfigWriter(model.OSBaseDirResolver{})
+	configWriter := emulators.NewDefaultConfigWriter(model.OSBaseDirResolver{})
 	manifestPath, err := model.DefaultManifestPath()
 	if err != nil {
 		return err
@@ -57,14 +60,16 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		return fmt.Errorf("creating launcher manager: %w", err)
 	}
 
-	applier := &apply.Applier{
-		Installer:       installer,
-		ConfigWriter:    configWriter,
-		Registry:        registry,
-		ManifestPath:    manifestPath,
-		LauncherManager: launcherManager,
-		BaseDirResolver: model.OSBaseDirResolver{},
-	}
+	applier := apply.NewApplier(
+		vfs.OSFS,
+		installer,
+		configWriter,
+		registry,
+		manifestPath,
+		launcherManager,
+		model.OSBaseDirResolver{},
+		symlink.NewCreator(vfs.OSFS),
+	)
 
 	fmt.Println("Applying kyaraben configuration...")
 	fmt.Println()

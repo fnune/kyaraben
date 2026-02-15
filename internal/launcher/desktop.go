@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"text/template"
+
+	"github.com/twpayne/go-vfs/v5"
 )
 
 type GeneratedDesktop struct {
@@ -56,18 +58,18 @@ func (m *Manager) GenerateDesktopFiles(entries []GeneratedDesktop, icons []Insta
 
 	if previousFiles != nil {
 		for _, f := range previousFiles.DesktopFiles {
-			if err := os.Remove(f); err != nil && !os.IsNotExist(err) {
+			if err := m.fs.Remove(f); err != nil && !os.IsNotExist(err) {
 				log.Debug("Failed to remove old desktop file %s: %v", f, err)
 			}
 		}
 		for _, f := range previousFiles.IconFiles {
-			if err := os.Remove(f); err != nil && !os.IsNotExist(err) {
+			if err := m.fs.Remove(f); err != nil && !os.IsNotExist(err) {
 				log.Debug("Failed to remove old icon file %s: %v", f, err)
 			}
 		}
 	}
 
-	if err := os.MkdirAll(appsDir, 0755); err != nil {
+	if err := vfs.MkdirAll(m.fs, appsDir, 0755); err != nil {
 		return nil, fmt.Errorf("creating applications directory: %w", err)
 	}
 
@@ -110,12 +112,12 @@ func (m *Manager) RemoveDesktopFiles(files *GeneratedFiles) {
 		return
 	}
 	for _, f := range files.DesktopFiles {
-		if err := os.Remove(f); err != nil && !os.IsNotExist(err) {
+		if err := m.fs.Remove(f); err != nil && !os.IsNotExist(err) {
 			log.Debug("Failed to remove desktop file %s: %v", f, err)
 		}
 	}
 	for _, f := range files.IconFiles {
-		if err := os.Remove(f); err != nil && !os.IsNotExist(err) {
+		if err := m.fs.Remove(f); err != nil && !os.IsNotExist(err) {
 			log.Debug("Failed to remove icon file %s: %v", f, err)
 		}
 	}
@@ -179,7 +181,7 @@ type desktopTemplateData struct {
 func (m *Manager) generateDesktopFile(tmpl *template.Template, entry GeneratedDesktop) (string, error) {
 	desktopPath := filepath.Join(m.ApplicationsDir(), entry.BinaryName+".desktop")
 
-	f, err := os.Create(desktopPath)
+	f, err := m.fs.Create(desktopPath)
 	if err != nil {
 		return "", fmt.Errorf("creating desktop file: %w", err)
 	}
@@ -210,17 +212,17 @@ func (m *Manager) generateDesktopFile(tmpl *template.Template, entry GeneratedDe
 func (m *Manager) installIcon(icon InstalledIcon) (string, error) {
 	ext := filepath.Ext(icon.Filename)
 	destDir := m.iconsDirForExt(ext)
-	if err := os.MkdirAll(destDir, 0755); err != nil {
+	if err := vfs.MkdirAll(m.fs, destDir, 0755); err != nil {
 		return "", fmt.Errorf("creating icons directory: %w", err)
 	}
 
 	destPath := filepath.Join(destDir, "kyaraben-"+icon.Name+ext)
-	data, err := os.ReadFile(icon.Path)
+	data, err := m.fs.ReadFile(icon.Path)
 	if err != nil {
 		return "", fmt.Errorf("reading icon file: %w", err)
 	}
 
-	if err := os.WriteFile(destPath, data, 0644); err != nil {
+	if err := m.fs.WriteFile(destPath, data, 0644); err != nil {
 		return "", fmt.Errorf("writing icon: %w", err)
 	}
 

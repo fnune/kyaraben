@@ -38,7 +38,7 @@ func (pc *ProvisionChecker) checkGroup(group model.ProvisionGroup, baseDir strin
 		if !prov.AppliesToSystem(sys) {
 			continue
 		}
-		checkResult := prov.Check(baseDir)
+		checkResult := prov.Check(pc.userStore.fs, baseDir)
 		provResult := model.ProvisionResult{
 			Provision:  prov,
 			Status:     checkResult.Status,

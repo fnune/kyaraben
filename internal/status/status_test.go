@@ -2,10 +2,11 @@ package status
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/twpayne/go-vfs/v5"
+	"github.com/twpayne/go-vfs/v5/vfst"
 
 	"github.com/fnune/kyaraben/internal/emulators/retroarch"
 	"github.com/fnune/kyaraben/internal/model"
@@ -18,12 +19,12 @@ func TestMain(m *testing.M) {
 	if err := versions.Init(); err != nil {
 		panic(err)
 	}
-	os.Exit(m.Run())
+	m.Run()
 }
 
-func mustNewUserStore(t *testing.T, path string) *store.UserStore {
+func mustNewUserStore(t *testing.T, fs vfs.FS, path string) *store.UserStore {
 	t.Helper()
-	s, err := store.NewUserStore(path)
+	s, err := store.NewUserStore(fs, path)
 	if err != nil {
 		t.Fatalf("NewUserStore(%q) failed: %v", path, err)
 	}
@@ -31,10 +32,18 @@ func mustNewUserStore(t *testing.T, path string) *store.UserStore {
 }
 
 func TestGet(t *testing.T) {
-	tmpDir := t.TempDir()
-	userStorePath := filepath.Join(tmpDir, "Emulation")
-	configPath := filepath.Join(tmpDir, "config.toml")
-	manifestPath := filepath.Join(tmpDir, "manifest.json")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/Emulation": &vfst.Dir{Perm: 0755},
+		"/state":     &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	userStorePath := "/Emulation"
+	configPath := "/config.toml"
+	manifestPath := "/state/manifest.json"
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
@@ -46,10 +55,11 @@ func TestGet(t *testing.T) {
 		},
 	}
 
-	registry := registry.NewDefault()
-	userStore := mustNewUserStore(t, userStorePath)
+	reg := registry.NewDefault()
+	userStore := mustNewUserStore(t, fs, userStorePath)
 
-	result, err := Get(context.Background(), cfg, configPath, registry, userStore, manifestPath)
+	getter := NewGetter(fs)
+	result, err := getter.Get(context.Background(), cfg, configPath, reg, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
@@ -76,17 +86,23 @@ func TestGet(t *testing.T) {
 }
 
 func TestGetWithInitializedStore(t *testing.T) {
-	tmpDir := t.TempDir()
-	userStorePath := filepath.Join(tmpDir, "Emulation")
-	configPath := filepath.Join(tmpDir, "config.toml")
-	manifestPath := filepath.Join(tmpDir, "manifest.json")
-
-	// Create all required directories for IsInitialized to return true
-	for _, dir := range []string{"roms", "bios", "saves", "states", "screenshots", "opaque"} {
-		if err := os.MkdirAll(filepath.Join(userStorePath, dir), 0755); err != nil {
-			t.Fatalf("Failed to create %s dir: %v", dir, err)
-		}
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/Emulation/roms":        &vfst.Dir{Perm: 0755},
+		"/Emulation/bios":        &vfst.Dir{Perm: 0755},
+		"/Emulation/saves":       &vfst.Dir{Perm: 0755},
+		"/Emulation/states":      &vfst.Dir{Perm: 0755},
+		"/Emulation/screenshots": &vfst.Dir{Perm: 0755},
+		"/Emulation/opaque":      &vfst.Dir{Perm: 0755},
+		"/state":                 &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer cleanup()
+
+	userStorePath := "/Emulation"
+	configPath := "/config.toml"
+	manifestPath := "/state/manifest.json"
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
@@ -97,10 +113,11 @@ func TestGetWithInitializedStore(t *testing.T) {
 		},
 	}
 
-	registry := registry.NewDefault()
-	userStore := mustNewUserStore(t, userStorePath)
+	reg := registry.NewDefault()
+	userStore := mustNewUserStore(t, fs, userStorePath)
 
-	result, err := Get(context.Background(), cfg, configPath, registry, userStore, manifestPath)
+	getter := NewGetter(fs)
+	result, err := getter.Get(context.Background(), cfg, configPath, reg, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
@@ -111,22 +128,31 @@ func TestGetWithInitializedStore(t *testing.T) {
 }
 
 func TestGetSystemNames(t *testing.T) {
-	tmpDir := t.TempDir()
-	manifestPath := filepath.Join(tmpDir, "manifest.json")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/Emulation": &vfst.Dir{Perm: 0755},
+		"/state":     &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	manifestPath := "/state/manifest.json"
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: tmpDir,
+			UserStore: "/Emulation",
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGBA: {model.EmulatorIDMGBA},
 		},
 	}
 
-	registry := registry.NewDefault()
-	userStore := mustNewUserStore(t, tmpDir)
+	reg := registry.NewDefault()
+	userStore := mustNewUserStore(t, fs, "/Emulation")
 
-	result, err := Get(context.Background(), cfg, tmpDir, registry, userStore, manifestPath)
+	getter := NewGetter(fs)
+	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
@@ -145,13 +171,17 @@ func TestGetSystemNames(t *testing.T) {
 }
 
 func TestGetMissingRequiredCount(t *testing.T) {
-	tmpDir := t.TempDir()
-	userStorePath := filepath.Join(tmpDir, "Emulation")
-	manifestPath := filepath.Join(tmpDir, "manifest.json")
-
-	if err := os.MkdirAll(filepath.Join(userStorePath, "bios", "psx"), 0755); err != nil {
-		t.Fatalf("Failed to create bios dir: %v", err)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/Emulation/bios/psx": &vfst.Dir{Perm: 0755},
+		"/state":              &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer cleanup()
+
+	userStorePath := "/Emulation"
+	manifestPath := "/state/manifest.json"
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
@@ -163,10 +193,11 @@ func TestGetMissingRequiredCount(t *testing.T) {
 		},
 	}
 
-	registry := registry.NewDefault()
-	userStore := mustNewUserStore(t, userStorePath)
+	reg := registry.NewDefault()
+	userStore := mustNewUserStore(t, fs, userStorePath)
 
-	result, err := Get(context.Background(), cfg, tmpDir, registry, userStore, manifestPath)
+	getter := NewGetter(fs)
+	result, err := getter.Get(context.Background(), cfg, "/config", reg, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
@@ -177,7 +208,14 @@ func TestGetMissingRequiredCount(t *testing.T) {
 }
 
 func TestGetWithManifest(t *testing.T) {
-	tmpDir := t.TempDir()
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/Emulation": &vfst.Dir{Perm: 0755},
+		"/state":     &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
 	manifest := &model.Manifest{
 		LastApplied: time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC),
@@ -191,24 +229,25 @@ func TestGetWithManifest(t *testing.T) {
 		},
 	}
 
-	manifestPath := filepath.Join(tmpDir, "manifest.json")
-	if err := manifest.Save(manifestPath); err != nil {
+	manifestPath := "/state/manifest.json"
+	if err := model.NewManifestStore(fs).Save(manifest, manifestPath); err != nil {
 		t.Fatalf("Failed to save manifest: %v", err)
 	}
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: tmpDir,
+			UserStore: "/Emulation",
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGBA: {model.EmulatorIDMGBA},
 		},
 	}
 
-	registry := registry.NewDefault()
-	userStore := mustNewUserStore(t, tmpDir)
+	reg := registry.NewDefault()
+	userStore := mustNewUserStore(t, fs, "/Emulation")
 
-	result, err := Get(context.Background(), cfg, tmpDir, registry, userStore, manifestPath)
+	getter := NewGetter(fs)
+	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
@@ -234,7 +273,14 @@ func TestGetWithManifest(t *testing.T) {
 }
 
 func TestGetWithVersionPinning(t *testing.T) {
-	tmpDir := t.TempDir()
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/Emulation": &vfst.Dir{Perm: 0755},
+		"/state":     &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
 	manifest := &model.Manifest{
 		LastApplied: time.Now(),
@@ -248,14 +294,14 @@ func TestGetWithVersionPinning(t *testing.T) {
 		},
 	}
 
-	manifestPath := filepath.Join(tmpDir, "manifest.json")
-	if err := manifest.Save(manifestPath); err != nil {
+	manifestPath := "/state/manifest.json"
+	if err := model.NewManifestStore(fs).Save(manifest, manifestPath); err != nil {
 		t.Fatalf("Failed to save manifest: %v", err)
 	}
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: tmpDir,
+			UserStore: "/Emulation",
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDPSX: {model.EmulatorIDDuckStation},
@@ -265,10 +311,11 @@ func TestGetWithVersionPinning(t *testing.T) {
 		},
 	}
 
-	registry := registry.NewDefault()
-	userStore := mustNewUserStore(t, tmpDir)
+	reg := registry.NewDefault()
+	userStore := mustNewUserStore(t, fs, "/Emulation")
 
-	result, err := Get(context.Background(), cfg, tmpDir, registry, userStore, manifestPath)
+	getter := NewGetter(fs)
+	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
@@ -284,7 +331,14 @@ func TestGetWithVersionPinning(t *testing.T) {
 }
 
 func TestGetManagedConfigsIncludesKeys(t *testing.T) {
-	tmpDir := t.TempDir()
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/Emulation": &vfst.Dir{Perm: 0755},
+		"/state":     &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
 	manifest := &model.Manifest{
 		LastApplied: time.Now(),
@@ -311,20 +365,21 @@ func TestGetManagedConfigsIncludesKeys(t *testing.T) {
 		},
 	}
 
-	manifestPath := filepath.Join(tmpDir, "manifest.json")
-	if err := manifest.Save(manifestPath); err != nil {
+	manifestPath := "/state/manifest.json"
+	if err := model.NewManifestStore(fs).Save(manifest, manifestPath); err != nil {
 		t.Fatalf("Failed to save manifest: %v", err)
 	}
 
 	cfg := &model.KyarabenConfig{
-		Global:  model.GlobalConfig{UserStore: tmpDir},
+		Global:  model.GlobalConfig{UserStore: "/Emulation"},
 		Systems: map[model.SystemID][]model.EmulatorID{model.SystemIDGBA: {model.EmulatorIDMGBA}},
 	}
 
 	reg := registry.NewDefault()
-	userStore := mustNewUserStore(t, tmpDir)
+	userStore := mustNewUserStore(t, fs, "/Emulation")
 
-	result, err := Get(context.Background(), cfg, tmpDir, reg, userStore, manifestPath)
+	getter := NewGetter(fs)
+	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
@@ -352,7 +407,14 @@ func TestGetManagedConfigsIncludesKeys(t *testing.T) {
 }
 
 func TestGetRetroArchCoreIncludesSharedConfig(t *testing.T) {
-	tmpDir := t.TempDir()
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/Emulation": &vfst.Dir{Perm: 0755},
+		"/state":     &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
 	manifest := &model.Manifest{
 		LastApplied: time.Now(),
@@ -402,13 +464,13 @@ func TestGetRetroArchCoreIncludesSharedConfig(t *testing.T) {
 		},
 	}
 
-	manifestPath := filepath.Join(tmpDir, "manifest.json")
-	if err := manifest.Save(manifestPath); err != nil {
+	manifestPath := "/state/manifest.json"
+	if err := model.NewManifestStore(fs).Save(manifest, manifestPath); err != nil {
 		t.Fatalf("Failed to save manifest: %v", err)
 	}
 
 	cfg := &model.KyarabenConfig{
-		Global: model.GlobalConfig{UserStore: tmpDir},
+		Global: model.GlobalConfig{UserStore: "/Emulation"},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDSNES: {model.EmulatorIDRetroArchBsnes},
 			model.SystemIDNES:  {model.EmulatorIDRetroArchMesen},
@@ -416,9 +478,10 @@ func TestGetRetroArchCoreIncludesSharedConfig(t *testing.T) {
 	}
 
 	reg := registry.NewDefault()
-	userStore := mustNewUserStore(t, tmpDir)
+	userStore := mustNewUserStore(t, fs, "/Emulation")
 
-	result, err := Get(context.Background(), cfg, tmpDir, reg, userStore, manifestPath)
+	getter := NewGetter(fs)
+	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}

@@ -3,12 +3,12 @@ package configformat
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/fnune/kyaraben/internal/model"
 	"github.com/twpayne/go-vfs/v5"
+
+	"github.com/fnune/kyaraben/internal/model"
 )
 
 type ApplyResult struct {
@@ -22,10 +22,10 @@ type Handler interface {
 }
 
 func GetHandler(format model.ConfigFormat) Handler {
-	return GetHandlerWithFS(vfs.OSFS, format)
+	return NewHandler(vfs.OSFS, format)
 }
 
-func GetHandlerWithFS(fs vfs.FS, format model.ConfigFormat) Handler {
+func NewHandler(fs vfs.FS, format model.ConfigFormat) Handler {
 	switch format {
 	case model.ConfigFormatINI:
 		return &iniHandler{fs: fs}
@@ -58,18 +58,12 @@ func Unquote(v string) string {
 	return v
 }
 
-func NormalizePath(v string) string {
+func NormalizePath(v, homeDir string) string {
 	v = Unquote(v)
-	if strings.HasPrefix(v, "~/") {
-		if home, err := os.UserHomeDir(); err == nil {
-			return filepath.Join(home, v[2:])
-		}
+	if strings.HasPrefix(v, "~/") && homeDir != "" {
+		return filepath.Join(homeDir, v[2:])
 	}
 	return v
-}
-
-func hashFile(path string) (string, error) {
-	return hashFileWithFS(vfs.OSFS, path)
 }
 
 func hashFileWithFS(fs vfs.FS, path string) (string, error) {

@@ -4,8 +4,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/fnune/kyaraben/internal/model"
 	"github.com/twpayne/go-vfs/v5/vfst"
+
+	"github.com/fnune/kyaraben/internal/model"
 )
 
 type fakeResolver struct {

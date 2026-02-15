@@ -2,18 +2,19 @@ package doctor
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 	"testing"
+
+	"github.com/twpayne/go-vfs/v5"
+	"github.com/twpayne/go-vfs/v5/vfst"
 
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/store"
 )
 
-func mustNewUserStore(t *testing.T, path string) *store.UserStore {
+func mustNewUserStore(t *testing.T, fs vfs.FS, path string) *store.UserStore {
 	t.Helper()
-	s, err := store.NewUserStore(path)
+	s, err := store.NewUserStore(fs, path)
 	if err != nil {
 		t.Fatalf("NewUserStore(%q) failed: %v", path, err)
 	}
@@ -21,12 +22,15 @@ func mustNewUserStore(t *testing.T, path string) *store.UserStore {
 }
 
 func TestRun(t *testing.T) {
-	tmpDir := t.TempDir()
-	userStorePath := filepath.Join(tmpDir, "Emulation")
-
-	if err := os.MkdirAll(filepath.Join(userStorePath, "bios", "psx"), 0755); err != nil {
-		t.Fatalf("Failed to create bios dir: %v", err)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/Emulation/bios/psx": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer cleanup()
+
+	userStorePath := "/Emulation"
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
 			UserStore: userStorePath,
@@ -37,10 +41,10 @@ func TestRun(t *testing.T) {
 		},
 	}
 
-	registry := registry.NewDefault()
-	userStore := mustNewUserStore(t, userStorePath)
+	reg := registry.NewDefault()
+	userStore := mustNewUserStore(t, fs, userStorePath)
 
-	result, err := Run(context.Background(), cfg, registry, userStore)
+	result, err := Run(context.Background(), cfg, reg, userStore)
 	if err != nil {
 		t.Fatalf("Run failed: %v", err)
 	}
@@ -59,9 +63,15 @@ func TestRun(t *testing.T) {
 }
 
 func TestRunNoRequiredProvisions(t *testing.T) {
-	tmpDir := t.TempDir()
-	userStorePath := filepath.Join(tmpDir, "Emulation")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/Emulation": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
+	userStorePath := "/Emulation"
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
 			UserStore: userStorePath,
@@ -71,10 +81,10 @@ func TestRunNoRequiredProvisions(t *testing.T) {
 		},
 	}
 
-	registry := registry.NewDefault()
-	userStore := mustNewUserStore(t, userStorePath)
+	reg := registry.NewDefault()
+	userStore := mustNewUserStore(t, fs, userStorePath)
 
-	result, err := Run(context.Background(), cfg, registry, userStore)
+	result, err := Run(context.Background(), cfg, reg, userStore)
 	if err != nil {
 		t.Fatalf("Run failed: %v", err)
 	}
@@ -100,19 +110,16 @@ func TestRunNoRequiredProvisions(t *testing.T) {
 }
 
 func TestRunWithBiosFile(t *testing.T) {
-	tmpDir := t.TempDir()
-	userStorePath := filepath.Join(tmpDir, "Emulation")
-
-	biosDir := filepath.Join(userStorePath, "bios", "psx")
-	if err := os.MkdirAll(biosDir, 0755); err != nil {
-		t.Fatalf("Failed to create bios dir: %v", err)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/Emulation/bios/psx":              &vfst.Dir{Perm: 0755},
+		"/Emulation/bios/psx/scph5501.bin": "fake bios content",
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer cleanup()
 
-	biosFile := filepath.Join(biosDir, "scph5501.bin")
-	if err := os.WriteFile(biosFile, []byte("fake bios content"), 0644); err != nil {
-		t.Fatalf("Failed to create bios file: %v", err)
-	}
-
+	userStorePath := "/Emulation"
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
 			UserStore: userStorePath,
@@ -122,10 +129,10 @@ func TestRunWithBiosFile(t *testing.T) {
 		},
 	}
 
-	registry := registry.NewDefault()
-	userStore := mustNewUserStore(t, userStorePath)
+	reg := registry.NewDefault()
+	userStore := mustNewUserStore(t, fs, userStorePath)
 
-	result, err := Run(context.Background(), cfg, registry, userStore)
+	result, err := Run(context.Background(), cfg, reg, userStore)
 	if err != nil {
 		t.Fatalf("Run failed: %v", err)
 	}
@@ -155,13 +162,15 @@ func TestRunWithBiosFile(t *testing.T) {
 }
 
 func TestRunSystemResult(t *testing.T) {
-	tmpDir := t.TempDir()
-	userStorePath := filepath.Join(tmpDir, "Emulation")
-
-	if err := os.MkdirAll(filepath.Join(userStorePath, "bios", "psx"), 0755); err != nil {
-		t.Fatalf("Failed to create bios dir: %v", err)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/Emulation/bios/psx": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer cleanup()
 
+	userStorePath := "/Emulation"
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
 			UserStore: userStorePath,
@@ -171,10 +180,10 @@ func TestRunSystemResult(t *testing.T) {
 		},
 	}
 
-	registry := registry.NewDefault()
-	userStore := mustNewUserStore(t, userStorePath)
+	reg := registry.NewDefault()
+	userStore := mustNewUserStore(t, fs, userStorePath)
 
-	result, err := Run(context.Background(), cfg, registry, userStore)
+	result, err := Run(context.Background(), cfg, reg, userStore)
 	if err != nil {
 		t.Fatalf("Run failed: %v", err)
 	}
@@ -197,13 +206,15 @@ func TestRunSystemResult(t *testing.T) {
 }
 
 func TestRunMultipleEmulators(t *testing.T) {
-	tmpDir := t.TempDir()
-	userStorePath := filepath.Join(tmpDir, "Emulation")
-
-	if err := os.MkdirAll(filepath.Join(userStorePath, "bios", "psx"), 0755); err != nil {
-		t.Fatalf("Failed to create bios dir: %v", err)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/Emulation/bios/psx": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer cleanup()
 
+	userStorePath := "/Emulation"
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
 			UserStore: userStorePath,
@@ -213,10 +224,10 @@ func TestRunMultipleEmulators(t *testing.T) {
 		},
 	}
 
-	registry := registry.NewDefault()
-	userStore := mustNewUserStore(t, userStorePath)
+	reg := registry.NewDefault()
+	userStore := mustNewUserStore(t, fs, userStorePath)
 
-	result, err := Run(context.Background(), cfg, registry, userStore)
+	result, err := Run(context.Background(), cfg, reg, userStore)
 	if err != nil {
 		t.Fatalf("Run failed: %v", err)
 	}

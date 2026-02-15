@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/twpayne/go-vfs/v5"
+
 	"github.com/fnune/kyaraben/internal/fileutil"
 	"github.com/fnune/kyaraben/internal/paths"
 )
@@ -83,9 +85,16 @@ func DefaultManifestPath() (string, error) {
 	return filepath.Join(stateDir, "build", "manifest.json"), nil
 }
 
-// LoadManifest loads the manifest from a file.
-func LoadManifest(path string) (*Manifest, error) {
-	data, err := os.ReadFile(path)
+type ManifestStore struct {
+	fs vfs.FS
+}
+
+func NewManifestStore(fs vfs.FS) *ManifestStore {
+	return &ManifestStore{fs: fs}
+}
+
+func (s *ManifestStore) Load(path string) (*Manifest, error) {
+	data, err := s.fs.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return NewManifest(), nil
@@ -100,16 +109,16 @@ func LoadManifest(path string) (*Manifest, error) {
 	return &m, nil
 }
 
-func (m *Manifest) SaveWithBackup(path string) error {
-	if _, err := os.Stat(path); err == nil {
+func (s *ManifestStore) SaveWithBackup(m *Manifest, path string) error {
+	if _, err := s.fs.Stat(path); err == nil {
 		_, _ = fileutil.BackupWithTimestamp(path)
 	}
-	return m.Save(path)
+	return s.Save(m, path)
 }
 
-func (m *Manifest) Save(path string) error {
+func (s *ManifestStore) Save(m *Manifest, path string) error {
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := vfs.MkdirAll(s.fs, dir, 0755); err != nil {
 		return fmt.Errorf("creating manifest directory: %w", err)
 	}
 
@@ -118,56 +127,53 @@ func (m *Manifest) Save(path string) error {
 		return fmt.Errorf("encoding manifest: %w", err)
 	}
 
-	tempFile, err := os.CreateTemp(dir, "manifest-*.json.tmp")
+	tempPath := path + ".tmp"
+	tempFile, err := s.fs.Create(tempPath)
 	if err != nil {
 		return fmt.Errorf("creating temp file: %w", err)
 	}
-	tempPath := tempFile.Name()
 
 	if _, err := tempFile.Write(data); err != nil {
 		_ = tempFile.Close()
-		_ = os.Remove(tempPath)
+		_ = s.fs.Remove(tempPath)
 		return fmt.Errorf("writing manifest: %w", err)
 	}
 
 	if err := tempFile.Sync(); err != nil {
 		_ = tempFile.Close()
-		_ = os.Remove(tempPath)
+		_ = s.fs.Remove(tempPath)
 		return fmt.Errorf("syncing manifest: %w", err)
 	}
 
 	if err := tempFile.Close(); err != nil {
-		_ = os.Remove(tempPath)
+		_ = s.fs.Remove(tempPath)
 		return fmt.Errorf("closing temp file: %w", err)
 	}
 
-	if err := os.Rename(tempPath, path); err != nil {
-		_ = os.Remove(tempPath)
+	if err := s.fs.Rename(tempPath, path); err != nil {
+		_ = s.fs.Remove(tempPath)
 		return fmt.Errorf("renaming manifest: %w", err)
-	}
-
-	if err := syncDir(dir); err != nil {
-		return fmt.Errorf("syncing directory: %w", err)
 	}
 
 	return nil
 }
 
-func syncDir(path string) error {
-	d, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = d.Close() }()
-	return d.Sync()
+func LoadManifest(path string) (*Manifest, error) {
+	return NewManifestStore(vfs.OSFS).Load(path)
 }
 
-// AddEmulator records an installed emulator.
+func (m *Manifest) SaveWithBackup(path string) error {
+	return NewManifestStore(vfs.OSFS).SaveWithBackup(m, path)
+}
+
+func (m *Manifest) Save(path string) error {
+	return NewManifestStore(vfs.OSFS).Save(m, path)
+}
+
 func (m *Manifest) AddEmulator(emu InstalledEmulator) {
 	m.InstalledEmulators[emu.ID] = emu
 }
 
-// AddFrontend records an installed frontend.
 func (m *Manifest) AddFrontend(fe InstalledFrontend) {
 	if m.InstalledFrontends == nil {
 		m.InstalledFrontends = make(map[FrontendID]InstalledFrontend)

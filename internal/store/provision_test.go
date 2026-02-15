@@ -1,16 +1,24 @@
 package store
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/twpayne/go-vfs/v5/vfst"
 
 	"github.com/fnune/kyaraben/internal/model"
 )
 
 func TestProvisionCheckerCheck(t *testing.T) {
-	tmpDir := t.TempDir()
-	store := mustNewUserStore(t, tmpDir)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/emulation": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	store := mustNewUserStore(t, fs, "/emulation")
 
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
@@ -59,8 +67,15 @@ func TestProvisionCheckerCheck(t *testing.T) {
 }
 
 func TestProvisionCheckerWithFile(t *testing.T) {
-	tmpDir := t.TempDir()
-	store := mustNewUserStore(t, tmpDir)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/emulation": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	store := mustNewUserStore(t, fs, "/emulation")
 
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
@@ -88,8 +103,15 @@ func TestProvisionCheckerWithFile(t *testing.T) {
 }
 
 func TestProvisionCheckerHashVerification(t *testing.T) {
-	tmpDir := t.TempDir()
-	store := mustNewUserStore(t, tmpDir)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/emulation": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	store := mustNewUserStore(t, fs, "/emulation")
 
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
@@ -101,7 +123,7 @@ func TestProvisionCheckerHashVerification(t *testing.T) {
 	biosDir := store.SystemBiosDir(model.SystemIDPSX)
 	biosFile := filepath.Join(biosDir, "test.bin")
 	content := []byte("test content")
-	if err := os.WriteFile(biosFile, content, 0644); err != nil {
+	if err := fs.WriteFile(biosFile, content, 0644); err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
@@ -137,8 +159,15 @@ func TestProvisionCheckerHashVerification(t *testing.T) {
 }
 
 func TestProvisionCheckerCaseInsensitive(t *testing.T) {
-	tmpDir := t.TempDir()
-	store := mustNewUserStore(t, tmpDir)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/emulation": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	store := mustNewUserStore(t, fs, "/emulation")
 
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
@@ -149,7 +178,7 @@ func TestProvisionCheckerCaseInsensitive(t *testing.T) {
 
 	biosDir := store.SystemBiosDir(model.SystemIDPSX)
 	biosFile := filepath.Join(biosDir, "SCPH5501.BIN")
-	if err := os.WriteFile(biosFile, []byte("fake bios"), 0644); err != nil {
+	if err := fs.WriteFile(biosFile, []byte("fake bios"), 0644); err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
@@ -173,8 +202,15 @@ func TestProvisionCheckerCaseInsensitive(t *testing.T) {
 }
 
 func TestProvisionGroupSatisfaction(t *testing.T) {
-	tmpDir := t.TempDir()
-	store := mustNewUserStore(t, tmpDir)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/emulation": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	store := mustNewUserStore(t, fs, "/emulation")
 
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
@@ -184,7 +220,7 @@ func TestProvisionGroupSatisfaction(t *testing.T) {
 	}
 
 	biosDir := store.SystemBiosDir(model.SystemIDPSX)
-	if err := os.WriteFile(filepath.Join(biosDir, "scph5501.bin"), []byte("usa"), 0644); err != nil {
+	if err := fs.WriteFile(filepath.Join(biosDir, "scph5501.bin"), []byte("usa"), 0644); err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
@@ -220,8 +256,15 @@ func TestProvisionGroupSatisfaction(t *testing.T) {
 }
 
 func TestProvisionCheckerFilePattern(t *testing.T) {
-	tmpDir := t.TempDir()
-	store := mustNewUserStore(t, tmpDir)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/emulation": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	store := mustNewUserStore(t, fs, "/emulation")
 
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
@@ -250,7 +293,7 @@ func TestProvisionCheckerFilePattern(t *testing.T) {
 		t.Error("Empty bios directory should be missing")
 	}
 
-	if err := os.WriteFile(filepath.Join(biosDir, "0100000000000809.nca"), []byte("firmware"), 0644); err != nil {
+	if err := fs.WriteFile(filepath.Join(biosDir, "0100000000000809.nca"), []byte("firmware"), 0644); err != nil {
 		t.Fatalf("Failed to create NCA file: %v", err)
 	}
 

@@ -8,6 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/twpayne/go-vfs/v5"
+	"github.com/twpayne/go-vfs/v5/vfst"
+
 	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/emulators/symlink"
 	"github.com/fnune/kyaraben/internal/model"
@@ -40,44 +43,90 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+type testEnv struct {
+	fs           vfs.FS
+	cleanup      func()
+	rootDir      string
+	manifestPath string
+	userStore    *store.UserStore
+	installer    *packages.FakeInstaller
+	configWriter *emulators.ConfigWriter
+	applier      *Applier
+	reg          *registry.Registry
+}
+
+func newTestEnv(t *testing.T) *testEnv {
+	t.Helper()
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/home":                      &vfst.Dir{Perm: 0755},
+		"/home/Emulation":            &vfst.Dir{Perm: 0755},
+		"/home/Emulation/bios":       &vfst.Dir{Perm: 0755},
+		"/home/Emulation/roms":       &vfst.Dir{Perm: 0755},
+		"/home/Emulation/saves":      &vfst.Dir{Perm: 0755},
+		"/home/packages":             &vfst.Dir{Perm: 0755},
+		"/home/.config":              &vfst.Dir{Perm: 0755},
+		"/home/.config/retroarch":    &vfst.Dir{Perm: 0755},
+		"/home/.config/mgba":         &vfst.Dir{Perm: 0755},
+		"/home/.config/duckstation":  &vfst.Dir{Perm: 0755},
+		"/home/.local":               &vfst.Dir{Perm: 0755},
+		"/home/.local/share":         &vfst.Dir{Perm: 0755},
+		"/home/.local/share/melonDS": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rootDir := "/home"
+	manifestPath := filepath.Join(rootDir, "manifest.json")
+	userStorePath := filepath.Join(rootDir, "Emulation")
+	packagesDir := filepath.Join(rootDir, "packages")
+
+	userStore, err := store.NewUserStore(fs, userStorePath)
+	if err != nil {
+		cleanup()
+		t.Fatalf("Failed to create user store: %v", err)
+	}
+
+	reg := registry.NewDefault()
+	resolver := fakeBaseDirResolver{root: rootDir}
+	installer := packages.NewFakeInstaller(fs, packagesDir)
+	configWriter := emulators.NewConfigWriter(fs, resolver)
+	symlinkCreator := symlink.NewCreator(fs)
+	applier := NewApplier(fs, installer, configWriter, reg, manifestPath, nil, resolver, symlinkCreator)
+
+	return &testEnv{
+		fs:           fs,
+		cleanup:      cleanup,
+		rootDir:      rootDir,
+		manifestPath: manifestPath,
+		userStore:    userStore,
+		installer:    installer,
+		configWriter: configWriter,
+		applier:      applier,
+		reg:          reg,
+	}
+}
+
 func TestUnmanagedEntriesExcludedFromManifest(t *testing.T) {
-	tmpDir := t.TempDir()
-	manifestPath := filepath.Join(tmpDir, "manifest.json")
-	userStorePath := filepath.Join(tmpDir, "Emulation")
-	packagesDir := filepath.Join(tmpDir, "packages")
+	env := newTestEnv(t)
+	defer env.cleanup()
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: userStorePath,
+			UserStore: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDSNES: {model.EmulatorIDRetroArchBsnes},
 		},
 	}
 
-	reg := registry.NewDefault()
-	userStore, err := store.NewUserStore(userStorePath)
-	if err != nil {
-		t.Fatalf("Failed to create user store: %v", err)
-	}
-
-	installer := packages.NewFakeInstaller(packagesDir)
-	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
-
-	applier := &Applier{
-		Installer:       installer,
-		ConfigWriter:    configWriter,
-		Registry:        reg,
-		ManifestPath:    manifestPath,
-		BaseDirResolver: fakeBaseDirResolver{root: tmpDir},
-	}
-
-	_, err = applier.Apply(context.Background(), cfg, userStore, Options{})
+	_, err := env.applier.Apply(context.Background(), cfg, env.userStore, Options{})
 	if err != nil {
 		t.Fatalf("Apply failed: %v", err)
 	}
 
-	manifest, err := model.LoadManifest(manifestPath)
+	manifestStore := model.NewManifestStore(env.fs)
+	manifest, err := manifestStore.Load(env.manifestPath)
 	if err != nil {
 		t.Fatalf("Failed to load manifest: %v", err)
 	}
@@ -106,11 +155,10 @@ func TestUnmanagedEntriesExcludedFromManifest(t *testing.T) {
 }
 
 func TestApplyRemovesUnenabledEmulatorsFromManifest(t *testing.T) {
-	tmpDir := t.TempDir()
-	manifestPath := filepath.Join(tmpDir, "manifest.json")
-	userStorePath := filepath.Join(tmpDir, "Emulation")
-	packagesDir := filepath.Join(tmpDir, "packages")
+	env := newTestEnv(t)
+	defer env.cleanup()
 
+	manifestStore := model.NewManifestStore(env.fs)
 	oldManifest := &model.Manifest{
 		Version:     1,
 		LastApplied: time.Now().Add(-time.Hour),
@@ -129,42 +177,25 @@ func TestApplyRemovesUnenabledEmulatorsFromManifest(t *testing.T) {
 			},
 		},
 	}
-	if err := oldManifest.Save(manifestPath); err != nil {
+	if err := manifestStore.Save(oldManifest, env.manifestPath); err != nil {
 		t.Fatalf("Failed to save old manifest: %v", err)
 	}
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: userStorePath,
+			UserStore: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGBA: {model.EmulatorIDMGBA},
 		},
 	}
 
-	reg := registry.NewDefault()
-	userStore, err := store.NewUserStore(userStorePath)
-	if err != nil {
-		t.Fatalf("Failed to create user store: %v", err)
-	}
-
-	installer := packages.NewFakeInstaller(packagesDir)
-	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
-
-	applier := &Applier{
-		Installer:       installer,
-		ConfigWriter:    configWriter,
-		Registry:        reg,
-		ManifestPath:    manifestPath,
-		BaseDirResolver: fakeBaseDirResolver{root: tmpDir},
-	}
-
-	_, err = applier.Apply(context.Background(), cfg, userStore, Options{})
+	_, err := env.applier.Apply(context.Background(), cfg, env.userStore, Options{})
 	if err != nil {
 		t.Fatalf("Apply failed: %v", err)
 	}
 
-	newManifest, err := model.LoadManifest(manifestPath)
+	newManifest, err := manifestStore.Load(env.manifestPath)
 	if err != nil {
 		t.Fatalf("Failed to load manifest: %v", err)
 	}
@@ -183,20 +214,16 @@ func TestApplyRemovesUnenabledEmulatorsFromManifest(t *testing.T) {
 }
 
 func TestApplyRemovesConfigDirsForDisabledEmulators(t *testing.T) {
-	tmpDir := t.TempDir()
-	manifestPath := filepath.Join(tmpDir, "manifest.json")
-	userStorePath := filepath.Join(tmpDir, "Emulation")
-	packagesDir := filepath.Join(tmpDir, "packages")
-	configDir := filepath.Join(tmpDir, ".config")
+	env := newTestEnv(t)
+	defer env.cleanup()
 
-	mgbaConfigDir := filepath.Join(configDir, "mgba")
-	if err := os.MkdirAll(mgbaConfigDir, 0755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(mgbaConfigDir, "config.ini"), []byte("[test]"), 0644); err != nil {
+	mgbaConfigDir := filepath.Join(env.rootDir, ".config", "mgba")
+	if err := env.fs.WriteFile(filepath.Join(mgbaConfigDir, "config.ini"), []byte("[test]"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
+	manifestStore := model.NewManifestStore(env.fs)
+	packagesDir := filepath.Join(env.rootDir, "packages")
 	oldManifest := &model.Manifest{
 		Version:     1,
 		LastApplied: time.Now().Add(-time.Hour),
@@ -221,45 +248,27 @@ func TestApplyRemovesConfigDirsForDisabledEmulators(t *testing.T) {
 			},
 		},
 	}
-	if err := oldManifest.Save(manifestPath); err != nil {
+	if err := manifestStore.Save(oldManifest, env.manifestPath); err != nil {
 		t.Fatalf("Failed to save old manifest: %v", err)
 	}
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: userStorePath,
+			UserStore: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{},
 	}
 
-	reg := registry.NewDefault()
-	userStore, err := store.NewUserStore(userStorePath)
-	if err != nil {
-		t.Fatalf("Failed to create user store: %v", err)
-	}
-
-	installer := packages.NewFakeInstaller(packagesDir)
-	resolver := fakeBaseDirResolver{root: tmpDir}
-	configWriter := emulators.NewConfigWriter(resolver)
-
-	applier := &Applier{
-		Installer:       installer,
-		ConfigWriter:    configWriter,
-		Registry:        reg,
-		ManifestPath:    manifestPath,
-		BaseDirResolver: resolver,
-	}
-
-	_, err = applier.Apply(context.Background(), cfg, userStore, Options{})
+	_, err := env.applier.Apply(context.Background(), cfg, env.userStore, Options{})
 	if err != nil {
 		t.Fatalf("Apply failed: %v", err)
 	}
 
-	if _, err := os.Stat(mgbaConfigDir); !os.IsNotExist(err) {
+	if _, err := env.fs.Stat(mgbaConfigDir); err == nil {
 		t.Error("mgba config directory should have been removed when emulator was disabled")
 	}
 
-	newManifest, err := model.LoadManifest(manifestPath)
+	newManifest, err := manifestStore.Load(env.manifestPath)
 	if err != nil {
 		t.Fatalf("Failed to load manifest: %v", err)
 	}
@@ -270,14 +279,12 @@ func TestApplyRemovesConfigDirsForDisabledEmulators(t *testing.T) {
 }
 
 func TestApplyCreatesEmulatorStatesDirectories(t *testing.T) {
-	tmpDir := t.TempDir()
-	manifestPath := filepath.Join(tmpDir, "manifest.json")
-	userStorePath := filepath.Join(tmpDir, "Emulation")
-	packagesDir := filepath.Join(tmpDir, "packages")
+	env := newTestEnv(t)
+	defer env.cleanup()
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: userStorePath,
+			UserStore: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDSNES: {model.EmulatorIDRetroArchBsnes},
@@ -285,28 +292,12 @@ func TestApplyCreatesEmulatorStatesDirectories(t *testing.T) {
 		},
 	}
 
-	reg := registry.NewDefault()
-	userStore, err := store.NewUserStore(userStorePath)
-	if err != nil {
-		t.Fatalf("Failed to create user store: %v", err)
-	}
-
-	installer := packages.NewFakeInstaller(packagesDir)
-	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
-
-	applier := &Applier{
-		Installer:       installer,
-		ConfigWriter:    configWriter,
-		Registry:        reg,
-		ManifestPath:    manifestPath,
-		BaseDirResolver: fakeBaseDirResolver{root: tmpDir},
-	}
-
-	_, err = applier.Apply(context.Background(), cfg, userStore, Options{})
+	_, err := env.applier.Apply(context.Background(), cfg, env.userStore, Options{})
 	if err != nil {
 		t.Fatalf("Apply failed: %v", err)
 	}
 
+	userStorePath := filepath.Join(env.rootDir, "Emulation")
 	for _, tc := range []struct {
 		name string
 		path string
@@ -315,7 +306,7 @@ func TestApplyCreatesEmulatorStatesDirectories(t *testing.T) {
 		{"standalone emulator", filepath.Join(userStorePath, "states", "mgba")},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if info, err := os.Stat(tc.path); err != nil || !info.IsDir() {
+			if info, err := env.fs.Stat(tc.path); err != nil || !info.IsDir() {
 				t.Errorf("States directory not created: %s", tc.path)
 			}
 		})
@@ -323,40 +314,22 @@ func TestApplyCreatesEmulatorStatesDirectories(t *testing.T) {
 }
 
 func TestApplyCreatesSymlinksForSymlinkProviders(t *testing.T) {
-	tmpDir := t.TempDir()
-	manifestPath := filepath.Join(tmpDir, "manifest.json")
-	userStorePath := filepath.Join(tmpDir, "Emulation")
-	packagesDir := filepath.Join(tmpDir, "packages")
+	env := newTestEnv(t)
+	defer env.cleanup()
+
+	fakeSymlinkCreator := &symlink.FakeCreator{}
+	env.applier.SymlinkCreator = fakeSymlinkCreator
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: userStorePath,
+			UserStore: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGameCube: {model.EmulatorIDDolphin},
 		},
 	}
 
-	reg := registry.NewDefault()
-	userStore, err := store.NewUserStore(userStorePath)
-	if err != nil {
-		t.Fatalf("Failed to create user store: %v", err)
-	}
-
-	installer := packages.NewFakeInstaller(packagesDir)
-	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
-	fakeSymlinkCreator := &symlink.FakeCreator{}
-
-	applier := &Applier{
-		Installer:       installer,
-		ConfigWriter:    configWriter,
-		Registry:        reg,
-		ManifestPath:    manifestPath,
-		BaseDirResolver: fakeBaseDirResolver{root: tmpDir},
-		SymlinkCreator:  fakeSymlinkCreator,
-	}
-
-	_, err = applier.Apply(context.Background(), cfg, userStore, Options{})
+	_, err := env.applier.Apply(context.Background(), cfg, env.userStore, Options{})
 	if err != nil {
 		t.Fatalf("Apply failed: %v", err)
 	}
@@ -366,10 +339,10 @@ func TestApplyCreatesSymlinksForSymlinkProviders(t *testing.T) {
 	}
 
 	expectedSources := map[string]bool{
-		filepath.Join(tmpDir, ".local", "share", "dolphin-emu", "GC"):          false,
-		filepath.Join(tmpDir, ".local", "share", "dolphin-emu", "Wii"):         false,
-		filepath.Join(tmpDir, ".local", "share", "dolphin-emu", "StateSaves"):  false,
-		filepath.Join(tmpDir, ".local", "share", "dolphin-emu", "ScreenShots"): false,
+		filepath.Join(env.rootDir, ".local", "share", "dolphin-emu", "GC"):          false,
+		filepath.Join(env.rootDir, ".local", "share", "dolphin-emu", "Wii"):         false,
+		filepath.Join(env.rootDir, ".local", "share", "dolphin-emu", "StateSaves"):  false,
+		filepath.Join(env.rootDir, ".local", "share", "dolphin-emu", "ScreenShots"): false,
 	}
 
 	for _, spec := range fakeSymlinkCreator.Created {
@@ -384,7 +357,8 @@ func TestApplyCreatesSymlinksForSymlinkProviders(t *testing.T) {
 		}
 	}
 
-	manifest, err := model.LoadManifest(manifestPath)
+	manifestStore := model.NewManifestStore(env.fs)
+	manifest, err := manifestStore.Load(env.manifestPath)
 	if err != nil {
 		t.Fatalf("Failed to load manifest: %v", err)
 	}
@@ -401,42 +375,23 @@ func TestApplyCreatesSymlinksForSymlinkProviders(t *testing.T) {
 }
 
 func TestApplyCreatesProvisionDirectories(t *testing.T) {
-	tmpDir := t.TempDir()
-	manifestPath := filepath.Join(tmpDir, "manifest.json")
-	userStorePath := filepath.Join(tmpDir, "Emulation")
-	packagesDir := filepath.Join(tmpDir, "packages")
+	env := newTestEnv(t)
+	defer env.cleanup()
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: userStorePath,
+			UserStore: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGameCube: {model.EmulatorIDDolphin},
 		},
 	}
 
-	reg := registry.NewDefault()
-	userStore, err := store.NewUserStore(userStorePath)
-	if err != nil {
-		t.Fatalf("Failed to create user store: %v", err)
-	}
-
-	installer := packages.NewFakeInstaller(packagesDir)
-	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
-
-	applier := &Applier{
-		Installer:       installer,
-		ConfigWriter:    configWriter,
-		Registry:        reg,
-		ManifestPath:    manifestPath,
-		BaseDirResolver: fakeBaseDirResolver{root: tmpDir},
-		SymlinkCreator:  &symlink.FakeCreator{},
-	}
-
-	if _, err := applier.Apply(context.Background(), cfg, userStore, Options{}); err != nil {
+	if _, err := env.applier.Apply(context.Background(), cfg, env.userStore, Options{}); err != nil {
 		t.Fatalf("Apply failed: %v", err)
 	}
 
+	userStorePath := filepath.Join(env.rootDir, "Emulation")
 	paths := []string{
 		filepath.Join(userStorePath, "saves", "gamecube", "USA"),
 		filepath.Join(userStorePath, "saves", "gamecube", "EUR"),
@@ -445,13 +400,13 @@ func TestApplyCreatesProvisionDirectories(t *testing.T) {
 	}
 
 	for _, path := range paths {
-		assertDirExists(t, path)
+		assertDirExistsVFS(t, env.fs, path)
 	}
 }
 
-func assertDirExists(t *testing.T, path string) {
+func assertDirExistsVFS(t *testing.T, fs vfs.FS, path string) {
 	t.Helper()
-	info, err := os.Stat(path)
+	info, err := fs.Stat(path)
 	if err != nil {
 		t.Fatalf("directory %s missing: %v", path, err)
 	}
@@ -461,41 +416,22 @@ func assertDirExists(t *testing.T, path string) {
 }
 
 func TestApplySucceedsWhenGCFails(t *testing.T) {
-	tmpDir := t.TempDir()
-	manifestPath := filepath.Join(tmpDir, "manifest.json")
-	userStorePath := filepath.Join(tmpDir, "Emulation")
-	packagesDir := filepath.Join(tmpDir, "packages")
+	env := newTestEnv(t)
+	defer env.cleanup()
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: userStorePath,
+			UserStore: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGBA: {model.EmulatorIDMGBA},
 		},
 	}
 
-	reg := registry.NewDefault()
-	userStore, err := store.NewUserStore(userStorePath)
-	if err != nil {
-		t.Fatalf("Failed to create user store: %v", err)
-	}
-
-	installer := packages.NewFakeInstaller(packagesDir)
-	origGC := installer.GarbageCollect
-	_ = origGC
-	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
+	env.applier.Installer = &failingGCInstaller{FakeInstaller: env.installer}
 
 	var progressSteps []Progress
-	applier := &Applier{
-		Installer:       &failingGCInstaller{FakeInstaller: installer},
-		ConfigWriter:    configWriter,
-		Registry:        reg,
-		ManifestPath:    manifestPath,
-		BaseDirResolver: fakeBaseDirResolver{root: tmpDir},
-	}
-
-	_, err = applier.Apply(context.Background(), cfg, userStore, Options{
+	_, err := env.applier.Apply(context.Background(), cfg, env.userStore, Options{
 		OnProgress: func(p Progress) {
 			progressSteps = append(progressSteps, p)
 		},
@@ -528,14 +464,12 @@ func (f *failingGCInstaller) GarbageCollect(keep map[string]string) error {
 }
 
 func TestApplyWithFakeInstallerE2E(t *testing.T) {
-	tmpDir := t.TempDir()
-	manifestPath := filepath.Join(tmpDir, "manifest.json")
-	userStorePath := filepath.Join(tmpDir, "Emulation")
-	packagesDir := filepath.Join(tmpDir, "packages")
+	env := newTestEnv(t)
+	defer env.cleanup()
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: userStorePath,
+			UserStore: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGBA:  {model.EmulatorIDMGBA},
@@ -544,29 +478,12 @@ func TestApplyWithFakeInstallerE2E(t *testing.T) {
 		},
 	}
 
-	reg := registry.NewDefault()
-	userStore, err := store.NewUserStore(userStorePath)
-	if err != nil {
-		t.Fatalf("Failed to create user store: %v", err)
-	}
-
-	installer := packages.NewFakeInstaller(packagesDir)
-	installer.Versions["mgba"] = "0.10.3"
-	installer.Versions["duckstation"] = "v0.1-10655"
-	installer.Versions["retroarch"] = "1.22.0"
-
-	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
+	env.installer.Versions["mgba"] = "0.10.3"
+	env.installer.Versions["duckstation"] = "v0.1-10655"
+	env.installer.Versions["retroarch"] = "1.22.0"
 
 	var progressEvents []Progress
-	applier := &Applier{
-		Installer:       installer,
-		ConfigWriter:    configWriter,
-		Registry:        reg,
-		ManifestPath:    manifestPath,
-		BaseDirResolver: fakeBaseDirResolver{root: tmpDir},
-	}
-
-	result, err := applier.Apply(context.Background(), cfg, userStore, Options{
+	result, err := env.applier.Apply(context.Background(), cfg, env.userStore, Options{
 		OnProgress: func(p Progress) {
 			progressEvents = append(progressEvents, p)
 		},
@@ -579,7 +496,8 @@ func TestApplyWithFakeInstallerE2E(t *testing.T) {
 		t.Error("Expected config patches to be generated")
 	}
 
-	manifest, err := model.LoadManifest(manifestPath)
+	manifestStore := model.NewManifestStore(env.fs)
+	manifest, err := manifestStore.Load(env.manifestPath)
 	if err != nil {
 		t.Fatalf("Failed to load manifest: %v", err)
 	}
@@ -596,14 +514,15 @@ func TestApplyWithFakeInstallerE2E(t *testing.T) {
 		t.Error("mGBA should be in manifest")
 	}
 
+	packagesDir := filepath.Join(env.rootDir, "packages")
 	for id, emu := range manifest.InstalledEmulators {
 		if emu.PackagePath != packagesDir {
 			t.Errorf("InstalledEmulators[%s].PackagePath = %q, want %q", id, emu.PackagePath, packagesDir)
 		}
 	}
 
-	if len(installer.GCCalls) != 1 {
-		t.Errorf("Expected 1 GC call, got %d", len(installer.GCCalls))
+	if len(env.installer.GCCalls) != 1 {
+		t.Errorf("Expected 1 GC call, got %d", len(env.installer.GCCalls))
 	}
 
 	hasBuild := false
@@ -625,14 +544,12 @@ func TestApplyWithFakeInstallerE2E(t *testing.T) {
 }
 
 func TestApplyInstallsFrontend(t *testing.T) {
-	tmpDir := t.TempDir()
-	manifestPath := filepath.Join(tmpDir, "manifest.json")
-	userStorePath := filepath.Join(tmpDir, "Emulation")
-	packagesDir := filepath.Join(tmpDir, "packages")
+	env := newTestEnv(t)
+	defer env.cleanup()
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: userStorePath,
+			UserStore: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGBA: {model.EmulatorIDMGBA},
@@ -642,32 +559,16 @@ func TestApplyInstallsFrontend(t *testing.T) {
 		},
 	}
 
-	reg := registry.NewDefault()
-	userStore, err := store.NewUserStore(userStorePath)
-	if err != nil {
-		t.Fatalf("Failed to create user store: %v", err)
-	}
+	env.installer.Versions["mgba"] = "0.10.3"
+	env.installer.Versions["es-de"] = "3.0.0"
 
-	installer := packages.NewFakeInstaller(packagesDir)
-	installer.Versions["mgba"] = "0.10.3"
-	installer.Versions["es-de"] = "3.0.0"
-
-	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
-
-	applier := &Applier{
-		Installer:       installer,
-		ConfigWriter:    configWriter,
-		Registry:        reg,
-		ManifestPath:    manifestPath,
-		BaseDirResolver: fakeBaseDirResolver{root: tmpDir},
-	}
-
-	_, err = applier.Apply(context.Background(), cfg, userStore, Options{})
+	_, err := env.applier.Apply(context.Background(), cfg, env.userStore, Options{})
 	if err != nil {
 		t.Fatalf("Apply failed: %v", err)
 	}
 
-	manifest, err := model.LoadManifest(manifestPath)
+	manifestStore := model.NewManifestStore(env.fs)
+	manifest, err := manifestStore.Load(env.manifestPath)
 	if err != nil {
 		t.Fatalf("Failed to load manifest: %v", err)
 	}
@@ -682,8 +583,9 @@ func TestApplyInstallsFrontend(t *testing.T) {
 		}
 	}
 
+	packagesDir := filepath.Join(env.rootDir, "packages")
 	binaryPath := filepath.Join(packagesDir, "es-de", "bin", "es-de")
-	if _, err := os.Stat(binaryPath); os.IsNotExist(err) {
+	if _, err := env.fs.Stat(binaryPath); err != nil {
 		t.Errorf("ES-DE binary should be installed at %s", binaryPath)
 	}
 }
@@ -699,14 +601,12 @@ func (i *iconTrackingInstaller) InstallIcon(ctx context.Context, binaryName, url
 }
 
 func TestApplyInstallsFrontendIcon(t *testing.T) {
-	tmpDir := t.TempDir()
-	manifestPath := filepath.Join(tmpDir, "manifest.json")
-	userStorePath := filepath.Join(tmpDir, "Emulation")
-	packagesDir := filepath.Join(tmpDir, "packages")
+	env := newTestEnv(t)
+	defer env.cleanup()
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: userStorePath,
+			UserStore: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGBA: {model.EmulatorIDMGBA},
@@ -716,28 +616,12 @@ func TestApplyInstallsFrontendIcon(t *testing.T) {
 		},
 	}
 
-	reg := registry.NewDefault()
-	userStore, err := store.NewUserStore(userStorePath)
-	if err != nil {
-		t.Fatalf("Failed to create user store: %v", err)
-	}
+	env.installer.Versions["mgba"] = "0.10.3"
+	env.installer.Versions["es-de"] = "3.0.0"
+	installer := &iconTrackingInstaller{FakeInstaller: env.installer}
+	env.applier.Installer = installer
 
-	fakeInstaller := packages.NewFakeInstaller(packagesDir)
-	fakeInstaller.Versions["mgba"] = "0.10.3"
-	fakeInstaller.Versions["es-de"] = "3.0.0"
-	installer := &iconTrackingInstaller{FakeInstaller: fakeInstaller}
-
-	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
-
-	applier := &Applier{
-		Installer:       installer,
-		ConfigWriter:    configWriter,
-		Registry:        reg,
-		ManifestPath:    manifestPath,
-		BaseDirResolver: fakeBaseDirResolver{root: tmpDir},
-	}
-
-	_, err = applier.Apply(context.Background(), cfg, userStore, Options{})
+	_, err := env.applier.Apply(context.Background(), cfg, env.userStore, Options{})
 	if err != nil {
 		t.Fatalf("Apply failed: %v", err)
 	}

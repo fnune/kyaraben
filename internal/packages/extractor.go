@@ -12,6 +12,7 @@ import (
 
 	"github.com/bodgit/sevenzip"
 	"github.com/klauspost/compress/zstd"
+	"github.com/twpayne/go-vfs/v5"
 	"github.com/ulikunitz/xz"
 )
 
@@ -19,22 +20,32 @@ type Extractor interface {
 	Extract(archivePath, destDir, archiveType string) error
 }
 
-type OSExtractor struct{}
+type OSExtractor struct {
+	fs vfs.FS
+}
 
-func (e OSExtractor) Extract(archivePath, destDir, archiveType string) error {
+func NewExtractor(fs vfs.FS) *OSExtractor {
+	return &OSExtractor{fs: fs}
+}
+
+func NewDefaultExtractor() *OSExtractor {
+	return NewExtractor(vfs.OSFS)
+}
+
+func (e *OSExtractor) Extract(archivePath, destDir, archiveType string) error {
 	switch archiveType {
 	case "tar.gz", "tgz":
-		return extractTar(archivePath, destDir, openGzip)
+		return e.extractTar(archivePath, destDir, openGzip)
 	case "tar.xz":
-		return extractTar(archivePath, destDir, openXZ)
+		return e.extractTar(archivePath, destDir, openXZ)
 	case "tar.zst":
-		return extractTar(archivePath, destDir, openZstd)
+		return e.extractTar(archivePath, destDir, openZstd)
 	case "zip":
-		return extractZip(archivePath, destDir)
+		return e.extractZip(archivePath, destDir)
 	case "appimage":
-		return installAppImage(archivePath, destDir)
+		return e.installAppImage(archivePath, destDir)
 	case "7z":
-		return extract7z(archivePath, destDir)
+		return e.extract7z(archivePath, destDir)
 	default:
 		return fmt.Errorf("unsupported archive type: %s", archiveType)
 	}
@@ -54,8 +65,8 @@ func openZstd(r io.Reader) (io.Reader, error) {
 	return zstd.NewReader(r)
 }
 
-func extractTar(archivePath, destDir string, decompress decompressor) error {
-	f, err := os.Open(archivePath)
+func (e *OSExtractor) extractTar(archivePath, destDir string, decompress decompressor) error {
+	f, err := e.fs.Open(archivePath)
 	if err != nil {
 		return fmt.Errorf("opening archive: %w", err)
 	}
@@ -79,76 +90,91 @@ func extractTar(archivePath, destDir string, decompress decompressor) error {
 			return fmt.Errorf("reading tar entry: %w", err)
 		}
 
-		target, err := sanitizePath(destDir, header.Name)
+		target, err := e.sanitizePath(destDir, header.Name)
 		if err != nil {
 			return err
 		}
 
 		switch header.Typeflag {
 		case tar.TypeDir:
-			if err := os.MkdirAll(target, 0755); err != nil {
+			if err := vfs.MkdirAll(e.fs, target, 0755); err != nil {
 				return fmt.Errorf("creating directory %s: %w", target, err)
 			}
 		case tar.TypeReg:
-			if err := writeFile(target, tr, header.FileInfo().Mode()); err != nil {
+			if err := e.writeFile(target, tr, header.FileInfo().Mode()); err != nil {
 				return err
 			}
 		case tar.TypeSymlink:
-			if err := createSafeSymlink(destDir, target, header.Linkname); err != nil {
+			if err := e.createSafeSymlink(destDir, target, header.Linkname); err != nil {
 				return err
 			}
 		}
 	}
 }
 
-func extractZip(archivePath, destDir string) error {
-	r, err := zip.OpenReader(archivePath)
+func (e *OSExtractor) extractZip(archivePath, destDir string) error {
+	f, err := e.fs.Open(archivePath)
 	if err != nil {
 		return fmt.Errorf("opening zip: %w", err)
 	}
-	defer func() { _ = r.Close() }()
+	defer func() { _ = f.Close() }()
 
-	for _, f := range r.File {
-		target, err := sanitizePath(destDir, f.Name)
+	readerAt, ok := f.(io.ReaderAt)
+	if !ok {
+		return fmt.Errorf("zip extraction requires ReaderAt support")
+	}
+
+	stat, err := f.Stat()
+	if err != nil {
+		return fmt.Errorf("stat zip: %w", err)
+	}
+
+	r, err := zip.NewReader(readerAt, stat.Size())
+	if err != nil {
+		return fmt.Errorf("reading zip: %w", err)
+	}
+
+	for _, zf := range r.File {
+		target, err := e.sanitizePath(destDir, zf.Name)
 		if err != nil {
 			return err
 		}
 
-		mode := f.FileInfo().Mode()
+		mode := zf.FileInfo().Mode()
 
 		if mode&os.ModeSymlink != 0 {
-			rc, err := f.Open()
+			rc, err := zf.Open()
 			if err != nil {
-				return fmt.Errorf("opening zip symlink %s: %w", f.Name, err)
+				return fmt.Errorf("opening zip symlink %s: %w", zf.Name, err)
 			}
 			linkTarget, err := io.ReadAll(rc)
 			_ = rc.Close()
 			if err != nil {
-				return fmt.Errorf("reading zip symlink %s: %w", f.Name, err)
+				return fmt.Errorf("reading zip symlink %s: %w", zf.Name, err)
 			}
-			if err := createSafeSymlink(destDir, target, string(linkTarget)); err != nil {
+			if err := e.createSafeSymlink(destDir, target, string(linkTarget)); err != nil {
 				return err
 			}
 			continue
 		}
 
-		if f.FileInfo().IsDir() {
-			if err := os.MkdirAll(target, 0755); err != nil {
+		if zf.FileInfo().IsDir() {
+			if err := vfs.MkdirAll(e.fs, target, 0755); err != nil {
 				return fmt.Errorf("creating directory %s: %w", target, err)
 			}
 			continue
 		}
 
-		if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+		if err := vfs.MkdirAll(e.fs, filepath.Dir(target), 0755); err != nil {
 			return fmt.Errorf("creating parent dir for %s: %w", target, err)
 		}
 
-		rc, err := f.Open()
+		rc, err := zf.Open()
 		if err != nil {
-			return fmt.Errorf("opening zip entry %s: %w", f.Name, err)
+			return fmt.Errorf("opening zip entry %s: %w", zf.Name, err)
 		}
 
-		err = writeFile(target, rc, mode)
+		err = e.writeFile(target, rc, mode)
 		_ = rc.Close()
 		if err != nil {
 			return err
@@ -158,12 +184,12 @@ func extractZip(archivePath, destDir string) error {
 	return nil
 }
 
-func installAppImage(srcPath, destDir string) error {
-	if err := os.MkdirAll(destDir, 0755); err != nil {
+func (e *OSExtractor) installAppImage(srcPath, destDir string) error {
+	if err := vfs.MkdirAll(e.fs, destDir, 0755); err != nil {
 		return fmt.Errorf("creating destination: %w", err)
 	}
 
-	src, err := os.Open(srcPath)
+	src, err := e.fs.Open(srcPath)
 	if err != nil {
 		return fmt.Errorf("opening appimage: %w", err)
 	}
@@ -172,7 +198,7 @@ func installAppImage(srcPath, destDir string) error {
 	destName := filepath.Base(srcPath)
 	destPath := filepath.Join(destDir, destName)
 
-	dst, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
+	dst, err := e.fs.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
 	if err != nil {
 		return fmt.Errorf("creating destination file: %w", err)
 	}
@@ -185,7 +211,7 @@ func installAppImage(srcPath, destDir string) error {
 	return dst.Close()
 }
 
-func createSafeSymlink(destDir, target, linkTarget string) error {
+func (e *OSExtractor) createSafeSymlink(destDir, target, linkTarget string) error {
 	if filepath.IsAbs(linkTarget) {
 		return fmt.Errorf("absolute symlink target: %s -> %s", target, linkTarget)
 	}
@@ -194,13 +220,13 @@ func createSafeSymlink(destDir, target, linkTarget string) error {
 	if !strings.HasPrefix(resolvedTarget, filepath.Clean(destDir)+string(filepath.Separator)) && resolvedTarget != filepath.Clean(destDir) {
 		return fmt.Errorf("symlink escapes destination: %s -> %s", target, linkTarget)
 	}
-	if err := os.Symlink(linkTarget, target); err != nil {
+	if err := e.fs.Symlink(linkTarget, target); err != nil {
 		return fmt.Errorf("creating symlink %s: %w", target, err)
 	}
 	return nil
 }
 
-func sanitizePath(destDir, name string) (string, error) {
+func (e *OSExtractor) sanitizePath(destDir, name string) (string, error) {
 	cleaned := filepath.Clean(name)
 	if strings.HasPrefix(cleaned, "..") || filepath.IsAbs(cleaned) {
 		return "", fmt.Errorf("path traversal in archive: %s", name)
@@ -211,18 +237,18 @@ func sanitizePath(destDir, name string) (string, error) {
 		return "", fmt.Errorf("path escapes destination: %s", name)
 	}
 
-	if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+	if err := vfs.MkdirAll(e.fs, filepath.Dir(target), 0755); err != nil {
 		return "", fmt.Errorf("creating parent directory: %w", err)
 	}
 
 	return target, nil
 }
 
-func writeFile(path string, r io.Reader, mode os.FileMode) error {
+func (e *OSExtractor) writeFile(path string, r io.Reader, mode os.FileMode) error {
 	if mode == 0 {
 		mode = 0644
 	}
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
+	f, err := e.fs.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
 	if err != nil {
 		return fmt.Errorf("creating file %s: %w", path, err)
 	}
@@ -235,54 +261,69 @@ func writeFile(path string, r io.Reader, mode os.FileMode) error {
 	return f.Close()
 }
 
-func extract7z(archivePath, destDir string) error {
-	r, err := sevenzip.OpenReader(archivePath)
+func (e *OSExtractor) extract7z(archivePath, destDir string) error {
+	f, err := e.fs.Open(archivePath)
 	if err != nil {
 		return fmt.Errorf("opening 7z: %w", err)
 	}
-	defer func() { _ = r.Close() }()
+	defer func() { _ = f.Close() }()
 
-	for _, f := range r.File {
-		target, err := sanitizePath(destDir, f.Name)
+	readerAt, ok := f.(io.ReaderAt)
+	if !ok {
+		return fmt.Errorf("7z extraction requires ReaderAt support")
+	}
+
+	stat, err := f.Stat()
+	if err != nil {
+		return fmt.Errorf("stat 7z: %w", err)
+	}
+
+	r, err := sevenzip.NewReader(readerAt, stat.Size())
+	if err != nil {
+		return fmt.Errorf("reading 7z: %w", err)
+	}
+
+	for _, sf := range r.File {
+		target, err := e.sanitizePath(destDir, sf.Name)
 		if err != nil {
 			return err
 		}
 
-		mode := f.FileInfo().Mode()
+		mode := sf.FileInfo().Mode()
 
 		if mode&os.ModeSymlink != 0 {
-			rc, err := f.Open()
+			rc, err := sf.Open()
 			if err != nil {
-				return fmt.Errorf("opening 7z symlink %s: %w", f.Name, err)
+				return fmt.Errorf("opening 7z symlink %s: %w", sf.Name, err)
 			}
 			linkTarget, err := io.ReadAll(rc)
 			_ = rc.Close()
 			if err != nil {
-				return fmt.Errorf("reading 7z symlink %s: %w", f.Name, err)
+				return fmt.Errorf("reading 7z symlink %s: %w", sf.Name, err)
 			}
-			if err := createSafeSymlink(destDir, target, string(linkTarget)); err != nil {
+			if err := e.createSafeSymlink(destDir, target, string(linkTarget)); err != nil {
 				return err
 			}
 			continue
 		}
 
-		if f.FileInfo().IsDir() {
-			if err := os.MkdirAll(target, 0755); err != nil {
+		if sf.FileInfo().IsDir() {
+			if err := vfs.MkdirAll(e.fs, target, 0755); err != nil {
 				return fmt.Errorf("creating directory %s: %w", target, err)
 			}
 			continue
 		}
 
-		if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+		if err := vfs.MkdirAll(e.fs, filepath.Dir(target), 0755); err != nil {
 			return fmt.Errorf("creating parent dir for %s: %w", target, err)
 		}
 
-		rc, err := f.Open()
+		rc, err := sf.Open()
 		if err != nil {
-			return fmt.Errorf("opening 7z entry %s: %w", f.Name, err)
+			return fmt.Errorf("opening 7z entry %s: %w", sf.Name, err)
 		}
 
-		err = writeFile(target, rc, mode)
+		err = e.writeFile(target, rc, mode)
 		_ = rc.Close()
 		if err != nil {
 			return err
@@ -292,4 +333,4 @@ func extract7z(archivePath, destDir string) error {
 	return nil
 }
 
-var _ Extractor = OSExtractor{}
+var _ Extractor = (*OSExtractor)(nil)
