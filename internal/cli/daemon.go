@@ -124,6 +124,27 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 				continue
 			}
 			events = d.HandleSyncRemoveDevice(syncRemoveCmd, emitWithID)
+		case daemon.CommandTypeSyncStartPairing:
+			go func(id string) {
+				emitForPairing := func(event daemon.Event) {
+					sendEventWithID(event, id)
+				}
+				events := d.HandleSyncStartPairing(cmd, emitForPairing)
+				for _, event := range events {
+					sendEventWithID(event, id)
+				}
+			}(cmdID)
+			continue
+		case daemon.CommandTypeSyncJoinPrimary:
+			var joinCmd daemon.SyncJoinPrimaryCommand
+			if err := json.Unmarshal(line, &joinCmd); err != nil {
+				sendEventWithID(daemon.Event{
+					Type: daemon.EventTypeError,
+					Data: map[string]string{"error": fmt.Sprintf("invalid sync_join_primary command: %v", err)},
+				}, cmdID)
+				continue
+			}
+			events = d.HandleSyncJoinPrimary(joinCmd)
 		case daemon.CommandTypeInstallKyaraben:
 			var installCmd daemon.InstallKyarabenCommand
 			if err := json.Unmarshal(line, &installCmd); err != nil {

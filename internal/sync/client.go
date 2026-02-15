@@ -1,9 +1,11 @@
 package sync
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -35,12 +37,24 @@ func (c *Client) baseURL() string {
 func (c *Client) doRequest(ctx context.Context, method, path string, body any) (*http.Response, error) {
 	url := c.baseURL() + path
 
-	req, err := http.NewRequestWithContext(ctx, method, url, nil)
+	var bodyReader io.Reader
+	if body != nil {
+		data, err := json.Marshal(body)
+		if err != nil {
+			return nil, fmt.Errorf("marshaling request body: %w", err)
+		}
+		bodyReader = bytes.NewReader(data)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
 
 	req.Header.Set("X-API-Key", c.apiKey)
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
 
 	return c.httpClient.Do(req)
 }
@@ -143,4 +157,128 @@ func (c *Client) SetAPIKey(key string) {
 
 func (c *Client) Config() model.SyncConfig {
 	return c.config
+}
+
+type syncthingDevice struct {
+	DeviceID          string   `json:"deviceID"`
+	Name              string   `json:"name,omitempty"`
+	Addresses         []string `json:"addresses"`
+	Compression       string   `json:"compression"`
+	AutoAcceptFolders bool     `json:"autoAcceptFolders"`
+}
+
+func (c *Client) AddDevice(ctx context.Context, deviceID, name string) error {
+	dev := syncthingDevice{
+		DeviceID:          deviceID,
+		Name:              name,
+		Addresses:         []string{"dynamic"},
+		Compression:       "metadata",
+		AutoAcceptFolders: true,
+	}
+
+	resp, err := c.doRequest(ctx, http.MethodPut, "/rest/config/devices/"+deviceID, dev)
+	if err != nil {
+		return fmt.Errorf("adding device: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status adding device: %d", resp.StatusCode)
+	}
+	return nil
+}
+
+func (c *Client) RemoveDevice(ctx context.Context, deviceID string) error {
+	resp, err := c.doRequest(ctx, http.MethodDelete, "/rest/config/devices/"+deviceID, nil)
+	if err != nil {
+		return fmt.Errorf("removing device: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNotFound {
+		return fmt.Errorf("unexpected status removing device: %d", resp.StatusCode)
+	}
+	return nil
+}
+
+type syncthingFolderConfig struct {
+	ID      string                `json:"id"`
+	Devices []syncthingFolderDev  `json:"devices"`
+}
+
+type syncthingFolderDev struct {
+	DeviceID string `json:"deviceID"`
+}
+
+func (c *Client) ShareFoldersWithDevice(ctx context.Context, deviceID string) error {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/config/folders", nil)
+	if err != nil {
+		return fmt.Errorf("getting folders: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status getting folders: %d", resp.StatusCode)
+	}
+
+	var folders []json.RawMessage
+	if err := json.NewDecoder(resp.Body).Decode(&folders); err != nil {
+		return fmt.Errorf("decoding folders: %w", err)
+	}
+
+	for _, raw := range folders {
+		var folder map[string]any
+		if err := json.Unmarshal(raw, &folder); err != nil {
+			continue
+		}
+
+		devices, ok := folder["devices"].([]any)
+		if !ok {
+			continue
+		}
+
+		alreadyShared := false
+		for _, d := range devices {
+			if devMap, ok := d.(map[string]any); ok {
+				if devMap["deviceID"] == deviceID {
+					alreadyShared = true
+					break
+				}
+			}
+		}
+
+		if alreadyShared {
+			continue
+		}
+
+		devices = append(devices, map[string]any{"deviceID": deviceID})
+		folder["devices"] = devices
+
+		folderID, _ := folder["id"].(string)
+		patchResp, err := c.doRequest(ctx, http.MethodPut, "/rest/config/folders/"+folderID, folder)
+		if err != nil {
+			return fmt.Errorf("updating folder %s: %w", folderID, err)
+		}
+		_ = patchResp.Body.Close()
+	}
+
+	return nil
+}
+
+func (c *Client) PauseSync(ctx context.Context) error {
+	resp, err := c.doRequest(ctx, http.MethodPost, "/rest/system/pause", nil)
+	if err != nil {
+		return fmt.Errorf("pausing sync: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	return nil
+}
+
+func (c *Client) ResumeSync(ctx context.Context) error {
+	resp, err := c.doRequest(ctx, http.MethodPost, "/rest/system/resume", nil)
+	if err != nil {
+		return fmt.Errorf("resuming sync: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	return nil
 }
