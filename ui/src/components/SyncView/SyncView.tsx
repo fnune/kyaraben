@@ -115,6 +115,7 @@ function FolderRow({
   const [changes, setChanges] = useState<SyncLocalChange[] | null>(null)
   const [loadingChanges, setLoadingChanges] = useState(false)
   const [reverting, setReverting] = useState(false)
+  const [changesError, setChangesError] = useState<string | null>(null)
 
   const isSyncing = folder.state === 'syncing' || folder.needSize > 0
   const hasLocalChanges = folder.receiveOnlyChanges > 0
@@ -129,9 +130,12 @@ function FolderRow({
       return
     }
     setLoadingChanges(true)
+    setChangesError(null)
     const result = await getSyncLocalChanges({ folderId: folder.id })
     if (result.ok) {
       setChanges(result.data.changes)
+    } else {
+      setChangesError(result.error?.message ?? 'Failed to load changes')
     }
     setLoadingChanges(false)
     setShowChanges(true)
@@ -219,6 +223,9 @@ function FolderRow({
           )}
           {showChanges && changes && changes.length === 0 && (
             <div className="mt-2 text-on-surface-muted">No details available</div>
+          )}
+          {showChanges && changesError && (
+            <div className="mt-2 text-status-error">{changesError}</div>
           )}
         </div>
       )}
