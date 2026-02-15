@@ -15,6 +15,7 @@ import (
 
 	"github.com/fnune/kyaraben/internal/hardware"
 	"github.com/fnune/kyaraben/internal/logging"
+	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/versions"
 )
 
@@ -61,27 +62,29 @@ type Installer interface {
 }
 
 type PackageInstaller struct {
-	fs           vfs.FS
-	packagesDir  string
-	downloadsDir string
-	downloader   Downloader
-	extractor    Extractor
-	overrides    map[string]string
+	fs              vfs.FS
+	packagesDir     string
+	downloadsDir    string
+	downloader      Downloader
+	extractor       Extractor
+	baseDirResolver model.BaseDirResolver
+	overrides       map[string]string
 }
 
-func NewPackageInstaller(fs vfs.FS, stateDir string, downloader Downloader, extractor Extractor) *PackageInstaller {
+func NewPackageInstaller(fs vfs.FS, stateDir string, downloader Downloader, extractor Extractor, baseDirResolver model.BaseDirResolver) *PackageInstaller {
 	return &PackageInstaller{
-		fs:           fs,
-		packagesDir:  filepath.Join(stateDir, "packages"),
-		downloadsDir: filepath.Join(stateDir, "downloads"),
-		downloader:   downloader,
-		extractor:    extractor,
-		overrides:    make(map[string]string),
+		fs:              fs,
+		packagesDir:     filepath.Join(stateDir, "packages"),
+		downloadsDir:    filepath.Join(stateDir, "downloads"),
+		downloader:      downloader,
+		extractor:       extractor,
+		baseDirResolver: baseDirResolver,
+		overrides:       make(map[string]string),
 	}
 }
 
 func NewDefaultPackageInstaller(stateDir string, downloader Downloader, extractor Extractor) *PackageInstaller {
-	return NewPackageInstaller(vfs.OSFS, stateDir, downloader, extractor)
+	return NewPackageInstaller(vfs.OSFS, stateDir, downloader, extractor, model.OSBaseDirResolver{})
 }
 
 func (i *PackageInstaller) SetVersionOverrides(overrides map[string]string) {
@@ -249,6 +252,8 @@ func (i *PackageInstaller) InstallEmulator(ctx context.Context, name string, onP
 			return nil, fmt.Errorf("installing extracted binary: %w", err)
 		}
 
+		i.installDefaultConfig(extractDir, binaryPath)
+
 		_ = i.fs.RemoveAll(extractDir)
 	}
 
@@ -312,33 +317,36 @@ func (i *PackageInstaller) InstallCores(ctx context.Context, coreNames []string,
 		return nil, fmt.Errorf("creating downloads dir: %w", err)
 	}
 
-	log.Info("Downloading RetroArch cores bundle %s", version)
-
 	downloadDest := filepath.Join(i.downloadsDir, "retroarch-cores-"+version+".download")
-	defer func() { _ = i.fs.Remove(downloadDest) }()
 
-	if onProgress != nil {
-		onProgress(InstallProgress{PackageName: "retroarch-cores", Phase: "downloading"})
-	}
+	if _, err := i.fs.Stat(downloadDest); err == nil {
+		log.Info("Using cached RetroArch cores bundle %s", version)
+	} else {
+		log.Info("Downloading RetroArch cores bundle %s", version)
 
-	dlReq := DownloadRequest{
-		URLs:     []string{url},
-		SHA256:   sha256,
-		DestPath: downloadDest,
-	}
-	if onProgress != nil {
-		dlReq.OnProgress = func(p DownloadProgress) {
-			onProgress(InstallProgress{
-				PackageName:     "retroarch-cores",
-				Phase:           "downloading",
-				BytesDownloaded: p.BytesDownloaded,
-				BytesTotal:      p.BytesTotal,
-			})
+		if onProgress != nil {
+			onProgress(InstallProgress{PackageName: "retroarch-cores", Phase: "downloading"})
 		}
-	}
 
-	if err := i.downloader.Download(ctx, dlReq); err != nil {
-		return nil, fmt.Errorf("downloading cores bundle: %w", err)
+		dlReq := DownloadRequest{
+			URLs:     []string{url},
+			SHA256:   sha256,
+			DestPath: downloadDest,
+		}
+		if onProgress != nil {
+			dlReq.OnProgress = func(p DownloadProgress) {
+				onProgress(InstallProgress{
+					PackageName:     "retroarch-cores",
+					Phase:           "downloading",
+					BytesDownloaded: p.BytesDownloaded,
+					BytesTotal:      p.BytesTotal,
+				})
+			}
+		}
+
+		if err := i.downloader.Download(ctx, dlReq); err != nil {
+			return nil, fmt.Errorf("downloading cores bundle: %w", err)
+		}
 	}
 
 	if onProgress != nil {
@@ -617,6 +625,31 @@ func (i *PackageInstaller) copyFileMode(src, dst string, mode os.FileMode) error
 		return err
 	}
 	return i.fs.WriteFile(dst, data, mode)
+}
+
+func (i *PackageInstaller) installDefaultConfig(extractDir, binaryPath string) {
+	srcDir := filepath.Join(extractDir, binaryPath+".home", ".config", "retroarch")
+	if _, err := i.fs.Stat(srcDir); err != nil {
+		return
+	}
+
+	configDir, err := i.baseDirResolver.UserConfigDir()
+	if err != nil {
+		return
+	}
+
+	destDir := filepath.Join(configDir, "retroarch")
+	if _, err := i.fs.Stat(destDir); err == nil {
+		return
+	}
+
+	if err := vfs.MkdirAll(i.fs, configDir, 0755); err != nil {
+		return
+	}
+
+	if err := i.fs.Rename(srcDir, destDir); err != nil {
+		log.Info("Failed to install default RetroArch config: %v", err)
+	}
 }
 
 type ConcurrentInstaller struct {
