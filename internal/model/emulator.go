@@ -12,7 +12,6 @@ type PathUsage struct {
 	UsesSavesDir       bool
 	UsesStatesDir      bool
 	UsesScreenshotsDir bool
-	OpaqueContents     string
 }
 
 func StandardPathUsage() PathUsage {

@@ -152,46 +152,6 @@ func TestConfigTargetResolveDir(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		{
-			name: "opaque dir returns safe absolute path",
-			target: ConfigTarget{
-				RelPath: "/some/absolute/path",
-				BaseDir: ConfigBaseDirOpaqueDir,
-			},
-			want: "/some/absolute/path",
-		},
-		{
-			name: "rejects home directory via opaque",
-			target: ConfigTarget{
-				RelPath: homeDir,
-				BaseDir: ConfigBaseDirOpaqueDir,
-			},
-			wantErr: true,
-		},
-		{
-			name: "rejects root directory",
-			target: ConfigTarget{
-				RelPath: "/",
-				BaseDir: ConfigBaseDirOpaqueDir,
-			},
-			wantErr: true,
-		},
-		{
-			name: "rejects config directory via opaque",
-			target: ConfigTarget{
-				RelPath: configDir,
-				BaseDir: ConfigBaseDirOpaqueDir,
-			},
-			wantErr: true,
-		},
-		{
-			name: "rejects current directory",
-			target: ConfigTarget{
-				RelPath: ".",
-				BaseDir: ConfigBaseDirOpaqueDir,
-			},
-			wantErr: true,
-		},
 	}
 
 	for _, tt := range tests {

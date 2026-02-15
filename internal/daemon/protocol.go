@@ -73,13 +73,11 @@ type SymlinkInfo struct {
 }
 
 type EmulatorPaths struct {
-	Roms           string `json:"roms"`
-	Bios           string `json:"bios,omitempty"`
-	Saves          string `json:"saves,omitempty"`
-	Savestates     string `json:"states,omitempty"`
-	Screenshots    string `json:"screenshots,omitempty"`
-	Opaque         string `json:"opaque,omitempty"`
-	OpaqueContents string `json:"opaqueContents,omitempty"`
+	Roms        string `json:"roms"`
+	Bios        string `json:"bios,omitempty"`
+	Saves       string `json:"saves,omitempty"`
+	Savestates  string `json:"states,omitempty"`
+	Screenshots string `json:"screenshots,omitempty"`
 }
 
 type InstalledFrontend struct {

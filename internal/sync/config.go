@@ -151,7 +151,6 @@ func (g *ConfigGenerator) generateFolders() ([]XMLFolder, error) {
 		"saves":       {subdirs: g.systemSubdirs(), primaryType: FolderTypeSendReceive, secondaryType: FolderTypeSendReceive, versioning: true},
 		"states":      {subdirs: g.systemSubdirs(), primaryType: FolderTypeSendReceive, secondaryType: FolderTypeSendReceive, versioning: true},
 		"screenshots": {subdirs: nil, primaryType: FolderTypeSendReceive, secondaryType: FolderTypeSendReceive, versioning: false},
-		"opaque":      {subdirs: nil, primaryType: FolderTypeSendReceive, secondaryType: FolderTypeSendReceive, versioning: true},
 	}
 
 	deviceRefs := g.folderDeviceRefs()

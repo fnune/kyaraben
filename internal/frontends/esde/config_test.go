@@ -44,10 +44,6 @@ func (f *fakeStoreReader) SystemRomsDir(sys model.SystemID) string {
 	return filepath.Join(f.root, "roms", string(sys))
 }
 
-func (f *fakeStoreReader) EmulatorOpaqueDir(emu model.EmulatorID) string {
-	return filepath.Join(f.root, "opaque", string(emu))
-}
-
 func TestBuildCommandPassesSavesDir(t *testing.T) {
 	store := &fakeStoreReader{root: "/emulation"}
 
@@ -141,7 +137,7 @@ func TestBuildCommandIncludesLaunchArgs(t *testing.T) {
 
 	configGenerators := map[model.EmulatorID]model.ConfigGenerator{
 		model.EmulatorIDCemu: &fakeConfigGenerator{
-			launchArgs: []string{"-mlc", "/emulation/opaque/cemu"},
+			launchArgs: []string{"-c", "/some/config/path"},
 		},
 	}
 
@@ -159,11 +155,11 @@ func TestBuildCommandIncludesLaunchArgs(t *testing.T) {
 	c := &Config{}
 	cmd := c.buildCommand(ctx, model.EmulatorIDCemu, model.SystemIDWiiU)
 
-	if !strings.Contains(cmd, "-mlc /emulation/opaque/cemu") {
+	if !strings.Contains(cmd, "-c /some/config/path") {
 		t.Errorf("buildCommand() = %q, want LaunchArgs included", cmd)
 	}
 
-	expectedOrder := "/opt/bin/cemu -mlc /emulation/opaque/cemu -f -g %ROM%"
+	expectedOrder := "/opt/bin/cemu -c /some/config/path -f -g %ROM%"
 	if cmd != expectedOrder {
 		t.Errorf("buildCommand() = %q, want %q", cmd, expectedOrder)
 	}

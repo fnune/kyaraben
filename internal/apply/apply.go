@@ -440,9 +440,6 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		if i >= emulatorPatchCount {
 			break
 		}
-		if patch.Target.BaseDir == model.ConfigBaseDirOpaqueDir {
-			continue
-		}
 
 		var managedKeys []model.ManagedKey
 		for _, entry := range patch.Entries {

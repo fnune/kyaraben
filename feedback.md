@@ -6,7 +6,7 @@ Kyaraben's approach to emulator config is minimal: only edit what's strictly nec
 
 Future possibilities:
 
-- Controller/hotkey configuration (see testing/plans/controller-support-plan.md)
+- Controller/hotkey configuration (see plans/controller-support-plan.md)
 - Basic shader/overlay presets
 - Hardware presets (e.g., "beefy desktop" vs "Steam Deck" vs "low-power handheld") rather than per-setting tweaks
 

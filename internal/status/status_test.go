@@ -93,7 +93,6 @@ func TestGetWithInitializedStore(t *testing.T) {
 		"/Emulation/saves":       &vfst.Dir{Perm: 0755},
 		"/Emulation/states":      &vfst.Dir{Perm: 0755},
 		"/Emulation/screenshots": &vfst.Dir{Perm: 0755},
-		"/Emulation/opaque":      &vfst.Dir{Perm: 0755},
 		"/state":                 &vfst.Dir{Perm: 0755},
 	})
 
