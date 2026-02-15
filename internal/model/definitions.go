@@ -12,16 +12,24 @@ type StoreReader interface {
 	CoresDir() string
 }
 
-type ConfigGenerator interface {
-	Generate(store StoreReader) ([]ConfigPatch, error)
+// GenerateContext provides all dependencies a config generator needs.
+// Emulators that do not need controller config ignore the nil ControllerConfig.
+type GenerateContext struct {
+	Store            StoreReader
+	BaseDirResolver  BaseDirResolver
+	ControllerConfig *ControllerConfig
 }
 
-// LaunchArgsProvider is an optional interface that config generators can implement
-// to provide command-line arguments for the emulator's .desktop file Exec line.
-// This allows emulators to use CLI flags (like Dolphin's -u) to set the user directory
-// instead of or in addition to config file manipulation.
-type LaunchArgsProvider interface {
-	LaunchArgs(store StoreReader) []string
+// GenerateResult consolidates all outputs from a config generator:
+// config patches, symlinks, and launch args.
+type GenerateResult struct {
+	Patches    []ConfigPatch
+	Symlinks   []SymlinkSpec
+	LaunchArgs []string
+}
+
+type ConfigGenerator interface {
+	Generate(ctx GenerateContext) (GenerateResult, error)
 }
 
 type SystemDefinition interface {
@@ -37,10 +45,6 @@ type EmulatorDefinition interface {
 type SymlinkSpec struct {
 	Source string // Where the emulator expects the directory (e.g., ~/.local/share/dolphin-emu/GC)
 	Target string // Where kyaraben stores data (e.g., ~/Emulation/saves/gamecube)
-}
-
-type SymlinkProvider interface {
-	Symlinks(store StoreReader, resolver BaseDirResolver) ([]SymlinkSpec, error)
 }
 
 type SymlinkCreator interface {
