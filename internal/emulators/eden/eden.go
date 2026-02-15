@@ -122,11 +122,13 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	edenDir := filepath.Join(dataDir, "eden")
 	biosDir := store.SystemBiosDir(model.SystemIDSwitch)
 
+	savesDir := store.SystemSavesDir(model.SystemIDSwitch)
 	symlinks := []model.SymlinkSpec{
 		{Source: filepath.Join(edenDir, "keys"), Target: biosDir},
 		{Source: filepath.Join(edenDir, "nand", "system", "Contents", "registered"), Target: biosDir},
 		{Source: filepath.Join(edenDir, "screenshots"), Target: store.EmulatorScreenshotsDir(model.EmulatorIDEden)},
-		{Source: filepath.Join(edenDir, "nand", "user", "save"), Target: store.SystemSavesDir(model.SystemIDSwitch)},
+		{Source: filepath.Join(edenDir, "nand", "user", "save"), Target: filepath.Join(savesDir, "user")},
+		{Source: filepath.Join(edenDir, "nand", "system", "save"), Target: filepath.Join(savesDir, "system")},
 	}
 
 	return model.GenerateResult{

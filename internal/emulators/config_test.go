@@ -671,8 +671,8 @@ func TestEdenSymlinks(t *testing.T) {
 
 	specs := result.Symlinks
 
-	if len(specs) != 4 {
-		t.Fatalf("expected 4 symlink specs, got %d", len(specs))
+	if len(specs) != 5 {
+		t.Fatalf("expected 5 symlink specs, got %d", len(specs))
 	}
 
 	expectedSources := map[string]bool{
@@ -680,6 +680,7 @@ func TestEdenSymlinks(t *testing.T) {
 		"/home/user/.local/share/eden/nand/system/Contents/registered": false,
 		"/home/user/.local/share/eden/screenshots":                     false,
 		"/home/user/.local/share/eden/nand/user/save":                  false,
+		"/home/user/.local/share/eden/nand/system/save":                false,
 	}
 
 	for _, spec := range specs {
