@@ -120,22 +120,23 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	}, nil
 }
 
-// Eden (yuzu-based) embeds GUID in every binding:
-// "engine:sdl,port:0,guid:<guid>,button:1"
+// Eden (yuzu-based) embeds GUID in every binding.
+// Key ordering must match Eden's native format to avoid config churn when Eden
+// rewrites its config on close.
 func edenButtonRef(guid string, port, button int) string {
-	return fmt.Sprintf("engine:sdl,port:%d,guid:%s,button:%d", port, guid, button)
+	return fmt.Sprintf("button:%d,guid:%s,port:%d,engine:sdl", button, guid, port)
 }
 
 func edenAxisRef(guid string, port, axis int) string {
-	return fmt.Sprintf("engine:sdl,port:%d,guid:%s,axis:%d,threshold:0.500000", port, guid, axis)
+	return fmt.Sprintf("threshold:0.500000,axis:%d,guid:%s,port:%d,engine:sdl", axis, guid, port)
 }
 
 func edenHatRef(guid string, port, hat int, direction string) string {
-	return fmt.Sprintf("engine:sdl,port:%d,guid:%s,hat:%d,direction:%s", port, guid, hat, direction)
+	return fmt.Sprintf("hat:%d,direction:%s,guid:%s,port:%d,engine:sdl", hat, direction, guid, port)
 }
 
 func edenStickRef(guid string, port, axisX, axisY int) string {
-	return fmt.Sprintf("engine:sdl,port:%d,guid:%s,axis_x:%d,axis_y:%d,deadzone:0.100000", port, guid, axisX, axisY)
+	return fmt.Sprintf("deadzone:0.100000,axis_y:%d,axis_x:%d,guid:%s,port:%d,engine:sdl", axisY, axisX, guid, port)
 }
 
 func playerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
@@ -155,9 +156,15 @@ func playerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	}
 
 	for i := 0; i < 2; i++ {
-		prefix := fmt.Sprintf("Controls\\player_%d_", i)
+		prefix := fmt.Sprintf("player_%d_", i)
+		// Player 0 is always connected. Player 1+ use DefaultOnly so Eden can
+		// manage connection state based on actual controllers.
+		connectedEntry := model.ConfigEntry{Path: []string{"Controls", prefix + "connected"}, Value: "true"}
+		if i > 0 {
+			connectedEntry.DefaultOnly = true
+		}
 		entries = append(entries,
-			model.ConfigEntry{Path: []string{"Controls", prefix + "connected"}, Value: "true"},
+			connectedEntry,
 			model.ConfigEntry{Path: []string{"Controls", prefix + "type"}, Value: "0"},
 			model.ConfigEntry{Path: []string{"Controls", prefix + "button_a"}, Value: fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["a"]]))},
 			model.ConfigEntry{Path: []string{"Controls", prefix + "button_b"}, Value: fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["b"]]))},

@@ -1335,28 +1335,28 @@ func TestEdenControllerBindingValues(t *testing.T) {
 		}
 
 		// Standard layout: a=east=B(1), b=south=A(0), x=north=Y(3), y=west=X(2)
-		// Player 0 bindings.
+		// Player 0 bindings. Format matches Eden's native key ordering.
 		wantP0 := map[string]string{
-			"Controls\\player_0_connected":     "true",
-			"Controls\\player_0_type":          "0",
-			"Controls\\player_0_button_a":      `"engine:sdl,port:0,guid:` + guid + `,button:1"`,
-			"Controls\\player_0_button_b":      `"engine:sdl,port:0,guid:` + guid + `,button:0"`,
-			"Controls\\player_0_button_x":      `"engine:sdl,port:0,guid:` + guid + `,button:3"`,
-			"Controls\\player_0_button_y":      `"engine:sdl,port:0,guid:` + guid + `,button:2"`,
-			"Controls\\player_0_button_lstick": `"engine:sdl,port:0,guid:` + guid + `,button:7"`,
-			"Controls\\player_0_button_rstick": `"engine:sdl,port:0,guid:` + guid + `,button:8"`,
-			"Controls\\player_0_button_l":      `"engine:sdl,port:0,guid:` + guid + `,button:9"`,
-			"Controls\\player_0_button_r":      `"engine:sdl,port:0,guid:` + guid + `,button:10"`,
-			"Controls\\player_0_button_zl":     `"engine:sdl,port:0,guid:` + guid + `,axis:2,threshold:0.500000"`,
-			"Controls\\player_0_button_zr":     `"engine:sdl,port:0,guid:` + guid + `,axis:5,threshold:0.500000"`,
-			"Controls\\player_0_button_plus":   `"engine:sdl,port:0,guid:` + guid + `,button:6"`,
-			"Controls\\player_0_button_minus":  `"engine:sdl,port:0,guid:` + guid + `,button:4"`,
-			"Controls\\player_0_button_dleft":  `"engine:sdl,port:0,guid:` + guid + `,hat:0,direction:left"`,
-			"Controls\\player_0_button_dright": `"engine:sdl,port:0,guid:` + guid + `,hat:0,direction:right"`,
-			"Controls\\player_0_button_dup":    `"engine:sdl,port:0,guid:` + guid + `,hat:0,direction:up"`,
-			"Controls\\player_0_button_ddown":  `"engine:sdl,port:0,guid:` + guid + `,hat:0,direction:down"`,
-			"Controls\\player_0_lstick":        `"engine:sdl,port:0,guid:` + guid + `,axis_x:0,axis_y:1,deadzone:0.100000"`,
-			"Controls\\player_0_rstick":        `"engine:sdl,port:0,guid:` + guid + `,axis_x:3,axis_y:4,deadzone:0.100000"`,
+			"player_0_connected":     "true",
+			"player_0_type":          "0",
+			"player_0_button_a":      `"button:1,guid:` + guid + `,port:0,engine:sdl"`,
+			"player_0_button_b":      `"button:0,guid:` + guid + `,port:0,engine:sdl"`,
+			"player_0_button_x":      `"button:3,guid:` + guid + `,port:0,engine:sdl"`,
+			"player_0_button_y":      `"button:2,guid:` + guid + `,port:0,engine:sdl"`,
+			"player_0_button_lstick": `"button:7,guid:` + guid + `,port:0,engine:sdl"`,
+			"player_0_button_rstick": `"button:8,guid:` + guid + `,port:0,engine:sdl"`,
+			"player_0_button_l":      `"button:9,guid:` + guid + `,port:0,engine:sdl"`,
+			"player_0_button_r":      `"button:10,guid:` + guid + `,port:0,engine:sdl"`,
+			"player_0_button_zl":     `"threshold:0.500000,axis:2,guid:` + guid + `,port:0,engine:sdl"`,
+			"player_0_button_zr":     `"threshold:0.500000,axis:5,guid:` + guid + `,port:0,engine:sdl"`,
+			"player_0_button_plus":   `"button:6,guid:` + guid + `,port:0,engine:sdl"`,
+			"player_0_button_minus":  `"button:4,guid:` + guid + `,port:0,engine:sdl"`,
+			"player_0_button_dleft":  `"hat:0,direction:left,guid:` + guid + `,port:0,engine:sdl"`,
+			"player_0_button_dright": `"hat:0,direction:right,guid:` + guid + `,port:0,engine:sdl"`,
+			"player_0_button_dup":    `"hat:0,direction:up,guid:` + guid + `,port:0,engine:sdl"`,
+			"player_0_button_ddown":  `"hat:0,direction:down,guid:` + guid + `,port:0,engine:sdl"`,
+			"player_0_lstick":        `"deadzone:0.100000,axis_y:1,axis_x:0,guid:` + guid + `,port:0,engine:sdl"`,
+			"player_0_rstick":        `"deadzone:0.100000,axis_y:4,axis_x:3,guid:` + guid + `,port:0,engine:sdl"`,
 		}
 
 		for key, want := range wantP0 {
@@ -1371,7 +1371,7 @@ func TestEdenControllerBindingValues(t *testing.T) {
 		}
 
 		// Player 1 should use port:1.
-		p1ButtonA, ok := entryMap["Controls\\player_1_button_a"]
+		p1ButtonA, ok := entryMap["player_1_button_a"]
 		if !ok {
 			t.Error("missing player_1_button_a")
 		} else if !strings.Contains(p1ButtonA, "port:1") {
@@ -1408,10 +1408,10 @@ func TestEdenControllerBindingValues(t *testing.T) {
 
 		// Nintendo layout: a=east=A(0), b=south=B(1), x=north=X(2), y=west=Y(3)
 		wantFace := map[string]string{
-			"Controls\\player_0_button_a": `"engine:sdl,port:0,guid:` + guid + `,button:0"`,
-			"Controls\\player_0_button_b": `"engine:sdl,port:0,guid:` + guid + `,button:1"`,
-			"Controls\\player_0_button_x": `"engine:sdl,port:0,guid:` + guid + `,button:2"`,
-			"Controls\\player_0_button_y": `"engine:sdl,port:0,guid:` + guid + `,button:3"`,
+			"player_0_button_a": `"button:0,guid:` + guid + `,port:0,engine:sdl"`,
+			"player_0_button_b": `"button:1,guid:` + guid + `,port:0,engine:sdl"`,
+			"player_0_button_x": `"button:2,guid:` + guid + `,port:0,engine:sdl"`,
+			"player_0_button_y": `"button:3,guid:` + guid + `,port:0,engine:sdl"`,
 		}
 
 		for key, want := range wantFace {
