@@ -34,7 +34,9 @@ function ScanningProgress({ folders }: { readonly folders: SyncFolder[] }) {
           <span className="text-on-surface-muted animate-pulse text-sm leading-none">◉</span>
           <span className="text-sm font-medium text-on-surface">{currentFolder.label}</span>
         </div>
-        <span className="text-xs text-on-surface-muted">Scanning {formatBytes(totalGlobalBytes)}</span>
+        <span className="text-xs text-on-surface-muted">
+          Scanning {formatBytes(totalGlobalBytes)}
+        </span>
       </div>
       <ProgressRail className="h-2 bg-outline/30 rounded-full overflow-hidden">
         <div className="h-full w-1/4 bg-on-surface-muted/50 rounded-full animate-shimmer" />
@@ -65,7 +67,10 @@ function SyncingProgress({ folders }: { readonly folders: SyncFolder[] }) {
     <div>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="text-accent text-sm leading-none animate-spin" style={{ animationDuration: '2s' }}>
+          <span
+            className="text-accent text-sm leading-none animate-spin"
+            style={{ animationDuration: '2s' }}
+          >
             ↻
           </span>
           <span className="text-sm font-medium text-on-surface">{currentFolder.label}</span>
