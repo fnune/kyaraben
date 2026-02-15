@@ -33,6 +33,9 @@ func NewClient(config model.SyncConfig) *Client {
 }
 
 func (c *Client) baseURL() string {
+	if c.config.Syncthing.BaseURL != "" {
+		return c.config.Syncthing.BaseURL
+	}
 	return fmt.Sprintf("http://127.0.0.1:%d", c.config.Syncthing.GUIPort)
 }
 
@@ -85,9 +88,10 @@ func (c *Client) GetDeviceID(ctx context.Context) (string, error) {
 }
 
 type ConnectionInfo struct {
-	Connected bool   `json:"connected"`
-	Address   string `json:"address"`
-	Paused    bool   `json:"paused"`
+	Connected  bool   `json:"connected"`
+	Address    string `json:"address"`
+	Paused     bool   `json:"paused"`
+	DeviceName string `json:"deviceName"`
 }
 
 type ConnectionsResponse struct {
