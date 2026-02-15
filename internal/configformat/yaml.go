@@ -2,21 +2,23 @@ package configformat
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
+	"github.com/twpayne/go-vfs/v5"
 	"gopkg.in/yaml.v3"
 
 	"github.com/fnune/kyaraben/internal/model"
 )
 
-type yamlHandler struct{}
+type yamlHandler struct {
+	fs vfs.FS
+}
 
 func (h *yamlHandler) Read(path string) (map[string]map[string]string, error) {
 	result := make(map[string]map[string]string)
 	result[""] = make(map[string]string)
 
-	data, err := os.ReadFile(path)
+	data, err := h.fs.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -31,12 +33,12 @@ func (h *yamlHandler) Read(path string) (map[string]map[string]string, error) {
 }
 
 func (h *yamlHandler) Apply(path string, entries []model.ConfigEntry) (ApplyResult, error) {
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+	if err := vfs.MkdirAll(h.fs, filepath.Dir(path), 0755); err != nil {
 		return ApplyResult{}, fmt.Errorf("creating config directory: %w", err)
 	}
 
 	existing := make(map[string]interface{})
-	if data, err := os.ReadFile(path); err == nil {
+	if data, err := h.fs.ReadFile(path); err == nil {
 		if err := yaml.Unmarshal(data, &existing); err != nil {
 			return ApplyResult{}, fmt.Errorf("parsing existing YAML: %w", err)
 		}
@@ -49,7 +51,7 @@ func (h *yamlHandler) Apply(path string, entries []model.ConfigEntry) (ApplyResu
 		setNestedValue(existing, entry.Path, entry.Value)
 	}
 
-	f, err := os.Create(path)
+	f, err := h.fs.Create(path)
 	if err != nil {
 		return ApplyResult{}, fmt.Errorf("creating config file: %w", err)
 	}
@@ -66,7 +68,7 @@ func (h *yamlHandler) Apply(path string, entries []model.ConfigEntry) (ApplyResu
 	}
 	_ = encoder.Close()
 
-	hash, err := hashFile(path)
+	hash, err := hashFileWithFS(h.fs, path)
 	if err != nil {
 		return ApplyResult{}, fmt.Errorf("hashing config file: %w", err)
 	}

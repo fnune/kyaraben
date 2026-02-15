@@ -2,13 +2,15 @@ package configformat
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/twpayne/go-vfs/v5"
 )
 
-type rawHandler struct{}
+type rawHandler struct {
+	fs vfs.FS
+}
 
 func (h *rawHandler) Read(path string) (map[string]map[string]string, error) {
 	result := make(map[string]map[string]string)
@@ -17,7 +19,7 @@ func (h *rawHandler) Read(path string) (map[string]map[string]string, error) {
 }
 
 func (h *rawHandler) Apply(path string, entries []model.ConfigEntry) (ApplyResult, error) {
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+	if err := vfs.MkdirAll(h.fs, filepath.Dir(path), 0755); err != nil {
 		return ApplyResult{}, fmt.Errorf("creating config directory: %w", err)
 	}
 
@@ -26,11 +28,11 @@ func (h *rawHandler) Apply(path string, entries []model.ConfigEntry) (ApplyResul
 	}
 
 	content := entries[0].Value
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+	if err := h.fs.WriteFile(path, []byte(content), 0644); err != nil {
 		return ApplyResult{}, fmt.Errorf("writing raw file: %w", err)
 	}
 
-	hash, err := hashFile(path)
+	hash, err := hashFileWithFS(h.fs, path)
 	if err != nil {
 		return ApplyResult{}, fmt.Errorf("hashing config file: %w", err)
 	}
