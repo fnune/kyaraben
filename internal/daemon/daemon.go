@@ -1100,6 +1100,13 @@ func (d *Daemon) HandleSyncDiscoveredDevices(cmd Command, emit func(Event)) []Ev
 	return d.handleSyncDiscoveredDevices()
 }
 
+func newRelayClient(overrideURL string) (*syncpkg.RelayClient, error) {
+	if overrideURL != "" {
+		return syncpkg.NewRelayClient([]string{overrideURL})
+	}
+	return syncpkg.NewDefaultRelayClient()
+}
+
 func (d *Daemon) handleSyncStartPairing(emit func(Event)) []Event {
 	log.Info("Starting pairing mode")
 	cfg, err := d.loadConfig()
@@ -1128,7 +1135,16 @@ func (d *Daemon) handleSyncStartPairing(emit func(Event)) []Event {
 		return d.errorResponse(fmt.Sprintf("getting device ID: %v", err))
 	}
 
-	relayClient := syncpkg.NewRelayClient(cfg.Sync.RelayURL)
+	relayClient, err := newRelayClient(cfg.Sync.RelayURL)
+	if err != nil {
+		log.Info("No relay server available, falling back to device ID only: %v", err)
+		d.startAutoAcceptLoop(cfg)
+		return []Event{{
+			Type: EventTypeResult,
+			Data: SyncStartPairingResponse{DeviceID: deviceID},
+		}}
+	}
+
 	relayResp, err := relayClient.CreateSession(ctx, deviceID)
 	if err != nil {
 		log.Info("Failed to create relay session, falling back to device ID only: %v", err)
@@ -1161,6 +1177,7 @@ func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest, emit func(E
 
 	var primaryDeviceID string
 	var relayCode string
+	var relayClient *syncpkg.RelayClient
 
 	if data.DeviceID != "" {
 		primaryDeviceID = strings.ToUpper(strings.TrimSpace(data.DeviceID))
@@ -1170,7 +1187,10 @@ func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest, emit func(E
 		if isRelayCode(code) {
 			log.Info("handleSyncJoinPrimary called with relay code=%s", code)
 			relayCode = code
-			relayClient := syncpkg.NewRelayClient(cfg.Sync.RelayURL)
+			relayClient, err = newRelayClient(cfg.Sync.RelayURL)
+			if err != nil {
+				return d.errorResponse(fmt.Sprintf("relay unavailable: %v", err))
+			}
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			session, err := relayClient.GetSession(ctx, code)
 			cancel()
@@ -1197,7 +1217,7 @@ func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest, emit func(E
 
 	log.Info("Starting secondary pairing flow for device %s", primaryDeviceID)
 
-	go func(relayCode string) {
+	go func(relayCode string, relayClient *syncpkg.RelayClient) {
 		defer func() {
 			log.Info("Secondary pairing flow ended")
 			d.pairingMu.Lock()
@@ -1217,8 +1237,7 @@ func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest, emit func(E
 			return
 		}
 
-		if relayCode != "" {
-			relayClient := syncpkg.NewRelayClient(cfg.Sync.RelayURL)
+		if relayCode != "" && relayClient != nil {
 			submitCtx, submitCancel := context.WithTimeout(ctx, 10*time.Second)
 			if err := relayClient.SubmitResponse(submitCtx, relayCode, localDeviceID); err != nil {
 				log.Info("Failed to submit response to relay: %v", err)
@@ -1258,7 +1277,7 @@ func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest, emit func(E
 				PeerName:     result.PeerName,
 			},
 		})
-	}(relayCode)
+	}(relayCode, relayClient)
 
 	return nil
 }
