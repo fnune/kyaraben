@@ -22,12 +22,12 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 		return fmt.Errorf("creating installer: %w", err)
 	}
 	configWriter := emulators.NewDefaultConfigWriter(model.OSBaseDirResolver{})
-	launcherManager, err := launcher.NewManager()
+	launcherManager, err := launcher.NewManager(ctx.GetPaths())
 	if err != nil {
 		return fmt.Errorf("creating launcher manager: %w", err)
 	}
 
-	manifestPath, err := model.DefaultManifestPath()
+	manifestPath, err := ctx.GetPaths().ManifestPath()
 	if err != nil {
 		return fmt.Errorf("getting manifest path: %w", err)
 	}
@@ -37,7 +37,12 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 		return fmt.Errorf("getting state dir: %w", err)
 	}
 
-	d := daemon.NewDefault(ctx.ConfigPath, stateDir, manifestPath, registry, installer, configWriter, launcherManager)
+	configPath, err := ctx.GetConfigPath()
+	if err != nil {
+		return fmt.Errorf("getting config path: %w", err)
+	}
+
+	d := daemon.NewDefault(ctx.GetPaths(), configPath, stateDir, manifestPath, registry, installer, configWriter, launcherManager)
 
 	scanner := bufio.NewScanner(os.Stdin)
 	encoder := json.NewEncoder(os.Stdout)
@@ -163,7 +168,16 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 				}, cmdID)
 				continue
 			}
-			events = d.HandleSyncJoinPrimary(joinCmd)
+			go func(id string, cmd daemon.SyncJoinPrimaryCommand) {
+				emitForPairing := func(event daemon.Event) {
+					sendEventWithID(event, id)
+				}
+				events := d.HandleSyncJoinPrimary(cmd, emitForPairing)
+				for _, event := range events {
+					sendEventWithID(event, id)
+				}
+			}(cmdID, joinCmd)
+			continue
 		case daemon.CommandTypeInstallKyaraben:
 			var installCmd daemon.InstallKyarabenCommand
 			if err := json.Unmarshal(line, &installCmd); err != nil {

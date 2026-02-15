@@ -65,22 +65,20 @@ type Result struct {
 
 type Getter struct {
 	fs            vfs.FS
+	paths         *paths.Paths
 	manifestStore *model.ManifestStore
 }
 
-func NewGetter(fs vfs.FS) *Getter {
+func NewGetter(fs vfs.FS, p *paths.Paths) *Getter {
 	return &Getter{
 		fs:            fs,
+		paths:         p,
 		manifestStore: model.NewManifestStore(fs),
 	}
 }
 
 func NewDefaultGetter() *Getter {
-	return NewGetter(vfs.OSFS)
-}
-
-func Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg *registry.Registry, userStore *store.UserStore, manifestPath string) (*Result, error) {
-	return NewDefaultGetter().Get(ctx, cfg, configPath, reg, userStore, manifestPath)
+	return NewGetter(vfs.OSFS, paths.DefaultPaths())
 }
 
 func (g *Getter) Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg *registry.Registry, userStore *store.UserStore, manifestPath string) (*Result, error) {
@@ -187,7 +185,7 @@ func (g *Getter) detectOrphanedArtifacts(manifest *model.Manifest) string {
 		return ""
 	}
 
-	stateDir, err := paths.KyarabenStateDir()
+	stateDir, err := g.paths.StateDir()
 	if err != nil {
 		return ""
 	}

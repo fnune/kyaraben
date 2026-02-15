@@ -8,6 +8,7 @@ import (
 	"github.com/twpayne/go-vfs/v5/vfst"
 
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/paths"
 	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/store"
 	"github.com/fnune/kyaraben/internal/testutil"
@@ -15,7 +16,7 @@ import (
 
 func mustNewUserStore(t *testing.T, fs vfs.FS, path string) *store.UserStore {
 	t.Helper()
-	s, err := store.NewUserStore(fs, path)
+	s, err := store.NewUserStore(fs, paths.DefaultPaths(), path)
 	if err != nil {
 		t.Fatalf("NewUserStore(%q) failed: %v", path, err)
 	}

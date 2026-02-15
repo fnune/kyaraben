@@ -293,6 +293,31 @@ func (c *Client) Restart(ctx context.Context) error {
 	return nil
 }
 
+type FolderConfig struct {
+	ID   string `json:"id"`
+	Path string `json:"path"`
+	Type string `json:"type"`
+}
+
+func (c *Client) GetFolderConfigs(ctx context.Context) ([]FolderConfig, error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/config/folders", nil)
+	if err != nil {
+		return nil, fmt.Errorf("getting folders: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+
+	var folders []FolderConfig
+	if err := json.NewDecoder(resp.Body).Decode(&folders); err != nil {
+		return nil, fmt.Errorf("decoding folders: %w", err)
+	}
+
+	return folders, nil
+}
+
 type PendingStatus struct {
 	TotalFiles int64
 	TotalBytes int64

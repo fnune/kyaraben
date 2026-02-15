@@ -33,7 +33,7 @@ func (cmd *PathsCmd) Run(ctx *Context) error {
 		return err
 	}
 
-	manifestPath, err := model.DefaultManifestPath()
+	manifestPath, err := ctx.GetPaths().ManifestPath()
 	if err != nil {
 		return err
 	}

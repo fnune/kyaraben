@@ -189,30 +189,15 @@ watch-mdns:
     go run ./cmd/test-mdns-browse
 
 # Run an additional kyaraben instance for local sync testing
-# Usage: just sync-instance secondary
-sync-instance instance: _sidecar
+# Usage: just instance secondary
+instance name: _sidecar
     #!/usr/bin/env bash
     set -euo pipefail
-    config="$HOME/.config/kyaraben-{{ instance }}.yaml"
-    if [ ! -f "$config" ]; then
-        echo "Creating config for instance '{{ instance }}'..."
-        printf '%s\n' \
-            "global:" \
-            "  user_store: ~/Emulation" \
-            "sync:" \
-            "  enabled: true" \
-            "  mode: secondary" \
-            "  syncthing:" \
-            "    listen_port: 22001" \
-            "    gui_port: 8385" \
-            > "$config"
-        echo "Created: $config"
-    fi
-    echo "Running kyaraben instance '{{ instance }}'"
-    echo "  Config: $config"
-    echo "  State:  ~/.local/state/kyaraben-{{ instance }}/"
+    echo "Running kyaraben instance '{{ name }}'"
+    echo "  Config: ~/.config/kyaraben-{{ name }}/config.toml"
+    echo "  State:  ~/.local/state/kyaraben-{{ name }}/"
     echo ""
-    ./ui/binaries/sidecar-linux-x64 --instance {{ instance }}
+    cd ui && npm run build && npm run build:electron && npx electron . -- --instance {{ name }}
 
 # --- Internal targets (prefixed with _) ---
 

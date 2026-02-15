@@ -8,6 +8,8 @@ import (
 
 	"github.com/twpayne/go-vfs/v5"
 	"github.com/twpayne/go-vfs/v5/vfst"
+
+	"github.com/fnune/kyaraben/internal/paths"
 )
 
 type fakeBaseDirResolver struct {
@@ -55,7 +57,7 @@ func TestGenerateDesktopFiles(t *testing.T) {
 	duckstationIconPath := "/icons/duckstation.png"
 
 	resolver := fakeBaseDirResolver{homeDir: homeDir}
-	m := &Manager{fs: fs, profileDir: profileDir, dataDir: dataDir, resolver: resolver}
+	m := &Manager{fs: fs, paths: paths.DefaultPaths(), profileDir: profileDir, dataDir: dataDir, resolver: resolver}
 
 	entries := []GeneratedDesktop{
 		{
@@ -136,7 +138,7 @@ func TestInstallKyarabenWithAppImage(t *testing.T) {
 	appsDir := filepath.Join(homeDir, ".local", "share", "applications")
 
 	resolver := fakeBaseDirResolver{homeDir: homeDir}
-	m := &Manager{fs: fs, profileDir: "/kyaraben", resolver: resolver, executablePath: "/bin/kyaraben-current"}
+	m := &Manager{fs: fs, paths: paths.DefaultPaths(), profileDir: "/kyaraben", resolver: resolver, executablePath: "/bin/kyaraben-current"}
 
 	appImagePath := "/Kyaraben.AppImage"
 
@@ -192,7 +194,7 @@ func TestInstallKyarabenWithSidecar(t *testing.T) {
 	binDir := filepath.Join(homeDir, ".local", "bin")
 
 	resolver := fakeBaseDirResolver{homeDir: homeDir}
-	m := &Manager{fs: fs, profileDir: "/kyaraben", resolver: resolver}
+	m := &Manager{fs: fs, paths: paths.DefaultPaths(), profileDir: "/kyaraben", resolver: resolver}
 
 	appImagePath := "/Kyaraben.AppImage"
 	sidecarPath := "/kyaraben-sidecar"
@@ -238,7 +240,7 @@ func TestGetInstallStatus(t *testing.T) {
 	appsDir := filepath.Join(homeDir, ".local", "share", "applications")
 
 	resolver := fakeBaseDirResolver{homeDir: homeDir}
-	m := &Manager{fs: fs, profileDir: "/kyaraben", resolver: resolver}
+	m := &Manager{fs: fs, paths: paths.DefaultPaths(), profileDir: "/kyaraben", resolver: resolver}
 
 	status := m.GetInstallStatus()
 	if status.AppPath != "" || status.CLIPath != "" || status.DesktopPath != "" {

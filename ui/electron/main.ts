@@ -6,9 +6,25 @@ import * as readline from 'node:readline'
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { checkForUpdates, downloadUpdate } from './updater'
 
+function getInstanceName(): string | null {
+  for (let i = 0; i < process.argv.length; i++) {
+    const arg = process.argv[i]
+    if (arg.startsWith('--instance=')) {
+      return arg.split('=')[1]
+    }
+    if (arg === '--instance' && i + 1 < process.argv.length) {
+      return process.argv[i + 1]
+    }
+  }
+  return null
+}
+
+const instanceName = getInstanceName()
+const kyarabenDirName = instanceName ? `kyaraben-${instanceName}` : 'kyaraben'
+
 // Set userData to XDG state directory instead of config
 const stateDir = process.env.XDG_STATE_HOME || path.join(os.homedir(), '.local', 'state')
-const kyarabenStateDir = path.join(stateDir, 'kyaraben')
+const kyarabenStateDir = path.join(stateDir, kyarabenDirName)
 app.setPath('userData', path.join(kyarabenStateDir, 'ui'))
 
 // Protocol types for daemon communication.
@@ -78,8 +94,12 @@ function findSidecarPath(): string {
   // app.getAppPath() returns dist-electron/ when running main.js directly
   const appPath = app.getAppPath()
   searchPaths.push(path.join(appPath, '..', 'binaries', sidecarName))
+  searchPaths.push(path.join(appPath, 'binaries', sidecarName))
 
-  // 4. Check APPDIR for AppImage
+  // 4. Check relative to __dirname (dist-electron/)
+  searchPaths.push(path.join(__dirname, '..', 'binaries', sidecarName))
+
+  // 5. Check APPDIR for AppImage
   const appdir = process.env.APPDIR
   if (appdir) {
     searchPaths.push(path.join(appdir, 'usr', 'bin', sidecarName))
@@ -182,9 +202,13 @@ async function ensureDaemon(): Promise<void> {
   if (daemon) return
 
   const sidecarPath = findSidecarPath()
-  console.error(`[kyaraben] Starting daemon: ${sidecarPath}`)
+  const daemonArgs = ['daemon']
+  if (instanceName) {
+    daemonArgs.push('--instance', instanceName)
+  }
+  console.error(`[kyaraben] Starting daemon: ${sidecarPath} ${daemonArgs.join(' ')}`)
 
-  const child = spawn(sidecarPath, ['daemon'], {
+  const child = spawn(sidecarPath, daemonArgs, {
     stdio: ['pipe', 'pipe', 'inherit'],
     env: process.env,
   })
