@@ -31,10 +31,10 @@ const (
 	CommandTypeInstallKyaraben   CommandType = "install_kyaraben"
 	CommandTypeInstallStatus     CommandType = "install_status"
 	CommandTypeRefreshIconCaches CommandType = "refresh_icon_caches"
-	CommandTypePreflight           CommandType = "preflight"
-	CommandTypeSyncEnable          CommandType = "sync_enable"
-	CommandTypeSyncRevertFolder    CommandType = "sync_revert_folder"
-	CommandTypeSyncLocalChanges    CommandType = "sync_local_changes"
+	CommandTypePreflight         CommandType = "preflight"
+	CommandTypeSyncEnable        CommandType = "sync_enable"
+	CommandTypeSyncRevertFolder  CommandType = "sync_revert_folder"
+	CommandTypeSyncLocalChanges  CommandType = "sync_local_changes"
 )
 
 // Command represents a command from the UI.
