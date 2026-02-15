@@ -180,6 +180,7 @@ export interface SyncStatusResponse {
   guiURL?: string;
   state?: SyncState;
   devices?: SyncDevice[];
+  folders?: SyncFolder[];
   pairing?: boolean;
   paused?: boolean;
   progress?: SyncProgress;
@@ -195,6 +196,14 @@ export interface SyncDevice {
   name: string;
   connected: boolean;
   paused?: boolean;
+}
+export interface SyncFolder {
+  id: string;
+  label: string;
+  state: string;
+  globalSize: number /* int64 */;
+  localSize: number /* int64 */;
+  needSize: number /* int64 */;
 }
 export interface SyncPendingResponse {
   pending: boolean;
