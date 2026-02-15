@@ -182,6 +182,95 @@ func TestApplyRemovesUnenabledEmulatorsFromManifest(t *testing.T) {
 	}
 }
 
+func TestApplyRemovesConfigDirsForDisabledEmulators(t *testing.T) {
+	tmpDir := t.TempDir()
+	manifestPath := filepath.Join(tmpDir, "manifest.json")
+	userStorePath := filepath.Join(tmpDir, "Emulation")
+	packagesDir := filepath.Join(tmpDir, "packages")
+	configDir := filepath.Join(tmpDir, "config")
+
+	t.Setenv("XDG_CONFIG_HOME", configDir)
+
+	mgbaConfigDir := filepath.Join(configDir, "mgba")
+	if err := os.MkdirAll(mgbaConfigDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(mgbaConfigDir, "config.ini"), []byte("[test]"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	oldManifest := &model.Manifest{
+		Version:     1,
+		LastApplied: time.Now().Add(-time.Hour),
+		InstalledEmulators: map[model.EmulatorID]model.InstalledEmulator{
+			model.EmulatorIDMGBA: {
+				ID:          model.EmulatorIDMGBA,
+				Version:     "0.10.0",
+				PackagePath: packagesDir,
+				Installed:   time.Now().Add(-time.Hour),
+			},
+		},
+		ManagedConfigs: []model.ManagedConfig{
+			{
+				EmulatorIDs: []model.EmulatorID{model.EmulatorIDMGBA},
+				Target: model.ConfigTarget{
+					RelPath: "mgba/config.ini",
+					Format:  model.ConfigFormatINI,
+					BaseDir: model.ConfigBaseDirUserConfig,
+				},
+				BaselineHash: "abc123",
+				LastModified: time.Now().Add(-time.Hour),
+			},
+		},
+	}
+	if err := oldManifest.Save(manifestPath); err != nil {
+		t.Fatalf("Failed to save old manifest: %v", err)
+	}
+
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{
+			UserStore: userStorePath,
+		},
+		Systems: map[model.SystemID][]model.EmulatorID{},
+	}
+
+	reg := registry.NewDefault()
+	userStore, err := store.NewUserStore(userStorePath)
+	if err != nil {
+		t.Fatalf("Failed to create user store: %v", err)
+	}
+
+	installer := packages.NewFakeInstaller(packagesDir)
+	resolver := fakeBaseDirResolver{root: tmpDir}
+	configWriter := emulators.NewConfigWriter(resolver)
+
+	applier := &Applier{
+		Installer:       installer,
+		ConfigWriter:    configWriter,
+		Registry:        reg,
+		ManifestPath:    manifestPath,
+		BaseDirResolver: resolver,
+	}
+
+	_, err = applier.Apply(context.Background(), cfg, userStore, Options{})
+	if err != nil {
+		t.Fatalf("Apply failed: %v", err)
+	}
+
+	if _, err := os.Stat(mgbaConfigDir); !os.IsNotExist(err) {
+		t.Error("mgba config directory should have been removed when emulator was disabled")
+	}
+
+	newManifest, err := model.LoadManifest(manifestPath)
+	if err != nil {
+		t.Fatalf("Failed to load manifest: %v", err)
+	}
+
+	if len(newManifest.ManagedConfigs) != 0 {
+		t.Errorf("Expected 0 managed configs after disabling emulator, got %d", len(newManifest.ManagedConfigs))
+	}
+}
+
 func TestApplyCreatesEmulatorStatesDirectories(t *testing.T) {
 	tmpDir := t.TempDir()
 	manifestPath := filepath.Join(tmpDir, "manifest.json")

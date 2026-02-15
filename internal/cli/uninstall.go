@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fnune/kyaraben/internal/cleanup"
 	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/paths"
@@ -106,14 +107,12 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 		}
 	}
 
-	if len(manifest.ManagedConfigs) > 0 {
+	configDirs := cleanup.CollectConfigDirs(manifest.ManagedConfigs)
+	if len(configDirs) > 0 {
 		fmt.Println()
-		fmt.Println("  Managed config files:")
-		for _, cfg := range manifest.ManagedConfigs {
-			path, err := cfg.Target.Resolve()
-			if err == nil && fileExists(path) {
-				fmt.Printf("    %s\n", path)
-			}
+		fmt.Println("  Emulator config directories:")
+		for _, dir := range configDirs {
+			fmt.Printf("    %s\n", dir)
 		}
 	}
 
@@ -125,6 +124,12 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 				fmt.Printf("    %s\n", s.Source)
 			}
 		}
+	}
+
+	if len(configDirs) > 0 {
+		fmt.Println()
+		fmt.Println("  WARNING: Emulator config directories contain ALL settings,")
+		fmt.Println("  including any custom changes you made outside kyaraben.")
 	}
 
 	fmt.Println()
@@ -165,18 +170,8 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 		}
 	}
 
-	for _, cfg := range manifest.ManagedConfigs {
-		path, err := cfg.Target.Resolve()
-		if err != nil {
-			continue
-		}
-		if fileExists(path) {
-			if err := os.Remove(path); err != nil {
-				fmt.Printf("  Warning: could not remove %s: %v\n", path, err)
-			} else {
-				fmt.Printf("  Removed: %s\n", path)
-			}
-		}
+	for _, dir := range cleanup.RemoveConfigDirs(manifest.ManagedConfigs) {
+		fmt.Printf("  Removed: %s\n", dir)
 	}
 
 	for _, f := range manifest.DesktopFiles {
