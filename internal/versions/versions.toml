@@ -336,3 +336,24 @@ variant = "x86_64"
 sha256 = "sha256-fWLamiE5fW4blJB4XO2+r9JieBtQEVB2c2++infvMOk="
 binary_path = "RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage"
 size = 179415654
+
+# ============================================================================
+# SYNCTHING - File synchronization
+# https://github.com/syncthing/syncthing/releases
+# ============================================================================
+
+[syncthing]
+url_template = "https://github.com/syncthing/syncthing/releases/download/{version}/syncthing-linux-{variant}-{version}.tar.gz"
+default = "v2.0.14"
+
+[syncthing."v2.0.14".targets.x64]
+variant = "amd64"
+sha256 = "sha256-PU3bKG1XrUYZtZlI2+C6Tbzba8pmu89nAtF4qGN0Mao="
+binary_path = "syncthing-linux-amd64-v2.0.14/syncthing"
+size = 14102810
+
+[syncthing."v2.0.14".targets.aarch64]
+variant = "arm64"
+sha256 = "sha256-GCXh4N14E8g9K47rbRdoM5RREFav1lV1Kgwvsh9uwpw="
+binary_path = "syncthing-linux-arm64-v2.0.14/syncthing"
+size = 13163296
