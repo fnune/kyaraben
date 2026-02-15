@@ -17,9 +17,9 @@ func TestMain(m *testing.M) {
 
 func TestURLTemplateExpansion(t *testing.T) {
 	v := MustGet()
-	spec, ok := v.GetEmulator("eden")
+	spec, ok := v.GetPackage("eden")
 	if !ok {
-		t.Fatal("eden emulator not found")
+		t.Fatal("eden package not found")
 	}
 	entry := spec.GetVersion("v0.1.0")
 	if entry == nil {
@@ -46,9 +46,9 @@ func TestURLTemplateExpansion(t *testing.T) {
 
 func TestSelectTarget(t *testing.T) {
 	v := MustGet()
-	spec, ok := v.GetEmulator("eden")
+	spec, ok := v.GetPackage("eden")
 	if !ok {
-		t.Fatal("eden emulator not found")
+		t.Fatal("eden package not found")
 	}
 	entry := spec.GetDefault()
 	if entry == nil {
@@ -79,7 +79,7 @@ func TestArchiveType(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		emulator string
+		pkg      string
 		target   string
 		expected string
 	}{
@@ -91,13 +91,13 @@ func TestArchiveType(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			spec, ok := v.GetEmulator(tt.emulator)
+			spec, ok := v.GetPackage(tt.pkg)
 			if !ok {
-				t.Fatalf("emulator %s not found", tt.emulator)
+				t.Fatalf("package %s not found", tt.pkg)
 			}
 			entry := spec.GetDefault()
 			if entry == nil {
-				t.Fatalf("default version for %s not found", tt.emulator)
+				t.Fatalf("default version for %s not found", tt.pkg)
 			}
 			got := entry.ArchiveType(tt.target, spec)
 			if got != tt.expected {
@@ -112,7 +112,7 @@ func TestBinaryPathForTarget(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		emulator string
+		pkg      string
 		target   string
 		expected string
 	}{
@@ -122,13 +122,13 @@ func TestBinaryPathForTarget(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			spec, ok := v.GetEmulator(tt.emulator)
+			spec, ok := v.GetPackage(tt.pkg)
 			if !ok {
-				t.Fatalf("emulator %s not found", tt.emulator)
+				t.Fatalf("package %s not found", tt.pkg)
 			}
 			entry := spec.GetDefault()
 			if entry == nil {
-				t.Fatalf("default version for %s not found", tt.emulator)
+				t.Fatalf("default version for %s not found", tt.pkg)
 			}
 			got := entry.BinaryPathForTarget(tt.target, spec)
 			if got != tt.expected {
@@ -142,14 +142,14 @@ func TestEffectiveReleaseTag(t *testing.T) {
 	v := MustGet()
 
 	// Eden has no release_tag, should use version
-	edenSpec, _ := v.GetEmulator("eden")
+	edenSpec, _ := v.GetPackage("eden")
 	edenEntry := edenSpec.GetDefault()
 	if got := edenEntry.EffectiveReleaseTag(); got != edenEntry.Version {
 		t.Errorf("Eden.EffectiveReleaseTag() = %q, want version %q", got, edenEntry.Version)
 	}
 
 	// Dolphin has a release_tag that differs from version
-	dolphinSpec, _ := v.GetEmulator("dolphin")
+	dolphinSpec, _ := v.GetPackage("dolphin")
 	dolphinEntry := dolphinSpec.GetDefault()
 	if dolphinEntry.ReleaseTag != "" && dolphinEntry.ReleaseTag != dolphinEntry.Version {
 		if got := dolphinEntry.EffectiveReleaseTag(); got != dolphinEntry.ReleaseTag {
@@ -162,7 +162,7 @@ func TestURLWithReleaseTag(t *testing.T) {
 	v := MustGet()
 
 	// Dolphin URL should use release_tag substitution
-	spec, _ := v.GetEmulator("dolphin")
+	spec, _ := v.GetPackage("dolphin")
 	entry := spec.GetDefault()
 	url := entry.URL("x64", spec)
 	if entry.ReleaseTag != "" {
@@ -176,9 +176,9 @@ func TestURLWithReleaseTag(t *testing.T) {
 func TestMultipleVersions(t *testing.T) {
 	v := MustGet()
 
-	spec, ok := v.GetEmulator("eden")
+	spec, ok := v.GetPackage("eden")
 	if !ok {
-		t.Fatal("eden emulator not found")
+		t.Fatal("eden package not found")
 	}
 
 	// Check that we have multiple versions
@@ -211,7 +211,7 @@ func TestMultipleVersions(t *testing.T) {
 
 func TestAllPackagesHaveSize(t *testing.T) {
 	v := MustGet()
-	for name, spec := range v.Emulators {
+	for name, spec := range v.Packages {
 		for version, entry := range spec.Versions {
 			for target, build := range entry.Targets {
 				if build.Size == 0 {
@@ -236,37 +236,37 @@ func TestAllPackagesHaveSize(t *testing.T) {
 	}
 }
 
-func TestGetEmulator(t *testing.T) {
+func TestGetPackage(t *testing.T) {
 	v := MustGet()
 
-	// Test known emulators
-	knownEmulators := []string{
+	// Test known packages
+	knownPackages := []string{
 		"eden", "duckstation", "pcsx2", "ppsspp", "mgba",
 		"cemu", "azahar", "dolphin", "melonds", "vita3k",
 		"rpcs3", "flycast", "retroarch",
 	}
 
-	for _, name := range knownEmulators {
-		spec, ok := v.GetEmulator(name)
+	for _, name := range knownPackages {
+		spec, ok := v.GetPackage(name)
 		if !ok {
-			t.Errorf("GetEmulator(%s) returned false", name)
+			t.Errorf("GetPackage(%s) returned false", name)
 			continue
 		}
 		if spec.Default == "" {
-			t.Errorf("GetEmulator(%s) has empty default", name)
+			t.Errorf("GetPackage(%s) has empty default", name)
 		}
 		if spec.URLTemplate == "" {
-			t.Errorf("GetEmulator(%s) has empty url_template", name)
+			t.Errorf("GetPackage(%s) has empty url_template", name)
 		}
 		if len(spec.Versions) == 0 {
-			t.Errorf("GetEmulator(%s) has no versions", name)
+			t.Errorf("GetPackage(%s) has no versions", name)
 		}
 	}
 
-	// Test unknown emulator
-	_, ok := v.GetEmulator("nonexistent")
+	// Test unknown package
+	_, ok := v.GetPackage("nonexistent")
 	if ok {
-		t.Error("GetEmulator(nonexistent) should return false")
+		t.Error("GetPackage(nonexistent) should return false")
 	}
 }
 
@@ -291,7 +291,7 @@ func TestVersionsTomlIntegrity(t *testing.T) {
 	t.Parallel()
 	v := MustGet()
 
-	for name, spec := range v.Emulators {
+	for name, spec := range v.Packages {
 		spec := spec
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()

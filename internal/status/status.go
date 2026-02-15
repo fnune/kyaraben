@@ -119,7 +119,7 @@ func (g *Getter) Get(ctx context.Context, cfg *model.KyarabenConfig, configPath 
 
 		if vers != nil {
 			if e, err := reg.GetEmulator(emu.ID); err == nil {
-				if spec, ok := vers.GetEmulator(e.Package.PackageName()); ok {
+				if spec, ok := vers.GetPackage(e.Package.PackageName()); ok {
 					info.DefaultVersion = spec.Default
 				}
 			}

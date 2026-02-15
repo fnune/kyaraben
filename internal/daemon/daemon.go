@@ -602,7 +602,7 @@ func (d *Daemon) handleGetSystems() []Event {
 			}
 
 			if vers != nil {
-				if spec, ok := vers.GetEmulator(emu.Package.PackageName()); ok {
+				if spec, ok := vers.GetPackage(emu.Package.PackageName()); ok {
 					ref.DefaultVersion = spec.Default
 					availableVersions := spec.AvailableVersions()
 					sort.Strings(availableVersions)
@@ -660,7 +660,7 @@ func (d *Daemon) handleGetFrontends() []Event {
 		}
 
 		if vers != nil {
-			if spec, ok := vers.GetEmulator(fe.Package.PackageName()); ok {
+			if spec, ok := vers.GetPackage(fe.Package.PackageName()); ok {
 				ref.DefaultVersion = spec.Default
 				availableVersions := spec.AvailableVersions()
 				sort.Strings(availableVersions)
