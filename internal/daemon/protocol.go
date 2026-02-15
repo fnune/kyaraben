@@ -305,6 +305,11 @@ type SyncEnableResponse struct {
 	Success bool `json:"success"`
 }
 
+type SyncResetResponse struct {
+	Success      bool     `json:"success"`
+	RemovedFiles []string `json:"removedFiles,omitempty"`
+}
+
 type SyncDiscoveredPrimary struct {
 	Hostname    string `json:"hostname"`
 	PairingAddr string `json:"pairingAddr"`

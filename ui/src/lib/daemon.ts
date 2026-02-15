@@ -17,6 +17,7 @@ import type {
   SyncPendingResponse,
   SyncRemoveDeviceRequest,
   SyncRemoveDeviceResponse,
+  SyncResetResponse,
   SyncRevertFolderRequest,
   SyncRevertFolderResponse,
   SyncStatusResponse,
@@ -86,6 +87,8 @@ export const revertSyncFolder = (req: SyncRevertFolderRequest) =>
 
 export const getSyncLocalChanges = (req: SyncLocalChangesRequest) =>
   invoke<SyncLocalChangesResponse>('sync_local_changes', req)
+
+export const resetSync = () => invoke<SyncResetResponse>('sync_reset')
 
 export const getUninstallPreview = () => invoke<UninstallPreviewResponse>('uninstall_preview')
 

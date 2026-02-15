@@ -147,6 +147,45 @@ func (s *SystemdUnit) IsEnabled() bool {
 	return err == nil
 }
 
+func FindKyarabenSyncthingServices() ([]string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("getting home dir: %w", err)
+	}
+
+	systemdDir := filepath.Join(home, ".config", "systemd", "user")
+	entries, err := os.ReadDir(systemdDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("reading systemd user dir: %w", err)
+	}
+
+	var services []string
+	for _, entry := range entries {
+		name := entry.Name()
+		if strings.HasPrefix(name, "kyaraben") && strings.Contains(name, "syncthing") && strings.HasSuffix(name, ".service") {
+			services = append(services, filepath.Join(systemdDir, name))
+		}
+	}
+	return services, nil
+}
+
+func StopAndRemoveService(servicePath string) error {
+	name := filepath.Base(servicePath)
+
+	_ = exec.Command("systemctl", "--user", "stop", name).Run()
+	_ = exec.Command("systemctl", "--user", "disable", name).Run()
+
+	if err := os.Remove(servicePath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("removing %s: %w", servicePath, err)
+	}
+
+	_ = exec.Command("systemctl", "--user", "daemon-reload").Run()
+	return nil
+}
+
 type ServiceStatus struct {
 	Active  string
 	Failed  bool

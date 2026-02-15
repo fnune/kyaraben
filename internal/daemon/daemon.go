@@ -152,6 +152,8 @@ func (d *Daemon) HandleWithEmit(cmd Command, emit func(Event)) []Event {
 		return d.handleSyncRevertFolder(nil)
 	case CommandTypeSyncLocalChanges:
 		return d.handleSyncLocalChanges(nil)
+	case CommandTypeSyncReset:
+		return d.handleSyncReset()
 	default:
 		return d.errorResponse(fmt.Sprintf("unknown command: %s", cmd.Type))
 	}
@@ -1324,6 +1326,44 @@ func (d *Daemon) handleSyncEnable(data *SyncEnableRequest, emit func(Event)) []E
 	return nil
 }
 
+func (d *Daemon) handleSyncReset() []Event {
+	setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir)
+	var removedFiles []string
+
+	if setup.IsEnabled() {
+		removedFiles = append(removedFiles, "systemd unit: "+d.paths.DirName()+"-syncthing.service")
+	}
+
+	syncthingDir := filepath.Join(d.stateDir, "syncthing")
+	if d.dirExists(syncthingDir) {
+		removedFiles = append(removedFiles, syncthingDir)
+	}
+
+	if err := setup.Reset(); err != nil {
+		return d.errorResponse(fmt.Sprintf("resetting sync: %v", err))
+	}
+
+	cfg, err := d.loadConfig()
+	if err == nil && cfg.Sync.Enabled {
+		cfg.Sync.Enabled = false
+		_ = d.configStore.Save(cfg, d.configPath)
+	}
+
+	manifest, err := d.loadManifest()
+	if err == nil && manifest.SyncthingInstall != nil {
+		manifest.SyncthingInstall = nil
+		_ = manifest.SaveWithBackup(d.manifestPath)
+	}
+
+	return []Event{{
+		Type: EventTypeResult,
+		Data: SyncResetResponse{
+			Success:      true,
+			RemovedFiles: removedFiles,
+		},
+	}}
+}
+
 func (d *Daemon) handleSyncPending() []Event {
 	cfg, err := d.loadConfig()
 	if err != nil {
@@ -1593,10 +1633,8 @@ func (d *Daemon) handleUninstallPreview() []Event {
 	var syncthingFiles []string
 	if manifest.SyncthingInstall != nil {
 		si := manifest.SyncthingInstall
-		for _, p := range []string{si.BinaryPath, si.SystemdUnitPath} {
-			if p != "" && d.fileExists(p) {
-				syncthingFiles = append(syncthingFiles, p)
-			}
+		if si.BinaryPath != "" && d.fileExists(si.BinaryPath) {
+			syncthingFiles = append(syncthingFiles, si.BinaryPath)
 		}
 		for _, dir := range []string{si.ConfigDir, si.DataDir} {
 			if dir != "" && d.dirExists(dir) {
@@ -1604,6 +1642,8 @@ func (d *Daemon) handleUninstallPreview() []Event {
 			}
 		}
 	}
+	syncServices, _ := syncpkg.FindKyarabenSyncthingServices()
+	syncthingFiles = append(syncthingFiles, syncServices...)
 
 	var retroArchCoresDir string
 	var retroArchCoreFiles []string
@@ -1694,20 +1734,12 @@ func (d *Daemon) handleUninstall() []Event {
 		}
 	}
 
-	syncSetup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir)
-	if syncSetup.IsEnabled() {
-		if err := syncSetup.Disable(); err != nil {
-			errors = append(errors, fmt.Sprintf("could not disable syncthing service: %v", err))
-		}
-	}
-	if manifest.SyncthingInstall != nil {
-		si := manifest.SyncthingInstall
-		if si.SystemdUnitPath != "" && d.fileExists(si.SystemdUnitPath) {
-			if err := os.Remove(si.SystemdUnitPath); err != nil {
-				errors = append(errors, fmt.Sprintf("could not remove %s: %v", si.SystemdUnitPath, err))
-			} else {
-				removedFiles = append(removedFiles, si.SystemdUnitPath)
-			}
+	syncServices, _ := syncpkg.FindKyarabenSyncthingServices()
+	for _, servicePath := range syncServices {
+		if err := syncpkg.StopAndRemoveService(servicePath); err != nil {
+			errors = append(errors, fmt.Sprintf("could not remove syncthing service %s: %v", servicePath, err))
+		} else {
+			removedFiles = append(removedFiles, servicePath)
 		}
 	}
 
