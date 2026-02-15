@@ -197,9 +197,30 @@ export interface SyncFolder {
   path: string;
   label: string;
   state: string;
+  type: string;
   globalSize: number /* int64 */;
   localSize: number /* int64 */;
   needSize: number /* int64 */;
+  receiveOnlyChanges: number /* int */;
+}
+export interface SyncRevertFolderRequest {
+  folderId: string;
+}
+export interface SyncRevertFolderResponse {
+  success: boolean;
+}
+export interface SyncLocalChangesRequest {
+  folderId: string;
+}
+export interface SyncLocalChange {
+  action: string;
+  type: string;
+  path: string;
+  modified: string;
+  size: number /* int64 */;
+}
+export interface SyncLocalChangesResponse {
+  changes: SyncLocalChange[];
 }
 export interface SyncPendingResponse {
   pending: boolean;
@@ -330,7 +351,9 @@ export const CommandTypeInstallStatus = "install_status";
 export const CommandTypeRefreshIconCaches = "refresh_icon_caches";
 export const CommandTypePreflight = "preflight";
 export const CommandTypeSyncEnable = "sync_enable";
-export type CommandType = typeof CommandTypeStatus | typeof CommandTypeDoctor | typeof CommandTypeApply | typeof CommandTypeCancelApply | typeof CommandTypeGetSystems | typeof CommandTypeGetFrontends | typeof CommandTypeGetConfig | typeof CommandTypeSetConfig | typeof CommandTypeSyncStatus | typeof CommandTypeSyncRemoveDevice | typeof CommandTypeSyncStartPairing | typeof CommandTypeSyncJoinPrimary | typeof CommandTypeSyncCancelPairing | typeof CommandTypeSyncPending | typeof CommandTypeUninstallPreview | typeof CommandTypeUninstall | typeof CommandTypeInstallKyaraben | typeof CommandTypeInstallStatus | typeof CommandTypeRefreshIconCaches | typeof CommandTypePreflight | typeof CommandTypeSyncEnable;
+export const CommandTypeSyncRevertFolder = "sync_revert_folder";
+export const CommandTypeSyncLocalChanges = "sync_local_changes";
+export type CommandType = typeof CommandTypeStatus | typeof CommandTypeDoctor | typeof CommandTypeApply | typeof CommandTypeCancelApply | typeof CommandTypeGetSystems | typeof CommandTypeGetFrontends | typeof CommandTypeGetConfig | typeof CommandTypeSetConfig | typeof CommandTypeSyncStatus | typeof CommandTypeSyncRemoveDevice | typeof CommandTypeSyncStartPairing | typeof CommandTypeSyncJoinPrimary | typeof CommandTypeSyncCancelPairing | typeof CommandTypeSyncPending | typeof CommandTypeUninstallPreview | typeof CommandTypeUninstall | typeof CommandTypeInstallKyaraben | typeof CommandTypeInstallStatus | typeof CommandTypeRefreshIconCaches | typeof CommandTypePreflight | typeof CommandTypeSyncEnable | typeof CommandTypeSyncRevertFolder | typeof CommandTypeSyncLocalChanges;
 /**
  * Command represents a command from the UI.
  */
@@ -377,6 +400,22 @@ export interface SyncEnableCommand {
   type: CommandType;
   id?: string;
   data: SyncEnableRequest;
+}
+/**
+ * SyncRevertFolderCommand includes the folder to revert.
+ */
+export interface SyncRevertFolderCommand {
+  type: CommandType;
+  id?: string;
+  data: SyncRevertFolderRequest;
+}
+/**
+ * SyncLocalChangesCommand includes the folder to get local changes for.
+ */
+export interface SyncLocalChangesCommand {
+  type: CommandType;
+  id?: string;
+  data: SyncLocalChangesRequest;
 }
 /**
  * EventType identifies the type of event.

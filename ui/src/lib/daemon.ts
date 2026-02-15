@@ -12,9 +12,13 @@ import type {
   SyncEnableResponse,
   SyncJoinPrimaryRequest,
   SyncJoinPrimaryResponse,
+  SyncLocalChangesRequest,
+  SyncLocalChangesResponse,
   SyncPendingResponse,
   SyncRemoveDeviceRequest,
   SyncRemoveDeviceResponse,
+  SyncRevertFolderRequest,
+  SyncRevertFolderResponse,
   SyncStatusResponse,
   System,
   UninstallPreviewResponse,
@@ -76,6 +80,12 @@ export const cancelSyncPairing = () => invoke<{ cancelled: boolean }>('sync_canc
 export const getSyncPending = () => invoke<SyncPendingResponse>('sync_pending')
 
 export const enableSync = (req: SyncEnableRequest) => invoke<SyncEnableResponse>('sync_enable', req)
+
+export const revertSyncFolder = (req: SyncRevertFolderRequest) =>
+  invoke<SyncRevertFolderResponse>('sync_revert_folder', req)
+
+export const getSyncLocalChanges = (req: SyncLocalChangesRequest) =>
+  invoke<SyncLocalChangesResponse>('sync_local_changes', req)
 
 export const getUninstallPreview = () => invoke<UninstallPreviewResponse>('uninstall_preview')
 

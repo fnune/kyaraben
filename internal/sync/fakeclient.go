@@ -131,13 +131,44 @@ func (c *FakeClient) GetFolderStatus(_ context.Context, folderID string) (*Folde
 	defer c.mu.Unlock()
 	if summary, ok := c.folders[folderID]; ok {
 		return &FolderStatus{
-			State:       summary.State,
-			GlobalBytes: summary.GlobalSize,
-			LocalBytes:  summary.LocalSize,
-			NeedBytes:   summary.NeedSize,
+			State:                 summary.State,
+			GlobalBytes:           summary.GlobalSize,
+			LocalBytes:            summary.LocalSize,
+			NeedBytes:             summary.NeedSize,
+			ReceiveOnlyTotalItems: summary.ReceiveOnlyChanges,
 		}, nil
 	}
 	return &FolderStatus{State: "idle"}, nil
+}
+
+func (c *FakeClient) RevertFolder(_ context.Context, _ string) error {
+	return nil
+}
+
+func (c *FakeClient) GetLocalChanges(_ context.Context, _ string) ([]LocalChange, error) {
+	return nil, nil
+}
+
+func (c *FakeClient) GetFolderConfigs(_ context.Context) ([]FolderConfig, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	var configs []FolderConfig
+	for _, f := range c.folders {
+		configs = append(configs, FolderConfig{
+			ID:   f.ID,
+			Path: f.Path,
+			Type: f.Type,
+		})
+	}
+	return configs, nil
+}
+
+func (c *FakeClient) GetPendingFolders(_ context.Context) ([]PendingFolder, error) {
+	return nil, nil
+}
+
+func (c *FakeClient) DismissPendingFolder(_ context.Context, _, _ string) error {
+	return nil
 }
 
 func (c *FakeClient) GetStatus(_ context.Context) (*Status, error) {

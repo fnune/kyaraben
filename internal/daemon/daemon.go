@@ -148,6 +148,10 @@ func (d *Daemon) HandleWithEmit(cmd Command, emit func(Event)) []Event {
 		return d.handlePreflight()
 	case CommandTypeSyncEnable:
 		return d.handleSyncEnable(nil, emit)
+	case CommandTypeSyncRevertFolder:
+		return d.handleSyncRevertFolder(nil)
+	case CommandTypeSyncLocalChanges:
+		return d.handleSyncLocalChanges(nil)
 	default:
 		return d.errorResponse(fmt.Sprintf("unknown command: %s", cmd.Type))
 	}
@@ -167,6 +171,14 @@ func (d *Daemon) HandleInstallKyaraben(cmd InstallKyarabenCommand, emit func(Eve
 
 func (d *Daemon) HandleSyncEnable(cmd SyncEnableCommand, emit func(Event)) []Event {
 	return d.handleSyncEnable(&cmd.Data, emit)
+}
+
+func (d *Daemon) HandleSyncRevertFolder(cmd SyncRevertFolderCommand, emit func(Event)) []Event {
+	return d.handleSyncRevertFolder(&cmd.Data)
+}
+
+func (d *Daemon) HandleSyncLocalChanges(cmd SyncLocalChangesCommand, emit func(Event)) []Event {
+	return d.handleSyncLocalChanges(&cmd.Data)
 }
 
 func (d *Daemon) errorResponse(msg string) []Event {
@@ -891,13 +903,15 @@ func (d *Daemon) handleSyncStatus() []Event {
 			path = computeFolderPath(userStore.Root(), f.ID)
 		}
 		folders[i] = SyncFolder{
-			ID:         f.ID,
-			Path:       path,
-			Label:      folderLabel(f.ID),
-			State:      f.State,
-			GlobalSize: f.GlobalSize,
-			LocalSize:  f.LocalSize,
-			NeedSize:   f.NeedSize,
+			ID:                 f.ID,
+			Path:               path,
+			Label:              folderLabel(f.ID),
+			State:              f.State,
+			Type:               f.Type,
+			GlobalSize:         f.GlobalSize,
+			LocalSize:          f.LocalSize,
+			NeedSize:           f.NeedSize,
+			ReceiveOnlyChanges: f.ReceiveOnlyChanges,
 		}
 	}
 
@@ -993,6 +1007,76 @@ func (d *Daemon) handleSyncRemoveDevice(data *SyncRemoveDeviceRequest) []Event {
 			DeviceID: deviceID,
 			Name:     removedName,
 		},
+	}}
+}
+
+func (d *Daemon) handleSyncRevertFolder(data *SyncRevertFolderRequest) []Event {
+	if data == nil || data.FolderID == "" {
+		return d.errorResponse("folderId is required")
+	}
+
+	cfg, err := d.loadConfig()
+	if err != nil {
+		return d.errorResponse(err.Error())
+	}
+
+	client := syncpkg.NewClient(cfg.Sync)
+	loadedKey := d.loadSyncAPIKey()
+	if loadedKey != "" {
+		client.SetAPIKey(loadedKey)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := client.RevertFolder(ctx, data.FolderID); err != nil {
+		return d.errorResponse(fmt.Sprintf("failed to revert folder: %v", err))
+	}
+
+	return []Event{{
+		Type: EventTypeResult,
+		Data: SyncRevertFolderResponse{Success: true},
+	}}
+}
+
+func (d *Daemon) handleSyncLocalChanges(data *SyncLocalChangesRequest) []Event {
+	if data == nil || data.FolderID == "" {
+		return d.errorResponse("folderId is required")
+	}
+
+	cfg, err := d.loadConfig()
+	if err != nil {
+		return d.errorResponse(err.Error())
+	}
+
+	client := syncpkg.NewClient(cfg.Sync)
+	loadedKey := d.loadSyncAPIKey()
+	if loadedKey != "" {
+		client.SetAPIKey(loadedKey)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	changes, err := client.GetLocalChanges(ctx, data.FolderID)
+	if err != nil {
+		return d.errorResponse(fmt.Sprintf("failed to get local changes: %v", err))
+	}
+
+	result := make([]SyncLocalChange, len(changes))
+	for i, c := range changes {
+		result[i] = SyncLocalChange{
+			Action:   c.Action,
+			Type:     c.Type,
+			Path:     c.Path,
+			Modified: c.Modified,
+			Size:     c.Size,
+		}
+	}
+
+	return []Event{{
+		Type: EventTypeResult,
+		Data: SyncLocalChangesResponse{Changes: result},
 	}}
 }
 
@@ -1122,6 +1206,8 @@ func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest, emit func(E
 		}
 
 		d.persistPairedDevice(cfg, result.PeerDeviceID, result.PeerName, model.SyncModeSecondary)
+
+		d.dismissUnwantedPendingFolders(client)
 
 		emit(Event{
 			Type: EventTypeResult,
@@ -1317,6 +1403,37 @@ func (d *Daemon) syncSystems(cfg *model.KyarabenConfig) []model.SystemID {
 	return systems
 }
 
+func (d *Daemon) dismissUnwantedPendingFolders(client syncpkg.SyncClient) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	configured, err := client.GetFolderConfigs(ctx)
+	if err != nil {
+		log.Error("Failed to get configured folders: %v", err)
+		return
+	}
+
+	configuredIDs := make(map[string]bool)
+	for _, f := range configured {
+		configuredIDs[f.ID] = true
+	}
+
+	pending, err := client.GetPendingFolders(ctx)
+	if err != nil {
+		log.Error("Failed to get pending folders: %v", err)
+		return
+	}
+
+	for _, p := range pending {
+		if !configuredIDs[p.ID] {
+			log.Info("Dismissing pending folder %s (not configured on this device)", p.ID)
+			if err := client.DismissPendingFolder(ctx, p.ID, p.OfferedBy); err != nil {
+				log.Error("Failed to dismiss pending folder %s: %v", p.ID, err)
+			}
+		}
+	}
+}
+
 func (d *Daemon) ensureSyncthingRunning(cfg *model.KyarabenConfig) {
 	userStore, err := store.NewUserStore(d.fs, d.paths, cfg.Global.UserStore)
 	if err != nil {
@@ -1348,6 +1465,15 @@ func (d *Daemon) ensureSyncthingRunning(cfg *model.KyarabenConfig) {
 	}
 	if err := manifest.SaveWithBackup(d.manifestPath); err != nil {
 		log.Error("Failed to save manifest: %v", err)
+	}
+
+	if cfg.Sync.Mode == model.SyncModeSecondary {
+		client := syncpkg.NewClient(cfg.Sync)
+		loadedKey := d.loadSyncAPIKey()
+		if loadedKey != "" {
+			client.SetAPIKey(loadedKey)
+		}
+		d.dismissUnwantedPendingFolders(client)
 	}
 }
 
@@ -1389,6 +1515,9 @@ func (d *Daemon) updateSyncConfig(cfg *model.KyarabenConfig, userStorePath strin
 	if client.IsRunning(ctx) {
 		if err := client.Restart(ctx); err != nil {
 			log.Info("Syncthing restart requested (may take a moment)")
+		}
+		if cfg.Sync.Mode == model.SyncModeSecondary {
+			d.dismissUnwantedPendingFolders(client)
 		}
 	}
 
