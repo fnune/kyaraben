@@ -20,6 +20,7 @@ import (
 	"github.com/fnune/kyaraben/internal/store"
 	"github.com/fnune/kyaraben/internal/version"
 	"github.com/fnune/kyaraben/internal/versions"
+	"github.com/twpayne/go-vfs/v5"
 )
 
 var versionsGet = versions.Get
@@ -369,7 +370,8 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 			disabledConfigs = append(disabledConfigs, cfg)
 		}
 	}
-	cleanup.RemoveConfigDirs(disabledConfigs)
+	cleaner := cleanup.New(vfs.OSFS, a.BaseDirResolver)
+	cleaner.RemoveConfigDirs(disabledConfigs)
 
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
