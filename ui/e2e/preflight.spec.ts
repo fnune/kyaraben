@@ -7,7 +7,7 @@ import {
   type Page,
   test,
 } from '@playwright/test'
-import { createFixture, EmulatorIDMGBA, SystemIDGBA, type TestFixture } from './fixtures'
+import { buildEnv, createFixture, EmulatorIDMGBA, SystemIDGBA, type TestFixture } from './fixtures'
 
 function getAppImagePath(): string {
   const appImagePath = process.env.KYARABEN_APPIMAGE
@@ -94,10 +94,7 @@ test.describe('Config conflict review', () => {
     app = await electron.launch({
       executablePath: getAppImagePath(),
       args: ['--no-sandbox'],
-      env: {
-        ...process.env,
-        ...fixture.env,
-      },
+      env: buildEnv(fixture),
     })
 
     page = await app.firstWindow()

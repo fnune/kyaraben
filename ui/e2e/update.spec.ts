@@ -5,7 +5,7 @@ import {
   type Page,
   test,
 } from '@playwright/test'
-import { createFixture, setupFakeReleasesApi, type TestFixture } from './fixtures'
+import { buildEnv, createFixture, setupFakeReleasesApi, type TestFixture } from './fixtures'
 
 let fixture: TestFixture
 let electronApp: ElectronApplication
@@ -18,16 +18,13 @@ test.describe('Update checking', () => {
       throw new Error('KYARABEN_APPIMAGE environment variable must be set')
     }
 
-    fixture = createFixture({}, undefined)
+    fixture = createFixture({})
     setupFakeReleasesApi(fixture, { latestVersion: '99.0.0' })
 
     electronApp = await electron.launch({
       executablePath: appImagePath,
       args: ['--no-sandbox'],
-      env: {
-        ...process.env,
-        ...fixture.env,
-      },
+      env: buildEnv(fixture),
     })
 
     page = await electronApp.firstWindow()
@@ -76,16 +73,13 @@ test.describe('No update available', () => {
       throw new Error('KYARABEN_APPIMAGE environment variable must be set')
     }
 
-    fixture = createFixture({}, undefined)
+    fixture = createFixture({})
     setupFakeReleasesApi(fixture, { latestVersion: '0.0.1' })
 
     electronApp = await electron.launch({
       executablePath: appImagePath,
       args: ['--no-sandbox'],
-      env: {
-        ...process.env,
-        ...fixture.env,
-      },
+      env: buildEnv(fixture),
     })
 
     page = await electronApp.firstWindow()
@@ -132,10 +126,7 @@ test.describe('Version mismatch detection', () => {
     electronApp = await electron.launch({
       executablePath: appImagePath,
       args: ['--no-sandbox'],
-      env: {
-        ...process.env,
-        ...fixture.env,
-      },
+      env: buildEnv(fixture),
     })
 
     page = await electronApp.firstWindow()

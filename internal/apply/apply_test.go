@@ -296,6 +296,21 @@ func TestApplyCreatesSymlinksForSymlinkProviders(t *testing.T) {
 			t.Errorf("Expected symlink source %q not found", source)
 		}
 	}
+
+	manifest, err := model.LoadManifest(manifestPath)
+	if err != nil {
+		t.Fatalf("Failed to load manifest: %v", err)
+	}
+
+	if len(manifest.Symlinks) != 4 {
+		t.Errorf("Expected 4 symlinks in manifest, got %d", len(manifest.Symlinks))
+	}
+
+	for _, s := range manifest.Symlinks {
+		if s.EmulatorID != model.EmulatorIDDolphin {
+			t.Errorf("Expected emulator ID %s, got %s", model.EmulatorIDDolphin, s.EmulatorID)
+		}
+	}
 }
 
 func TestApplyCreatesProvisionDirectories(t *testing.T) {

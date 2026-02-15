@@ -28,6 +28,12 @@ type ManagedKeyInfo struct {
 	Value string
 }
 
+type SymlinkInfo struct {
+	Source     string
+	Target     string
+	EmulatorID model.EmulatorID
+}
+
 type EmulatorInfo struct {
 	ID             model.EmulatorID
 	Name           string
@@ -50,6 +56,7 @@ type Result struct {
 	EnabledSystems       []SystemInfo
 	InstalledEmulators   []EmulatorInfo
 	InstalledFrontends   []FrontendInfo
+	Symlinks             []SymlinkInfo
 	LastApplied          time.Time
 	MissingRequiredCount int
 	HealthWarning        string // Non-empty if inconsistent state detected
@@ -125,6 +132,14 @@ func Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg 
 			info.Name = f.Name
 		}
 		result.InstalledFrontends = append(result.InstalledFrontends, info)
+	}
+
+	for _, s := range manifest.Symlinks {
+		result.Symlinks = append(result.Symlinks, SymlinkInfo{
+			Source:     s.Source,
+			Target:     s.Target,
+			EmulatorID: s.EmulatorID,
+		})
 	}
 
 	checker := store.NewProvisionChecker(userStore)

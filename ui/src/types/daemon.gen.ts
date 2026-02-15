@@ -32,6 +32,7 @@ export interface StatusResponse {
   enabledSystems: SystemID[];
   installedEmulators: InstalledEmulator[];
   installedFrontends: InstalledFrontend[];
+  symlinks?: SymlinkInfo[];
   lastApplied: string;
   healthWarning?: string;
   kyarabenVersion: string;
@@ -52,6 +53,11 @@ export interface ManagedConfigInfo {
 export interface ManagedKeyInfo {
   key: string;
   value: string;
+}
+export interface SymlinkInfo {
+  source: string;
+  target: string;
+  emulatorId: EmulatorID;
 }
 export interface EmulatorPaths {
   roms: string;

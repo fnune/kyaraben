@@ -254,6 +254,15 @@ func (d *Daemon) handleStatus() []Event {
 		}
 	}
 
+	symlinks := make([]SymlinkInfo, len(result.Symlinks))
+	for i, s := range result.Symlinks {
+		symlinks[i] = SymlinkInfo{
+			Source:     shortenPath(s.Source),
+			Target:     shortenPath(s.Target),
+			EmulatorID: s.EmulatorID,
+		}
+	}
+
 	manifest, _ := d.loadManifest()
 	manifestVersion := ""
 	if manifest != nil {
@@ -267,6 +276,7 @@ func (d *Daemon) handleStatus() []Event {
 			EnabledSystems:          systems,
 			InstalledEmulators:      installedEmulators,
 			InstalledFrontends:      installedFrontends,
+			Symlinks:                symlinks,
 			LastApplied:             result.LastApplied.Format(time.RFC3339),
 			HealthWarning:           result.HealthWarning,
 			KyarabenVersion:         version.Get(),
