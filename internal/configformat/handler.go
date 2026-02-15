@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/twpayne/go-vfs/v5"
 )
 
 type ApplyResult struct {
@@ -20,20 +21,27 @@ type Handler interface {
 	Apply(path string, entries []model.ConfigEntry) (ApplyResult, error)
 }
 
-var handlers = map[model.ConfigFormat]Handler{
-	model.ConfigFormatINI:  &iniHandler{},
-	model.ConfigFormatCFG:  &cfgHandler{},
-	model.ConfigFormatTOML: &tomlHandler{},
-	model.ConfigFormatYAML: &yamlHandler{},
-	model.ConfigFormatXML:  &xmlHandler{},
-	model.ConfigFormatRaw:  &rawHandler{},
+func GetHandler(format model.ConfigFormat) Handler {
+	return GetHandlerWithFS(vfs.OSFS, format)
 }
 
-func GetHandler(format model.ConfigFormat) Handler {
-	if h, ok := handlers[format]; ok {
-		return h
+func GetHandlerWithFS(fs vfs.FS, format model.ConfigFormat) Handler {
+	switch format {
+	case model.ConfigFormatINI:
+		return &iniHandler{fs: fs}
+	case model.ConfigFormatCFG:
+		return &cfgHandler{fs: fs}
+	case model.ConfigFormatTOML:
+		return &tomlHandler{fs: fs}
+	case model.ConfigFormatYAML:
+		return &yamlHandler{fs: fs}
+	case model.ConfigFormatXML:
+		return &xmlHandler{fs: fs}
+	case model.ConfigFormatRaw:
+		return &rawHandler{fs: fs}
+	default:
+		return &iniHandler{fs: fs}
 	}
-	return &iniHandler{}
 }
 
 func SectionKey(path []string) string {
@@ -61,7 +69,11 @@ func NormalizePath(v string) string {
 }
 
 func hashFile(path string) (string, error) {
-	data, err := os.ReadFile(path)
+	return hashFileWithFS(vfs.OSFS, path)
+}
+
+func hashFileWithFS(fs vfs.FS, path string) (string, error) {
+	data, err := fs.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
