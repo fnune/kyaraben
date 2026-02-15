@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
+import { SpeedBadge } from '@/components/SpeedBadge/SpeedBadge'
 import { useApply } from '@/lib/ApplyContext'
 import { BOTTOM_BAR_HEIGHT } from '@/lib/BottomBar'
 import { BottomBarPortal } from '@/lib/BottomBarSlot'
-import { useOpenLog } from '@/lib/useOpenLog'
-import { SpeedBadge } from '@/components/SpeedBadge/SpeedBadge'
 import { getDownloadSpeedBytes, getStepSubtitle } from '@/lib/progressUtils'
 import { ProgressBar, ProgressRail, Shimmer } from '@/lib/progressWidgets'
+import { useOpenLog } from '@/lib/useOpenLog'
 
 export interface ApplyProgressBarProps {
   readonly currentView: string
@@ -51,7 +51,10 @@ export function ApplyProgressBar({ currentView, onNavigateToSystems }: ApplyProg
   const downloadSpeedBytes = currentStep ? getDownloadSpeedBytes(currentStep) : 0
   const computedPercent =
     currentStep?.bytesTotal && currentStep.bytesTotal > 0
-      ? Math.min(100, Math.floor(((currentStep.bytesDownloaded ?? 0) * 100) / currentStep.bytesTotal))
+      ? Math.min(
+          100,
+          Math.floor(((currentStep.bytesDownloaded ?? 0) * 100) / currentStep.bytesTotal),
+        )
       : undefined
   const progressPercent = currentStep?.progressPercent ?? computedPercent
   const showViewProgress = currentView !== 'systems'

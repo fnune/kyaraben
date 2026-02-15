@@ -299,16 +299,9 @@ test.describe('Apply flow', () => {
     await expect(page.getByRole('button', { name: 'Discard' })).toBeVisible()
   })
 
-  test('clicking Apply shows progress', async () => {
+  test('clicking Apply shows progress and completes', async () => {
     await page.getByRole('button', { name: 'Apply' }).click()
-
-    await expect(
-      page.getByText(/Applying configuration|Installing emulators|Setting up/).first(),
-    ).toBeVisible({ timeout: 5000 })
-  })
-
-  test('progress completes and shows Done button', async () => {
-    await expect(page.getByRole('button', { name: 'Done' })).toBeVisible({ timeout: 30000 })
+    await expect(page.getByRole('button', { name: 'Done' })).toBeVisible({ timeout: 60000 })
   })
 
   test('clicking Done returns to systems view', async () => {

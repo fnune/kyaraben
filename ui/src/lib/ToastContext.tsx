@@ -1,4 +1,12 @@
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react'
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 
 interface Toast {
   id: number
@@ -74,12 +82,12 @@ function ToastItem({
   const timeoutRef = useRef<number | null>(null)
   const remainingRef = useRef<number>(toast.expiresAt - Date.now())
 
-  const clearTimer = () => {
+  const clearTimer = useCallback(() => {
     if (timeoutRef.current !== null) {
       window.clearTimeout(timeoutRef.current)
       timeoutRef.current = null
     }
-  }
+  }, [])
 
   const startTimer = useCallback(() => {
     clearTimer()
@@ -91,16 +99,16 @@ function ToastItem({
     timeoutRef.current = window.setTimeout(() => {
       onDismiss(toast.id)
     }, remaining)
-  }, [onDismiss, toast.id])
+  }, [onDismiss, toast.id, clearTimer])
 
   useEffect(() => {
     remainingRef.current = toast.expiresAt - Date.now()
     startTimer()
     return () => clearTimer()
-  }, [startTimer, toast.expiresAt])
+  }, [startTimer, toast.expiresAt, clearTimer])
 
   return (
-    <div
+    <output
       className={`
         ${getStyles(toast.type)}
         px-3 py-1.5 rounded border text-xs backdrop-blur-xs
@@ -122,6 +130,6 @@ function ToastItem({
       >
         ✕
       </button>
-    </div>
+    </output>
   )
 }

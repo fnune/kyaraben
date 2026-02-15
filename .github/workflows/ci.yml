@@ -83,18 +83,46 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build test container
-        uses: docker/build-push-action@v6
+      - uses: actions/setup-go@v5
         with:
-          context: .
-          file: Containerfile.electron-e2e
-          tags: kyaraben-electron-e2e:latest
-          load: true
-          cache-from: type=gha,scope=electron-e2e
-          cache-to: type=gha,mode=max,scope=electron-e2e
+          go-version: "1.24"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Install rpm (needed for electron-builder)
+        run: sudo apt-get update && sudo apt-get install -y rpm
+
+      - name: Build Go sidecar
+        run: ./scripts/build-sidecar.sh
+
+      - name: Install UI dependencies
+        run: cd ui && npm ci
+
+      - name: Build AppImage
+        run: cd ui && npm run electron:build -- --linux AppImage
+
+      - name: Extract AppImage
+        run: |
+          cd ui/release
+          ./*.AppImage --appimage-extract
+          mv squashfs-root app
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('ui/package-lock.json') }}
+
+      - name: Install Playwright browsers
+        run: cd ui && npx playwright install --with-deps chromium
 
       - name: Run Playwright E2E tests
-        run: docker run --rm --init --ipc=host kyaraben-electron-e2e:latest
+        run: |
+          cd ui
+          KYARABEN_APPIMAGE="$(pwd)/release/app/kyaraben-ui" \
+          APPDIR="$(pwd)/release/app" \
+          ../scripts/run-ui-e2e.sh npx playwright test
