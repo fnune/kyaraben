@@ -35,16 +35,17 @@ export function FrontendCard({
       const config = CHANGE_CONFIG[changeType]
       return `ring-1 ${config.ringColor} bg-surface-alt`
     }
-    return enabled ? 'bg-surface-alt' : 'bg-surface-alt/50'
+    return 'bg-surface-alt'
   })()
 
   const logo = getFrontendLogo(frontend.id)
+  const borderClasses = installedVersion ? 'border-t-2 border-t-accent' : ''
 
   return (
-    <div className={`rounded-element overflow-hidden relative ${cardClasses}`}>
+    <div className={`rounded-element overflow-hidden relative ${cardClasses} ${borderClasses}`}>
       {changeType && <ChangeNotch type={changeType} />}
 
-      <div className={`flex items-center gap-4 p-3 ${!enabled ? 'opacity-60' : ''}`}>
+      <div className="flex items-center gap-4 p-3">
         {logo && (
           <div className="hidden min-[720px]:flex items-center justify-center w-10 h-10 shrink-0">
             <img src={logo} alt="" className="w-full h-full object-contain" />

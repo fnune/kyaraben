@@ -178,7 +178,7 @@ test.describe('Sync disabled', () => {
   })
 })
 
-test.describe('Installation tab', () => {
+test.describe('Installation view', () => {
   let fixture: TestFixture
   let app: ElectronApplication
   let page: Page
@@ -196,7 +196,7 @@ test.describe('Installation tab', () => {
     fixture?.cleanup()
   })
 
-  test('can navigate to Installation tab', async () => {
+  test('can navigate to Installation via settings icon', async () => {
     await page.getByRole('button', { name: 'Installation' }).click()
     await expect(page.getByText('State directory')).toBeVisible()
   })
@@ -381,16 +381,16 @@ test.describe('Tab navigation', () => {
     fixture?.cleanup()
   })
 
-  test('starts on Systems tab', async () => {
+  test('starts on Catalog view', async () => {
     await expect(page.getByText('Emulation folder')).toBeVisible()
     await expect(page.getByRole('heading', { level: 2, name: 'Nintendo' })).toBeVisible()
   })
 
-  test('can switch to Installation and back', async () => {
+  test('can switch to Installation via settings icon and back', async () => {
     await page.getByRole('button', { name: 'Installation' }).click()
     await expect(page.getByText('State directory')).toBeVisible()
 
-    await page.getByRole('button', { name: 'Systems', exact: true }).click()
+    await page.getByRole('button', { name: 'Catalog', exact: true }).click()
     await expect(page.getByText('Emulation folder')).toBeVisible()
   })
 
@@ -398,7 +398,7 @@ test.describe('Tab navigation', () => {
     await page.getByRole('button', { name: 'Sync' }).click()
     await expect(page.getByRole('heading', { name: /Sync/ })).toBeVisible()
 
-    await page.getByRole('button', { name: 'Systems', exact: true }).click()
+    await page.getByRole('button', { name: 'Catalog', exact: true }).click()
     await expect(page.getByText('Emulation folder')).toBeVisible()
   })
 })

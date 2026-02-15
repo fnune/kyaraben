@@ -45,8 +45,7 @@ test.describe('Kyaraben App', () => {
   })
 
   test('shows navigation tabs', async () => {
-    await expect(page.getByRole('button', { name: 'Systems', exact: true })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Installation' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Catalog', exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Sync' })).toBeVisible()
   })
 

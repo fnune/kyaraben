@@ -1,7 +1,16 @@
 import type { EmulatorID, ProvisionResult, SystemID } from './daemon'
 import type { Manufacturer } from './model.gen'
 
-export type View = 'systems' | 'installation' | 'sync'
+export const VIEW_CATALOG = 'catalog' as const
+export const VIEW_INSTALLATION = 'installation' as const
+export const VIEW_SYNC = 'sync' as const
+export type View = typeof VIEW_CATALOG | typeof VIEW_INSTALLATION | typeof VIEW_SYNC
+
+export const VIEW_LABELS: Record<View, string> = {
+  [VIEW_CATALOG]: 'Catalog',
+  [VIEW_INSTALLATION]: 'Installation',
+  [VIEW_SYNC]: 'Sync',
+}
 
 export const MANUFACTURER_ORDER: readonly Manufacturer[] = ['Nintendo', 'Sony', 'Sega', 'Other']
 
