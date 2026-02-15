@@ -1,40 +1,60 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import * as daemon from '@/lib/daemon'
-import type { SyncMode, SyncStatusResponse } from '@/types/daemon'
+import type { SyncDiscoveredDevice, SyncMode, SyncStatusResponse } from '@/types/daemon'
 import { SyncStateSyncing } from '@/types/daemon'
+
+type ShowToast = (message: string, type?: 'error' | 'success' | 'info') => void
 
 export interface UseSyncPairingResult {
   syncStatus: SyncStatusResponse | null
-  pairingCode: string | null
-  pairingProgress: string | null
-  pairingError: string | null
+  discoveredDevices: SyncDiscoveredDevice[]
+  connectionProgress: string | null
+  connectionError: string | null
   enableError: string | null
   isEnabling: boolean
+  isDiscovering: boolean
+  isConnecting: boolean
+  isPairing: boolean
+  pairingDeviceId: string | null
   handleRemoveDevice: (deviceId: string) => Promise<void>
-  handleStartPairing: () => Promise<void>
-  handleCancelPairing: () => Promise<void>
-  handleJoinPrimary: (code: string) => Promise<{ ok: boolean; error?: string }>
+  handleConnectToDevice: (deviceId: string) => Promise<{ ok: boolean; error?: string }>
   handleEnableSync: (mode: SyncMode) => Promise<void>
   handleResetSync: () => Promise<void>
+  handleStartPairing: () => Promise<void>
+  handleStopPairing: () => Promise<void>
   refreshSyncStatus: () => Promise<void>
+  refreshDiscoveredDevices: () => Promise<void>
 }
 
 const POLL_INTERVAL_SYNCING = 2000
 const POLL_INTERVAL_NORMAL = 10000
+const DISCOVERY_POLL_INTERVAL = 3000
 
-export function useSyncPairing(): UseSyncPairingResult {
+export function useSyncPairing(showToast: ShowToast): UseSyncPairingResult {
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null)
-  const [pairingCode, setPairingCode] = useState<string | null>(null)
-  const [pairingProgress, setPairingProgress] = useState<string | null>(null)
-  const [pairingError, setPairingError] = useState<string | null>(null)
+  const [discoveredDevices, setDiscoveredDevices] = useState<SyncDiscoveredDevice[]>([])
+  const [connectionProgress, setConnectionProgress] = useState<string | null>(null)
+  const [connectionError, setConnectionError] = useState<string | null>(null)
   const [enableError, setEnableError] = useState<string | null>(null)
   const [isEnabling, setIsEnabling] = useState(false)
+  const [isDiscovering, setIsDiscovering] = useState(false)
+  const [isConnecting, setIsConnecting] = useState(false)
+  const [isPairing, setIsPairing] = useState(false)
+  const [pairingDeviceId, setPairingDeviceId] = useState<string | null>(null)
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const discoveryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const refreshSyncStatus = useCallback(async () => {
     const result = await daemon.getSyncStatus()
     if (result.ok) {
       setSyncStatus(result.data)
+    }
+  }, [])
+
+  const refreshDiscoveredDevices = useCallback(async () => {
+    const result = await daemon.getDiscoveredDevices()
+    if (result.ok) {
+      setDiscoveredDevices(result.data.devices)
     }
   }, [])
 
@@ -63,13 +83,41 @@ export function useSyncPairing(): UseSyncPairingResult {
   }, [syncStatus?.enabled, syncStatus?.running, syncStatus?.state, refreshSyncStatus])
 
   useEffect(() => {
+    const isSecondary = syncStatus?.mode === 'secondary'
+    const hasNoDevices = (syncStatus?.devices?.length ?? 0) === 0
+    const shouldDiscover = syncStatus?.enabled && syncStatus?.running && isSecondary && hasNoDevices
+
+    if (discoveryIntervalRef.current) {
+      clearInterval(discoveryIntervalRef.current)
+      discoveryIntervalRef.current = null
+    }
+
+    if (shouldDiscover) {
+      setIsDiscovering(true)
+      refreshDiscoveredDevices()
+      discoveryIntervalRef.current = setInterval(refreshDiscoveredDevices, DISCOVERY_POLL_INTERVAL)
+    } else {
+      setIsDiscovering(false)
+      setDiscoveredDevices([])
+    }
+
+    return () => {
+      if (discoveryIntervalRef.current) {
+        clearInterval(discoveryIntervalRef.current)
+      }
+    }
+  }, [
+    syncStatus?.enabled,
+    syncStatus?.running,
+    syncStatus?.mode,
+    syncStatus?.devices?.length,
+    refreshDiscoveredDevices,
+  ])
+
+  useEffect(() => {
     return window.electron.on('pairing:progress', (data) => {
-      const msg = data.message
-      if (msg) {
-        if (msg.startsWith('Pairing code: ')) {
-          setPairingCode(msg.replace('Pairing code: ', ''))
-        }
-        setPairingProgress(msg)
+      if (data.message) {
+        setConnectionProgress(data.message)
       }
     })
   }, [])
@@ -78,43 +126,34 @@ export function useSyncPairing(): UseSyncPairingResult {
     async (deviceId: string) => {
       const result = await daemon.removeSyncDevice({ deviceId })
       if (result.ok) {
+        showToast('Device removed.', 'info')
         await refreshSyncStatus()
+      } else {
+        showToast('Failed to remove device.', 'error')
       }
     },
-    [refreshSyncStatus],
+    [refreshSyncStatus, showToast],
   )
 
-  const handleStartPairing = useCallback(async () => {
-    setPairingProgress('Starting pairing...')
-    const result = await daemon.startSyncPairing()
-    if (result.ok) {
-      setPairingCode(null)
-      setPairingProgress(null)
-      await refreshSyncStatus()
-    } else {
-      setPairingProgress(null)
-    }
-  }, [refreshSyncStatus])
-
-  const handleCancelPairing = useCallback(async () => {
-    await daemon.cancelSyncPairing()
-    setPairingCode(null)
-    setPairingProgress(null)
-  }, [])
-
-  const handleJoinPrimary = useCallback(
-    async (code: string): Promise<{ ok: boolean; error?: string }> => {
-      setPairingError(null)
-      const result = await daemon.joinSyncPrimary({ code, pairingAddr: '' })
+  const handleConnectToDevice = useCallback(
+    async (targetDeviceId: string): Promise<{ ok: boolean; error?: string }> => {
+      setConnectionError(null)
+      setConnectionProgress('Connecting...')
+      setIsConnecting(true)
+      const result = await daemon.joinSyncPrimary({ code: targetDeviceId, pairingAddr: '' })
+      setConnectionProgress(null)
+      setIsConnecting(false)
       if (result.ok) {
+        showToast('Connected to device.', 'success')
         await refreshSyncStatus()
         return { ok: true }
       }
-      const errorMsg = result.error?.message ?? 'Failed to join primary'
-      setPairingError(errorMsg)
+      const errorMsg = result.error?.message ?? 'Failed to connect to device'
+      setConnectionError(errorMsg)
+      showToast(errorMsg, 'error')
       return { ok: false, error: errorMsg }
     },
-    [refreshSyncStatus],
+    [refreshSyncStatus, showToast],
   )
 
   const handleEnableSync = useCallback(
@@ -124,39 +163,71 @@ export function useSyncPairing(): UseSyncPairingResult {
       try {
         const result = await daemon.enableSync({ mode })
         if (result.ok) {
+          showToast('Sync enabled.', 'success')
           await refreshSyncStatus()
         } else {
-          setEnableError(result.error?.message ?? 'Failed to enable sync')
+          const errorMsg = result.error?.message ?? 'Failed to enable sync'
+          setEnableError(errorMsg)
+          showToast(errorMsg, 'error')
         }
       } finally {
         setIsEnabling(false)
       }
     },
-    [refreshSyncStatus],
+    [refreshSyncStatus, showToast],
   )
 
   const handleResetSync = useCallback(async () => {
     setEnableError(null)
-    setPairingError(null)
+    setConnectionError(null)
+    setIsPairing(false)
+    setPairingDeviceId(null)
     const result = await daemon.resetSync()
     if (result.ok) {
+      showToast('Sync reset.', 'info')
       await refreshSyncStatus()
+    } else {
+      showToast('Failed to reset sync.', 'error')
     }
-  }, [refreshSyncStatus])
+  }, [refreshSyncStatus, showToast])
+
+  const handleStartPairing = useCallback(async () => {
+    const result = await daemon.startSyncPairing()
+    if (result.ok) {
+      setIsPairing(true)
+      setPairingDeviceId(result.data.deviceId)
+      showToast('Pairing mode started.', 'info')
+    } else {
+      const errorMsg = result.error?.message ?? 'Failed to start pairing'
+      setEnableError(errorMsg)
+      showToast(errorMsg, 'error')
+    }
+  }, [showToast])
+
+  const handleStopPairing = useCallback(async () => {
+    await daemon.cancelSyncPairing()
+    setIsPairing(false)
+    setPairingDeviceId(null)
+  }, [])
 
   return {
     syncStatus,
-    pairingCode,
-    pairingProgress,
-    pairingError,
+    discoveredDevices,
+    connectionProgress,
+    connectionError,
     enableError,
     isEnabling,
+    isDiscovering,
+    isConnecting,
+    isPairing,
+    pairingDeviceId,
     handleRemoveDevice,
-    handleStartPairing,
-    handleCancelPairing,
-    handleJoinPrimary,
+    handleConnectToDevice,
     handleEnableSync,
     handleResetSync,
+    handleStartPairing,
+    handleStopPairing,
     refreshSyncStatus,
+    refreshDiscoveredDevices,
   }
 }

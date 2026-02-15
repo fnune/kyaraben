@@ -177,19 +177,23 @@ function AppContent() {
 
   const {
     syncStatus,
-    pairingCode,
-    pairingProgress,
-    pairingError,
+    discoveredDevices,
+    connectionProgress,
+    connectionError,
     enableError,
     isEnabling,
+    isDiscovering,
+    isConnecting,
+    isPairing,
+    pairingDeviceId,
     handleRemoveDevice,
-    handleStartPairing,
-    handleCancelPairing,
-    handleJoinPrimary,
+    handleConnectToDevice,
     handleEnableSync,
     handleResetSync,
+    handleStartPairing,
+    handleStopPairing,
     refreshSyncStatus,
-  } = useSyncPairing()
+  } = useSyncPairing(showToast)
 
   const refreshAfterApply = useCallback(async () => {
     const [doctorResult, statusResult, configResult] = await Promise.all([
@@ -540,16 +544,20 @@ function AppContent() {
         return (
           <SyncView
             status={syncStatus}
+            discoveredDevices={discoveredDevices}
+            connectionProgress={connectionProgress}
+            connectionError={connectionError}
+            isDiscovering={isDiscovering}
+            isConnecting={isConnecting}
+            isPairing={isPairing}
+            pairingDeviceId={pairingDeviceId}
             onRemoveDevice={handleRemoveDevice}
-            onStartPairing={handleStartPairing}
-            onCancelPairing={handleCancelPairing}
-            onJoinPrimary={handleJoinPrimary}
+            onConnectToDevice={handleConnectToDevice}
             onEnableSync={handleEnableSync}
             onResetSync={handleResetSync}
+            onStartPairing={handleStartPairing}
+            onStopPairing={handleStopPairing}
             onRefresh={refreshSyncStatus}
-            pairingCode={pairingCode}
-            pairingProgress={pairingProgress}
-            pairingError={pairingError}
             enableError={enableError}
             isEnabling={isEnabling}
           />
