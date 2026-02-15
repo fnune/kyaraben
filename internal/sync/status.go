@@ -65,15 +65,9 @@ func (c *Client) GetStatus(ctx context.Context) (*Status, error) {
 	var devices []DeviceStatus
 	for _, dev := range configuredDevices {
 		conn, ok := connections[dev.ID]
-		name := dev.Name
-		if ok && conn.DeviceName != "" {
-			name = conn.DeviceName + " (primary)"
-		} else if c.config.Mode == model.SyncModeSecondary {
-			name = "primary"
-		}
 		devices = append(devices, DeviceStatus{
 			ID:        dev.ID,
-			Name:      name,
+			Name:      dev.Name,
 			Connected: ok && conn.Connected,
 			Paused:    dev.Paused || (ok && conn.Paused),
 		})

@@ -3,9 +3,10 @@ import { randomUUID } from 'node:crypto'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import * as readline from 'node:readline'
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import type { InvokeChannel } from './channels'
 import { checkForUpdates, downloadUpdate } from './updater'
+import { xdgOpen } from './xdg'
 
 function getInstanceName(): string | null {
   for (let i = 0; i < process.argv.length; i++) {
@@ -676,12 +677,12 @@ function setupIpcHandlers(): void {
     const expandedPath = pathToOpen.startsWith('~')
       ? pathToOpen.replace('~', app.getPath('home'))
       : pathToOpen
-    shell.openPath(expandedPath)
+    xdgOpen(expandedPath)
     return ''
   })
 
   ipcMain.handle('open_url', (_, url: string) => {
-    shell.openExternal(url)
+    xdgOpen(url)
     return ''
   })
 

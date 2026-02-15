@@ -88,10 +88,9 @@ func (c *Client) GetDeviceID(ctx context.Context) (string, error) {
 }
 
 type ConnectionInfo struct {
-	Connected  bool   `json:"connected"`
-	Address    string `json:"address"`
-	Paused     bool   `json:"paused"`
-	DeviceName string `json:"deviceName"`
+	Connected bool   `json:"connected"`
+	Address   string `json:"address"`
+	Paused    bool   `json:"paused"`
 }
 
 type ConnectionsResponse struct {
@@ -277,6 +276,10 @@ func (c *Client) AddDevice(ctx context.Context, deviceID, name string) error {
 		return fmt.Errorf("unexpected status adding device: %d", resp.StatusCode)
 	}
 	return nil
+}
+
+func (c *Client) AddDeviceAutoName(ctx context.Context, deviceID string) error {
+	return c.AddDevice(ctx, deviceID, "")
 }
 
 func (c *Client) RemoveDevice(ctx context.Context, deviceID string) error {
@@ -470,10 +473,9 @@ func (c *Client) Restart(ctx context.Context) error {
 }
 
 type PendingFolder struct {
-	ID         string
-	Label      string
-	OfferedBy  string
-	DeviceName string
+	ID        string
+	Label     string
+	OfferedBy string
 }
 
 func (c *Client) GetPendingFolders(ctx context.Context) ([]PendingFolder, error) {
