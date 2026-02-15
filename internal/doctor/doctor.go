@@ -9,19 +9,20 @@ import (
 )
 
 type ProvisionResult struct {
-	Filename       string
-	Kind           model.ProvisionKind
-	Description    string
-	Status         model.ProvisionStatus
-	ExpectedPath   string
-	FoundPath      string
-	ImportViaUI    bool
-	GroupMessage   string
-	GroupRequired  bool
-	GroupSatisfied bool
-	GroupSize      int
-	DisplayName    string
-	Instructions   string
+	Filename            string
+	Kind                model.ProvisionKind
+	Description         string
+	Status              model.ProvisionStatus
+	ExpectedPath        string
+	FoundPath           string
+	ImportViaUI         bool
+	GroupMessage        string
+	GroupRequired       bool
+	GroupSatisfied      bool
+	GroupSize           int
+	DisplayName         string
+	VerifiedDisplayName string
+	Instructions        string
 }
 
 type SystemResult struct {
@@ -63,19 +64,20 @@ func Run(ctx context.Context, cfg *model.KyarabenConfig, reg *registry.Registry,
 					hints := pr.Provision.Hints()
 					expectedPath := gr.BaseDir
 					provResult := ProvisionResult{
-						Filename:       hints.DisplayName,
-						Kind:           pr.Provision.Kind,
-						Description:    pr.Provision.Description,
-						Status:         pr.Status,
-						ExpectedPath:   expectedPath,
-						FoundPath:      pr.FoundPath,
-						ImportViaUI:    pr.Provision.ImportViaUI,
-						GroupMessage:   gr.Group.Message,
-						GroupRequired:  gr.IsRequired,
-						GroupSatisfied: gr.IsSatisfied,
-						GroupSize:      len(gr.Group.Provisions),
-						DisplayName:    hints.DisplayName,
-						Instructions:   hints.Instructions,
+						Filename:            hints.DisplayName,
+						Kind:                pr.Provision.Kind,
+						Description:         pr.Provision.Description,
+						Status:              pr.Status,
+						ExpectedPath:        expectedPath,
+						FoundPath:           pr.FoundPath,
+						ImportViaUI:         pr.Provision.ImportViaUI,
+						GroupMessage:        gr.Group.Message,
+						GroupRequired:       gr.IsRequired,
+						GroupSatisfied:      gr.IsSatisfied,
+						GroupSize:           len(gr.Group.Provisions),
+						DisplayName:         hints.DisplayName,
+						VerifiedDisplayName: hints.VerifiedDisplayName,
+						Instructions:        hints.Instructions,
 					}
 					sysResult.Provisions = append(sysResult.Provisions, provResult)
 				}

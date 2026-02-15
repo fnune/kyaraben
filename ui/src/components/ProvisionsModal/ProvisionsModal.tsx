@@ -1,7 +1,7 @@
 import { ProvisionSummary } from '@/components/ProvisionSummary/ProvisionSummary'
 import { FolderIcon, PlayIcon } from '@/lib/icons'
-import { PathText } from '@/lib/PathText'
 import { Modal } from '@/lib/Modal'
+import { PathText } from '@/lib/PathText'
 import {
   OPTIONAL_PROVISION_COLOR,
   OPTIONAL_PROVISION_ICON,
@@ -272,7 +272,15 @@ function ProvisionRow({
         <span className="text-xs text-on-surface-dim truncate">
           {isFound ? (
             <>
-              Verified (<code className="text-xs">{provision.displayName}</code>)
+              Verified (
+              <code className="text-xs">
+                {provision.verifiedDisplayName || provision.displayName}
+              </code>
+              )
+            </>
+          ) : provision.importViaUI ? (
+            <>
+              Import <code className="text-xs">{provision.displayName}</code> via emulator
             </>
           ) : (
             provision.instructions

@@ -10,9 +10,9 @@ RPCS3 uses `~/.config/rpcs3/` for config and `vfs.yml` for path mappings.
 
 ### Firmware requires UI import
 
-Placing PS3UPDAT.PUP in the provision directory is not enough. RPCS3 requires importing via File > Install Firmware. After import, firmware extracts to `dev_flash/` in the VFS.
+RPCS3 requires importing firmware via File > Install Firmware. After import, firmware extracts to `~/.config/rpcs3/dev_flash/`.
 
-Kyaraben shows `✓ Firmware (Official firmware) Verified (PS3UPDAT.PUP)` but RPCS3 still needs the UI import step.
+Kyaraben now checks for the extracted firmware (`dev_flash/sys/*`) rather than the PUP file, so the provision is satisfied only when firmware is actually installed.
 
 ### VFS directories created on firmware install
 

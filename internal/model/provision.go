@@ -37,8 +37,9 @@ type CheckResult struct {
 
 // UIHints tells the frontend how to display this provision.
 type UIHints struct {
-	DisplayName  string
-	Instructions string
+	DisplayName         string
+	VerifiedDisplayName string // Optional: shown instead of DisplayName when found
+	Instructions        string
 }
 
 // ProvisionStrategy defines how a provision is validated and displayed.
@@ -137,6 +138,35 @@ func (s PatternStrategy) Hints() UIHints {
 	return UIHints{
 		DisplayName:  s.Pattern,
 		Instructions: fmt.Sprintf("Place %s files in this directory", s.Description),
+	}
+}
+
+// ImportStrategy checks for files created by importing via emulator UI.
+// Use this when a provision requires UI import and we verify by checking
+// for the extracted/installed result rather than the source file.
+type ImportStrategy struct {
+	Pattern             string // Glob pattern to check (e.g., "dev_flash/sys/*")
+	Filename            string // Source filename user needs to import (e.g., "PS3UPDAT.PUP")
+	VerifiedDescription string // Shown when found (e.g., "firmware installed")
+	Instructions        string // How to import (e.g., "Import via File > Install Firmware")
+}
+
+func (s ImportStrategy) Check(baseDir string) CheckResult {
+	result := CheckResult{Status: ProvisionMissing}
+	pattern := filepath.Join(baseDir, s.Pattern)
+	matches, err := filepath.Glob(pattern)
+	if err == nil && len(matches) > 0 {
+		result.Status = ProvisionFound
+		result.FoundPath = baseDir
+	}
+	return result
+}
+
+func (s ImportStrategy) Hints() UIHints {
+	return UIHints{
+		DisplayName:         s.Filename,
+		VerifiedDisplayName: s.VerifiedDescription,
+		Instructions:        s.Instructions,
 	}
 }
 

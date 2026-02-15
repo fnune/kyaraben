@@ -543,28 +543,28 @@ func TestRPCS3Generate(t *testing.T) {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	if len(patches) != 1 {
-		t.Fatalf("expected 1 patch, got %d", len(patches))
+	if len(patches) != 2 {
+		t.Fatalf("expected 2 patches, got %d", len(patches))
 	}
 
-	patch := patches[0]
+	vfsPatch := patches[0]
+	guiPatch := patches[1]
 
-	if patch.Target.Format != model.ConfigFormatYAML {
-		t.Errorf("expected YAML format, got %s", patch.Target.Format)
+	if vfsPatch.Target.Format != model.ConfigFormatYAML {
+		t.Errorf("expected YAML format for vfs, got %s", vfsPatch.Target.Format)
 	}
 
-	// RPCS3 uses vfs.yml for Virtual File System path mappings
-	if !strings.Contains(patch.Target.RelPath, "vfs.yml") {
-		t.Errorf("expected RelPath to contain 'vfs.yml', got %s", patch.Target.RelPath)
+	if !strings.Contains(vfsPatch.Target.RelPath, "vfs.yml") {
+		t.Errorf("expected RelPath to contain 'vfs.yml', got %s", vfsPatch.Target.RelPath)
 	}
 
-	foundEmulatorDir := false
+	foundDevHdd0 := false
 	foundGamesDir := false
-	for _, entry := range patch.Entries {
-		if strings.Contains(entry.Key(), "EmulatorDir") {
-			foundEmulatorDir = true
-			if !strings.Contains(entry.Value, "rpcs3") {
-				t.Errorf("EmulatorDir should contain 'rpcs3', got %s", entry.Value)
+	for _, entry := range vfsPatch.Entries {
+		if entry.Key() == "/dev_hdd0/" {
+			foundDevHdd0 = true
+			if !strings.Contains(entry.Value, "saves/ps3") {
+				t.Errorf("/dev_hdd0/ should point to ps3 saves, got %s", entry.Value)
 			}
 		}
 		if entry.Key() == "/games/" {
@@ -575,11 +575,19 @@ func TestRPCS3Generate(t *testing.T) {
 		}
 	}
 
-	if !foundEmulatorDir {
-		t.Error("expected $(EmulatorDir) entry not found")
+	if !foundDevHdd0 {
+		t.Error("expected /dev_hdd0/ entry not found")
 	}
 	if !foundGamesDir {
 		t.Error("expected /games/ entry not found")
+	}
+
+	if guiPatch.Target.Format != model.ConfigFormatINI {
+		t.Errorf("expected INI format for gui, got %s", guiPatch.Target.Format)
+	}
+
+	if !strings.Contains(guiPatch.Target.RelPath, "CurrentSettings.ini") {
+		t.Errorf("expected RelPath to contain 'CurrentSettings.ini', got %s", guiPatch.Target.RelPath)
 	}
 }
 
