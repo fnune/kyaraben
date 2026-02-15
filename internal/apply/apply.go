@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fnune/kyaraben/internal/cleanup"
 	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/emulators/symlink"
 	"github.com/fnune/kyaraben/internal/hardware"
@@ -354,6 +355,21 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 			_ = symlink.Remove(old.Source)
 		}
 	}
+
+	var disabledConfigs []model.ManagedConfig
+	for _, cfg := range manifest.ManagedConfigs {
+		allDisabled := true
+		for _, emuID := range cfg.EmulatorIDs {
+			if enabledEmulators[emuID] {
+				allDisabled = false
+				break
+			}
+		}
+		if allDisabled {
+			disabledConfigs = append(disabledConfigs, cfg)
+		}
+	}
+	cleanup.RemoveConfigDirs(disabledConfigs)
 
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
