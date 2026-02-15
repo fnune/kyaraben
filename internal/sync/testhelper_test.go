@@ -52,61 +52,6 @@ func newTestInstance(t *testing.T, name string, guiPort, listenPort int) *testIn
 	return inst
 }
 
-func (inst *testInstance) writeConfig(peerDeviceID string, peerListenPort int) error {
-	cfg := SyncthingXMLConfig{
-		Version: 37,
-		Folders: []XMLFolder{
-			{
-				ID:               "test-folder",
-				Label:            "test-folder",
-				Path:             inst.syncDir,
-				Type:             FolderTypeSendReceive,
-				FSWatcherEnabled: true,
-				IgnorePerms:      true,
-				Devices: []XMLFolderDevice{
-					{ID: inst.deviceID},
-				},
-			},
-		},
-		Devices: []XMLDevice{
-			{
-				ID:          inst.deviceID,
-				Name:        inst.name,
-				Compression: "metadata",
-			},
-		},
-		GUI: XMLGUI{
-			Enabled: true,
-			Address: fmt.Sprintf("127.0.0.1:%d", inst.guiPort),
-			APIKey:  inst.apiKey,
-			Theme:   "default",
-		},
-		Options: XMLOptions{
-			ListenAddresses: []string{
-				fmt.Sprintf("tcp://127.0.0.1:%d", inst.listenPort),
-			},
-			GlobalAnnounceEnabled: false,
-			LocalAnnounceEnabled:  false,
-			LocalAnnouncePort:     21027,
-			RelaysEnabled:         false,
-			URAccepted:            -1,
-			AutoUpgradeIntervalH:  0,
-		},
-	}
-
-	if peerDeviceID != "" {
-		cfg.Devices = append(cfg.Devices, XMLDevice{
-			ID:          peerDeviceID,
-			Name:        "peer",
-			Compression: "metadata",
-			Addresses:   []string{fmt.Sprintf("tcp://127.0.0.1:%d", peerListenPort)},
-		})
-		cfg.Folders[0].Devices = append(cfg.Folders[0].Devices, XMLFolderDevice{ID: peerDeviceID})
-	}
-
-	return inst.writeConfigXML(&cfg)
-}
-
 func (inst *testInstance) writeConfigXML(cfg *SyncthingXMLConfig) error {
 	configPath := filepath.Join(inst.configDir, "config.xml")
 
