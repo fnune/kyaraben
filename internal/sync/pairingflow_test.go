@@ -151,8 +151,6 @@ func TestPrimaryPairingFlowWithFakes(t *testing.T) {
 		addr := fmt.Sprintf("127.0.0.1:%d", port)
 		client := NewPairingClient()
 
-		// The code is in the messages; parse it out. In a real flow we'd
-		// read it from the screen.
 		var code string
 		for _, msg := range messages {
 			if len(msg) > len("Pairing code: ") {
@@ -264,7 +262,7 @@ func TestSecondaryPairingFlowWithFakes(t *testing.T) {
 	}
 }
 
-func TestFakeAdvertiserStopsOnFlowComplete(t *testing.T) {
+func TestAdvertiserStopsOnFlowCancel(t *testing.T) {
 	fakeClient := NewFakeClient(model.SyncConfig{
 		Enabled: true,
 		Mode:    model.SyncModePrimary,
@@ -283,18 +281,7 @@ func TestFakeAdvertiserStopsOnFlowComplete(t *testing.T) {
 	defer cancel()
 
 	go func() {
-		time.Sleep(100 * time.Millisecond)
-		port := fakeAdvertiser.Port()
-		addr := fmt.Sprintf("127.0.0.1:%d", port)
-		client := NewPairingClient()
-
-		var code string
-		for code == "" {
-			time.Sleep(10 * time.Millisecond)
-		}
-		_ = code
-		_ = client
-		_ = addr
+		time.Sleep(200 * time.Millisecond)
 		cancel()
 	}()
 

@@ -1,11 +1,7 @@
 import { useState, useCallback } from 'react'
 import { Button } from '@/lib/Button'
 import { Input } from '@/lib/Input'
-import type {
-  SyncDevice,
-  SyncDiscoveredPrimary,
-  SyncStatusResponse,
-} from '@/types/daemon'
+import type { SyncDevice, SyncStatusResponse } from '@/types/daemon'
 
 export interface SyncViewProps {
   readonly status: SyncStatusResponse | null
@@ -18,7 +14,6 @@ export interface SyncViewProps {
   readonly onResume: () => Promise<void>
   readonly pairingCode: string | null
   readonly pairingProgress: string | null
-  readonly discoveredPrimaries: readonly SyncDiscoveredPrimary[]
 }
 
 function truncateDeviceId(id: string): string {
@@ -83,7 +78,6 @@ function PairingSection({
   status,
   pairingCode,
   pairingProgress,
-  discoveredPrimaries,
   onStartPairing,
   onCancelPairing,
   onJoinPrimary,
@@ -91,7 +85,6 @@ function PairingSection({
   readonly status: SyncStatusResponse
   readonly pairingCode: string | null
   readonly pairingProgress: string | null
-  readonly discoveredPrimaries: readonly SyncDiscoveredPrimary[]
   readonly onStartPairing: () => Promise<void>
   readonly onCancelPairing: () => Promise<void>
   readonly onJoinPrimary: (code: string, pairingAddr: string) => Promise<void>
@@ -143,42 +136,14 @@ function PairingSection({
       <Section title="Join a primary device">
         <div className="space-y-3">
           <p className="text-sm text-on-surface-muted">
-            Enter the pairing code shown on the primary device.
+            Enter the pairing code and address shown on the primary device.
           </p>
-          {discoveredPrimaries.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-xs text-on-surface-dim">Found on network:</p>
-              {discoveredPrimaries.map((primary) => (
-                <button
-                  key={primary.pairingAddr}
-                  type="button"
-                  onClick={() => setJoinAddr(primary.pairingAddr)}
-                  className={`w-full text-left px-3 py-2 rounded-sm text-sm border ${
-                    joinAddr === primary.pairingAddr
-                      ? 'border-accent bg-surface-raised'
-                      : 'border-outline bg-surface'
-                  }`}
-                >
-                  {primary.hostname}
-                  <span className="text-xs text-on-surface-dim ml-2">
-                    ({primary.pairingAddr})
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
+          <Input value={joinCode} onChange={setJoinCode} placeholder="Pairing code" />
           <Input
-            value={joinCode}
-            onChange={setJoinCode}
-            placeholder="Pairing code"
+            value={joinAddr}
+            onChange={setJoinAddr}
+            placeholder="Primary address (e.g. 192.168.1.100:43210)"
           />
-          {discoveredPrimaries.length === 0 && (
-            <Input
-              value={joinAddr}
-              onChange={setJoinAddr}
-              placeholder="Primary address (e.g. 192.168.1.100:43210)"
-            />
-          )}
           <Button
             onClick={() => handleJoin(joinCode.trim(), joinAddr.trim())}
             disabled={!joinCode.trim() || !joinAddr.trim() || isJoining}
@@ -211,7 +176,6 @@ export function SyncView({
   onResume,
   pairingCode,
   pairingProgress,
-  discoveredPrimaries,
 }: SyncViewProps) {
   const [newDeviceId, setNewDeviceId] = useState('')
   const [newDeviceName, setNewDeviceName] = useState('')
@@ -303,7 +267,6 @@ export function SyncView({
           status={status}
           pairingCode={pairingCode}
           pairingProgress={pairingProgress}
-          discoveredPrimaries={discoveredPrimaries}
           onStartPairing={onStartPairing}
           onCancelPairing={onCancelPairing}
           onJoinPrimary={onJoinPrimary}
