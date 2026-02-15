@@ -19,19 +19,19 @@ export const EmulatorIDRetroArchMesen = "retroarch:mesen";
 export const EmulatorIDRetroArchGenesisPlusGX = "retroarch:genesis_plus_gx";
 export const EmulatorIDRetroArchMupen64Plus = "retroarch:mupen64plus_next";
 export const EmulatorIDRetroArchBeetleSaturn = "retroarch:mednafen_saturn";
+export const EmulatorIDRetroArchMGBA = "retroarch:mgba";
+export const EmulatorIDRetroArchMelonDS = "retroarch:melonds";
 export const EmulatorIDDuckStation = "duckstation";
 export const EmulatorIDPCSX2 = "pcsx2";
 export const EmulatorIDRPCS3 = "rpcs3";
 export const EmulatorIDVita3K = "vita3k";
 export const EmulatorIDPPSSPP = "ppsspp";
-export const EmulatorIDMGBA = "mgba";
-export const EmulatorIDMelonDS = "melonds";
 export const EmulatorIDFlycast = "flycast";
 export const EmulatorIDCemu = "cemu";
 export const EmulatorIDAzahar = "azahar";
 export const EmulatorIDDolphin = "dolphin";
 export const EmulatorIDEden = "eden";
-export type EmulatorID = typeof EmulatorIDRetroArch | typeof EmulatorIDRetroArchBsnes | typeof EmulatorIDRetroArchMesen | typeof EmulatorIDRetroArchGenesisPlusGX | typeof EmulatorIDRetroArchMupen64Plus | typeof EmulatorIDRetroArchBeetleSaturn | typeof EmulatorIDDuckStation | typeof EmulatorIDPCSX2 | typeof EmulatorIDRPCS3 | typeof EmulatorIDVita3K | typeof EmulatorIDPPSSPP | typeof EmulatorIDMGBA | typeof EmulatorIDMelonDS | typeof EmulatorIDFlycast | typeof EmulatorIDCemu | typeof EmulatorIDAzahar | typeof EmulatorIDDolphin | typeof EmulatorIDEden;
+export type EmulatorID = typeof EmulatorIDRetroArch | typeof EmulatorIDRetroArchBsnes | typeof EmulatorIDRetroArchMesen | typeof EmulatorIDRetroArchGenesisPlusGX | typeof EmulatorIDRetroArchMupen64Plus | typeof EmulatorIDRetroArchBeetleSaturn | typeof EmulatorIDRetroArchMGBA | typeof EmulatorIDRetroArchMelonDS | typeof EmulatorIDDuckStation | typeof EmulatorIDPCSX2 | typeof EmulatorIDRPCS3 | typeof EmulatorIDVita3K | typeof EmulatorIDPPSSPP | typeof EmulatorIDFlycast | typeof EmulatorIDCemu | typeof EmulatorIDAzahar | typeof EmulatorIDDolphin | typeof EmulatorIDEden;
 
 //////////
 // source: frontend_id.go

@@ -176,10 +176,10 @@ func TestHandleGetConfig_ReturnsConfig(t *testing.T) {
 			UserStore: "~/TestEmulation",
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
-			model.SystemIDGBA: {model.EmulatorIDMGBA},
+			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
 		},
 		Emulators: map[model.EmulatorID]model.EmulatorConf{
-			model.EmulatorIDMGBA: {Version: "0.10.0"},
+			model.EmulatorIDRetroArchMGBA: {Version: "0.10.0"},
 		},
 	}
 	env := newTestDaemonEnv(t, cfg)
@@ -207,11 +207,11 @@ func TestHandleGetConfig_ReturnsConfig(t *testing.T) {
 	if len(resp.Systems) != 1 {
 		t.Errorf("expected 1 system, got %d", len(resp.Systems))
 	}
-	if emulators, ok := resp.Systems["gba"]; !ok || len(emulators) != 1 || emulators[0] != model.EmulatorIDMGBA {
+	if emulators, ok := resp.Systems["gba"]; !ok || len(emulators) != 1 || emulators[0] != model.EmulatorIDRetroArchMGBA {
 		t.Errorf("expected gba system with mgba emulator, got %v", resp.Systems)
 	}
-	if emuConf, ok := resp.Emulators["mgba"]; !ok || emuConf.Version != "0.10.0" {
-		t.Errorf("expected mgba version 0.10.0, got %v", resp.Emulators)
+	if emuConf, ok := resp.Emulators["retroarch:mgba"]; !ok || emuConf.Version != "0.10.0" {
+		t.Errorf("expected retroarch:mgba version 0.10.0, got %v", resp.Emulators)
 	}
 }
 
@@ -352,7 +352,7 @@ func TestHandlePreflight_ReturnsPreflightResponse(t *testing.T) {
 			UserStore: "/Emulation",
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
-			model.SystemIDGBA: {model.EmulatorIDMGBA},
+			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
 		},
 	}
 	if err := model.NewConfigStore(fs).Save(cfg, configPath); err != nil {
@@ -433,7 +433,8 @@ func TestRetroArchCoreName(t *testing.T) {
 		{model.EmulatorIDRetroArchGenesisPlusGX, "genesis_plus_gx"},
 		{model.EmulatorIDRetroArchMupen64Plus, "mupen64plus_next"},
 		{model.EmulatorIDRetroArchBeetleSaturn, "mednafen_saturn"},
-		{model.EmulatorIDMGBA, ""},
+		{model.EmulatorIDRetroArchMGBA, "mgba"},
+		{model.EmulatorIDRetroArchMelonDS, "melonds"},
 		{model.EmulatorIDDolphin, ""},
 	}
 

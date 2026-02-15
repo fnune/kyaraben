@@ -21,7 +21,7 @@ func TestCollectConfigDirs(t *testing.T) {
 
 	configs := []model.ManagedConfig{
 		{
-			EmulatorIDs: []model.EmulatorID{model.EmulatorIDMGBA},
+			EmulatorIDs: []model.EmulatorID{model.EmulatorIDRetroArchMGBA},
 			Target: model.ConfigTarget{
 				RelPath: "mgba/config.ini",
 				BaseDir: model.ConfigBaseDirUserConfig,
@@ -89,7 +89,7 @@ func TestCollectConfigDirsSkipsNonexistent(t *testing.T) {
 
 	configs := []model.ManagedConfig{
 		{
-			EmulatorIDs: []model.EmulatorID{model.EmulatorIDMGBA},
+			EmulatorIDs: []model.EmulatorID{model.EmulatorIDRetroArchMGBA},
 			Target: model.ConfigTarget{
 				RelPath: "nonexistent/config.ini",
 				BaseDir: model.ConfigBaseDirUserConfig,
@@ -116,7 +116,7 @@ func TestRemoveConfigDirs(t *testing.T) {
 
 	configs := []model.ManagedConfig{
 		{
-			EmulatorIDs: []model.EmulatorID{model.EmulatorIDMGBA},
+			EmulatorIDs: []model.EmulatorID{model.EmulatorIDRetroArchMGBA},
 			Target: model.ConfigTarget{
 				RelPath: "mgba/config.ini",
 				BaseDir: model.ConfigBaseDirUserConfig,

@@ -19,6 +19,8 @@ mesen = "mesen_libretro.so"
 genesis_plus_gx = "genesis_plus_gx_libretro.so"
 mupen64plus_next = "mupen64plus_next_libretro.so"
 mednafen_saturn = "mednafen_saturn_libretro.so"
+mgba = "mgba_libretro.so"
+melonds = "melonds_libretro.so"
 
 # Core sizes in bytes (for progress indication)
 [retroarch-cores.sizes]
@@ -27,6 +29,8 @@ mesen = 3783048
 genesis_plus_gx = 12729616
 mupen64plus_next = 8725856
 mednafen_saturn = 8316472
+mgba = 1466704
+melonds = 4070336
 
 # ============================================================================
 # EDEN - Nintendo Switch emulator (pilot for multi-version support)
@@ -138,27 +142,6 @@ sha256 = "sha256-ugtlnflAX9qOfzlOKCgrcaseFfgp+rHFfB1CPFpQzv4="
 size = 64486809
 
 # ============================================================================
-# MGBA - Game Boy Advance emulator
-# https://github.com/mgba-emu/mgba/releases
-# ============================================================================
-
-[mgba]
-url_template = "https://github.com/mgba-emu/mgba/releases/download/{version}/mGBA-{version}-appimage-{variant}.appimage"
-default = "0.10.5"
-icon_url = "https://raw.githubusercontent.com/mgba-emu/mgba/95dd33cf9f05595cc285604df230eda106a330f6/res/mgba-256.png"
-icon_sha256 = "sha256-DV/Ot8C2vn/YD6jmVsXC/CpyQpB1kPjHZMMIEVqD7qg="
-
-[mgba."0.10.5".targets.x64]
-variant = "x64"
-sha256 = "sha256-/fClwViOFgbDgxVzXPSKn53KNXPzKjlH68lW+Cl+hc0="
-size = 25165824
-
-[mgba."0.10.5".targets.aarch64]
-variant = "arm64"
-sha256 = "sha256-3jy/Q3vh1TJMOFO6ug2v6jMRMiojgpNV1YMwiUfgWOg="
-size = 24536678
-
-# ============================================================================
 # CEMU - Wii U emulator
 # https://github.com/cemu-project/Cemu/releases
 # ============================================================================
@@ -218,29 +201,6 @@ size = 67318374
 variant = "aarch64"
 sha256 = "sha256-dkymxq8mVOkRyFiBXCH9OiqOF7eKRbV9K9s9N2wH3Wo="
 size = 71198720
-
-# ============================================================================
-# MELONDS - Nintendo DS emulator
-# https://github.com/melonDS-emu/melonDS/releases
-# ============================================================================
-
-[melonds]
-url_template = "https://github.com/melonDS-emu/melonDS/releases/download/{version}/melonDS-{version}-appimage-{variant}.zip"
-default = "1.1"
-icon_url = "https://github.com/melonDS-emu/melonDS/raw/182e462486f126507a29ad6ee1ee9a447afe35bc/res/icon/melon_256x256.png"
-icon_sha256 = "sha256-4NTddCHB0exuyPUR+eqDiq64XhnF/LLJ+VCgQTSbYaA="
-
-[melonds."1.1".targets.x64]
-variant = "x86_64"
-sha256 = "sha256-vzd0IKLpXyzSzdoX1TcrUcJTT4WLA4257G0SlVSHUSQ="
-binary_path = "melonDS-x86_64.AppImage"
-size = 34287206
-
-[melonds."1.1".targets.aarch64]
-variant = "aarch64"
-sha256 = "sha256-xTeuAY1tzt/p2gMXodXAFj5pIB4jq/oWP6KmPkN6zgk="
-binary_path = "melonDS-aarch64.AppImage"
-size = 33342259
 
 # ============================================================================
 # VITA3K - PlayStation Vita emulator

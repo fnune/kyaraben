@@ -44,19 +44,18 @@ type testEnv struct {
 func newTestEnv(t *testing.T) *testEnv {
 	t.Helper()
 	fs := testutil.NewTestFS(t, map[string]any{
-		"/home":                      &vfst.Dir{Perm: 0755},
-		"/home/Emulation":            &vfst.Dir{Perm: 0755},
-		"/home/Emulation/bios":       &vfst.Dir{Perm: 0755},
-		"/home/Emulation/roms":       &vfst.Dir{Perm: 0755},
-		"/home/Emulation/saves":      &vfst.Dir{Perm: 0755},
-		"/home/packages":             &vfst.Dir{Perm: 0755},
-		"/home/.config":              &vfst.Dir{Perm: 0755},
-		"/home/.config/retroarch":    &vfst.Dir{Perm: 0755},
-		"/home/.config/mgba":         &vfst.Dir{Perm: 0755},
-		"/home/.config/duckstation":  &vfst.Dir{Perm: 0755},
-		"/home/.local":               &vfst.Dir{Perm: 0755},
-		"/home/.local/share":         &vfst.Dir{Perm: 0755},
-		"/home/.local/share/melonDS": &vfst.Dir{Perm: 0755},
+		"/home":                     &vfst.Dir{Perm: 0755},
+		"/home/Emulation":           &vfst.Dir{Perm: 0755},
+		"/home/Emulation/bios":      &vfst.Dir{Perm: 0755},
+		"/home/Emulation/roms":      &vfst.Dir{Perm: 0755},
+		"/home/Emulation/saves":     &vfst.Dir{Perm: 0755},
+		"/home/packages":            &vfst.Dir{Perm: 0755},
+		"/home/.config":             &vfst.Dir{Perm: 0755},
+		"/home/.config/retroarch":   &vfst.Dir{Perm: 0755},
+		"/home/.config/ppsspp":      &vfst.Dir{Perm: 0755},
+		"/home/.config/duckstation": &vfst.Dir{Perm: 0755},
+		"/home/.local":              &vfst.Dir{Perm: 0755},
+		"/home/.local/share":        &vfst.Dir{Perm: 0755},
 	})
 
 	rootDir := "/home"
@@ -133,8 +132,8 @@ func TestApplyRemovesUnenabledEmulatorsFromManifest(t *testing.T) {
 		Version:     1,
 		LastApplied: time.Now().Add(-time.Hour),
 		InstalledEmulators: map[model.EmulatorID]model.InstalledEmulator{
-			model.EmulatorIDMGBA: {
-				ID:          model.EmulatorIDMGBA,
+			model.EmulatorIDRetroArchMGBA: {
+				ID:          model.EmulatorIDRetroArchMGBA,
 				Version:     "0.10.0",
 				PackagePath: "/old/packages",
 				Installed:   time.Now().Add(-time.Hour),
@@ -156,7 +155,7 @@ func TestApplyRemovesUnenabledEmulatorsFromManifest(t *testing.T) {
 			UserStore: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
-			model.SystemIDGBA: {model.EmulatorIDMGBA},
+			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
 		},
 	}
 
@@ -174,7 +173,7 @@ func TestApplyRemovesUnenabledEmulatorsFromManifest(t *testing.T) {
 		t.Errorf("Expected 1 installed emulator, got %d", len(newManifest.InstalledEmulators))
 	}
 
-	if _, ok := newManifest.InstalledEmulators[model.EmulatorIDMGBA]; !ok {
+	if _, ok := newManifest.InstalledEmulators[model.EmulatorIDRetroArchMGBA]; !ok {
 		t.Error("Expected mGBA to be in manifest")
 	}
 
@@ -188,8 +187,8 @@ func TestApplyRemovesConfigDirsForDisabledEmulators(t *testing.T) {
 
 	env := newTestEnv(t)
 
-	mgbaConfigDir := filepath.Join(env.rootDir, ".config", "mgba")
-	if err := env.fs.WriteFile(filepath.Join(mgbaConfigDir, "config.ini"), []byte("[test]"), 0644); err != nil {
+	ppssppConfigDir := filepath.Join(env.rootDir, ".config", "ppsspp")
+	if err := env.fs.WriteFile(filepath.Join(ppssppConfigDir, "ppsspp.ini"), []byte("[test]"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -199,18 +198,18 @@ func TestApplyRemovesConfigDirsForDisabledEmulators(t *testing.T) {
 		Version:     1,
 		LastApplied: time.Now().Add(-time.Hour),
 		InstalledEmulators: map[model.EmulatorID]model.InstalledEmulator{
-			model.EmulatorIDMGBA: {
-				ID:          model.EmulatorIDMGBA,
-				Version:     "0.10.0",
+			model.EmulatorIDPPSSPP: {
+				ID:          model.EmulatorIDPPSSPP,
+				Version:     "v1.19.0",
 				PackagePath: packagesDir,
 				Installed:   time.Now().Add(-time.Hour),
 			},
 		},
 		ManagedConfigs: []model.ManagedConfig{
 			{
-				EmulatorIDs: []model.EmulatorID{model.EmulatorIDMGBA},
+				EmulatorIDs: []model.EmulatorID{model.EmulatorIDPPSSPP},
 				Target: model.ConfigTarget{
-					RelPath: "mgba/config.ini",
+					RelPath: "ppsspp/ppsspp.ini",
 					Format:  model.ConfigFormatINI,
 					BaseDir: model.ConfigBaseDirUserConfig,
 				},
@@ -235,8 +234,8 @@ func TestApplyRemovesConfigDirsForDisabledEmulators(t *testing.T) {
 		t.Fatalf("Apply failed: %v", err)
 	}
 
-	if _, err := env.fs.Stat(mgbaConfigDir); err == nil {
-		t.Error("mgba config directory should have been removed when emulator was disabled")
+	if _, err := env.fs.Stat(ppssppConfigDir); err == nil {
+		t.Error("ppsspp config directory should have been removed when emulator was disabled")
 	}
 
 	newManifest, err := manifestStore.Load(env.manifestPath)
@@ -260,7 +259,7 @@ func TestApplyCreatesEmulatorStatesDirectories(t *testing.T) {
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDSNES: {model.EmulatorIDRetroArchBsnes},
-			model.SystemIDGBA:  {model.EmulatorIDMGBA},
+			model.SystemIDGBA:  {model.EmulatorIDRetroArchMGBA},
 		},
 	}
 
@@ -274,8 +273,8 @@ func TestApplyCreatesEmulatorStatesDirectories(t *testing.T) {
 		name string
 		path string
 	}{
-		{"retroarch core", filepath.Join(userStorePath, "states", "retroarch:bsnes")},
-		{"standalone emulator", filepath.Join(userStorePath, "states", "mgba")},
+		{"retroarch bsnes core", filepath.Join(userStorePath, "states", "retroarch:bsnes")},
+		{"retroarch mgba core", filepath.Join(userStorePath, "states", "retroarch:mgba")},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if info, err := env.fs.Stat(tc.path); err != nil || !info.IsDir() {
@@ -399,7 +398,7 @@ func TestApplySucceedsWhenGCFails(t *testing.T) {
 			UserStore: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
-			model.SystemIDGBA: {model.EmulatorIDMGBA},
+			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
 		},
 	}
 
@@ -448,13 +447,12 @@ func TestApplyWithFakeInstallerE2E(t *testing.T) {
 			UserStore: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
-			model.SystemIDGBA:  {model.EmulatorIDMGBA},
+			model.SystemIDGBA:  {model.EmulatorIDRetroArchMGBA},
 			model.SystemIDSNES: {model.EmulatorIDRetroArchBsnes},
 			model.SystemIDPSX:  {model.EmulatorIDDuckStation},
 		},
 	}
 
-	env.installer.Versions["mgba"] = "0.10.3"
 	env.installer.Versions["duckstation"] = "v0.1-10655"
 	env.installer.Versions["retroarch"] = "1.22.0"
 
@@ -482,9 +480,9 @@ func TestApplyWithFakeInstallerE2E(t *testing.T) {
 		t.Errorf("Expected at least 3 installed emulators, got %d", len(manifest.InstalledEmulators))
 	}
 
-	if mgba, ok := manifest.InstalledEmulators[model.EmulatorIDMGBA]; ok {
-		if mgba.Version != "0.10.3" {
-			t.Errorf("mGBA version = %q, want 0.10.3", mgba.Version)
+	if mgba, ok := manifest.InstalledEmulators[model.EmulatorIDRetroArchMGBA]; ok {
+		if mgba.Version != "1.22.0" {
+			t.Errorf("mGBA (RetroArch) version = %q, want 1.22.0", mgba.Version)
 		}
 	} else {
 		t.Error("mGBA should be in manifest")
@@ -529,14 +527,14 @@ func TestApplyInstallsFrontend(t *testing.T) {
 			UserStore: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
-			model.SystemIDGBA: {model.EmulatorIDMGBA},
+			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
 		},
 		Frontends: map[model.FrontendID]model.FrontendConfig{
 			model.FrontendIDESDE: {Enabled: true},
 		},
 	}
 
-	env.installer.Versions["mgba"] = "0.10.3"
+	env.installer.Versions["retroarch"] = "1.22.0"
 	env.installer.Versions["es-de"] = "3.0.0"
 
 	_, err := env.applier.Apply(context.Background(), cfg, env.userStore, Options{})
@@ -587,14 +585,14 @@ func TestApplyInstallsFrontendIcon(t *testing.T) {
 			UserStore: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
-			model.SystemIDGBA: {model.EmulatorIDMGBA},
+			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
 		},
 		Frontends: map[model.FrontendID]model.FrontendConfig{
 			model.FrontendIDESDE: {Enabled: true},
 		},
 	}
 
-	env.installer.Versions["mgba"] = "0.10.3"
+	env.installer.Versions["retroarch"] = "1.22.0"
 	env.installer.Versions["es-de"] = "3.0.0"
 	installer := &iconTrackingInstaller{FakeInstaller: env.installer}
 	env.applier.Installer = installer
