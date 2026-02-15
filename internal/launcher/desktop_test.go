@@ -103,8 +103,9 @@ func TestGenerateDesktopFiles(t *testing.T) {
 	if !strings.Contains(contentStr, "GenericName=Nintendo Switch Emulator") {
 		t.Errorf("eden.desktop should contain GenericName, got:\n%s", contentStr)
 	}
-	if !strings.Contains(contentStr, "Icon=kyaraben-eden") {
-		t.Errorf("eden.desktop should contain Icon=kyaraben-eden, got:\n%s", contentStr)
+	expectedIconPath := "/data/icons/hicolor/scalable/apps/kyaraben-eden.svg"
+	if !strings.Contains(contentStr, "Icon="+expectedIconPath) {
+		t.Errorf("eden.desktop should contain Icon=%s, got:\n%s", expectedIconPath, contentStr)
 	}
 	if !strings.Contains(contentStr, "Categories=Game;Emulator;") {
 		t.Errorf("eden.desktop should contain Categories, got:\n%s", contentStr)

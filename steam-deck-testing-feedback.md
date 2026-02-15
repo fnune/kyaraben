@@ -55,6 +55,33 @@ It's very hard to read whether syncing is ongoing, and what's syncing. There is 
 
 1. Discovered devices list should use stable sort by order of appearance, not alphabetical sort by device ID
 
+## Non-kyaraben device protection
+
+1. If syncthing is configured without a default folder and someone connects a non-kyaraben syncthing device, folders may land in unexpected places. Consider adding a default folder that kyaraben monitors - if data ends up there unexpectedly, it signals an unwanted connection.
+
+1. Previously had device-name-based filtering to exclude non-kyaraben instances, but it didn't work well. Need alternative filtering approach. One idea: kyaraben could offer a relay service for device discovery with pairing codes, ensuring only kyaraben instances can connect to each other.
+
 ## Missing support
 
 1. Impossible to play on the Steam Deck without controllers configured automatically, so this is a must
+
+---
+
+## Progress
+
+Items I can fix without user input:
+
+- [x] Discovered devices list: change from alphabetical sort to stable order-of-appearance
+- [x] Long paths in provisions cards: add proper width constraints for truncation
+
+Items that need design decisions or more context:
+
+- Emulation directory field UX (storage selection UI)
+- Steam Deck virtual keyboard for text inputs (platform-specific research needed)
+- [x] Sync showing diff on unpaired device: don't show sync status indicators (syncing, local changes, size diff) when no devices are paired
+- Option to pause sync during gameplay
+- Sync UX redesign
+- Firewall blocking diagnostics
+- Pairing UI error display
+- [x] Missing .desktop icons for ES-DE, RetroArch, RPCS3: SVG icons weren't found because user's hicolor lacked index.theme. Fixed by using absolute icon paths in .desktop files instead of icon names.
+- Controller auto-configuration

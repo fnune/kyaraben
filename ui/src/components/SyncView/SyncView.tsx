@@ -113,9 +113,11 @@ function DeviceRow({
 function FolderRow({
   folder,
   onRefresh,
+  hasPairedDevices,
 }: {
   readonly folder: SyncFolder
   readonly onRefresh: () => void
+  readonly hasPairedDevices: boolean
 }) {
   const [showChanges, setShowChanges] = useState(false)
   const [changes, setChanges] = useState<SyncLocalChange[] | null>(null)
@@ -123,10 +125,10 @@ function FolderRow({
   const [reverting, setReverting] = useState(false)
   const [changesError, setChangesError] = useState<string | null>(null)
 
-  const isSyncing = folder.state === 'syncing' || folder.needSize > 0
-  const hasLocalChanges = folder.receiveOnlyChanges > 0
+  const isSyncing = hasPairedDevices && (folder.state === 'syncing' || folder.needSize > 0)
+  const hasLocalChanges = hasPairedDevices && folder.receiveOnlyChanges > 0
   const isReceiveOnly = folder.type === 'receiveonly'
-  const sizeDiffers = isReceiveOnly && folder.localSize !== folder.globalSize
+  const sizeDiffers = hasPairedDevices && isReceiveOnly && folder.localSize !== folder.globalSize
   const percent =
     folder.globalSize > 0 ? Math.round((folder.localSize / folder.globalSize) * 100) : 100
 
@@ -583,16 +585,14 @@ function SecondaryDiscoverySection({
 
       {discoveredDevices.length > 0 && (
         <div className="border border-outline rounded-card px-3 bg-surface mb-4">
-          {[...discoveredDevices]
-            .sort((a, b) => a.deviceId.localeCompare(b.deviceId))
-            .map((device) => (
-              <DiscoveredDeviceRow
-                key={device.deviceId}
-                device={device}
-                onConnect={() => onConnectToDevice(device.deviceId)}
-                isConnecting={isConnecting}
-              />
-            ))}
+          {discoveredDevices.map((device) => (
+            <DiscoveredDeviceRow
+              key={device.deviceId}
+              device={device}
+              onConnect={() => onConnectToDevice(device.deviceId)}
+              isConnecting={isConnecting}
+            />
+          ))}
         </div>
       )}
 
@@ -785,7 +785,12 @@ export function SyncView({
         <Section title="Synced folders">
           <div className="border border-outline rounded-card px-3 bg-surface">
             {sortedFolders.map((folder) => (
-              <FolderRow key={folder.id} folder={folder} onRefresh={onRefresh} />
+              <FolderRow
+                key={folder.id}
+                folder={folder}
+                onRefresh={onRefresh}
+                hasPairedDevices={totalDevices > 0}
+              />
             ))}
           </div>
         </Section>
