@@ -56,7 +56,7 @@ func (h *xmlHandler) readXMLElement(elem *etree.Element, path []string, result m
 	}
 }
 
-func (h *xmlHandler) Apply(path string, entries []model.ConfigEntry) (ApplyResult, error) {
+func (h *xmlHandler) Apply(path string, entries []model.ConfigEntry, _ []model.OwnedRegion) (ApplyResult, error) {
 	if err := vfs.MkdirAll(h.fs, filepath.Dir(path), 0755); err != nil {
 		return ApplyResult{}, fmt.Errorf("creating config directory: %w", err)
 	}

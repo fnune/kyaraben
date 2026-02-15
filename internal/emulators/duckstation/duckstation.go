@@ -56,6 +56,14 @@ var configTarget = model.ConfigTarget{
 	BaseDir: model.ConfigBaseDirUserConfig,
 }
 
+var ProfileTarget = model.ConfigTarget{
+	RelPath: "duckstation/inputprofiles/kyaraben-steamdeck.ini",
+	Format:  model.ConfigFormatINI,
+	BaseDir: model.ConfigBaseDirUserConfig,
+}
+
+const profileName = "kyaraben-steamdeck"
+
 type Config struct{}
 
 func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
@@ -70,13 +78,25 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		{Path: []string{"GameList", "RecursivePaths"}, Value: store.SystemRomsDir(model.SystemIDPSX)},
 	}
 
+	var ownedFiles []model.OwnedFile
 	if cc := ctx.ControllerConfig; cc != nil {
-		entries = append(entries, padEntries(cc)...)
-		entries = append(entries, hotkeyEntries(cc)...)
+		entries = append(entries, model.ConfigEntry{
+			Path:      []string{"ControllerPorts", "InputProfileName"},
+			Value:     profileName,
+			Unmanaged: true,
+		})
+
+		profileEntries := padEntries(cc)
+		profileEntries = append(profileEntries, hotkeyEntries(cc)...)
+		ownedFiles = append(ownedFiles, model.OwnedFile{
+			Target:  ProfileTarget,
+			Entries: profileEntries,
+		})
 	}
 
 	return model.GenerateResult{
-		Patches: []model.ConfigPatch{{Target: configTarget, Entries: entries}},
+		Patches:    []model.ConfigPatch{{Target: configTarget, Entries: entries}},
+		OwnedFiles: ownedFiles,
 	}, nil
 }
 

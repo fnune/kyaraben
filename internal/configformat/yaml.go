@@ -32,7 +32,7 @@ func (h *yamlHandler) Read(path string) (map[string]map[string]string, error) {
 	return result, nil
 }
 
-func (h *yamlHandler) Apply(path string, entries []model.ConfigEntry) (ApplyResult, error) {
+func (h *yamlHandler) Apply(path string, entries []model.ConfigEntry, _ []model.OwnedRegion) (ApplyResult, error) {
 	if err := vfs.MkdirAll(h.fs, filepath.Dir(path), 0755); err != nil {
 		return ApplyResult{}, fmt.Errorf("creating config directory: %w", err)
 	}

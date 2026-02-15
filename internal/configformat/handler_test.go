@@ -53,7 +53,7 @@ func TestINIHandler_Apply(t *testing.T) {
 		{Path: []string{"section1", "key2"}, Value: "value2"},
 	}
 
-	result, err := handler.Apply("/config/test.ini", entries)
+	result, err := handler.Apply("/config/test.ini", entries, nil)
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -112,7 +112,7 @@ func TestCFGHandler_Apply(t *testing.T) {
 		{Path: []string{"key2"}, Value: "value2"},
 	}
 
-	result, err := handler.Apply("/config/test.cfg", entries)
+	result, err := handler.Apply("/config/test.cfg", entries, nil)
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -172,7 +172,7 @@ func TestTOMLHandler_Apply(t *testing.T) {
 		{Path: []string{"section1", "key2"}, Value: "value2"},
 	}
 
-	result, err := handler.Apply("/config/test.toml", entries)
+	result, err := handler.Apply("/config/test.toml", entries, nil)
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -231,7 +231,7 @@ func TestYAMLHandler_Apply(t *testing.T) {
 		{Path: []string{"section1", "key2"}, Value: "value2"},
 	}
 
-	result, err := handler.Apply("/config/test.yaml", entries)
+	result, err := handler.Apply("/config/test.yaml", entries, nil)
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -292,7 +292,7 @@ func TestXMLHandler_Apply(t *testing.T) {
 		{Path: []string{"config", "section1", "key2"}, Value: "value2"},
 	}
 
-	result, err := handler.Apply("/config/test.xml", entries)
+	result, err := handler.Apply("/config/test.xml", entries, nil)
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -341,7 +341,7 @@ func TestRawHandler_Apply(t *testing.T) {
 		{Path: []string{}, Value: "raw content"},
 	}
 
-	result, err := handler.Apply("/config/test.raw", entries)
+	result, err := handler.Apply("/config/test.raw", entries, nil)
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -372,7 +372,7 @@ func TestRawHandler_ApplyUnmanaged(t *testing.T) {
 		{Value: "new content", Unmanaged: true},
 	}
 
-	_, err := handler.Apply("/config/existing.raw", entries)
+	_, err := handler.Apply("/config/existing.raw", entries, nil)
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -399,7 +399,7 @@ func TestRawHandler_ApplyUnmanagedCreatesIfMissing(t *testing.T) {
 		{Value: "new content", Unmanaged: true},
 	}
 
-	_, err := handler.Apply("/config/new.raw", entries)
+	_, err := handler.Apply("/config/new.raw", entries, nil)
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}

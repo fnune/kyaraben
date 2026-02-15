@@ -27,7 +27,7 @@ func TestApplyYAML(t *testing.T) {
 	}
 
 	handler := configformat.NewHandler(fs, model.ConfigFormatYAML)
-	result, err := handler.Apply(configPath, entries)
+	result, err := handler.Apply(configPath, entries, nil)
 	if err != nil {
 		t.Fatalf("Apply() error = %v", err)
 	}
@@ -70,7 +70,7 @@ func TestApplyXML(t *testing.T) {
 	}
 
 	handler := configformat.NewHandler(fs, model.ConfigFormatXML)
-	result, err := handler.Apply(configPath, entries)
+	result, err := handler.Apply(configPath, entries, nil)
 	if err != nil {
 		t.Fatalf("Apply() error = %v", err)
 	}
@@ -114,7 +114,7 @@ other:
 	}
 
 	handler := configformat.NewHandler(fs, model.ConfigFormatYAML)
-	_, err = handler.Apply("/config.yml", entries)
+	_, err = handler.Apply("/config.yml", entries, nil)
 	if err != nil {
 		t.Fatalf("Apply() error = %v", err)
 	}
