@@ -115,7 +115,9 @@ test.describe('Config conflict review', () => {
     await expect(page.getByText('Config conflicts detected')).toBeVisible({ timeout: 10000 })
 
     // Review screen shows conflict details
-    await expect(page.getByText('You modified keys managed by kyaraben')).toBeVisible()
+    await expect(
+      page.getByText('You modified settings managed by kyaraben (will be overwritten):'),
+    ).toBeVisible()
     await expect(page.getByText('mgba/config.ini')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Open file' }).first()).toBeVisible()
     await expect(page.getByRole('button', { name: 'Continue and override' })).toBeVisible()
