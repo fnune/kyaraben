@@ -56,6 +56,9 @@ type Daemon struct {
 
 	autoAcceptMu         sync.Mutex
 	autoAcceptCancelFunc context.CancelFunc
+
+	syncReconfigMu      sync.Mutex
+	syncReconfigRunning bool
 }
 
 func New(fs vfs.FS, p *paths.Paths, configPath, stateDir, manifestPath string, reg *registry.Registry, installer packages.Installer, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager) *Daemon {
@@ -856,6 +859,13 @@ func (d *Daemon) handleSyncStatus() []Event {
 	manifest, _ := d.loadManifest()
 	installed := manifest.SyncthingInstall != nil && d.fileExists(manifest.SyncthingInstall.BinaryPath)
 
+	if cfg.Sync.Enabled && manifest.SyncthingInstall != nil &&
+		manifest.SyncthingInstall.ConfigSchemaVersion < syncpkg.ConfigSchemaVersion {
+		log.Info("Sync config schema version changed (%d -> %d), regenerating config",
+			manifest.SyncthingInstall.ConfigSchemaVersion, syncpkg.ConfigSchemaVersion)
+		go d.ensureSyncthingRunning(cfg)
+	}
+
 	if !cfg.Sync.Enabled {
 		return []Event{{
 			Type: EventTypeResult,
@@ -1297,11 +1307,12 @@ func (d *Daemon) handleSyncEnable(data *SyncEnableRequest, emit func(Event)) []E
 			return
 		}
 		manifest.SyncthingInstall = &model.SyncthingInstall{
-			Version:         d.installer.ResolveVersion("syncthing"),
-			BinaryPath:      result.SyncthingBinary,
-			ConfigDir:       result.ConfigDir,
-			DataDir:         result.DataDir,
-			SystemdUnitPath: result.SystemdUnitPath,
+			Version:             d.installer.ResolveVersion("syncthing"),
+			ConfigSchemaVersion: syncpkg.ConfigSchemaVersion,
+			BinaryPath:          result.SyncthingBinary,
+			ConfigDir:           result.ConfigDir,
+			DataDir:             result.DataDir,
+			SystemdUnitPath:     result.SystemdUnitPath,
 		}
 		if saveErr := manifest.SaveWithBackup(d.manifestPath); saveErr != nil {
 			emit(Event{Type: EventTypeError, Data: ErrorResponse{Error: saveErr.Error()}})
@@ -1507,6 +1518,20 @@ func (d *Daemon) dismissUnwantedPendingFolders(client syncpkg.SyncClient) {
 }
 
 func (d *Daemon) ensureSyncthingRunning(cfg *model.KyarabenConfig) {
+	d.syncReconfigMu.Lock()
+	if d.syncReconfigRunning {
+		d.syncReconfigMu.Unlock()
+		return
+	}
+	d.syncReconfigRunning = true
+	d.syncReconfigMu.Unlock()
+
+	defer func() {
+		d.syncReconfigMu.Lock()
+		d.syncReconfigRunning = false
+		d.syncReconfigMu.Unlock()
+	}()
+
 	userStore, err := store.NewUserStore(d.fs, d.paths, cfg.Global.UserStore)
 	if err != nil {
 		log.Error("Failed to create user store for sync setup: %v", err)
@@ -1529,11 +1554,12 @@ func (d *Daemon) ensureSyncthingRunning(cfg *model.KyarabenConfig) {
 	}
 
 	manifest.SyncthingInstall = &model.SyncthingInstall{
-		Version:         d.installer.ResolveVersion("syncthing"),
-		BinaryPath:      result.SyncthingBinary,
-		ConfigDir:       result.ConfigDir,
-		DataDir:         result.DataDir,
-		SystemdUnitPath: result.SystemdUnitPath,
+		Version:             d.installer.ResolveVersion("syncthing"),
+		ConfigSchemaVersion: syncpkg.ConfigSchemaVersion,
+		BinaryPath:          result.SyncthingBinary,
+		ConfigDir:           result.ConfigDir,
+		DataDir:             result.DataDir,
+		SystemdUnitPath:     result.SystemdUnitPath,
 	}
 	if err := manifest.SaveWithBackup(d.manifestPath); err != nil {
 		log.Error("Failed to save manifest: %v", err)
@@ -1566,11 +1592,12 @@ func (d *Daemon) updateSyncConfig(cfg *model.KyarabenConfig, userStorePath strin
 
 	expectedVersion := d.installer.ResolveVersion("syncthing")
 	manifest.SyncthingInstall = &model.SyncthingInstall{
-		Version:         expectedVersion,
-		BinaryPath:      result.SyncthingBinary,
-		ConfigDir:       result.ConfigDir,
-		DataDir:         result.DataDir,
-		SystemdUnitPath: result.SystemdUnitPath,
+		Version:             expectedVersion,
+		ConfigSchemaVersion: syncpkg.ConfigSchemaVersion,
+		BinaryPath:          result.SyncthingBinary,
+		ConfigDir:           result.ConfigDir,
+		DataDir:             result.DataDir,
+		SystemdUnitPath:     result.SystemdUnitPath,
 	}
 	if saveErr := manifest.SaveWithBackup(d.manifestPath); saveErr != nil {
 		return fmt.Errorf("saving manifest: %w", saveErr)
