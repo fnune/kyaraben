@@ -1,7 +1,6 @@
 package emulators
 
 import (
-	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -1019,7 +1018,6 @@ func defaultControllerConfig() *model.ControllerConfig {
 	return &model.ControllerConfig{
 		Layout:  model.LayoutStandard,
 		Hotkeys: model.DefaultHotkeys(),
-		GUIDs:   model.BuiltinGUIDs,
 	}
 }
 
@@ -1288,11 +1286,10 @@ func TestAzaharControllerConfig(t *testing.T) {
 	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
 	gen := azahar.Definition{}.ConfigGenerator()
 
-	cc := defaultControllerConfig()
 	result, err := gen.Generate(model.GenerateContext{
 		Store:            store,
 		BaseDirResolver:  resolver,
-		ControllerConfig: cc,
+		ControllerConfig: defaultControllerConfig(),
 	})
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
@@ -1300,32 +1297,20 @@ func TestAzaharControllerConfig(t *testing.T) {
 
 	patch := result.Patches[0]
 	foundProfile := false
-	guidsSeen := make(map[string]bool)
-	expectedGUIDs := len(cc.GUIDs)
-	profilesSize := ""
+	foundButtonA := false
 	for _, entry := range patch.Entries {
 		if entry.Key() == "profile" {
 			foundProfile = true
 		}
-		if entry.Key() == "profiles\\size" {
-			profilesSize = entry.Value
-		}
-		if strings.Contains(entry.Key(), "button_a") && strings.Contains(entry.Value, "engine:sdl") {
-			for guid := range cc.GUIDs {
-				if strings.Contains(entry.Value, guid) {
-					guidsSeen[guid] = true
-				}
-			}
+		if strings.Contains(entry.Key(), "button_a") && strings.Contains(entry.Value, model.SteamDeckGUID) {
+			foundButtonA = true
 		}
 	}
 	if !foundProfile {
 		t.Error("Azahar should set active profile")
 	}
-	if profilesSize != fmt.Sprintf("%d", expectedGUIDs) {
-		t.Errorf("Azahar profiles\\size = %s, want %d", profilesSize, expectedGUIDs)
-	}
-	if len(guidsSeen) != expectedGUIDs {
-		t.Errorf("Azahar generated profiles for %d GUIDs, want %d", len(guidsSeen), expectedGUIDs)
+	if !foundButtonA {
+		t.Error("Azahar should have Steam Deck GUID-based button_a entry")
 	}
 }
 
@@ -1367,12 +1352,10 @@ func TestNintendoLayoutSwapsFaceButtons(t *testing.T) {
 	standardCC := &model.ControllerConfig{
 		Layout:  model.LayoutStandard,
 		Hotkeys: model.DefaultHotkeys(),
-		GUIDs:   model.BuiltinGUIDs,
 	}
 	nintendoCC := &model.ControllerConfig{
 		Layout:  model.LayoutNintendo,
 		Hotkeys: model.DefaultHotkeys(),
-		GUIDs:   model.BuiltinGUIDs,
 	}
 
 	gen := duckstation.Definition{}.ConfigGenerator()
