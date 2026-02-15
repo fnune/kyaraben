@@ -222,6 +222,7 @@ var packageNames = []string{
 	"flycast",
 	"retroarch",
 	"es-de",
+	"syncthing",
 }
 
 // GetPackage returns the PackageSpec for a given package name.
