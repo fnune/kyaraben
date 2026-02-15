@@ -186,6 +186,7 @@ function AppContent() {
     isConnecting,
     isPairing,
     pairingDeviceId,
+    lastSyncedAt,
     handleRemoveDevice,
     handleConnectToDevice,
     handleEnableSync,
@@ -330,10 +331,10 @@ function AppContent() {
   }, [applyStatus, currentView, showToast])
 
   useOnWindowFocus(async () => {
-    const result = await daemon.runDoctor()
-    if (result.ok) {
+    const [doctorResult] = await Promise.all([daemon.runDoctor(), refreshSyncStatus()])
+    if (doctorResult.ok) {
       setProvisions((prev) => {
-        const newlyFound = getNewlyFoundProvisions(prev, result.data)
+        const newlyFound = getNewlyFoundProvisions(prev, doctorResult.data)
         const unseen = newlyFound.filter((prov) => {
           const key = keyForProvision(prov)
           if (seenNotifications.current.has(key)) {
@@ -353,7 +354,7 @@ function AppContent() {
             .join(', ')
           showToast(`Found ${descriptions}.`, 'success')
         }
-        return result.data
+        return doctorResult.data
       })
     }
   })
@@ -551,6 +552,7 @@ function AppContent() {
             isConnecting={isConnecting}
             isPairing={isPairing}
             pairingDeviceId={pairingDeviceId}
+            lastSyncedAt={lastSyncedAt}
             onRemoveDevice={handleRemoveDevice}
             onConnectToDevice={handleConnectToDevice}
             onEnableSync={handleEnableSync}

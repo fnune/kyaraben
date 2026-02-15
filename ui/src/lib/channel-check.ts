@@ -11,6 +11,7 @@ type DaemonChannel = Exclude<
   | 'get_install_status'
   | 'install_app'
   | 'open_path'
+  | 'open_url'
   | 'path_exists'
   | 'read_file'
   | 'get_bug_report_info'

@@ -680,6 +680,11 @@ function setupIpcHandlers(): void {
     return ''
   })
 
+  ipcMain.handle('open_url', (_, url: string) => {
+    shell.openExternal(url)
+    return ''
+  })
+
   ipcMain.handle('path_exists', async (_, pathToCheck: string) => {
     const fs = require('node:fs')
     const expandedPath = pathToCheck.startsWith('~')
@@ -845,6 +850,7 @@ function setupIpcHandlers(): void {
     'get_install_status',
     'install_app',
     'open_path',
+    'open_url',
     'path_exists',
     'read_file',
     'get_bug_report_info',
