@@ -1,16 +1,23 @@
 package model
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/twpayne/go-vfs/v5/vfst"
 )
 
 func TestLoadSaveConfig(t *testing.T) {
-	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "config.toml")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	// Create and save config
+	configPath := "/config/config.toml"
+
 	cfg := &KyarabenConfig{
 		Global: GlobalConfig{
 			UserStore: "~/Emulation",
@@ -21,22 +28,20 @@ func TestLoadSaveConfig(t *testing.T) {
 		},
 	}
 
-	if err := SaveConfig(cfg, configPath); err != nil {
-		t.Fatalf("SaveConfig failed: %v", err)
+	store := NewConfigStore(fs)
+	if err := store.Save(cfg, configPath); err != nil {
+		t.Fatalf("Save failed: %v", err)
 	}
 
-	// Verify file exists
-	if _, err := os.Stat(configPath); err != nil {
+	if _, err := fs.Stat(configPath); err != nil {
 		t.Fatalf("Config file not created: %v", err)
 	}
 
-	// Load config back
-	loaded, err := LoadConfig(configPath)
+	loaded, err := store.Load(configPath)
 	if err != nil {
-		t.Fatalf("LoadConfig failed: %v", err)
+		t.Fatalf("Load failed: %v", err)
 	}
 
-	// Verify contents
 	if loaded.Global.UserStore != cfg.Global.UserStore {
 		t.Errorf("UserStore mismatch: got %s, want %s", loaded.Global.UserStore, cfg.Global.UserStore)
 	}
@@ -57,10 +62,7 @@ func TestLoadSaveConfig(t *testing.T) {
 }
 
 func TestExpandUserStore(t *testing.T) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		t.Fatalf("Failed to get home dir: %v", err)
-	}
+	const homeDir = "/home/testuser"
 
 	tests := []struct {
 		name      string
@@ -70,7 +72,7 @@ func TestExpandUserStore(t *testing.T) {
 		{
 			name:      "expand tilde",
 			userStore: "~/Emulation",
-			want:      filepath.Join(home, "Emulation"),
+			want:      filepath.Join(homeDir, "Emulation"),
 		},
 		{
 			name:      "absolute path",
@@ -90,11 +92,7 @@ func TestExpandUserStore(t *testing.T) {
 				Global: GlobalConfig{UserStore: tt.userStore},
 			}
 
-			got, err := cfg.ExpandUserStore()
-			if err != nil {
-				t.Fatalf("ExpandUserStore failed: %v", err)
-			}
-
+			got := cfg.ExpandUserStoreWith(homeDir)
 			if got != tt.want {
 				t.Errorf("got %s, want %s", got, tt.want)
 			}
@@ -134,7 +132,7 @@ func TestEnabledEmulators(t *testing.T) {
 			SystemIDSNES:     {EmulatorIDRetroArchBsnes},
 			SystemIDPSX:      {EmulatorIDDuckStation, EmulatorIDRetroArchBeetleSaturn},
 			SystemIDGameCube: {EmulatorIDDolphin},
-			SystemIDWii:      {EmulatorIDDolphin}, // Same emulator, should be deduplicated
+			SystemIDWii:      {EmulatorIDDolphin},
 		},
 	}
 
@@ -145,8 +143,7 @@ func TestEnabledEmulators(t *testing.T) {
 		emulatorMap[e] = true
 	}
 
-	// Dolphin should appear only once despite being in two systems
-	expectedCount := 4 // bsnes, duckstation, beetle_saturn, dolphin
+	expectedCount := 4
 	if len(emulators) != expectedCount {
 		t.Errorf("Expected %d emulators, got %d: %v", expectedCount, len(emulators), emulators)
 	}

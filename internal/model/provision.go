@@ -5,9 +5,10 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/twpayne/go-vfs/v5"
 )
 
 // ProvisionKind categorizes what type of provision this is.
@@ -44,7 +45,7 @@ type UIHints struct {
 
 // ProvisionStrategy defines how a provision is validated and displayed.
 type ProvisionStrategy interface {
-	Check(biosDir string) CheckResult
+	Check(fs vfs.FS, biosDir string) CheckResult
 	Hints() UIHints
 }
 
@@ -53,13 +54,13 @@ type FileStrategy struct {
 	Filename string
 }
 
-func (s FileStrategy) Check(biosDir string) CheckResult {
+func (s FileStrategy) Check(fs vfs.FS, biosDir string) CheckResult {
 	result := CheckResult{Status: ProvisionMissing}
-	filePath := findFile(biosDir, s.Filename)
+	filePath := findFile(fs, biosDir, s.Filename)
 	if filePath == "" {
 		return result
 	}
-	info, err := os.Stat(filePath)
+	info, err := fs.Stat(filePath)
 	if err != nil || info.IsDir() {
 		return result
 	}
@@ -81,19 +82,19 @@ type HashedStrategy struct {
 	Hashes   []string
 }
 
-func (s HashedStrategy) Check(biosDir string) CheckResult {
+func (s HashedStrategy) Check(fs vfs.FS, biosDir string) CheckResult {
 	result := CheckResult{Status: ProvisionMissing}
-	filePath := findFile(biosDir, s.Filename)
+	filePath := findFile(fs, biosDir, s.Filename)
 	if filePath == "" {
 		return result
 	}
-	info, err := os.Stat(filePath)
+	info, err := fs.Stat(filePath)
 	if err != nil || info.IsDir() {
 		return result
 	}
 	result.FoundPath = filePath
 
-	hash, err := md5File(filePath)
+	hash, err := md5File(fs, filePath)
 	if err != nil {
 		result.Status = ProvisionInvalid
 		return result
@@ -123,11 +124,10 @@ type PatternStrategy struct {
 	Description string
 }
 
-func (s PatternStrategy) Check(biosDir string) CheckResult {
+func (s PatternStrategy) Check(fs vfs.FS, biosDir string) CheckResult {
 	result := CheckResult{Status: ProvisionMissing}
-	pattern := filepath.Join(biosDir, s.Pattern)
-	matches, err := filepath.Glob(pattern)
-	if err == nil && len(matches) > 0 {
+	matches := globDir(fs, biosDir, s.Pattern)
+	if len(matches) > 0 {
 		result.Status = ProvisionFound
 		result.FoundPath = biosDir
 	}
@@ -151,11 +151,10 @@ type ImportStrategy struct {
 	Instructions        string // How to import (e.g., "Import via File > Install Firmware")
 }
 
-func (s ImportStrategy) Check(baseDir string) CheckResult {
+func (s ImportStrategy) Check(fs vfs.FS, baseDir string) CheckResult {
 	result := CheckResult{Status: ProvisionMissing}
-	pattern := filepath.Join(baseDir, s.Pattern)
-	matches, err := filepath.Glob(pattern)
-	if err == nil && len(matches) > 0 {
+	matches := globDir(fs, baseDir, s.Pattern)
+	if len(matches) > 0 {
 		result.Status = ProvisionFound
 		result.FoundPath = baseDir
 	}
@@ -179,8 +178,8 @@ type Provision struct {
 	Systems     []SystemID // If non-empty, provision only applies to these systems
 }
 
-func (p Provision) Check(biosDir string) CheckResult {
-	return p.Strategy.Check(biosDir)
+func (p Provision) Check(fs vfs.FS, biosDir string) CheckResult {
+	return p.Strategy.Check(fs, biosDir)
 }
 
 func (p Provision) Hints() UIHints {
@@ -279,12 +278,26 @@ type ProvisionGroupResult struct {
 	BaseDir     string
 }
 
-func findFile(biosDir, filename string) string {
+func globDir(fs vfs.FS, dir, pattern string) []string {
+	entries, err := fs.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+	var matches []string
+	for _, entry := range entries {
+		if matched, _ := filepath.Match(pattern, entry.Name()); matched {
+			matches = append(matches, filepath.Join(dir, entry.Name()))
+		}
+	}
+	return matches
+}
+
+func findFile(fs vfs.FS, biosDir, filename string) string {
 	filePath := filepath.Join(biosDir, filename)
-	if _, err := os.Stat(filePath); err == nil {
+	if _, err := fs.Stat(filePath); err == nil {
 		return filePath
 	}
-	entries, _ := os.ReadDir(biosDir)
+	entries, _ := fs.ReadDir(biosDir)
 	for _, entry := range entries {
 		if strings.EqualFold(entry.Name(), filename) {
 			return filepath.Join(biosDir, entry.Name())
@@ -293,8 +306,8 @@ func findFile(biosDir, filename string) string {
 	return ""
 }
 
-func md5File(path string) (string, error) {
-	f, err := os.Open(path)
+func md5File(fs vfs.FS, path string) (string, error) {
+	f, err := fs.Open(path)
 	if err != nil {
 		return "", fmt.Errorf("opening file: %w", err)
 	}

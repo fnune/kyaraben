@@ -3,8 +3,9 @@ package configformat
 import (
 	"testing"
 
-	"github.com/fnune/kyaraben/internal/model"
 	"github.com/twpayne/go-vfs/v5/vfst"
+
+	"github.com/fnune/kyaraben/internal/model"
 )
 
 func TestINIHandler_Read(t *testing.T) {
@@ -23,7 +24,7 @@ key3 = value3
 	}
 	defer cleanup()
 
-	handler := GetHandlerWithFS(fs, model.ConfigFormatINI)
+	handler := NewHandler(fs, model.ConfigFormatINI)
 	result, err := handler.Read("/test.ini")
 	if err != nil {
 		t.Fatalf("Read: %v", err)
@@ -49,7 +50,7 @@ func TestINIHandler_Apply(t *testing.T) {
 	}
 	defer cleanup()
 
-	handler := GetHandlerWithFS(fs, model.ConfigFormatINI)
+	handler := NewHandler(fs, model.ConfigFormatINI)
 	entries := []model.ConfigEntry{
 		{Path: []string{"section1", "key1"}, Value: "value1"},
 		{Path: []string{"section1", "key2"}, Value: "value2"},
@@ -89,7 +90,7 @@ key2 = "value2"
 	}
 	defer cleanup()
 
-	handler := GetHandlerWithFS(fs, model.ConfigFormatCFG)
+	handler := NewHandler(fs, model.ConfigFormatCFG)
 	result, err := handler.Read("/test.cfg")
 	if err != nil {
 		t.Fatalf("Read: %v", err)
@@ -112,7 +113,7 @@ func TestCFGHandler_Apply(t *testing.T) {
 	}
 	defer cleanup()
 
-	handler := GetHandlerWithFS(fs, model.ConfigFormatCFG)
+	handler := NewHandler(fs, model.ConfigFormatCFG)
 	entries := []model.ConfigEntry{
 		{Path: []string{"key1"}, Value: "value1"},
 		{Path: []string{"key2"}, Value: "value2"},
@@ -153,7 +154,7 @@ key3 = "value3"
 	}
 	defer cleanup()
 
-	handler := GetHandlerWithFS(fs, model.ConfigFormatTOML)
+	handler := NewHandler(fs, model.ConfigFormatTOML)
 	result, err := handler.Read("/test.toml")
 	if err != nil {
 		t.Fatalf("Read: %v", err)
@@ -176,7 +177,7 @@ func TestTOMLHandler_Apply(t *testing.T) {
 	}
 	defer cleanup()
 
-	handler := GetHandlerWithFS(fs, model.ConfigFormatTOML)
+	handler := NewHandler(fs, model.ConfigFormatTOML)
 	entries := []model.ConfigEntry{
 		{Path: []string{"section1", "key1"}, Value: "value1"},
 		{Path: []string{"section1", "key2"}, Value: "value2"},
@@ -216,7 +217,7 @@ section2:
 	}
 	defer cleanup()
 
-	handler := GetHandlerWithFS(fs, model.ConfigFormatYAML)
+	handler := NewHandler(fs, model.ConfigFormatYAML)
 	result, err := handler.Read("/test.yaml")
 	if err != nil {
 		t.Fatalf("Read: %v", err)
@@ -239,7 +240,7 @@ func TestYAMLHandler_Apply(t *testing.T) {
 	}
 	defer cleanup()
 
-	handler := GetHandlerWithFS(fs, model.ConfigFormatYAML)
+	handler := NewHandler(fs, model.ConfigFormatYAML)
 	entries := []model.ConfigEntry{
 		{Path: []string{"section1", "key1"}, Value: "value1"},
 		{Path: []string{"section1", "key2"}, Value: "value2"},
@@ -281,7 +282,7 @@ func TestXMLHandler_Read(t *testing.T) {
 	}
 	defer cleanup()
 
-	handler := GetHandlerWithFS(fs, model.ConfigFormatXML)
+	handler := NewHandler(fs, model.ConfigFormatXML)
 	result, err := handler.Read("/test.xml")
 	if err != nil {
 		t.Fatalf("Read: %v", err)
@@ -304,7 +305,7 @@ func TestXMLHandler_Apply(t *testing.T) {
 	}
 	defer cleanup()
 
-	handler := GetHandlerWithFS(fs, model.ConfigFormatXML)
+	handler := NewHandler(fs, model.ConfigFormatXML)
 	entries := []model.ConfigEntry{
 		{Path: []string{"config", "section1", "key1"}, Value: "value1"},
 		{Path: []string{"config", "section1", "key2"}, Value: "value2"},
@@ -338,7 +339,7 @@ func TestRawHandler_Read(t *testing.T) {
 	}
 	defer cleanup()
 
-	handler := GetHandlerWithFS(fs, model.ConfigFormatRaw)
+	handler := NewHandler(fs, model.ConfigFormatRaw)
 	result, err := handler.Read("/test.raw")
 	if err != nil {
 		t.Fatalf("Read: %v", err)
@@ -358,7 +359,7 @@ func TestRawHandler_Apply(t *testing.T) {
 	}
 	defer cleanup()
 
-	handler := GetHandlerWithFS(fs, model.ConfigFormatRaw)
+	handler := NewHandler(fs, model.ConfigFormatRaw)
 	entries := []model.ConfigEntry{
 		{Path: []string{}, Value: "raw content"},
 	}

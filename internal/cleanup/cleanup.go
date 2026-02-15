@@ -4,9 +4,10 @@ import (
 	"io/fs"
 	"path/filepath"
 
+	"github.com/twpayne/go-vfs/v5"
+
 	"github.com/fnune/kyaraben/internal/logging"
 	"github.com/fnune/kyaraben/internal/model"
-	"github.com/twpayne/go-vfs/v5"
 )
 
 var log = logging.New("cleanup")

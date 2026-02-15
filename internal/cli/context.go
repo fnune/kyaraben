@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/twpayne/go-vfs/v5"
+
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/packages"
 	"github.com/fnune/kyaraben/internal/paths"
@@ -50,15 +52,15 @@ func (c *Context) NewInstaller() (packages.Installer, error) {
 	}
 	if useFakeInstaller() {
 		packagesDir := filepath.Join(stateDir, "packages")
-		return packages.NewFakeInstaller(packagesDir), nil
+		return packages.NewFakeInstaller(vfs.OSFS, packagesDir), nil
 	}
 	downloader := packages.NewHTTPDownloader()
-	extractor := &packages.OSExtractor{}
-	return packages.NewPackageInstaller(stateDir, downloader, extractor), nil
+	extractor := packages.NewDefaultExtractor()
+	return packages.NewDefaultPackageInstaller(stateDir, downloader, extractor), nil
 }
 
 func (c *Context) NewUserStore(cfg *model.KyarabenConfig) (*store.UserStore, error) {
-	return store.NewUserStore(cfg.Global.UserStore)
+	return store.NewDefaultUserStore(cfg.Global.UserStore)
 }
 
 func (c *Context) stateDir() (string, error) {

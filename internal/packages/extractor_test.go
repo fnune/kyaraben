@@ -5,17 +5,18 @@ import (
 	"archive/zip"
 	"bytes"
 	"compress/gzip"
-	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/klauspost/compress/zstd"
+	"github.com/twpayne/go-vfs/v5"
+	"github.com/twpayne/go-vfs/v5/vfst"
 )
 
-func createTarGz(t *testing.T, files map[string]string) string {
+func createTarGzVFS(t *testing.T, fs vfs.FS, files map[string]string) string {
 	t.Helper()
-	path := filepath.Join(t.TempDir(), "archive.tar.gz")
-	f, err := os.Create(path)
+	path := "/archive.tar.gz"
+	f, err := fs.Create(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,10 +47,10 @@ func createTarGz(t *testing.T, files map[string]string) string {
 	return path
 }
 
-func createTarZst(t *testing.T, files map[string]string) string {
+func createTarZstVFS(t *testing.T, fs vfs.FS, files map[string]string) string {
 	t.Helper()
-	path := filepath.Join(t.TempDir(), "archive.tar.zst")
-	f, err := os.Create(path)
+	path := "/archive.tar.zst"
+	f, err := fs.Create(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,10 +84,10 @@ func createTarZst(t *testing.T, files map[string]string) string {
 	return path
 }
 
-func createZip(t *testing.T, files map[string]string) string {
+func createZipVFS(t *testing.T, fs vfs.FS, files map[string]string) string {
 	t.Helper()
-	path := filepath.Join(t.TempDir(), "archive.zip")
-	f, err := os.Create(path)
+	path := "/archive.zip"
+	f, err := fs.Create(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,19 +110,25 @@ func createZip(t *testing.T, files map[string]string) string {
 }
 
 func TestExtractTarGz(t *testing.T) {
-	archive := createTarGz(t, map[string]string{
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	archive := createTarGzVFS(t, fs, map[string]string{
 		"bin/program":    "#!/bin/sh\necho hello",
 		"lib/library.so": "fake-library",
 	})
 
-	dest := filepath.Join(t.TempDir(), "extracted")
-	ext := OSExtractor{}
+	dest := "/extracted"
+	ext := NewExtractor(fs)
 
 	if err := ext.Extract(archive, dest, "tar.gz"); err != nil {
 		t.Fatalf("Extract: %v", err)
 	}
 
-	content, err := os.ReadFile(filepath.Join(dest, "bin", "program"))
+	content, err := fs.ReadFile(filepath.Join(dest, "bin", "program"))
 	if err != nil {
 		t.Fatalf("reading extracted file: %v", err)
 	}
@@ -129,7 +136,7 @@ func TestExtractTarGz(t *testing.T) {
 		t.Errorf("content = %q", content)
 	}
 
-	info, err := os.Stat(filepath.Join(dest, "bin", "program"))
+	info, err := fs.Stat(filepath.Join(dest, "bin", "program"))
 	if err != nil {
 		t.Fatalf("stat: %v", err)
 	}
@@ -139,18 +146,24 @@ func TestExtractTarGz(t *testing.T) {
 }
 
 func TestExtractTarZst(t *testing.T) {
-	archive := createTarZst(t, map[string]string{
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	archive := createTarZstVFS(t, fs, map[string]string{
 		"cores/bsnes_libretro.so": "fake-core",
 	})
 
-	dest := filepath.Join(t.TempDir(), "extracted")
-	ext := OSExtractor{}
+	dest := "/extracted"
+	ext := NewExtractor(fs)
 
 	if err := ext.Extract(archive, dest, "tar.zst"); err != nil {
 		t.Fatalf("Extract: %v", err)
 	}
 
-	content, err := os.ReadFile(filepath.Join(dest, "cores", "bsnes_libretro.so"))
+	content, err := fs.ReadFile(filepath.Join(dest, "cores", "bsnes_libretro.so"))
 	if err != nil {
 		t.Fatalf("reading extracted file: %v", err)
 	}
@@ -160,18 +173,24 @@ func TestExtractTarZst(t *testing.T) {
 }
 
 func TestExtractZip(t *testing.T) {
-	archive := createZip(t, map[string]string{
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	archive := createZipVFS(t, fs, map[string]string{
 		"melonDS-x86_64.AppImage": "fake-appimage",
 	})
 
-	dest := filepath.Join(t.TempDir(), "extracted")
-	ext := OSExtractor{}
+	dest := "/extracted"
+	ext := NewExtractor(fs)
 
 	if err := ext.Extract(archive, dest, "zip"); err != nil {
 		t.Fatalf("Extract: %v", err)
 	}
 
-	content, err := os.ReadFile(filepath.Join(dest, "melonDS-x86_64.AppImage"))
+	content, err := fs.ReadFile(filepath.Join(dest, "melonDS-x86_64.AppImage"))
 	if err != nil {
 		t.Fatalf("reading extracted file: %v", err)
 	}
@@ -181,21 +200,23 @@ func TestExtractZip(t *testing.T) {
 }
 
 func TestExtractAppImage(t *testing.T) {
-	srcDir := t.TempDir()
-	srcPath := filepath.Join(srcDir, "eden.AppImage")
-	if err := os.WriteFile(srcPath, []byte("fake-appimage-binary"), 0644); err != nil {
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/src/eden.AppImage": "fake-appimage-binary",
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
+	defer cleanup()
 
-	dest := filepath.Join(t.TempDir(), "extracted")
-	ext := OSExtractor{}
+	dest := "/extracted"
+	ext := NewExtractor(fs)
 
-	if err := ext.Extract(srcPath, dest, "appimage"); err != nil {
+	if err := ext.Extract("/src/eden.AppImage", dest, "appimage"); err != nil {
 		t.Fatalf("Extract: %v", err)
 	}
 
 	destPath := filepath.Join(dest, "eden.AppImage")
-	info, err := os.Stat(destPath)
+	info, err := fs.Stat(destPath)
 	if err != nil {
 		t.Fatalf("stat: %v", err)
 	}
@@ -205,8 +226,14 @@ func TestExtractAppImage(t *testing.T) {
 }
 
 func TestExtractPathTraversal(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "malicious.tar.gz")
-	f, err := os.Create(path)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	path := "/malicious.tar.gz"
+	f, err := fs.Create(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -225,8 +252,8 @@ func TestExtractPathTraversal(t *testing.T) {
 	_ = gw.Close()
 	_ = f.Close()
 
-	dest := filepath.Join(t.TempDir(), "extracted")
-	ext := OSExtractor{}
+	dest := "/extracted"
+	ext := NewExtractor(fs)
 
 	err = ext.Extract(path, dest, "tar.gz")
 	if err == nil {
@@ -235,6 +262,12 @@ func TestExtractPathTraversal(t *testing.T) {
 }
 
 func TestExtractAbsoluteSymlink(t *testing.T) {
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
 	var buf bytes.Buffer
 	gw := gzip.NewWriter(&buf)
 	tw := tar.NewWriter(gw)
@@ -247,23 +280,31 @@ func TestExtractAbsoluteSymlink(t *testing.T) {
 	_ = tw.Close()
 	_ = gw.Close()
 
-	path := filepath.Join(t.TempDir(), "archive.tar.gz")
-	if err := os.WriteFile(path, buf.Bytes(), 0644); err != nil {
+	path := "/archive.tar.gz"
+	if err := fs.WriteFile(path, buf.Bytes(), 0644); err != nil {
 		t.Fatal(err)
 	}
 
-	dest := filepath.Join(t.TempDir(), "extracted")
-	ext := OSExtractor{}
+	dest := "/extracted"
+	ext := NewExtractor(fs)
 
-	err := ext.Extract(path, dest, "tar.gz")
+	err = ext.Extract(path, dest, "tar.gz")
 	if err == nil {
 		t.Fatal("expected error for absolute symlink")
 	}
 }
 
 func TestExtractUnsupportedType(t *testing.T) {
-	ext := OSExtractor{}
-	err := ext.Extract("/dev/null", t.TempDir(), "rar")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/dest": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	ext := NewExtractor(fs)
+	err = ext.Extract("/nonexistent", "/dest", "rar")
 	if err == nil {
 		t.Fatal("expected error for unsupported type")
 	}

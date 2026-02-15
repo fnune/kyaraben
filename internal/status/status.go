@@ -2,9 +2,10 @@ package status
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/twpayne/go-vfs/v5"
 
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/paths"
@@ -62,8 +63,28 @@ type Result struct {
 	HealthWarning        string // Non-empty if inconsistent state detected
 }
 
+type Getter struct {
+	fs            vfs.FS
+	manifestStore *model.ManifestStore
+}
+
+func NewGetter(fs vfs.FS) *Getter {
+	return &Getter{
+		fs:            fs,
+		manifestStore: model.NewManifestStore(fs),
+	}
+}
+
+func NewDefaultGetter() *Getter {
+	return NewGetter(vfs.OSFS)
+}
+
 func Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg *registry.Registry, userStore *store.UserStore, manifestPath string) (*Result, error) {
-	manifest, err := model.LoadManifest(manifestPath)
+	return NewDefaultGetter().Get(ctx, cfg, configPath, reg, userStore, manifestPath)
+}
+
+func (g *Getter) Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg *registry.Registry, userStore *store.UserStore, manifestPath string) (*Result, error) {
+	manifest, err := g.manifestStore.Load(manifestPath)
 	if err != nil {
 		return nil, err
 	}
@@ -156,12 +177,12 @@ func Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg 
 		}
 	}
 
-	result.HealthWarning = detectOrphanedArtifacts(manifest)
+	result.HealthWarning = g.detectOrphanedArtifacts(manifest)
 
 	return result, nil
 }
 
-func detectOrphanedArtifacts(manifest *model.Manifest) string {
+func (g *Getter) detectOrphanedArtifacts(manifest *model.Manifest) string {
 	if len(manifest.InstalledEmulators) > 0 {
 		return ""
 	}
@@ -172,12 +193,12 @@ func detectOrphanedArtifacts(manifest *model.Manifest) string {
 	}
 
 	binDir := filepath.Join(stateDir, "bin")
-	if entries, err := os.ReadDir(binDir); err == nil && len(entries) > 0 {
+	if entries, err := g.fs.ReadDir(binDir); err == nil && len(entries) > 0 {
 		return "orphaned_artifacts"
 	}
 
 	currentLink := filepath.Join(stateDir, "current")
-	if _, err := os.Lstat(currentLink); err == nil {
+	if _, err := g.fs.Lstat(currentLink); err == nil {
 		return "orphaned_artifacts"
 	}
 

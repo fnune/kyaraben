@@ -7,10 +7,35 @@ linters:
   default: none
   enable:
     - errcheck
+    - forbidigo
     - govet
     - ineffassign
     - staticcheck
     - unused
+
+  settings:
+    forbidigo:
+      forbid:
+        - pattern: 'vfs\.OSFS'
+          pkg: github.com/twpayne/go-vfs/v5
+          msg: "use injected vfs.FS instead of vfs.OSFS in tests"
+        - pattern: 'store\.NewDefaultUserStore'
+          pkg: github.com/fnune/kyaraben/internal/store
+          msg: "use store.NewUserStore(fs, ...) in tests"
+        - pattern: 'emulators\.NewDefaultConfigWriter'
+          pkg: github.com/fnune/kyaraben/internal/emulators
+          msg: "use emulators.NewConfigWriter(fs, ...) in tests"
+        - pattern: 'packages\.NewDefaultPackageInstaller'
+          pkg: github.com/fnune/kyaraben/internal/packages
+          msg: "use packages.NewPackageInstaller(fs, ...) in tests"
+      analyze-types: true
+
+  exclusions:
+    paths:
+      - test/e2e
+    rules:
+      - linters: [forbidigo]
+        path-except: '.*_test\.go$'
 
 formatters:
   enable:

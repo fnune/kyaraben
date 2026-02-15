@@ -3,28 +3,30 @@ package symlink
 import (
 	"errors"
 	"os"
-	"path/filepath"
 	"testing"
+
+	"github.com/twpayne/go-vfs/v5/vfst"
 
 	"github.com/fnune/kyaraben/internal/model"
 )
 
-func TestOSCreatorCreateOnEmptyPath(t *testing.T) {
-	tmpDir := t.TempDir()
-	source := filepath.Join(tmpDir, "link")
-	target := filepath.Join(tmpDir, "target")
-
-	if err := os.MkdirAll(target, 0755); err != nil {
+func TestCreatorCreateOnEmptyPath(t *testing.T) {
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/target":          &vfst.Dir{Perm: 0755},
+		"/target/file.txt": "content",
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
+	defer cleanup()
 
-	creator := OSCreator{}
-	err := creator.Create(model.SymlinkSpec{Source: source, Target: target})
+	creator := NewCreator(fs)
+	err = creator.Create(model.SymlinkSpec{Source: "/link", Target: "/target"})
 	if err != nil {
 		t.Fatalf("Create() error = %v", err)
 	}
 
-	info, err := os.Lstat(source)
+	info, err := fs.Lstat("/link")
 	if err != nil {
 		t.Fatalf("failed to stat source: %v", err)
 	}
@@ -32,138 +34,118 @@ func TestOSCreatorCreateOnEmptyPath(t *testing.T) {
 		t.Error("source is not a symlink")
 	}
 
-	resolvedTarget, err := os.Readlink(source)
-	if err != nil {
-		t.Fatalf("Readlink() error = %v", err)
-	}
-	if resolvedTarget != target {
-		t.Errorf("symlink points to %s, want %s", resolvedTarget, target)
+	if _, err := fs.Stat("/link/file.txt"); err != nil {
+		t.Errorf("symlink does not resolve to target directory: %v", err)
 	}
 }
 
-func TestOSCreatorCreateParentDirectories(t *testing.T) {
-	tmpDir := t.TempDir()
-	source := filepath.Join(tmpDir, "deep", "nested", "link")
-	target := filepath.Join(tmpDir, "target")
-
-	if err := os.MkdirAll(target, 0755); err != nil {
+func TestCreatorCreateParentDirectories(t *testing.T) {
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/target": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
+	defer cleanup()
 
-	creator := OSCreator{}
-	err := creator.Create(model.SymlinkSpec{Source: source, Target: target})
+	creator := NewCreator(fs)
+	err = creator.Create(model.SymlinkSpec{Source: "/deep/nested/link", Target: "/target"})
 	if err != nil {
 		t.Fatalf("Create() error = %v", err)
 	}
 
-	if _, err := os.Lstat(source); err != nil {
+	if _, err := fs.Lstat("/deep/nested/link"); err != nil {
 		t.Errorf("symlink was not created: %v", err)
 	}
 }
 
-func TestOSCreatorUpdateWhenTargetChanges(t *testing.T) {
-	tmpDir := t.TempDir()
-	source := filepath.Join(tmpDir, "link")
-	oldTarget := filepath.Join(tmpDir, "old_target")
-	newTarget := filepath.Join(tmpDir, "new_target")
+func TestCreatorUpdateWhenTargetChanges(t *testing.T) {
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/old_target":         &vfst.Dir{Perm: 0755},
+		"/old_target/old.txt": "old",
+		"/new_target":         &vfst.Dir{Perm: 0755},
+		"/new_target/new.txt": "new",
+		"/link":               &vfst.Symlink{Target: "/old_target"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	if err := os.MkdirAll(oldTarget, 0755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.MkdirAll(newTarget, 0755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Symlink(oldTarget, source); err != nil {
-		t.Fatal(err)
-	}
-
-	creator := OSCreator{}
-	err := creator.Create(model.SymlinkSpec{Source: source, Target: newTarget})
+	creator := NewCreator(fs)
+	err = creator.Create(model.SymlinkSpec{Source: "/link", Target: "/new_target"})
 	if err != nil {
 		t.Fatalf("Create() error = %v", err)
 	}
 
-	resolvedTarget, err := os.Readlink(source)
-	if err != nil {
-		t.Fatalf("Readlink() error = %v", err)
+	if _, err := fs.Stat("/link/new.txt"); err != nil {
+		t.Error("symlink should now resolve to new_target")
 	}
-	if resolvedTarget != newTarget {
-		t.Errorf("symlink points to %s, want %s", resolvedTarget, newTarget)
+	if _, err := fs.Stat("/link/old.txt"); err == nil {
+		t.Error("symlink should not resolve to old_target")
 	}
 }
 
-func TestOSCreatorNoopWhenTargetUnchanged(t *testing.T) {
-	tmpDir := t.TempDir()
-	source := filepath.Join(tmpDir, "link")
-	target := filepath.Join(tmpDir, "target")
-
-	if err := os.MkdirAll(target, 0755); err != nil {
+func TestCreatorNoopWhenTargetUnchanged(t *testing.T) {
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/target":          &vfst.Dir{Perm: 0755},
+		"/target/file.txt": "content",
+		"/link":            &vfst.Symlink{Target: "/target"},
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(target, source); err != nil {
-		t.Fatal(err)
-	}
+	defer cleanup()
 
-	creator := OSCreator{}
-	err := creator.Create(model.SymlinkSpec{Source: source, Target: target})
+	creator := NewCreator(fs)
+	err = creator.Create(model.SymlinkSpec{Source: "/link", Target: "/target"})
 	if err != nil {
 		t.Fatalf("Create() error = %v", err)
 	}
 
-	resolvedTarget, err := os.Readlink(source)
-	if err != nil {
-		t.Fatalf("Readlink() error = %v", err)
-	}
-	if resolvedTarget != target {
-		t.Errorf("symlink points to %s, want %s", resolvedTarget, target)
+	if _, err := fs.Stat("/link/file.txt"); err != nil {
+		t.Errorf("symlink should still resolve to target: %v", err)
 	}
 }
 
-func TestOSCreatorErrorOnNonEmptyDirectory(t *testing.T) {
-	tmpDir := t.TempDir()
-	source := filepath.Join(tmpDir, "dir_with_files")
-	target := filepath.Join(tmpDir, "target")
+func TestCreatorErrorOnNonEmptyDirectory(t *testing.T) {
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/dir_with_files/file.txt": "data",
+		"/target":                  &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	if err := os.MkdirAll(source, 0755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(source, "file.txt"), []byte("data"), 0644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.MkdirAll(target, 0755); err != nil {
-		t.Fatal(err)
-	}
-
-	creator := OSCreator{}
-	err := creator.Create(model.SymlinkSpec{Source: source, Target: target})
+	creator := NewCreator(fs)
+	err = creator.Create(model.SymlinkSpec{Source: "/dir_with_files", Target: "/target"})
 	if err == nil {
 		t.Fatal("expected error when source directory is non-empty")
 	}
 
-	if _, statErr := os.Stat(filepath.Join(source, "file.txt")); statErr != nil {
+	if _, statErr := fs.Stat("/dir_with_files/file.txt"); statErr != nil {
 		t.Error("source directory should not be deleted when it contains files")
 	}
 }
 
-func TestOSCreatorReplacesEmptyDirectory(t *testing.T) {
-	tmpDir := t.TempDir()
-	source := filepath.Join(tmpDir, "empty_dir")
-	target := filepath.Join(tmpDir, "target")
-
-	if err := os.MkdirAll(source, 0755); err != nil {
+func TestCreatorReplacesEmptyDirectory(t *testing.T) {
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/empty_dir": &vfst.Dir{Perm: 0755},
+		"/target":    &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.MkdirAll(target, 0755); err != nil {
-		t.Fatal(err)
-	}
+	defer cleanup()
 
-	creator := OSCreator{}
-	err := creator.Create(model.SymlinkSpec{Source: source, Target: target})
+	creator := NewCreator(fs)
+	err = creator.Create(model.SymlinkSpec{Source: "/empty_dir", Target: "/target"})
 	if err != nil {
 		t.Fatalf("Create() error = %v", err)
 	}
 
-	info, err := os.Lstat(source)
+	info, err := fs.Lstat("/empty_dir")
 	if err != nil {
 		t.Fatalf("failed to stat source: %v", err)
 	}
@@ -172,20 +154,18 @@ func TestOSCreatorReplacesEmptyDirectory(t *testing.T) {
 	}
 }
 
-func TestOSCreatorErrorOnRegularFile(t *testing.T) {
-	tmpDir := t.TempDir()
-	source := filepath.Join(tmpDir, "regular_file")
-	target := filepath.Join(tmpDir, "target")
-
-	if err := os.WriteFile(source, []byte("data"), 0644); err != nil {
+func TestCreatorErrorOnRegularFile(t *testing.T) {
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/regular_file": "data",
+		"/target":       &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.MkdirAll(target, 0755); err != nil {
-		t.Fatal(err)
-	}
+	defer cleanup()
 
-	creator := OSCreator{}
-	err := creator.Create(model.SymlinkSpec{Source: source, Target: target})
+	creator := NewCreator(fs)
+	err = creator.Create(model.SymlinkSpec{Source: "/regular_file", Target: "/target"})
 	if err == nil {
 		t.Fatal("expected error when source is a regular file")
 	}
@@ -233,61 +213,58 @@ func TestCreateAllStopsOnError(t *testing.T) {
 }
 
 func TestRemoveSymlinkPreservesTarget(t *testing.T) {
-	tmpDir := t.TempDir()
-	source := filepath.Join(tmpDir, "link")
-	target := filepath.Join(tmpDir, "target")
-
-	if err := os.MkdirAll(target, 0755); err != nil {
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/target/important_save.dat": "precious data",
+		"/link":                      &vfst.Symlink{Target: "/target"},
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
-	testFile := filepath.Join(target, "important_save.dat")
-	if err := os.WriteFile(testFile, []byte("precious data"), 0644); err != nil {
-		t.Fatal(err)
-	}
+	defer cleanup()
 
-	if err := os.Symlink(target, source); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := Remove(source); err != nil {
+	if err := Remove(fs, "/link"); err != nil {
 		t.Fatalf("Remove() error = %v", err)
 	}
 
-	if _, err := os.Lstat(source); !os.IsNotExist(err) {
+	if _, err := fs.Lstat("/link"); !os.IsNotExist(err) {
 		t.Error("symlink should be removed")
 	}
 
-	if _, err := os.Stat(target); err != nil {
+	if _, err := fs.Stat("/target"); err != nil {
 		t.Errorf("target directory should still exist: %v", err)
 	}
-	if _, err := os.Stat(testFile); err != nil {
+	if _, err := fs.Stat("/target/important_save.dat"); err != nil {
 		t.Errorf("file inside target should still exist: %v", err)
 	}
 }
 
 func TestRemoveRefusesNonSymlink(t *testing.T) {
-	tmpDir := t.TempDir()
-	realDir := filepath.Join(tmpDir, "real_dir")
-
-	if err := os.MkdirAll(realDir, 0755); err != nil {
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/real_dir": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
+	defer cleanup()
 
-	err := Remove(realDir)
+	err = Remove(fs, "/real_dir")
 	if err == nil {
 		t.Fatal("Remove() should error on non-symlink")
 	}
 
-	if _, err := os.Stat(realDir); err != nil {
+	if _, err := fs.Stat("/real_dir"); err != nil {
 		t.Error("directory should not be removed")
 	}
 }
 
 func TestRemoveNonexistentIsNoop(t *testing.T) {
-	tmpDir := t.TempDir()
-	nonexistent := filepath.Join(tmpDir, "nonexistent", "path", "to", "symlink")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	err := Remove(nonexistent)
+	err = Remove(fs, "/nonexistent/path/to/symlink")
 	if err != nil {
 		t.Errorf("Remove() on nonexistent path should succeed, got: %v", err)
 	}

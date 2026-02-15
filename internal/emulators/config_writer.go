@@ -4,17 +4,24 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/twpayne/go-vfs/v5"
+
 	"github.com/fnune/kyaraben/internal/configformat"
 	"github.com/fnune/kyaraben/internal/fileutil"
 	"github.com/fnune/kyaraben/internal/model"
 )
 
 type ConfigWriter struct {
+	fs       vfs.FS
 	resolver model.BaseDirResolver
 }
 
-func NewConfigWriter(resolver model.BaseDirResolver) *ConfigWriter {
-	return &ConfigWriter{resolver: resolver}
+func NewConfigWriter(fs vfs.FS, resolver model.BaseDirResolver) *ConfigWriter {
+	return &ConfigWriter{fs: fs, resolver: resolver}
+}
+
+func NewDefaultConfigWriter(resolver model.BaseDirResolver) *ConfigWriter {
+	return NewConfigWriter(vfs.OSFS, resolver)
 }
 
 func (w *ConfigWriter) resolvePath(target model.ConfigTarget) (string, error) {
@@ -37,7 +44,7 @@ func (w *ConfigWriter) NeedsBackup(patch model.ConfigPatch) (string, bool, error
 		return "", false, fmt.Errorf("resolving config path: %w", err)
 	}
 
-	_, err = os.Stat(path)
+	_, err = w.fs.Stat(path)
 	if os.IsNotExist(err) {
 		return path, false, nil
 	}
@@ -63,7 +70,7 @@ func (w *ConfigWriter) ApplyWithOptions(patch model.ConfigPatch, opts ApplyOptio
 
 	var backupPath string
 	if opts.CreateBackup {
-		if _, err := os.Stat(path); err == nil {
+		if _, err := w.fs.Stat(path); err == nil {
 			backupPath, err = w.createBackup(path)
 			if err != nil {
 				return ApplyResult{}, fmt.Errorf("creating backup: %w", err)
@@ -71,7 +78,7 @@ func (w *ConfigWriter) ApplyWithOptions(patch model.ConfigPatch, opts ApplyOptio
 		}
 	}
 
-	handler := configformat.GetHandler(patch.Target.Format)
+	handler := configformat.NewHandler(w.fs, patch.Target.Format)
 	formatResult, err := handler.Apply(path, patch.Entries)
 	if err != nil {
 		return ApplyResult{}, err

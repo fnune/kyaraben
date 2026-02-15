@@ -1,25 +1,32 @@
 package emulators
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/twpayne/go-vfs/v5/vfst"
 
 	"github.com/fnune/kyaraben/internal/configformat"
 	"github.com/fnune/kyaraben/internal/model"
 )
 
 func TestApplyYAML(t *testing.T) {
-	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "test", "config.yml")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/test": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	configPath := "/test/config.yml"
 
 	entries := []model.ConfigEntry{
 		{Path: []string{"pref-path"}, Value: "/home/user/data"},
 		{Path: []string{"VFS", "$(EmulatorDir)"}, Value: "/home/user/emulator"},
 	}
 
-	handler := configformat.GetHandler(model.ConfigFormatYAML)
+	handler := configformat.NewHandler(fs, model.ConfigFormatYAML)
 	result, err := handler.Apply(configPath, entries)
 	if err != nil {
 		t.Fatalf("Apply() error = %v", err)
@@ -29,7 +36,7 @@ func TestApplyYAML(t *testing.T) {
 		t.Errorf("Path = %q, want %q", result.Path, configPath)
 	}
 
-	content, err := os.ReadFile(configPath)
+	content, err := fs.ReadFile(configPath)
 	if err != nil {
 		t.Fatalf("reading config file: %v", err)
 	}
@@ -47,15 +54,22 @@ func TestApplyYAML(t *testing.T) {
 }
 
 func TestApplyXML(t *testing.T) {
-	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "test", "config.xml")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/test": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	configPath := "/test/config.xml"
 
 	entries := []model.ConfigEntry{
 		{Path: []string{"content", "GamePaths", "Entry"}, Value: "/home/user/roms"},
 		{Path: []string{"content", "mlc_path"}, Value: "/home/user/mlc"},
 	}
 
-	handler := configformat.GetHandler(model.ConfigFormatXML)
+	handler := configformat.NewHandler(fs, model.ConfigFormatXML)
 	result, err := handler.Apply(configPath, entries)
 	if err != nil {
 		t.Fatalf("Apply() error = %v", err)
@@ -65,7 +79,7 @@ func TestApplyXML(t *testing.T) {
 		t.Errorf("Path = %q, want %q", result.Path, configPath)
 	}
 
-	content, err := os.ReadFile(configPath)
+	content, err := fs.ReadFile(configPath)
 	if err != nil {
 		t.Fatalf("reading config file: %v", err)
 	}
@@ -83,28 +97,29 @@ func TestApplyXML(t *testing.T) {
 }
 
 func TestApplyYAMLPreservesExisting(t *testing.T) {
-	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "config.yml")
-
 	existingContent := `existing-key: existing-value
 other:
   nested: data
 `
-	if err := os.WriteFile(configPath, []byte(existingContent), 0644); err != nil {
-		t.Fatalf("writing existing config: %v", err)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config.yml": existingContent,
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer cleanup()
 
 	entries := []model.ConfigEntry{
 		{Path: []string{"new-key"}, Value: "new-value"},
 	}
 
-	handler := configformat.GetHandler(model.ConfigFormatYAML)
-	_, err := handler.Apply(configPath, entries)
+	handler := configformat.NewHandler(fs, model.ConfigFormatYAML)
+	_, err = handler.Apply("/config.yml", entries)
 	if err != nil {
 		t.Fatalf("Apply() error = %v", err)
 	}
 
-	content, err := os.ReadFile(configPath)
+	content, err := fs.ReadFile("/config.yml")
 	if err != nil {
 		t.Fatalf("reading config file: %v", err)
 	}

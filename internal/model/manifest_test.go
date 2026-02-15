@@ -1,10 +1,10 @@
 package model
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/twpayne/go-vfs/v5/vfst"
 )
 
 func TestNewManifest(t *testing.T) {
@@ -28,12 +28,17 @@ func TestNewManifest(t *testing.T) {
 }
 
 func TestLoadManifest_NonExistent(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "nonexistent.json")
-
-	m, err := LoadManifest(path)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/data": &vfst.Dir{Perm: 0755},
+	})
 	if err != nil {
-		t.Fatalf("LoadManifest() error = %v", err)
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	m, err := NewManifestStore(fs).Load("/data/nonexistent.json")
+	if err != nil {
+		t.Fatalf("NewManifestStore().Load() error = %v", err)
 	}
 
 	if m.Version != 1 {
@@ -42,9 +47,6 @@ func TestLoadManifest_NonExistent(t *testing.T) {
 }
 
 func TestLoadManifest_Existing(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "manifest.json")
-
 	content := `{
   "version": 2,
   "last_applied": "2024-01-15T10:30:00Z",
@@ -70,13 +72,18 @@ func TestLoadManifest_Existing(t *testing.T) {
     }
   ]
 }`
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-		t.Fatalf("failed to write test file: %v", err)
-	}
 
-	m, err := LoadManifest(path)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/data/manifest.json": content,
+	})
 	if err != nil {
-		t.Fatalf("LoadManifest() error = %v", err)
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	m, err := NewManifestStore(fs).Load("/data/manifest.json")
+	if err != nil {
+		t.Fatalf("NewManifestStore().Load() error = %v", err)
 	}
 
 	if m.Version != 2 {
@@ -98,36 +105,49 @@ func TestLoadManifest_Existing(t *testing.T) {
 }
 
 func TestLoadManifest_InvalidJSON(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "manifest.json")
-
-	if err := os.WriteFile(path, []byte("not valid json"), 0644); err != nil {
-		t.Fatalf("failed to write test file: %v", err)
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/data/manifest.json": "not valid json",
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer cleanup()
 
-	_, err := LoadManifest(path)
+	_, err = NewManifestStore(fs).Load("/data/manifest.json")
 	if err == nil {
-		t.Error("LoadManifest() expected error for invalid JSON")
+		t.Error("NewManifestStore().Load() expected error for invalid JSON")
 	}
 }
 
 func TestManifest_Save_CreatesParentDirs(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "nested", "deep", "manifest.json")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/data": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
 	m := NewManifest()
-	if err := m.Save(path); err != nil {
-		t.Fatalf("Save() error = %v", err)
+	if err := NewManifestStore(fs).Save(m, "/data/nested/deep/manifest.json"); err != nil {
+		t.Fatalf("NewManifestStore().Save() error = %v", err)
 	}
 
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		t.Error("manifest file was not created")
-	}
+	vfst.RunTests(t, fs, "",
+		vfst.TestPath("/data/nested/deep/manifest.json",
+			vfst.TestModeIsRegular(),
+		),
+	)
 }
 
 func TestManifest_Save_WritesValidJSON(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "manifest.json")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/data": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
 	m := NewManifest()
 	m.AddEmulator(InstalledEmulator{
@@ -137,13 +157,13 @@ func TestManifest_Save_WritesValidJSON(t *testing.T) {
 		Installed:   time.Date(2024, 1, 15, 10, 0, 0, 0, time.UTC),
 	})
 
-	if err := m.Save(path); err != nil {
-		t.Fatalf("Save() error = %v", err)
+	if err := NewManifestStore(fs).Save(m, "/data/manifest.json"); err != nil {
+		t.Fatalf("NewManifestStore().Save() error = %v", err)
 	}
 
-	loaded, err := LoadManifest(path)
+	loaded, err := NewManifestStore(fs).Load("/data/manifest.json")
 	if err != nil {
-		t.Fatalf("LoadManifest() error = %v", err)
+		t.Fatalf("NewManifestStore().Load() error = %v", err)
 	}
 
 	emu, ok := loaded.InstalledEmulators["test-emu"]

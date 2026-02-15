@@ -1,10 +1,12 @@
 package daemon
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/twpayne/go-vfs/v5"
+	"github.com/twpayne/go-vfs/v5/vfst"
 
 	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/model"
@@ -16,23 +18,46 @@ func TestMain(m *testing.M) {
 	if err := versions.Init(); err != nil {
 		panic(err)
 	}
-	os.Exit(m.Run())
+	m.Run()
 }
 
-func newTestDaemon(t *testing.T, cfg *model.KyarabenConfig) *Daemon {
+type testDaemonEnv struct {
+	fs           vfs.FS
+	cleanup      func()
+	configPath   string
+	stateDir     string
+	manifestPath string
+}
+
+func newTestDaemonEnv(t *testing.T, cfg *model.KyarabenConfig) *testDaemonEnv {
 	t.Helper()
-	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "config.toml")
-	stateDir := filepath.Join(tmpDir, "state")
-	manifestPath := filepath.Join(tmpDir, "state", "build", "manifest.json")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/state/build": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	env := &testDaemonEnv{
+		fs:           fs,
+		cleanup:      cleanup,
+		configPath:   "/config.toml",
+		stateDir:     "/state",
+		manifestPath: "/state/build/manifest.json",
+	}
 
 	if cfg != nil {
-		if err := model.SaveConfig(cfg, configPath); err != nil {
+		if err := model.NewConfigStore(fs).Save(cfg, env.configPath); err != nil {
+			cleanup()
 			t.Fatalf("saving config: %v", err)
 		}
 	}
 
-	return New(configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil)
+	return env
+}
+
+func (e *testDaemonEnv) newDaemon() *Daemon {
+	return New(e.fs, e.configPath, e.stateDir, e.manifestPath, registry.NewDefault(), nil, nil, nil)
 }
 
 func TestHandleUninstallPreview_EmptyManifest(t *testing.T) {
@@ -42,7 +67,9 @@ func TestHandleUninstallPreview_EmptyManifest(t *testing.T) {
 		},
 		Systems: make(map[model.SystemID][]model.EmulatorID),
 	}
-	d := newTestDaemon(t, cfg)
+	env := newTestDaemonEnv(t, cfg)
+	defer env.cleanup()
+	d := env.newDaemon()
 
 	events := d.Handle(Command{Type: CommandTypeUninstallPreview})
 	if len(events) != 1 {
@@ -77,19 +104,22 @@ func TestHandleUninstallPreview_EmptyManifest(t *testing.T) {
 }
 
 func TestHandleUninstallPreview_WithManifest(t *testing.T) {
-	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "config.toml")
-	stateDir := filepath.Join(tmpDir, "state")
-	manifestPath := filepath.Join(tmpDir, "state", "build", "manifest.json")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/state/build":  &vfst.Dir{Perm: 0755},
+		"/test.desktop": "[Desktop Entry]",
+		"/test.png":     "PNG",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	desktopFile := filepath.Join(tmpDir, "test.desktop")
-	iconFile := filepath.Join(tmpDir, "test.png")
-	if err := os.WriteFile(desktopFile, []byte("[Desktop Entry]"), 0644); err != nil {
-		t.Fatalf("creating desktop file: %v", err)
-	}
-	if err := os.WriteFile(iconFile, []byte("PNG"), 0644); err != nil {
-		t.Fatalf("creating icon file: %v", err)
-	}
+	configPath := "/config.toml"
+	stateDir := "/state"
+	manifestPath := "/state/build/manifest.json"
+
+	desktopFile := "/test.desktop"
+	iconFile := "/test.png"
 
 	manifest := &model.Manifest{
 		Version:      1,
@@ -97,7 +127,7 @@ func TestHandleUninstallPreview_WithManifest(t *testing.T) {
 		DesktopFiles: []string{desktopFile},
 		IconFiles:    []string{iconFile},
 	}
-	if err := manifest.Save(manifestPath); err != nil {
+	if err := model.NewManifestStore(fs).Save(manifest, manifestPath); err != nil {
 		t.Fatalf("saving manifest: %v", err)
 	}
 
@@ -107,11 +137,11 @@ func TestHandleUninstallPreview_WithManifest(t *testing.T) {
 		},
 		Systems: make(map[model.SystemID][]model.EmulatorID),
 	}
-	if err := model.SaveConfig(cfg, configPath); err != nil {
+	if err := model.NewConfigStore(fs).Save(cfg, configPath); err != nil {
 		t.Fatalf("saving config: %v", err)
 	}
 
-	d := New(configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil)
+	d := New(fs, configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil)
 
 	events := d.Handle(Command{Type: CommandTypeUninstallPreview})
 	if len(events) != 1 {
@@ -151,7 +181,9 @@ func TestHandleGetConfig_ReturnsConfig(t *testing.T) {
 			model.EmulatorIDMGBA: {Version: "0.10.0"},
 		},
 	}
-	d := newTestDaemon(t, cfg)
+	env := newTestDaemonEnv(t, cfg)
+	defer env.cleanup()
+	d := env.newDaemon()
 
 	events := d.Handle(Command{Type: CommandTypeGetConfig})
 	if len(events) != 1 {
@@ -183,7 +215,9 @@ func TestHandleGetConfig_ReturnsConfig(t *testing.T) {
 }
 
 func TestHandleGetConfig_DefaultConfig(t *testing.T) {
-	d := newTestDaemon(t, nil)
+	env := newTestDaemonEnv(t, nil)
+	defer env.cleanup()
+	d := env.newDaemon()
 
 	events := d.Handle(Command{Type: CommandTypeGetConfig})
 	if len(events) != 1 {
@@ -206,7 +240,9 @@ func TestHandleGetConfig_DefaultConfig(t *testing.T) {
 }
 
 func TestHandleGetSystems_ReturnsSystems(t *testing.T) {
-	d := newTestDaemon(t, nil)
+	env := newTestDaemonEnv(t, nil)
+	defer env.cleanup()
+	d := env.newDaemon()
 
 	events := d.Handle(Command{Type: CommandTypeGetSystems})
 	if len(events) != 1 {
@@ -245,7 +281,9 @@ func TestHandleGetSystems_ReturnsSystems(t *testing.T) {
 }
 
 func TestHandleGetSystems_PopulatesPackageNameAndCoreBytes(t *testing.T) {
-	d := newTestDaemon(t, nil)
+	env := newTestDaemonEnv(t, nil)
+	defer env.cleanup()
+	d := env.newDaemon()
 
 	events := d.Handle(Command{Type: CommandTypeGetSystems})
 	if len(events) != 1 {
@@ -295,26 +333,35 @@ func (f fakeBaseDirResolver) UserDataDir() (string, error) {
 }
 
 func TestHandlePreflight_ReturnsPreflightResponse(t *testing.T) {
-	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "config.toml")
-	stateDir := filepath.Join(tmpDir, "state")
-	manifestPath := filepath.Join(tmpDir, "state", "build", "manifest.json")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/state/build": &vfst.Dir{Perm: 0755},
+		"/Emulation":   &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	configPath := "/config.toml"
+	stateDir := "/state"
+	manifestPath := "/state/build/manifest.json"
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: filepath.Join(tmpDir, "Emulation"),
+			UserStore: "/Emulation",
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGBA: {model.EmulatorIDMGBA},
 		},
 	}
-	if err := model.SaveConfig(cfg, configPath); err != nil {
+	if err := model.NewConfigStore(fs).Save(cfg, configPath); err != nil {
 		t.Fatalf("saving config: %v", err)
 	}
 
 	reg := registry.NewDefault()
-	configWriter := emulators.NewConfigWriter(fakeBaseDirResolver{root: tmpDir})
-	d := New(configPath, stateDir, manifestPath, reg, nil, configWriter, nil)
+	resolver := fakeBaseDirResolver{root: "/"}
+	configWriter := emulators.NewConfigWriter(fs, resolver)
+	d := New(fs, configPath, stateDir, manifestPath, reg, nil, configWriter, nil)
 
 	events := d.Handle(Command{Type: CommandTypePreflight})
 	if len(events) != 1 {
@@ -337,13 +384,28 @@ func TestHandlePreflight_ReturnsPreflightResponse(t *testing.T) {
 }
 
 func TestHandlePreflight_EmptyConfig(t *testing.T) {
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/state/build": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
 			UserStore: "~/Emulation",
 		},
 		Systems: make(map[model.SystemID][]model.EmulatorID),
 	}
-	d := newTestDaemon(t, cfg)
+	configPath := "/config.toml"
+	if err := model.NewConfigStore(fs).Save(cfg, configPath); err != nil {
+		t.Fatalf("saving config: %v", err)
+	}
+
+	resolver := fakeBaseDirResolver{root: "/"}
+	configWriter := emulators.NewConfigWriter(fs, resolver)
+	d := New(fs, configPath, "/state", "/state/build/manifest.json", registry.NewDefault(), nil, configWriter, nil)
 
 	events := d.Handle(Command{Type: CommandTypePreflight})
 	if len(events) != 1 {
@@ -383,24 +445,31 @@ func TestRetroArchCoreName(t *testing.T) {
 }
 
 func TestHandleInstallStatus_EmptyManifest(t *testing.T) {
-	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "config.toml")
-	stateDir := filepath.Join(tmpDir, "state")
-	manifestPath := filepath.Join(tmpDir, "state", "build", "manifest.json")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/state/build": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	configPath := "/config.toml"
+	stateDir := "/state"
+	manifestPath := "/state/build/manifest.json"
 
 	manifest := &model.Manifest{
 		Version:     1,
 		LastApplied: time.Now(),
 		KyarabenInstall: &model.KyarabenInstall{
-			CLIPath:     filepath.Join(tmpDir, "nonexistent", "kyaraben"),
-			DesktopPath: filepath.Join(tmpDir, "nonexistent", "kyaraben.desktop"),
+			CLIPath:     "/nonexistent/kyaraben",
+			DesktopPath: "/nonexistent/kyaraben.desktop",
 		},
 	}
-	if err := manifest.Save(manifestPath); err != nil {
+	if err := model.NewManifestStore(fs).Save(manifest, manifestPath); err != nil {
 		t.Fatalf("saving manifest: %v", err)
 	}
 
-	d := New(configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil)
+	d := New(fs, configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil)
 
 	events := d.Handle(Command{Type: CommandTypeInstallStatus})
 	if len(events) != 1 {
@@ -426,19 +495,22 @@ func TestHandleInstallStatus_EmptyManifest(t *testing.T) {
 }
 
 func TestHandleInstallStatus_WithManifest(t *testing.T) {
-	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "config.toml")
-	stateDir := filepath.Join(tmpDir, "state")
-	manifestPath := filepath.Join(tmpDir, "state", "build", "manifest.json")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/state/build":      &vfst.Dir{Perm: 0755},
+		"/kyaraben":         "#!/bin/sh",
+		"/kyaraben.desktop": "[Desktop Entry]",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	cliPath := filepath.Join(tmpDir, "kyaraben")
-	desktopPath := filepath.Join(tmpDir, "kyaraben.desktop")
-	if err := os.WriteFile(cliPath, []byte("#!/bin/sh"), 0755); err != nil {
-		t.Fatalf("creating cli file: %v", err)
-	}
-	if err := os.WriteFile(desktopPath, []byte("[Desktop Entry]"), 0644); err != nil {
-		t.Fatalf("creating desktop file: %v", err)
-	}
+	configPath := "/config.toml"
+	stateDir := "/state"
+	manifestPath := "/state/build/manifest.json"
+
+	cliPath := "/kyaraben"
+	desktopPath := "/kyaraben.desktop"
 
 	manifest := &model.Manifest{
 		Version:     1,
@@ -448,11 +520,11 @@ func TestHandleInstallStatus_WithManifest(t *testing.T) {
 			DesktopPath: desktopPath,
 		},
 	}
-	if err := manifest.Save(manifestPath); err != nil {
+	if err := model.NewManifestStore(fs).Save(manifest, manifestPath); err != nil {
 		t.Fatalf("saving manifest: %v", err)
 	}
 
-	d := New(configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil)
+	d := New(fs, configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil)
 
 	events := d.Handle(Command{Type: CommandTypeInstallStatus})
 	if len(events) != 1 {

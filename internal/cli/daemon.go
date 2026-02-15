@@ -21,7 +21,7 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 	if err != nil {
 		return fmt.Errorf("creating installer: %w", err)
 	}
-	configWriter := emulators.NewConfigWriter(model.OSBaseDirResolver{})
+	configWriter := emulators.NewDefaultConfigWriter(model.OSBaseDirResolver{})
 	launcherManager, err := launcher.NewManager()
 	if err != nil {
 		return fmt.Errorf("creating launcher manager: %w", err)
@@ -37,7 +37,7 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 		return fmt.Errorf("getting state dir: %w", err)
 	}
 
-	d := daemon.New(ctx.ConfigPath, stateDir, manifestPath, registry, installer, configWriter, launcherManager)
+	d := daemon.NewDefault(ctx.ConfigPath, stateDir, manifestPath, registry, installer, configWriter, launcherManager)
 
 	scanner := bufio.NewScanner(os.Stdin)
 	encoder := json.NewEncoder(os.Stdout)
