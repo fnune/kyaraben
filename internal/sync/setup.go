@@ -36,6 +36,7 @@ type SetupResult struct {
 	ConfigDir       string
 	DataDir         string
 	APIKey          string
+	SystemdUnitPath string
 }
 
 func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, userStorePath string, allSystems []model.SystemID, onProgress func(packages.InstallProgress)) (*SetupResult, error) {
@@ -80,11 +81,14 @@ func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, userStorePath
 		return nil, fmt.Errorf("enabling syncthing service: %w", err)
 	}
 
+	unitPath, _ := unitGen.unitPath()
+
 	return &SetupResult{
 		SyncthingBinary: binary.Path,
 		ConfigDir:       configDir,
 		DataDir:         dataDir,
 		APIKey:          apiKey,
+		SystemdUnitPath: unitPath,
 	}, nil
 }
 

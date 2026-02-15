@@ -29,6 +29,11 @@ type SyncRemoveDeviceRequest struct {
 	DeviceID string `json:"deviceId"`
 }
 
+type SyncJoinPrimaryRequest struct {
+	Code        string `json:"code"`
+	PairingAddr string `json:"pairingAddr"`
+}
+
 // Response types
 
 type ErrorResponse struct {
@@ -201,6 +206,7 @@ type SyncStatusResponse struct {
 	GUIURL   string       `json:"guiURL,omitempty"`
 	State    SyncState    `json:"state,omitempty"`
 	Devices  []SyncDevice `json:"devices,omitempty"`
+	Pairing  bool         `json:"pairing,omitempty"`
 }
 
 type SyncDevice struct {
@@ -221,6 +227,39 @@ type SyncRemoveDeviceResponse struct {
 	Name     string `json:"name"`
 }
 
+type SyncStartPairingResponse struct {
+	Code string `json:"code"`
+}
+
+type SyncPairingCompleteResponse struct {
+	Success      bool   `json:"success"`
+	PeerDeviceID string `json:"peerDeviceId"`
+	PeerName     string `json:"peerName"`
+}
+
+type SyncJoinPrimaryResponse struct {
+	Success      bool   `json:"success"`
+	PeerDeviceID string `json:"peerDeviceId"`
+	PeerName     string `json:"peerName"`
+}
+
+type SyncPairingProgressEvent struct {
+	Message string `json:"message"`
+}
+
+type SyncDiscoveredPrimary struct {
+	Hostname    string `json:"hostname"`
+	PairingAddr string `json:"pairingAddr"`
+}
+
+type SyncPauseResponse struct {
+	Success bool `json:"success"`
+}
+
+type SyncResumeResponse struct {
+	Success bool `json:"success"`
+}
+
 type UninstallPreviewResponse struct {
 	StateDir           string         `json:"stateDir"`
 	StateDirExists     bool           `json:"stateDirExists"`
@@ -230,6 +269,7 @@ type UninstallPreviewResponse struct {
 	IconFiles          []string       `json:"iconFiles"`
 	ConfigFiles        []string       `json:"configFiles"`
 	KyarabenFiles      []string       `json:"kyarabenFiles"`
+	SyncthingFiles     []string       `json:"syncthingFiles,omitempty"`
 	Preserved          PreservedPaths `json:"preserved"`
 }
 

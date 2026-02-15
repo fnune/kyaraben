@@ -23,6 +23,11 @@ const (
 	CommandTypeSyncStatus        CommandType = "sync_status"
 	CommandTypeSyncAddDevice     CommandType = "sync_add_device"
 	CommandTypeSyncRemoveDevice  CommandType = "sync_remove_device"
+	CommandTypeSyncStartPairing  CommandType = "sync_start_pairing"
+	CommandTypeSyncJoinPrimary   CommandType = "sync_join_primary"
+	CommandTypeSyncCancelPairing CommandType = "sync_cancel_pairing"
+	CommandTypeSyncPause         CommandType = "sync_pause"
+	CommandTypeSyncResume        CommandType = "sync_resume"
 	CommandTypeUninstallPreview  CommandType = "uninstall_preview"
 	CommandTypeUninstall         CommandType = "uninstall"
 	CommandTypeInstallKyaraben   CommandType = "install_kyaraben"
@@ -56,6 +61,13 @@ type SyncRemoveDeviceCommand struct {
 	Type CommandType             `json:"type"`
 	ID   string                  `json:"id,omitempty"`
 	Data SyncRemoveDeviceRequest `json:"data"`
+}
+
+// SyncJoinPrimaryCommand includes the pairing code and selected primary.
+type SyncJoinPrimaryCommand struct {
+	Type CommandType         `json:"type"`
+	ID   string              `json:"id,omitempty"`
+	Data SyncJoinPrimaryRequest `json:"data"`
 }
 
 // InstallKyarabenCommand includes the install options.

@@ -1,10 +1,11 @@
 /// <reference types="vite/client" />
 
 import type { EventChannel, InvokeChannel, UpdateProgressEvent } from '../electron/channels'
-import type { ProgressEvent } from './types/daemon.gen'
+import type { ProgressEvent, SyncPairingProgressEvent } from './types/daemon.gen'
 
 type EventPayloadMap = {
   'apply:progress': ProgressEvent
+  'pairing:progress': SyncPairingProgressEvent
   'update:progress': UpdateProgressEvent
 }
 
