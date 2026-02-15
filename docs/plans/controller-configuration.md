@@ -2,19 +2,19 @@
 
 ## Overview
 
-Kyaraben manages emulator configs. Controller support means writing input bindings to those configs so emulators work out-of-the-box with gamepads.
+Kyaraben manages emulator configs. Controller support means writing input bindings to those configs so emulators work out-of-the-box with gamepads and keyboard.
 
 ## The simplified model
 
 ```
 Physical controller
-       ↓
-SDL GameControllerDB (maps GUID → standard names)
-       ↓
+       |
+SDL GameControllerDB (maps GUID to standard names)
+       |
 Standard SDL names: a, b, x, y, leftshoulder, leftx, etc.
-       ↓
+       |
 Emulator config (uses SDL names in its own syntax)
-       ↓
+       |
 Works with any supported controller
 ```
 
@@ -179,7 +179,7 @@ An.Right = 10-4000
 
 #### Flycast format
 
-Separate mapping files per device in `~/.config/flycast/mappings/`.
+Separate mapping files per device in `~/.config/flycast/mappings/`. Flycast identifies controllers by SDL device name, not GUID. Each physical controller type gets its own mapping file (e.g., `SDL_Xbox 360 Controller.cfg`). Multiple controllers of different types can be used simultaneously, each with their own mapping file. Identical controllers are distinguished by joystick instance index.
 
 ```ini
 [analog]
@@ -205,17 +205,16 @@ dead_zone = 10
 mapping_name = controller_neptune
 ```
 
-### Group C: GUID-based bindings (investigation results)
+### Group C: GUID-based bindings
 
 These emulators embed the controller's hardware GUID in each binding.
 
 | Emulator | Config file | GUID required? | Format |
 |----------|-------------|----------------|--------|
-| Eden | `~/.config/yuzu/qt-config.ini` | Yes | `button:1,guid:...,engine:sdl` |
+| Eden | `~/.local/share/eden/config/qt-config.ini` | Yes | `engine:sdl,guid:...,button:1` |
 | Azahar | `~/.config/azahar-emu/qt-config.ini` | Yes | `button:1,guid:...,engine:sdl` |
-| Ryujinx | `~/.config/Ryujinx/profiles/controller/*.json` | Yes | JSON with `id` field |
-| Vita3K | `~/.config/Vita3K/config.yml` | No | Auto-detects |
-| RPCS3 | `~/.config/rpcs3/config.yml` | No | Uses device name string |
+
+Ryujinx is unsupported by Kyaraben; only Eden handles Switch emulation.
 
 #### Key finding: Steam Input virtualizes GUIDs
 
@@ -227,25 +226,52 @@ Steam Deck GUID: 03000000de280000ff11000001000000
 
 This means any controller connected to a Steam Deck (Xbox, PlayStation, 8BitDo, etc.) appears to emulators as the Steam Deck controller. EmuDeck exploits this: they ship configs with the Steam Deck GUID and it works for all controllers.
 
-#### Solution: Ship configs for common GUIDs
+#### Multiplayer behavior
 
-For GUID-based emulators, Kyaraben ships configs with known GUIDs:
+**Eden** (yuzu-based) supports per-player controller profiles. The config uses `player_0_*`, `player_1_*`, etc. keys, each with its own GUID and port. Two players can use different physical controllers simultaneously. Kyaraben generates bindings for each known GUID per player slot.
 
-| Controller | GUID |
-|------------|------|
-| Steam Deck | `03000000de280000ff11000001000000` |
-| Xbox 360 | `030000005e0400008e02000010010000` |
-| Xbox One | `030000005e040000ea02000001030000` |
-| DualShock 4 | `030000004c050000c405000011010000` |
-| DualSense | `030000004c050000e60c000011010000` |
-| Switch Pro | `030000007e0500000920000011010000` |
+**Azahar** (Citra-based) is single-player only (the 3DS is a handheld). There is one active profile at a time. Multiplayer requires separate emulator instances. Kyaraben generates a single profile.
 
-**Coverage**:
-- Steam Deck users: 100% (Steam Input virtualizes all controllers)
-- Desktop users with common controllers: covered by shipped GUIDs
-- Desktop users with other controllers: configure through emulator UI (fallback)
+#### GUID mapping design
 
-#### Eden/Azahar format
+Kyaraben ships a built-in GUID-to-profile mapping in Go code. Users extend or override it in `config.toml`. At runtime, user mappings are merged over built-in mappings (user wins on conflicts).
+
+Built-in mapping covers:
+
+| Profile | GUIDs |
+|---------|-------|
+| Steam Deck | `03000000de280000ff11000001000000` (Neptune) |
+| Xbox | `030000005e0400008e02000010010000` (360 wired), `030000005e0400009102000007010000` (360 wireless), `030000005e040000ea02000001030000` (One), `030000005e040000d102000001010000` (One S), `030000005e040000130b000011050000` (Series X/S) |
+| PlayStation | `030000004c0500006802000011010000` (DS3), `030000004c050000c405000011010000` (DS4 v1), `030000004c050000cc09000011010000` (DS4 v2), `030000004c050000e60c000011010000` (DualSense) |
+| Nintendo | `030000007e0500000920000011010000` (Switch Pro), `03000000c82d00000161000000010000` (8BitDo SN30 Pro) |
+| Handheld (Xbox-compatible) | `0300000005b000004c1b000000000000` (ROG Ally X), `030000007eef00008261000000000000` (Legion Go), `03000000861a000010e3000000000000` (Legion Go S), `03000000b00d000001190000000000000` (MSI Claw), `030000006325000058d0000000000000` (OneXPlayer) |
+
+Many handheld devices (ROG Ally original, AYANEO, GPD Win 4/Max 2) use the generic Microsoft Xbox 360 VID/PID (`045e:028e`), so they already match the Xbox profile. Devices like the ROG Ally X, Legion Go, and MSI Claw use their own VID/PID but behave as Xbox 360 controllers, so they map to the Xbox profile.
+
+The user extends this via `config.toml`:
+
+```toml
+[controller.guids]
+# Map an unsupported controller GUID to a known profile
+"030000001234567890abcdef01000000" = "xbox"
+```
+
+This means users with uncommon controllers can self-serve without waiting for a Kyaraben update.
+
+#### Eden format
+
+Eden uses per-player keys with GUID embedded in each binding value:
+
+```ini
+[Controls]
+player_0_button_a="engine:sdl,port:0,guid:03000000de280000ff11000001000000,button:1"
+player_0_button_b="engine:sdl,port:0,guid:03000000de280000ff11000001000000,button:0"
+player_1_button_a="engine:sdl,port:1,guid:03000000de280000ff11000001000000,button:1"
+```
+
+#### Azahar format
+
+Azahar uses a single profile (no player indexing):
 
 ```ini
 [Controls]
@@ -267,54 +293,6 @@ profiles\1\button_left="direction:left,engine:sdl,guid:03000000de280000ff1100000
 profiles\1\button_right="direction:right,engine:sdl,guid:03000000de280000ff11000001000000,hat:0,port:0"
 profiles\1\circle_pad="axis_x:0,axis_y:1,deadzone:0.100000,engine:sdl,guid:03000000de280000ff11000001000000,port:0"
 profiles\1\c_stick="axis_x:3,axis_y:4,deadzone:0.100000,engine:sdl,guid:03000000de280000ff11000001000000,port:0"
-```
-
-#### Ryujinx format (JSON)
-
-```json
-{
-  "left_joycon_stick": {
-    "joystick": "Left",
-    "invert_stick_x": false,
-    "invert_stick_y": false,
-    "rotate90_cw": false,
-    "stick_button": "LeftStick"
-  },
-  "right_joycon_stick": {
-    "joystick": "Right",
-    "invert_stick_x": false,
-    "invert_stick_y": false,
-    "rotate90_cw": false,
-    "stick_button": "RightStick"
-  },
-  "deadzone_left": 0.1,
-  "deadzone_right": 0.1,
-  "range_left": 1,
-  "range_right": 1,
-  "trigger_threshold": 0.5,
-  "left_joycon": {
-    "button_minus": "Minus",
-    "button_l": "LeftShoulder",
-    "button_zl": "LeftTrigger",
-    "dpad_up": "DpadUp",
-    "dpad_down": "DpadDown",
-    "dpad_left": "DpadLeft",
-    "dpad_right": "DpadRight"
-  },
-  "right_joycon": {
-    "button_plus": "Plus",
-    "button_r": "RightShoulder",
-    "button_zr": "RightTrigger",
-    "button_a": "B",
-    "button_b": "A",
-    "button_x": "Y",
-    "button_y": "X"
-  },
-  "backend": "GamepadSDL2",
-  "id": "0-00000003-28de-0000-ff11-000001000000",
-  "controller_type": "ProController",
-  "player_index": "Player1"
-}
 ```
 
 ### Group D: Auto-detection
@@ -345,129 +323,165 @@ These emulators handle controller detection automatically.
 | Flycast | Dreamcast | Per-device mapping files | Common controllers |
 | Eden | Switch | Ship GUIDs | Steam Deck 100%, desktop common controllers |
 | Azahar | 3DS | Ship GUIDs | Steam Deck 100%, desktop common controllers |
-| Ryujinx | Switch | Ship GUIDs | Steam Deck 100%, desktop common controllers |
 | Vita3K | PS Vita | Auto-detect | 100% |
 | RPCS3 | PS3 | Device name | 100% |
 
-## Implementation phases
+## Implementation
 
-### Phase 1: Group A + D (highest value, lowest effort)
+### Interface changes: GenerateContext and GenerateResult
 
-| Emulator | Systems | Effort |
-|----------|---------|--------|
-| DuckStation | PSX | Mapping table |
-| PCSX2 | PS2 | Mapping table |
-| Dolphin | GameCube, Wii | Mapping table |
-| RetroArch | Many | Verify autodetect enabled |
-| Vita3K | PS Vita | Nothing needed |
-| RPCS3 | PS3 | Verify config |
+The current `ConfigGenerator.Generate(store StoreReader)` signature cannot pass controller configuration to generators. Separately, `SymlinkProvider` and `LaunchArgsProvider` are discovered via type assertions in the apply flow. This refactor consolidates everything into a single interface with a context struct and result struct, eliminating all type assertions.
 
-### Phase 2: Group B (medium effort)
+This follows the pattern already established by `FrontendContext` for frontend config generators.
 
-| Emulator | Systems | Effort |
-|----------|---------|--------|
-| mGBA | GBA | Index mapping |
-| melonDS | NDS | Index mapping |
-| PPSSPP | PSP | Keycode mapping |
-| Flycast | Dreamcast | Ship mapping files |
+```go
+type GenerateContext struct {
+    Store             StoreReader
+    BaseDirResolver   BaseDirResolver
+    ControllerConfig  *ControllerConfig  // nil when not configured
+}
 
-### Phase 3: Group C (GUID-based)
+type GenerateResult struct {
+    Patches    []ConfigPatch
+    Symlinks   []SymlinkSpec
+    LaunchArgs []string
+}
 
-| Emulator | Systems | Effort |
-|----------|---------|--------|
-| Eden | Switch | Ship profiles for common GUIDs |
-| Azahar | 3DS | Ship profiles for common GUIDs |
-| Ryujinx | Switch | Ship JSON profiles for common GUIDs |
+type ConfigGenerator interface {
+    Generate(ctx GenerateContext) (GenerateResult, error)
+}
+```
 
-## Implementation guidelines
+The apply flow changes from three separate discovery paths (Generate, then type-assert SymlinkProvider, then type-assert LaunchArgsProvider) to a single call:
 
-### Code-compact runtime generation
+```go
+result, err := gen.Generate(ctx)
+// result.Patches, result.Symlinks, result.LaunchArgs all available
+```
+
+Migration is mechanical: each emulator replaces `store StoreReader` with `ctx GenerateContext` (using `ctx.Store` where `store` was used), and wraps its `[]ConfigPatch` return in `GenerateResult{Patches: ...}`. Emulators that currently implement `SymlinkProvider` move that logic into `Generate` and populate `result.Symlinks`. Emulators that do not need symlinks or launch args leave those fields at zero value.
+
+`SymlinkProvider` and `LaunchArgsProvider` interfaces are removed.
+
+### Controller configuration types
+
+```go
+type ControllerConfig struct {
+    Layout  LayoutID
+    Hotkeys HotkeyConfig
+    GUIDs   map[string]ProfileID  // merged: built-in + user overrides
+}
+
+type LayoutID string
+
+const (
+    LayoutStandard LayoutID = "standard"  // A=bottom (Xbox, PlayStation)
+    LayoutNintendo LayoutID = "nintendo"  // A=right, B=bottom
+)
+
+type ProfileID string
+
+const (
+    ProfileSteamDeck ProfileID = "steam-deck"
+    ProfileXbox      ProfileID = "xbox"
+    ProfilePS        ProfileID = "playstation"
+    ProfileNintendo  ProfileID = "nintendo"
+)
+
+type HotkeyConfig struct {
+    SaveState        HotkeyBinding
+    LoadState        HotkeyBinding
+    NextSlot         HotkeyBinding
+    PrevSlot         HotkeyBinding
+    FastForward      HotkeyBinding
+    Rewind           HotkeyBinding
+    Pause            HotkeyBinding
+    Screenshot       HotkeyBinding
+    Quit             HotkeyBinding
+    ToggleFullscreen HotkeyBinding
+    OpenMenu         HotkeyBinding
+}
+```
+
+`HotkeyBinding` is a parsed, validated type (not a raw string). It is parsed from the TOML string representation (e.g., `"Back+RightShoulder"`) at config load time. Invalid button names cause an error at load time, not at apply time.
+
+### Keyboard bindings
+
+Kyaraben also generates keyboard bindings for emulators that support them. Keyboard bindings use a fixed, sensible default layout that is not user-configurable in v1 (the controller hotkeys are configurable; keyboard hotkeys use the same semantic actions but with hardcoded key assignments per emulator).
+
+Existing keyboard bindings in emulator configs are overwritten by Kyaraben (they are managed entries). This is consistent with how Kyaraben manages other config entries.
+
+### Runtime generation
 
 Do NOT ship static config files per controller/emulator combination. Instead:
 
-1. Define profiles as data structures (button layout + GUID list)
-2. Define per-emulator format templates
+1. Define profiles as data structures (button layout + built-in GUID map)
+2. Define per-emulator format generators
 3. Generate configs at runtime during `apply`
 
+Each emulator's `Generate` method checks `ctx.ControllerConfig` for nil. When present, it appends controller and hotkey entries to its config patches alongside path entries.
+
 ```go
-type ControllerProfile struct {
-    Name    string
-    GUIDs   []string
-    Layout  ButtonLayout // Xbox or Nintendo
-}
+func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
+    entries := []model.ConfigEntry{
+        // Path entries (existing)
+        {Path: []string{"BIOS", "SearchDirectory"}, Value: ctx.Store.SystemBiosDir(model.SystemIDPSX)},
+        // ...
+    }
 
-type ButtonLayout struct {
-    FaceBottom string // A on Xbox, B on Nintendo
-    FaceRight  string // B on Xbox, A on Nintendo
-    FaceLeft   string // X on Xbox, Y on Nintendo
-    FaceTop    string // Y on Xbox, X on Nintendo
-    // ... shoulders, triggers, sticks, dpad
-}
+    if cc := ctx.ControllerConfig; cc != nil {
+        entries = append(entries, generatePadEntries(cc)...)
+        entries = append(entries, generateHotkeyEntries(cc)...)
+    }
 
-var XboxLayout = ButtonLayout{
-    FaceBottom: "A", FaceRight: "B", FaceLeft: "X", FaceTop: "Y",
-}
-
-var NintendoLayout = ButtonLayout{
-    FaceBottom: "B", FaceRight: "A", FaceLeft: "Y", FaceTop: "X",
+    return model.GenerateResult{
+        Patches: []model.ConfigPatch{{Target: configTarget, Entries: entries}},
+    }, nil
 }
 ```
 
-Each emulator implements a generator that takes a profile and outputs `[]ConfigEntry`:
+### GUID-to-profile mapping
+
+Built-in mapping lives in Go code:
 
 ```go
-type ControllerConfigGenerator interface {
-    GenerateController(profile ControllerProfile, hotkeys HotkeyConfig) []model.ConfigEntry
+var BuiltinGUIDs = map[string]ProfileID{
+    "03000000de280000ff11000001000000": ProfileSteamDeck,
+    "030000005e0400008e02000010010000": ProfileXbox,
+    // ... all GUIDs from the table above
 }
 ```
 
-### Profile to GUID mapping
+At apply time, the apply flow builds `ControllerConfig.GUIDs` by starting with `BuiltinGUIDs` and overlaying the user's `[controller.guids]` from config.toml. User entries win on conflicts.
 
-One profile covers multiple hardware GUIDs:
+This means Group C emulators (Eden, Azahar) iterate over the merged GUID map and generate bindings for each GUID that maps to the relevant profile.
 
-```go
-var Profiles = []ControllerProfile{
-    {
-        Name: "Xbox",
-        GUIDs: []string{
-            "030000005e0400008e02000010010000", // 360 wired
-            "030000005e0400009102000007010000", // 360 wireless
-            "030000005e040000ea02000001030000", // One
-            "030000005e040000d102000001010000", // One S
-            "030000005e040000130b000011050000", // Series X/S
-        },
-    },
-    {
-        Name: "PlayStation",
-        GUIDs: []string{
-            "030000004c0500006802000011010000", // DS3
-            "030000004c050000c405000011010000", // DS4 v1
-            "030000004c050000cc09000011010000", // DS4 v2
-            "030000004c050000e60c000011010000", // DualSense
-        },
-    },
-    {
-        Name: "Nintendo",
-        GUIDs: []string{
-            "030000007e0500000920000011010000", // Switch Pro
-            "03000000c82d00000161000000010000", // 8BitDo SN30 Pro
-            // ... other 8BitDo variants
-        },
-    },
-    {
-        Name: "Steam Deck",
-        GUIDs: []string{
-            "03000000de280000ff11000001000000", // Neptune
-        },
-    },
-}
-```
+### Multi-player
+
+For emulators that support multiplayer (DuckStation, PCSX2, Dolphin, Eden):
+
+- Generate configs for players 1-4
+- Same layout for all players (global preference)
+- Hotkeys only on Player 1
+- Players 2-4 use SDL indices 1, 2, 3
+
+For single-player emulators (Azahar, mGBA, melonDS, PPSSPP): generate a single player config.
+
+### Apply flow
+
+During `apply`:
+1. Load `config.toml` including `[controller]` section
+2. Build `ControllerConfig` (merge built-in GUIDs with user overrides, parse hotkeys)
+3. Construct `GenerateContext` with `Store`, `BaseDirResolver`, and `ControllerConfig`
+4. For each enabled emulator, call `gen.Generate(ctx)`
+5. Collect `result.Patches`, `result.Symlinks`, `result.LaunchArgs`
+6. Apply patches, create symlinks, build desktop entries (existing flow, but from a single result instead of three separate code paths)
 
 ## User configuration
 
 ### Source of truth: config.toml
 
-Controller settings live in Kyaraben's `config.toml`. Uses SDL button names for consistency.
+Controller settings live in Kyaraben's `config.toml`. Defaults are written explicitly by `kyaraben init`.
 
 ```toml
 [controller]
@@ -485,13 +499,29 @@ screenshot = "Back+B"
 quit = "Back+Start"
 toggle_fullscreen = "Start+LeftStick"
 open_menu = "Back+RightStick"
+
+[controller.guids]
+# Users add custom GUID-to-profile mappings here.
+# These override built-in mappings for the same GUID.
+# Supported profiles: "steam-deck", "xbox", "playstation", "nintendo"
+# Example:
+# "030000001234567890abcdef01000000" = "xbox"
 ```
+
+When `[controller]` is absent from an existing config.toml, Kyaraben uses the defaults (standard layout, default hotkeys, no user GUID overrides).
 
 ### Layout naming
 
-TBD: Investigate what EmuDeck uses. Likely:
-- `standard`: A=bottom (Xbox, PlayStation, most controllers)
-- `nintendo`: A=right, B=bottom (Nintendo controllers, some 8BitDo)
+- `standard`: A=bottom (Xbox, PlayStation, most controllers). The face button in the bottom position triggers the "confirm" action.
+- `nintendo`: A=right, B=bottom (Nintendo controllers, some 8BitDo in Nintendo mode). The face button in the right position triggers "confirm".
+
+### Hotkey validation
+
+Hotkey strings are parsed into structured types at config load time. The parser validates:
+
+- Each component is a known SDL button name (A, B, X, Y, Back, Start, LeftShoulder, RightShoulder, LeftTrigger, RightTrigger, LeftStick, RightStick, DPadUp, DPadDown, DPadLeft, DPadRight, Guide)
+- The `+` separator produces exactly 1-3 components (single button or chord)
+- Unknown button names produce an error with the invalid name highlighted
 
 ### Hotkey emulator coverage
 
@@ -515,6 +545,8 @@ Key:
 - `-` = Not supported or not found in config
 - Config key names shown for reference
 
+If an emulator doesn't support a configured hotkey (e.g., rewind on Dolphin), skip silently.
+
 ### Emulator-specific hotkeys (not in Kyaraben scope)
 
 These exist but are left for users to configure manually:
@@ -526,27 +558,18 @@ These exist but are left for users to configure manually:
 ### UI integration
 
 Kyaraben UI exposes:
-- Layout toggle: Xbox / Nintendo
+- Layout toggle: standard / nintendo
 - Hotkey configuration with button picker
+- Custom GUID mapping
 - Changes write to `config.toml`
 - Applied during normal `apply` flow
-
-### Apply flow
-
-During `apply`:
-1. Read controller config from `config.toml`
-2. Determine target profile (Steam Deck auto-detected, or user-selected, or all common)
-3. For each enabled emulator:
-   - Call `GenerateController(profile, hotkeys)`
-   - Merge resulting entries into emulator config patch
-4. Write configs alongside path settings
 
 ## Steam Input enhancement (optional)
 
 Steam Input operates above SDL:
 
 ```
-Physical controller → Steam Input → Virtual Xbox controller → SDL → Emulator
+Physical controller -> Steam Input -> Virtual Xbox controller -> SDL -> Emulator
 ```
 
 **For basic gameplay**: Steam Input is transparent. Our SDL configs work.
@@ -567,33 +590,25 @@ This is an optional enhancement, not required for controllers to work.
 - Turbo/rapid-fire
 - Macro recording
 - Advanced deadzone curves
-- Controllers not in common GUID list (configure through emulator UI)
+- Controllers not in built-in GUID list and not added via `[controller.guids]` (configure through emulator UI)
 
 ## Decisions
 
-### Profile selection: Write all common GUIDs
+### GUID mapping: built-in defaults with user overrides
 
-Always write configs for all common controller GUIDs. This results in larger config files but ensures any common controller works with zero friction.
+The built-in GUID-to-profile mapping lives in Go code. Users extend or override it via `[controller.guids]` in config.toml. At runtime, user entries merge over built-in entries (user wins on conflicts).
 
-**Config file size**: For GUID-based emulators (Eden, Azahar, Ryujinx), we generate bindings for each GUID. With ~10 common GUIDs × 4 players × ~20 bindings = ~800 config lines per emulator. Acceptable tradeoff for universal compatibility.
+This means:
+- Common controllers work out of the box
+- Users with uncommon controllers can self-serve by adding their GUID
+- No need to wait for a Kyaraben update
 
-For users with unsupported controllers: separate "check controller compatibility" tool (future feature) that detects connected controller and suggests selecting the most similar profile if GUID not found.
+Config file size for GUID-based emulators (Eden, Azahar): we generate bindings for each GUID in the merged map. With ~15 built-in GUIDs x ~20 bindings = ~300 config lines per emulator. Acceptable tradeoff.
 
-### Multi-player: Always write 4 player slots
+### Multi-player: context-dependent
 
-Always generate configs for players 1-4. No configuration needed.
-
-```go
-func (g *Generator) GenerateController(profile Profile, hotkeys HotkeyConfig) []ConfigEntry {
-    var entries []ConfigEntry
-    for playerIndex := 0; playerIndex < 4; playerIndex++ {
-        entries = append(entries, g.generatePad(playerIndex, profile)...)
-    }
-    entries = append(entries, g.generateHotkeys(0, hotkeys)...) // Hotkeys on P1 only
-    return entries
-}
-```
-
+- **Emulators with per-player support** (DuckStation, PCSX2, Dolphin, Eden): generate 4 player slots
+- **Single-player emulators** (Azahar, mGBA, melonDS, PPSSPP): generate 1 player config
 - Same layout for all players (global preference)
 - Hotkeys only on Player 1
 - Players 2-4 use SDL indices 1, 2, 3
@@ -602,9 +617,9 @@ func (g *Generator) GenerateController(profile Profile, hotkeys HotkeyConfig) []
 
 Document what exists, leave configuration to users. Kyaraben manages the universal set only.
 
-### Unsupported hotkeys
+### Interface consolidation
 
-If an emulator doesn't support a configured hotkey (e.g., rewind on Dolphin), skip silently. Coverage documented in this file.
+`ConfigGenerator` gains a rich context (`GenerateContext`) and returns a consolidated result (`GenerateResult`). `SymlinkProvider` and `LaunchArgsProvider` are removed. No type assertions in the apply flow.
 
 ## Testing strategy
 
@@ -620,12 +635,10 @@ func TestDuckStationGenerateController(t *testing.T) {
 
     entries := gen.Generate(profile, hotkeys)
 
-    // Verify button mappings
     assertEntry(t, entries, "Pad1", "Cross", "SDL-0/A")
     assertEntry(t, entries, "Pad1", "Circle", "SDL-0/B")
     assertEntry(t, entries, "Pad2", "Cross", "SDL-1/A")
 
-    // Verify hotkeys
     assertEntry(t, entries, "Hotkeys", "SaveSelectedSaveState", "SDL-0/Back & SDL-0/RightShoulder")
 }
 
@@ -635,9 +648,8 @@ func TestNintendoLayoutSwapsButtons(t *testing.T) {
 
     entries := gen.Generate(profile, config.DefaultHotkeys())
 
-    // A and B swapped
-    assertEntry(t, entries, "Pad1", "Cross", "SDL-0/B")  // Cross = B on Nintendo
-    assertEntry(t, entries, "Pad1", "Circle", "SDL-0/A") // Circle = A on Nintendo
+    assertEntry(t, entries, "Pad1", "Cross", "SDL-0/B")
+    assertEntry(t, entries, "Pad1", "Circle", "SDL-0/A")
 }
 ```
 
@@ -670,86 +682,42 @@ func TestDuckStationConfigParses(t *testing.T) {
     gen := duckstation.NewControllerGenerator()
     entries := gen.Generate(profiles.Xbox, config.DefaultHotkeys())
 
-    // Write to temp file
     path := writeConfig(t, entries, model.ConfigFormatINI)
 
-    // Parse back
     handler := configformat.NewHandler(fs, model.ConfigFormatINI)
     parsed, err := handler.Read(path)
     require.NoError(t, err)
 
-    // Verify key sections exist
     assert.Contains(t, parsed, "Pad1")
     assert.Contains(t, parsed, "Pad2")
     assert.Contains(t, parsed, "Hotkeys")
 }
 ```
 
-### Virtual controller E2E
-
-For CI, test actual input path using Linux uinput:
+### Hotkey validation tests
 
 ```go
-func TestControllerInputE2E(t *testing.T) {
-    if os.Getenv("CI_E2E_CONTROLLER") == "" {
-        t.Skip("skipping E2E controller test")
-    }
-
-    // Create virtual Xbox controller via uinput
-    vctl, err := uinput.CreateGamepad("/dev/uinput", "Test Xbox Controller", 0x045e, 0x028e)
+func TestHotkeyBindingParsing(t *testing.T) {
+    _, err := ParseHotkeyBinding("Back+RightShoulder")
     require.NoError(t, err)
-    defer vctl.Close()
 
-    // Apply generated config
-    applyControllerConfig(t, profiles.Xbox)
-
-    // Start emulator with test ROM (headless)
-    emu := startEmulator(t, "duckstation", "--headless", testROM)
-    defer emu.Stop()
-
-    // Send button press
-    vctl.ButtonDown(uinput.ButtonSouth)
-    time.Sleep(100 * time.Millisecond)
-    vctl.ButtonUp(uinput.ButtonSouth)
-
-    // Verify input received (check emulator log or internal state)
-    assert.Eventually(t, func() bool {
-        return emu.LastInput() == "Cross"
-    }, time.Second, 100*time.Millisecond)
+    _, err = ParseHotkeyBinding("Bck+RightShoulder")
+    require.Error(t, err)
+    assert.Contains(t, err.Error(), "Bck")
 }
 ```
-
-This tests:
-- Config generation
-- Config format correctness
-- Emulator actually receives input via SDL
-- GUID matching works
-
-Run in CI on Linux runners with uinput access.
-
-## Open decisions
-
-### Hotkey feature set
-
-Is the proposed set complete?
-- save_state, load_state, next_slot, prev_slot
-- fast_forward, rewind
-- pause, screenshot, quit
-- toggle_fullscreen, open_menu
-
-### Layout naming
-
-TBD: Investigate what EmuDeck calls it. Likely:
-- `standard`: A=bottom (Xbox, PlayStation, most controllers)
-- `nintendo`: A=right, B=bottom (Nintendo controllers)
 
 ## Sources
 
 - [SDL GameControllerDB](https://github.com/mdqinc/SDL_GameControllerDB)
 - [RetroArch joypad-autoconfig](https://github.com/libretro/retroarch-joypad-autoconfig)
-- [Yuzu controller configuration](https://yuzu-emulator.com/wiki/controller-configuration/)
+- [Eden controller profiles](https://git.eden-emu.dev/eden-emu/eden/src/branch/master/docs/user/ControllerProfiles.md)
+- [Citra config.cpp](https://github.com/citra-emu/citra/blob/a0f9c795c820358a825babd06a8697f8c9316b62/src/citra_qt/configuration/config.cpp) (Azahar inherits this format)
 - [RPCS3 controller configuration](https://wiki.rpcs3.net/index.php?title=Help:Controller_Configuration)
 - [Vita3K quickstart](https://vita3k.org/quickstart.html)
 - [Steam Input documentation](https://partner.steamgames.com/doc/features/steam_controller)
+- [Flycast gamepad_device.cpp](https://github.com/flyinghead/flycast/blob/master/core/input/gamepad_device.cpp)
+- [Linux xpad.c driver](https://github.com/torvalds/linux/blob/master/drivers/input/joystick/xpad.c)
+- [SDL handheld device support issue](https://github.com/libsdl-org/SDL/issues/10564)
 - EmuDeck configs (GPL-3) for format reference
 - RetroDECK configs (GPL-3) for format reference
