@@ -244,7 +244,11 @@ func (c *FakeClient) GetStatus(_ context.Context) (*Status, error) {
 	}, nil
 }
 
-func (c *FakeClient) AddDevice(_ context.Context, deviceID, name string) error {
+func (c *FakeClient) AddDevice(ctx context.Context, deviceID, name string) error {
+	return c.AddDeviceWithAddresses(ctx, deviceID, name, nil)
+}
+
+func (c *FakeClient) AddDeviceWithAddresses(_ context.Context, deviceID, name string, _ []string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.addedPeers = append(c.addedPeers, ConfiguredDevice{ID: deviceID, Name: name})

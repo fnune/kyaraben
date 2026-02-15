@@ -39,13 +39,17 @@ Then run `kyaraben apply` to install Syncthing.
 
 ## Pairing devices
 
-### On the same network
+Pairing connects two devices so they can sync. One device becomes the primary
+(source of ROMs) and the other becomes the secondary (receives ROMs, syncs
+saves bidirectionally).
+
+### Using the app
 
 On the primary:
 
 1. Go to Settings > Sync
 2. Click "Start pairing"
-3. A 6-character code appears
+3. A 6-character code appears (e.g. K7X9M2)
 
 On the secondary:
 
@@ -53,24 +57,43 @@ On the secondary:
 2. Enter the code from the primary
 3. Click "Join primary"
 
-The secondary discovers the primary automatically via mDNS. Pairing completes
-in seconds.
+The code works from any network. Devices do not need to be on the same local
+network.
 
-### On different networks
+### Using the CLI
 
-When devices are not on the same local network, exchange device IDs manually:
+On the primary:
 
 ```
-# On each device, get the device ID
-$ kyaraben sync status
+$ kyaraben sync pair
+Pairing code: K7X9M2
+Waiting for devices... (expires in 5 minutes)
+
+Paired with steamdeck-kyaraben
+```
+
+On the secondary:
+
+```
+$ kyaraben sync pair K7X9M2
+Connecting to primary...
+Paired with desktop-kyaraben
+```
+
+### Advanced: manual device ID
+
+If the relay server is unavailable, exchange full device IDs manually:
+
+```
+# On the primary, get the device ID
+$ kyaraben sync pair --device-id
 Device ID: LGFPDIT7-SKNNJVJZ-A4FC7QNC-...
 
-# On each device, add the other device's ID
-$ kyaraben sync add-device <DEVICE-ID-FROM-OTHER-DEVICE>
+# On the secondary, join using the full device ID
+$ kyaraben sync pair LGFPDIT7-SKNNJVJZ-A4FC7QNC-...
 ```
 
-Syncthing's relay servers handle connectivity. This works across any network
-but transfers are slower than a direct connection.
+This works across any network via Syncthing's relay servers.
 
 ## What syncs
 
@@ -159,17 +182,6 @@ Syncthing keeps old versions of save and state files for 30 days. ROM and BIOS
 folders do not use versioning.
 
 ## Troubleshooting
-
-### Pairing fails with "No devices found"
-
-mDNS discovery requires both devices on the same local network. Some networks
-block mDNS:
-
-- Guest WiFi networks isolate clients
-- Routers with "AP isolation" enabled
-- Corporate networks blocking multicast
-
-Use manual device ID exchange instead.
 
 ### Pairing code rejected
 

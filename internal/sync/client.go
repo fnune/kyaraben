@@ -294,11 +294,15 @@ type syncthingDevice struct {
 }
 
 func (c *Client) AddDevice(ctx context.Context, deviceID, name string) error {
-	stLog.Info("PUT /rest/config/devices/%s (name=%q)", truncateID(deviceID), name)
+	return c.AddDeviceWithAddresses(ctx, deviceID, name, []string{"dynamic"})
+}
+
+func (c *Client) AddDeviceWithAddresses(ctx context.Context, deviceID, name string, addresses []string) error {
+	stLog.Info("PUT /rest/config/devices/%s (name=%q, addresses=%v)", truncateID(deviceID), name, addresses)
 	dev := syncthingDevice{
 		DeviceID:          deviceID,
 		Name:              name,
-		Addresses:         []string{"dynamic"},
+		Addresses:         addresses,
 		Compression:       "metadata",
 		AutoAcceptFolders: false,
 	}
