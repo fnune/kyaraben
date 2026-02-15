@@ -177,10 +177,16 @@ func (ct ConfigTarget) rejectDangerousPaths(resolver BaseDirResolver, path strin
 	return cleanPath, nil
 }
 
+// ValueEqualityFunc compares two config values for equality.
+// Used for semantic comparison of values like binding strings where
+// key ordering may vary but the values are functionally equivalent.
+type ValueEqualityFunc func(a, b string) bool
+
 type ConfigEntry struct {
-	Path        []string
-	Value       string
-	DefaultOnly bool // Only set if key doesn't exist; user changes are preserved
+	Path         []string
+	Value        string
+	DefaultOnly  bool              // Only set if key doesn't exist; user changes are preserved
+	EqualityFunc ValueEqualityFunc // Optional custom equality check; nil uses string comparison
 }
 
 // ManagedRegion describes a portion of a config file that kyaraben manages.

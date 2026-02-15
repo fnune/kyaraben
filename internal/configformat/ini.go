@@ -122,9 +122,11 @@ func (h *iniHandler) Apply(path string, entries []model.ConfigEntry, managedRegi
 	}
 	defer func() { _ = f.Close() }()
 
-	_, _ = fmt.Fprintln(f, "; Configuration managed by kyaraben")
-	_, _ = fmt.Fprintln(f, "; Manual changes will be preserved on next apply")
-	_, _ = fmt.Fprintln(f)
+	if !isFullyManaged(managedRegions) {
+		_, _ = fmt.Fprintln(f, "; Configuration managed by kyaraben")
+		_, _ = fmt.Fprintln(f, "; Manual changes will be preserved on next apply")
+		_, _ = fmt.Fprintln(f)
+	}
 
 	sectionNames := make([]string, 0, len(sections))
 	for section := range sections {
@@ -145,7 +147,7 @@ func (h *iniHandler) Apply(path string, entries []model.ConfigEntry, managedRegi
 		sort.Strings(keys)
 
 		for _, key := range keys {
-			_, _ = fmt.Fprintf(f, "%s = %s\n", key, values[key])
+			_, _ = fmt.Fprintf(f, "%s=%s\n", key, values[key])
 		}
 		_, _ = fmt.Fprintln(f)
 	}

@@ -43,10 +43,10 @@ profiles\2\button_a = user-value-a
 	content, _ := fs.ReadFile("/config/test.ini")
 	s := string(content)
 
-	if !strings.Contains(s, `profiles\1\name = kyaraben-steamdeck`) {
+	if !strings.Contains(s, `profiles\1\name=kyaraben-steamdeck`) {
 		t.Errorf("should contain new profile name, got:\n%s", s)
 	}
-	if !strings.Contains(s, `profiles\1\button_a = new-a`) {
+	if !strings.Contains(s, `profiles\1\button_a=new-a`) {
 		t.Errorf("should contain new button_a, got:\n%s", s)
 	}
 	if strings.Contains(s, "old-value") {
@@ -55,10 +55,10 @@ profiles\2\button_a = user-value-a
 	if strings.Contains(s, `profiles\1\button_b`) {
 		t.Errorf("old button_b should be deleted (was in managed region), got:\n%s", s)
 	}
-	if !strings.Contains(s, `profiles\2\name = user-profile`) {
+	if !strings.Contains(s, `profiles\2\name=user-profile`) {
 		t.Errorf("should preserve user profile outside managed region, got:\n%s", s)
 	}
-	if !strings.Contains(s, `profiles\2\button_a = user-value-a`) {
+	if !strings.Contains(s, `profiles\2\button_a=user-value-a`) {
 		t.Errorf("should preserve user keys outside managed region, got:\n%s", s)
 	}
 }
@@ -99,14 +99,14 @@ profiles\1\button_a = old-a
 
 	// User changed profile to 2 before apply. Since it's default-only and existed,
 	// it should be preserved.
-	if !strings.Contains(s, "profile = 2") {
+	if !strings.Contains(s, "profile=2") {
 		t.Errorf("default-only 'profile' should be preserved at user value, got:\n%s", s)
 	}
-	if !strings.Contains(s, `profiles\size = 2`) {
+	if !strings.Contains(s, `profiles\size=2`) {
 		t.Errorf("default-only 'profiles\\size' should be preserved at user value, got:\n%s", s)
 	}
 	// Managed region keys should be rewritten.
-	if !strings.Contains(s, `profiles\1\name = kyaraben-steamdeck`) {
+	if !strings.Contains(s, `profiles\1\name=kyaraben-steamdeck`) {
 		t.Errorf("managed profile name should be written, got:\n%s", s)
 	}
 }
@@ -140,10 +140,10 @@ Left = 10-21
 	content, _ := fs.ReadFile("/config/test.ini")
 	s := string(content)
 
-	if !strings.Contains(s, "Up = 10-19,1-38") {
+	if !strings.Contains(s, "Up=10-19,1-38") {
 		t.Errorf("should contain new Up value, got:\n%s", s)
 	}
-	if !strings.Contains(s, "Down = 10-20,1-40") {
+	if !strings.Contains(s, "Down=10-20,1-40") {
 		t.Errorf("should contain new Down value, got:\n%s", s)
 	}
 	if strings.Contains(s, "Left") {
@@ -179,13 +179,13 @@ func TestINI_SectionRegionDefaultOnlyOnFreshFile(t *testing.T) {
 	s := string(content)
 
 	// On fresh file, default-only entries should be written (nothing to preserve).
-	if !strings.Contains(s, "profile = 1") {
+	if !strings.Contains(s, "profile=1") {
 		t.Errorf("default-only 'profile' should be written on fresh file, got:\n%s", s)
 	}
-	if !strings.Contains(s, `profiles\size = 1`) {
+	if !strings.Contains(s, `profiles\size=1`) {
 		t.Errorf("default-only 'profiles\\size' should be written on fresh file, got:\n%s", s)
 	}
-	if !strings.Contains(s, `profiles\1\name = kyaraben-steamdeck`) {
+	if !strings.Contains(s, `profiles\1\name=kyaraben-steamdeck`) {
 		t.Errorf("managed profile name should be written, got:\n%s", s)
 	}
 }
@@ -257,10 +257,10 @@ func TestINI_NoManagedRegions(t *testing.T) {
 	content, _ := fs.ReadFile("/config/test.ini")
 	s := string(content)
 
-	if !strings.Contains(s, "existing = value") {
+	if !strings.Contains(s, "existing=value") {
 		t.Errorf("should preserve existing when no managed regions, got:\n%s", s)
 	}
-	if !strings.Contains(s, "new = entry") {
+	if !strings.Contains(s, "new=entry") {
 		t.Errorf("should add new entry, got:\n%s", s)
 	}
 }

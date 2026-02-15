@@ -56,6 +56,12 @@ var configTarget = model.ConfigTarget{
 	BaseDir: model.ConfigBaseDirUserConfig,
 }
 
+var profileTarget = model.ConfigTarget{
+	RelPath: "PCSX2/inputprofiles/Kyaraben.ini",
+	Format:  model.ConfigFormatINI,
+	BaseDir: model.ConfigBaseDirUserConfig,
+}
+
 type Config struct{}
 
 func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
@@ -70,14 +76,34 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		{Path: []string{"GameList", "RecursivePaths"}, Value: store.SystemRomsDir(model.SystemIDPS2)},
 	}
 
+	patches := []model.ConfigPatch{{Target: configTarget, Entries: entries}}
+
 	if cc := ctx.ControllerConfig; cc != nil {
-		entries = append(entries, padEntries(cc)...)
-		entries = append(entries, hotkeyEntries(cc)...)
+		// Write pad/hotkey to main config as DefaultOnly (applied on first run, user can change).
+		for _, e := range padEntries(cc) {
+			e.DefaultOnly = true
+			entries = append(entries, e)
+		}
+		for _, e := range hotkeyEntries(cc) {
+			e.DefaultOnly = true
+			entries = append(entries, e)
+		}
+		patches[0].Entries = entries
+
+		// Also create a profile file users can reapply (fully managed).
+		profileEntries := []model.ConfigEntry{
+			{Path: []string{"Pad", "UseProfileHotkeyBindings"}, Value: "true"},
+		}
+		profileEntries = append(profileEntries, padEntries(cc)...)
+		profileEntries = append(profileEntries, hotkeyEntries(cc)...)
+		patches = append(patches, model.ConfigPatch{
+			Target:         profileTarget,
+			Entries:        profileEntries,
+			ManagedRegions: []model.ManagedRegion{model.FileRegion{}},
+		})
 	}
 
-	return model.GenerateResult{
-		Patches: []model.ConfigPatch{{Target: configTarget, Entries: entries}},
-	}, nil
+	return model.GenerateResult{Patches: patches}, nil
 }
 
 func sdlRef(playerIdx int, button model.SDLButton) string {
@@ -99,7 +125,7 @@ func padEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	for i := 0; i < 4; i++ {
 		section := fmt.Sprintf("Pad%d", i+1)
 		entries = append(entries,
-			model.ConfigEntry{Path: []string{section, "Type"}, Value: "AnalogController"},
+			model.ConfigEntry{Path: []string{section, "Type"}, Value: "DualShock2"},
 			model.ConfigEntry{Path: []string{section, "Cross"}, Value: sdlRef(i, south)},
 			model.ConfigEntry{Path: []string{section, "Circle"}, Value: sdlRef(i, east)},
 			model.ConfigEntry{Path: []string{section, "Square"}, Value: sdlRef(i, west)},

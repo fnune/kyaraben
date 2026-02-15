@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/fnune/kyaraben/internal/configformat"
 	"github.com/fnune/kyaraben/internal/model"
 )
 
@@ -83,6 +84,12 @@ var configTarget = model.ConfigTarget{
 	BaseDir: model.ConfigBaseDirUserConfig,
 }
 
+var profileTarget = model.ConfigTarget{
+	RelPath: "eden/input/Kyaraben.ini",
+	Format:  model.ConfigFormatINI,
+	BaseDir: model.ConfigBaseDirUserConfig,
+}
+
 func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
 	store := ctx.Store
 
@@ -94,11 +101,19 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		{Path: []string{"UI", "Paths\\gamedirs\\1\\path"}, Value: store.SystemRomsDir(model.SystemIDSwitch)},
 	}
 
+	var patches []model.ConfigPatch
+
 	if cc := ctx.ControllerConfig; cc != nil {
-		entries = append(entries, playerEntries(cc)...)
+		entries = append(entries, qtConfigControllerEntries(cc)...)
+		entries = append(entries, hotkeyEntries(cc)...)
+		patches = append(patches, model.ConfigPatch{
+			Target:         profileTarget,
+			Entries:        profileEntries(cc),
+			ManagedRegions: []model.ManagedRegion{model.FileRegion{}},
+		})
 	}
 
-	patches := []model.ConfigPatch{{Target: configTarget, Entries: entries}}
+	patches = append(patches, model.ConfigPatch{Target: configTarget, Entries: entries})
 
 	dataDir, err := ctx.BaseDirResolver.UserDataDir()
 	if err != nil {
@@ -122,32 +137,79 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 
 // Eden (yuzu-based) embeds GUID in every binding.
 // Key ordering must match Eden's native format to avoid config churn when Eden
-// rewrites its config on close.
+// rewrites its config on close. Eden uses: engine,port,guid,<binding-specific>
 func edenButtonRef(guid string, port, button int) string {
-	return fmt.Sprintf("button:%d,guid:%s,port:%d,engine:sdl", button, guid, port)
+	return fmt.Sprintf("engine:sdl,port:%d,guid:%s,button:%d", port, guid, button)
 }
 
 func edenAxisRef(guid string, port, axis int) string {
-	return fmt.Sprintf("threshold:0.500000,axis:%d,guid:%s,port:%d,engine:sdl", axis, guid, port)
+	return fmt.Sprintf("engine:sdl,port:%d,guid:%s,axis:%d,threshold:0.500000", port, guid, axis)
 }
 
 func edenHatRef(guid string, port, hat int, direction string) string {
-	return fmt.Sprintf("hat:%d,direction:%s,guid:%s,port:%d,engine:sdl", hat, direction, guid, port)
+	return fmt.Sprintf("engine:sdl,port:%d,guid:%s,direction:%s,hat:%d", port, guid, direction, hat)
 }
 
 func edenStickRef(guid string, port, axisX, axisY int) string {
-	return fmt.Sprintf("deadzone:0.100000,axis_y:%d,axis_x:%d,guid:%s,port:%d,engine:sdl", axisY, axisX, guid, port)
+	return fmt.Sprintf("engine:sdl,port:%d,guid:%s,axis_x:%d,axis_y:%d,deadzone:0.100000", port, guid, axisX, axisY)
 }
 
-func playerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
+// bindingEntry creates a ConfigEntry for Eden binding values with semantic
+// comparison enabled. Eden's key ordering in binding strings is nondeterministic.
+func bindingEntry(path []string, value string) model.ConfigEntry {
+	return model.ConfigEntry{
+		Path:         path,
+		Value:        value,
+		EqualityFunc: configformat.BindingValuesEqual,
+	}
+}
+
+// profileEntries returns entries for the Kyaraben.ini profile file.
+// This profile is fully managed (FileRegion) and can be reloaded by users
+// at any time to restore kyaraben bindings.
+func profileEntries(cc *model.ControllerConfig) []model.ConfigEntry {
+	south, east, west, north := cc.FaceButtons()
+	guid := model.SteamDeckGUID
+
+	faceMap := map[string]model.SDLButton{
+		"a": east,
+		"b": south,
+		"x": north,
+		"y": west,
+	}
+
+	return []model.ConfigEntry{
+		{Path: []string{"Controls", "type"}, Value: "0"},
+		bindingEntry([]string{"Controls", "button_a"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, model.SDLButtonIndex[faceMap["a"]]))),
+		bindingEntry([]string{"Controls", "button_b"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, model.SDLButtonIndex[faceMap["b"]]))),
+		bindingEntry([]string{"Controls", "button_x"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, model.SDLButtonIndex[faceMap["x"]]))),
+		bindingEntry([]string{"Controls", "button_y"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, model.SDLButtonIndex[faceMap["y"]]))),
+		bindingEntry([]string{"Controls", "button_lstick"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonLeftStick]))),
+		bindingEntry([]string{"Controls", "button_rstick"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonRightStick]))),
+		bindingEntry([]string{"Controls", "button_l"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonLeftShoulder]))),
+		bindingEntry([]string{"Controls", "button_r"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonRightShoulder]))),
+		bindingEntry([]string{"Controls", "button_zl"}, fmt.Sprintf(`"%s"`, edenAxisRef(guid, 0, model.AxisLeftTrigger))),
+		bindingEntry([]string{"Controls", "button_zr"}, fmt.Sprintf(`"%s"`, edenAxisRef(guid, 0, model.AxisRightTrigger))),
+		bindingEntry([]string{"Controls", "button_plus"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonStart]))),
+		bindingEntry([]string{"Controls", "button_minus"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonBack]))),
+		bindingEntry([]string{"Controls", "button_dleft"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, 0, 0, "left"))),
+		bindingEntry([]string{"Controls", "button_dright"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, 0, 0, "right"))),
+		bindingEntry([]string{"Controls", "button_dup"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, 0, 0, "up"))),
+		bindingEntry([]string{"Controls", "button_ddown"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, 0, 0, "down"))),
+		bindingEntry([]string{"Controls", "lstick"}, fmt.Sprintf(`"%s"`, edenStickRef(guid, 0, model.AxisLeftX, model.AxisLeftY))),
+		bindingEntry([]string{"Controls", "rstick"}, fmt.Sprintf(`"%s"`, edenStickRef(guid, 0, model.AxisRightX, model.AxisRightY))),
+	}
+}
+
+// qtConfigControllerEntries returns entries for qt-config.ini.
+// Bindings are DefaultOnly so user customizations are preserved; users can
+// reload kyaraben bindings via the Kyaraben profile.
+func qtConfigControllerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	var entries []model.ConfigEntry
 	south, east, west, north := cc.FaceButtons()
 
 	guid := model.SteamDeckGUID
 
-	// Switch maps: A=east, B=south, X=north, Y=west in Nintendo layout.
-	// Eden is a Switch emulator, so Switch A/B/X/Y are the console buttons.
-	// With standard layout, physical south -> Switch B, physical east -> Switch A, etc.
 	faceMap := map[string]model.SDLButton{
 		"a": east,
 		"b": south,
@@ -157,35 +219,117 @@ func playerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 
 	for i := 0; i < 2; i++ {
 		prefix := fmt.Sprintf("player_%d_", i)
-		// Player 0 is always connected. Player 1+ use DefaultOnly so Eden can
-		// manage connection state based on actual controllers.
-		connectedEntry := model.ConfigEntry{Path: []string{"Controls", prefix + "connected"}, Value: "true"}
-		if i > 0 {
-			connectedEntry.DefaultOnly = true
-		}
 		entries = append(entries,
-			connectedEntry,
-			model.ConfigEntry{Path: []string{"Controls", prefix + "type"}, Value: "0"},
-			model.ConfigEntry{Path: []string{"Controls", prefix + "button_a"}, Value: fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["a"]]))},
-			model.ConfigEntry{Path: []string{"Controls", prefix + "button_b"}, Value: fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["b"]]))},
-			model.ConfigEntry{Path: []string{"Controls", prefix + "button_x"}, Value: fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["x"]]))},
-			model.ConfigEntry{Path: []string{"Controls", prefix + "button_y"}, Value: fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["y"]]))},
-			model.ConfigEntry{Path: []string{"Controls", prefix + "button_lstick"}, Value: fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonLeftStick]))},
-			model.ConfigEntry{Path: []string{"Controls", prefix + "button_rstick"}, Value: fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonRightStick]))},
-			model.ConfigEntry{Path: []string{"Controls", prefix + "button_l"}, Value: fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonLeftShoulder]))},
-			model.ConfigEntry{Path: []string{"Controls", prefix + "button_r"}, Value: fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonRightShoulder]))},
-			model.ConfigEntry{Path: []string{"Controls", prefix + "button_zl"}, Value: fmt.Sprintf(`"%s"`, edenAxisRef(guid, i, model.AxisLeftTrigger))},
-			model.ConfigEntry{Path: []string{"Controls", prefix + "button_zr"}, Value: fmt.Sprintf(`"%s"`, edenAxisRef(guid, i, model.AxisRightTrigger))},
-			model.ConfigEntry{Path: []string{"Controls", prefix + "button_plus"}, Value: fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonStart]))},
-			model.ConfigEntry{Path: []string{"Controls", prefix + "button_minus"}, Value: fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonBack]))},
-			model.ConfigEntry{Path: []string{"Controls", prefix + "button_dleft"}, Value: fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "left"))},
-			model.ConfigEntry{Path: []string{"Controls", prefix + "button_dright"}, Value: fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "right"))},
-			model.ConfigEntry{Path: []string{"Controls", prefix + "button_dup"}, Value: fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "up"))},
-			model.ConfigEntry{Path: []string{"Controls", prefix + "button_ddown"}, Value: fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "down"))},
-			model.ConfigEntry{Path: []string{"Controls", prefix + "lstick"}, Value: fmt.Sprintf(`"%s"`, edenStickRef(guid, i, model.AxisLeftX, model.AxisLeftY))},
-			model.ConfigEntry{Path: []string{"Controls", prefix + "rstick"}, Value: fmt.Sprintf(`"%s"`, edenStickRef(guid, i, model.AxisRightX, model.AxisRightY))},
+			model.ConfigEntry{Path: []string{"Controls", prefix + "connected"}, Value: "true", DefaultOnly: i > 0},
+			model.ConfigEntry{Path: []string{"Controls", prefix + "profile_name"}, Value: "Kyaraben", DefaultOnly: true},
+			model.ConfigEntry{Path: []string{"Controls", prefix + "type"}, Value: "0", DefaultOnly: true},
+			defaultBindingEntry([]string{"Controls", prefix + "button_a"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["a"]]))),
+			defaultBindingEntry([]string{"Controls", prefix + "button_b"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["b"]]))),
+			defaultBindingEntry([]string{"Controls", prefix + "button_x"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["x"]]))),
+			defaultBindingEntry([]string{"Controls", prefix + "button_y"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["y"]]))),
+			defaultBindingEntry([]string{"Controls", prefix + "button_lstick"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonLeftStick]))),
+			defaultBindingEntry([]string{"Controls", prefix + "button_rstick"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonRightStick]))),
+			defaultBindingEntry([]string{"Controls", prefix + "button_l"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonLeftShoulder]))),
+			defaultBindingEntry([]string{"Controls", prefix + "button_r"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonRightShoulder]))),
+			defaultBindingEntry([]string{"Controls", prefix + "button_zl"}, fmt.Sprintf(`"%s"`, edenAxisRef(guid, i, model.AxisLeftTrigger))),
+			defaultBindingEntry([]string{"Controls", prefix + "button_zr"}, fmt.Sprintf(`"%s"`, edenAxisRef(guid, i, model.AxisRightTrigger))),
+			defaultBindingEntry([]string{"Controls", prefix + "button_plus"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonStart]))),
+			defaultBindingEntry([]string{"Controls", prefix + "button_minus"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonBack]))),
+			defaultBindingEntry([]string{"Controls", prefix + "button_dleft"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "left"))),
+			defaultBindingEntry([]string{"Controls", prefix + "button_dright"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "right"))),
+			defaultBindingEntry([]string{"Controls", prefix + "button_dup"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "up"))),
+			defaultBindingEntry([]string{"Controls", prefix + "button_ddown"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "down"))),
+			defaultBindingEntry([]string{"Controls", prefix + "lstick"}, fmt.Sprintf(`"%s"`, edenStickRef(guid, i, model.AxisLeftX, model.AxisLeftY))),
+			defaultBindingEntry([]string{"Controls", prefix + "rstick"}, fmt.Sprintf(`"%s"`, edenStickRef(guid, i, model.AxisRightX, model.AxisRightY))),
 		)
 	}
 
+	return entries
+}
+
+func defaultBindingEntry(path []string, value string) model.ConfigEntry {
+	return model.ConfigEntry{
+		Path:         path,
+		Value:        value,
+		DefaultOnly:  true,
+		EqualityFunc: configformat.BindingValuesEqual,
+	}
+}
+
+// edenButtonName maps SDL button names to Eden's Switch-style button names.
+func edenButtonName(b model.SDLButton) string {
+	switch b {
+	case model.ButtonA:
+		return "A"
+	case model.ButtonB:
+		return "B"
+	case model.ButtonX:
+		return "X"
+	case model.ButtonY:
+		return "Y"
+	case model.ButtonBack:
+		return "Minus"
+	case model.ButtonStart:
+		return "Plus"
+	case model.ButtonGuide:
+		return "Home"
+	case model.ButtonLeftShoulder:
+		return "L"
+	case model.ButtonRightShoulder:
+		return "R"
+	case model.ButtonLeftTrigger:
+		return "ZL"
+	case model.ButtonRightTrigger:
+		return "ZR"
+	case model.ButtonLeftStick:
+		return "Lstick"
+	case model.ButtonRightStick:
+		return "Rstick"
+	case model.ButtonDPadUp:
+		return "Dpad_Up"
+	case model.ButtonDPadDown:
+		return "Dpad_Down"
+	case model.ButtonDPadLeft:
+		return "Dpad_Left"
+	case model.ButtonDPadRight:
+		return "Dpad_Right"
+	default:
+		return string(b)
+	}
+}
+
+func edenHotkeyRef(binding model.HotkeyBinding) string {
+	parts := make([]string, len(binding.Buttons))
+	for i, b := range binding.Buttons {
+		parts[i] = edenButtonName(b)
+	}
+	return strings.Join(parts, "+")
+}
+
+func hotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
+	hk := cc.Hotkeys
+	section := "Shortcuts"
+
+	type mapping struct {
+		key     string
+		binding model.HotkeyBinding
+	}
+	mappings := []mapping{
+		{`Main%20Window\Continue\Pause%20Emulation\Controller_KeySeq`, hk.Pause},
+		{`Main%20Window\Exit%20Eden\Controller_KeySeq`, hk.Quit},
+		{`Main%20Window\Capture%20Screenshot\Controller_KeySeq`, hk.Screenshot},
+		{`Main%20Window\Fullscreen\Controller_KeySeq`, hk.ToggleFullscreen},
+		{`Main%20Window\Toggle%20Framerate%20Limit\Controller_KeySeq`, hk.FastForward},
+	}
+
+	var entries []model.ConfigEntry
+	for _, m := range mappings {
+		if len(m.binding.Buttons) > 0 {
+			entries = append(entries, model.ConfigEntry{
+				Path:  []string{section, m.key},
+				Value: edenHotkeyRef(m.binding),
+			})
+		}
+	}
 	return entries
 }
