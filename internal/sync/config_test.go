@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/testutil"
 )
 
 func TestConfigGenerator_GenerateFolders_Primary(t *testing.T) {
@@ -18,8 +19,10 @@ func TestConfigGenerator_GenerateFolders_Primary(t *testing.T) {
 		},
 	}
 
+	fs := testutil.NewTestFS(t, nil)
+
 	systems := []model.SystemID{"snes", "psx"}
-	gen := NewConfigGenerator(cfg, "/home/user/Emulation", systems)
+	gen := NewConfigGenerator(fs, cfg, "/home/user/Emulation", systems)
 	gen.SetDeviceID("TEST-DEVICE-ID")
 	gen.SetAPIKey("test-api-key")
 
@@ -72,8 +75,10 @@ func TestConfigGenerator_GenerateFolders_Secondary(t *testing.T) {
 		},
 	}
 
+	fs := testutil.NewTestFS(t, nil)
+
 	systems := []model.SystemID{"snes"}
-	gen := NewConfigGenerator(cfg, "/home/user/Emulation", systems)
+	gen := NewConfigGenerator(fs, cfg, "/home/user/Emulation", systems)
 	gen.SetDeviceID("TEST-DEVICE-ID")
 
 	xmlCfg, err := gen.Generate()
@@ -108,7 +113,9 @@ func TestConfigGenerator_Devices(t *testing.T) {
 		Syncthing: model.SyncthingConfig{GUIPort: 8385},
 	}
 
-	gen := NewConfigGenerator(cfg, "/tmp", nil)
+	fs := testutil.NewTestFS(t, nil)
+
+	gen := NewConfigGenerator(fs, cfg, "/tmp", nil)
 	gen.SetDeviceID("MY-DEVICE-ID")
 
 	xmlCfg, err := gen.Generate()
@@ -146,7 +153,9 @@ func TestConfigGenerator_Versioning(t *testing.T) {
 		Syncthing: model.SyncthingConfig{GUIPort: 8385},
 	}
 
-	gen := NewConfigGenerator(cfg, "/tmp", []model.SystemID{"snes"})
+	fs := testutil.NewTestFS(t, nil)
+
+	gen := NewConfigGenerator(fs, cfg, "/tmp", []model.SystemID{"snes"})
 
 	xmlCfg, err := gen.Generate()
 	if err != nil {
