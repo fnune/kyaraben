@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/fnune/kyaraben/internal/paths"
 )
@@ -14,13 +15,25 @@ var (
 	logger     *log.Logger
 	logFile    *os.File
 	outputHook func(string)
+	hookMu     sync.RWMutex
 )
 
 // SetOutputHook sets a callback that receives formatted log lines.
 // This is used to forward logs to the UI during operations.
 // Pass nil to disable the hook.
 func SetOutputHook(fn func(string)) {
+	hookMu.Lock()
 	outputHook = fn
+	hookMu.Unlock()
+}
+
+func callHook(content string) {
+	hookMu.RLock()
+	hook := outputHook
+	hookMu.RUnlock()
+	if hook != nil {
+		hook(content)
+	}
 }
 
 // Init initializes logging to the kyaraben log file.
@@ -78,9 +91,7 @@ func (l *Logger) Info(format string, args ...interface{}) {
 	if logger != nil {
 		logger.Printf("[INFO] [%s] %s", l.component, content)
 	}
-	if outputHook != nil {
-		outputHook(content)
-	}
+	callHook(content)
 }
 
 func (l *Logger) Error(format string, args ...interface{}) {
@@ -88,9 +99,7 @@ func (l *Logger) Error(format string, args ...interface{}) {
 	if logger != nil {
 		logger.Printf("[ERROR] [%s] %s", l.component, content)
 	}
-	if outputHook != nil {
-		outputHook(content)
-	}
+	callHook(content)
 }
 
 func (l *Logger) Debug(format string, args ...interface{}) {
@@ -98,9 +107,7 @@ func (l *Logger) Debug(format string, args ...interface{}) {
 	if logger != nil {
 		logger.Printf("[DEBUG] [%s] %s", l.component, content)
 	}
-	if outputHook != nil {
-		outputHook(content)
-	}
+	callHook(content)
 }
 
 // Info logs an informational message without component context.
@@ -110,9 +117,7 @@ func Info(format string, args ...interface{}) {
 	if logger != nil {
 		logger.Printf("[INFO] %s", content)
 	}
-	if outputHook != nil {
-		outputHook(content)
-	}
+	callHook(content)
 }
 
 // Error logs an error message without component context.
@@ -122,9 +127,7 @@ func Error(format string, args ...interface{}) {
 	if logger != nil {
 		logger.Printf("[ERROR] %s", content)
 	}
-	if outputHook != nil {
-		outputHook(content)
-	}
+	callHook(content)
 }
 
 // Debug logs a debug message without component context.
@@ -134,9 +137,7 @@ func Debug(format string, args ...interface{}) {
 	if logger != nil {
 		logger.Printf("[DEBUG] %s", content)
 	}
-	if outputHook != nil {
-		outputHook(content)
-	}
+	callHook(content)
 }
 
 func Writer() io.Writer {
