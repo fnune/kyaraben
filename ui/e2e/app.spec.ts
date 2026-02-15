@@ -5,7 +5,7 @@ import {
   type Page,
   test,
 } from '@playwright/test'
-import { createFixture, type TestFixture } from './fixtures'
+import { buildEnv, createFixture, type TestFixture } from './fixtures'
 
 let fixture: TestFixture
 let electronApp: ElectronApplication
@@ -25,10 +25,7 @@ test.beforeAll(async () => {
   electronApp = await electron.launch({
     executablePath: appImagePath,
     args: ['--no-sandbox'],
-    env: {
-      ...process.env,
-      ...fixture.env,
-    },
+    env: buildEnv(fixture),
   })
 
   page = await electronApp.firstWindow()

@@ -4,6 +4,16 @@ import * as os from 'node:os'
 import * as path from 'node:path'
 import { startFakeReleasesServer } from './fake-releases-server'
 
+export function buildEnv(fixture: TestFixture): Record<string, string> {
+  const env: Record<string, string> = {}
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value !== undefined) {
+      env[key] = value
+    }
+  }
+  return { ...env, ...fixture.env }
+}
+
 export const SystemIDSNES = 'snes' as const
 export const SystemIDGBA = 'gba' as const
 export const SystemIDPSX = 'psx' as const
@@ -217,7 +227,6 @@ export function createFakeBiosFile(biosDir: string, filename: string, content?: 
 export const presets = {
   freshInstall: (): { config: ConfigFixture; manifest?: ManifestFixture } => ({
     config: {},
-    manifest: undefined,
   }),
 
   systemsEnabledNotInstalled: (): { config: ConfigFixture; manifest: ManifestFixture } => ({
@@ -330,7 +339,7 @@ export function setupFakeReleasesApi(fixture: TestFixture, options: FakeReleases
   const port = nextPort++
   const server = startFakeReleasesServer(port, {
     version: options.latestVersion,
-    appImagePath: options.appImagePath,
+    ...(options.appImagePath !== undefined && { appImagePath: options.appImagePath }),
   })
 
   fixture.releasesServer = server

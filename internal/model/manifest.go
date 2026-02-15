@@ -22,6 +22,13 @@ type Manifest struct {
 	DesktopFiles       []string                         `json:"desktop_files,omitempty"`
 	IconFiles          []string                         `json:"icon_files,omitempty"`
 	KyarabenInstall    *KyarabenInstall                 `json:"kyaraben_install,omitempty"`
+	Symlinks           []SymlinkRecord                  `json:"symlinks,omitempty"`
+}
+
+type SymlinkRecord struct {
+	Source     string     `json:"source"`
+	Target     string     `json:"target"`
+	EmulatorID EmulatorID `json:"emulator_id"`
 }
 
 // KyarabenInstall tracks the kyaraben app installation paths.

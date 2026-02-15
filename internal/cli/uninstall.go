@@ -117,6 +117,16 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 		}
 	}
 
+	if len(manifest.Symlinks) > 0 {
+		fmt.Println()
+		fmt.Println("  Symlinks:")
+		for _, s := range manifest.Symlinks {
+			if isSymlink(s.Source) {
+				fmt.Printf("    %s\n", s.Source)
+			}
+		}
+	}
+
 	fmt.Println()
 	fmt.Println("This will NOT remove:")
 	fmt.Printf("  %s (your ROMs, saves, BIOS)\n", userStore)
@@ -189,6 +199,16 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 		}
 	}
 
+	for _, s := range manifest.Symlinks {
+		if isSymlink(s.Source) {
+			if err := os.Remove(s.Source); err != nil {
+				fmt.Printf("  Warning: could not remove symlink %s: %v\n", s.Source, err)
+			} else {
+				fmt.Printf("  Removed: %s\n", s.Source)
+			}
+		}
+	}
+
 	if dirExists(kyarabenStateDir) {
 		if err := forceRemoveAll(kyarabenStateDir); err != nil {
 			fmt.Printf("  Warning: could not remove %s: %v\n", kyarabenStateDir, err)
@@ -222,6 +242,11 @@ func dirExists(path string) bool {
 func fileExists(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && !info.IsDir()
+}
+
+func isSymlink(path string) bool {
+	info, err := os.Lstat(path)
+	return err == nil && info.Mode()&os.ModeSymlink != 0
 }
 
 // forceRemoveAll removes a directory tree, even if it contains read-only files.

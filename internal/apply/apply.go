@@ -327,6 +327,8 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	if symlinkCreator == nil {
 		symlinkCreator = symlink.OSCreator{}
 	}
+
+	var newSymlinks []model.SymlinkRecord
 	for emuID := range enabledEmulators {
 		gen := a.Registry.GetConfigGenerator(emuID)
 		if provider, ok := gen.(model.SymlinkProvider); ok {
@@ -337,6 +339,19 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 			if err := symlink.CreateAll(symlinkCreator, specs); err != nil {
 				return nil, fmt.Errorf("creating symlinks for %s: %w", emuID, err)
 			}
+			for _, spec := range specs {
+				newSymlinks = append(newSymlinks, model.SymlinkRecord{
+					Source:     spec.Source,
+					Target:     spec.Target,
+					EmulatorID: emuID,
+				})
+			}
+		}
+	}
+
+	for _, old := range manifest.Symlinks {
+		if !enabledEmulators[old.EmulatorID] {
+			_ = symlink.Remove(old.Source)
 		}
 	}
 
@@ -435,6 +450,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	manifest.KyarabenVersion = version.Get()
 	manifest.InstalledEmulators = newInstalledEmulators
 	manifest.InstalledFrontends = newInstalledFrontends
+	manifest.Symlinks = newSymlinks
 	for _, cfg := range newManagedConfigs {
 		if err := manifest.AddManagedConfig(cfg); err != nil {
 			return nil, fmt.Errorf("adding managed config: %w", err)

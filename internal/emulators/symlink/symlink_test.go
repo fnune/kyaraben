@@ -231,3 +231,64 @@ func TestCreateAllStopsOnError(t *testing.T) {
 		t.Errorf("expected no symlinks created on error, got %d", len(fake.Created))
 	}
 }
+
+func TestRemoveSymlinkPreservesTarget(t *testing.T) {
+	tmpDir := t.TempDir()
+	source := filepath.Join(tmpDir, "link")
+	target := filepath.Join(tmpDir, "target")
+
+	if err := os.MkdirAll(target, 0755); err != nil {
+		t.Fatal(err)
+	}
+	testFile := filepath.Join(target, "important_save.dat")
+	if err := os.WriteFile(testFile, []byte("precious data"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.Symlink(target, source); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := Remove(source); err != nil {
+		t.Fatalf("Remove() error = %v", err)
+	}
+
+	if _, err := os.Lstat(source); !os.IsNotExist(err) {
+		t.Error("symlink should be removed")
+	}
+
+	if _, err := os.Stat(target); err != nil {
+		t.Errorf("target directory should still exist: %v", err)
+	}
+	if _, err := os.Stat(testFile); err != nil {
+		t.Errorf("file inside target should still exist: %v", err)
+	}
+}
+
+func TestRemoveRefusesNonSymlink(t *testing.T) {
+	tmpDir := t.TempDir()
+	realDir := filepath.Join(tmpDir, "real_dir")
+
+	if err := os.MkdirAll(realDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	err := Remove(realDir)
+	if err == nil {
+		t.Fatal("Remove() should error on non-symlink")
+	}
+
+	if _, err := os.Stat(realDir); err != nil {
+		t.Error("directory should not be removed")
+	}
+}
+
+func TestRemoveNonexistentIsNoop(t *testing.T) {
+	tmpDir := t.TempDir()
+	nonexistent := filepath.Join(tmpDir, "nonexistent", "path", "to", "symlink")
+
+	err := Remove(nonexistent)
+	if err != nil {
+		t.Errorf("Remove() on nonexistent path should succeed, got: %v", err)
+	}
+}
