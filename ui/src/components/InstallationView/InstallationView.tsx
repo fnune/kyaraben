@@ -11,10 +11,10 @@ import {
   getUninstallPreview,
   installApp,
   launchCliUninstall,
-  openPath,
-  openUrl,
   readFile,
 } from '@/lib/daemon'
+import { useOpenPath } from '@/lib/hooks/useOpenPath'
+import { useOpenUrl } from '@/lib/hooks/useOpenUrl'
 import { PathText } from '@/lib/PathText'
 import type { InstallStatus, UninstallPreviewResponse } from '@/types/daemon'
 import { VIEW_CATALOG, VIEW_LABELS } from '@/types/ui'
@@ -80,6 +80,8 @@ export function InstallationView() {
   const [downloadingUpdate, setDownloadingUpdate] = useState(false)
   const [downloadProgress, setDownloadProgress] = useState(0)
   const [bugReportOpen, setBugReportOpen] = useState(false)
+  const openUrl = useOpenUrl()
+  const openPath = useOpenPath()
 
   useEffect(() => {
     return window.electron.on('update:progress', (data) => {
