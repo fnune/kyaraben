@@ -213,23 +213,12 @@ function FolderRow({
           </div>
           {showChanges && changes && changes.length > 0 && (
             <div className="mt-1 max-h-32 overflow-y-auto">
-              {changes.map((c, i) => {
-                const typeLC = (c.type || '').toLowerCase()
-                const actionLC = (c.action || '').toLowerCase()
-                let label = 'changed'
-                if (typeLC.includes('deleted') || actionLC === 'deleted') {
-                  label = 'deleted'
-                } else if (actionLC === 'added' || typeLC.includes('added')) {
-                  label = 'added'
-                }
-                console.log('Local change:', { type: c.type, action: c.action, path: c.path })
-                return (
-                  <div key={i} className="py-0.5 text-on-surface-muted truncate">
-                    <span className="text-status-error">{label}</span> {c.path}
-                    {c.size > 0 && <span> ({formatBytes(c.size)})</span>}
-                  </div>
-                )
-              })}
+              {changes.map((c, i) => (
+                <div key={i} className="py-0.5 text-on-surface-muted truncate">
+                  <span className="text-status-error">missing</span> {c.path}
+                  {c.size > 0 && <span> ({formatBytes(c.size)})</span>}
+                </div>
+              ))}
             </div>
           )}
           {showChanges && changes && changes.length === 0 && (
