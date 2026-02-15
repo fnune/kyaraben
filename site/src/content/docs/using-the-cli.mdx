@@ -231,24 +231,60 @@ Proceed? [y/N]
 
 Manage save synchronization. See [save sync](/sync/).
 
+#### `kyaraben sync pair [CODE]`
+
+Pair two devices. Without a code, this device becomes the primary and
+displays a pairing code. With a code, this device becomes the secondary and
+joins the primary that generated the code.
+
+Installs and starts the sync service automatically if it is not already
+running.
+
+```
+$ kyaraben sync pair
+Installing sync service...
+Pairing code: K7X9M2
+Waiting for devices... (expires in 5 minutes)
+
+Paired with steamdeck-kyaraben
+```
+
+#### `kyaraben sync status`
+
+Shows sync state, connected devices, and per-folder progress.
+
 ```
 $ kyaraben sync status
 
-Sync: disabled
+Sync: active (primary)
+Device ID: LGFPDIT7-SKNNJVJZ-A4FC7QNC-...
 
-Enable sync in your config.toml:
+Devices:
+  steamdeck-kyaraben    connected    last seen: just now
 
-  [sync]
-  enabled = true
-  mode = "primary"  # or "secondary"
+Folders:
+  ROMs (6 systems)      synced       12.3 GB
+  Saves (6 systems)     synced       156 MB
+  States (4 systems)    synced       1.2 GB
+  Screenshots           synced       89 MB
 ```
 
-Other subcommands:
+#### `kyaraben sync pause` / `kyaraben sync resume`
 
-```
-kyaraben sync add-device      # Pair with another device
-kyaraben sync remove-device   # Remove a paired device
-```
+Pause or resume sync. Useful on metered connections or to save battery.
+
+#### `kyaraben sync add-device <DEVICE-ID>`
+
+Add a device by its 56-character Syncthing device ID. Use this when devices
+are not on the same network and mDNS discovery is not available.
+
+#### `kyaraben sync remove-device <ID-or-NAME>`
+
+Remove a paired device by its device ID or friendly name.
+
+#### `kyaraben sync resolve`
+
+List and resolve sync conflicts interactively.
 
 ## Home-manager module
 

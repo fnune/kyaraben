@@ -63,6 +63,10 @@ func (f *fakeStoreReader) SystemRomsDir(sys model.SystemID) string {
 	return filepath.Join(f.root, "roms", string(sys))
 }
 
+func (f *fakeStoreReader) CoresDir() string {
+	return "/state/cores"
+}
+
 func TestDuckStationGenerate(t *testing.T) {
 	t.Parallel()
 

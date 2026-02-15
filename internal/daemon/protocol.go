@@ -20,13 +20,17 @@ type EmulatorConfRequest struct {
 	Version string `json:"version,omitempty"`
 }
 
-type SyncAddDeviceRequest struct {
-	DeviceID string `json:"deviceId"`
-	Name     string `json:"name,omitempty"`
-}
-
 type SyncRemoveDeviceRequest struct {
 	DeviceID string `json:"deviceId"`
+}
+
+type SyncJoinPrimaryRequest struct {
+	Code        string `json:"code"`
+	PairingAddr string `json:"pairingAddr"`
+}
+
+type SyncEnableRequest struct {
+	Mode string `json:"mode"`
 }
 
 // Response types
@@ -194,31 +198,121 @@ const (
 )
 
 type SyncStatusResponse struct {
-	Enabled  bool         `json:"enabled"`
-	Mode     string       `json:"mode,omitempty"`
-	Running  bool         `json:"running,omitempty"`
-	DeviceID string       `json:"deviceId,omitempty"`
-	GUIURL   string       `json:"guiURL,omitempty"`
-	State    SyncState    `json:"state,omitempty"`
-	Devices  []SyncDevice `json:"devices,omitempty"`
+	Enabled          bool          `json:"enabled"`
+	Mode             string        `json:"mode,omitempty"`
+	Running          bool          `json:"running,omitempty"`
+	Installed        bool          `json:"installed,omitempty"`
+	ServiceInstalled bool          `json:"serviceInstalled,omitempty"`
+	DeviceID         string        `json:"deviceId,omitempty"`
+	GUIURL           string        `json:"guiURL,omitempty"`
+	State            SyncState     `json:"state,omitempty"`
+	Devices          []SyncDevice  `json:"devices,omitempty"`
+	Folders          []SyncFolder  `json:"folders,omitempty"`
+	Pairing          bool          `json:"pairing,omitempty"`
+	Progress         *SyncProgress `json:"progress,omitempty"`
+	ServiceError     string        `json:"serviceError,omitempty"`
+}
+
+type SyncProgress struct {
+	NeedFiles   int64 `json:"needFiles"`
+	NeedBytes   int64 `json:"needBytes"`
+	GlobalBytes int64 `json:"globalBytes"`
+	Percent     int   `json:"percent"`
 }
 
 type SyncDevice struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`
 	Connected bool   `json:"connected"`
+	Paused    bool   `json:"paused,omitempty"`
 }
 
-type SyncAddDeviceResponse struct {
-	Success  bool   `json:"success"`
-	DeviceID string `json:"deviceId"`
-	Name     string `json:"name"`
+type SyncFolder struct {
+	ID                 string `json:"id"`
+	Path               string `json:"path"`
+	Label              string `json:"label"`
+	State              string `json:"state"`
+	Type               string `json:"type"`
+	GlobalSize         int64  `json:"globalSize"`
+	LocalSize          int64  `json:"localSize"`
+	NeedSize           int64  `json:"needSize"`
+	ReceiveOnlyChanges int    `json:"receiveOnlyChanges"`
+}
+
+type SyncRevertFolderRequest struct {
+	FolderID string `json:"folderId"`
+}
+
+type SyncRevertFolderResponse struct {
+	Success bool `json:"success"`
+}
+
+type SyncLocalChangesRequest struct {
+	FolderID string `json:"folderId"`
+}
+
+type SyncLocalChange struct {
+	Action   string `json:"action"`
+	Type     string `json:"type"`
+	Path     string `json:"path"`
+	Modified string `json:"modified"`
+	Size     int64  `json:"size"`
+}
+
+type SyncLocalChangesResponse struct {
+	Changes []SyncLocalChange `json:"changes"`
+}
+
+type SyncPendingResponse struct {
+	Pending    bool  `json:"pending"`
+	TotalFiles int64 `json:"totalFiles"`
+	TotalBytes int64 `json:"totalBytes"`
 }
 
 type SyncRemoveDeviceResponse struct {
 	Success  bool   `json:"success"`
 	DeviceID string `json:"deviceId"`
 	Name     string `json:"name"`
+}
+
+type SyncStartPairingResponse struct {
+	Code string `json:"code"`
+}
+
+type SyncPairingCompleteResponse struct {
+	Success      bool   `json:"success"`
+	PeerDeviceID string `json:"peerDeviceId"`
+	PeerName     string `json:"peerName"`
+}
+
+type SyncJoinPrimaryResponse struct {
+	Success      bool   `json:"success"`
+	PeerDeviceID string `json:"peerDeviceId"`
+	PeerName     string `json:"peerName"`
+}
+
+type SyncPairingProgressEvent struct {
+	Message string `json:"message"`
+}
+
+type SyncEnableProgressEvent struct {
+	Phase   string `json:"phase"`
+	Message string `json:"message"`
+	Percent int    `json:"percent"`
+}
+
+type SyncEnableResponse struct {
+	Success bool `json:"success"`
+}
+
+type SyncResetResponse struct {
+	Success      bool     `json:"success"`
+	RemovedFiles []string `json:"removedFiles,omitempty"`
+}
+
+type SyncDiscoveredPrimary struct {
+	Hostname    string `json:"hostname"`
+	PairingAddr string `json:"pairingAddr"`
 }
 
 type UninstallPreviewResponse struct {
@@ -230,6 +324,7 @@ type UninstallPreviewResponse struct {
 	IconFiles          []string       `json:"iconFiles"`
 	ConfigFiles        []string       `json:"configFiles"`
 	KyarabenFiles      []string       `json:"kyarabenFiles"`
+	SyncthingFiles     []string       `json:"syncthingFiles,omitempty"`
 	Preserved          PreservedPaths `json:"preserved"`
 }
 

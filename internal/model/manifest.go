@@ -24,6 +24,7 @@ type Manifest struct {
 	DesktopFiles       []string                         `json:"desktop_files,omitempty"`
 	IconFiles          []string                         `json:"icon_files,omitempty"`
 	KyarabenInstall    *KyarabenInstall                 `json:"kyaraben_install,omitempty"`
+	SyncthingInstall   *SyncthingInstall                `json:"syncthing_install,omitempty"`
 	Symlinks           []SymlinkRecord                  `json:"symlinks,omitempty"`
 }
 
@@ -38,6 +39,15 @@ type KyarabenInstall struct {
 	AppPath     string `json:"app_path,omitempty"`
 	CLIPath     string `json:"cli_path,omitempty"`
 	DesktopPath string `json:"desktop_path,omitempty"`
+}
+
+// SyncthingInstall tracks Syncthing installation paths for clean uninstall.
+type SyncthingInstall struct {
+	Version         string `json:"version,omitempty"`
+	BinaryPath      string `json:"binary_path,omitempty"`
+	ConfigDir       string `json:"config_dir,omitempty"`
+	DataDir         string `json:"data_dir,omitempty"`
+	SystemdUnitPath string `json:"systemd_unit_path,omitempty"`
 }
 
 type InstalledEmulator struct {

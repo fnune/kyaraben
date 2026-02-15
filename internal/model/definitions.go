@@ -9,6 +9,7 @@ type StoreReader interface {
 	EmulatorStatesDir(EmulatorID) string
 	EmulatorScreenshotsDir(EmulatorID) string
 	SystemRomsDir(SystemID) string
+	CoresDir() string
 }
 
 type ConfigGenerator interface {

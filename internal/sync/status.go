@@ -21,17 +21,19 @@ type DeviceStatus struct {
 	ID        string
 	Name      string
 	Connected bool
+	Paused    bool
 }
 
 type FolderStatusSummary struct {
-	ID         string
-	Path       string
-	Type       string
-	State      string
-	Completion float64
-	GlobalSize int64
-	LocalSize  int64
-	NeedSize   int64
+	ID                 string
+	Path               string
+	Type               string
+	State              string
+	Completion         float64
+	GlobalSize         int64
+	LocalSize          int64
+	NeedSize           int64
+	ReceiveOnlyChanges int
 }
 
 type Conflict struct {
@@ -55,14 +57,40 @@ func (c *Client) GetStatus(ctx context.Context) (*Status, error) {
 		return nil, fmt.Errorf("getting connections: %w", err)
 	}
 
+	configuredDevices, err := c.GetConfiguredDevices(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("getting configured devices: %w", err)
+	}
+
 	var devices []DeviceStatus
-	for _, dev := range c.config.Devices {
+	for _, dev := range configuredDevices {
 		conn, ok := connections[dev.ID]
 		devices = append(devices, DeviceStatus{
 			ID:        dev.ID,
 			Name:      dev.Name,
 			Connected: ok && conn.Connected,
+			Paused:    dev.Paused || (ok && conn.Paused),
 		})
+	}
+
+	var folders []FolderStatusSummary
+	if folderConfigs, err := c.GetFolderConfigs(ctx); err == nil {
+		for _, fc := range folderConfigs {
+			fs, err := c.GetFolderStatus(ctx, fc.ID)
+			if err != nil {
+				continue
+			}
+			folders = append(folders, FolderStatusSummary{
+				ID:                 fc.ID,
+				Path:               fc.Path,
+				Type:               fc.Type,
+				State:              fs.State,
+				GlobalSize:         fs.GlobalBytes,
+				LocalSize:          fs.LocalBytes,
+				NeedSize:           fs.NeedBytes,
+				ReceiveOnlyChanges: fs.ReceiveOnlyTotalItems,
+			})
+		}
 	}
 
 	status := &Status{
@@ -71,6 +99,7 @@ func (c *Client) GetStatus(ctx context.Context) (*Status, error) {
 		DeviceID: deviceID,
 		GUIURL:   fmt.Sprintf("http://127.0.0.1:%d", c.config.Syncthing.GUIPort),
 		Devices:  devices,
+		Folders:  folders,
 	}
 
 	return status, nil
@@ -96,6 +125,10 @@ func (s *Status) OverallState() OverallSyncState {
 		return SyncStateConflict
 	}
 
+	if len(s.Devices) == 0 {
+		return SyncStateDisconnected
+	}
+
 	connectedCount := 0
 	for _, d := range s.Devices {
 		if d.Connected {
@@ -103,7 +136,7 @@ func (s *Status) OverallState() OverallSyncState {
 		}
 	}
 
-	if connectedCount == 0 && len(s.Devices) > 0 {
+	if connectedCount == 0 {
 		return SyncStateDisconnected
 	}
 

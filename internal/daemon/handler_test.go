@@ -10,6 +10,7 @@ import (
 
 	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/paths"
 	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/versions"
 )
@@ -57,7 +58,7 @@ func newTestDaemonEnv(t *testing.T, cfg *model.KyarabenConfig) *testDaemonEnv {
 }
 
 func (e *testDaemonEnv) newDaemon() *Daemon {
-	return New(e.fs, e.configPath, e.stateDir, e.manifestPath, registry.NewDefault(), nil, nil, nil)
+	return New(e.fs, paths.DefaultPaths(), e.configPath, e.stateDir, e.manifestPath, registry.NewDefault(), nil, nil, nil)
 }
 
 func TestHandleUninstallPreview_EmptyManifest(t *testing.T) {
@@ -141,7 +142,7 @@ func TestHandleUninstallPreview_WithManifest(t *testing.T) {
 		t.Fatalf("saving config: %v", err)
 	}
 
-	d := New(fs, configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil)
+	d := New(fs, paths.DefaultPaths(), configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil)
 
 	events := d.Handle(Command{Type: CommandTypeUninstallPreview})
 	if len(events) != 1 {
@@ -361,7 +362,7 @@ func TestHandlePreflight_ReturnsPreflightResponse(t *testing.T) {
 	reg := registry.NewDefault()
 	resolver := fakeBaseDirResolver{root: "/"}
 	configWriter := emulators.NewConfigWriter(fs, resolver)
-	d := New(fs, configPath, stateDir, manifestPath, reg, nil, configWriter, nil)
+	d := New(fs, paths.DefaultPaths(), configPath, stateDir, manifestPath, reg, nil, configWriter, nil)
 
 	events := d.Handle(Command{Type: CommandTypePreflight})
 	if len(events) != 1 {
@@ -405,7 +406,7 @@ func TestHandlePreflight_EmptyConfig(t *testing.T) {
 
 	resolver := fakeBaseDirResolver{root: "/"}
 	configWriter := emulators.NewConfigWriter(fs, resolver)
-	d := New(fs, configPath, "/state", "/state/build/manifest.json", registry.NewDefault(), nil, configWriter, nil)
+	d := New(fs, paths.DefaultPaths(), configPath, "/state", "/state/build/manifest.json", registry.NewDefault(), nil, configWriter, nil)
 
 	events := d.Handle(Command{Type: CommandTypePreflight})
 	if len(events) != 1 {
@@ -469,7 +470,7 @@ func TestHandleInstallStatus_EmptyManifest(t *testing.T) {
 		t.Fatalf("saving manifest: %v", err)
 	}
 
-	d := New(fs, configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil)
+	d := New(fs, paths.DefaultPaths(), configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil)
 
 	events := d.Handle(Command{Type: CommandTypeInstallStatus})
 	if len(events) != 1 {
@@ -524,7 +525,7 @@ func TestHandleInstallStatus_WithManifest(t *testing.T) {
 		t.Fatalf("saving manifest: %v", err)
 	}
 
-	d := New(fs, configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil)
+	d := New(fs, paths.DefaultPaths(), configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil)
 
 	events := d.Handle(Command{Type: CommandTypeInstallStatus})
 	if len(events) != 1 {
@@ -549,5 +550,96 @@ func TestHandleInstallStatus_WithManifest(t *testing.T) {
 	}
 	if resp.DesktopPath != desktopPath {
 		t.Errorf("expected desktop path %s, got %s", desktopPath, resp.DesktopPath)
+	}
+}
+
+func TestHandleSyncStatus_Disabled(t *testing.T) {
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{
+			UserStore: "~/Emulation",
+		},
+		Systems: make(map[model.SystemID][]model.EmulatorID),
+		Sync:    model.DefaultSyncConfig(),
+	}
+	env := newTestDaemonEnv(t, cfg)
+	defer env.cleanup()
+	d := env.newDaemon()
+
+	events := d.Handle(Command{Type: CommandTypeSyncStatus})
+	if len(events) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(events))
+	}
+
+	event := events[0]
+	if event.Type != EventTypeResult {
+		t.Fatalf("expected result event, got %s", event.Type)
+	}
+
+	resp, ok := event.Data.(SyncStatusResponse)
+	if !ok {
+		t.Fatalf("expected SyncStatusResponse, got %T", event.Data)
+	}
+
+	if resp.Enabled {
+		t.Error("expected enabled to be false")
+	}
+	if resp.Installed {
+		t.Error("expected installed to be false when no manifest")
+	}
+}
+
+func TestHandleSyncStatus_DisabledWithSyncthingInstalled(t *testing.T) {
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/state/build":                  &vfst.Dir{Perm: 0755},
+		"/state/packages/syncthing/bin": "fake-syncthing",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	configPath := "/config.toml"
+	stateDir := "/state"
+	manifestPath := "/state/build/manifest.json"
+
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{
+			UserStore: "~/Emulation",
+		},
+		Systems: make(map[model.SystemID][]model.EmulatorID),
+		Sync:    model.DefaultSyncConfig(),
+	}
+	if err := model.NewConfigStore(fs).Save(cfg, configPath); err != nil {
+		t.Fatalf("saving config: %v", err)
+	}
+
+	manifest := &model.Manifest{
+		Version:     1,
+		LastApplied: time.Now(),
+		SyncthingInstall: &model.SyncthingInstall{
+			BinaryPath: "/state/packages/syncthing/bin",
+		},
+	}
+	if err := model.NewManifestStore(fs).Save(manifest, manifestPath); err != nil {
+		t.Fatalf("saving manifest: %v", err)
+	}
+
+	d := New(fs, paths.DefaultPaths(), configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil)
+
+	events := d.Handle(Command{Type: CommandTypeSyncStatus})
+	if len(events) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(events))
+	}
+
+	resp, ok := events[0].Data.(SyncStatusResponse)
+	if !ok {
+		t.Fatalf("expected SyncStatusResponse, got %T", events[0].Data)
+	}
+
+	if resp.Enabled {
+		t.Error("expected enabled to be false")
+	}
+	if !resp.Installed {
+		t.Error("expected installed to be true when syncthing binary exists")
 	}
 }

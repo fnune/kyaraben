@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 
 	"github.com/fnune/kyaraben/internal/model"
-	"github.com/fnune/kyaraben/internal/paths"
 )
 
 var SharedLauncher = model.LauncherInfo{
@@ -50,7 +49,7 @@ func SharedConfig(store model.StoreReader) model.ConfigPatch {
 	return model.ConfigPatch{
 		Target: MainConfigTarget,
 		Entries: []model.ConfigEntry{
-			{Path: []string{"libretro_directory"}, Value: paths.MustRetroArchCoresDir()},
+			{Path: []string{"libretro_directory"}, Value: store.CoresDir()},
 			{Path: []string{"screenshot_directory"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDRetroArchBsnes)},
 			{Path: []string{"sort_savefiles_enable"}, Value: "true"},
 			{Path: []string{"sort_savestates_enable"}, Value: "true"},

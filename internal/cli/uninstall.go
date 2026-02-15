@@ -13,7 +13,6 @@ import (
 	"github.com/fnune/kyaraben/internal/cleanup"
 	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/model"
-	"github.com/fnune/kyaraben/internal/paths"
 )
 
 type UninstallCmd struct {
@@ -28,7 +27,7 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 		waitForProcess(cmd.WaitPID)
 	}
 
-	kyarabenStateDir, err := paths.KyarabenStateDir()
+	kyarabenStateDir, err := ctx.GetPaths().StateDir()
 	if err != nil {
 		return err
 	}
@@ -39,7 +38,7 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 	}
 	configDir := filepath.Dir(configPath)
 
-	manifestPath, err := model.DefaultManifestPath()
+	manifestPath, err := ctx.GetPaths().ManifestPath()
 	if err != nil {
 		return err
 	}

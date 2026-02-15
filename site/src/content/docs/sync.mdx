@@ -3,54 +3,76 @@ title: Save sync
 description: Synchronize saves and state across devices
 ---
 
-:::caution[Work in progress]
-Save sync is under active development. The pairing protocol described here is
-the intended design and has not been implemented yet.
-:::
-
 ## Overview
 
-Kyaraben uses Syncthing to synchronize emulation state across devices. A
-bundled Syncthing instance handles the file transfer. You do not need to
-install Syncthing separately, create an account, or configure a cloud service.
+Kyaraben uses Syncthing to synchronize emulation data across devices. Syncthing
+is installed automatically when you enable sync. No accounts, cloud services,
+or port forwarding required.
 
-## Quick start
+Sync requires systemd. Service management uses `systemctl --user`.
 
-Pair two devices on your local network in under a minute:
+## Enabling sync
 
-**On your main PC or server (primary):**
+### Using the app
+
+1. Go to Settings > Sync
+2. Choose Primary or Secondary mode
+3. Click "Enable sync"
+
+**Primary**: the device where your ROM collection lives (typically a desktop or
+server). Sends ROMs and BIOS to secondaries.
+
+**Secondary**: receives ROMs from the primary and syncs saves bidirectionally
+(typically a Steam Deck or laptop).
+
+### Using the CLI
+
+Edit `~/.config/kyaraben/config.toml`:
+
+```toml
+[sync]
+enabled = true
+mode = "primary"  # or "secondary"
+```
+
+Then run `kyaraben apply` to install Syncthing.
+
+## Pairing devices
+
+### On the same network
+
+On the primary:
+
+1. Go to Settings > Sync
+2. Click "Start pairing"
+3. A 6-character code appears
+
+On the secondary:
+
+1. Go to Settings > Sync
+2. Enter the code from the primary
+3. Click "Join primary"
+
+The secondary discovers the primary automatically via mDNS. Pairing completes
+in seconds.
+
+### On different networks
+
+When devices are not on the same local network, exchange device IDs manually:
 
 ```
-$ kyaraben sync pair
-Pairing code: K7X9M2
-Waiting for devices... (expires in 5 minutes)
+# On each device, get the device ID
+$ kyaraben sync status
+Device ID: LGFPDIT7-SKNNJVJZ-A4FC7QNC-...
 
-✓ Paired with steamdeck-kyaraben
+# On each device, add the other device's ID
+$ kyaraben sync add-device <DEVICE-ID-FROM-OTHER-DEVICE>
 ```
 
-**On your Steam Deck or laptop (secondary):**
+Syncthing's relay servers handle connectivity. This works across any network
+but transfers are slower than a direct connection.
 
-```
-$ kyaraben sync pair K7X9M2
-Found: desktop-kyaraben (192.168.1.10)
-Pairing... done.
-
-Sync is now active. ROMs will download from the primary.
-Saves sync both ways automatically.
-```
-
-No accounts, no cloud, no 56-character IDs to copy.
-
-## Roles
-
-Each device operates as either `primary` or `secondary`:
-
-- A `primary` is where your ROM collection lives. It sends ROMs and BIOS files
-  to secondaries. Typically a media server or main PC.
-- A `secondary` receives ROMs and plays games. Saves sync back to the primary.
-  Typically a Steam Deck or laptop.
-
-## Sync direction
+## What syncs
 
 | Content        | Primary       | Secondary     |
 | -------------- | ------------- | ------------- |
@@ -60,166 +82,58 @@ Each device operates as either `primary` or `secondary`:
 | `states/`      | Bidirectional | Bidirectional |
 | `screenshots/` | Bidirectional | Bidirectional |
 
-ROMs and BIOS files flow one direction: from primary to secondaries. This
-prevents accidental deletion of your primary ROM collection from a secondary
-device.
+ROMs and BIOS flow one direction only, preventing accidental deletion of your
+primary collection from a secondary device.
 
-Saves and states sync both ways. Play on your Steam Deck, continue on your
-desktop.
+## Managing sync
 
-## Pairing devices
-
-### Using a pairing code (same network)
-
-Kyaraben uses mDNS to discover devices on your local network. A short pairing
-code confirms you're connecting the right devices.
-
-#### CLI
-
-On the primary:
+### Checking status
 
 ```
-$ kyaraben sync pair
-Pairing code: K7X9M2
-Waiting for devices... (expires in 5 minutes)
-```
-
-On the secondary:
-
-```
-$ kyaraben sync pair K7X9M2
-Found: desktop-kyaraben (192.168.1.10)
-Pairing... done.
-```
-
-#### App
-
-On the primary:
-
-1. Go to Settings > Sync
-2. Set role to "Primary" if not already set
-3. Click "Pair a device"
-4. The pairing code displays in large text, easy to read from across the room
-5. Wait for the secondary to connect
-
-On the secondary:
-
-1. Go to Settings > Sync
-2. Set role to "Secondary"
-3. Click "Join primary"
-4. Nearby primaries appear in a list (discovered via mDNS)
-5. Select your primary and enter the code
-6. Pairing completes automatically
-
-After pairing, the Sync settings page shows connected devices with their sync
-status.
-
-### Manual pairing (different networks)
-
-When devices are not on the same network, exchange device IDs manually:
-
-```
-# On primary, show this device's ID
 $ kyaraben sync status
-Device ID: LGFPDIT7-SKNNJVJZ-A4FC7QNC-RKCE753K-72BW5QD2-FOZ7FRFEP-57Q
 
-# On secondary, add the primary
-$ kyaraben sync add-device LGFPDIT7-SKNNJVJZ-A4FC7QNC-RKCE753K-72BW5QD2-FOZ7FRFEP-57Q
+Sync: enabled (primary)
+Device ID: LGFPDIT7-SKNNJVJZ-A4FC7QNC-...
 
-# Repeat in reverse: secondary shows its ID, primary adds it
+Paired devices:
+  steamdeck-kyaraben    connected
 ```
 
-Syncthing's global discovery and relay servers handle connectivity once device
-IDs are exchanged.
+### Removing a device
 
-## Pairing protocol
+In the app, click the trash icon next to the device. From the CLI:
 
-Kyaraben's pairing flow avoids the need to manually copy 56-character device
-IDs. Here's how it works:
+```
+$ kyaraben sync remove-device steamdeck-kyaraben
+```
 
-1. The primary generates a 6-character alphanumeric code
-2. The primary advertises via mDNS as `<code>._kyaraben._tcp.local` with TXT
-   records containing its Syncthing device ID and a pairing endpoint URL
-3. The secondary scans for `_kyaraben._tcp` services on the local network
-4. When the user enters a code, the secondary finds the matching advertisement
-5. The secondary connects to the primary's pairing endpoint and sends its own
-   device ID
-6. Both devices add each other to their Syncthing config
-7. The primary stops advertising and the code expires
+## Configuration
 
-The code expires after 5 minutes. An attacker on the same network can see the
-mDNS advertisement but cannot complete pairing without knowing the code. This
-provides a human-verified channel similar to Bluetooth pairing.
+Syncthing runs as a systemd user service with its own configuration, separate
+from any existing Syncthing installation.
 
-After pairing, Syncthing handles all further discovery and connectivity. If
-devices move to different networks, global discovery and relay servers maintain
-the connection.
+| Setting          | Default                              |
+| ---------------- | ------------------------------------ |
+| Config directory | `~/.local/state/kyaraben/syncthing/` |
+| Listen port      | 22100                                |
+| Discovery port   | 21127                                |
+| GUI port         | 8484                                 |
+| Relay servers    | Enabled                              |
+| Device name      | `<hostname>-kyaraben`                |
 
-## Troubleshooting
-
-### "No devices found" when pairing
-
-mDNS discovery requires both devices to be on the same local network. Some
-networks block mDNS traffic:
-
-- Guest WiFi networks often isolate clients from each other
-- Some routers have "AP isolation" enabled
-- Corporate networks may block multicast
-
-If discovery fails, use manual pairing with device IDs.
-
-### Pairing code rejected
-
-Codes expire after 5 minutes. If the code was rejected:
-
-1. Cancel pairing on the primary
-2. Start a new pairing session to get a fresh code
-3. Enter the new code on the secondary
-
-### Devices paired but not syncing
-
-After pairing, Syncthing needs a moment to establish the connection. Check
-`kyaraben sync status` to see connection state. If devices remain disconnected:
-
-- Verify both devices can reach each other (same network, no firewall blocking
-  ports 22001 and 21028)
-- Check that Syncthing is running: the status should show "running", not
-  "not running"
-- If on different networks, ensure relay servers are enabled in the config
-
-## Bundled Syncthing
-
-Kyaraben ships its own Syncthing instance with separate configuration to avoid
-conflicts with any existing Syncthing installation.
-
-| Setting          | Default                         |
-| ---------------- | ------------------------------- |
-| Config directory | `~/.config/kyaraben/syncthing/` |
-| Listen port      | 22001                           |
-| Discovery port   | 21028                           |
-| GUI port         | 8385                            |
-| Relay servers    | Enabled                         |
-| Device name      | `<hostname>-kyaraben`           |
-
-All ports are configurable in `config.toml`:
+Override ports in `~/.config/kyaraben/config.toml`:
 
 ```toml
 [sync.syncthing]
-listen_port = 22001
-discovery_port = 21028
-gui_port = 8385
+listen_port = 22100
+discovery_port = 21127
+gui_port = 8484
 relay_enabled = true
 ```
 
-## File versioning
+### Ignore patterns
 
-Syncthing keeps old versions of files in `saves/` and `states/` directories.
-Versions are kept for 30 days with staggered cleanup. This protects against
-accidental overwrites or corruption.
-
-## Ignore patterns
-
-Kyaraben configures Syncthing to ignore regenerable data:
+Kyaraben ignores regenerable data by default:
 
 ```
 **/shader_cache/**
@@ -229,12 +143,51 @@ Kyaraben configures Syncthing to ignore regenerable data:
 Thumbs.db
 ```
 
-Custom ignore patterns can be added in the config:
+Add custom patterns:
 
 ```toml
-[sync]
-ignore_patterns = [
+[sync.ignore]
+patterns = [
   "**/shader_cache/**",
   "**/logs/**",
 ]
+```
+
+### File versioning
+
+Syncthing keeps old versions of save and state files for 30 days. ROM and BIOS
+folders do not use versioning.
+
+## Troubleshooting
+
+### Pairing fails with "No devices found"
+
+mDNS discovery requires both devices on the same local network. Some networks
+block mDNS:
+
+- Guest WiFi networks isolate clients
+- Routers with "AP isolation" enabled
+- Corporate networks blocking multicast
+
+Use manual device ID exchange instead.
+
+### Pairing code rejected
+
+Codes expire after 5 minutes. Cancel pairing on the primary and start a new
+session.
+
+### Devices paired but not syncing
+
+1. Check `kyaraben sync status` shows "connected"
+2. Verify no firewall blocks ports 22100 (TCP) and 21127 (UDP)
+3. If on different networks, ensure relay servers are enabled
+
+### SteamOS firewall
+
+The Steam Deck may block Syncthing ports. Allow them:
+
+```
+$ sudo firewall-cmd --zone=public --add-port=22100/tcp --permanent
+$ sudo firewall-cmd --zone=public --add-port=21127/udp --permanent
+$ sudo firewall-cmd --reload
 ```

@@ -102,50 +102,6 @@ func TestConfigGenerator_GenerateFolders_Secondary(t *testing.T) {
 	}
 }
 
-func TestConfigGenerator_Devices(t *testing.T) {
-	cfg := model.SyncConfig{
-		Enabled: true,
-		Mode:    model.SyncModePrimary,
-		Devices: []model.SyncDevice{
-			{ID: "DEVICE-1", Name: "steamdeck"},
-			{ID: "DEVICE-2", Name: "laptop"},
-		},
-		Syncthing: model.SyncthingConfig{GUIPort: 8385},
-	}
-
-	fs := testutil.NewTestFS(t, nil)
-
-	gen := NewConfigGenerator(fs, cfg, "/tmp", nil)
-	gen.SetDeviceID("MY-DEVICE-ID")
-
-	xmlCfg, err := gen.Generate()
-	if err != nil {
-		t.Fatalf("Generate() error = %v", err)
-	}
-
-	if len(xmlCfg.Devices) != 3 {
-		t.Errorf("got %d devices, want 3 (self + 2 remotes)", len(xmlCfg.Devices))
-	}
-
-	var foundSteamdeck, foundAutoAccept bool
-	for _, dev := range xmlCfg.Devices {
-		if dev.Name == "steamdeck" {
-			foundSteamdeck = true
-			if !dev.AutoAcceptFolders {
-				t.Error("primary should auto-accept folders from paired devices")
-			}
-			foundAutoAccept = dev.AutoAcceptFolders
-		}
-	}
-
-	if !foundSteamdeck {
-		t.Error("steamdeck device not found")
-	}
-	if !foundAutoAccept {
-		t.Error("auto-accept not enabled for paired device on primary")
-	}
-}
-
 func TestConfigGenerator_Versioning(t *testing.T) {
 	cfg := model.SyncConfig{
 		Enabled:   true,
@@ -178,5 +134,80 @@ func TestConfigGenerator_Versioning(t *testing.T) {
 
 	if romsFolder.Versioning.Type != "" {
 		t.Errorf("roms folder should not have versioning, got %s", romsFolder.Versioning.Type)
+	}
+}
+
+func TestConfigGenerator_WriteConfig_WritesIgnoreFiles(t *testing.T) {
+	cfg := model.SyncConfig{
+		Enabled: true,
+		Mode:    model.SyncModePrimary,
+		Syncthing: model.SyncthingConfig{
+			ListenPort:    22001,
+			DiscoveryPort: 21028,
+			GUIPort:       8385,
+		},
+		Ignore: model.SyncIgnoreConfig{
+			Patterns: []string{
+				"**/shader_cache/**",
+				"**/cache/**",
+				"**/*.tmp",
+			},
+		},
+	}
+
+	fs := testutil.NewTestFS(t, nil)
+
+	gen := NewConfigGenerator(fs, cfg, "/emulation", []model.SystemID{"snes"})
+	gen.SetAPIKey("test-key")
+
+	if err := gen.WriteConfig("/config"); err != nil {
+		t.Fatalf("WriteConfig() error = %v", err)
+	}
+
+	ignoreFiles := []string{
+		"/emulation/roms/snes/.stignore",
+		"/emulation/saves/snes/.stignore",
+		"/emulation/states/snes/.stignore",
+		"/emulation/bios/snes/.stignore",
+		"/emulation/screenshots/.stignore",
+	}
+
+	for _, path := range ignoreFiles {
+		content, err := fs.ReadFile(path)
+		if err != nil {
+			t.Errorf("expected %s to exist: %v", path, err)
+			continue
+		}
+
+		expected := "**/shader_cache/**\n**/cache/**\n**/*.tmp\n"
+		if string(content) != expected {
+			t.Errorf("%s content = %q, want %q", path, string(content), expected)
+		}
+	}
+}
+
+func TestConfigGenerator_WriteConfig_NoIgnoreFilesWhenNoPatterns(t *testing.T) {
+	cfg := model.SyncConfig{
+		Enabled: true,
+		Mode:    model.SyncModePrimary,
+		Syncthing: model.SyncthingConfig{
+			ListenPort:    22001,
+			DiscoveryPort: 21028,
+			GUIPort:       8385,
+		},
+	}
+
+	fs := testutil.NewTestFS(t, nil)
+
+	gen := NewConfigGenerator(fs, cfg, "/emulation", []model.SystemID{"snes"})
+	gen.SetAPIKey("test-key")
+
+	if err := gen.WriteConfig("/config"); err != nil {
+		t.Fatalf("WriteConfig() error = %v", err)
+	}
+
+	ignorePath := "/emulation/roms/snes/.stignore"
+	if _, err := fs.ReadFile(ignorePath); err == nil {
+		t.Errorf("expected %s to not exist when no patterns configured", ignorePath)
 	}
 }

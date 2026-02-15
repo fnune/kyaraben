@@ -44,7 +44,7 @@ export default defineConfig({
         { label: "Getting started", slug: "getting-started" },
         { label: "App reference", slug: "using-the-app" },
         { label: "CLI reference", slug: "using-the-cli" },
-        { label: "Save sync", slug: "sync" },
+        { label: "Sync", slug: "sync" },
         { label: "Contributing", slug: "contributing" },
       ],
     }),

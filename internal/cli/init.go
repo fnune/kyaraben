@@ -27,7 +27,17 @@ func (cmd *InitCmd) Run(ctx *Context) error {
 	cfg := model.NewDefaultConfig()
 	cfg.Global.UserStore = cmd.UserStore
 
-	if err := model.SaveConfig(cfg, configPath); err != nil {
+	if ctx.Paths.Instance != "" {
+		if cmd.UserStore == "~/Emulation" {
+			cfg.Global.UserStore = "~/Emulation-" + ctx.Paths.Instance
+		}
+		offset := ctx.Paths.InstancePortOffset()
+		cfg.Sync.Syncthing.ListenPort = 22100 + offset
+		cfg.Sync.Syncthing.DiscoveryPort = 21127 + offset
+		cfg.Sync.Syncthing.GUIPort = 8484 + offset
+	}
+
+	if err := ctx.SaveConfig(cfg, configPath); err != nil {
 		return err
 	}
 

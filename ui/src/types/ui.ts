@@ -44,7 +44,14 @@ export interface ProgressStep {
   readonly bytesPerSecond?: number
 }
 
-export type ApplyStatus = 'idle' | 'reviewing' | 'applying' | 'success' | 'error' | 'cancelled'
+export type ApplyStatus =
+  | 'idle'
+  | 'reviewing'
+  | 'confirming_sync'
+  | 'applying'
+  | 'success'
+  | 'error'
+  | 'cancelled'
 
 export interface ApplyState {
   readonly status: ApplyStatus
