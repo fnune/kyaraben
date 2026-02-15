@@ -28,6 +28,15 @@ linters:
         - pattern: 'packages\.NewDefaultPackageInstaller'
           pkg: github.com/fnune/kyaraben/internal/packages
           msg: "use packages.NewPackageInstaller(fs, ...) in tests"
+        - pattern: 'sync\.NewDefaultSystemdUnit'
+          pkg: github.com/fnune/kyaraben/internal/sync
+          msg: "use sync.NewSystemdUnit(fs, paths, service) in tests"
+        - pattern: 'sync\.NewDefaultSetup'
+          pkg: github.com/fnune/kyaraben/internal/sync
+          msg: "use sync.NewSetup(fs, paths, installer, stateDir, service) in tests"
+        - pattern: 'sync\.NewDefaultServiceManager'
+          pkg: github.com/fnune/kyaraben/internal/sync
+          msg: "use sync.NewFakeServiceManager() in tests"
       analyze-types: true
 
   exclusions:
