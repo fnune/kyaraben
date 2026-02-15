@@ -204,7 +204,7 @@ func isValidDeviceID(id string) bool {
 }
 
 type SyncPairCmd struct {
-	Code string `arg:"" optional:"" help:"Pairing code from the primary device. Omit to start as primary."`
+	PrimaryDeviceID string `arg:"" optional:"" help:"Device ID from the primary device. Omit to start as primary."`
 }
 
 func (cmd *SyncPairCmd) Run(cliCtx *Context) error {
@@ -229,21 +229,20 @@ func (cmd *SyncPairCmd) Run(cliCtx *Context) error {
 		fmt.Println(msg)
 	}
 
-	if cmd.Code == "" {
+	if cmd.PrimaryDeviceID == "" {
 		return cmd.runPrimary(ctx, cfg, configPath, client, progress, cliCtx.SaveConfig)
 	}
-	return cmd.runSecondary(ctx, cfg, configPath, client, strings.ToUpper(strings.TrimSpace(cmd.Code)), progress, cliCtx.SaveConfig)
+	return cmd.runSecondary(ctx, cfg, configPath, client, strings.ToUpper(strings.TrimSpace(cmd.PrimaryDeviceID)), progress, cliCtx.SaveConfig)
 }
 
 func (cmd *SyncPairCmd) runPrimary(ctx context.Context, cfg *model.KyarabenConfig, configPath string, client *sync.Client, progress func(string), saveConfig func(*model.KyarabenConfig, string) error) error {
 	flow := sync.NewPrimaryPairingFlow(sync.PairingFlowConfig{
 		SyncConfig: cfg.Sync,
-		Advertiser: sync.NewMDNSAdvertiser(),
 		Client:     client,
 		OnProgress: progress,
 	})
 
-	result, _, err := flow.Run(ctx)
+	result, err := flow.Run(ctx)
 	if err != nil {
 		return fmt.Errorf("pairing: %w", err)
 	}
@@ -253,15 +252,14 @@ func (cmd *SyncPairCmd) runPrimary(ctx context.Context, cfg *model.KyarabenConfi
 	return nil
 }
 
-func (cmd *SyncPairCmd) runSecondary(ctx context.Context, cfg *model.KyarabenConfig, configPath string, client *sync.Client, code string, progress func(string), saveConfig func(*model.KyarabenConfig, string) error) error {
+func (cmd *SyncPairCmd) runSecondary(ctx context.Context, cfg *model.KyarabenConfig, configPath string, client *sync.Client, primaryDeviceID string, progress func(string), saveConfig func(*model.KyarabenConfig, string) error) error {
 	flow := sync.NewSecondaryPairingFlow(sync.PairingFlowConfig{
 		SyncConfig: cfg.Sync,
-		Browser:    sync.NewMDNSBrowser(),
 		Client:     client,
 		OnProgress: progress,
 	})
 
-	result, err := flow.Run(ctx, code)
+	result, err := flow.Run(ctx, primaryDeviceID)
 	if err != nil {
 		return fmt.Errorf("pairing: %w", err)
 	}

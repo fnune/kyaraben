@@ -80,7 +80,9 @@ export function Sidebar({ currentView, onNavigate, syncStatus }: SidebarProps) {
       </nav>
 
       <div className="flex items-center justify-between p-4 min-[720px]:border-t border-l min-[720px]:border-l-0 border-outline">
-        <span className="text-xs text-on-surface-dim font-mono">v0.1.0</span>
+        <span className="text-xs text-on-surface-dim font-mono">
+          v0.1.0{__DEV_BUILD_TIME__ && ` (${__DEV_BUILD_TIME__})`}
+        </span>
         <button
           type="button"
           onClick={() => onNavigate(VIEW_INSTALLATION)}

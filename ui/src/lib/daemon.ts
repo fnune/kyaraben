@@ -8,6 +8,7 @@ import type {
   PreflightResponse,
   SetConfigRequest,
   StatusResponse,
+  SyncDiscoveredDevicesResponse,
   SyncEnableRequest,
   SyncEnableResponse,
   SyncJoinPrimaryRequest,
@@ -71,7 +72,7 @@ export const getSyncStatus = () => invoke<SyncStatusResponse>('sync_status')
 export const removeSyncDevice = (req: SyncRemoveDeviceRequest) =>
   invoke<SyncRemoveDeviceResponse>('sync_remove_device', req)
 
-export const startSyncPairing = () => invoke<{ code: string }>('sync_start_pairing')
+export const startSyncPairing = () => invoke<{ deviceId: string }>('sync_start_pairing')
 
 export const joinSyncPrimary = (req: SyncJoinPrimaryRequest) =>
   invoke<SyncJoinPrimaryResponse>('sync_join_primary', req)
@@ -89,6 +90,9 @@ export const getSyncLocalChanges = (req: SyncLocalChangesRequest) =>
   invoke<SyncLocalChangesResponse>('sync_local_changes', req)
 
 export const resetSync = () => invoke<SyncResetResponse>('sync_reset')
+
+export const getDiscoveredDevices = () =>
+  invoke<SyncDiscoveredDevicesResponse>('sync_discovered_devices')
 
 export const getUninstallPreview = () => invoke<UninstallPreviewResponse>('uninstall_preview')
 
