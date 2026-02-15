@@ -246,10 +246,6 @@ func (d *Daemon) handleStatus() []Event {
 					if emuDef.PathUsage.UsesScreenshotsDir {
 						paths.Screenshots = shortenPath(userStore.EmulatorScreenshotsDir(emu.ID))
 					}
-					if emuDef.PathUsage.OpaqueContents != "" {
-						paths.Opaque = shortenPath(userStore.EmulatorOpaqueDir(emu.ID))
-						paths.OpaqueContents = emuDef.PathUsage.OpaqueContents
-					}
 					installed.Paths[string(sysID)] = paths
 					break
 				}
