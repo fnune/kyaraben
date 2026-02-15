@@ -137,7 +137,7 @@ test.describe('Config conflict review', () => {
     await page.getByRole('button', { name: 'Continue and override' }).click()
 
     await expect(
-      page.getByText(/Applying configuration|Installing emulators|Setting up/).first(),
+      page.getByText(/Installing|Applying configuration|Setting up/).first(),
     ).toBeVisible({ timeout: 5000 })
 
     await expect(page.getByRole('button', { name: 'Done' })).toBeVisible({ timeout: 30000 })

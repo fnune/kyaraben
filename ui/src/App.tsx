@@ -11,7 +11,7 @@ import { BottomBarSlot, BottomBarSlotProvider } from '@/lib/BottomBarSlot'
 import * as daemon from '@/lib/daemon'
 import { useOnWindowFocus } from '@/lib/hooks/useOnWindowFocus'
 import { useUpdateChecker } from '@/lib/hooks/useUpdateChecker'
-import { getNewlyFoundProvisions, type FoundProvision } from '@/lib/provisions'
+import { type FoundProvision, getNewlyFoundProvisions } from '@/lib/provisions'
 import { Spinner } from '@/lib/Spinner'
 import { ToastProvider, useToast } from '@/lib/ToastContext'
 import type {
@@ -302,7 +302,7 @@ function AppContent() {
       }
     }
     lastApplyStatus.current = applyStatus
-  }, [applyStatus, currentView, setCurrentView, showToast])
+  }, [applyStatus, currentView, showToast])
 
   useOnWindowFocus(async () => {
     const result = await daemon.runDoctor()

@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.react.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "module": "ESNext",
+    "moduleResolution": "bundler"
+  },
+  "include": ["e2e/**/*.ts"]
+}
