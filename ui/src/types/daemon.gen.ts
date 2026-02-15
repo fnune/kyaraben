@@ -171,6 +171,8 @@ export interface SyncStatusResponse {
   enabled: boolean;
   mode?: string;
   running?: boolean;
+  installed?: boolean;
+  serviceInstalled?: boolean;
   deviceId?: string;
   guiURL?: string;
   state?: SyncState;
