@@ -125,4 +125,4 @@ jobs:
           cd ui
           KYARABEN_APPIMAGE="$(pwd)/release/app/kyaraben-ui" \
           APPDIR="$(pwd)/release/app" \
-          ../scripts/run-ui-e2e.sh npx playwright test
+          xvfb-run --auto-servernum ../scripts/run-ui-e2e.sh npx playwright test
