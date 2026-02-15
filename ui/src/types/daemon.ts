@@ -75,7 +75,6 @@ export {
   SyncStateDisabled,
   SyncStateDisconnected,
   SyncStateError,
-  SyncStatePaused,
   SyncStateSynced,
   SyncStateSyncing,
 } from './daemon.gen'

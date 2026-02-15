@@ -15,7 +15,6 @@ type Status struct {
 	Devices   []DeviceStatus
 	Folders   []FolderStatusSummary
 	Conflicts []Conflict
-	Paused    bool
 }
 
 type DeviceStatus struct {
@@ -57,18 +56,21 @@ func (c *Client) GetStatus(ctx context.Context) (*Status, error) {
 		return nil, fmt.Errorf("getting connections: %w", err)
 	}
 
+	configuredDevices, err := c.GetConfiguredDevices(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("getting configured devices: %w", err)
+	}
+
 	var devices []DeviceStatus
-	for _, dev := range c.config.Devices {
+	for _, dev := range configuredDevices {
 		conn, ok := connections[dev.ID]
 		devices = append(devices, DeviceStatus{
 			ID:        dev.ID,
 			Name:      dev.Name,
 			Connected: ok && conn.Connected,
-			Paused:    ok && conn.Paused,
+			Paused:    dev.Paused || (ok && conn.Paused),
 		})
 	}
-
-	paused, _ := c.IsPaused(ctx)
 
 	var folders []FolderStatusSummary
 	if folderConfigs, err := c.GetFolderConfigs(ctx); err == nil {
@@ -96,7 +98,6 @@ func (c *Client) GetStatus(ctx context.Context) (*Status, error) {
 		GUIURL:   fmt.Sprintf("http://127.0.0.1:%d", c.config.Syncthing.GUIPort),
 		Devices:  devices,
 		Folders:  folders,
-		Paused:   paused,
 	}
 
 	return status, nil
@@ -108,7 +109,6 @@ const (
 	SyncStateDisabled     OverallSyncState = "disabled"
 	SyncStateSynced       OverallSyncState = "synced"
 	SyncStateSyncing      OverallSyncState = "syncing"
-	SyncStatePaused       OverallSyncState = "paused"
 	SyncStateDisconnected OverallSyncState = "disconnected"
 	SyncStateConflict     OverallSyncState = "conflict"
 	SyncStateError        OverallSyncState = "error"
@@ -121,10 +121,6 @@ func (s *Status) OverallState() OverallSyncState {
 
 	if len(s.Conflicts) > 0 {
 		return SyncStateConflict
-	}
-
-	if s.Paused {
-		return SyncStatePaused
 	}
 
 	if len(s.Devices) == 0 {

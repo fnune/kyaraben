@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/twpayne/go-vfs/v5"
 
@@ -234,14 +235,14 @@ func (g *ConfigGenerator) generateDevices() []XMLDevice {
 		})
 	}
 
-	isPrimary := g.syncConfig.Mode == model.SyncModePrimary
+	isSecondary := g.syncConfig.Mode == model.SyncModeSecondary
 
 	for _, dev := range g.syncConfig.Devices {
 		devices = append(devices, XMLDevice{
 			ID:                dev.ID,
 			Name:              dev.Name,
 			Compression:       "metadata",
-			AutoAcceptFolders: isPrimary,
+			AutoAcceptFolders: isSecondary,
 		})
 	}
 
@@ -297,5 +298,37 @@ func (g *ConfigGenerator) WriteConfig(configDir string) error {
 	}
 
 	log.Info("Wrote syncthing config to %s", configPath)
+
+	if err := g.writeIgnoreFiles(config.Folders); err != nil {
+		return fmt.Errorf("writing ignore files: %w", err)
+	}
+
+	return nil
+}
+
+func (g *ConfigGenerator) writeIgnoreFiles(folders []XMLFolder) error {
+	if len(g.syncConfig.Ignore.Patterns) == 0 {
+		return nil
+	}
+
+	var content strings.Builder
+	for _, pattern := range g.syncConfig.Ignore.Patterns {
+		content.WriteString(pattern)
+		content.WriteString("\n")
+	}
+	ignoreContent := []byte(content.String())
+
+	for _, folder := range folders {
+		if err := vfs.MkdirAll(g.fs, folder.Path, 0755); err != nil {
+			return fmt.Errorf("creating folder %s: %w", folder.Path, err)
+		}
+
+		ignorePath := filepath.Join(folder.Path, ".stignore")
+		if err := g.fs.WriteFile(ignorePath, ignoreContent, 0644); err != nil {
+			return fmt.Errorf("writing %s: %w", ignorePath, err)
+		}
+	}
+
+	log.Info("Wrote .stignore files to %d folders", len(folders))
 	return nil
 }

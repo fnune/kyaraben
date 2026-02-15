@@ -5,7 +5,6 @@ import {
   SyncStateDisabled,
   SyncStateDisconnected,
   SyncStateError,
-  SyncStatePaused,
   SyncStateSynced,
   SyncStateSyncing,
 } from '@/types/daemon'
@@ -28,7 +27,6 @@ const syncDotColors: Record<SyncState, string> = {
   [SyncStateDisabled]: 'bg-on-surface-faint',
   [SyncStateSynced]: 'bg-status-ok',
   [SyncStateSyncing]: 'bg-accent animate-pulse',
-  [SyncStatePaused]: 'bg-status-warning',
   [SyncStateDisconnected]: 'bg-outline',
   [SyncStateConflict]: 'bg-status-warning',
   [SyncStateError]: 'bg-status-error',

@@ -15,14 +15,15 @@ type FakeClient struct {
 	addedPeers  []model.SyncDevice
 	removedIDs  []string
 	sharedWith  []string
-	paused      bool
 	config      model.SyncConfig
+	folders     map[string]FolderStatusSummary
 }
 
 func NewFakeClient(config model.SyncConfig) *FakeClient {
 	return &FakeClient{
 		running:     true,
 		connections: make(map[string]ConnectionInfo),
+		folders:     make(map[string]FolderStatusSummary),
 		config:      config,
 	}
 }
@@ -69,10 +70,19 @@ func (c *FakeClient) SharedWith() []string {
 	return result
 }
 
-func (c *FakeClient) IsPaused() bool {
+func (c *FakeClient) SetFolderStatus(id string, status FolderStatusSummary) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return c.paused
+	c.folders[id] = status
+}
+
+func (c *FakeClient) SetFolders(folders []FolderStatusSummary) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.folders = make(map[string]FolderStatusSummary)
+	for _, f := range folders {
+		c.folders[f.ID] = f
+	}
 }
 
 func (c *FakeClient) IsRunning(_ context.Context) bool {
@@ -97,34 +107,69 @@ func (c *FakeClient) GetConnections(_ context.Context) (map[string]ConnectionInf
 	return result, nil
 }
 
-func (c *FakeClient) GetFolderStatus(_ context.Context, _ string) (*FolderStatus, error) {
+func (c *FakeClient) GetConfiguredDevices(_ context.Context) ([]ConfiguredDevice, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	var result []ConfiguredDevice
+	for _, dev := range c.config.Devices {
+		result = append(result, ConfiguredDevice{
+			ID:   dev.ID,
+			Name: dev.Name,
+		})
+	}
+	for _, dev := range c.addedPeers {
+		result = append(result, ConfiguredDevice{
+			ID:   dev.ID,
+			Name: dev.Name,
+		})
+	}
+	return result, nil
+}
+
+func (c *FakeClient) GetFolderStatus(_ context.Context, folderID string) (*FolderStatus, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if summary, ok := c.folders[folderID]; ok {
+		return &FolderStatus{
+			State:       summary.State,
+			GlobalBytes: summary.GlobalSize,
+			LocalBytes:  summary.LocalSize,
+			NeedBytes:   summary.NeedSize,
+		}, nil
+	}
 	return &FolderStatus{State: "idle"}, nil
 }
 
 func (c *FakeClient) GetStatus(_ context.Context) (*Status, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	allDevices := make([]model.SyncDevice, 0, len(c.config.Devices)+len(c.addedPeers))
+	allDevices = append(allDevices, c.config.Devices...)
+	allDevices = append(allDevices, c.addedPeers...)
+
 	var devices []DeviceStatus
-	allPaused := len(c.config.Devices) > 0
-	for _, dev := range c.config.Devices {
+	for _, dev := range allDevices {
 		conn, ok := c.connections[dev.ID]
-		paused := ok && conn.Paused
-		if !paused {
-			allPaused = false
-		}
 		devices = append(devices, DeviceStatus{
 			ID:        dev.ID,
 			Name:      dev.Name,
 			Connected: ok && conn.Connected,
-			Paused:    paused,
+			Paused:    ok && conn.Paused,
 		})
 	}
+
+	var folders []FolderStatusSummary
+	for _, f := range c.folders {
+		folders = append(folders, f)
+	}
+
 	return &Status{
 		Enabled:  c.config.Enabled,
 		Mode:     c.config.Mode,
 		DeviceID: c.deviceID,
 		Devices:  devices,
-		Paused:   allPaused || c.paused,
+		Folders:  folders,
 	}, nil
 }
 
@@ -146,20 +191,6 @@ func (c *FakeClient) ShareFoldersWithDevice(_ context.Context, deviceID string) 
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.sharedWith = append(c.sharedWith, deviceID)
-	return nil
-}
-
-func (c *FakeClient) PauseSync(_ context.Context) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.paused = true
-	return nil
-}
-
-func (c *FakeClient) ResumeSync(_ context.Context) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.paused = false
 	return nil
 }
 
