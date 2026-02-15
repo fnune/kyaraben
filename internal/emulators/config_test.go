@@ -1037,22 +1037,29 @@ func TestDuckStationControllerConfig(t *testing.T) {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	patch := result.Patches[0]
-	keys := collectKeys(patch.Entries)
+	if len(result.OwnedFiles) != 1 {
+		t.Fatalf("expected 1 owned file (profile), got %d", len(result.OwnedFiles))
+	}
 
+	profile := result.OwnedFiles[0]
+	if profile.Target != duckstation.ProfileTarget {
+		t.Errorf("expected profile target %v, got %v", duckstation.ProfileTarget, profile.Target)
+	}
+
+	keys := collectKeys(profile.Entries)
 	for _, key := range []string{"Cross", "Circle", "Square", "Triangle", "L1", "R1", "Start", "Select"} {
 		if !keys[key] {
-			t.Errorf("missing pad key %q", key)
+			t.Errorf("missing pad key %q in profile", key)
 		}
 	}
 	for _, key := range []string{"SaveSelectedSaveState", "LoadSelectedSaveState", "ToggleFastForward"} {
 		if !keys[key] {
-			t.Errorf("missing hotkey %q", key)
+			t.Errorf("missing hotkey %q in profile", key)
 		}
 	}
 
 	foundPad1Cross := false
-	for _, entry := range patch.Entries {
+	for _, entry := range profile.Entries {
 		if entry.Key() == "Cross" && strings.Contains(strings.Join(entry.Path, "."), "Pad1") {
 			foundPad1Cross = true
 			if !strings.HasPrefix(entry.Value, "SDL-0/") {
@@ -1061,7 +1068,21 @@ func TestDuckStationControllerConfig(t *testing.T) {
 		}
 	}
 	if !foundPad1Cross {
-		t.Error("Pad1.Cross entry not found")
+		t.Error("Pad1.Cross entry not found in profile")
+	}
+
+	patch := result.Patches[0]
+	foundProfileSelector := false
+	for _, entry := range patch.Entries {
+		if entry.Key() == "InputProfileName" {
+			foundProfileSelector = true
+			if !entry.Unmanaged {
+				t.Error("InputProfileName should be unmanaged")
+			}
+		}
+	}
+	if !foundProfileSelector {
+		t.Error("main config should reference profile by name")
 	}
 }
 
@@ -1416,11 +1437,31 @@ func TestAzaharControllerConfig(t *testing.T) {
 	}
 
 	patch := result.Patches[0]
+
+	if len(patch.OwnedRegions) != 1 {
+		t.Fatalf("expected 1 owned region, got %d", len(patch.OwnedRegions))
+	}
+	region := patch.OwnedRegions[0]
+	if region.Section != "Controls" {
+		t.Errorf("owned region section = %q, want %q", region.Section, "Controls")
+	}
+	if region.KeyPrefix != `profiles\1\` {
+		t.Errorf("owned region prefix = %q, want %q", region.KeyPrefix, `profiles\1\`)
+	}
+
 	foundProfile := false
 	foundButtonA := false
 	for _, entry := range patch.Entries {
 		if entry.Key() == "profile" {
 			foundProfile = true
+			if !entry.Unmanaged {
+				t.Error("profile entry should be unmanaged")
+			}
+		}
+		if entry.Key() == `profiles\size` {
+			if !entry.Unmanaged {
+				t.Error("profiles\\size entry should be unmanaged")
+			}
 		}
 		if strings.Contains(entry.Key(), "button_a") && strings.Contains(entry.Value, model.SteamDeckGUID) {
 			foundButtonA = true
@@ -1468,8 +1509,8 @@ func TestAzaharControllerBindingValues(t *testing.T) {
 		if got := entryMap["profiles\\size"]; got != "1" {
 			t.Errorf("profiles\\size = %q, want %q", got, "1")
 		}
-		if got := entryMap["profiles\\1\\name"]; got != "default" {
-			t.Errorf("profiles\\1\\name = %q, want %q", got, "default")
+		if got := entryMap["profiles\\1\\name"]; got != "kyaraben-steamdeck" {
+			t.Errorf("profiles\\1\\name = %q, want %q", got, "kyaraben-steamdeck")
 		}
 
 		// Standard layout: a=east=B(1), b=south=A(0), x=north=Y(3), y=west=X(2)
@@ -1691,8 +1732,8 @@ func TestNintendoLayoutSwapsFaceButtons(t *testing.T) {
 		return ""
 	}
 
-	stdCross := findPad1Value(standardResult.Patches[0].Entries, "Cross")
-	ninCross := findPad1Value(nintendoResult.Patches[0].Entries, "Cross")
+	stdCross := findPad1Value(standardResult.OwnedFiles[0].Entries, "Cross")
+	ninCross := findPad1Value(nintendoResult.OwnedFiles[0].Entries, "Cross")
 
 	if stdCross == ninCross {
 		t.Errorf("Nintendo layout should produce different Cross mapping, both got %s", stdCross)
@@ -1711,9 +1752,13 @@ func TestNoControllerConfigWhenNil(t *testing.T) {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
+	if len(result.OwnedFiles) != 0 {
+		t.Error("should not have owned files when ControllerConfig is nil")
+	}
+
 	patch := result.Patches[0]
 	keys := collectKeys(patch.Entries)
-	if keys["Cross"] || keys["Circle"] {
+	if keys["Cross"] || keys["Circle"] || keys["InputProfileName"] {
 		t.Error("controller entries should not be present when ControllerConfig is nil")
 	}
 }
