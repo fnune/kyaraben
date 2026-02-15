@@ -714,7 +714,7 @@ func (a *Applier) buildPackageSizes(plan installPlan) (map[string]int64, map[str
 }
 
 func packageDownloadSize(pkgName string, targetName string, v *versions.Versions, installer packages.Installer) int64 {
-	spec, ok := v.GetEmulator(pkgName)
+	spec, ok := v.GetPackage(pkgName)
 	if !ok {
 		return 0
 	}
@@ -766,7 +766,7 @@ func coreDownloadSize(coreNames []string, targetName string, v *versions.Version
 }
 
 func packageArchiveType(pkgName string, targetName string, v *versions.Versions, installer packages.Installer) string {
-	spec, ok := v.GetEmulator(pkgName)
+	spec, ok := v.GetPackage(pkgName)
 	if !ok {
 		return ""
 	}
@@ -1113,7 +1113,7 @@ func (a *Applier) installIconForPackage(ctx context.Context, pkgName, binaryName
 		log.Debug("Failed to get versions for icon: %v", err)
 		return nil, nil
 	}
-	spec, ok := v.GetEmulator(pkgName)
+	spec, ok := v.GetPackage(pkgName)
 	if !ok {
 		log.Debug("No version spec found for package %s", pkgName)
 		return nil, nil

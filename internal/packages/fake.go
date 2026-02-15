@@ -182,7 +182,7 @@ func (f *FakeInstaller) ResolveVersion(name string) string {
 	if name == "retroarch-cores" {
 		return versions.MustGet().RetroArchCores.Default
 	}
-	if spec, ok := versions.MustGet().GetEmulator(name); ok {
+	if spec, ok := versions.MustGet().GetPackage(name); ok {
 		if entry := spec.GetDefault(); entry != nil {
 			return entry.Version
 		}

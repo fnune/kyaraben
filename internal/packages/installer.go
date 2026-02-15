@@ -92,10 +92,10 @@ func (i *PackageInstaller) PackagesDir() string {
 	return i.packagesDir
 }
 
-func (i *PackageInstaller) resolveSpec(name string) (*versions.VersionEntry, *versions.EmulatorSpec, error) {
+func (i *PackageInstaller) resolveSpec(name string) (*versions.VersionEntry, *versions.PackageSpec, error) {
 	v := versions.MustGet()
 
-	spec, ok := v.GetEmulator(name)
+	spec, ok := v.GetPackage(name)
 	if !ok {
 		return nil, nil, fmt.Errorf("unknown package: %s", name)
 	}
