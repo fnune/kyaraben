@@ -56,7 +56,7 @@ func (h *xmlHandler) readXMLElement(elem *etree.Element, path []string, result m
 	}
 }
 
-func (h *xmlHandler) Apply(path string, entries []model.ConfigEntry, _ []model.OwnedRegion) (ApplyResult, error) {
+func (h *xmlHandler) Apply(path string, entries []model.ConfigEntry, _ []model.ManagedRegion) (ApplyResult, error) {
 	if err := vfs.MkdirAll(h.fs, filepath.Dir(path), 0755); err != nil {
 		return ApplyResult{}, fmt.Errorf("creating config directory: %w", err)
 	}
@@ -69,7 +69,7 @@ func (h *xmlHandler) Apply(path string, entries []model.ConfigEntry, _ []model.O
 	}
 
 	for _, entry := range entries {
-		if entry.Unmanaged && hasXMLValue(doc, entry.Path) {
+		if entry.DefaultOnly && hasXMLValue(doc, entry.Path) {
 			continue
 		}
 		setXMLValue(doc, entry.Path, entry.Value)

@@ -360,7 +360,7 @@ func TestRawHandler_Apply(t *testing.T) {
 	}
 }
 
-func TestRawHandler_ApplyUnmanaged(t *testing.T) {
+func TestRawHandler_ApplyDefaultOnly(t *testing.T) {
 	t.Parallel()
 
 	fs := testutil.NewTestFS(t, map[string]any{
@@ -369,7 +369,7 @@ func TestRawHandler_ApplyUnmanaged(t *testing.T) {
 
 	handler := NewHandler(fs, model.ConfigFormatRaw)
 	entries := []model.ConfigEntry{
-		{Value: "new content", Unmanaged: true},
+		{Value: "new content", DefaultOnly: true},
 	}
 
 	_, err := handler.Apply("/config/existing.raw", entries, nil)
@@ -387,7 +387,7 @@ func TestRawHandler_ApplyUnmanaged(t *testing.T) {
 	}
 }
 
-func TestRawHandler_ApplyUnmanagedCreatesIfMissing(t *testing.T) {
+func TestRawHandler_ApplyDefaultOnlyCreatesIfMissing(t *testing.T) {
 	t.Parallel()
 
 	fs := testutil.NewTestFS(t, map[string]any{
@@ -396,7 +396,7 @@ func TestRawHandler_ApplyUnmanagedCreatesIfMissing(t *testing.T) {
 
 	handler := NewHandler(fs, model.ConfigFormatRaw)
 	entries := []model.ConfigEntry{
-		{Value: "new content", Unmanaged: true},
+		{Value: "new content", DefaultOnly: true},
 	}
 
 	_, err := handler.Apply("/config/new.raw", entries, nil)

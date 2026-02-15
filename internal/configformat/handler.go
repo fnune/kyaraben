@@ -18,7 +18,7 @@ type ApplyResult struct {
 
 type Handler interface {
 	Read(path string) (map[string]map[string]string, error)
-	Apply(path string, entries []model.ConfigEntry, ownedRegions []model.OwnedRegion) (ApplyResult, error)
+	Apply(path string, entries []model.ConfigEntry, managedRegions []model.ManagedRegion) (ApplyResult, error)
 }
 
 func GetHandler(format model.ConfigFormat) Handler {
@@ -56,20 +56,24 @@ func snapshotSections(sections map[string]map[string]string) map[string]map[stri
 	return snap
 }
 
-func deleteOwnedKeys(sections map[string]map[string]string, regions []model.OwnedRegion) {
+func deleteManagedKeys(sections map[string]map[string]string, regions []model.ManagedRegion) {
 	for _, region := range regions {
-		sectionMap, ok := sections[region.Section]
+		sr, ok := region.(model.SectionRegion)
 		if !ok {
 			continue
 		}
-		if region.KeyPrefix == "" {
+		sectionMap, exists := sections[sr.Section]
+		if !exists {
+			continue
+		}
+		if sr.KeyPrefix == "" {
 			for k := range sectionMap {
 				delete(sectionMap, k)
 			}
 			continue
 		}
 		for k := range sectionMap {
-			if strings.HasPrefix(k, region.KeyPrefix) {
+			if strings.HasPrefix(k, sr.KeyPrefix) {
 				delete(sectionMap, k)
 			}
 		}

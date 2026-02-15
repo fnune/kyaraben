@@ -1,6 +1,6 @@
 import { FolderIcon } from '@/lib/icons'
 import { Modal } from '@/lib/Modal'
-import type { EmulatorPaths, ManagedConfigInfo } from '@/types/daemon'
+import type { EmulatorPaths, ManagedConfigInfo, ManagedRegionInfo } from '@/types/daemon'
 
 export interface PathsModalProps {
   readonly open: boolean
@@ -8,6 +8,16 @@ export interface PathsModalProps {
   readonly emulatorName: string
   readonly paths: EmulatorPaths
   readonly managedConfigs?: readonly ManagedConfigInfo[]
+}
+
+function formatRegion(region: ManagedRegionInfo): string {
+  if (region.type === 'file') {
+    return 'entire file'
+  }
+  if (region.keyPrefix) {
+    return `[${region.section}] ${region.keyPrefix}*`
+  }
+  return `[${region.section}]`
 }
 
 export function PathsModal({
@@ -59,21 +69,24 @@ export function PathsModal({
             <p className="text-xs text-on-surface-dim mb-2">
               These settings are controlled by kyaraben. Changing them may cause issues.
             </p>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {managedConfigs.map((config) => (
                 <div key={config.path}>
-                  <code className="block text-xs text-on-surface-dim mb-1 truncate">
+                  <code className="block text-xs text-on-surface-dim truncate">
                     {config.path}
                   </code>
-                  <div className="bg-surface-raised rounded-sm px-2 py-1.5 space-y-0.5">
-                    {config.keys.map((key) => (
-                      <div key={key.key} className="flex text-xs gap-2">
-                        <span className="text-on-surface-muted shrink-0">{key.key}</span>
-                        <span className="text-on-surface-dim">=</span>
-                        <span className="text-on-surface-secondary truncate">{key.value}</span>
-                      </div>
-                    ))}
-                  </div>
+                  {config.managedRegions && config.managedRegions.length > 0 && (
+                    <div className="mt-0.5 ml-2 space-y-0.5">
+                      {config.managedRegions.map((region, i) => (
+                        <code
+                          key={`${config.path}-${region.type}-${region.section ?? ''}-${i}`}
+                          className="block text-xs text-on-surface-dim/70"
+                        >
+                          {formatRegion(region)}
+                        </code>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

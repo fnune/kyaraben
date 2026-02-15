@@ -819,7 +819,7 @@ func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
 				BaseDir: model.ConfigBaseDirUserConfig,
 			},
 			Entries: []model.ConfigEntry{
-				{Path: []string{"menu_driver"}, Value: "rgui", Unmanaged: true},
+				{Path: []string{"menu_driver"}, Value: "rgui", DefaultOnly: true},
 				{Path: []string{"system_directory"}, Value: "/bios"},
 			},
 		}
@@ -854,7 +854,7 @@ func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
 				BaseDir: model.ConfigBaseDirUserConfig,
 			},
 			Entries: []model.ConfigEntry{
-				{Path: []string{"menu_driver"}, Value: "rgui", Unmanaged: true},
+				{Path: []string{"menu_driver"}, Value: "rgui", DefaultOnly: true},
 			},
 		}
 
@@ -885,7 +885,7 @@ func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
 				BaseDir: model.ConfigBaseDirUserConfig,
 			},
 			Entries: []model.ConfigEntry{
-				{Path: []string{"Section", "key"}, Value: "new", Unmanaged: true},
+				{Path: []string{"Section", "key"}, Value: "new", DefaultOnly: true},
 				{Path: []string{"Section", "other"}, Value: "value"},
 			},
 		}
@@ -920,7 +920,7 @@ func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
 				BaseDir: model.ConfigBaseDirUserConfig,
 			},
 			Entries: []model.ConfigEntry{
-				{Path: []string{"nested", "key"}, Value: "new", Unmanaged: true},
+				{Path: []string{"nested", "key"}, Value: "new", DefaultOnly: true},
 				{Path: []string{"nested", "other"}, Value: "value"},
 			},
 		}
@@ -955,7 +955,7 @@ func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
 				BaseDir: model.ConfigBaseDirUserConfig,
 			},
 			Entries: []model.ConfigEntry{
-				{Path: []string{"root", "key"}, Value: "new", Unmanaged: true},
+				{Path: []string{"root", "key"}, Value: "new", DefaultOnly: true},
 				{Path: []string{"root", "other"}, Value: "value"},
 			},
 		}
@@ -1037,11 +1037,18 @@ func TestDuckStationControllerConfig(t *testing.T) {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	if len(result.OwnedFiles) != 1 {
-		t.Fatalf("expected 1 owned file (profile), got %d", len(result.OwnedFiles))
+	var profile model.ConfigPatch
+	profileFound := false
+	for _, p := range result.Patches {
+		if p.ManagesWholeFile() {
+			profile = p
+			profileFound = true
+			break
+		}
 	}
-
-	profile := result.OwnedFiles[0]
+	if !profileFound {
+		t.Fatal("expected a patch that manages whole file (profile), but none found")
+	}
 	if profile.Target != duckstation.ProfileTarget {
 		t.Errorf("expected profile target %v, got %v", duckstation.ProfileTarget, profile.Target)
 	}
@@ -1076,8 +1083,8 @@ func TestDuckStationControllerConfig(t *testing.T) {
 	for _, entry := range patch.Entries {
 		if entry.Key() == "InputProfileName" {
 			foundProfileSelector = true
-			if !entry.Unmanaged {
-				t.Error("InputProfileName should be unmanaged")
+			if !entry.DefaultOnly {
+				t.Error("InputProfileName should be default-only")
 			}
 		}
 	}
@@ -1438,15 +1445,18 @@ func TestAzaharControllerConfig(t *testing.T) {
 
 	patch := result.Patches[0]
 
-	if len(patch.OwnedRegions) != 1 {
-		t.Fatalf("expected 1 owned region, got %d", len(patch.OwnedRegions))
+	if len(patch.ManagedRegions) != 1 {
+		t.Fatalf("expected 1 managed region, got %d", len(patch.ManagedRegions))
 	}
-	region := patch.OwnedRegions[0]
+	region, ok := patch.ManagedRegions[0].(model.SectionRegion)
+	if !ok {
+		t.Fatalf("expected SectionRegion, got %T", patch.ManagedRegions[0])
+	}
 	if region.Section != "Controls" {
-		t.Errorf("owned region section = %q, want %q", region.Section, "Controls")
+		t.Errorf("managed region section = %q, want %q", region.Section, "Controls")
 	}
 	if region.KeyPrefix != `profiles\1\` {
-		t.Errorf("owned region prefix = %q, want %q", region.KeyPrefix, `profiles\1\`)
+		t.Errorf("managed region prefix = %q, want %q", region.KeyPrefix, `profiles\1\`)
 	}
 
 	foundProfile := false
@@ -1454,13 +1464,13 @@ func TestAzaharControllerConfig(t *testing.T) {
 	for _, entry := range patch.Entries {
 		if entry.Key() == "profile" {
 			foundProfile = true
-			if !entry.Unmanaged {
-				t.Error("profile entry should be unmanaged")
+			if !entry.DefaultOnly {
+				t.Error("profile entry should be default-only")
 			}
 		}
 		if entry.Key() == `profiles\size` {
-			if !entry.Unmanaged {
-				t.Error("profiles\\size entry should be unmanaged")
+			if !entry.DefaultOnly {
+				t.Error("profiles\\size entry should be default-only")
 			}
 		}
 		if strings.Contains(entry.Key(), "button_a") && strings.Contains(entry.Value, model.SteamDeckGUID) {
@@ -1732,8 +1742,21 @@ func TestNintendoLayoutSwapsFaceButtons(t *testing.T) {
 		return ""
 	}
 
-	stdCross := findPad1Value(standardResult.OwnedFiles[0].Entries, "Cross")
-	ninCross := findPad1Value(nintendoResult.OwnedFiles[0].Entries, "Cross")
+	var stdProfileEntries, ninProfileEntries []model.ConfigEntry
+	for _, p := range standardResult.Patches {
+		if p.ManagesWholeFile() {
+			stdProfileEntries = p.Entries
+			break
+		}
+	}
+	for _, p := range nintendoResult.Patches {
+		if p.ManagesWholeFile() {
+			ninProfileEntries = p.Entries
+			break
+		}
+	}
+	stdCross := findPad1Value(stdProfileEntries, "Cross")
+	ninCross := findPad1Value(ninProfileEntries, "Cross")
 
 	if stdCross == ninCross {
 		t.Errorf("Nintendo layout should produce different Cross mapping, both got %s", stdCross)
@@ -1752,8 +1775,10 @@ func TestNoControllerConfigWhenNil(t *testing.T) {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	if len(result.OwnedFiles) != 0 {
-		t.Error("should not have owned files when ControllerConfig is nil")
+	for _, p := range result.Patches {
+		if p.ManagesWholeFile() {
+			t.Error("should not have file-managing patches when ControllerConfig is nil")
+		}
 	}
 
 	patch := result.Patches[0]
