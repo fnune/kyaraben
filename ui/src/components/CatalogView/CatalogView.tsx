@@ -386,7 +386,7 @@ export function CatalogView({
             <button
               type="button"
               onClick={confirmSyncPending}
-              className="flex-1 px-4 py-2 text-sm font-medium text-on-accent bg-accent rounded-card hover:bg-accent-hover"
+              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-accent rounded-card hover:bg-accent-hover"
             >
               Apply anyway
             </button>

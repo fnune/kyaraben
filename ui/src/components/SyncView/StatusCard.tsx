@@ -43,7 +43,7 @@ function DeviceRow({
       <div className="flex items-center gap-2">
         <span className={`w-2 h-2 rounded-full ${dotClass}`} />
         <span className="font-medium text-on-surface">{device.name || 'Unknown device'}</span>
-        <span className="text-xs text-on-surface-muted">{label}</span>
+        <span className="text-sm text-on-surface-muted">{label}</span>
       </div>
       <button
         type="button"
@@ -342,29 +342,10 @@ export function StatusCard({
 
   return (
     <div className="p-4 bg-surface-alt rounded-card">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <StatusBadge label={status.mode ?? 'unknown'} ok={true} />
-          <StatusBadge label="running" ok={true} />
-        </div>
-      </div>
-
-      <div className="mt-3">
-        {connectedDevice ? (
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-status-ok" />
-            <span className="text-sm text-on-surface">
-              Connected to {connectedDevice.name || 'Unknown device'}
-            </span>
-          </div>
-        ) : hasDevices ? (
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-outline" />
-            <span className="text-sm text-on-surface-muted">Device offline</span>
-          </div>
-        ) : (
-          <span className="text-sm text-on-surface-muted">No device connected</span>
-        )}
+      <div className="flex items-center gap-2">
+        <StatusBadge label={status.mode ?? 'unknown'} ok={true} />
+        <StatusBadge label="running" ok={true} />
+        {connectedDevice && <StatusBadge label="connected" ok={true} />}
       </div>
 
       {hasDevices && (
