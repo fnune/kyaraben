@@ -150,6 +150,7 @@ function AppContent() {
   const [provisions, setProvisions] = useState<DoctorResponse>({})
   const [configState, setConfigState] = useState<ConfigState>(emptyConfigState)
   const [configReady, setConfigReady] = useState(false)
+  const [fontsReady, setFontsReady] = useState(false)
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null)
 
   const savedConfigState = useRef<ConfigState>(emptyConfigState())
@@ -201,6 +202,10 @@ function AppContent() {
       const parsed = parseConfigResponse(configResult.data)
       savedConfigState.current = cloneConfigState(parsed)
     }
+  }, [])
+
+  useEffect(() => {
+    document.fonts.ready.then(() => setFontsReady(true))
   }, [])
 
   useEffect(() => {
@@ -553,6 +558,14 @@ function AppContent() {
       default:
         return null
     }
+  }
+
+  if (!fontsReady) {
+    return (
+      <div className="h-dvh bg-surface flex items-center justify-center">
+        <Spinner />
+      </div>
+    )
   }
 
   return (
