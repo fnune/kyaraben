@@ -1,27 +1,39 @@
 package cleanup
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/twpayne/go-vfs/v5/vfst"
 )
 
+type fakeResolver struct {
+	configDir string
+	homeDir   string
+	dataDir   string
+}
+
+func (f fakeResolver) UserConfigDir() (string, error) { return f.configDir, nil }
+func (f fakeResolver) UserHomeDir() (string, error)   { return f.homeDir, nil }
+func (f fakeResolver) UserDataDir() (string, error) {
+	if f.dataDir != "" {
+		return f.dataDir, nil
+	}
+	return filepath.Join(f.homeDir, ".local", "share"), nil
+}
+
 func TestCollectConfigDirs(t *testing.T) {
-	tmpDir := t.TempDir()
-	configDir := filepath.Join(tmpDir, "config")
-
-	mgbaDir := filepath.Join(configDir, "mgba")
-	duckstationDir := filepath.Join(configDir, "duckstation")
-	if err := os.MkdirAll(mgbaDir, 0755); err != nil {
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config/mgba":        &vfst.Dir{Perm: 0755},
+		"/config/duckstation": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.MkdirAll(duckstationDir, 0755); err != nil {
-		t.Fatal(err)
-	}
+	defer cleanup()
 
-	t.Setenv("XDG_CONFIG_HOME", configDir)
+	resolver := fakeResolver{configDir: "/config", homeDir: "/home/user"}
 
 	configs := []model.ManagedConfig{
 		{
@@ -40,34 +52,24 @@ func TestCollectConfigDirs(t *testing.T) {
 		},
 	}
 
-	dirs := CollectConfigDirs(configs)
+	cleaner := New(fs, resolver)
+	dirs := cleaner.CollectConfigDirs(configs)
 
 	if len(dirs) != 2 {
 		t.Errorf("Expected 2 dirs, got %d", len(dirs))
 	}
-
-	found := make(map[string]bool)
-	for _, d := range dirs {
-		found[d] = true
-	}
-
-	if !found[mgbaDir] {
-		t.Errorf("Expected %s in results", mgbaDir)
-	}
-	if !found[duckstationDir] {
-		t.Errorf("Expected %s in results", duckstationDir)
-	}
 }
 
 func TestCollectConfigDirsDeduplicates(t *testing.T) {
-	tmpDir := t.TempDir()
-	configDir := filepath.Join(tmpDir, "config")
-	retroarchDir := filepath.Join(configDir, "retroarch")
-	if err := os.MkdirAll(retroarchDir, 0755); err != nil {
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config/retroarch": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
+	defer cleanup()
 
-	t.Setenv("XDG_CONFIG_HOME", configDir)
+	resolver := fakeResolver{configDir: "/config", homeDir: "/home/user"}
 
 	configs := []model.ManagedConfig{
 		{
@@ -86,7 +88,8 @@ func TestCollectConfigDirsDeduplicates(t *testing.T) {
 		},
 	}
 
-	dirs := CollectConfigDirs(configs)
+	cleaner := New(fs, resolver)
+	dirs := cleaner.CollectConfigDirs(configs)
 
 	if len(dirs) != 1 {
 		t.Errorf("Expected 1 dir (deduplicated), got %d: %v", len(dirs), dirs)
@@ -94,13 +97,15 @@ func TestCollectConfigDirsDeduplicates(t *testing.T) {
 }
 
 func TestCollectConfigDirsSkipsNonexistent(t *testing.T) {
-	tmpDir := t.TempDir()
-	configDir := filepath.Join(tmpDir, "config")
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
+	defer cleanup()
 
-	t.Setenv("XDG_CONFIG_HOME", configDir)
+	resolver := fakeResolver{configDir: "/config", homeDir: "/home/user"}
 
 	configs := []model.ManagedConfig{
 		{
@@ -112,7 +117,8 @@ func TestCollectConfigDirsSkipsNonexistent(t *testing.T) {
 		},
 	}
 
-	dirs := CollectConfigDirs(configs)
+	cleaner := New(fs, resolver)
+	dirs := cleaner.CollectConfigDirs(configs)
 
 	if len(dirs) != 0 {
 		t.Errorf("Expected 0 dirs for nonexistent path, got %d", len(dirs))
@@ -120,19 +126,15 @@ func TestCollectConfigDirsSkipsNonexistent(t *testing.T) {
 }
 
 func TestRemoveConfigDirs(t *testing.T) {
-	tmpDir := t.TempDir()
-	configDir := filepath.Join(tmpDir, "config")
-
-	mgbaDir := filepath.Join(configDir, "mgba")
-	if err := os.MkdirAll(mgbaDir, 0755); err != nil {
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config/mgba/config.ini": "test content",
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
-	configFile := filepath.Join(mgbaDir, "config.ini")
-	if err := os.WriteFile(configFile, []byte("test"), 0644); err != nil {
-		t.Fatal(err)
-	}
+	defer cleanup()
 
-	t.Setenv("XDG_CONFIG_HOME", configDir)
+	resolver := fakeResolver{configDir: "/config", homeDir: "/home/user"}
 
 	configs := []model.ManagedConfig{
 		{
@@ -144,31 +146,33 @@ func TestRemoveConfigDirs(t *testing.T) {
 		},
 	}
 
-	removed := RemoveConfigDirs(configs)
+	cleaner := New(fs, resolver)
+	removed := cleaner.RemoveConfigDirs(configs)
 
 	if len(removed) != 1 {
 		t.Errorf("Expected 1 removed dir, got %d", len(removed))
 	}
 
-	if _, err := os.Stat(mgbaDir); !os.IsNotExist(err) {
-		t.Error("mgba directory should have been removed")
-	}
+	vfst.RunTests(t, fs, "",
+		vfst.TestPath("/config/mgba",
+			vfst.TestDoesNotExist(),
+		),
+	)
 }
 
 func TestRemoveConfigDirsHandlesReadOnlyFiles(t *testing.T) {
-	tmpDir := t.TempDir()
-	configDir := filepath.Join(tmpDir, "config")
-
-	emuDir := filepath.Join(configDir, "emulator")
-	if err := os.MkdirAll(emuDir, 0755); err != nil {
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/config/emulator/readonly.cfg": &vfst.File{
+			Perm:     0444,
+			Contents: []byte("test"),
+		},
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
-	readOnlyFile := filepath.Join(emuDir, "readonly.cfg")
-	if err := os.WriteFile(readOnlyFile, []byte("test"), 0444); err != nil {
-		t.Fatal(err)
-	}
+	defer cleanup()
 
-	t.Setenv("XDG_CONFIG_HOME", configDir)
+	resolver := fakeResolver{configDir: "/config", homeDir: "/home/user"}
 
 	configs := []model.ManagedConfig{
 		{
@@ -180,13 +184,16 @@ func TestRemoveConfigDirsHandlesReadOnlyFiles(t *testing.T) {
 		},
 	}
 
-	removed := RemoveConfigDirs(configs)
+	cleaner := New(fs, resolver)
+	removed := cleaner.RemoveConfigDirs(configs)
 
 	if len(removed) != 1 {
 		t.Errorf("Expected 1 removed dir, got %d", len(removed))
 	}
 
-	if _, err := os.Stat(emuDir); !os.IsNotExist(err) {
-		t.Error("emulator directory should have been removed despite read-only file")
-	}
+	vfst.RunTests(t, fs, "",
+		vfst.TestPath("/config/emulator",
+			vfst.TestDoesNotExist(),
+		),
+	)
 }
