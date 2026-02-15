@@ -17,22 +17,13 @@ export function PathsModal({
   paths: emulatorPaths,
   managedConfigs,
 }: PathsModalProps) {
-  const paths: Array<{ label: string; path: string; description?: string | undefined }> = [
+  const paths: Array<{ label: string; path: string }> = [
     { label: 'ROMs', path: emulatorPaths.roms },
     ...(emulatorPaths.bios ? [{ label: 'BIOS', path: emulatorPaths.bios }] : []),
     ...(emulatorPaths.saves ? [{ label: 'Saves', path: emulatorPaths.saves }] : []),
     ...(emulatorPaths.states ? [{ label: 'Savestates', path: emulatorPaths.states }] : []),
     ...(emulatorPaths.screenshots
       ? [{ label: 'Screenshots', path: emulatorPaths.screenshots }]
-      : []),
-    ...(emulatorPaths.opaque
-      ? [
-          {
-            label: 'Emulator data',
-            path: emulatorPaths.opaque,
-            description: emulatorPaths.opaqueContents,
-          },
-        ]
       : []),
   ]
 
@@ -43,12 +34,9 @@ export function PathsModal({
   return (
     <Modal open={open} onClose={onClose} title={`${emulatorName} Paths`}>
       <div className="space-y-4">
-        {paths.map(({ label, path, description }) => (
+        {paths.map(({ label, path }) => (
           <div key={label}>
             <p className="text-sm text-on-surface-muted mb-1">{label}</p>
-            {description && (
-              <p className="text-xs text-on-surface-dim mb-2">Contains: {description}</p>
-            )}
             <div className="flex items-center gap-2">
               <code className="flex-1 text-sm bg-surface-raised px-2 py-1.5 rounded-sm text-on-surface-secondary select-all truncate">
                 {path}

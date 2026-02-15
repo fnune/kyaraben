@@ -106,7 +106,7 @@ test.describe('Config conflict review', () => {
     fixture?.cleanup()
   })
 
-  test('shows conflict review with details and Cancel returns to systems view', async () => {
+  test('shows conflict review with details and Cancel returns to catalog view', async () => {
     // GBA is already enabled. Enable SNES to create a change that shows the Apply button.
     const snesCard = page.getByRole('article').filter({ hasText: 'Super Nintendo' })
     await snesCard.getByRole('switch').first().click()

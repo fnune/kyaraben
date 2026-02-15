@@ -65,8 +65,6 @@ export interface EmulatorPaths {
   saves?: string;
   states?: string;
   screenshots?: string;
-  opaque?: string;
-  opaqueContents?: string;
 }
 export interface InstalledFrontend {
   id: FrontendID;

@@ -1,9 +1,15 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { ConfigDiffReview } from '@/components/ConfigDiffReview/ConfigDiffReview'
 import { FrontendCard } from '@/components/FrontendCard/FrontendCard'
+import { SearchInput } from '@/components/SearchInput/SearchInput'
 import { Settings } from '@/components/Settings/Settings'
 import { StickyActionBar } from '@/components/StickyActionBar/StickyActionBar'
 import { SYSTEM_YEARS, SystemCard } from '@/components/SystemCard/SystemCard'
+import {
+  type ProvisionStatus,
+  SystemNav,
+  type SystemNavItem,
+} from '@/components/SystemNav/SystemNav'
 import { useApply } from '@/lib/ApplyContext'
 import { BottomBar } from '@/lib/BottomBar'
 import { Button } from '@/lib/Button'
@@ -17,6 +23,7 @@ import {
   withConfigChanges,
 } from '@/lib/changeUtils'
 import { ProgressSteps } from '@/lib/ProgressSteps'
+import { ToggleSwitch } from '@/lib/ToggleSwitch'
 import { useOpenLog } from '@/lib/useOpenLog'
 import type {
   DoctorResponse,
@@ -30,7 +37,7 @@ import type {
 } from '@/types/daemon'
 import { MANUFACTURER_ORDER } from '@/types/ui'
 
-export interface SystemsViewProps {
+export interface CatalogViewProps {
   readonly systems: readonly System[]
   readonly frontends: readonly FrontendRef[]
   readonly systemEmulators: Map<SystemID, EmulatorID[]>
@@ -76,7 +83,17 @@ function groupSystemsByManufacturer(systems: readonly System[]) {
   return Array.from(groups.entries()).filter(([, systems]) => systems.length > 0)
 }
 
-export function SystemsView({
+function matchesSearch(system: System, query: string): boolean {
+  const lowerQuery = query.toLowerCase()
+  if (system.name.toLowerCase().includes(lowerQuery)) return true
+  if (system.manufacturer.toLowerCase().includes(lowerQuery)) return true
+  for (const emulator of system.emulators) {
+    if (emulator.name.toLowerCase().includes(lowerQuery)) return true
+  }
+  return false
+}
+
+export function CatalogView({
   systems,
   frontends,
   systemEmulators,
@@ -99,7 +116,7 @@ export function SystemsView({
   onFrontendVersionChange,
   onDiscard,
   onEnableAll,
-}: SystemsViewProps) {
+}: CatalogViewProps) {
   const {
     status: applyStatus,
     progressSteps,
@@ -113,6 +130,10 @@ export function SystemsView({
   const openLog = useOpenLog()
   const isApplying = applyStatus === 'applying'
   const showProgress = applyStatus !== 'idle' && applyStatus !== 'reviewing'
+
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showInstalledOnly, setShowInstalledOnly] = useState(false)
+  const systemRefs = useRef<Map<EmulatorID, HTMLElement>>(new Map())
 
   const handleApply = useCallback(
     async (changeSummary: ReturnType<typeof emptyChangeSummary>) => {
@@ -226,7 +247,26 @@ export function SystemsView({
     hasConfigChanges,
   ])
 
-  const groupedSystems = useMemo(() => groupSystemsByManufacturer(systems), [systems])
+  const filteredSystems = useMemo(() => {
+    let result = systems
+
+    if (searchQuery) {
+      result = result.filter((system) => matchesSearch(system, searchQuery))
+    }
+
+    if (showInstalledOnly) {
+      result = result.filter((system) =>
+        system.emulators.some((emu) => installedVersions.has(emu.id)),
+      )
+    }
+
+    return result
+  }, [systems, searchQuery, showInstalledOnly, installedVersions])
+
+  const groupedSystems = useMemo(
+    () => groupSystemsByManufacturer(filteredSystems),
+    [filteredSystems],
+  )
 
   const sharedPackages = useMemo(() => {
     const packageSystems = new Map<string, Set<string>>()
@@ -248,6 +288,72 @@ export function SystemsView({
     }
     return shared
   }, [systems, enabledEmulators])
+
+  const emulatorNavItems = useMemo(() => {
+    const result: SystemNavItem[] = []
+    const seen = new Set<EmulatorID>()
+    const orderedSystems = groupSystemsByManufacturer(systems)
+
+    for (const [, manufacturerSystems] of orderedSystems) {
+      for (const system of manufacturerSystems) {
+        for (const emulator of system.emulators) {
+          if (seen.has(emulator.id)) continue
+          seen.add(emulator.id)
+
+          const installed = installedVersions.has(emulator.id)
+          let provisionStatus: ProvisionStatus = null
+
+          if (installed) {
+            const emulatorProvisions = provisions[`${system.id}:${emulator.id}`] ?? []
+            const missingRequired = emulatorProvisions.some(
+              (p) => p.status !== 'found' && p.groupRequired && !p.groupSatisfied,
+            )
+            const missingOptional = emulatorProvisions.some(
+              (p) => p.status !== 'found' && !p.groupRequired,
+            )
+
+            if (missingRequired) {
+              provisionStatus = 'required-missing'
+            } else if (missingOptional) {
+              provisionStatus = 'optional-missing'
+            } else {
+              provisionStatus = 'ok'
+            }
+          }
+
+          result.push({
+            id: emulator.id,
+            name: emulator.name,
+            systemName: system.name,
+            installed,
+            provisionStatus,
+          })
+        }
+      }
+    }
+
+    return result
+  }, [systems, installedVersions, provisions])
+
+  const handleSystemNavClick = useCallback((emulatorId: EmulatorID) => {
+    setSearchQuery('')
+    setShowInstalledOnly(false)
+
+    requestAnimationFrame(() => {
+      const element = systemRefs.current.get(emulatorId)
+      if (element) {
+        element.scrollIntoView({ behavior: 'instant', block: 'center' })
+      }
+    })
+  }, [])
+
+  const setSystemRef = useCallback((emulatorId: EmulatorID, element: HTMLElement | null) => {
+    if (element) {
+      systemRefs.current.set(emulatorId, element)
+    } else {
+      systemRefs.current.delete(emulatorId)
+    }
+  }, [])
 
   if (applyStatus === 'reviewing' && preflightData) {
     return <ConfigDiffReview data={preflightData} onConfirm={confirmApply} onCancel={reset} />
@@ -284,73 +390,108 @@ export function SystemsView({
     )
   }
 
+  const hasNoResults = searchQuery && filteredSystems.length === 0
+
   return (
-    <div className="p-6 pb-24">
-      <Settings userStore={userStore} onUserStoreChange={onUserStoreChange} />
+    <div className="pb-24">
+      <div className="p-6 pb-0">
+        <Settings userStore={userStore} onUserStoreChange={onUserStoreChange} />
 
-      {frontends.length > 0 && (
-        <>
-          <div className="mt-6">
-            <span className="text-xs font-semibold text-on-surface-dim uppercase tracking-widest">
-              Frontends
-            </span>
-          </div>
-          <div className="space-y-3 mt-3">
-            {frontends.map((frontend) => (
-              <FrontendCard
-                key={frontend.id}
-                frontend={frontend}
-                enabled={enabledFrontends.get(frontend.id) ?? false}
-                pinnedVersion={frontendVersions.get(frontend.id) ?? null}
-                installedVersion={installedFrontendVersions.get(frontend.id) ?? null}
-                onToggle={(enabled) => onFrontendToggle(frontend.id, enabled)}
-                onVersionChange={(version) => onFrontendVersionChange(frontend.id, version)}
-              />
-            ))}
-          </div>
-        </>
-      )}
-
-      <div className="mt-6 flex items-center justify-between">
-        <span className="text-xs font-semibold text-on-surface-dim uppercase tracking-widest">
-          Systems
-        </span>
-        <button
-          type="button"
-          onClick={onEnableAll}
-          className="text-sm text-accent hover:text-accent-hover"
-          title="Enable all systems with their default emulators"
-        >
-          Enable all systems
-        </button>
-      </div>
-
-      <div className="space-y-8 mt-6">
-        {groupedSystems.map(([manufacturer, manufacturerSystems]) => (
-          <section key={manufacturer}>
-            <h2 className="font-heading text-sm font-semibold text-on-surface-dim uppercase tracking-widest mb-3 border-l-2 border-accent pl-2">
-              {manufacturer}
-            </h2>
-            <div className="space-y-4">
-              {manufacturerSystems.map((system) => (
-                <SystemCard
-                  key={system.id}
-                  system={system}
-                  enabledEmulators={enabledEmulators}
-                  emulatorVersions={emulatorVersions}
-                  installedVersions={installedVersions}
-                  installedExecLines={installedExecLines}
-                  managedConfigs={managedConfigs}
-                  installedPaths={installedPaths}
-                  provisions={provisions}
-                  sharedPackages={sharedPackages}
-                  onEmulatorToggle={onEmulatorToggle}
-                  onVersionChange={onVersionChange}
+        {frontends.length > 0 && (
+          <div className="isolate">
+            <div className="mt-6" data-section="frontends">
+              <span className="text-xs font-semibold text-on-surface-dim uppercase tracking-widest">
+                Frontends
+              </span>
+            </div>
+            <div className="space-y-3 mt-3">
+              {frontends.map((frontend) => (
+                <FrontendCard
+                  key={frontend.id}
+                  frontend={frontend}
+                  enabled={enabledFrontends.get(frontend.id) ?? false}
+                  pinnedVersion={frontendVersions.get(frontend.id) ?? null}
+                  installedVersion={installedFrontendVersions.get(frontend.id) ?? null}
+                  onToggle={(enabled) => onFrontendToggle(frontend.id, enabled)}
+                  onVersionChange={(version) => onFrontendVersionChange(frontend.id, version)}
                 />
               ))}
             </div>
-          </section>
-        ))}
+          </div>
+        )}
+
+        <div className="mt-6 flex items-center justify-between">
+          <span className="text-xs font-semibold text-on-surface-dim uppercase tracking-widest">
+            Systems
+          </span>
+          <button
+            type="button"
+            onClick={onEnableAll}
+            className="text-sm text-accent hover:text-accent-hover"
+            title="Enable all systems with their default emulators"
+          >
+            Enable all systems
+          </button>
+        </div>
+      </div>
+
+      <div className="sticky top-0 z-10 bg-surface border-b border-outline px-6 py-3 space-y-2">
+        <SystemNav emulators={emulatorNavItems} onEmulatorClick={handleSystemNavClick} />
+
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <SearchInput
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search systems, manufacturers, or emulators..."
+            />
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <ToggleSwitch enabled={showInstalledOnly} onChange={setShowInstalledOnly} />
+            <span className="text-sm text-on-surface-secondary">Installed only</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-6 isolate min-h-[calc(100vh-10rem)]">
+        {hasNoResults ? (
+          <div className="mt-8 text-center text-on-surface-muted">
+            <p>No systems match your search.</p>
+          </div>
+        ) : (
+          <div className="space-y-8 mt-6">
+            {groupedSystems.map(([manufacturer, manufacturerSystems]) => (
+              <section key={manufacturer}>
+                <h2 className="font-heading text-sm font-semibold text-on-surface-dim uppercase tracking-widest mb-3 border-l-2 border-accent pl-2">
+                  {manufacturer}
+                </h2>
+                <div className="space-y-4">
+                  {manufacturerSystems.map((system) => (
+                    <SystemCard
+                      key={system.id}
+                      ref={(el) => {
+                        for (const emu of system.emulators) {
+                          setSystemRef(emu.id, el)
+                        }
+                      }}
+                      system={system}
+                      enabledEmulators={enabledEmulators}
+                      emulatorVersions={emulatorVersions}
+                      installedVersions={installedVersions}
+                      installedExecLines={installedExecLines}
+                      managedConfigs={managedConfigs}
+                      installedPaths={installedPaths}
+                      provisions={provisions}
+                      sharedPackages={sharedPackages}
+                      onEmulatorToggle={onEmulatorToggle}
+                      onVersionChange={onVersionChange}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
       </div>
 
       <StickyActionBar

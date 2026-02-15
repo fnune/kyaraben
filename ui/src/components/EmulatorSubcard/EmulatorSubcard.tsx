@@ -150,7 +150,7 @@ export function EmulatorSubcard({
     <div className={`rounded-element overflow-hidden relative ${cardClasses}`}>
       {changeType && <ChangeNotch type={changeType} />}
 
-      <div className={`flex items-center gap-4 p-3 ${!enabled ? 'opacity-60' : ''}`}>
+      <div className="flex items-center gap-4 p-3">
         {logo && (
           <div className="hidden min-[720px]:flex items-center justify-center w-10 h-10 shrink-0">
             <img src={logo} alt="" className="w-full h-full object-contain" />
@@ -231,7 +231,7 @@ export function EmulatorSubcard({
       </div>
 
       {isNonEmpty(provisions) && (
-        <div className={`border-t border-outline/50 ${!enabled ? 'opacity-60' : ''}`}>
+        <div className="border-t border-outline/50">
           <ProvisionsSummary
             provisions={provisions}
             disabled={!enabled}
