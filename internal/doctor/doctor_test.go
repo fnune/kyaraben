@@ -10,6 +10,7 @@ import (
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/store"
+	"github.com/fnune/kyaraben/internal/testutil"
 )
 
 func mustNewUserStore(t *testing.T, fs vfs.FS, path string) *store.UserStore {
@@ -22,13 +23,11 @@ func mustNewUserStore(t *testing.T, fs vfs.FS, path string) *store.UserStore {
 }
 
 func TestRun(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/Emulation/bios/psx": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	userStorePath := "/Emulation"
 	cfg := &model.KyarabenConfig{
@@ -63,13 +62,11 @@ func TestRun(t *testing.T) {
 }
 
 func TestRunNoRequiredProvisions(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/Emulation": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	userStorePath := "/Emulation"
 	cfg := &model.KyarabenConfig{
@@ -110,14 +107,12 @@ func TestRunNoRequiredProvisions(t *testing.T) {
 }
 
 func TestRunWithBiosFile(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/Emulation/bios/psx":              &vfst.Dir{Perm: 0755},
 		"/Emulation/bios/psx/scph5501.bin": "fake bios content",
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	userStorePath := "/Emulation"
 	cfg := &model.KyarabenConfig{
@@ -162,13 +157,11 @@ func TestRunWithBiosFile(t *testing.T) {
 }
 
 func TestRunSystemResult(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/Emulation/bios/psx": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	userStorePath := "/Emulation"
 	cfg := &model.KyarabenConfig{
@@ -206,13 +199,11 @@ func TestRunSystemResult(t *testing.T) {
 }
 
 func TestRunMultipleEmulators(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/Emulation/bios/psx": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	userStorePath := "/Emulation"
 	cfg := &model.KyarabenConfig{
@@ -250,6 +241,8 @@ func TestRunMultipleEmulators(t *testing.T) {
 }
 
 func TestHasIssues(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name              string
 		unsatisfiedGroups int

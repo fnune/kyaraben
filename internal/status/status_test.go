@@ -12,6 +12,7 @@ import (
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/store"
+	"github.com/fnune/kyaraben/internal/testutil"
 	"github.com/fnune/kyaraben/internal/versions"
 )
 
@@ -32,14 +33,12 @@ func mustNewUserStore(t *testing.T, fs vfs.FS, path string) *store.UserStore {
 }
 
 func TestGet(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/Emulation": &vfst.Dir{Perm: 0755},
 		"/state":     &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	userStorePath := "/Emulation"
 	configPath := "/config.toml"
@@ -86,7 +85,9 @@ func TestGet(t *testing.T) {
 }
 
 func TestGetWithInitializedStore(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/Emulation/roms":        &vfst.Dir{Perm: 0755},
 		"/Emulation/bios":        &vfst.Dir{Perm: 0755},
 		"/Emulation/saves":       &vfst.Dir{Perm: 0755},
@@ -95,10 +96,6 @@ func TestGetWithInitializedStore(t *testing.T) {
 		"/Emulation/opaque":      &vfst.Dir{Perm: 0755},
 		"/state":                 &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	userStorePath := "/Emulation"
 	configPath := "/config.toml"
@@ -128,14 +125,12 @@ func TestGetWithInitializedStore(t *testing.T) {
 }
 
 func TestGetSystemNames(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/Emulation": &vfst.Dir{Perm: 0755},
 		"/state":     &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	manifestPath := "/state/manifest.json"
 
@@ -171,14 +166,12 @@ func TestGetSystemNames(t *testing.T) {
 }
 
 func TestGetMissingRequiredCount(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/Emulation/bios/psx": &vfst.Dir{Perm: 0755},
 		"/state":              &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	userStorePath := "/Emulation"
 	manifestPath := "/state/manifest.json"
@@ -208,14 +201,12 @@ func TestGetMissingRequiredCount(t *testing.T) {
 }
 
 func TestGetWithManifest(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/Emulation": &vfst.Dir{Perm: 0755},
 		"/state":     &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	manifest := &model.Manifest{
 		LastApplied: time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC),
@@ -273,14 +264,12 @@ func TestGetWithManifest(t *testing.T) {
 }
 
 func TestGetWithVersionPinning(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/Emulation": &vfst.Dir{Perm: 0755},
 		"/state":     &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	manifest := &model.Manifest{
 		LastApplied: time.Now(),
@@ -331,14 +320,12 @@ func TestGetWithVersionPinning(t *testing.T) {
 }
 
 func TestGetManagedConfigsIncludesKeys(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/Emulation": &vfst.Dir{Perm: 0755},
 		"/state":     &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	manifest := &model.Manifest{
 		LastApplied: time.Now(),
@@ -407,14 +394,12 @@ func TestGetManagedConfigsIncludesKeys(t *testing.T) {
 }
 
 func TestGetRetroArchCoreIncludesSharedConfig(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/Emulation": &vfst.Dir{Perm: 0755},
 		"/state":     &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	manifest := &model.Manifest{
 		LastApplied: time.Now(),

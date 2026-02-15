@@ -8,6 +8,8 @@ import (
 )
 
 func TestNewManifest(t *testing.T) {
+	t.Parallel()
+
 	m := NewManifest()
 
 	if m.Version != 1 {
@@ -28,13 +30,11 @@ func TestNewManifest(t *testing.T) {
 }
 
 func TestLoadManifest_NonExistent(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := newTestFS(t, map[string]any{
 		"/data": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	m, err := NewManifestStore(fs).Load("/data/nonexistent.json")
 	if err != nil {
@@ -47,6 +47,8 @@ func TestLoadManifest_NonExistent(t *testing.T) {
 }
 
 func TestLoadManifest_Existing(t *testing.T) {
+	t.Parallel()
+
 	content := `{
   "version": 2,
   "last_applied": "2024-01-15T10:30:00Z",
@@ -73,13 +75,9 @@ func TestLoadManifest_Existing(t *testing.T) {
   ]
 }`
 
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	fs := newTestFS(t, map[string]any{
 		"/data/manifest.json": content,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	m, err := NewManifestStore(fs).Load("/data/manifest.json")
 	if err != nil {
@@ -105,28 +103,24 @@ func TestLoadManifest_Existing(t *testing.T) {
 }
 
 func TestLoadManifest_InvalidJSON(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := newTestFS(t, map[string]any{
 		"/data/manifest.json": "not valid json",
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
-	_, err = NewManifestStore(fs).Load("/data/manifest.json")
+	_, err := NewManifestStore(fs).Load("/data/manifest.json")
 	if err == nil {
 		t.Error("NewManifestStore().Load() expected error for invalid JSON")
 	}
 }
 
 func TestManifest_Save_CreatesParentDirs(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := newTestFS(t, map[string]any{
 		"/data": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	m := NewManifest()
 	if err := NewManifestStore(fs).Save(m, "/data/nested/deep/manifest.json"); err != nil {
@@ -141,13 +135,11 @@ func TestManifest_Save_CreatesParentDirs(t *testing.T) {
 }
 
 func TestManifest_Save_WritesValidJSON(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := newTestFS(t, map[string]any{
 		"/data": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	m := NewManifest()
 	m.AddEmulator(InstalledEmulator{
@@ -176,6 +168,8 @@ func TestManifest_Save_WritesValidJSON(t *testing.T) {
 }
 
 func TestManifest_AddEmulator(t *testing.T) {
+	t.Parallel()
+
 	m := NewManifest()
 
 	emu1 := InstalledEmulator{
@@ -199,6 +193,8 @@ func TestManifest_AddEmulator(t *testing.T) {
 }
 
 func TestManifest_AddEmulator_Overwrites(t *testing.T) {
+	t.Parallel()
+
 	m := NewManifest()
 
 	m.AddEmulator(InstalledEmulator{ID: "emu", Version: "1.0.0"})
@@ -215,6 +211,8 @@ func TestManifest_AddEmulator_Overwrites(t *testing.T) {
 }
 
 func TestManifest_GetEmulator(t *testing.T) {
+	t.Parallel()
+
 	m := NewManifest()
 	m.AddEmulator(InstalledEmulator{ID: "existing", Version: "1.0.0"})
 
@@ -233,6 +231,8 @@ func TestManifest_GetEmulator(t *testing.T) {
 }
 
 func TestManifest_AddManagedConfig(t *testing.T) {
+	t.Parallel()
+
 	m := NewManifest()
 
 	cfg := ManagedConfig{
@@ -254,6 +254,8 @@ func TestManifest_AddManagedConfig(t *testing.T) {
 }
 
 func TestManifest_AddManagedConfig_MergesEmulatorIDs(t *testing.T) {
+	t.Parallel()
+
 	m := NewManifest()
 	target := ConfigTarget{RelPath: "config.ini", BaseDir: ConfigBaseDirUserConfig}
 	keys := []ManagedKey{{Path: []string{"key"}, Value: "value"}}
@@ -289,6 +291,8 @@ func TestManifest_AddManagedConfig_MergesEmulatorIDs(t *testing.T) {
 }
 
 func TestManifest_GetManagedConfig(t *testing.T) {
+	t.Parallel()
+
 	m := NewManifest()
 	target := ConfigTarget{RelPath: "config.ini", BaseDir: ConfigBaseDirUserConfig}
 
@@ -315,6 +319,8 @@ func TestManifest_GetManagedConfig(t *testing.T) {
 }
 
 func TestManifest_GetManagedConfigsForEmulator(t *testing.T) {
+	t.Parallel()
+
 	m := NewManifest()
 
 	configs := m.GetManagedConfigsForEmulator("emu1")
@@ -352,6 +358,8 @@ func TestManifest_GetManagedConfigsForEmulator(t *testing.T) {
 }
 
 func TestManifest_AddManagedConfig_UpdatesKeysOnChange(t *testing.T) {
+	t.Parallel()
+
 	m := NewManifest()
 	target := ConfigTarget{RelPath: "shared.cfg", BaseDir: ConfigBaseDirUserConfig}
 
@@ -387,6 +395,8 @@ func TestManifest_AddManagedConfig_UpdatesKeysOnChange(t *testing.T) {
 }
 
 func TestManifest_GetManagedConfigsForEmulator_SharedConfig(t *testing.T) {
+	t.Parallel()
+
 	m := NewManifest()
 
 	_ = m.AddManagedConfig(ManagedConfig{

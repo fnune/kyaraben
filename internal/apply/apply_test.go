@@ -17,24 +17,9 @@ import (
 	"github.com/fnune/kyaraben/internal/packages"
 	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/store"
+	"github.com/fnune/kyaraben/internal/testutil"
 	"github.com/fnune/kyaraben/internal/versions"
 )
-
-type fakeBaseDirResolver struct {
-	root string
-}
-
-func (f fakeBaseDirResolver) UserConfigDir() (string, error) {
-	return filepath.Join(f.root, ".config"), nil
-}
-
-func (f fakeBaseDirResolver) UserHomeDir() (string, error) {
-	return f.root, nil
-}
-
-func (f fakeBaseDirResolver) UserDataDir() (string, error) {
-	return filepath.Join(f.root, ".local", "share"), nil
-}
 
 func TestMain(m *testing.M) {
 	if err := versions.Init(); err != nil {
@@ -57,7 +42,7 @@ type testEnv struct {
 
 func newTestEnv(t *testing.T) *testEnv {
 	t.Helper()
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/home":                      &vfst.Dir{Perm: 0755},
 		"/home/Emulation":            &vfst.Dir{Perm: 0755},
 		"/home/Emulation/bios":       &vfst.Dir{Perm: 0755},
@@ -72,9 +57,6 @@ func newTestEnv(t *testing.T) *testEnv {
 		"/home/.local/share":         &vfst.Dir{Perm: 0755},
 		"/home/.local/share/melonDS": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	rootDir := "/home"
 	manifestPath := filepath.Join(rootDir, "manifest.json")
@@ -83,12 +65,15 @@ func newTestEnv(t *testing.T) *testEnv {
 
 	userStore, err := store.NewUserStore(fs, userStorePath)
 	if err != nil {
-		cleanup()
 		t.Fatalf("Failed to create user store: %v", err)
 	}
 
 	reg := registry.NewDefault()
-	resolver := fakeBaseDirResolver{root: rootDir}
+	resolver := testutil.FakeResolver{
+		ConfigDir: filepath.Join(rootDir, ".config"),
+		HomeDir:   rootDir,
+		DataDir:   filepath.Join(rootDir, ".local", "share"),
+	}
 	installer := packages.NewFakeInstaller(fs, packagesDir)
 	configWriter := emulators.NewConfigWriter(fs, resolver)
 	symlinkCreator := symlink.NewCreator(fs)
@@ -96,7 +81,7 @@ func newTestEnv(t *testing.T) *testEnv {
 
 	return &testEnv{
 		fs:           fs,
-		cleanup:      cleanup,
+		cleanup:      func() {},
 		rootDir:      rootDir,
 		manifestPath: manifestPath,
 		userStore:    userStore,
@@ -108,8 +93,9 @@ func newTestEnv(t *testing.T) *testEnv {
 }
 
 func TestUnmanagedEntriesExcludedFromManifest(t *testing.T) {
+	t.Parallel()
+
 	env := newTestEnv(t)
-	defer env.cleanup()
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
@@ -155,8 +141,9 @@ func TestUnmanagedEntriesExcludedFromManifest(t *testing.T) {
 }
 
 func TestApplyRemovesUnenabledEmulatorsFromManifest(t *testing.T) {
+	t.Parallel()
+
 	env := newTestEnv(t)
-	defer env.cleanup()
 
 	manifestStore := model.NewManifestStore(env.fs)
 	oldManifest := &model.Manifest{
@@ -214,8 +201,9 @@ func TestApplyRemovesUnenabledEmulatorsFromManifest(t *testing.T) {
 }
 
 func TestApplyRemovesConfigDirsForDisabledEmulators(t *testing.T) {
+	t.Parallel()
+
 	env := newTestEnv(t)
-	defer env.cleanup()
 
 	mgbaConfigDir := filepath.Join(env.rootDir, ".config", "mgba")
 	if err := env.fs.WriteFile(filepath.Join(mgbaConfigDir, "config.ini"), []byte("[test]"), 0644); err != nil {
@@ -279,8 +267,9 @@ func TestApplyRemovesConfigDirsForDisabledEmulators(t *testing.T) {
 }
 
 func TestApplyCreatesEmulatorStatesDirectories(t *testing.T) {
+	t.Parallel()
+
 	env := newTestEnv(t)
-	defer env.cleanup()
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
@@ -314,8 +303,9 @@ func TestApplyCreatesEmulatorStatesDirectories(t *testing.T) {
 }
 
 func TestApplyCreatesSymlinksForSymlinkProviders(t *testing.T) {
+	t.Parallel()
+
 	env := newTestEnv(t)
-	defer env.cleanup()
 
 	fakeSymlinkCreator := &symlink.FakeCreator{}
 	env.applier.SymlinkCreator = fakeSymlinkCreator
@@ -375,8 +365,9 @@ func TestApplyCreatesSymlinksForSymlinkProviders(t *testing.T) {
 }
 
 func TestApplyCreatesProvisionDirectories(t *testing.T) {
+	t.Parallel()
+
 	env := newTestEnv(t)
-	defer env.cleanup()
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
@@ -416,8 +407,9 @@ func assertDirExistsVFS(t *testing.T, fs vfs.FS, path string) {
 }
 
 func TestApplySucceedsWhenGCFails(t *testing.T) {
+	t.Parallel()
+
 	env := newTestEnv(t)
-	defer env.cleanup()
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
@@ -464,8 +456,9 @@ func (f *failingGCInstaller) GarbageCollect(keep map[string]string) error {
 }
 
 func TestApplyWithFakeInstallerE2E(t *testing.T) {
+	t.Parallel()
+
 	env := newTestEnv(t)
-	defer env.cleanup()
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
@@ -544,8 +537,9 @@ func TestApplyWithFakeInstallerE2E(t *testing.T) {
 }
 
 func TestApplyInstallsFrontend(t *testing.T) {
+	t.Parallel()
+
 	env := newTestEnv(t)
-	defer env.cleanup()
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
@@ -601,8 +595,9 @@ func (i *iconTrackingInstaller) InstallIcon(ctx context.Context, binaryName, url
 }
 
 func TestApplyInstallsFrontendIcon(t *testing.T) {
+	t.Parallel()
+
 	env := newTestEnv(t)
-	defer env.cleanup()
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{

@@ -8,6 +8,7 @@ import (
 
 	"github.com/twpayne/go-vfs/v5/vfst"
 
+	"github.com/fnune/kyaraben/internal/testutil"
 	"github.com/fnune/kyaraben/internal/versions"
 )
 
@@ -19,13 +20,11 @@ func TestMain(m *testing.M) {
 }
 
 func TestPackageInstallerInstallEmulator(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/state": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	stateDir := "/state"
 	dl := NewFakeDownloader(fs, []byte("fake-appimage-binary"))
@@ -66,13 +65,11 @@ func TestPackageInstallerInstallEmulator(t *testing.T) {
 }
 
 func TestPackageInstallerSkipsAlreadyInstalled(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/state": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	stateDir := "/state"
 	dl := NewFakeDownloader(fs, []byte("fake-binary"))
@@ -80,7 +77,7 @@ func TestPackageInstallerSkipsAlreadyInstalled(t *testing.T) {
 
 	installer := NewPackageInstaller(fs, stateDir, dl, ext)
 
-	_, err = installer.InstallEmulator(context.Background(), "mgba", nil)
+	_, err := installer.InstallEmulator(context.Background(), "mgba", nil)
 	if err != nil {
 		t.Fatalf("first install: %v", err)
 	}
@@ -106,13 +103,11 @@ func TestPackageInstallerSkipsAlreadyInstalled(t *testing.T) {
 }
 
 func TestPackageInstallerIsEmulatorInstalled(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/state": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	stateDir := "/state"
 	dl := NewFakeDownloader(fs, []byte("fake-binary"))
@@ -124,7 +119,7 @@ func TestPackageInstallerIsEmulatorInstalled(t *testing.T) {
 		t.Error("should not be installed yet")
 	}
 
-	_, err = installer.InstallEmulator(context.Background(), "mgba", nil)
+	_, err := installer.InstallEmulator(context.Background(), "mgba", nil)
 	if err != nil {
 		t.Fatalf("install: %v", err)
 	}
@@ -135,13 +130,11 @@ func TestPackageInstallerIsEmulatorInstalled(t *testing.T) {
 }
 
 func TestPackageInstallerInstallArchive(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/state": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	stateDir := "/state"
 	dl := NewFakeDownloader(fs, []byte("fake-zip-content"))
@@ -173,13 +166,11 @@ func TestPackageInstallerInstallArchive(t *testing.T) {
 }
 
 func TestPackageInstallerInstallCores(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/state": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	stateDir := "/state"
 	dl := NewFakeDownloader(fs, []byte("fake-cores-bundle"))
@@ -207,13 +198,11 @@ func TestPackageInstallerInstallCores(t *testing.T) {
 }
 
 func TestPackageInstallerInstallIcon(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/state": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	stateDir := "/state"
 	dl := NewFakeDownloader(fs, []byte("fake-icon-data"))
@@ -236,13 +225,11 @@ func TestPackageInstallerInstallIcon(t *testing.T) {
 }
 
 func TestPackageInstallerGarbageCollect(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/state": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	stateDir := "/state"
 	dl := NewFakeDownloader(fs, []byte("fake-binary"))
@@ -271,13 +258,11 @@ func TestPackageInstallerGarbageCollect(t *testing.T) {
 }
 
 func TestPackageInstallerResolveVersion(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/state": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	stateDir := "/state"
 	dl := NewFakeDownloader(fs, nil)
@@ -291,13 +276,11 @@ func TestPackageInstallerResolveVersion(t *testing.T) {
 }
 
 func TestPackageInstallerVersionOverride(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/state": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	stateDir := "/state"
 	dl := NewFakeDownloader(fs, []byte("fake-binary"))
@@ -312,13 +295,11 @@ func TestPackageInstallerVersionOverride(t *testing.T) {
 }
 
 func TestConcurrentInstallerInstallAll(t *testing.T) {
-	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
 		"/state": &vfst.Dir{Perm: 0755},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
 	stateDir := "/state"
 	dl := NewFakeDownloader(fs, []byte("fake-binary"))
