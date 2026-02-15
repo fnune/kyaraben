@@ -39,13 +39,18 @@ export function useSyncPairing(): UseSyncPairingResult {
 
   useEffect(() => {
     const isSyncing = syncStatus?.state === SyncStateSyncing
-    const interval = isSyncing ? POLL_INTERVAL_SYNCING : POLL_INTERVAL_NORMAL
+    const isNotRunning = syncStatus?.enabled && !syncStatus?.running
+    const interval = isNotRunning
+      ? POLL_INTERVAL_SYNCING
+      : isSyncing
+        ? POLL_INTERVAL_SYNCING
+        : POLL_INTERVAL_NORMAL
 
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current)
     }
 
-    if (syncStatus?.enabled && syncStatus?.running) {
+    if (syncStatus?.enabled) {
       pollIntervalRef.current = setInterval(refreshSyncStatus, interval)
     }
 
