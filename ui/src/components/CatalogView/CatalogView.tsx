@@ -342,7 +342,7 @@ export function CatalogView({
     requestAnimationFrame(() => {
       const element = systemRefs.current.get(emulatorId)
       if (element) {
-        element.scrollIntoView({ behavior: 'instant', block: 'center' })
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }
     })
   }, [])
@@ -438,7 +438,7 @@ export function CatalogView({
       <div className="sticky top-0 z-10 bg-surface border-b border-outline px-6 py-3 space-y-2">
         <SystemNav emulators={emulatorNavItems} onEmulatorClick={handleSystemNavClick} />
 
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex gap-3">
           <div className="flex-1">
             <SearchInput
               value={searchQuery}
@@ -446,20 +446,22 @@ export function CatalogView({
               placeholder="Search systems, manufacturers, or emulators..."
             />
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             <ToggleSwitch enabled={showInstalledOnly} onChange={setShowInstalledOnly} />
-            <span className="text-sm text-on-surface-secondary">Installed only</span>
+            <span className="text-xs text-on-surface-secondary whitespace-nowrap">
+              Installed only
+            </span>
           </div>
         </div>
       </div>
 
-      <div className="px-6 isolate min-h-[calc(100vh-10rem)]">
+      <div className="px-6 pt-6 isolate min-h-[calc(100vh-10rem)]">
         {hasNoResults ? (
-          <div className="mt-8 text-center text-on-surface-muted">
+          <div className="mt-4 text-center text-on-surface-muted">
             <p>No systems match your search.</p>
           </div>
         ) : (
-          <div className="space-y-8 mt-6">
+          <div className="space-y-8">
             {groupedSystems.map(([manufacturer, manufacturerSystems]) => (
               <section key={manufacturer}>
                 <h2 className="font-heading text-sm font-semibold text-on-surface-dim uppercase tracking-widest mb-3 border-l-2 border-accent pl-2">

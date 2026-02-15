@@ -1,4 +1,5 @@
 import { type ReactNode, useRef } from 'react'
+import { createPortal } from 'react-dom'
 
 export interface ModalProps {
   open: boolean
@@ -12,7 +13,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
 
   if (!open) return null
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -48,6 +49,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
         </div>
         <div className="px-6 pb-6 overflow-y-auto">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
