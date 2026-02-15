@@ -13,6 +13,48 @@ import (
 	"github.com/fnune/kyaraben/internal/paths"
 )
 
+// ManagedRegions is a JSON-serializable slice of ManagedRegion values.
+type ManagedRegions []ManagedRegion
+
+type managedRegionEnvelope struct {
+	Type      string `json:"type"`
+	Section   string `json:"section,omitempty"`
+	KeyPrefix string `json:"key_prefix,omitempty"`
+}
+
+func (rs ManagedRegions) MarshalJSON() ([]byte, error) {
+	envelopes := make([]managedRegionEnvelope, len(rs))
+	for i, r := range rs {
+		switch v := r.(type) {
+		case FileRegion:
+			envelopes[i] = managedRegionEnvelope{Type: "file"}
+		case SectionRegion:
+			envelopes[i] = managedRegionEnvelope{Type: "section", Section: v.Section, KeyPrefix: v.KeyPrefix}
+		}
+	}
+	return json.Marshal(envelopes)
+}
+
+func (rs *ManagedRegions) UnmarshalJSON(data []byte) error {
+	var envelopes []managedRegionEnvelope
+	if err := json.Unmarshal(data, &envelopes); err != nil {
+		return err
+	}
+	result := make(ManagedRegions, len(envelopes))
+	for i, e := range envelopes {
+		switch e.Type {
+		case "file":
+			result[i] = FileRegion{}
+		case "section":
+			result[i] = SectionRegion{Section: e.Section, KeyPrefix: e.KeyPrefix}
+		default:
+			return fmt.Errorf("unknown managed region type: %q", e.Type)
+		}
+	}
+	*rs = result
+	return nil
+}
+
 // Manifest tracks what kyaraben has installed and configured.
 type Manifest struct {
 	Version            int                              `json:"version"`
@@ -65,17 +107,12 @@ type InstalledFrontend struct {
 	Installed   time.Time  `json:"installed"`
 }
 
-type ManagedKey struct {
-	Path  []string `json:"path"`
-	Value string   `json:"value"`
-}
-
 type ManagedConfig struct {
-	EmulatorIDs  []EmulatorID `json:"emulator_ids"`
-	Target       ConfigTarget `json:"target"`
-	BaselineHash string       `json:"baseline_hash"`
-	LastModified time.Time    `json:"last_modified"`
-	ManagedKeys  []ManagedKey `json:"managed_keys"`
+	EmulatorIDs    []EmulatorID   `json:"emulator_ids"`
+	Target         ConfigTarget   `json:"target"`
+	BaselineHash   string         `json:"baseline_hash"`
+	LastModified   time.Time      `json:"last_modified"`
+	ManagedRegions ManagedRegions `json:"managed_regions,omitempty"`
 }
 
 // NewManifest creates a new empty manifest.
@@ -204,7 +241,7 @@ func (m *Manifest) AddManagedConfig(cfg ManagedConfig) error {
 	for i, existing := range m.ManagedConfigs {
 		if existing.Target == cfg.Target {
 			m.ManagedConfigs[i].EmulatorIDs = appendUniqueEmulatorIDs(existing.EmulatorIDs, cfg.EmulatorIDs...)
-			m.ManagedConfigs[i].ManagedKeys = cfg.ManagedKeys
+			m.ManagedConfigs[i].ManagedRegions = cfg.ManagedRegions
 			m.ManagedConfigs[i].BaselineHash = cfg.BaselineHash
 			m.ManagedConfigs[i].LastModified = cfg.LastModified
 			return nil

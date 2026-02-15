@@ -10,7 +10,7 @@ import (
 	"github.com/fnune/kyaraben/internal/testutil"
 )
 
-func TestApplyOwnedFileWritesFromScratch(t *testing.T) {
+func TestFileRegionWritesFromScratch(t *testing.T) {
 	t.Parallel()
 
 	fs := testutil.NewTestFS(t, map[string]any{
@@ -21,7 +21,7 @@ func TestApplyOwnedFileWritesFromScratch(t *testing.T) {
 	resolver := testutil.FakeResolver{ConfigDir: "/config"}
 	writer := NewConfigWriter(fs, resolver)
 
-	file := model.OwnedFile{
+	patch := model.ConfigPatch{
 		Target: model.ConfigTarget{
 			RelPath: "duckstation/inputprofiles/kyaraben-steamdeck.ini",
 			Format:  model.ConfigFormatINI,
@@ -31,11 +31,12 @@ func TestApplyOwnedFileWritesFromScratch(t *testing.T) {
 			{Path: []string{"Pad1", "Cross"}, Value: "new-value"},
 			{Path: []string{"Pad1", "Circle"}, Value: "SDL-0/East"},
 		},
+		ManagedRegions: []model.ManagedRegion{model.FileRegion{}},
 	}
 
-	result, err := writer.ApplyOwnedFile(file)
+	result, err := writer.Apply(patch)
 	if err != nil {
-		t.Fatalf("ApplyOwnedFile: %v", err)
+		t.Fatalf("Apply: %v", err)
 	}
 
 	if result.Path == "" {
@@ -59,7 +60,7 @@ func TestApplyOwnedFileWritesFromScratch(t *testing.T) {
 	}
 }
 
-func TestApplyOwnedFileCreatesDirectories(t *testing.T) {
+func TestFileRegionCreatesDirectories(t *testing.T) {
 	t.Parallel()
 
 	fs := testutil.NewTestFS(t, map[string]any{
@@ -69,7 +70,7 @@ func TestApplyOwnedFileCreatesDirectories(t *testing.T) {
 	resolver := testutil.FakeResolver{ConfigDir: "/config"}
 	writer := NewConfigWriter(fs, resolver)
 
-	file := model.OwnedFile{
+	patch := model.ConfigPatch{
 		Target: model.ConfigTarget{
 			RelPath: "duckstation/inputprofiles/kyaraben-steamdeck.ini",
 			Format:  model.ConfigFormatINI,
@@ -78,11 +79,12 @@ func TestApplyOwnedFileCreatesDirectories(t *testing.T) {
 		Entries: []model.ConfigEntry{
 			{Path: []string{"Pad1", "Cross"}, Value: "SDL-0/South"},
 		},
+		ManagedRegions: []model.ManagedRegion{model.FileRegion{}},
 	}
 
-	_, err := writer.ApplyOwnedFile(file)
+	_, err := writer.Apply(patch)
 	if err != nil {
-		t.Fatalf("ApplyOwnedFile: %v", err)
+		t.Fatalf("Apply: %v", err)
 	}
 
 	content, err := fs.ReadFile("/config/duckstation/inputprofiles/kyaraben-steamdeck.ini")
@@ -95,7 +97,7 @@ func TestApplyOwnedFileCreatesDirectories(t *testing.T) {
 	}
 }
 
-func TestOwnedRegionWithConfigWriter(t *testing.T) {
+func TestSectionRegionWithConfigWriter(t *testing.T) {
 	t.Parallel()
 
 	fs := testutil.NewTestFS(t, map[string]any{
@@ -120,13 +122,13 @@ profiles\2\button_a = user-a
 			BaseDir: model.ConfigBaseDirUserConfig,
 		},
 		Entries: []model.ConfigEntry{
-			{Path: []string{"Controls", "profile"}, Value: "1", Unmanaged: true},
-			{Path: []string{"Controls", `profiles\size`}, Value: "1", Unmanaged: true},
+			{Path: []string{"Controls", "profile"}, Value: "1", DefaultOnly: true},
+			{Path: []string{"Controls", `profiles\size`}, Value: "1", DefaultOnly: true},
 			{Path: []string{"Controls", `profiles\1\name`}, Value: "kyaraben-steamdeck"},
 			{Path: []string{"Controls", `profiles\1\button_a`}, Value: "new-a"},
 		},
-		OwnedRegions: []model.OwnedRegion{
-			{Section: "Controls", KeyPrefix: `profiles\1\`},
+		ManagedRegions: []model.ManagedRegion{
+			model.SectionRegion{Section: "Controls", KeyPrefix: `profiles\1\`},
 		},
 	}
 
@@ -138,23 +140,23 @@ profiles\2\button_a = user-a
 	content, _ := fs.ReadFile("/config/azahar-emu/qt-config.ini")
 	s := string(content)
 
-	// Unmanaged entries preserve user's values.
+	// DefaultOnly entries preserve user's values.
 	if !strings.Contains(s, "profile = 2") {
-		t.Errorf("unmanaged 'profile' should keep user value 2, got:\n%s", s)
+		t.Errorf("default-only 'profile' should keep user value 2, got:\n%s", s)
 	}
 	if !strings.Contains(s, `profiles\size = 2`) {
-		t.Errorf("unmanaged 'profiles\\size' should keep user value 2, got:\n%s", s)
+		t.Errorf("default-only 'profiles\\size' should keep user value 2, got:\n%s", s)
 	}
 
-	// Owned region is deleted and rewritten.
+	// Managed region is deleted and rewritten.
 	if !strings.Contains(s, `profiles\1\name = kyaraben-steamdeck`) {
-		t.Errorf("owned region should have new name, got:\n%s", s)
+		t.Errorf("managed region should have new name, got:\n%s", s)
 	}
 	if !strings.Contains(s, `profiles\1\button_a = new-a`) {
-		t.Errorf("owned region should have new button_a, got:\n%s", s)
+		t.Errorf("managed region should have new button_a, got:\n%s", s)
 	}
 	if strings.Contains(s, `profiles\1\button_b`) {
-		t.Errorf("old button_b should be deleted from owned region, got:\n%s", s)
+		t.Errorf("old button_b should be deleted from managed region, got:\n%s", s)
 	}
 
 	// User profile is untouched.

@@ -221,10 +221,6 @@ func TestComputeDiffWithBaseline_DetectsUserModifiedKeys(t *testing.T) {
 
 	baseline := &model.ManagedConfig{
 		BaselineHash: sha256sum(originalContent),
-		ManagedKeys: []model.ManagedKey{
-			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
-			{Path: []string{"video", "monitor"}, Value: "1"},
-		},
 	}
 
 	patch := model.ConfigPatch{
@@ -276,9 +272,6 @@ func TestComputeDiffWithBaseline_NoChangesWhenHashMatches(t *testing.T) {
 
 	baseline := &model.ManagedConfig{
 		BaselineHash: sha256sum(content),
-		ManagedKeys: []model.ManagedKey{
-			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
-		},
 	}
 
 	patch := model.ConfigPatch{
@@ -441,9 +434,6 @@ func TestComputeDiffWithBaseline_TildePathNormalization(t *testing.T) {
 
 	baseline := &model.ManagedConfig{
 		BaselineHash: sha256sum(originalContent),
-		ManagedKeys: []model.ManagedKey{
-			{Path: []string{"paths", "saves"}, Value: "~/Emulation/saves"},
-		},
 	}
 
 	patch := model.ConfigPatch{
@@ -491,10 +481,6 @@ func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_XML(t *testing.T) {
 
 	baseline := &model.ManagedConfig{
 		BaselineHash: sha256sum(originalContent),
-		ManagedKeys: []model.ManagedKey{
-			{Path: []string{"settings", "video", "resolution"}, Value: "1920x1080"},
-			{Path: []string{"settings", "video", "monitor"}, Value: "1"},
-		},
 	}
 
 	patch := model.ConfigPatch{
@@ -547,10 +533,6 @@ func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_YAML(t *testing.T) {
 
 	baseline := &model.ManagedConfig{
 		BaselineHash: sha256sum(originalContent),
-		ManagedKeys: []model.ManagedKey{
-			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
-			{Path: []string{"video", "monitor"}, Value: "1"},
-		},
 	}
 
 	patch := model.ConfigPatch{
@@ -598,10 +580,6 @@ monitor = "2"
 
 	baseline := &model.ManagedConfig{
 		BaselineHash: sha256sum(originalContent),
-		ManagedKeys: []model.ManagedKey{
-			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
-			{Path: []string{"video", "monitor"}, Value: "1"},
-		},
 	}
 
 	patch := model.ConfigPatch{
@@ -647,10 +625,6 @@ savestate_directory = "/custom/states"
 
 	baseline := &model.ManagedConfig{
 		BaselineHash: sha256sum(originalContent),
-		ManagedKeys: []model.ManagedKey{
-			{Path: []string{"savefile_directory"}, Value: "/home/user/saves"},
-			{Path: []string{"savestate_directory"}, Value: "/home/user/states"},
-		},
 	}
 
 	patch := model.ConfigPatch{

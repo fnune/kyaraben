@@ -96,7 +96,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		},
 		{
 			Target:  userTarget,
-			Entries: []model.ConfigEntry{{Value: userXML, Unmanaged: true}},
+			Entries: []model.ConfigEntry{{Value: userXML, DefaultOnly: true}},
 		},
 	}
 
