@@ -976,30 +976,6 @@ func (d *Daemon) handleSyncRemoveDevice(data *SyncRemoveDeviceRequest) []Event {
 		return d.errorResponse(fmt.Sprintf("failed to remove device from syncthing: %v", err))
 	}
 
-	found := -1
-	for i, dev := range cfg.Sync.Devices {
-		if strings.ToUpper(dev.ID) == deviceID || strings.EqualFold(dev.Name, deviceID) {
-			found = i
-			if removedName == "" {
-				removedName = dev.Name
-			}
-			break
-		}
-	}
-
-	if found != -1 {
-		cfg.Sync.Devices = append(cfg.Sync.Devices[:found], cfg.Sync.Devices[found+1:]...)
-
-		path := d.configPath
-		if path == "" {
-			path, _ = d.paths.ConfigPath()
-		}
-
-		if err := d.configStore.Save(cfg, path); err != nil {
-			log.Error("Failed to update kyaraben config after device removal: %v", err)
-		}
-	}
-
 	return []Event{{
 		Type: EventTypeResult,
 		Data: SyncRemoveDeviceResponse{
@@ -1138,7 +1114,7 @@ func (d *Daemon) handleSyncStartPairing(emit func(Event)) []Event {
 
 		_ = code
 
-		d.persistPairedDevice(cfg, result.PeerDeviceID, result.PeerName, model.SyncModePrimary)
+		d.persistSyncEnabled(cfg, model.SyncModePrimary)
 
 		emit(Event{
 			Type: EventTypeResult,
@@ -1205,7 +1181,7 @@ func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest, emit func(E
 			return
 		}
 
-		d.persistPairedDevice(cfg, result.PeerDeviceID, result.PeerName, model.SyncModeSecondary)
+		d.persistSyncEnabled(cfg, model.SyncModeSecondary)
 
 		d.dismissUnwantedPendingFolders(client)
 
@@ -1524,17 +1500,7 @@ func (d *Daemon) updateSyncConfig(cfg *model.KyarabenConfig, userStorePath strin
 	return nil
 }
 
-func (d *Daemon) persistPairedDevice(cfg *model.KyarabenConfig, peerDeviceID, peerName string, mode model.SyncMode) {
-	for _, dev := range cfg.Sync.Devices {
-		if dev.ID == peerDeviceID {
-			return
-		}
-	}
-
-	cfg.Sync.Devices = append(cfg.Sync.Devices, model.SyncDevice{
-		ID:   peerDeviceID,
-		Name: peerName,
-	})
+func (d *Daemon) persistSyncEnabled(cfg *model.KyarabenConfig, mode model.SyncMode) {
 	cfg.Sync.Enabled = true
 	cfg.Sync.Mode = mode
 
@@ -1544,7 +1510,7 @@ func (d *Daemon) persistPairedDevice(cfg *model.KyarabenConfig, peerDeviceID, pe
 	}
 
 	if err := d.configStore.Save(cfg, path); err != nil {
-		log.Error("Failed to persist paired device: %v", err)
+		log.Error("Failed to persist sync config: %v", err)
 	}
 }
 
