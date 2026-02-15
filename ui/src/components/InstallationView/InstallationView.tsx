@@ -244,13 +244,13 @@ export function InstallationView() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-on-surface-secondary">Check for updates</p>
-              {updateInfo && (
-                <p className="text-xs text-on-surface-dim">
-                  {updateInfo.available
+              <p className="text-xs text-on-surface-dim">
+                {updateInfo
+                  ? updateInfo.available
                     ? `New version available: ${updateInfo.latestVersion}`
-                    : `You're on the latest version (${updateInfo.currentVersion})`}
-                </p>
-              )}
+                    : `You're on the latest version (${updateInfo.currentVersion})`
+                  : 'Current version: 0.1.0'}
+              </p>
             </div>
             <div className="flex gap-2">
               {updateInfo?.available && !downloadingUpdate && (
