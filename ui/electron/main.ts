@@ -449,6 +449,70 @@ async function pairingCommand(): Promise<{
   })
 }
 
+async function joinPrimaryCommand(code: string): Promise<{
+  success: boolean
+  peerDeviceId?: string
+  peerName?: string
+}> {
+  await ensureDaemon()
+
+  if (!daemon || !daemon.process.stdin) {
+    throw new Error('Daemon not running')
+  }
+
+  const currentDaemon = daemon
+  const stdin = daemon.process.stdin
+  const requestId = randomUUID()
+  const json = `${JSON.stringify({ type: 'sync_join_primary', id: requestId, data: { code, pairingAddr: '' } })}\n`
+  stdin.write(json)
+
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(
+      () => {
+        currentDaemon.pending.delete(requestId)
+        reject(new Error('Join primary timeout'))
+      },
+      6 * 60 * 1000,
+    )
+
+    const handleEvent = (event: DaemonEvent) => {
+      if (event.type === 'progress') {
+        const data = event.data as { message?: string } | undefined
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          try {
+            mainWindow.webContents.send('pairing:progress', {
+              message: data?.message ?? '',
+            })
+          } catch (sendErr) {
+            console.error(
+              `[sync] Failed to send join progress: ${sendErr instanceof Error ? sendErr.message : String(sendErr)}`,
+            )
+          }
+        }
+      } else if (event.type === 'result') {
+        clearTimeout(timeout)
+        currentDaemon.pending.delete(requestId)
+        const data = event.data as { success?: boolean; peerDeviceId?: string; peerName?: string }
+        resolve({
+          success: data?.success ?? true,
+          peerDeviceId: data?.peerDeviceId,
+          peerName: data?.peerName,
+        })
+      } else if (event.type === 'cancelled') {
+        clearTimeout(timeout)
+        currentDaemon.pending.delete(requestId)
+        resolve({ success: false })
+      } else if (event.type === 'error') {
+        clearTimeout(timeout)
+        currentDaemon.pending.delete(requestId)
+        reject(new Error((event.data as { error?: string })?.error || 'Unknown error'))
+      }
+    }
+
+    currentDaemon.pending.set(requestId, { resolve: handleEvent, reject })
+  })
+}
+
 async function syncEnableCommand(mode: string): Promise<{ success: boolean }> {
   await ensureDaemon()
 
@@ -602,8 +666,7 @@ function setupIpcHandlers(): void {
   })
 
   ipcMain.handle('sync_join_primary', async (_, data: { code: string; pairingAddr: string }) => {
-    const event = await sendCommand({ type: 'sync_join_primary', data })
-    return event.data
+    return await joinPrimaryCommand(data.code)
   })
 
   ipcMain.handle('sync_cancel_pairing', async () => {

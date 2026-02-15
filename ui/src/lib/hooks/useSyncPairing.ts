@@ -7,11 +7,13 @@ export interface UseSyncPairingResult {
   syncStatus: SyncStatusResponse | null
   pairingCode: string | null
   pairingProgress: string | null
+  pairingError: string | null
+  enableError: string | null
   isEnabling: boolean
   handleRemoveDevice: (deviceId: string) => Promise<void>
   handleStartPairing: () => Promise<void>
   handleCancelPairing: () => Promise<void>
-  handleJoinPrimary: (code: string) => Promise<void>
+  handleJoinPrimary: (code: string) => Promise<{ ok: boolean; error?: string }>
   handleEnableSync: (mode: SyncMode) => Promise<void>
   refreshSyncStatus: () => Promise<void>
 }
@@ -23,6 +25,8 @@ export function useSyncPairing(): UseSyncPairingResult {
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null)
   const [pairingCode, setPairingCode] = useState<string | null>(null)
   const [pairingProgress, setPairingProgress] = useState<string | null>(null)
+  const [pairingError, setPairingError] = useState<string | null>(null)
+  const [enableError, setEnableError] = useState<string | null>(null)
   const [isEnabling, setIsEnabling] = useState(false)
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -93,11 +97,16 @@ export function useSyncPairing(): UseSyncPairingResult {
   }, [])
 
   const handleJoinPrimary = useCallback(
-    async (code: string) => {
+    async (code: string): Promise<{ ok: boolean; error?: string }> => {
+      setPairingError(null)
       const result = await daemon.joinSyncPrimary({ code, pairingAddr: '' })
       if (result.ok) {
         await refreshSyncStatus()
+        return { ok: true }
       }
+      const errorMsg = result.error?.message ?? 'Failed to join primary'
+      setPairingError(errorMsg)
+      return { ok: false, error: errorMsg }
     },
     [refreshSyncStatus],
   )
@@ -105,10 +114,13 @@ export function useSyncPairing(): UseSyncPairingResult {
   const handleEnableSync = useCallback(
     async (mode: SyncMode) => {
       setIsEnabling(true)
+      setEnableError(null)
       try {
         const result = await daemon.enableSync({ mode })
         if (result.ok) {
           await refreshSyncStatus()
+        } else {
+          setEnableError(result.error?.message ?? 'Failed to enable sync')
         }
       } finally {
         setIsEnabling(false)
@@ -121,6 +133,8 @@ export function useSyncPairing(): UseSyncPairingResult {
     syncStatus,
     pairingCode,
     pairingProgress,
+    pairingError,
+    enableError,
     isEnabling,
     handleRemoveDevice,
     handleStartPairing,
