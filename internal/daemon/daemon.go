@@ -836,15 +836,21 @@ func (d *Daemon) handleSyncStatus() []Event {
 	defer cancel()
 
 	if !client.IsRunning(ctx) {
-		go d.ensureSyncthingRunning(cfg)
+		unit := syncpkg.NewSystemdUnit(d.fs, d.paths)
+		status := unit.Status()
+
+		if !status.Failed {
+			go d.ensureSyncthingRunning(cfg)
+		}
 
 		return []Event{{
 			Type: EventTypeResult,
 			Data: SyncStatusResponse{
-				Enabled: true,
-				Mode:    string(cfg.Sync.Mode),
-				Running: false,
-				GUIURL:  fmt.Sprintf("http://127.0.0.1:%d", cfg.Sync.Syncthing.GUIPort),
+				Enabled:      true,
+				Mode:         string(cfg.Sync.Mode),
+				Running:      false,
+				GUIURL:       fmt.Sprintf("http://127.0.0.1:%d", cfg.Sync.Syncthing.GUIPort),
+				ServiceError: status.Message,
 			},
 		}}
 	}
