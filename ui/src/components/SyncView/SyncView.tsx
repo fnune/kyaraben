@@ -212,7 +212,7 @@ function FolderRow({
             </div>
           </div>
           {showChanges && changes && changes.length > 0 && (
-            <div className="mt-2 max-h-32 overflow-y-auto">
+            <div className="mt-1 max-h-32 overflow-y-auto">
               {changes.map((c, i) => {
                 const label = c.type.includes('DELETED')
                   ? 'deleted'
@@ -227,10 +227,10 @@ function FolderRow({
             </div>
           )}
           {showChanges && changes && changes.length === 0 && (
-            <div className="mt-2 text-on-surface-muted">No details available</div>
+            <div className="mt-1 text-on-surface-muted">No details available</div>
           )}
           {showChanges && changesError && (
-            <div className="mt-2 text-status-error">{changesError}</div>
+            <div className="mt-1 text-status-error">{changesError}</div>
           )}
         </div>
       )}
