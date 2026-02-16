@@ -179,6 +179,8 @@ function AppContent() {
     syncStatus,
     pairingCode,
     pairingProgress,
+    pairingError,
+    enableError,
     isEnabling,
     handleRemoveDevice,
     handleStartPairing,
@@ -544,6 +546,8 @@ function AppContent() {
             onEnableSync={handleEnableSync}
             pairingCode={pairingCode}
             pairingProgress={pairingProgress}
+            pairingError={pairingError}
+            enableError={enableError}
             isEnabling={isEnabling}
           />
         )
