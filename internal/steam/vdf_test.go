@@ -221,6 +221,37 @@ func TestParseShortcuts_InvalidData(t *testing.T) {
 	}
 }
 
+func TestWriteShortcuts_QuotesExePath(t *testing.T) {
+	shortcuts := []Shortcut{{
+		AppID:   123,
+		AppName: "Test",
+		Exe:     "/path/to/exe",
+	}}
+
+	var buf bytes.Buffer
+	err := WriteShortcuts(&buf, shortcuts)
+	require.NoError(t, err)
+
+	assert.Contains(t, buf.String(), `"/path/to/exe"`)
+}
+
+func TestParseShortcuts_UnquotesExePath(t *testing.T) {
+	shortcuts := []Shortcut{{
+		AppID:   123,
+		AppName: "Test",
+		Exe:     "/path/to/exe",
+	}}
+
+	var buf bytes.Buffer
+	err := WriteShortcuts(&buf, shortcuts)
+	require.NoError(t, err)
+
+	parsed, err := ParseShortcuts(&buf)
+	require.NoError(t, err)
+	require.Len(t, parsed, 1)
+	assert.Equal(t, "/path/to/exe", parsed[0].Exe)
+}
+
 func buildShortcutsVDF(t *testing.T, shortcuts []Shortcut) []byte {
 	var buf bytes.Buffer
 	err := WriteShortcuts(&buf, shortcuts)

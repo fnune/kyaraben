@@ -74,7 +74,7 @@ func WriteShortcuts(w io.Writer, shortcuts []Shortcut) error {
 		if err := writeStringField(buf, "AppName", s.AppName); err != nil {
 			return err
 		}
-		if err := writeStringField(buf, "Exe", s.Exe); err != nil {
+		if err := writeStringField(buf, "Exe", quoteExe(s.Exe)); err != nil {
 			return err
 		}
 		if err := writeStringField(buf, "StartDir", s.StartDir); err != nil {
@@ -247,7 +247,7 @@ func (p *parser) parseShortcut() (Shortcut, error) {
 			case "AppName", "appname":
 				s.AppName = val
 			case "Exe", "exe":
-				s.Exe = val
+				s.Exe = unquoteExe(val)
 			case "StartDir", "startdir":
 				s.StartDir = val
 			case "icon":
@@ -428,4 +428,21 @@ func writeInt32Field(w *bytes.Buffer, key string, val uint32) error {
 	binary.LittleEndian.PutUint32(buf[:], val)
 	_, err := w.Write(buf[:])
 	return err
+}
+
+func quoteExe(exe string) string {
+	if len(exe) == 0 {
+		return exe
+	}
+	if exe[0] == '"' {
+		return exe
+	}
+	return `"` + exe + `"`
+}
+
+func unquoteExe(exe string) string {
+	if len(exe) >= 2 && exe[0] == '"' && exe[len(exe)-1] == '"' {
+		return exe[1 : len(exe)-1]
+	}
+	return exe
 }
