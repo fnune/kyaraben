@@ -20,7 +20,8 @@ type emulatorEntry struct {
 
 type frontendEntry struct {
 	model.Frontend
-	configGen model.FrontendConfigGenerator
+	configGen  model.FrontendConfigGenerator
+	definition model.FrontendDefinition
 }
 
 func New(systems []model.SystemDefinition, emulators []model.EmulatorDefinition, frontends []model.FrontendDefinition) *Registry {
@@ -48,8 +49,9 @@ func New(systems []model.SystemDefinition, emulators []model.EmulatorDefinition,
 	for _, def := range frontends {
 		fe := def.Frontend()
 		r.frontends[fe.ID] = frontendEntry{
-			Frontend:  fe,
-			configGen: def.ConfigGenerator(),
+			Frontend:   fe,
+			configGen:  def.ConfigGenerator(),
+			definition: def,
 		}
 	}
 
@@ -128,6 +130,14 @@ func (r *Registry) GetFrontendConfigGenerator(id model.FrontendID) model.Fronten
 		return nil
 	}
 	return entry.configGen
+}
+
+func (r *Registry) GetFrontendDefinition(id model.FrontendID) model.FrontendDefinition {
+	entry, ok := r.frontends[id]
+	if !ok {
+		return nil
+	}
+	return entry.definition
 }
 
 func (r *Registry) AllFrontends() []model.Frontend {
