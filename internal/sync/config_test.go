@@ -142,7 +142,7 @@ func TestConfigGenerator_Devices(t *testing.T) {
 	}
 }
 
-func TestConfigGenerator_SecondaryAutoAcceptsFolders(t *testing.T) {
+func TestConfigGenerator_SecondaryDoesNotAutoAccept(t *testing.T) {
 	cfg := model.SyncConfig{
 		Enabled: true,
 		Mode:    model.SyncModeSecondary,
@@ -166,8 +166,8 @@ func TestConfigGenerator_SecondaryAutoAcceptsFolders(t *testing.T) {
 	for _, dev := range xmlCfg.Devices {
 		if dev.Name == "desktop" {
 			foundPrimary = true
-			if !dev.AutoAcceptFolders {
-				t.Error("secondary should auto-accept folders from primary")
+			if dev.AutoAcceptFolders {
+				t.Error("secondary should not auto-accept folders (folders are pre-configured)")
 			}
 		}
 	}
