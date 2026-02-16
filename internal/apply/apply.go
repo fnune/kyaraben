@@ -20,6 +20,7 @@ import (
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/packages"
 	"github.com/fnune/kyaraben/internal/registry"
+	"github.com/fnune/kyaraben/internal/steam"
 	"github.com/fnune/kyaraben/internal/store"
 	"github.com/fnune/kyaraben/internal/version"
 	"github.com/fnune/kyaraben/internal/versions"
@@ -28,28 +29,6 @@ import (
 var versionsGet = versions.Get
 
 const installTimeout = 30 * time.Minute
-
-type SteamShortcutManager interface {
-	IsAvailable() bool
-	Sync(entries []SteamShortcutEntry) error
-}
-
-type SteamShortcutEntry struct {
-	AppName       string
-	Exe           string
-	StartDir      string
-	Icon          string
-	LaunchOptions string
-	Tags          []string
-	GridAssets    *SteamGridAssets
-}
-
-type SteamGridAssets struct {
-	Grid    []byte
-	Hero    []byte
-	Logo    []byte
-	Capsule []byte
-}
 
 type Progress struct {
 	Step            string
@@ -157,7 +136,7 @@ type Applier struct {
 	LauncherManager *launcher.Manager
 	BaseDirResolver model.BaseDirResolver
 	SymlinkCreator  model.SymlinkCreator
-	SteamManager    SteamShortcutManager
+	SteamManager    *steam.Manager
 }
 
 func NewApplier(fs vfs.FS, installer packages.Installer, configWriter *emulators.ConfigWriter, reg *registry.Registry, manifestPath string, launcherManager *launcher.Manager, resolver model.BaseDirResolver, symlinkCreator model.SymlinkCreator) *Applier {
@@ -1313,7 +1292,7 @@ func (a *Applier) syncSteamShortcuts(frontendIDs []model.FrontendID, binDir stri
 		return nil
 	}
 
-	var entries []SteamShortcutEntry
+	var entries []steam.ShortcutEntry
 	var records []model.SteamShortcutRecord
 
 	for _, feID := range frontendIDs {
@@ -1339,7 +1318,7 @@ func (a *Applier) syncSteamShortcuts(frontendIDs []model.FrontendID, binDir stri
 
 		exe := filepath.Join(binDir, fe.Launcher.Binary)
 
-		entry := SteamShortcutEntry{
+		entry := steam.ShortcutEntry{
 			AppName:       info.AppName,
 			Exe:           exe,
 			StartDir:      binDir,
@@ -1348,7 +1327,7 @@ func (a *Applier) syncSteamShortcuts(frontendIDs []model.FrontendID, binDir stri
 		}
 
 		if info.GridAssets != nil {
-			entry.GridAssets = &SteamGridAssets{
+			entry.GridAssets = &steam.GridAssets{
 				Grid:    info.GridAssets.Grid,
 				Hero:    info.GridAssets.Hero,
 				Logo:    info.GridAssets.Logo,

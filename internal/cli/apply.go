@@ -14,6 +14,7 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/symlink"
 	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/steam"
 )
 
 func isTerminal() bool {
@@ -70,6 +71,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		model.OSBaseDirResolver{},
 		symlink.NewCreator(vfs.OSFS),
 	)
+	applier.SteamManager = steam.NewDefaultManager()
 
 	fmt.Println("Applying kyaraben configuration...")
 	fmt.Println()
