@@ -12,8 +12,15 @@ const DAEMON_CHANNELS = [
   'apply',
   'cancel_apply',
   'sync_status',
-  'sync_add_device',
   'sync_remove_device',
+  'sync_start_pairing',
+  'sync_join_primary',
+  'sync_cancel_pairing',
+  'sync_pending',
+  'sync_enable',
+  'sync_revert_folder',
+  'sync_local_changes',
+  'sync_reset',
   'uninstall_preview',
   'refresh_icon_caches',
 ] as const
@@ -38,7 +45,12 @@ export const INVOKE_CHANNELS = [...DAEMON_CHANNELS, ...ELECTRON_CHANNELS] as con
 
 export type InvokeChannel = (typeof INVOKE_CHANNELS)[number]
 
-export const EVENT_CHANNELS = ['apply:progress', 'update:progress'] as const
+export const EVENT_CHANNELS = [
+  'apply:progress',
+  'pairing:progress',
+  'sync_enable:progress',
+  'update:progress',
+] as const
 
 export type EventChannel = (typeof EVENT_CHANNELS)[number]
 

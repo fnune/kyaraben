@@ -173,8 +173,8 @@ test.describe('Sync disabled', () => {
 
   test('shows sync disabled message', async () => {
     await page.getByRole('button', { name: 'Sync' }).click()
-    await expect(page.getByText('Sync is not enabled')).toBeVisible()
-    await expect(page.getByText('enabled = true')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Enable sync' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Enable sync' })).toBeVisible()
   })
 })
 
@@ -396,7 +396,7 @@ test.describe('Tab navigation', () => {
 
   test('can switch to Sync and back', async () => {
     await page.getByRole('button', { name: 'Sync' }).click()
-    await expect(page.getByRole('heading', { name: /Sync/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Enable sync' })).toBeVisible()
 
     await page.getByRole('button', { name: 'Catalog', exact: true }).click()
     await expect(page.getByText('Emulation folder')).toBeVisible()

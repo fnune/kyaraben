@@ -10,6 +10,7 @@ import (
 
 	"github.com/fnune/kyaraben/internal/emulators/retroarch"
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/paths"
 	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/store"
 	"github.com/fnune/kyaraben/internal/testutil"
@@ -25,7 +26,7 @@ func TestMain(m *testing.M) {
 
 func mustNewUserStore(t *testing.T, fs vfs.FS, path string) *store.UserStore {
 	t.Helper()
-	s, err := store.NewUserStore(fs, path)
+	s, err := store.NewUserStore(fs, paths.DefaultPaths(), path)
 	if err != nil {
 		t.Fatalf("NewUserStore(%q) failed: %v", path, err)
 	}
@@ -57,7 +58,7 @@ func TestGet(t *testing.T) {
 	reg := registry.NewDefault()
 	userStore := mustNewUserStore(t, fs, userStorePath)
 
-	getter := NewGetter(fs)
+	getter := NewGetter(fs, paths.DefaultPaths())
 	result, err := getter.Get(context.Background(), cfg, configPath, reg, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
@@ -112,7 +113,7 @@ func TestGetWithInitializedStore(t *testing.T) {
 	reg := registry.NewDefault()
 	userStore := mustNewUserStore(t, fs, userStorePath)
 
-	getter := NewGetter(fs)
+	getter := NewGetter(fs, paths.DefaultPaths())
 	result, err := getter.Get(context.Background(), cfg, configPath, reg, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
@@ -145,7 +146,7 @@ func TestGetSystemNames(t *testing.T) {
 	reg := registry.NewDefault()
 	userStore := mustNewUserStore(t, fs, "/Emulation")
 
-	getter := NewGetter(fs)
+	getter := NewGetter(fs, paths.DefaultPaths())
 	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
@@ -188,7 +189,7 @@ func TestGetMissingRequiredCount(t *testing.T) {
 	reg := registry.NewDefault()
 	userStore := mustNewUserStore(t, fs, userStorePath)
 
-	getter := NewGetter(fs)
+	getter := NewGetter(fs, paths.DefaultPaths())
 	result, err := getter.Get(context.Background(), cfg, "/config", reg, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
@@ -236,7 +237,7 @@ func TestGetWithManifest(t *testing.T) {
 	reg := registry.NewDefault()
 	userStore := mustNewUserStore(t, fs, "/Emulation")
 
-	getter := NewGetter(fs)
+	getter := NewGetter(fs, paths.DefaultPaths())
 	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
@@ -302,7 +303,7 @@ func TestGetWithVersionPinning(t *testing.T) {
 	reg := registry.NewDefault()
 	userStore := mustNewUserStore(t, fs, "/Emulation")
 
-	getter := NewGetter(fs)
+	getter := NewGetter(fs, paths.DefaultPaths())
 	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
@@ -364,7 +365,7 @@ func TestGetManagedConfigsIncludesKeys(t *testing.T) {
 	reg := registry.NewDefault()
 	userStore := mustNewUserStore(t, fs, "/Emulation")
 
-	getter := NewGetter(fs)
+	getter := NewGetter(fs, paths.DefaultPaths())
 	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
@@ -464,7 +465,7 @@ func TestGetRetroArchCoreIncludesSharedConfig(t *testing.T) {
 	reg := registry.NewDefault()
 	userStore := mustNewUserStore(t, fs, "/Emulation")
 
-	getter := NewGetter(fs)
+	getter := NewGetter(fs, paths.DefaultPaths())
 	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)

@@ -8,10 +8,18 @@ import type {
   PreflightResponse,
   SetConfigRequest,
   StatusResponse,
-  SyncAddDeviceRequest,
-  SyncAddDeviceResponse,
+  SyncEnableRequest,
+  SyncEnableResponse,
+  SyncJoinPrimaryRequest,
+  SyncJoinPrimaryResponse,
+  SyncLocalChangesRequest,
+  SyncLocalChangesResponse,
+  SyncPendingResponse,
   SyncRemoveDeviceRequest,
   SyncRemoveDeviceResponse,
+  SyncResetResponse,
+  SyncRevertFolderRequest,
+  SyncRevertFolderResponse,
   SyncStatusResponse,
   System,
   UninstallPreviewResponse,
@@ -60,11 +68,27 @@ export const installApp = () => invoke<{ success: boolean }>('install_app')
 
 export const getSyncStatus = () => invoke<SyncStatusResponse>('sync_status')
 
-export const addSyncDevice = (req: SyncAddDeviceRequest) =>
-  invoke<SyncAddDeviceResponse>('sync_add_device', req)
-
 export const removeSyncDevice = (req: SyncRemoveDeviceRequest) =>
   invoke<SyncRemoveDeviceResponse>('sync_remove_device', req)
+
+export const startSyncPairing = () => invoke<{ code: string }>('sync_start_pairing')
+
+export const joinSyncPrimary = (req: SyncJoinPrimaryRequest) =>
+  invoke<SyncJoinPrimaryResponse>('sync_join_primary', req)
+
+export const cancelSyncPairing = () => invoke<{ cancelled: boolean }>('sync_cancel_pairing')
+
+export const getSyncPending = () => invoke<SyncPendingResponse>('sync_pending')
+
+export const enableSync = (req: SyncEnableRequest) => invoke<SyncEnableResponse>('sync_enable', req)
+
+export const revertSyncFolder = (req: SyncRevertFolderRequest) =>
+  invoke<SyncRevertFolderResponse>('sync_revert_folder', req)
+
+export const getSyncLocalChanges = (req: SyncLocalChangesRequest) =>
+  invoke<SyncLocalChangesResponse>('sync_local_changes', req)
+
+export const resetSync = () => invoke<SyncResetResponse>('sync_reset')
 
 export const getUninstallPreview = () => invoke<UninstallPreviewResponse>('uninstall_preview')
 

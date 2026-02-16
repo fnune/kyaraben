@@ -184,6 +184,21 @@ clean-emu-configs:
 
     echo "Done."
 
+# Watch mDNS kyaraben service advertisements (for debugging sync pairing)
+watch-mdns:
+    go run ./cmd/test-mdns-browse
+
+# Run an additional kyaraben instance for local sync testing
+# Usage: just instance secondary
+instance name: _sidecar
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "Running kyaraben instance '{{ name }}'"
+    echo "  Config: ~/.config/kyaraben-{{ name }}/config.toml"
+    echo "  State:  ~/.local/state/kyaraben-{{ name }}/"
+    echo ""
+    cd ui && npm run build && npm run build:electron && npx electron . -- --instance {{ name }}
+
 # --- Internal targets (prefixed with _) ---
 
  

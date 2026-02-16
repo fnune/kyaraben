@@ -21,6 +21,7 @@
 package paths
 
 import (
+	"hash/fnv"
 	"os"
 	"path/filepath"
 )
@@ -60,6 +61,89 @@ func KyarabenStateDir() (string, error) {
 		return "", err
 	}
 	return filepath.Join(base, "kyaraben"), nil
+}
+
+type Paths struct {
+	Instance string
+}
+
+func NewPaths(instance string) *Paths {
+	return &Paths{Instance: instance}
+}
+
+func DefaultPaths() *Paths {
+	return NewPaths("")
+}
+
+func (p *Paths) DirName() string {
+	if p.Instance != "" {
+		return "kyaraben-" + p.Instance
+	}
+	return "kyaraben"
+}
+
+func (p *Paths) StateDir() (string, error) {
+	base, err := StateDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(base, p.DirName()), nil
+}
+
+func (p *Paths) ConfigDir() (string, error) {
+	base, err := ConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(base, p.DirName()), nil
+}
+
+func (p *Paths) ConfigPath() (string, error) {
+	dir, err := p.ConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "config.toml"), nil
+}
+
+func (p *Paths) ManifestPath() (string, error) {
+	state, err := p.StateDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(state, "build", "manifest.json"), nil
+}
+
+func (p *Paths) DesktopFileName() string {
+	return p.DirName() + ".desktop"
+}
+
+func (p *Paths) AppBinaryName() string {
+	if p.Instance != "" {
+		return "kyaraben-ui-" + p.Instance
+	}
+	return "kyaraben-ui"
+}
+
+func (p *Paths) CLIBinaryName() string {
+	return p.DirName()
+}
+
+func (p *Paths) CoresDir() (string, error) {
+	state, err := p.StateDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(state, "cores"), nil
+}
+
+func (p *Paths) InstancePortOffset() int {
+	if p.Instance == "" {
+		return 0
+	}
+	h := fnv.New32a()
+	h.Write([]byte(p.Instance))
+	return int(h.Sum32()%100) + 1
 }
 
 func KyarabenConfigDir() (string, error) {

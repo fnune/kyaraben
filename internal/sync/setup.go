@@ -5,30 +5,35 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"net"
+	"os"
 	"path/filepath"
 
 	"github.com/twpayne/go-vfs/v5"
 
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/packages"
+	"github.com/fnune/kyaraben/internal/paths"
 )
 
 type Setup struct {
 	fs        vfs.FS
+	paths     *paths.Paths
 	installer packages.Installer
 	stateDir  string
 }
 
-func NewSetup(fs vfs.FS, installer packages.Installer, stateDir string) *Setup {
+func NewSetup(fs vfs.FS, p *paths.Paths, installer packages.Installer, stateDir string) *Setup {
 	return &Setup{
 		fs:        fs,
+		paths:     p,
 		installer: installer,
 		stateDir:  stateDir,
 	}
 }
 
 func NewDefaultSetup(installer packages.Installer, stateDir string) *Setup {
-	return NewSetup(vfs.OSFS, installer, stateDir)
+	return NewSetup(vfs.OSFS, paths.DefaultPaths(), installer, stateDir)
 }
 
 type SetupResult struct {
@@ -36,11 +41,16 @@ type SetupResult struct {
 	ConfigDir       string
 	DataDir         string
 	APIKey          string
+	SystemdUnitPath string
 }
 
 func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, userStorePath string, allSystems []model.SystemID, onProgress func(packages.InstallProgress)) (*SetupResult, error) {
 	if !cfg.Enabled {
 		return nil, nil
+	}
+
+	if err := CheckPorts(cfg.Syncthing); err != nil {
+		return nil, err
 	}
 
 	binary, err := s.installer.InstallEmulator(ctx, "syncthing", onProgress)
@@ -63,7 +73,7 @@ func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, userStorePath
 		return nil, fmt.Errorf("writing syncthing config: %w", err)
 	}
 
-	unitGen := NewSystemdUnit(s.fs)
+	unitGen := NewSystemdUnit(s.fs, s.paths)
 	params := UnitParams{
 		BinaryPath: binary.Path,
 		ConfigDir:  configDir,
@@ -80,21 +90,65 @@ func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, userStorePath
 		return nil, fmt.Errorf("enabling syncthing service: %w", err)
 	}
 
+	unitPath, _ := unitGen.unitPath()
+
 	return &SetupResult{
 		SyncthingBinary: binary.Path,
 		ConfigDir:       configDir,
 		DataDir:         dataDir,
 		APIKey:          apiKey,
+		SystemdUnitPath: unitPath,
 	}, nil
 }
 
+func (s *Setup) UpdateConfig(cfg model.SyncConfig, userStorePath string, allSystems []model.SystemID) error {
+	if !cfg.Enabled {
+		return nil
+	}
+
+	configDir := filepath.Join(s.stateDir, "syncthing", "config")
+
+	apiKey, err := s.loadOrGenerateAPIKey(configDir)
+	if err != nil {
+		return fmt.Errorf("loading API key: %w", err)
+	}
+
+	configGen := NewConfigGenerator(s.fs, cfg, userStorePath, allSystems)
+	configGen.SetAPIKey(apiKey)
+
+	if err := configGen.WriteConfig(configDir); err != nil {
+		return fmt.Errorf("writing syncthing config: %w", err)
+	}
+
+	log.Info("Updated syncthing config with %d systems", len(allSystems))
+	return nil
+}
+
 func (s *Setup) Disable() error {
-	unitGen := NewSystemdUnit(s.fs)
+	unitGen := NewSystemdUnit(s.fs, s.paths)
 	return unitGen.Disable()
 }
 
+func (s *Setup) Reset() error {
+	unitGen := NewSystemdUnit(s.fs, s.paths)
+
+	if unitGen.IsEnabled() {
+		if err := unitGen.Disable(); err != nil {
+			log.Error("Failed to disable syncthing service during reset: %v", err)
+		}
+	}
+
+	syncthingDir := filepath.Join(s.stateDir, "syncthing")
+	if err := os.RemoveAll(syncthingDir); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("removing syncthing directory: %w", err)
+	}
+
+	log.Info("Reset syncthing state at %s", syncthingDir)
+	return nil
+}
+
 func (s *Setup) IsEnabled() bool {
-	unitGen := NewSystemdUnit(s.fs)
+	unitGen := NewSystemdUnit(s.fs, s.paths)
 	return unitGen.IsEnabled()
 }
 
@@ -129,3 +183,45 @@ func generateAPIKey() (string, error) {
 	}
 	return hex.EncodeToString(b), nil
 }
+
+func checkPortsAvailable(cfg model.SyncthingConfig) error {
+	ports := []struct {
+		port int
+		name string
+		net  string
+	}{
+		{cfg.GUIPort, "GUI", "tcp"},
+		{cfg.ListenPort, "listen", "tcp"},
+		{cfg.DiscoveryPort, "discovery", "udp"},
+	}
+
+	for _, p := range ports {
+		if err := checkPortAvailable(p.net, p.port); err != nil {
+			return fmt.Errorf("syncthing %s port %d is already in use: %w", p.name, p.port, err)
+		}
+	}
+	return nil
+}
+
+func checkPortAvailable(network string, port int) error {
+	addr := fmt.Sprintf("127.0.0.1:%d", port)
+	switch network {
+	case "tcp":
+		ln, err := net.Listen("tcp", addr)
+		if err != nil {
+			return err
+		}
+		_ = ln.Close()
+	case "udp":
+		conn, err := net.ListenPacket("udp", addr)
+		if err != nil {
+			return err
+		}
+		_ = conn.Close()
+	}
+	return nil
+}
+
+type PortChecker func(cfg model.SyncthingConfig) error
+
+var CheckPorts PortChecker = checkPortsAvailable

@@ -122,14 +122,17 @@ export function CatalogView({
     progressSteps,
     error,
     preflightData,
+    syncPendingData,
     apply,
     confirmApply,
+    confirmSyncPending,
     reset,
     logPosition,
   } = useApply()
   const openLog = useOpenLog()
   const isApplying = applyStatus === 'applying'
-  const showProgress = applyStatus !== 'idle' && applyStatus !== 'reviewing'
+  const showProgress =
+    applyStatus !== 'idle' && applyStatus !== 'reviewing' && applyStatus !== 'confirming_sync'
 
   const [searchQuery, setSearchQuery] = useState('')
   const [showInstalledOnly, setShowInstalledOnly] = useState(false)
@@ -357,6 +360,40 @@ export function CatalogView({
 
   if (applyStatus === 'reviewing' && preflightData) {
     return <ConfigDiffReview data={preflightData} onConfirm={confirmApply} onCancel={reset} />
+  }
+
+  if (applyStatus === 'confirming_sync' && syncPendingData) {
+    const totalMB = (syncPendingData.totalBytes / (1024 * 1024)).toFixed(1)
+    return (
+      <div className="p-6">
+        <div className="max-w-lg mx-auto bg-surface-alt rounded-card p-6">
+          <h2 className="text-lg font-medium text-on-surface mb-4">Sync in progress</h2>
+          <p className="text-sm text-on-surface-muted mb-4">
+            There are {syncPendingData.totalFiles} files ({totalMB} MB) still syncing. Applying now
+            will temporarily pause sync while emulators are configured.
+          </p>
+          <p className="text-sm text-on-surface-muted mb-6">
+            Sync will resume automatically after apply completes.
+          </p>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={reset}
+              className="flex-1 px-4 py-2 text-sm font-medium text-on-surface bg-surface rounded-card hover:bg-outline"
+            >
+              Wait for sync
+            </button>
+            <button
+              type="button"
+              onClick={confirmSyncPending}
+              className="flex-1 px-4 py-2 text-sm font-medium text-on-accent bg-accent rounded-card hover:bg-accent-hover"
+            >
+              Apply anyway
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (showProgress) {

@@ -11,7 +11,6 @@ type SyncConfig struct {
 	Enabled   bool             `toml:"enabled"`
 	Mode      SyncMode         `toml:"mode"`
 	Syncthing SyncthingConfig  `toml:"syncthing"`
-	Devices   []SyncDevice     `toml:"devices"`
 	Ignore    SyncIgnoreConfig `toml:"ignore"`
 }
 
@@ -20,11 +19,6 @@ type SyncthingConfig struct {
 	DiscoveryPort int  `toml:"discovery_port"`
 	GUIPort       int  `toml:"gui_port"`
 	RelayEnabled  bool `toml:"relay_enabled"`
-}
-
-type SyncDevice struct {
-	ID   string `toml:"id"`
-	Name string `toml:"name"`
 }
 
 type SyncIgnoreConfig struct {
@@ -36,12 +30,11 @@ func DefaultSyncConfig() SyncConfig {
 		Enabled: false,
 		Mode:    SyncModeSecondary,
 		Syncthing: SyncthingConfig{
-			ListenPort:    22001,
-			DiscoveryPort: 21028,
-			GUIPort:       8385,
+			ListenPort:    22100,
+			DiscoveryPort: 21127,
+			GUIPort:       8484,
 			RelayEnabled:  true,
 		},
-		Devices: []SyncDevice{},
 		Ignore: SyncIgnoreConfig{
 			Patterns: []string{
 				"**/shader_cache/**",

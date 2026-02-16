@@ -50,12 +50,12 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	}
 	installer.SetVersionOverrides(versionOverrides)
 	configWriter := emulators.NewDefaultConfigWriter(model.OSBaseDirResolver{})
-	manifestPath, err := model.DefaultManifestPath()
+	manifestPath, err := ctx.GetPaths().ManifestPath()
 	if err != nil {
 		return err
 	}
 
-	launcherManager, err := launcher.NewManager()
+	launcherManager, err := launcher.NewManager(ctx.GetPaths())
 	if err != nil {
 		return fmt.Errorf("creating launcher manager: %w", err)
 	}

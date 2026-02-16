@@ -101,7 +101,7 @@ function FileDiff({ diff }: { readonly diff: ConfigFileDiff }) {
         </div>
       )}
 
-      {diff.changes && diff.changes.length > 0 && (
+      {!hasConflict && diff.changes && diff.changes.length > 0 && (
         <div className="space-y-0.5">
           {diff.changes.map((change, i) => (
             <ChangeRow key={`${change.key}-${i}`} change={change} />
