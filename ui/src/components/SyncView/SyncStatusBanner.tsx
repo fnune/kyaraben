@@ -50,9 +50,9 @@ function getStateConfig(state: SyncState) {
       return {
         icon: '⚠',
         label: 'Sync conflicts detected',
-        bgClass: 'bg-status-warn/10',
-        textClass: 'text-status-warn',
-        dotClass: 'bg-status-warn',
+        bgClass: 'bg-status-warning/10',
+        textClass: 'text-status-warning',
+        dotClass: 'bg-status-warning',
       }
     case SyncStateError:
       return {

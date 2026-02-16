@@ -75,7 +75,7 @@ function DeviceRow({
 }) {
   const getStatusDisplay = () => {
     if (device.paused) {
-      return { dotClass: 'bg-status-warn', label: 'paused' }
+      return { dotClass: 'bg-status-warning', label: 'paused' }
     }
     if (device.connected) {
       return { dotClass: 'bg-status-ok', label: 'connected' }
@@ -151,7 +151,7 @@ function FolderRow({
   }, [folder.id, onRefresh])
 
   const getStatusIndicator = () => {
-    if (hasLocalChanges) return 'bg-status-warn'
+    if (hasLocalChanges) return 'bg-status-warninging'
     if (isSyncing) return 'bg-accent animate-pulse'
     return 'bg-status-ok'
   }
@@ -186,9 +186,9 @@ function FolderRow({
         </div>
       </div>
       {hasLocalChanges && (
-        <div className="mt-2 ml-4 p-2 bg-status-warn/10 border border-status-warn/30 rounded text-xs">
+        <div className="mt-2 ml-4 p-2 bg-status-warning/10 border border-status-warning/30 rounded text-xs">
           <div className="flex items-center justify-between">
-            <span className="text-status-warn">
+            <span className="text-status-warning">
               {folder.receiveOnlyChanges} local change{folder.receiveOnlyChanges === 1 ? '' : 's'}{' '}
               differ from remote
             </span>
