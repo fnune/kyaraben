@@ -38,8 +38,13 @@ fmt: ensure
     cd ui && npm run lint:fix
     cd site && npm run fmt
 
-# Build release AppImage
+# Build AppImage (dev version with timestamp)
 build: ensure generate-types _sidecar
+    cd ui && npm run electron:build
+
+# Build AppImage for release (clean version number)
+release: ensure generate-types
+    RELEASE_BUILD=1 ./scripts/build-sidecar.sh
     cd ui && npm run electron:build
 
 # Run CLI e2e tests in container

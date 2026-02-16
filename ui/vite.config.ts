@@ -3,14 +3,6 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
-const buildTime = new Date().toLocaleString('en-GB', {
-  day: '2-digit',
-  month: 'short',
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-})
-
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
@@ -18,9 +10,6 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
       '@electron': path.resolve(__dirname, './electron'),
     },
-  },
-  define: {
-    __DEV_BUILD_TIME__: JSON.stringify(buildTime),
   },
   clearScreen: false,
   server: {

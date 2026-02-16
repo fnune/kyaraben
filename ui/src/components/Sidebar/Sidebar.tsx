@@ -14,6 +14,7 @@ export interface SidebarProps {
   readonly currentView: View
   readonly onNavigate: (view: View) => void
   readonly syncStatus: SyncStatusResponse | null
+  readonly version: string | null
 }
 
 interface NavItemProps {
@@ -55,7 +56,7 @@ function NavItem({ label, active, onClick, indicator }: NavItemProps) {
   )
 }
 
-export function Sidebar({ currentView, onNavigate, syncStatus }: SidebarProps) {
+export function Sidebar({ currentView, onNavigate, syncStatus, version }: SidebarProps) {
   const syncState = getSyncState(syncStatus)
   const syncDotColor = syncDotColors[syncState]
 
@@ -80,9 +81,7 @@ export function Sidebar({ currentView, onNavigate, syncStatus }: SidebarProps) {
       </nav>
 
       <div className="flex items-center justify-between p-4 min-[720px]:border-t border-l min-[720px]:border-l-0 border-outline">
-        <span className="text-xs text-on-surface-dim font-mono">
-          v0.1.0{__DEV_BUILD_TIME__ && ` (${__DEV_BUILD_TIME__})`}
-        </span>
+        <span className="text-xs text-on-surface-dim font-mono truncate">{version ?? ''}</span>
         <button
           type="button"
           onClick={() => onNavigate(VIEW_INSTALLATION)}
