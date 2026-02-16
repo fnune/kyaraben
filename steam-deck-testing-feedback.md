@@ -50,3 +50,5 @@
 1. Long paths in provisions cards (e.g., "Open /USERDIR/saves/gamecube/EUR") don't ellipsize and overflow the card
 
 2. Some application icons missing: ES-DE, RetroArch, RPCS3 - other emulator icons work
+
+3. Discovered devices list should use stable sort by order of appearance, not alphabetical sort by device ID

@@ -184,9 +184,9 @@ clean-emu-configs:
 
     echo "Done."
 
-# Watch mDNS kyaraben service advertisements (for debugging sync pairing)
-watch-mdns:
-    go run ./cmd/test-mdns-browse
+# Deploy AppImage to Steam Deck SD card via SSH
+deploy-deck:
+    scp ui/release/Kyaraben-*-x86_64.AppImage deck@steamdeck:/run/media/Emulation/External/
 
 # Run an additional kyaraben instance for local sync testing
 # Usage: just instance secondary
