@@ -544,6 +544,7 @@ function AppContent() {
             onCancelPairing={handleCancelPairing}
             onJoinPrimary={handleJoinPrimary}
             onEnableSync={handleEnableSync}
+            onRefresh={refreshSyncStatus}
             pairingCode={pairingCode}
             pairingProgress={pairingProgress}
             pairingError={pairingError}

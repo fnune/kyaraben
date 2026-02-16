@@ -25,14 +25,15 @@ type DeviceStatus struct {
 }
 
 type FolderStatusSummary struct {
-	ID         string
-	Path       string
-	Type       string
-	State      string
-	Completion float64
-	GlobalSize int64
-	LocalSize  int64
-	NeedSize   int64
+	ID                 string
+	Path               string
+	Type               string
+	State              string
+	Completion         float64
+	GlobalSize         int64
+	LocalSize          int64
+	NeedSize           int64
+	ReceiveOnlyChanges int
 }
 
 type Conflict struct {
@@ -80,13 +81,14 @@ func (c *Client) GetStatus(ctx context.Context) (*Status, error) {
 				continue
 			}
 			folders = append(folders, FolderStatusSummary{
-				ID:         fc.ID,
-				Path:       fc.Path,
-				Type:       fc.Type,
-				State:      fs.State,
-				GlobalSize: fs.GlobalBytes,
-				LocalSize:  fs.LocalBytes,
-				NeedSize:   fs.NeedBytes,
+				ID:                 fc.ID,
+				Path:               fc.Path,
+				Type:               fc.Type,
+				State:              fs.State,
+				GlobalSize:         fs.GlobalBytes,
+				LocalSize:          fs.LocalBytes,
+				NeedSize:           fs.NeedBytes,
+				ReceiveOnlyChanges: fs.ReceiveOnlyTotalItems,
 			})
 		}
 	}

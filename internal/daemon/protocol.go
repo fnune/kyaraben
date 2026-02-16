@@ -226,13 +226,39 @@ type SyncDevice struct {
 }
 
 type SyncFolder struct {
-	ID         string `json:"id"`
-	Path       string `json:"path"`
-	Label      string `json:"label"`
-	State      string `json:"state"`
-	GlobalSize int64  `json:"globalSize"`
-	LocalSize  int64  `json:"localSize"`
-	NeedSize   int64  `json:"needSize"`
+	ID                 string `json:"id"`
+	Path               string `json:"path"`
+	Label              string `json:"label"`
+	State              string `json:"state"`
+	Type               string `json:"type"`
+	GlobalSize         int64  `json:"globalSize"`
+	LocalSize          int64  `json:"localSize"`
+	NeedSize           int64  `json:"needSize"`
+	ReceiveOnlyChanges int    `json:"receiveOnlyChanges"`
+}
+
+type SyncRevertFolderRequest struct {
+	FolderID string `json:"folderId"`
+}
+
+type SyncRevertFolderResponse struct {
+	Success bool `json:"success"`
+}
+
+type SyncLocalChangesRequest struct {
+	FolderID string `json:"folderId"`
+}
+
+type SyncLocalChange struct {
+	Action   string `json:"action"`
+	Type     string `json:"type"`
+	Path     string `json:"path"`
+	Modified string `json:"modified"`
+	Size     int64  `json:"size"`
+}
+
+type SyncLocalChangesResponse struct {
+	Changes []SyncLocalChange `json:"changes"`
 }
 
 type SyncPendingResponse struct {

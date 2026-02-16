@@ -31,8 +31,10 @@ const (
 	CommandTypeInstallKyaraben   CommandType = "install_kyaraben"
 	CommandTypeInstallStatus     CommandType = "install_status"
 	CommandTypeRefreshIconCaches CommandType = "refresh_icon_caches"
-	CommandTypePreflight         CommandType = "preflight"
-	CommandTypeSyncEnable        CommandType = "sync_enable"
+	CommandTypePreflight           CommandType = "preflight"
+	CommandTypeSyncEnable          CommandType = "sync_enable"
+	CommandTypeSyncRevertFolder    CommandType = "sync_revert_folder"
+	CommandTypeSyncLocalChanges    CommandType = "sync_local_changes"
 )
 
 // Command represents a command from the UI.
@@ -74,6 +76,20 @@ type SyncEnableCommand struct {
 	Type CommandType       `json:"type"`
 	ID   string            `json:"id,omitempty"`
 	Data SyncEnableRequest `json:"data"`
+}
+
+// SyncRevertFolderCommand includes the folder to revert.
+type SyncRevertFolderCommand struct {
+	Type CommandType             `json:"type"`
+	ID   string                  `json:"id,omitempty"`
+	Data SyncRevertFolderRequest `json:"data"`
+}
+
+// SyncLocalChangesCommand includes the folder to get local changes for.
+type SyncLocalChangesCommand struct {
+	Type CommandType             `json:"type"`
+	ID   string                  `json:"id,omitempty"`
+	Data SyncLocalChangesRequest `json:"data"`
 }
 
 // EventType identifies the type of event.
