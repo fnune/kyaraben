@@ -211,6 +211,7 @@ type SyncStatusResponse struct {
 	GUIURL   string        `json:"guiURL,omitempty"`
 	State    SyncState     `json:"state,omitempty"`
 	Devices  []SyncDevice  `json:"devices,omitempty"`
+	Folders  []SyncFolder  `json:"folders,omitempty"`
 	Pairing  bool          `json:"pairing,omitempty"`
 	Paused   bool          `json:"paused,omitempty"`
 	Progress *SyncProgress `json:"progress,omitempty"`
@@ -228,6 +229,15 @@ type SyncDevice struct {
 	Name      string `json:"name"`
 	Connected bool   `json:"connected"`
 	Paused    bool   `json:"paused,omitempty"`
+}
+
+type SyncFolder struct {
+	ID         string `json:"id"`
+	Label      string `json:"label"`
+	State      string `json:"state"`
+	GlobalSize int64  `json:"globalSize"`
+	LocalSize  int64  `json:"localSize"`
+	NeedSize   int64  `json:"needSize"`
 }
 
 type SyncPendingResponse struct {

@@ -39,6 +39,7 @@ export type {
   SyncEnableProgressEvent,
   SyncEnableRequest,
   SyncEnableResponse,
+  SyncFolder,
   SyncJoinPrimaryRequest,
   SyncJoinPrimaryResponse,
   SyncPauseResponse,

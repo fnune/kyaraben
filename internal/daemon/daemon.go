@@ -86,6 +86,15 @@ func shortenPath(path string) string {
 	return path
 }
 
+func folderLabel(id string) string {
+	id = strings.TrimPrefix(id, "kyaraben-")
+	parts := strings.SplitN(id, "-", 2)
+	if len(parts) == 2 {
+		return fmt.Sprintf("%s (%s)", parts[1], parts[0])
+	}
+	return id
+}
+
 func (d *Daemon) Handle(cmd Command) []Event {
 	return d.HandleWithEmit(cmd, nil)
 }
@@ -865,6 +874,18 @@ func (d *Daemon) handleSyncStatus() []Event {
 		}
 	}
 
+	folders := make([]SyncFolder, len(syncStatus.Folders))
+	for i, f := range syncStatus.Folders {
+		folders[i] = SyncFolder{
+			ID:         f.ID,
+			Label:      folderLabel(f.ID),
+			State:      f.State,
+			GlobalSize: f.GlobalSize,
+			LocalSize:  f.LocalSize,
+			NeedSize:   f.NeedSize,
+		}
+	}
+
 	var progress *SyncProgress
 	if progressInfo, err := client.GetSyncProgress(ctx); err == nil && progressInfo.NeedFiles > 0 {
 		progress = &SyncProgress{
@@ -885,6 +906,7 @@ func (d *Daemon) handleSyncStatus() []Event {
 			GUIURL:   syncStatus.GUIURL,
 			State:    SyncState(syncStatus.OverallState()),
 			Devices:  devices,
+			Folders:  folders,
 			Paused:   syncStatus.Paused,
 			Progress: progress,
 		},
