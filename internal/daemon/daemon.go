@@ -841,10 +841,20 @@ func (d *Daemon) handleSyncStatus() []Event {
 		return d.errorResponse(err.Error())
 	}
 
+	unit := syncpkg.NewSystemdUnit(d.fs, d.paths)
+	serviceInstalled := unit.IsEnabled()
+
+	manifest, _ := d.loadManifest()
+	installed := manifest.SyncthingInstall != nil && d.fileExists(manifest.SyncthingInstall.BinaryPath)
+
 	if !cfg.Sync.Enabled {
 		return []Event{{
 			Type: EventTypeResult,
-			Data: SyncStatusResponse{Enabled: false},
+			Data: SyncStatusResponse{
+				Enabled:          false,
+				Installed:        installed,
+				ServiceInstalled: serviceInstalled,
+			},
 		}}
 	}
 
@@ -857,7 +867,6 @@ func (d *Daemon) handleSyncStatus() []Event {
 	defer cancel()
 
 	if !client.IsRunning(ctx) {
-		unit := syncpkg.NewSystemdUnit(d.fs, d.paths)
 		status := unit.Status()
 
 		if !status.Failed {
@@ -867,11 +876,13 @@ func (d *Daemon) handleSyncStatus() []Event {
 		return []Event{{
 			Type: EventTypeResult,
 			Data: SyncStatusResponse{
-				Enabled:      true,
-				Mode:         string(cfg.Sync.Mode),
-				Running:      false,
-				GUIURL:       fmt.Sprintf("http://127.0.0.1:%d", cfg.Sync.Syncthing.GUIPort),
-				ServiceError: status.Message,
+				Enabled:          true,
+				Mode:             string(cfg.Sync.Mode),
+				Running:          false,
+				Installed:        installed,
+				ServiceInstalled: serviceInstalled,
+				GUIURL:           fmt.Sprintf("http://127.0.0.1:%d", cfg.Sync.Syncthing.GUIPort),
+				ServiceError:     status.Message,
 			},
 		}}
 	}
@@ -928,15 +939,17 @@ func (d *Daemon) handleSyncStatus() []Event {
 	return []Event{{
 		Type: EventTypeResult,
 		Data: SyncStatusResponse{
-			Enabled:  true,
-			Mode:     string(syncStatus.Mode),
-			Running:  true,
-			DeviceID: syncStatus.DeviceID,
-			GUIURL:   syncStatus.GUIURL,
-			State:    SyncState(syncStatus.OverallState()),
-			Devices:  devices,
-			Folders:  folders,
-			Progress: progress,
+			Enabled:          true,
+			Mode:             string(syncStatus.Mode),
+			Running:          true,
+			Installed:        installed,
+			ServiceInstalled: serviceInstalled,
+			DeviceID:         syncStatus.DeviceID,
+			GUIURL:           syncStatus.GUIURL,
+			State:            SyncState(syncStatus.OverallState()),
+			Devices:          devices,
+			Folders:          folders,
+			Progress:         progress,
 		},
 	}}
 }
