@@ -302,6 +302,82 @@ func (c *Client) GetConfiguredDevices(ctx context.Context) ([]ConfiguredDevice, 
 	return result, nil
 }
 
+type DiscoveredDevice struct {
+	DeviceID  string
+	Addresses []string
+}
+
+func (c *Client) GetDiscoveredDevices(ctx context.Context) ([]DiscoveredDevice, error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/system/discovery", nil)
+	if err != nil {
+		return nil, fmt.Errorf("getting discovery: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+
+	var discovery map[string]struct {
+		Addresses []string `json:"addresses"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&discovery); err != nil {
+		return nil, fmt.Errorf("decoding discovery: %w", err)
+	}
+
+	myID, _ := c.GetDeviceID(ctx)
+	var result []DiscoveredDevice
+	for deviceID, info := range discovery {
+		if deviceID == myID {
+			continue
+		}
+		result = append(result, DiscoveredDevice{
+			DeviceID:  deviceID,
+			Addresses: info.Addresses,
+		})
+	}
+	return result, nil
+}
+
+type PendingDevice struct {
+	DeviceID string
+	Name     string
+	Address  string
+	Time     time.Time
+}
+
+func (c *Client) GetPendingDevices(ctx context.Context) ([]PendingDevice, error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/cluster/pending/devices", nil)
+	if err != nil {
+		return nil, fmt.Errorf("getting pending devices: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+
+	var pending map[string]struct {
+		Name    string    `json:"name"`
+		Address string    `json:"address"`
+		Time    time.Time `json:"time"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&pending); err != nil {
+		return nil, fmt.Errorf("decoding pending devices: %w", err)
+	}
+
+	var result []PendingDevice
+	for deviceID, info := range pending {
+		result = append(result, PendingDevice{
+			DeviceID: deviceID,
+			Name:     info.Name,
+			Address:  info.Address,
+			Time:     info.Time,
+		})
+	}
+	return result, nil
+}
+
 func (c *Client) ShareFoldersWithDevice(ctx context.Context, deviceID string) error {
 	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/config/folders", nil)
 	if err != nil {

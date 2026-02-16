@@ -2,327 +2,221 @@ package sync
 
 import (
 	"context"
-	"fmt"
-	"net"
-	"sync"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/fnune/kyaraben/internal/model"
 )
 
-func TestPairingServerRejectsTwoPrimaries(t *testing.T) {
-	server := NewPairingServer("ABC123", "LOCAL-DEVICE-ID", "test-primary")
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("listen: %v", err)
-	}
-	if err := server.Start(listener); err != nil {
-		t.Fatalf("start: %v", err)
-	}
-	defer server.Stop()
-
-	ctx := context.Background()
-	client := NewPairingClient()
-	addr := fmt.Sprintf("127.0.0.1:%d", server.Port())
-
-	_, err = client.Pair(ctx, addr, "ABC123", "peer-id", "peer-name", "primary")
-	if err == nil {
-		t.Fatal("expected error when pairing two primaries")
-	}
-	if err.Error() != "cannot pair two primary devices - one device must be set to secondary mode" {
-		t.Errorf("unexpected error message: %s", err.Error())
-	}
-}
-
-func TestPairingServerRejectsInvalidCode(t *testing.T) {
-	server := NewPairingServer("ABC123", "LOCAL-DEVICE-ID", "test-primary")
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("listen: %v", err)
-	}
-	if err := server.Start(listener); err != nil {
-		t.Fatalf("start: %v", err)
-	}
-	defer server.Stop()
-
-	ctx := context.Background()
-	client := NewPairingClient()
-	addr := fmt.Sprintf("127.0.0.1:%d", server.Port())
-
-	_, err = client.Pair(ctx, addr, "WRONG1", "peer-id", "peer-name", "secondary")
-	if err == nil {
-		t.Fatal("expected error for wrong code")
-	}
-}
-
-func TestPairingServerAcceptsCorrectCode(t *testing.T) {
-	server := NewPairingServer("ABC123", "LOCAL-DEVICE-ID", "test-primary")
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("listen: %v", err)
-	}
-	if err := server.Start(listener); err != nil {
-		t.Fatalf("start: %v", err)
-	}
-	defer server.Stop()
-
-	ctx := context.Background()
-	client := NewPairingClient()
-	addr := fmt.Sprintf("127.0.0.1:%d", server.Port())
-
-	result, err := client.Pair(ctx, addr, "ABC123", "PEER-DEVICE-ID", "peer-name", "secondary")
-	if err != nil {
-		t.Fatalf("pair: %v", err)
-	}
-
-	if result.PeerDeviceID != "LOCAL-DEVICE-ID" {
-		t.Errorf("expected device ID LOCAL-DEVICE-ID, got %s", result.PeerDeviceID)
-	}
-	if result.PeerName != "test-primary" {
-		t.Errorf("expected name test-primary, got %s", result.PeerName)
-	}
-}
-
-func TestPairingServerRateLimits(t *testing.T) {
-	server := NewPairingServer("ABC123", "LOCAL-DEVICE-ID", "test-primary")
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("listen: %v", err)
-	}
-	if err := server.Start(listener); err != nil {
-		t.Fatalf("start: %v", err)
-	}
-	defer server.Stop()
-
-	ctx := context.Background()
-	client := NewPairingClient()
-	addr := fmt.Sprintf("127.0.0.1:%d", server.Port())
-
-	for i := 0; i < maxPairingAttempts; i++ {
-		_, _ = client.Pair(ctx, addr, "WRONG1", "peer-id", "peer-name", "secondary")
-	}
-
-	_, err = client.Pair(ctx, addr, "ABC123", "peer-id", "peer-name", "secondary")
-	if err == nil {
-		t.Fatal("expected rate limit error")
-	}
-}
-
-func TestPairingServerOnPairAcceptCallback(t *testing.T) {
-	var acceptedID, acceptedName string
-	server := NewPairingServer("ABC123", "LOCAL-DEVICE-ID", "test-primary")
-	server.SetOnPairAccept(func(peerDeviceID, peerName string) error {
-		acceptedID = peerDeviceID
-		acceptedName = peerName
-		return nil
-	})
-
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("listen: %v", err)
-	}
-	if err := server.Start(listener); err != nil {
-		t.Fatalf("start: %v", err)
-	}
-	defer server.Stop()
-
-	ctx := context.Background()
-	client := NewPairingClient()
-	addr := fmt.Sprintf("127.0.0.1:%d", server.Port())
-
-	_, err = client.Pair(ctx, addr, "ABC123", "PEER-ID-123", "steam-deck", "secondary")
-	if err != nil {
-		t.Fatalf("pair: %v", err)
-	}
-
-	if acceptedID != "PEER-ID-123" {
-		t.Errorf("expected accepted ID PEER-ID-123, got %s", acceptedID)
-	}
-	if acceptedName != "steam-deck" {
-		t.Errorf("expected accepted name steam-deck, got %s", acceptedName)
-	}
-}
-
-func TestPrimaryPairingFlowWithFakes(t *testing.T) {
-	fakeClient := NewFakeClient(model.SyncConfig{
+func TestPrimaryPairingFlowAcceptsDevice(t *testing.T) {
+	client := NewFakeClient(model.SyncConfig{
 		Enabled: true,
 		Mode:    model.SyncModePrimary,
 	})
-	fakeClient.SetDeviceID("PRIMARY-DEVICE-ID-AAAA-BBBB-CCCC-DDDD")
-	fakeAdvertiser := NewFakeAdvertiser()
+	client.SetDeviceID("PRIMARY-ID")
 
 	var messages []string
-	var messagesMu sync.Mutex
-
 	flow := NewPrimaryPairingFlow(PairingFlowConfig{
-		SyncConfig: fakeClient.config,
-		Advertiser: fakeAdvertiser,
-		Client:     fakeClient,
+		SyncConfig: client.config,
+		Client:     client,
 		OnProgress: func(msg string) {
-			messagesMu.Lock()
 			messages = append(messages, msg)
-			messagesMu.Unlock()
 		},
 	})
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	pairDone := make(chan error, 1)
+	done := make(chan struct {
+		result *PairResult
+		err    error
+	}, 1)
+
 	go func() {
-		time.Sleep(100 * time.Millisecond)
-
-		if !fakeAdvertiser.IsAdvertising() {
-			pairDone <- fmt.Errorf("expected advertiser to be advertising")
-			return
-		}
-
-		port := fakeAdvertiser.Port()
-		addr := fmt.Sprintf("127.0.0.1:%d", port)
-		client := NewPairingClient()
-
-		var code string
-		messagesMu.Lock()
-		for _, msg := range messages {
-			if len(msg) > len("Pairing code: ") {
-				var c string
-				if _, err := fmt.Sscanf(msg, "Pairing code: %s", &c); err == nil {
-					code = c
-					break
-				}
-			}
-		}
-		messagesMu.Unlock()
-
-		if code == "" {
-			pairDone <- fmt.Errorf("no pairing code found in messages")
-			return
-		}
-
-		_, err := client.Pair(ctx, addr, code, "SECONDARY-DEVICE-ID", "steamdeck", "secondary")
-		pairDone <- err
+		result, err := flow.Run(ctx)
+		done <- struct {
+			result *PairResult
+			err    error
+		}{result, err}
 	}()
 
-	result, _, err := flow.Run(ctx)
-	if err != nil {
-		t.Fatalf("primary flow: %v", err)
+	time.Sleep(100 * time.Millisecond)
+
+	client.SetPendingDevices([]PendingDevice{
+		{DeviceID: "SECONDARY-ID", Name: "steamdeck", Address: "192.168.1.100:22000"},
+	})
+
+	select {
+	case out := <-done:
+		if out.err != nil {
+			t.Fatalf("unexpected error: %v", out.err)
+		}
+		if out.result.PeerDeviceID != "SECONDARY-ID" {
+			t.Errorf("expected PeerDeviceID SECONDARY-ID, got %s", out.result.PeerDeviceID)
+		}
+		if out.result.PeerName != "steamdeck" {
+			t.Errorf("expected PeerName steamdeck, got %s", out.result.PeerName)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("timed out waiting for pairing")
 	}
 
-	if pairErr := <-pairDone; pairErr != nil {
-		t.Fatalf("pair goroutine: %v", pairErr)
+	addedPeers := client.AddedPeers()
+	if len(addedPeers) != 1 {
+		t.Fatalf("expected 1 added peer, got %d", len(addedPeers))
+	}
+	if addedPeers[0].ID != "SECONDARY-ID" {
+		t.Errorf("expected added peer SECONDARY-ID, got %s", addedPeers[0].ID)
 	}
 
-	if result.PeerDeviceID != "SECONDARY-DEVICE-ID" {
-		t.Errorf("expected peer ID SECONDARY-DEVICE-ID, got %s", result.PeerDeviceID)
-	}
-
-	added := fakeClient.AddedPeers()
-	if len(added) != 1 {
-		t.Fatalf("expected 1 added peer, got %d", len(added))
-	}
-	if added[0].ID != "SECONDARY-DEVICE-ID" {
-		t.Errorf("expected added peer SECONDARY-DEVICE-ID, got %s", added[0].ID)
-	}
-
-	shared := fakeClient.SharedWith()
-	if len(shared) != 1 || shared[0] != "SECONDARY-DEVICE-ID" {
-		t.Errorf("expected shared with SECONDARY-DEVICE-ID, got %v", shared)
+	sharedWith := client.SharedWith()
+	if len(sharedWith) != 1 || sharedWith[0] != "SECONDARY-ID" {
+		t.Errorf("expected folders shared with SECONDARY-ID, got %v", sharedWith)
 	}
 }
 
-func TestSecondaryPairingFlowWithFakes(t *testing.T) {
-	primaryClient := NewFakeClient(model.SyncConfig{
-		Enabled: true,
-		Mode:    model.SyncModePrimary,
-	})
-	primaryClient.SetDeviceID("PRIMARY-DEVICE-ID")
-
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("listen: %v", err)
-	}
-	port := listener.Addr().(*net.TCPAddr).Port
-
-	code := "XY7K9M"
-	server := NewPairingServer(code, "PRIMARY-DEVICE-ID", "desktop-kyaraben")
-	if err := server.Start(listener); err != nil {
-		t.Fatalf("start: %v", err)
-	}
-	defer server.Stop()
-
-	secondaryClient := NewFakeClient(model.SyncConfig{
+func TestSecondaryPairingFlowConnectsToPrimary(t *testing.T) {
+	client := NewFakeClient(model.SyncConfig{
 		Enabled: true,
 		Mode:    model.SyncModeSecondary,
 	})
-	secondaryClient.SetDeviceID("SECONDARY-DEVICE-ID")
-
-	fakeBrowser := NewFakeBrowser()
-	fakeBrowser.SetOffers([]PairingOffer{{
-		Hostname:    "desktop",
-		PairingAddr: fmt.Sprintf("127.0.0.1:%d", port),
-	}})
+	client.SetDeviceID("SECONDARY-ID")
 
 	var messages []string
 	flow := NewSecondaryPairingFlow(PairingFlowConfig{
-		SyncConfig: secondaryClient.config,
-		Browser:    fakeBrowser,
-		Client:     secondaryClient,
-		OnProgress: func(msg string) { messages = append(messages, msg) },
+		SyncConfig: client.config,
+		Client:     client,
+		OnProgress: func(msg string) {
+			messages = append(messages, msg)
+		},
 	})
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	result, err := flow.Run(ctx, code)
-	if err != nil {
-		t.Fatalf("secondary flow: %v", err)
+	done := make(chan struct {
+		result *PairResult
+		err    error
+	}, 1)
+
+	go func() {
+		result, err := flow.Run(ctx, "PRIMARY-ID")
+		done <- struct {
+			result *PairResult
+			err    error
+		}{result, err}
+	}()
+
+	time.Sleep(100 * time.Millisecond)
+
+	client.SetConfiguredDevice("PRIMARY-ID", "feanor")
+	client.SetConnection("PRIMARY-ID", ConnectionInfo{Connected: true})
+
+	select {
+	case out := <-done:
+		if out.err != nil {
+			t.Fatalf("unexpected error: %v", out.err)
+		}
+		if out.result.PeerDeviceID != "PRIMARY-ID" {
+			t.Errorf("expected PeerDeviceID PRIMARY-ID, got %s", out.result.PeerDeviceID)
+		}
+		if out.result.PeerName != "feanor" {
+			t.Errorf("expected PeerName feanor, got %s", out.result.PeerName)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("timed out waiting for pairing")
 	}
 
-	if result.PeerDeviceID != "PRIMARY-DEVICE-ID" {
-		t.Errorf("expected peer ID PRIMARY-DEVICE-ID, got %s", result.PeerDeviceID)
-	}
-	if result.PeerName != "desktop-kyaraben" {
-		t.Errorf("expected peer name desktop-kyaraben, got %s", result.PeerName)
-	}
-
-	added := secondaryClient.AddedPeers()
-	if len(added) != 1 || added[0].ID != "PRIMARY-DEVICE-ID" {
-		t.Errorf("expected added peer PRIMARY-DEVICE-ID, got %v", added)
-	}
-
-	shared := secondaryClient.SharedWith()
-	if len(shared) != 1 || shared[0] != "PRIMARY-DEVICE-ID" {
-		t.Errorf("expected shared with PRIMARY-DEVICE-ID, got %v", shared)
+	sharedWith := client.SharedWith()
+	if len(sharedWith) != 1 || sharedWith[0] != "PRIMARY-ID" {
+		t.Errorf("expected folders shared with PRIMARY-ID, got %v", sharedWith)
 	}
 }
 
-func TestAdvertiserStopsOnFlowCancel(t *testing.T) {
-	fakeClient := NewFakeClient(model.SyncConfig{
+func TestSecondaryPairingFlowTimesOut(t *testing.T) {
+	client := NewFakeClient(model.SyncConfig{
 		Enabled: true,
-		Mode:    model.SyncModePrimary,
+		Mode:    model.SyncModeSecondary,
 	})
-	fakeClient.SetDeviceID("PRIMARY-ID")
-	fakeAdvertiser := NewFakeAdvertiser()
+	client.SetDeviceID("SECONDARY-ID")
 
-	flow := NewPrimaryPairingFlow(PairingFlowConfig{
-		SyncConfig: fakeClient.config,
-		Advertiser: fakeAdvertiser,
-		Client:     fakeClient,
+	flow := NewSecondaryPairingFlow(PairingFlowConfig{
+		SyncConfig: client.config,
+		Client:     client,
 		OnProgress: func(msg string) {},
 	})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
+	_, err := flow.Run(ctx, "PRIMARY-ID")
+	if err == nil || !strings.Contains(err.Error(), "timed out") {
+		t.Errorf("expected timeout error, got %v", err)
+	}
+}
+
+func TestSecondaryPairingFlowDetectsDeviceRemoval(t *testing.T) {
+	client := NewFakeClient(model.SyncConfig{
+		Enabled: true,
+		Mode:    model.SyncModeSecondary,
+	})
+	client.SetDeviceID("SECONDARY-ID")
+
+	flow := NewSecondaryPairingFlow(PairingFlowConfig{
+		SyncConfig: client.config,
+		Client:     client,
+		OnProgress: func(msg string) {},
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	done := make(chan error, 1)
+
 	go func() {
-		time.Sleep(200 * time.Millisecond)
-		cancel()
+		_, err := flow.Run(ctx, "PRIMARY-ID")
+		done <- err
 	}()
 
-	_, _, _ = flow.Run(ctx)
+	time.Sleep(100 * time.Millisecond)
 
-	if fakeAdvertiser.IsAdvertising() {
-		t.Error("expected advertiser to have stopped")
+	client.SetConfiguredDevice("PRIMARY-ID", "feanor")
+
+	time.Sleep(100 * time.Millisecond)
+
+	client.RemoveConfiguredDevice("PRIMARY-ID")
+
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Fatal("expected error when device was removed")
+		}
+		if !strings.Contains(err.Error(), "device was removed") {
+			t.Errorf("expected 'device was removed' error, got: %v", err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("timed out")
+	}
+}
+
+func TestTruncateDeviceID(t *testing.T) {
+	tests := []struct {
+		id       string
+		expected string
+	}{
+		{"ABC", "ABC"},
+		{"ABCDEFG", "ABCDEFG"},
+		{"ABCDEFGH", "ABCDEFG..."},
+		{"ABCDEFGHIJKLMNOP", "ABCDEFG..."},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.id, func(t *testing.T) {
+			result := truncateDeviceID(tt.id)
+			if result != tt.expected {
+				t.Errorf("truncateDeviceID(%q) = %q, want %q", tt.id, result, tt.expected)
+			}
+		})
 	}
 }
