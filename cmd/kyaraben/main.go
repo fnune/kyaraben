@@ -21,7 +21,8 @@ var CLI struct {
 	Sync           cli.SyncCmd         `cmd:"" help:"Manage sync settings and status."`
 	CheckDownloads cli.ValidateURLsCmd `cmd:"" help:"Validate download URLs and show sizes (CI check)."`
 
-	Config string `short:"c" help:"Path to config file." type:"path"`
+	Config   string `short:"c" help:"Path to config file." type:"path"`
+	Instance string `short:"i" help:"Instance name for running multiple isolated kyaraben instances (e.g. 'primary', 'secondary')."`
 }
 
 func main() {
@@ -41,6 +42,7 @@ func main() {
 
 	err := ctx.Run(&cli.Context{
 		ConfigPath: CLI.Config,
+		Instance:   CLI.Instance,
 	})
 	if err != nil {
 		logging.Error("command failed: %v", err)

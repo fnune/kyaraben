@@ -188,6 +188,30 @@ clean-emu-configs:
 watch-mdns:
     go run ./cmd/test-mdns-browse
 
+# Run an additional kyaraben instance for local sync testing
+# Usage: just sync-instance secondary
+sync-instance instance: _sidecar
+    #!/usr/bin/env bash
+    set -euo pipefail
+    config="$HOME/.config/kyaraben-{{ instance }}.yaml"
+    if [ ! -f "$config" ]; then
+        echo "Config not found: $config"
+        echo "Create it first with different ports and user_store, e.g.:"
+        echo ""
+        echo "  sync:"
+        echo "    enabled: true"
+        echo "    mode: secondary"
+        echo "    syncthing:"
+        echo "      listen_port: 22001"
+        echo "      gui_port: 8385"
+        exit 1
+    fi
+    echo "Running kyaraben instance '{{ instance }}'"
+    echo "  Config: $config"
+    echo "  State:  ~/.local/state/kyaraben-{{ instance }}/"
+    echo ""
+    ./ui/binaries/sidecar-linux-x64 --instance {{ instance }}
+
 # --- Internal targets (prefixed with _) ---
 
  
