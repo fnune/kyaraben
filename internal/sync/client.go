@@ -85,6 +85,7 @@ func (c *Client) GetDeviceID(ctx context.Context) (string, error) {
 type ConnectionInfo struct {
 	Connected bool   `json:"connected"`
 	Address   string `json:"address"`
+	Paused    bool   `json:"paused"`
 }
 
 type ConnectionsResponse struct {
@@ -165,6 +166,7 @@ type syncthingDevice struct {
 	Addresses         []string `json:"addresses"`
 	Compression       string   `json:"compression"`
 	AutoAcceptFolders bool     `json:"autoAcceptFolders"`
+	Paused            bool     `json:"paused,omitempty"`
 }
 
 func (c *Client) AddDevice(ctx context.Context, deviceID, name string) error {
@@ -325,4 +327,86 @@ func (c *Client) GetPendingStatus(ctx context.Context) (*PendingStatus, error) {
 	}
 
 	return &pending, nil
+}
+
+type SyncProgressInfo struct {
+	NeedFiles   int64
+	NeedBytes   int64
+	GlobalBytes int64
+	Percent     int
+}
+
+func (c *Client) GetSyncProgress(ctx context.Context) (*SyncProgressInfo, error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/config/folders", nil)
+	if err != nil {
+		return nil, fmt.Errorf("getting folders: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+
+	var folders []struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&folders); err != nil {
+		return nil, fmt.Errorf("decoding folders: %w", err)
+	}
+
+	var progress SyncProgressInfo
+	for _, folder := range folders {
+		status, err := c.GetFolderStatus(ctx, folder.ID)
+		if err != nil {
+			continue
+		}
+		progress.NeedFiles += int64(status.NeedFiles)
+		progress.NeedBytes += status.NeedBytes
+		progress.GlobalBytes += status.GlobalBytes
+	}
+
+	if progress.GlobalBytes > 0 {
+		syncedBytes := progress.GlobalBytes - progress.NeedBytes
+		progress.Percent = int(syncedBytes * 100 / progress.GlobalBytes)
+	} else {
+		progress.Percent = 100
+	}
+
+	return &progress, nil
+}
+
+func (c *Client) IsPaused(ctx context.Context) (bool, error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/config/devices", nil)
+	if err != nil {
+		return false, fmt.Errorf("getting devices config: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return false, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+
+	var devices []syncthingDevice
+	if err := json.NewDecoder(resp.Body).Decode(&devices); err != nil {
+		return false, fmt.Errorf("decoding devices: %w", err)
+	}
+
+	myID, _ := c.GetDeviceID(ctx)
+	remoteDevices := 0
+	pausedDevices := 0
+	for _, dev := range devices {
+		if dev.DeviceID == myID {
+			continue
+		}
+		remoteDevices++
+		if dev.Paused {
+			pausedDevices++
+		}
+	}
+
+	if remoteDevices == 0 {
+		return false, nil
+	}
+
+	return pausedDevices == remoteDevices, nil
 }

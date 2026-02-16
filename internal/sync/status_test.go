@@ -89,13 +89,25 @@ func TestStatus_OverallState(t *testing.T) {
 			want: SyncStateError,
 		},
 		{
-			name: "synced with no devices configured",
+			name: "disconnected with no devices configured",
 			status: Status{
 				Enabled: true,
 				Devices: []DeviceStatus{},
 				Folders: []FolderStatusSummary{},
 			},
-			want: SyncStateSynced,
+			want: SyncStateDisconnected,
+		},
+		{
+			name: "paused takes precedence over syncing",
+			status: Status{
+				Enabled: true,
+				Paused:  true,
+				Devices: []DeviceStatus{{ID: "A", Connected: true}},
+				Folders: []FolderStatusSummary{
+					{ID: "folder1", State: "syncing"},
+				},
+			},
+			want: SyncStatePaused,
 		},
 	}
 

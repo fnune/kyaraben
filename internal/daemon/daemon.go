@@ -849,6 +849,17 @@ func (d *Daemon) handleSyncStatus() []Event {
 			ID:        dev.ID,
 			Name:      dev.Name,
 			Connected: dev.Connected,
+			Paused:    dev.Paused,
+		}
+	}
+
+	var progress *SyncProgress
+	if progressInfo, err := client.GetSyncProgress(ctx); err == nil && progressInfo.NeedFiles > 0 {
+		progress = &SyncProgress{
+			NeedFiles:   progressInfo.NeedFiles,
+			NeedBytes:   progressInfo.NeedBytes,
+			GlobalBytes: progressInfo.GlobalBytes,
+			Percent:     progressInfo.Percent,
 		}
 	}
 
@@ -862,6 +873,8 @@ func (d *Daemon) handleSyncStatus() []Event {
 			GUIURL:   syncStatus.GUIURL,
 			State:    SyncState(syncStatus.OverallState()),
 			Devices:  devices,
+			Paused:   syncStatus.Paused,
+			Progress: progress,
 		},
 	}}
 }
