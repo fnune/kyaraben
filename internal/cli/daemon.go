@@ -119,6 +119,26 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 				continue
 			}
 			events = d.HandleSyncRemoveDevice(syncRemoveCmd, emitWithID)
+		case daemon.CommandTypeSyncRevertFolder:
+			var revertCmd daemon.SyncRevertFolderCommand
+			if err := json.Unmarshal(line, &revertCmd); err != nil {
+				sendEventWithID(daemon.Event{
+					Type: daemon.EventTypeError,
+					Data: map[string]string{"error": fmt.Sprintf("invalid sync_revert_folder command: %v", err)},
+				}, cmdID)
+				continue
+			}
+			events = d.HandleSyncRevertFolder(revertCmd, emitWithID)
+		case daemon.CommandTypeSyncLocalChanges:
+			var changesCmd daemon.SyncLocalChangesCommand
+			if err := json.Unmarshal(line, &changesCmd); err != nil {
+				sendEventWithID(daemon.Event{
+					Type: daemon.EventTypeError,
+					Data: map[string]string{"error": fmt.Sprintf("invalid sync_local_changes command: %v", err)},
+				}, cmdID)
+				continue
+			}
+			events = d.HandleSyncLocalChanges(changesCmd, emitWithID)
 		case daemon.CommandTypeSyncStartPairing:
 			go func(id string) {
 				emitForPairing := func(event daemon.Event) {
