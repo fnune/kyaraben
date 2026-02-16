@@ -12,7 +12,7 @@ type FakeClient struct {
 	running     bool
 	deviceID    string
 	connections map[string]ConnectionInfo
-	addedPeers  []model.SyncDevice
+	addedPeers  []ConfiguredDevice
 	removedIDs  []string
 	sharedWith  []string
 	config      model.SyncConfig
@@ -46,10 +46,10 @@ func (c *FakeClient) SetConnection(deviceID string, info ConnectionInfo) {
 	c.connections[deviceID] = info
 }
 
-func (c *FakeClient) AddedPeers() []model.SyncDevice {
+func (c *FakeClient) AddedPeers() []ConfiguredDevice {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	result := make([]model.SyncDevice, len(c.addedPeers))
+	result := make([]ConfiguredDevice, len(c.addedPeers))
 	copy(result, c.addedPeers)
 	return result
 }
@@ -110,19 +110,8 @@ func (c *FakeClient) GetConnections(_ context.Context) (map[string]ConnectionInf
 func (c *FakeClient) GetConfiguredDevices(_ context.Context) ([]ConfiguredDevice, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	var result []ConfiguredDevice
-	for _, dev := range c.config.Devices {
-		result = append(result, ConfiguredDevice{
-			ID:   dev.ID,
-			Name: dev.Name,
-		})
-	}
-	for _, dev := range c.addedPeers {
-		result = append(result, ConfiguredDevice{
-			ID:   dev.ID,
-			Name: dev.Name,
-		})
-	}
+	result := make([]ConfiguredDevice, len(c.addedPeers))
+	copy(result, c.addedPeers)
 	return result, nil
 }
 
@@ -175,12 +164,8 @@ func (c *FakeClient) GetStatus(_ context.Context) (*Status, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	allDevices := make([]model.SyncDevice, 0, len(c.config.Devices)+len(c.addedPeers))
-	allDevices = append(allDevices, c.config.Devices...)
-	allDevices = append(allDevices, c.addedPeers...)
-
 	var devices []DeviceStatus
-	for _, dev := range allDevices {
+	for _, dev := range c.addedPeers {
 		conn, ok := c.connections[dev.ID]
 		devices = append(devices, DeviceStatus{
 			ID:        dev.ID,
@@ -207,7 +192,7 @@ func (c *FakeClient) GetStatus(_ context.Context) (*Status, error) {
 func (c *FakeClient) AddDevice(_ context.Context, deviceID, name string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.addedPeers = append(c.addedPeers, model.SyncDevice{ID: deviceID, Name: name})
+	c.addedPeers = append(c.addedPeers, ConfiguredDevice{ID: deviceID, Name: name})
 	return nil
 }
 
