@@ -35,6 +35,7 @@ const (
 	CommandTypeSyncEnable        CommandType = "sync_enable"
 	CommandTypeSyncRevertFolder  CommandType = "sync_revert_folder"
 	CommandTypeSyncLocalChanges  CommandType = "sync_local_changes"
+	CommandTypeSyncReset         CommandType = "sync_reset"
 )
 
 // Command represents a command from the UI.

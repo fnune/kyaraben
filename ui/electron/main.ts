@@ -4,6 +4,7 @@ import * as os from 'node:os'
 import * as path from 'node:path'
 import * as readline from 'node:readline'
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import type { InvokeChannel } from './channels'
 import { checkForUpdates, downloadUpdate } from './updater'
 
 function getInstanceName(): string | null {
@@ -723,6 +724,11 @@ function setupIpcHandlers(): void {
     }
   })
 
+  ipcMain.handle('sync_reset', async () => {
+    const event = await sendCommand({ type: 'sync_reset' })
+    return event.data
+  })
+
   ipcMain.handle('uninstall_preview', async () => {
     const event = await sendCommand({ type: 'uninstall_preview' })
     return event.data
@@ -863,6 +869,48 @@ function setupIpcHandlers(): void {
     app.exit(0)
     return { success: true }
   })
+
+  // Compile-time check: ensure all INVOKE_CHANNELS have handlers registered above.
+  // If this errors, add the missing handler to this function.
+  const _dependencies = [
+    'get_systems',
+    'get_frontends',
+    'get_config',
+    'set_config',
+    'status',
+    'doctor',
+    'preflight',
+    'apply',
+    'cancel_apply',
+    'sync_status',
+    'sync_remove_device',
+    'sync_start_pairing',
+    'sync_join_primary',
+    'sync_cancel_pairing',
+    'sync_pending',
+    'sync_enable',
+    'sync_revert_folder',
+    'sync_local_changes',
+    'sync_reset',
+    'uninstall_preview',
+    'refresh_icon_caches',
+    'get_install_status',
+    'install_app',
+    'open_path',
+    'path_exists',
+    'read_file',
+    'get_bug_report_info',
+    'launch_emulator',
+    'open_log_tail',
+    'launch_cli_uninstall',
+    'check_for_updates',
+    'download_update',
+    'apply_update',
+  ] as const
+  type HandledChannels = (typeof _dependencies)[number]
+  type _AssertAllChannelsHandled = InvokeChannel extends HandledChannels ? true : never
+  const _check: _AssertAllChannelsHandled = true
+  void _check
 }
 
 // Window creation

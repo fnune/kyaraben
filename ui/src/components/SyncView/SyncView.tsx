@@ -20,6 +20,7 @@ export interface SyncViewProps {
   readonly onCancelPairing: () => Promise<void>
   readonly onJoinPrimary: (code: string) => Promise<{ ok: boolean; error?: string }>
   readonly onEnableSync: (mode: SyncMode) => Promise<void>
+  readonly onResetSync: () => Promise<void>
   readonly onRefresh: () => void
   readonly pairingCode: string | null
   readonly pairingProgress: string | null
@@ -272,22 +273,41 @@ function ModeCard({
 }
 
 function DisabledState({
+  status,
   onEnable,
+  onReset,
   isEnabling,
   enableError,
 }: {
+  readonly status: SyncStatusResponse | null
   readonly onEnable: (mode: SyncMode) => Promise<void>
+  readonly onReset: () => Promise<void>
   readonly isEnabling: boolean
   readonly enableError: string | null
 }) {
   const [selectedMode, setSelectedMode] = useState<SyncMode>('primary')
+  const [isResetting, setIsResetting] = useState(false)
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
 
   const handleEnable = useCallback(async () => {
     await onEnable(selectedMode)
   }, [onEnable, selectedMode])
 
+  const handleReset = useCallback(async () => {
+    setIsResetting(true)
+    try {
+      await onReset()
+    } finally {
+      setIsResetting(false)
+      setShowResetConfirm(false)
+    }
+  }, [onReset])
+
+  const hasOrphanedState =
+    status && !status.enabled && (status.installed || status.serviceInstalled)
+
   return (
-    <div className="p-6">
+    <div className="p-6 space-y-6">
       <Section title="Enable sync">
         <p className="text-sm text-on-surface-muted mb-4">
           Sync your saves, states, and screenshots across devices using Syncthing.
@@ -323,6 +343,42 @@ function DisabledState({
           </div>
         )}
       </Section>
+
+      {hasOrphanedState && (
+        <Section title="Orphaned syncthing state">
+          <p className="text-sm text-on-surface-muted mb-3">
+            Syncthing files from a previous installation were detected. This can happen after an
+            incomplete uninstall or if sync was disabled manually.
+          </p>
+          {showResetConfirm ? (
+            <div className="space-y-3">
+              <div className="p-3 bg-status-warning/10 border border-status-warning/30 rounded text-sm">
+                <p className="text-on-surface mb-2">This will remove:</p>
+                <ul className="list-disc list-inside text-on-surface-muted space-y-1">
+                  <li>Syncthing service (if running)</li>
+                  <li>Syncthing configuration and database</li>
+                  <li>Device pairing information</li>
+                </ul>
+                <p className="mt-2 text-on-surface-muted">
+                  Your ROMs, saves, and other emulation data will not be affected.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="danger" onClick={handleReset} disabled={isResetting}>
+                  {isResetting ? 'Resetting...' : 'Confirm reset'}
+                </Button>
+                <Button variant="secondary" onClick={() => setShowResetConfirm(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button variant="secondary" onClick={() => setShowResetConfirm(true)}>
+              Clean up syncthing state
+            </Button>
+          )}
+        </Section>
+      )}
     </div>
   )
 }
@@ -488,14 +544,15 @@ function PairingSection({
 }
 
 function StatusBadge({ label, ok }: { label: string; ok: boolean }) {
+  const capitalizedLabel = label.charAt(0).toUpperCase() + label.slice(1)
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs ${
+      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-sm text-xs ${
         ok ? 'bg-status-ok/10 text-status-ok' : 'bg-outline/50 text-on-surface-muted'
       }`}
     >
       <span className={`w-1.5 h-1.5 rounded-full ${ok ? 'bg-status-ok' : 'bg-outline'}`} />
-      {label}
+      {capitalizedLabel}
     </span>
   )
 }
@@ -507,6 +564,7 @@ export function SyncView({
   onCancelPairing,
   onJoinPrimary,
   onEnableSync,
+  onResetSync,
   onRefresh,
   pairingCode,
   pairingProgress,
@@ -514,9 +572,28 @@ export function SyncView({
   isEnabling,
   enableError,
 }: SyncViewProps) {
+  const [isResetting, setIsResetting] = useState(false)
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
+
+  const handleReset = useCallback(async () => {
+    setIsResetting(true)
+    try {
+      await onResetSync()
+    } finally {
+      setIsResetting(false)
+      setShowResetConfirm(false)
+    }
+  }, [onResetSync])
+
   if (!status?.enabled) {
     return (
-      <DisabledState onEnable={onEnableSync} isEnabling={isEnabling} enableError={enableError} />
+      <DisabledState
+        status={status}
+        onEnable={onEnableSync}
+        onReset={onResetSync}
+        isEnabling={isEnabling}
+        enableError={enableError}
+      />
     )
   }
 
@@ -577,18 +654,57 @@ export function SyncView({
         </Section>
       )}
 
-      {status.guiURL && (
-        <Section title="Advanced" collapsible defaultCollapsed>
-          <a
-            href={status.guiURL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-accent hover:underline"
-          >
-            Open Syncthing web interface
-          </a>
-        </Section>
-      )}
+      <Section title="Advanced" collapsible defaultCollapsed>
+        <div className="space-y-4">
+          {status.guiURL && (
+            <a
+              href={status.guiURL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-accent hover:underline block"
+            >
+              Open Syncthing web interface
+            </a>
+          )}
+          <div>
+            <h4 className="text-sm font-medium text-on-surface mb-2">Reset sync</h4>
+            {showResetConfirm ? (
+              <div className="space-y-3">
+                <div className="p-3 bg-status-warning/10 border border-status-warning/30 rounded text-sm">
+                  <p className="text-on-surface mb-2">This will:</p>
+                  <ul className="list-disc list-inside text-on-surface-muted space-y-1">
+                    <li>Stop and remove the syncthing service</li>
+                    <li>Delete syncthing configuration and database</li>
+                    <li>Remove all device pairings</li>
+                    <li>Disable sync in your kyaraben config</li>
+                  </ul>
+                  <p className="mt-2 text-on-surface-muted">
+                    Your ROMs, saves, and other emulation data will not be affected. You can
+                    re-enable sync afterwards.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="danger" onClick={handleReset} disabled={isResetting}>
+                    {isResetting ? 'Resetting...' : 'Confirm reset'}
+                  </Button>
+                  <Button variant="secondary" onClick={() => setShowResetConfirm(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <p className="text-sm text-on-surface-muted mb-2">
+                  Remove all syncthing state and start fresh.
+                </p>
+                <Button variant="secondary" onClick={() => setShowResetConfirm(true)}>
+                  Reset sync
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </Section>
     </div>
   )
 }

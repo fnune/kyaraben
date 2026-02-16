@@ -15,6 +15,7 @@ export interface UseSyncPairingResult {
   handleCancelPairing: () => Promise<void>
   handleJoinPrimary: (code: string) => Promise<{ ok: boolean; error?: string }>
   handleEnableSync: (mode: SyncMode) => Promise<void>
+  handleResetSync: () => Promise<void>
   refreshSyncStatus: () => Promise<void>
 }
 
@@ -134,6 +135,15 @@ export function useSyncPairing(): UseSyncPairingResult {
     [refreshSyncStatus],
   )
 
+  const handleResetSync = useCallback(async () => {
+    setEnableError(null)
+    setPairingError(null)
+    const result = await daemon.resetSync()
+    if (result.ok) {
+      await refreshSyncStatus()
+    }
+  }, [refreshSyncStatus])
+
   return {
     syncStatus,
     pairingCode,
@@ -146,6 +156,7 @@ export function useSyncPairing(): UseSyncPairingResult {
     handleCancelPairing,
     handleJoinPrimary,
     handleEnableSync,
+    handleResetSync,
     refreshSyncStatus,
   }
 }
