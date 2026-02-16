@@ -36,9 +36,9 @@ func DefaultSyncConfig() SyncConfig {
 		Enabled: false,
 		Mode:    SyncModeSecondary,
 		Syncthing: SyncthingConfig{
-			ListenPort:    22001,
-			DiscoveryPort: 21028,
-			GUIPort:       8385,
+			ListenPort:    22100,
+			DiscoveryPort: 21127,
+			GUIPort:       8484,
 			RelayEnabled:  true,
 		},
 		Devices: []SyncDevice{},

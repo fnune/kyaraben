@@ -36,6 +36,7 @@ var log = logging.New("daemon")
 
 type Daemon struct {
 	fs              vfs.FS
+	paths           *paths.Paths
 	configStore     *model.ConfigStore
 	manifestStore   *model.ManifestStore
 	configPath      string
@@ -54,9 +55,10 @@ type Daemon struct {
 	pairingActive     bool
 }
 
-func New(fs vfs.FS, configPath, stateDir, manifestPath string, reg *registry.Registry, installer packages.Installer, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager) *Daemon {
+func New(fs vfs.FS, p *paths.Paths, configPath, stateDir, manifestPath string, reg *registry.Registry, installer packages.Installer, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager) *Daemon {
 	return &Daemon{
 		fs:              fs,
+		paths:           p,
 		configStore:     model.NewConfigStore(fs),
 		manifestStore:   model.NewManifestStore(fs),
 		configPath:      configPath,
@@ -69,8 +71,8 @@ func New(fs vfs.FS, configPath, stateDir, manifestPath string, reg *registry.Reg
 	}
 }
 
-func NewDefault(configPath, stateDir, manifestPath string, reg *registry.Registry, installer packages.Installer, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager) *Daemon {
-	return New(vfs.OSFS, configPath, stateDir, manifestPath, reg, installer, configWriter, launcherManager)
+func NewDefault(p *paths.Paths, configPath, stateDir, manifestPath string, reg *registry.Registry, installer packages.Installer, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager) *Daemon {
+	return New(vfs.OSFS, p, configPath, stateDir, manifestPath, reg, installer, configWriter, launcherManager)
 }
 
 func shortenPath(path string) string {
@@ -178,7 +180,7 @@ func (d *Daemon) loadConfig() (*model.KyarabenConfig, error) {
 	path := d.configPath
 	if path == "" {
 		var err error
-		path, err = model.DefaultConfigPath()
+		path, err = d.paths.ConfigPath()
 		if err != nil {
 			return nil, err
 		}
@@ -186,7 +188,15 @@ func (d *Daemon) loadConfig() (*model.KyarabenConfig, error) {
 	cfg, err := d.configStore.Load(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return model.NewDefaultConfig(), nil
+			cfg := model.NewDefaultConfig()
+			if d.paths.Instance != "" {
+				offset := d.paths.InstancePortOffset()
+				cfg.Sync.Syncthing.ListenPort = 22100 + offset
+				cfg.Sync.Syncthing.DiscoveryPort = 21127 + offset
+				cfg.Sync.Syncthing.GUIPort = 8484 + offset
+				cfg.Global.UserStore = "~/Emulation-" + d.paths.Instance
+			}
+			return cfg, nil
 		}
 		return nil, err
 	}
@@ -201,15 +211,15 @@ func (d *Daemon) handleStatus() []Event {
 
 	configPath := d.configPath
 	if configPath == "" {
-		configPath, _ = model.DefaultConfigPath()
+		configPath, _ = d.paths.ConfigPath()
 	}
 
-	userStore, err := store.NewDefaultUserStore(cfg.Global.UserStore)
+	userStore, err := store.NewUserStore(d.fs, d.paths, cfg.Global.UserStore)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
 
-	result, err := status.Get(context.Background(), cfg, configPath, d.reg, userStore, d.manifestPath)
+	result, err := status.NewGetter(d.fs, d.paths).Get(context.Background(), cfg, configPath, d.reg, userStore, d.manifestPath)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
@@ -318,7 +328,7 @@ func (d *Daemon) handleDoctor() []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	userStore, err := store.NewDefaultUserStore(cfg.Global.UserStore)
+	userStore, err := store.NewUserStore(d.fs, d.paths, cfg.Global.UserStore)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
@@ -371,7 +381,7 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 	}
 	d.installer.SetVersionOverrides(versionOverrides)
 
-	userStore, err := store.NewDefaultUserStore(cfg.Global.UserStore)
+	userStore, err := store.NewUserStore(d.fs, d.paths, cfg.Global.UserStore)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
@@ -475,7 +485,7 @@ func (d *Daemon) handlePreflight() []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	userStore, err := store.NewDefaultUserStore(cfg.Global.UserStore)
+	userStore, err := store.NewUserStore(d.fs, d.paths, cfg.Global.UserStore)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
@@ -792,7 +802,7 @@ func (d *Daemon) handleSetConfig(data *SetConfigRequest) []Event {
 
 	path := d.configPath
 	if path == "" {
-		path, _ = model.DefaultConfigPath()
+		path, _ = d.paths.ConfigPath()
 	}
 
 	if err := d.configStore.Save(cfg, path); err != nil {
@@ -827,6 +837,8 @@ func (d *Daemon) handleSyncStatus() []Event {
 	defer cancel()
 
 	if !client.IsRunning(ctx) {
+		go d.ensureSyncthingRunning(cfg)
+
 		return []Event{{
 			Type: EventTypeResult,
 			Data: SyncStatusResponse{
@@ -912,7 +924,7 @@ func (d *Daemon) handleSyncAddDevice(data *SyncAddDeviceRequest) []Event {
 
 	path := d.configPath
 	if path == "" {
-		path, _ = model.DefaultConfigPath()
+		path, _ = d.paths.ConfigPath()
 	}
 
 	if err := d.configStore.Save(cfg, path); err != nil {
@@ -958,7 +970,7 @@ func (d *Daemon) handleSyncRemoveDevice(data *SyncRemoveDeviceRequest) []Event {
 
 	path := d.configPath
 	if path == "" {
-		path, _ = model.DefaultConfigPath()
+		path, _ = d.paths.ConfigPath()
 	}
 
 	if err := d.configStore.Save(cfg, path); err != nil {
@@ -979,8 +991,8 @@ func (d *Daemon) HandleSyncStartPairing(cmd Command, emit func(Event)) []Event {
 	return d.handleSyncStartPairing(emit)
 }
 
-func (d *Daemon) HandleSyncJoinPrimary(cmd SyncJoinPrimaryCommand) []Event {
-	return d.handleSyncJoinPrimary(&cmd.Data)
+func (d *Daemon) HandleSyncJoinPrimary(cmd SyncJoinPrimaryCommand, emit func(Event)) []Event {
+	return d.handleSyncJoinPrimary(&cmd.Data, emit)
 }
 
 func (d *Daemon) handleSyncStartPairing(emit func(Event)) []Event {
@@ -1047,9 +1059,9 @@ func (d *Daemon) handleSyncStartPairing(emit func(Event)) []Event {
 	return nil
 }
 
-func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest) []Event {
-	if data == nil || data.Code == "" || data.PairingAddr == "" {
-		return d.errorResponse("code and pairingAddr are required")
+func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest, emit func(Event)) []Event {
+	if data == nil || data.Code == "" {
+		return d.errorResponse("code is required")
 	}
 
 	cfg, err := d.loadConfig()
@@ -1057,46 +1069,60 @@ func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest) []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	client := syncpkg.NewClient(cfg.Sync)
-	loadedKey := d.loadSyncAPIKey()
-	if loadedKey != "" {
-		client.SetAPIKey(loadedKey)
+	d.pairingMu.Lock()
+	if d.pairingActive {
+		d.pairingMu.Unlock()
+		return d.errorResponse("pairing already in progress")
 	}
+	d.pairingActive = true
+	ctx, cancel := context.WithCancel(context.Background())
+	d.pairingCancelFunc = cancel
+	d.pairingMu.Unlock()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+	go func() {
+		defer func() {
+			d.pairingMu.Lock()
+			d.pairingActive = false
+			d.pairingMu.Unlock()
+		}()
 
-	localID, err := client.GetDeviceID(ctx)
-	if err != nil {
-		return d.errorResponse(fmt.Sprintf("getting device ID: %v", err))
-	}
+		client := syncpkg.NewClient(cfg.Sync)
+		loadedKey := d.loadSyncAPIKey()
+		if loadedKey != "" {
+			client.SetAPIKey(loadedKey)
+		}
 
-	hostname, _ := os.Hostname()
-	localName := hostname + "-kyaraben"
+		flow := syncpkg.NewSecondaryPairingFlow(syncpkg.PairingFlowConfig{
+			SyncConfig: cfg.Sync,
+			Browser:    syncpkg.NewMDNSBrowser(),
+			Client:     client,
+			OnProgress: func(msg string) {
+				emit(Event{
+					Type: EventTypeProgress,
+					Data: SyncPairingProgressEvent{Message: msg},
+				})
+			},
+		})
 
-	pairingClient := syncpkg.NewPairingClient()
-	result, err := pairingClient.Pair(ctx, data.PairingAddr, data.Code, localID, localName, string(cfg.Sync.Mode))
-	if err != nil {
-		return d.errorResponse(fmt.Sprintf("pairing failed: %v", err))
-	}
+		result, err := flow.Run(ctx, data.Code)
+		if err != nil {
+			emit(Event{Type: EventTypeError, Data: ErrorResponse{Error: err.Error()}})
+			return
+		}
 
-	if err := client.AddDevice(ctx, result.PeerDeviceID, result.PeerName); err != nil {
-		return d.errorResponse(fmt.Sprintf("adding device: %v", err))
-	}
-	if err := client.ShareFoldersWithDevice(ctx, result.PeerDeviceID); err != nil {
-		return d.errorResponse(fmt.Sprintf("sharing folders: %v", err))
-	}
+		d.persistPairedDevice(cfg, result.PeerDeviceID, result.PeerName, model.SyncModeSecondary)
 
-	d.persistPairedDevice(cfg, result.PeerDeviceID, result.PeerName, model.SyncModeSecondary)
+		emit(Event{
+			Type: EventTypeResult,
+			Data: SyncJoinPrimaryResponse{
+				Success:      true,
+				PeerDeviceID: result.PeerDeviceID,
+				PeerName:     result.PeerName,
+			},
+		})
+	}()
 
-	return []Event{{
-		Type: EventTypeResult,
-		Data: SyncJoinPrimaryResponse{
-			Success:      true,
-			PeerDeviceID: result.PeerDeviceID,
-			PeerName:     result.PeerName,
-		},
-	}}
+	return nil
 }
 
 func (d *Daemon) handleSyncCancelPairing() []Event {
@@ -1135,7 +1161,7 @@ func (d *Daemon) handleSyncEnable(data *SyncEnableRequest, emit func(Event)) []E
 	cfg.Sync.Enabled = true
 	cfg.Sync.Mode = mode
 
-	userStore, err := store.NewDefaultUserStore(cfg.Global.UserStore)
+	userStore, err := store.NewUserStore(d.fs, d.paths, cfg.Global.UserStore)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
@@ -1161,7 +1187,7 @@ func (d *Daemon) handleSyncEnable(data *SyncEnableRequest, emit func(Event)) []E
 	go func() {
 		emitProgress("installing", "Installing syncthing...", 0)
 
-		setup := syncpkg.NewDefaultSetup(d.installer, d.stateDir)
+		setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir)
 		result, err := setup.Install(context.Background(), cfg.Sync, userStore.Root(), allSystems, func(p packages.InstallProgress) {
 			percent := 0
 			if p.BytesTotal > 0 {
@@ -1178,7 +1204,7 @@ func (d *Daemon) handleSyncEnable(data *SyncEnableRequest, emit func(Event)) []E
 
 		path := d.configPath
 		if path == "" {
-			path, _ = model.DefaultConfigPath()
+			path, _ = d.paths.ConfigPath()
 		}
 		if err := d.configStore.Save(cfg, path); err != nil {
 			emit(Event{Type: EventTypeError, Data: ErrorResponse{Error: err.Error()}})
@@ -1330,6 +1356,43 @@ func (d *Daemon) loadSyncAPIKey() string {
 	return strings.TrimSpace(string(data))
 }
 
+func (d *Daemon) ensureSyncthingRunning(cfg *model.KyarabenConfig) {
+	userStore, err := store.NewUserStore(d.fs, d.paths, cfg.Global.UserStore)
+	if err != nil {
+		log.Error("Failed to create user store for sync setup: %v", err)
+		return
+	}
+
+	allSystems := make([]model.SystemID, 0, len(cfg.Systems))
+	for sysID := range cfg.Systems {
+		allSystems = append(allSystems, sysID)
+	}
+
+	setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir)
+	result, err := setup.Install(context.Background(), cfg.Sync, userStore.Root(), allSystems, nil)
+	if err != nil {
+		log.Error("Failed to ensure syncthing running: %v", err)
+		return
+	}
+
+	manifest, err := d.loadManifest()
+	if err != nil {
+		log.Error("Failed to load manifest: %v", err)
+		return
+	}
+
+	manifest.SyncthingInstall = &model.SyncthingInstall{
+		Version:         d.installer.ResolveVersion("syncthing"),
+		BinaryPath:      result.SyncthingBinary,
+		ConfigDir:       result.ConfigDir,
+		DataDir:         result.DataDir,
+		SystemdUnitPath: result.SystemdUnitPath,
+	}
+	if err := manifest.SaveWithBackup(d.manifestPath); err != nil {
+		log.Error("Failed to save manifest: %v", err)
+	}
+}
+
 func (d *Daemon) updateSyncConfig(cfg *model.KyarabenConfig, userStorePath string) error {
 	allSystems := make([]model.SystemID, 0, len(cfg.Systems))
 	for sysID := range cfg.Systems {
@@ -1341,34 +1404,22 @@ func (d *Daemon) updateSyncConfig(cfg *model.KyarabenConfig, userStorePath strin
 		return fmt.Errorf("loading manifest: %w", err)
 	}
 
-	expectedVersion := d.installer.ResolveVersion("syncthing")
-	installedVersion := ""
-	if manifest.SyncthingInstall != nil {
-		installedVersion = manifest.SyncthingInstall.Version
+	setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir)
+	result, installErr := setup.Install(context.Background(), cfg.Sync, userStorePath, allSystems, nil)
+	if installErr != nil {
+		return fmt.Errorf("updating syncthing: %w", installErr)
 	}
 
-	if installedVersion != expectedVersion {
-		log.Info("Updating syncthing from %s to %s", installedVersion, expectedVersion)
-		setup := syncpkg.NewDefaultSetup(d.installer, d.stateDir)
-		result, installErr := setup.Install(context.Background(), cfg.Sync, userStorePath, allSystems, nil)
-		if installErr != nil {
-			return fmt.Errorf("updating syncthing: %w", installErr)
-		}
-		manifest.SyncthingInstall = &model.SyncthingInstall{
-			Version:         expectedVersion,
-			BinaryPath:      result.SyncthingBinary,
-			ConfigDir:       result.ConfigDir,
-			DataDir:         result.DataDir,
-			SystemdUnitPath: result.SystemdUnitPath,
-		}
-		if saveErr := manifest.SaveWithBackup(d.manifestPath); saveErr != nil {
-			return fmt.Errorf("saving manifest: %w", saveErr)
-		}
-	} else {
-		setup := syncpkg.NewDefaultSetup(d.installer, d.stateDir)
-		if err := setup.UpdateConfig(cfg.Sync, userStorePath, allSystems); err != nil {
-			return err
-		}
+	expectedVersion := d.installer.ResolveVersion("syncthing")
+	manifest.SyncthingInstall = &model.SyncthingInstall{
+		Version:         expectedVersion,
+		BinaryPath:      result.SyncthingBinary,
+		ConfigDir:       result.ConfigDir,
+		DataDir:         result.DataDir,
+		SystemdUnitPath: result.SystemdUnitPath,
+	}
+	if saveErr := manifest.SaveWithBackup(d.manifestPath); saveErr != nil {
+		return fmt.Errorf("saving manifest: %w", saveErr)
 	}
 
 	client := syncpkg.NewClient(cfg.Sync)
@@ -1405,7 +1456,7 @@ func (d *Daemon) persistPairedDevice(cfg *model.KyarabenConfig, peerDeviceID, pe
 
 	path := d.configPath
 	if path == "" {
-		path, _ = model.DefaultConfigPath()
+		path, _ = d.paths.ConfigPath()
 	}
 
 	if err := d.configStore.Save(cfg, path); err != nil {
@@ -1426,7 +1477,7 @@ func (d *Daemon) handleUninstallPreview() []Event {
 	}
 	userStore := cfg.Global.UserStore
 
-	configDir, _ := paths.KyarabenConfigDir()
+	configDir, _ := d.paths.ConfigDir()
 
 	var desktopFiles []string
 	for _, f := range manifest.DesktopFiles {
@@ -1493,7 +1544,7 @@ func (d *Daemon) handleUninstallPreview() []Event {
 
 	var retroArchCoresDir string
 	var retroArchCoreFiles []string
-	if coresDir, err := paths.RetroArchCoresDir(); err == nil && d.dirExists(coresDir) {
+	if coresDir, err := d.paths.CoresDir(); err == nil && d.dirExists(coresDir) {
 		retroArchCoresDir = coresDir
 		entries, _ := os.ReadDir(coresDir)
 		for _, entry := range entries {
@@ -1580,7 +1631,7 @@ func (d *Daemon) handleUninstall() []Event {
 		}
 	}
 
-	syncSetup := syncpkg.NewDefaultSetup(d.installer, d.stateDir)
+	syncSetup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir)
 	if syncSetup.IsEnabled() {
 		if err := syncSetup.Disable(); err != nil {
 			errors = append(errors, fmt.Sprintf("could not disable syncthing service: %v", err))

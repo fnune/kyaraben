@@ -9,6 +9,8 @@ import (
 	"text/template"
 
 	"github.com/twpayne/go-vfs/v5"
+
+	"github.com/fnune/kyaraben/internal/paths"
 )
 
 const unitTemplate = `[Unit]
@@ -28,15 +30,20 @@ WantedBy=default.target
 `
 
 type SystemdUnit struct {
-	fs vfs.FS
+	fs    vfs.FS
+	paths *paths.Paths
 }
 
-func NewSystemdUnit(fs vfs.FS) *SystemdUnit {
-	return &SystemdUnit{fs: fs}
+func NewSystemdUnit(fs vfs.FS, p *paths.Paths) *SystemdUnit {
+	return &SystemdUnit{fs: fs, paths: p}
 }
 
 func NewDefaultSystemdUnit() *SystemdUnit {
-	return NewSystemdUnit(vfs.OSFS)
+	return NewSystemdUnit(vfs.OSFS, paths.DefaultPaths())
+}
+
+func (s *SystemdUnit) unitName() string {
+	return s.paths.DirName() + "-syncthing.service"
 }
 
 type UnitParams struct {
@@ -52,7 +59,7 @@ func (s *SystemdUnit) unitPath() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("getting home dir: %w", err)
 	}
-	return filepath.Join(home, ".config", "systemd", "user", "kyaraben-syncthing.service"), nil
+	return filepath.Join(home, ".config", "systemd", "user", s.unitName()), nil
 }
 
 func (s *SystemdUnit) Generate(params UnitParams) (string, error) {
@@ -98,16 +105,27 @@ func (s *SystemdUnit) Enable() error {
 		return fmt.Errorf("daemon-reload: %w", err)
 	}
 
-	if err := exec.Command("systemctl", "--user", "enable", "--now", "kyaraben-syncthing.service").Run(); err != nil {
+	unitName := s.unitName()
+
+	if s.IsEnabled() {
+		if err := exec.Command("systemctl", "--user", "restart", unitName).Run(); err != nil {
+			return fmt.Errorf("restart service: %w", err)
+		}
+		log.Info("Restarted %s", unitName)
+		return nil
+	}
+
+	if err := exec.Command("systemctl", "--user", "enable", "--now", unitName).Run(); err != nil {
 		return fmt.Errorf("enable service: %w", err)
 	}
 
-	log.Info("Enabled and started kyaraben-syncthing.service")
+	log.Info("Enabled and started %s", unitName)
 	return nil
 }
 
 func (s *SystemdUnit) Disable() error {
-	if err := exec.Command("systemctl", "--user", "disable", "--now", "kyaraben-syncthing.service").Run(); err != nil {
+	unitName := s.unitName()
+	if err := exec.Command("systemctl", "--user", "disable", "--now", unitName).Run(); err != nil {
 		return fmt.Errorf("disable service: %w", err)
 	}
 
@@ -120,11 +138,11 @@ func (s *SystemdUnit) Disable() error {
 		return fmt.Errorf("removing unit file: %w", err)
 	}
 
-	log.Info("Disabled and removed kyaraben-syncthing.service")
+	log.Info("Disabled and removed %s", unitName)
 	return nil
 }
 
 func (s *SystemdUnit) IsEnabled() bool {
-	err := exec.Command("systemctl", "--user", "is-enabled", "--quiet", "kyaraben-syncthing.service").Run()
+	err := exec.Command("systemctl", "--user", "is-enabled", "--quiet", s.unitName()).Run()
 	return err == nil
 }

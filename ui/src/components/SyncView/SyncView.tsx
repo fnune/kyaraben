@@ -12,7 +12,7 @@ export interface SyncViewProps {
   readonly onRemoveDevice: (deviceId: string) => Promise<void>
   readonly onStartPairing: () => Promise<void>
   readonly onCancelPairing: () => Promise<void>
-  readonly onJoinPrimary: (code: string, pairingAddr: string) => Promise<void>
+  readonly onJoinPrimary: (code: string) => Promise<void>
   readonly onPause: () => Promise<void>
   readonly onResume: () => Promise<void>
   readonly onEnableSync: (mode: SyncMode) => Promise<void>
@@ -172,21 +172,19 @@ function PairingSection({
   readonly pairingProgress: string | null
   readonly onStartPairing: () => Promise<void>
   readonly onCancelPairing: () => Promise<void>
-  readonly onJoinPrimary: (code: string, pairingAddr: string) => Promise<void>
+  readonly onJoinPrimary: (code: string) => Promise<void>
 }) {
   const [joinCode, setJoinCode] = useState('')
-  const [joinAddr, setJoinAddr] = useState('')
   const [isJoining, setIsJoining] = useState(false)
   const isPairing = status.pairing || pairingCode !== null
   const isRunning = status.running ?? false
 
   const handleJoin = useCallback(
-    async (code: string, addr: string) => {
+    async (code: string) => {
       setIsJoining(true)
       try {
-        await onJoinPrimary(code, addr)
+        await onJoinPrimary(code)
         setJoinCode('')
-        setJoinAddr('')
       } finally {
         setIsJoining(false)
       }
@@ -227,23 +225,34 @@ function PairingSection({
   }
 
   if (status.mode === 'secondary') {
+    if (isJoining) {
+      return (
+        <Section title="Joining primary">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <Spinner />
+              <span className="text-sm text-on-surface-muted">
+                {pairingProgress || 'Searching for primary on local network...'}
+              </span>
+            </div>
+            <Button variant="secondary" onClick={onCancelPairing}>
+              Cancel
+            </Button>
+          </div>
+        </Section>
+      )
+    }
+
     return (
       <Section title="Join a primary device">
         <div className="space-y-3">
           <p className="text-sm text-on-surface-muted">
-            Enter the pairing code and address shown on the primary device.
+            Enter the pairing code shown on the primary device. The primary will be discovered
+            automatically on your local network.
           </p>
-          <Input value={joinCode} onChange={setJoinCode} placeholder="Pairing code" />
-          <Input
-            value={joinAddr}
-            onChange={setJoinAddr}
-            placeholder="Primary address (e.g. 192.168.1.100:43210)"
-          />
-          <Button
-            onClick={() => handleJoin(joinCode.trim(), joinAddr.trim())}
-            disabled={!joinCode.trim() || !joinAddr.trim() || isJoining}
-          >
-            {isJoining ? 'Joining...' : 'Join primary'}
+          <Input value={joinCode} onChange={setJoinCode} placeholder="Pairing code (e.g. 6MDLRF)" />
+          <Button onClick={() => handleJoin(joinCode.trim())} disabled={!joinCode.trim()}>
+            Join primary
           </Button>
         </div>
       </Section>

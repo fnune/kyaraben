@@ -11,24 +11,27 @@ import (
 
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/packages"
+	"github.com/fnune/kyaraben/internal/paths"
 )
 
 type Setup struct {
 	fs        vfs.FS
+	paths     *paths.Paths
 	installer packages.Installer
 	stateDir  string
 }
 
-func NewSetup(fs vfs.FS, installer packages.Installer, stateDir string) *Setup {
+func NewSetup(fs vfs.FS, p *paths.Paths, installer packages.Installer, stateDir string) *Setup {
 	return &Setup{
 		fs:        fs,
+		paths:     p,
 		installer: installer,
 		stateDir:  stateDir,
 	}
 }
 
 func NewDefaultSetup(installer packages.Installer, stateDir string) *Setup {
-	return NewSetup(vfs.OSFS, installer, stateDir)
+	return NewSetup(vfs.OSFS, paths.DefaultPaths(), installer, stateDir)
 }
 
 type SetupResult struct {
@@ -64,7 +67,7 @@ func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, userStorePath
 		return nil, fmt.Errorf("writing syncthing config: %w", err)
 	}
 
-	unitGen := NewSystemdUnit(s.fs)
+	unitGen := NewSystemdUnit(s.fs, s.paths)
 	params := UnitParams{
 		BinaryPath: binary.Path,
 		ConfigDir:  configDir,
@@ -116,12 +119,12 @@ func (s *Setup) UpdateConfig(cfg model.SyncConfig, userStorePath string, allSyst
 }
 
 func (s *Setup) Disable() error {
-	unitGen := NewSystemdUnit(s.fs)
+	unitGen := NewSystemdUnit(s.fs, s.paths)
 	return unitGen.Disable()
 }
 
 func (s *Setup) IsEnabled() bool {
-	unitGen := NewSystemdUnit(s.fs)
+	unitGen := NewSystemdUnit(s.fs, s.paths)
 	return unitGen.IsEnabled()
 }
 

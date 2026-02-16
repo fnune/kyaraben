@@ -70,12 +70,32 @@ func (c *Client) GetStatus(ctx context.Context) (*Status, error) {
 
 	paused, _ := c.IsPaused(ctx)
 
+	var folders []FolderStatusSummary
+	if folderConfigs, err := c.GetFolderConfigs(ctx); err == nil {
+		for _, fc := range folderConfigs {
+			fs, err := c.GetFolderStatus(ctx, fc.ID)
+			if err != nil {
+				continue
+			}
+			folders = append(folders, FolderStatusSummary{
+				ID:         fc.ID,
+				Path:       fc.Path,
+				Type:       fc.Type,
+				State:      fs.State,
+				GlobalSize: fs.GlobalBytes,
+				LocalSize:  fs.LocalBytes,
+				NeedSize:   fs.NeedBytes,
+			})
+		}
+	}
+
 	status := &Status{
 		Enabled:  true,
 		Mode:     c.config.Mode,
 		DeviceID: deviceID,
 		GUIURL:   fmt.Sprintf("http://127.0.0.1:%d", c.config.Syncthing.GUIPort),
 		Devices:  devices,
+		Folders:  folders,
 		Paused:   paused,
 	}
 
