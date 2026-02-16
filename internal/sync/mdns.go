@@ -21,7 +21,10 @@ func NewMDNSAdvertiser() *MDNSAdvertiser {
 }
 
 func (a *MDNSAdvertiser) Advertise(_ context.Context, hostname string, port int) error {
-	info := []string{fmt.Sprintf("pair=%s:%d", localIP(), port)}
+	ip := localIP()
+	info := []string{fmt.Sprintf("pair=%s:%d", ip, port)}
+	log.Info("Starting mDNS advertisement: %s on port %d (ip=%s)", hostname, port, ip)
+
 	service, err := mdns.NewMDNSService(hostname, mdnsServiceType, "", "", port, nil, info)
 	if err != nil {
 		return fmt.Errorf("creating mDNS service: %w", err)
@@ -33,6 +36,7 @@ func (a *MDNSAdvertiser) Advertise(_ context.Context, hostname string, port int)
 	}
 
 	a.server = server
+	log.Info("mDNS advertisement started successfully")
 	return nil
 }
 

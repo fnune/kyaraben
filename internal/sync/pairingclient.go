@@ -19,11 +19,12 @@ func NewPairingClient() *PairingClient {
 	}
 }
 
-func (c *PairingClient) Pair(ctx context.Context, addr, code, localDeviceID, localName string) (*PairResult, error) {
+func (c *PairingClient) Pair(ctx context.Context, addr, code, localDeviceID, localName, localMode string) (*PairResult, error) {
 	reqBody := PairingRequest{
 		Code:     code,
 		DeviceID: localDeviceID,
 		Name:     localName,
+		Mode:     localMode,
 	}
 
 	body, err := json.Marshal(reqBody)
@@ -46,6 +47,9 @@ func (c *PairingClient) Pair(ctx context.Context, addr, code, localDeviceID, loc
 
 	if resp.StatusCode == http.StatusForbidden {
 		return nil, fmt.Errorf("invalid pairing code")
+	}
+	if resp.StatusCode == http.StatusConflict {
+		return nil, fmt.Errorf("cannot pair two primary devices - one device must be set to secondary mode")
 	}
 	if resp.StatusCode == http.StatusTooManyRequests {
 		return nil, fmt.Errorf("too many pairing attempts")

@@ -12,7 +12,6 @@ type FakeClient struct {
 	running     bool
 	deviceID    string
 	connections map[string]ConnectionInfo
-	devices     []model.SyncDevice
 	addedPeers  []model.SyncDevice
 	removedIDs  []string
 	sharedWith  []string

@@ -28,12 +28,14 @@ const (
 	CommandTypeSyncCancelPairing CommandType = "sync_cancel_pairing"
 	CommandTypeSyncPause         CommandType = "sync_pause"
 	CommandTypeSyncResume        CommandType = "sync_resume"
+	CommandTypeSyncPending       CommandType = "sync_pending"
 	CommandTypeUninstallPreview  CommandType = "uninstall_preview"
 	CommandTypeUninstall         CommandType = "uninstall"
 	CommandTypeInstallKyaraben   CommandType = "install_kyaraben"
 	CommandTypeInstallStatus     CommandType = "install_status"
 	CommandTypeRefreshIconCaches CommandType = "refresh_icon_caches"
 	CommandTypePreflight         CommandType = "preflight"
+	CommandTypeSyncEnable        CommandType = "sync_enable"
 )
 
 // Command represents a command from the UI.
@@ -65,8 +67,8 @@ type SyncRemoveDeviceCommand struct {
 
 // SyncJoinPrimaryCommand includes the pairing code and selected primary.
 type SyncJoinPrimaryCommand struct {
-	Type CommandType         `json:"type"`
-	ID   string              `json:"id,omitempty"`
+	Type CommandType            `json:"type"`
+	ID   string                 `json:"id,omitempty"`
 	Data SyncJoinPrimaryRequest `json:"data"`
 }
 
@@ -75,6 +77,13 @@ type InstallKyarabenCommand struct {
 	Type CommandType            `json:"type"`
 	ID   string                 `json:"id,omitempty"`
 	Data InstallKyarabenRequest `json:"data"`
+}
+
+// SyncEnableCommand includes the sync enable options.
+type SyncEnableCommand struct {
+	Type CommandType       `json:"type"`
+	ID   string            `json:"id,omitempty"`
+	Data SyncEnableRequest `json:"data"`
 }
 
 // EventType identifies the type of event.

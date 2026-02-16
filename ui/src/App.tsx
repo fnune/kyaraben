@@ -179,6 +179,7 @@ function AppContent() {
     syncStatus,
     pairingCode,
     pairingProgress,
+    isEnabling,
     handleAddDevice,
     handleRemoveDevice,
     handleStartPairing,
@@ -186,6 +187,7 @@ function AppContent() {
     handleJoinPrimary,
     handlePauseSync,
     handleResumeSync,
+    handleEnableSync,
     refreshSyncStatus,
   } = useSyncPairing()
 
@@ -545,8 +547,10 @@ function AppContent() {
             onJoinPrimary={handleJoinPrimary}
             onPause={handlePauseSync}
             onResume={handleResumeSync}
+            onEnableSync={handleEnableSync}
             pairingCode={pairingCode}
             pairingProgress={pairingProgress}
+            isEnabling={isEnabling}
           />
         )
       default:

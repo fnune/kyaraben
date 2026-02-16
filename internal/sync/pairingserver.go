@@ -14,6 +14,7 @@ type PairingRequest struct {
 	Code     string `json:"code"`
 	DeviceID string `json:"deviceId"`
 	Name     string `json:"name"`
+	Mode     string `json:"mode,omitempty"`
 }
 
 type PairingResponse struct {
@@ -110,6 +111,11 @@ func (s *PairingServer) handlePair(w http.ResponseWriter, r *http.Request) {
 
 	if req.Code != s.code {
 		http.Error(w, "invalid code", http.StatusForbidden)
+		return
+	}
+
+	if req.Mode == "primary" {
+		http.Error(w, "cannot pair two primary devices", http.StatusConflict)
 		return
 	}
 

@@ -10,6 +10,30 @@ import (
 	"github.com/fnune/kyaraben/internal/model"
 )
 
+func TestPairingServerRejectsTwoPrimaries(t *testing.T) {
+	server := NewPairingServer("ABC123", "LOCAL-DEVICE-ID", "test-primary")
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	if err := server.Start(listener); err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	defer server.Stop()
+
+	ctx := context.Background()
+	client := NewPairingClient()
+	addr := fmt.Sprintf("127.0.0.1:%d", server.Port())
+
+	_, err = client.Pair(ctx, addr, "ABC123", "peer-id", "peer-name", "primary")
+	if err == nil {
+		t.Fatal("expected error when pairing two primaries")
+	}
+	if err.Error() != "cannot pair two primary devices - one device must be set to secondary mode" {
+		t.Errorf("unexpected error message: %s", err.Error())
+	}
+}
+
 func TestPairingServerRejectsInvalidCode(t *testing.T) {
 	server := NewPairingServer("ABC123", "LOCAL-DEVICE-ID", "test-primary")
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -25,7 +49,7 @@ func TestPairingServerRejectsInvalidCode(t *testing.T) {
 	client := NewPairingClient()
 	addr := fmt.Sprintf("127.0.0.1:%d", server.Port())
 
-	_, err = client.Pair(ctx, addr, "WRONG1", "peer-id", "peer-name")
+	_, err = client.Pair(ctx, addr, "WRONG1", "peer-id", "peer-name", "secondary")
 	if err == nil {
 		t.Fatal("expected error for wrong code")
 	}
@@ -46,7 +70,7 @@ func TestPairingServerAcceptsCorrectCode(t *testing.T) {
 	client := NewPairingClient()
 	addr := fmt.Sprintf("127.0.0.1:%d", server.Port())
 
-	result, err := client.Pair(ctx, addr, "ABC123", "PEER-DEVICE-ID", "peer-name")
+	result, err := client.Pair(ctx, addr, "ABC123", "PEER-DEVICE-ID", "peer-name", "secondary")
 	if err != nil {
 		t.Fatalf("pair: %v", err)
 	}
@@ -75,10 +99,10 @@ func TestPairingServerRateLimits(t *testing.T) {
 	addr := fmt.Sprintf("127.0.0.1:%d", server.Port())
 
 	for i := 0; i < maxPairingAttempts; i++ {
-		_, _ = client.Pair(ctx, addr, "WRONG1", "peer-id", "peer-name")
+		_, _ = client.Pair(ctx, addr, "WRONG1", "peer-id", "peer-name", "secondary")
 	}
 
-	_, err = client.Pair(ctx, addr, "ABC123", "peer-id", "peer-name")
+	_, err = client.Pair(ctx, addr, "ABC123", "peer-id", "peer-name", "secondary")
 	if err == nil {
 		t.Fatal("expected rate limit error")
 	}
@@ -106,7 +130,7 @@ func TestPairingServerOnPairAcceptCallback(t *testing.T) {
 	client := NewPairingClient()
 	addr := fmt.Sprintf("127.0.0.1:%d", server.Port())
 
-	_, err = client.Pair(ctx, addr, "ABC123", "PEER-ID-123", "steam-deck")
+	_, err = client.Pair(ctx, addr, "ABC123", "PEER-ID-123", "steam-deck", "secondary")
 	if err != nil {
 		t.Fatalf("pair: %v", err)
 	}
@@ -167,7 +191,7 @@ func TestPrimaryPairingFlowWithFakes(t *testing.T) {
 			return
 		}
 
-		_, err := client.Pair(ctx, addr, code, "SECONDARY-DEVICE-ID", "steamdeck")
+		_, err := client.Pair(ctx, addr, code, "SECONDARY-DEVICE-ID", "steamdeck", "secondary")
 		if err != nil {
 			t.Errorf("pair: %v", err)
 		}
