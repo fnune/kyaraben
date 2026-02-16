@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ApplyAfterUpdateBanner } from '@/components/ApplyAfterUpdateBanner/ApplyAfterUpdateBanner'
 import { ApplyProgressBar } from '@/components/ApplyProgressBar/ApplyProgressBar'
 import { CatalogView } from '@/components/CatalogView/CatalogView'
 import { InstallationView } from '@/components/InstallationView/InstallationView'
@@ -155,7 +154,7 @@ function AppContent() {
 
   const savedConfigState = useRef<ConfigState>(emptyConfigState())
 
-  const { onCompleteRef } = useApply()
+  const { onCompleteRef, apply } = useApply()
   const { showToast } = useToast()
   const { status: applyStatus } = useApply()
   const lastApplyStatus = useRef<ApplyStatus | null>(null)
@@ -170,11 +169,34 @@ function AppContent() {
     applyBannerDismissed,
     handleUpdate,
     handleDismissUpdate,
-    handleDismissApplyBanner,
-    handleApplyFromBanner,
     setShowApplyBanner,
     clearApplyBannerDismissal,
-  } = useUpdateChecker(showToast, setCurrentView)
+  } = useUpdateChecker(showToast)
+
+  const handleReapply = useCallback(async () => {
+    const saved = savedConfigState.current
+    const systemsConfig: Record<string, string[]> = {}
+    for (const [sysId, emuIds] of saved.systemEmulators) {
+      systemsConfig[sysId] = emuIds
+    }
+    const emulatorsConfig: Record<string, { version?: string }> = {}
+    for (const [emuId, version] of saved.emulatorVersions) {
+      if (version) {
+        emulatorsConfig[emuId] = { version }
+      }
+    }
+    const frontendsConfig: Record<string, { enabled: boolean; version?: string }> = {}
+    for (const [feId, enabled] of saved.enabledFrontends) {
+      const version = saved.frontendVersions.get(feId)
+      frontendsConfig[feId] = { enabled, ...(version && { version }) }
+    }
+    await apply({
+      userStore: saved.userStore,
+      systems: systemsConfig,
+      emulators: emulatorsConfig,
+      frontends: frontendsConfig,
+    })
+  }, [apply])
 
   const {
     syncStatus,
@@ -543,6 +565,8 @@ function AppContent() {
             onFrontendVersionChange={handleFrontendVersionChange}
             onDiscard={handleDiscard}
             onEnableAll={handleEnableAll}
+            upgradeAvailable={showApplyBanner && !applyBannerDismissed}
+            onReapply={handleReapply}
           />
         )
       case VIEW_INSTALLATION:
@@ -597,12 +621,6 @@ function AppContent() {
         />
       )}
 
-      {showApplyBanner && !applyBannerDismissed && (
-        <ApplyAfterUpdateBanner
-          onApply={handleApplyFromBanner}
-          onDismiss={handleDismissApplyBanner}
-        />
-      )}
 
       <div className="flex-1 flex flex-col min-[720px]:flex-row min-h-0">
         <Sidebar
