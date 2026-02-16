@@ -213,8 +213,8 @@ function FolderRow({
           </div>
           {showChanges && changes && changes.length > 0 && (
             <div className="mt-1 max-h-32 overflow-y-auto">
-              {changes.map((c, i) => (
-                <div key={i} className="py-0.5 text-on-surface-muted truncate">
+              {changes.map((c) => (
+                <div key={c.path} className="py-0.5 text-on-surface-muted truncate">
                   <span className="text-status-error">missing</span> {c.path}
                   {c.size > 0 && <span> ({formatBytes(c.size)})</span>}
                 </div>
