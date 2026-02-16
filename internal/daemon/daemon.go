@@ -119,16 +119,10 @@ func (d *Daemon) HandleWithEmit(cmd Command, emit func(Event)) []Event {
 		return d.handleSetConfig(nil)
 	case CommandTypeSyncStatus:
 		return d.handleSyncStatus()
-	case CommandTypeSyncAddDevice:
-		return d.handleSyncAddDevice(nil)
 	case CommandTypeSyncRemoveDevice:
 		return d.handleSyncRemoveDevice(nil)
 	case CommandTypeSyncCancelPairing:
 		return d.handleSyncCancelPairing()
-	case CommandTypeSyncPause:
-		return d.handleSyncPause()
-	case CommandTypeSyncResume:
-		return d.handleSyncResume()
 	case CommandTypeSyncPending:
 		return d.handleSyncPending()
 	case CommandTypeUninstallPreview:
@@ -152,10 +146,6 @@ func (d *Daemon) HandleWithEmit(cmd Command, emit func(Event)) []Event {
 
 func (d *Daemon) HandleSetConfig(cmd SetConfigCommand, emit func(Event)) []Event {
 	return d.handleSetConfig(&cmd.Data)
-}
-
-func (d *Daemon) HandleSyncAddDevice(cmd SyncAddDeviceCommand, emit func(Event)) []Event {
-	return d.handleSyncAddDevice(&cmd.Data)
 }
 
 func (d *Daemon) HandleSyncRemoveDevice(cmd SyncRemoveDeviceCommand, emit func(Event)) []Event {
@@ -878,6 +868,7 @@ func (d *Daemon) handleSyncStatus() []Event {
 	for i, f := range syncStatus.Folders {
 		folders[i] = SyncFolder{
 			ID:         f.ID,
+			Path:       f.Path,
 			Label:      folderLabel(f.ID),
 			State:      f.State,
 			GlobalSize: f.GlobalSize,
@@ -909,56 +900,6 @@ func (d *Daemon) handleSyncStatus() []Event {
 			Folders:  folders,
 			Paused:   syncStatus.Paused,
 			Progress: progress,
-		},
-	}}
-}
-
-func (d *Daemon) handleSyncAddDevice(data *SyncAddDeviceRequest) []Event {
-	cfg, err := d.loadConfig()
-	if err != nil {
-		return d.errorResponse(err.Error())
-	}
-
-	if !cfg.Sync.Enabled {
-		return d.errorResponse("sync is not enabled")
-	}
-
-	if data == nil || data.DeviceID == "" {
-		return d.errorResponse("deviceId is required")
-	}
-
-	deviceID := strings.ToUpper(strings.TrimSpace(data.DeviceID))
-	name := data.Name
-	if name == "" {
-		name = fmt.Sprintf("device-%d", len(cfg.Sync.Devices)+1)
-	}
-
-	for _, existing := range cfg.Sync.Devices {
-		if existing.ID == deviceID {
-			return d.errorResponse("device already added")
-		}
-	}
-
-	cfg.Sync.Devices = append(cfg.Sync.Devices, model.SyncDevice{
-		ID:   deviceID,
-		Name: name,
-	})
-
-	path := d.configPath
-	if path == "" {
-		path, _ = d.paths.ConfigPath()
-	}
-
-	if err := d.configStore.Save(cfg, path); err != nil {
-		return d.errorResponse(err.Error())
-	}
-
-	return []Event{{
-		Type: EventTypeResult,
-		Data: SyncAddDeviceResponse{
-			Success:  true,
-			DeviceID: deviceID,
-			Name:     name,
 		},
 	}}
 }
@@ -1048,6 +989,7 @@ func (d *Daemon) handleSyncStartPairing(emit func(Event)) []Event {
 
 		flow := syncpkg.NewPrimaryPairingFlow(syncpkg.PairingFlowConfig{
 			SyncConfig: cfg.Sync,
+			Instance:   d.paths.Instance,
 			Advertiser: syncpkg.NewMDNSAdvertiser(),
 			Client:     client,
 			OnProgress: func(msg string) {
@@ -1116,6 +1058,7 @@ func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest, emit func(E
 
 		flow := syncpkg.NewSecondaryPairingFlow(syncpkg.PairingFlowConfig{
 			SyncConfig: cfg.Sync,
+			Instance:   d.paths.Instance,
 			Browser:    syncpkg.NewMDNSBrowser(),
 			Client:     client,
 			OnProgress: func(msg string) {
@@ -1261,68 +1204,6 @@ func (d *Daemon) handleSyncEnable(data *SyncEnableRequest, emit func(Event)) []E
 	}()
 
 	return nil
-}
-
-func (d *Daemon) handleSyncPause() []Event {
-	log.Info("Handling sync_pause command")
-	cfg, err := d.loadConfig()
-	if err != nil {
-		log.Info("Failed to load config: %v", err)
-		return d.errorResponse(err.Error())
-	}
-
-	client := syncpkg.NewClient(cfg.Sync)
-	loadedKey := d.loadSyncAPIKey()
-	if loadedKey != "" {
-		client.SetAPIKey(loadedKey)
-	} else {
-		log.Info("No API key loaded for sync pause")
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if err := client.PauseSync(ctx); err != nil {
-		log.Info("Pause sync failed: %v", err)
-		return d.errorResponse(fmt.Sprintf("pausing sync: %v", err))
-	}
-
-	log.Info("Sync paused successfully")
-	return []Event{{
-		Type: EventTypeResult,
-		Data: SyncPauseResponse{Success: true},
-	}}
-}
-
-func (d *Daemon) handleSyncResume() []Event {
-	log.Info("Handling sync_resume command")
-	cfg, err := d.loadConfig()
-	if err != nil {
-		log.Info("Failed to load config: %v", err)
-		return d.errorResponse(err.Error())
-	}
-
-	client := syncpkg.NewClient(cfg.Sync)
-	loadedKey := d.loadSyncAPIKey()
-	if loadedKey != "" {
-		client.SetAPIKey(loadedKey)
-	} else {
-		log.Info("No API key loaded for sync resume")
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if err := client.ResumeSync(ctx); err != nil {
-		log.Info("Resume sync failed: %v", err)
-		return d.errorResponse(fmt.Sprintf("resuming sync: %v", err))
-	}
-
-	log.Info("Sync resumed successfully")
-	return []Event{{
-		Type: EventTypeResult,
-		Data: SyncResumeResponse{Success: true},
-	}}
 }
 
 func (d *Daemon) handleSyncPending() []Event {

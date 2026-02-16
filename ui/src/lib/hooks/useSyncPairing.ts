@@ -8,13 +8,10 @@ export interface UseSyncPairingResult {
   pairingCode: string | null
   pairingProgress: string | null
   isEnabling: boolean
-  handleAddDevice: (deviceId: string, name: string) => Promise<void>
   handleRemoveDevice: (deviceId: string) => Promise<void>
   handleStartPairing: () => Promise<void>
   handleCancelPairing: () => Promise<void>
   handleJoinPrimary: (code: string) => Promise<void>
-  handlePauseSync: () => Promise<void>
-  handleResumeSync: () => Promise<void>
   handleEnableSync: (mode: SyncMode) => Promise<void>
   refreshSyncStatus: () => Promise<void>
 }
@@ -67,16 +64,6 @@ export function useSyncPairing(): UseSyncPairingResult {
     })
   }, [])
 
-  const handleAddDevice = useCallback(
-    async (deviceId: string, name: string) => {
-      const result = await daemon.addSyncDevice({ deviceId, name })
-      if (result.ok) {
-        await refreshSyncStatus()
-      }
-    },
-    [refreshSyncStatus],
-  )
-
   const handleRemoveDevice = useCallback(
     async (deviceId: string) => {
       const result = await daemon.removeSyncDevice({ deviceId })
@@ -115,20 +102,6 @@ export function useSyncPairing(): UseSyncPairingResult {
     [refreshSyncStatus],
   )
 
-  const handlePauseSync = useCallback(async () => {
-    const result = await daemon.pauseSync()
-    if (result.ok) {
-      await refreshSyncStatus()
-    }
-  }, [refreshSyncStatus])
-
-  const handleResumeSync = useCallback(async () => {
-    const result = await daemon.resumeSync()
-    if (result.ok) {
-      await refreshSyncStatus()
-    }
-  }, [refreshSyncStatus])
-
   const handleEnableSync = useCallback(
     async (mode: SyncMode) => {
       setIsEnabling(true)
@@ -149,13 +122,10 @@ export function useSyncPairing(): UseSyncPairingResult {
     pairingCode,
     pairingProgress,
     isEnabling,
-    handleAddDevice,
     handleRemoveDevice,
     handleStartPairing,
     handleCancelPairing,
     handleJoinPrimary,
-    handlePauseSync,
-    handleResumeSync,
     handleEnableSync,
     refreshSyncStatus,
   }

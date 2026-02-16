@@ -17,10 +17,6 @@ export interface FrontendConfRequest {
 export interface EmulatorConfRequest {
   version?: string;
 }
-export interface SyncAddDeviceRequest {
-  deviceId: string;
-  name?: string;
-}
 export interface SyncRemoveDeviceRequest {
   deviceId: string;
 }
@@ -199,6 +195,7 @@ export interface SyncDevice {
 }
 export interface SyncFolder {
   id: string;
+  path: string;
   label: string;
   state: string;
   globalSize: number /* int64 */;
@@ -209,11 +206,6 @@ export interface SyncPendingResponse {
   pending: boolean;
   totalFiles: number /* int64 */;
   totalBytes: number /* int64 */;
-}
-export interface SyncAddDeviceResponse {
-  success: boolean;
-  deviceId: string;
-  name: string;
 }
 export interface SyncRemoveDeviceResponse {
   success: boolean;
@@ -247,12 +239,6 @@ export interface SyncEnableResponse {
 export interface SyncDiscoveredPrimary {
   hostname: string;
   pairingAddr: string;
-}
-export interface SyncPauseResponse {
-  success: boolean;
-}
-export interface SyncResumeResponse {
-  success: boolean;
 }
 export interface UninstallPreviewResponse {
   stateDir: string;
@@ -333,13 +319,10 @@ export const CommandTypeGetFrontends = "get_frontends";
 export const CommandTypeGetConfig = "get_config";
 export const CommandTypeSetConfig = "set_config";
 export const CommandTypeSyncStatus = "sync_status";
-export const CommandTypeSyncAddDevice = "sync_add_device";
 export const CommandTypeSyncRemoveDevice = "sync_remove_device";
 export const CommandTypeSyncStartPairing = "sync_start_pairing";
 export const CommandTypeSyncJoinPrimary = "sync_join_primary";
 export const CommandTypeSyncCancelPairing = "sync_cancel_pairing";
-export const CommandTypeSyncPause = "sync_pause";
-export const CommandTypeSyncResume = "sync_resume";
 export const CommandTypeSyncPending = "sync_pending";
 export const CommandTypeUninstallPreview = "uninstall_preview";
 export const CommandTypeUninstall = "uninstall";
@@ -348,7 +331,7 @@ export const CommandTypeInstallStatus = "install_status";
 export const CommandTypeRefreshIconCaches = "refresh_icon_caches";
 export const CommandTypePreflight = "preflight";
 export const CommandTypeSyncEnable = "sync_enable";
-export type CommandType = typeof CommandTypeStatus | typeof CommandTypeDoctor | typeof CommandTypeApply | typeof CommandTypeCancelApply | typeof CommandTypeGetSystems | typeof CommandTypeGetFrontends | typeof CommandTypeGetConfig | typeof CommandTypeSetConfig | typeof CommandTypeSyncStatus | typeof CommandTypeSyncAddDevice | typeof CommandTypeSyncRemoveDevice | typeof CommandTypeSyncStartPairing | typeof CommandTypeSyncJoinPrimary | typeof CommandTypeSyncCancelPairing | typeof CommandTypeSyncPause | typeof CommandTypeSyncResume | typeof CommandTypeSyncPending | typeof CommandTypeUninstallPreview | typeof CommandTypeUninstall | typeof CommandTypeInstallKyaraben | typeof CommandTypeInstallStatus | typeof CommandTypeRefreshIconCaches | typeof CommandTypePreflight | typeof CommandTypeSyncEnable;
+export type CommandType = typeof CommandTypeStatus | typeof CommandTypeDoctor | typeof CommandTypeApply | typeof CommandTypeCancelApply | typeof CommandTypeGetSystems | typeof CommandTypeGetFrontends | typeof CommandTypeGetConfig | typeof CommandTypeSetConfig | typeof CommandTypeSyncStatus | typeof CommandTypeSyncRemoveDevice | typeof CommandTypeSyncStartPairing | typeof CommandTypeSyncJoinPrimary | typeof CommandTypeSyncCancelPairing | typeof CommandTypeSyncPending | typeof CommandTypeUninstallPreview | typeof CommandTypeUninstall | typeof CommandTypeInstallKyaraben | typeof CommandTypeInstallStatus | typeof CommandTypeRefreshIconCaches | typeof CommandTypePreflight | typeof CommandTypeSyncEnable;
 /**
  * Command represents a command from the UI.
  */
@@ -363,14 +346,6 @@ export interface SetConfigCommand {
   type: CommandType;
   id?: string;
   data: SetConfigRequest;
-}
-/**
- * SyncAddDeviceCommand includes the device to add.
- */
-export interface SyncAddDeviceCommand {
-  type: CommandType;
-  id?: string;
-  data: SyncAddDeviceRequest;
 }
 /**
  * SyncRemoveDeviceCommand includes the device to remove.

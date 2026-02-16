@@ -180,13 +180,10 @@ function AppContent() {
     pairingCode,
     pairingProgress,
     isEnabling,
-    handleAddDevice,
     handleRemoveDevice,
     handleStartPairing,
     handleCancelPairing,
     handleJoinPrimary,
-    handlePauseSync,
-    handleResumeSync,
     handleEnableSync,
     refreshSyncStatus,
   } = useSyncPairing()
@@ -540,13 +537,10 @@ function AppContent() {
         return (
           <SyncView
             status={syncStatus}
-            onAddDevice={handleAddDevice}
             onRemoveDevice={handleRemoveDevice}
             onStartPairing={handleStartPairing}
             onCancelPairing={handleCancelPairing}
             onJoinPrimary={handleJoinPrimary}
-            onPause={handlePauseSync}
-            onResume={handleResumeSync}
             onEnableSync={handleEnableSync}
             pairingCode={pairingCode}
             pairingProgress={pairingProgress}
