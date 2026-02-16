@@ -3,7 +3,6 @@ import {
   SyncStateConflict,
   SyncStateDisconnected,
   SyncStateError,
-  SyncStatePaused,
   SyncStateSynced,
   SyncStateSyncing,
 } from '@/types/daemon'
@@ -11,8 +10,6 @@ import {
 interface SyncStatusBannerProps {
   readonly state: SyncState
   readonly progress: SyncProgress | null
-  readonly paused: boolean
-  readonly onResume?: () => void
 }
 
 function formatBytes(bytes: number): string {
@@ -22,17 +19,7 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1024 / 1024 / 1024).toFixed(1)} GB`
 }
 
-function getStateConfig(state: SyncState, paused: boolean) {
-  if (paused || state === SyncStatePaused) {
-    return {
-      icon: '⏸',
-      label: 'Sync is paused',
-      bgClass: 'bg-status-warn/10',
-      textClass: 'text-status-warn',
-      dotClass: 'bg-status-warn',
-    }
-  }
-
+function getStateConfig(state: SyncState) {
   switch (state) {
     case SyncStateSynced:
       return {
@@ -86,8 +73,8 @@ function getStateConfig(state: SyncState, paused: boolean) {
   }
 }
 
-export function SyncStatusBanner({ state, progress, paused, onResume }: SyncStatusBannerProps) {
-  const config = getStateConfig(state, paused)
+export function SyncStatusBanner({ state, progress }: SyncStatusBannerProps) {
+  const config = getStateConfig(state)
   const showProgress = state === SyncStateSyncing && progress && progress.needFiles > 0
 
   let label = config.label
@@ -97,25 +84,14 @@ export function SyncStatusBanner({ state, progress, paused, onResume }: SyncStat
 
   return (
     <div className={`p-4 rounded-card ${config.bgClass}`}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span
-            className={`text-lg ${config.textClass} ${config.animate ? 'animate-spin' : ''}`}
-            style={config.animate ? { animationDuration: '2s' } : undefined}
-          >
-            {config.icon}
-          </span>
-          <span className={`font-medium ${config.textClass}`}>{label}</span>
-        </div>
-        {(paused || state === SyncStatePaused) && onResume && (
-          <button
-            type="button"
-            onClick={onResume}
-            className="px-3 py-1 text-sm bg-accent text-on-accent rounded-sm hover:bg-accent/90"
-          >
-            Resume
-          </button>
-        )}
+      <div className="flex items-center gap-3">
+        <span
+          className={`text-lg ${config.textClass} ${config.animate ? 'animate-spin' : ''}`}
+          style={config.animate ? { animationDuration: '2s' } : undefined}
+        >
+          {config.icon}
+        </span>
+        <span className={`font-medium ${config.textClass}`}>{label}</span>
       </div>
       {showProgress && progress && (
         <div className="mt-3">

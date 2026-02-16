@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"net"
 	"path/filepath"
 
 	"github.com/twpayne/go-vfs/v5"
@@ -45,6 +46,10 @@ type SetupResult struct {
 func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, userStorePath string, allSystems []model.SystemID, onProgress func(packages.InstallProgress)) (*SetupResult, error) {
 	if !cfg.Enabled {
 		return nil, nil
+	}
+
+	if err := CheckPorts(cfg.Syncthing); err != nil {
+		return nil, err
 	}
 
 	binary, err := s.installer.InstallEmulator(ctx, "syncthing", onProgress)
@@ -159,3 +164,45 @@ func generateAPIKey() (string, error) {
 	}
 	return hex.EncodeToString(b), nil
 }
+
+func checkPortsAvailable(cfg model.SyncthingConfig) error {
+	ports := []struct {
+		port int
+		name string
+		net  string
+	}{
+		{cfg.GUIPort, "GUI", "tcp"},
+		{cfg.ListenPort, "listen", "tcp"},
+		{cfg.DiscoveryPort, "discovery", "udp"},
+	}
+
+	for _, p := range ports {
+		if err := checkPortAvailable(p.net, p.port); err != nil {
+			return fmt.Errorf("syncthing %s port %d is already in use: %w", p.name, p.port, err)
+		}
+	}
+	return nil
+}
+
+func checkPortAvailable(network string, port int) error {
+	addr := fmt.Sprintf("127.0.0.1:%d", port)
+	switch network {
+	case "tcp":
+		ln, err := net.Listen("tcp", addr)
+		if err != nil {
+			return err
+		}
+		_ = ln.Close()
+	case "udp":
+		conn, err := net.ListenPacket("udp", addr)
+		if err != nil {
+			return err
+		}
+		_ = conn.Close()
+	}
+	return nil
+}
+
+type PortChecker func(cfg model.SyncthingConfig) error
+
+var CheckPorts PortChecker = checkPortsAvailable

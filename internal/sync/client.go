@@ -203,6 +203,43 @@ func (c *Client) RemoveDevice(ctx context.Context, deviceID string) error {
 	return nil
 }
 
+type ConfiguredDevice struct {
+	ID     string
+	Name   string
+	Paused bool
+}
+
+func (c *Client) GetConfiguredDevices(ctx context.Context) ([]ConfiguredDevice, error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/config/devices", nil)
+	if err != nil {
+		return nil, fmt.Errorf("getting devices config: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+
+	var devices []syncthingDevice
+	if err := json.NewDecoder(resp.Body).Decode(&devices); err != nil {
+		return nil, fmt.Errorf("decoding devices: %w", err)
+	}
+
+	myID, _ := c.GetDeviceID(ctx)
+	var result []ConfiguredDevice
+	for _, dev := range devices {
+		if dev.DeviceID == myID {
+			continue
+		}
+		result = append(result, ConfiguredDevice{
+			ID:     dev.DeviceID,
+			Name:   dev.Name,
+			Paused: dev.Paused,
+		})
+	}
+	return result, nil
+}
+
 func (c *Client) ShareFoldersWithDevice(ctx context.Context, deviceID string) error {
 	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/config/folders", nil)
 	if err != nil {
@@ -255,32 +292,6 @@ func (c *Client) ShareFoldersWithDevice(ctx context.Context, deviceID string) er
 		_ = patchResp.Body.Close()
 	}
 
-	return nil
-}
-
-func (c *Client) PauseSync(ctx context.Context) error {
-	resp, err := c.doRequest(ctx, http.MethodPost, "/rest/system/pause", nil)
-	if err != nil {
-		return fmt.Errorf("pausing sync: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("pausing sync: unexpected status %d", resp.StatusCode)
-	}
-	log.Info("Sync paused")
-	return nil
-}
-
-func (c *Client) ResumeSync(ctx context.Context) error {
-	resp, err := c.doRequest(ctx, http.MethodPost, "/rest/system/resume", nil)
-	if err != nil {
-		return fmt.Errorf("resuming sync: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("resuming sync: unexpected status %d", resp.StatusCode)
-	}
-	log.Info("Sync resumed")
 	return nil
 }
 
@@ -398,40 +409,4 @@ func (c *Client) GetSyncProgress(ctx context.Context) (*SyncProgressInfo, error)
 	}
 
 	return &progress, nil
-}
-
-func (c *Client) IsPaused(ctx context.Context) (bool, error) {
-	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/config/devices", nil)
-	if err != nil {
-		return false, fmt.Errorf("getting devices config: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusOK {
-		return false, fmt.Errorf("unexpected status: %d", resp.StatusCode)
-	}
-
-	var devices []syncthingDevice
-	if err := json.NewDecoder(resp.Body).Decode(&devices); err != nil {
-		return false, fmt.Errorf("decoding devices: %w", err)
-	}
-
-	myID, _ := c.GetDeviceID(ctx)
-	remoteDevices := 0
-	pausedDevices := 0
-	for _, dev := range devices {
-		if dev.DeviceID == myID {
-			continue
-		}
-		remoteDevices++
-		if dev.Paused {
-			pausedDevices++
-		}
-	}
-
-	if remoteDevices == 0 {
-		return false, nil
-	}
-
-	return pausedDevices == remoteDevices, nil
 }

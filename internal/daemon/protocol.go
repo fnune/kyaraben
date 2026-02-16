@@ -192,7 +192,6 @@ const (
 	SyncStateDisabled     SyncState = "disabled"
 	SyncStateSynced       SyncState = "synced"
 	SyncStateSyncing      SyncState = "syncing"
-	SyncStatePaused       SyncState = "paused"
 	SyncStateDisconnected SyncState = "disconnected"
 	SyncStateConflict     SyncState = "conflict"
 	SyncStateError        SyncState = "error"
@@ -208,7 +207,6 @@ type SyncStatusResponse struct {
 	Devices  []SyncDevice  `json:"devices,omitempty"`
 	Folders  []SyncFolder  `json:"folders,omitempty"`
 	Pairing  bool          `json:"pairing,omitempty"`
-	Paused   bool          `json:"paused,omitempty"`
 	Progress *SyncProgress `json:"progress,omitempty"`
 }
 

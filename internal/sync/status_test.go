@@ -97,18 +97,6 @@ func TestStatus_OverallState(t *testing.T) {
 			},
 			want: SyncStateDisconnected,
 		},
-		{
-			name: "paused takes precedence over syncing",
-			status: Status{
-				Enabled: true,
-				Paused:  true,
-				Devices: []DeviceStatus{{ID: "A", Connected: true}},
-				Folders: []FolderStatusSummary{
-					{ID: "folder1", State: "syncing"},
-				},
-			},
-			want: SyncStatePaused,
-		},
 	}
 
 	for _, tt := range tests {

@@ -16,8 +16,6 @@ type SyncCmd struct {
 	Pair         SyncPairCmd         `cmd:"" help:"Pair with another device on the local network."`
 	AddDevice    SyncAddDeviceCmd    `cmd:"" help:"Add a device by ID (for cross-network pairing)."`
 	RemoveDevice SyncRemoveDeviceCmd `cmd:"" help:"Remove a paired device."`
-	Pause        SyncPauseCmd        `cmd:"" help:"Pause sync."`
-	Resume       SyncResumeCmd       `cmd:"" help:"Resume sync."`
 }
 
 type SyncStatusCmd struct{}
@@ -282,62 +280,6 @@ func persistPairedDevice(cfg *model.KyarabenConfig, configPath, peerDeviceID, pe
 	if err := saveConfig(cfg, configPath); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: could not save config: %v\n", err)
 	}
-}
-
-type SyncPauseCmd struct{}
-
-func (cmd *SyncPauseCmd) Run(cliCtx *Context) error {
-	cfg, err := cliCtx.LoadConfig()
-	if err != nil {
-		return err
-	}
-
-	if !cfg.Sync.Enabled {
-		return fmt.Errorf("sync is not enabled")
-	}
-
-	client := sync.NewClient(cfg.Sync)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if !client.IsRunning(ctx) {
-		return fmt.Errorf("syncthing is not running")
-	}
-
-	if err := client.PauseSync(ctx); err != nil {
-		return fmt.Errorf("pausing sync: %w", err)
-	}
-
-	fmt.Println("Sync paused.")
-	return nil
-}
-
-type SyncResumeCmd struct{}
-
-func (cmd *SyncResumeCmd) Run(cliCtx *Context) error {
-	cfg, err := cliCtx.LoadConfig()
-	if err != nil {
-		return err
-	}
-
-	if !cfg.Sync.Enabled {
-		return fmt.Errorf("sync is not enabled")
-	}
-
-	client := sync.NewClient(cfg.Sync)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if !client.IsRunning(ctx) {
-		return fmt.Errorf("syncthing is not running")
-	}
-
-	if err := client.ResumeSync(ctx); err != nil {
-		return fmt.Errorf("resuming sync: %w", err)
-	}
-
-	fmt.Println("Sync resumed.")
-	return nil
 }
 
 func truncateDeviceID(id string) string {
