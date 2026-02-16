@@ -95,6 +95,15 @@ func folderLabel(id string) string {
 	return id
 }
 
+func computeFolderPath(userStoreRoot, folderID string) string {
+	id := strings.TrimPrefix(folderID, "kyaraben-")
+	parts := strings.SplitN(id, "-", 2)
+	if len(parts) == 2 {
+		return filepath.Join(userStoreRoot, parts[0], parts[1])
+	}
+	return filepath.Join(userStoreRoot, id)
+}
+
 func (d *Daemon) Handle(cmd Command) []Event {
 	return d.HandleWithEmit(cmd, nil)
 }
@@ -860,6 +869,11 @@ func (d *Daemon) handleSyncStatus() []Event {
 		return d.errorResponse(err.Error())
 	}
 
+	userStore, err := store.NewUserStore(d.fs, d.paths, cfg.Global.UserStore)
+	if err != nil {
+		return d.errorResponse(err.Error())
+	}
+
 	devices := make([]SyncDevice, len(syncStatus.Devices))
 	for i, dev := range syncStatus.Devices {
 		devices[i] = SyncDevice{
@@ -872,9 +886,13 @@ func (d *Daemon) handleSyncStatus() []Event {
 
 	folders := make([]SyncFolder, len(syncStatus.Folders))
 	for i, f := range syncStatus.Folders {
+		path := f.Path
+		if !filepath.IsAbs(path) {
+			path = computeFolderPath(userStore.Root(), f.ID)
+		}
 		folders[i] = SyncFolder{
 			ID:         f.ID,
-			Path:       f.Path,
+			Path:       path,
 			Label:      folderLabel(f.ID),
 			State:      f.State,
 			GlobalSize: f.GlobalSize,
