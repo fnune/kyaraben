@@ -1177,7 +1177,7 @@ func (d *Daemon) handleSyncEnable(data *SyncEnableRequest, emit func(Event)) []E
 		return d.errorResponse(err.Error())
 	}
 
-	allSystems := d.syncSystems()
+	allSystems := d.syncSystems(cfg)
 
 	emitProgress := func(phase, message string, percent int) {
 		if emit != nil {
@@ -1302,10 +1302,17 @@ func (d *Daemon) loadSyncAPIKey() string {
 	return strings.TrimSpace(string(data))
 }
 
-func (d *Daemon) syncSystems() []model.SystemID {
+func (d *Daemon) syncSystems(cfg *model.KyarabenConfig) []model.SystemID {
+	if cfg.Sync.Mode == model.SyncModePrimary {
+		var systems []model.SystemID
+		for _, sys := range d.reg.AllSystems() {
+			systems = append(systems, sys.ID)
+		}
+		return systems
+	}
 	var systems []model.SystemID
-	for _, sys := range d.reg.AllSystems() {
-		systems = append(systems, sys.ID)
+	for sysID := range cfg.Systems {
+		systems = append(systems, sysID)
 	}
 	return systems
 }
@@ -1317,7 +1324,7 @@ func (d *Daemon) ensureSyncthingRunning(cfg *model.KyarabenConfig) {
 		return
 	}
 
-	allSystems := d.syncSystems()
+	allSystems := d.syncSystems(cfg)
 
 	setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir)
 	result, err := setup.Install(context.Background(), cfg.Sync, userStore.Root(), allSystems, nil)
@@ -1345,7 +1352,7 @@ func (d *Daemon) ensureSyncthingRunning(cfg *model.KyarabenConfig) {
 }
 
 func (d *Daemon) updateSyncConfig(cfg *model.KyarabenConfig, userStorePath string) error {
-	allSystems := d.syncSystems()
+	allSystems := d.syncSystems(cfg)
 
 	manifest, err := d.loadManifest()
 	if err != nil {
