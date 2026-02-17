@@ -11,6 +11,12 @@
   }
 }
 
+@layer utilities {
+  .slashed-zero {
+    font-feature-settings: "zero" 1;
+  }
+}
+
 @theme {
   --color-surface: #d0ccc6;
   --color-surface-alt: #c4c0ba;

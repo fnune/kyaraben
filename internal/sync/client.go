@@ -16,6 +16,14 @@ import (
 )
 
 var log = logging.New("sync")
+var stLog = log.WithPrefix("[syncthing]")
+
+func truncateID(id string) string {
+	if len(id) > 7 {
+		return id[:7] + "..."
+	}
+	return id
+}
 
 type Client struct {
 	config     model.SyncConfig
@@ -258,6 +266,7 @@ type syncthingDevice struct {
 }
 
 func (c *Client) AddDevice(ctx context.Context, deviceID, name string) error {
+	stLog.Info("PUT /rest/config/devices/%s (name=%q)", truncateID(deviceID), name)
 	dev := syncthingDevice{
 		DeviceID:          deviceID,
 		Name:              name,
@@ -268,13 +277,16 @@ func (c *Client) AddDevice(ctx context.Context, deviceID, name string) error {
 
 	resp, err := c.doRequest(ctx, http.MethodPut, "/rest/config/devices/"+deviceID, dev)
 	if err != nil {
+		stLog.Error("PUT /rest/config/devices/%s failed: %v", truncateID(deviceID), err)
 		return fmt.Errorf("adding device: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
+		stLog.Error("PUT /rest/config/devices/%s returned status %d", truncateID(deviceID), resp.StatusCode)
 		return fmt.Errorf("unexpected status adding device: %d", resp.StatusCode)
 	}
+	stLog.Info("PUT /rest/config/devices/%s -> 200 OK", truncateID(deviceID))
 	return nil
 }
 
@@ -409,13 +421,17 @@ func (c *Client) GetPendingDevices(ctx context.Context) ([]PendingDevice, error)
 }
 
 func (c *Client) ShareFoldersWithDevice(ctx context.Context, deviceID string) error {
+	stLog.Info("Sharing folders with device %s", truncateID(deviceID))
+
 	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/config/folders", nil)
 	if err != nil {
+		stLog.Error("GET /rest/config/folders failed: %v", err)
 		return fmt.Errorf("getting folders: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
+		stLog.Error("GET /rest/config/folders returned status %d", resp.StatusCode)
 		return fmt.Errorf("unexpected status getting folders: %d", resp.StatusCode)
 	}
 
@@ -424,6 +440,7 @@ func (c *Client) ShareFoldersWithDevice(ctx context.Context, deviceID string) er
 		return fmt.Errorf("decoding folders: %w", err)
 	}
 
+	sharedCount := 0
 	for _, raw := range folders {
 		var folder map[string]any
 		if err := json.Unmarshal(raw, &folder); err != nil {
@@ -455,11 +472,14 @@ func (c *Client) ShareFoldersWithDevice(ctx context.Context, deviceID string) er
 		folderID, _ := folder["id"].(string)
 		patchResp, err := c.doRequest(ctx, http.MethodPut, "/rest/config/folders/"+folderID, folder)
 		if err != nil {
+			stLog.Error("PUT /rest/config/folders/%s failed: %v", folderID, err)
 			return fmt.Errorf("updating folder %s: %w", folderID, err)
 		}
 		_ = patchResp.Body.Close()
+		sharedCount++
 	}
 
+	stLog.Info("Shared %d folders with device %s", sharedCount, truncateID(deviceID))
 	return nil
 }
 

@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { Button } from '@/lib/Button'
 import { Input } from '@/lib/Input'
+import { Modal } from '@/lib/Modal'
 import { CopyIcon, TrashIcon } from '@/lib/icons'
 import { Spinner } from '@/lib/Spinner'
 import type { SyncDevice, SyncDiscoveredDevice, SyncStatusResponse } from '@/types/daemon'
@@ -42,8 +43,8 @@ function DeviceRow({
     <div className="flex items-center justify-between py-2 border-b border-outline last:border-0">
       <div className="flex items-center gap-2">
         <span className={`w-2 h-2 rounded-full ${dotClass}`} />
-        <span className="font-medium text-on-surface">{device.name || 'Unknown device'}</span>
-        <span className="text-sm text-on-surface-muted">{label}</span>
+        <span className="font-medium text-on-surface">{device.name || 'kyaraben device'}</span>
+        <span className="text-on-surface-muted">{label}</span>
       </div>
       <button
         type="button"
@@ -148,17 +149,18 @@ function PairingCodeDisplay({ code }: { readonly code: string }) {
   }, [code])
 
   return (
-    <div className="flex items-center gap-3">
-      <code className="bg-surface-raised px-4 py-3 rounded-sm font-mono text-2xl tracking-[0.3em] text-accent">
+    <div className="flex flex-col items-center justify-center py-8">
+      <code className="bg-surface-raised px-8 py-6 rounded-card font-mono text-5xl tracking-[0.4em] text-accent select-all slashed-zero">
         {code}
       </code>
       <button
         type="button"
         onClick={handleCopy}
-        className="p-2 text-on-surface-muted hover:text-on-surface rounded"
+        className="mt-4 flex items-center gap-2 px-3 py-2 text-sm text-on-surface-muted hover:text-on-surface rounded"
         title={copied ? 'Copied!' : 'Copy code'}
       >
-        <CopyIcon className="w-5 h-5" />
+        <CopyIcon className="w-4 h-4" />
+        {copied ? 'Copied!' : 'Copy code'}
       </button>
     </div>
   )
@@ -277,6 +279,7 @@ interface SecondaryDiscoveryContentProps {
   readonly isDiscovering: boolean
   readonly isConnecting: boolean
   readonly onConnectToDevice: (deviceId: string) => Promise<{ ok: boolean; error?: string }>
+  readonly onClearConnectionError: () => void
 }
 
 function SecondaryDiscoveryContent({
@@ -287,11 +290,22 @@ function SecondaryDiscoveryContent({
   isDiscovering,
   isConnecting,
   onConnectToDevice,
+  onClearConnectionError,
 }: SecondaryDiscoveryContentProps) {
   const [pairingCode, setPairingCode] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [manualDeviceId, setManualDeviceId] = useState('')
   const hasDevices = (status.devices?.length ?? 0) > 0
+
+  const handleCodeChange = useCallback(
+    (value: string) => {
+      setPairingCode(value)
+      if (connectionError) {
+        onClearConnectionError()
+      }
+    },
+    [connectionError, onClearConnectionError],
+  )
 
   const handleConnectWithCode = useCallback(async () => {
     const trimmed = pairingCode.trim().toUpperCase()
@@ -332,6 +346,15 @@ function SecondaryDiscoveryContent({
     )
   }
 
+  const canSubmit = pairingCode.trim().length > 0 && !isConnecting
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (canSubmit) {
+      handleConnectWithCode()
+    }
+  }
+
   return (
     <div className="mt-4 pt-4 border-t border-outline">
       <h4 className="text-sm font-medium text-on-surface mb-2">Connect to primary</h4>
@@ -339,17 +362,18 @@ function SecondaryDiscoveryContent({
         Enter the pairing code from your primary device.
       </p>
 
-      <div className="space-y-3 mb-4">
+      <form onSubmit={handleSubmit} className="flex gap-3 mb-4">
         <Input
           value={pairingCode}
-          onChange={setPairingCode}
+          onChange={handleCodeChange}
           placeholder="ABC123"
-          className="font-mono text-lg tracking-wider uppercase"
+          className="flex-1 font-mono text-xl tracking-[0.2em] uppercase text-center slashed-zero py-3"
+          enterKeyHint="go"
         />
-        <Button onClick={handleConnectWithCode} disabled={!pairingCode.trim() || isConnecting}>
-          {isConnecting ? 'Connecting...' : 'Connect'}
+        <Button type="submit" disabled={!canSubmit} className="px-6">
+          Connect
         </Button>
-      </div>
+      </form>
 
       {connectionError && (
         <div className="p-3 bg-status-error/10 border border-status-error/30 rounded text-sm text-status-error mb-4">
@@ -428,6 +452,7 @@ export interface StatusCardProps {
   readonly onConnectToDevice: (deviceId: string) => Promise<{ ok: boolean; error?: string }>
   readonly onStartPairing: () => Promise<void>
   readonly onStopPairing: () => Promise<void>
+  readonly onClearConnectionError: () => void
 }
 
 export function StatusCard({
@@ -444,12 +469,46 @@ export function StatusCard({
   onConnectToDevice,
   onStartPairing,
   onStopPairing,
+  onClearConnectionError,
 }: StatusCardProps) {
+  const [deviceToRemove, setDeviceToRemove] = useState<SyncDevice | null>(null)
   const connectedDevice = status.devices?.find((d) => d.connected)
   const hasDevices = (status.devices?.length ?? 0) > 0
 
+  const handleConfirmRemove = useCallback(async () => {
+    if (deviceToRemove) {
+      await onRemoveDevice(deviceToRemove.id)
+      setDeviceToRemove(null)
+    }
+  }, [deviceToRemove, onRemoveDevice])
+
   return (
     <div className="p-4 bg-surface-alt rounded-card">
+      <Modal
+        open={deviceToRemove !== null}
+        onClose={() => setDeviceToRemove(null)}
+        title="Remove device"
+      >
+        <p className="text-on-surface-secondary mb-4">
+          Are you sure you want to remove{' '}
+          <span className="font-medium text-on-surface">
+            {deviceToRemove?.name || 'this device'}
+          </span>
+          ?
+        </p>
+        <p className="text-sm text-on-surface-muted mb-6">
+          This device will no longer sync with you. You can pair again later if needed.
+        </p>
+        <div className="flex gap-3 justify-end">
+          <Button variant="secondary" onClick={() => setDeviceToRemove(null)}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={handleConfirmRemove}>
+            Remove device
+          </Button>
+        </div>
+      </Modal>
+
       <div className="flex items-center gap-2">
         <StatusBadge label={status.mode ?? 'unknown'} ok={true} />
         <StatusBadge label="running" ok={true} />
@@ -459,7 +518,7 @@ export function StatusCard({
       {hasDevices && (
         <div className="mt-3 border border-outline rounded-card px-3 bg-surface">
           {status.devices?.map((device) => (
-            <DeviceRow key={device.id} device={device} onRemove={() => onRemoveDevice(device.id)} />
+            <DeviceRow key={device.id} device={device} onRemove={() => setDeviceToRemove(device)} />
           ))}
         </div>
       )}
@@ -484,6 +543,7 @@ export function StatusCard({
           isDiscovering={isDiscovering}
           isConnecting={isConnecting}
           onConnectToDevice={onConnectToDevice}
+          onClearConnectionError={onClearConnectionError}
         />
       )}
     </div>

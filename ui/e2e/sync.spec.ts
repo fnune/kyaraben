@@ -131,6 +131,43 @@ test.describe('Sync view showing sync in progress', () => {
   })
 })
 
+test.describe('Sync view showing scanning progress', () => {
+  let ctx: SyncTestContext
+
+  test.beforeAll(async () => {
+    ctx = await setupSyncTest({
+      config: {
+        systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
+        sync: { enabled: true, mode: 'primary' },
+      },
+      manifest: { installedEmulators: {} },
+      syncthing: {
+        devices: [{ deviceID: 'REMOTE-DEVICE-1234567890ABCDEF', name: 'Steam Deck' }],
+        folders: [
+          { id: 'saves', path: '/home/test/Emulation/saves' },
+          { id: 'states', path: '/home/test/Emulation/states' },
+        ],
+      },
+      setup: (c) => {
+        c.setConnected('REMOTE-DEVICE-1234567890ABCDEF', true)
+        c.setFolderState('saves', 'scanning')
+        c.setFolderState('states', 'scanning')
+      },
+    })
+  })
+
+  test.afterAll(async () => {
+    await cleanupSyncTest(ctx)
+  })
+
+  test('shows scanning progress with folder name and queue', async () => {
+    await navigateToSync(ctx.page)
+    await expect(ctx.page.getByText('saves')).toBeVisible()
+    await expect(ctx.page.getByText(/Scanning/)).toBeVisible()
+    await expect(ctx.page.getByText('+1 folder in queue')).toBeVisible()
+  })
+})
+
 test.describe('Sync view with device disconnected', () => {
   let ctx: SyncTestContext
 
@@ -367,10 +404,27 @@ test.describe('Sync view remove device flow', () => {
     await cleanupSyncTest(ctx)
   })
 
-  test('can remove a paired device', async () => {
+  test('shows confirmation dialog with device name and explanation', async () => {
     await navigateToSync(ctx.page)
     await expect(ctx.page.getByText(/Old Device/)).toBeVisible()
     await ctx.page.getByRole('button', { name: 'Remove device' }).click()
+
+    const dialog = ctx.page.getByRole('dialog')
+    await expect(dialog).toBeVisible()
+    await expect(dialog.getByText('Are you sure you want to remove')).toBeVisible()
+    await expect(dialog.getByText('Old Device')).toBeVisible()
+    await expect(dialog.getByText('This device will no longer sync with you')).toBeVisible()
+    await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeVisible()
+    await expect(dialog.getByRole('button', { name: 'Remove device' })).toBeVisible()
+
+    await dialog.getByRole('button', { name: 'Cancel' }).click()
+    await expect(dialog).not.toBeVisible()
+  })
+
+  test('removes device after confirmation', async () => {
+    await ctx.page.getByRole('button', { name: 'Remove device' }).click()
+    await ctx.page.getByRole('dialog').getByRole('button', { name: 'Remove device' }).click()
+    await expect(ctx.page.getByRole('dialog')).not.toBeVisible()
     await expect(ctx.page.getByText(/Old Device/)).not.toBeVisible()
     await expect(ctx.page.getByText('Pair a device')).toBeVisible()
   })

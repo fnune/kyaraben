@@ -4,8 +4,10 @@ export interface ButtonProps {
   children: ReactNode
   variant?: 'primary' | 'secondary' | 'danger'
   size?: 'sm' | 'md'
+  type?: 'button' | 'submit'
   disabled?: boolean
   onClick?: () => void
+  className?: string
 }
 
 const VARIANT_CLASSES: Record<NonNullable<ButtonProps['variant']>, string> = {
@@ -23,21 +25,19 @@ export function Button({
   children,
   variant = 'primary',
   size = 'md',
+  type = 'button',
   disabled,
   onClick,
+  className,
 }: ButtonProps) {
   const baseClasses =
     'rounded-control disabled:opacity-50 disabled:cursor-not-allowed tracking-wide'
   const variantClasses = VARIANT_CLASSES[variant]
   const sizeClasses = SIZE_CLASSES[size]
+  const allClasses = [baseClasses, variantClasses, sizeClasses, className].filter(Boolean).join(' ')
 
   return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className={`${baseClasses} ${variantClasses} ${sizeClasses}`}
-    >
+    <button type={type} disabled={disabled} onClick={onClick} className={allClasses}>
       {children}
     </button>
   )
