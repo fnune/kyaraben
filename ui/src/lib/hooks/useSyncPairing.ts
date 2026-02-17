@@ -49,6 +49,7 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const discoveryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const previousStateRef = useRef<string | undefined>(undefined)
+  const previousDeviceCountRef = useRef<number>(0)
 
   const refreshSyncStatus = useCallback(async () => {
     const result = await daemon.getSyncStatus()
@@ -145,6 +146,23 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
       }
     })
   }, [])
+
+  useEffect(() => {
+    const currentDeviceCount = syncStatus?.devices?.length ?? 0
+    const previousDeviceCount = previousDeviceCountRef.current
+
+    if (isPairing && currentDeviceCount > previousDeviceCount && currentDeviceCount > 0) {
+      const newDevice = syncStatus?.devices?.[syncStatus.devices.length - 1]
+      const deviceName = newDevice?.name || 'New device'
+      showToast(`${deviceName} connected.`, 'success')
+      setIsPairing(false)
+      setPairingDeviceId(null)
+      setPairingCode(null)
+      daemon.cancelSyncPairing()
+    }
+
+    previousDeviceCountRef.current = currentDeviceCount
+  }, [syncStatus?.devices, isPairing, showToast])
 
   const handleRemoveDevice = useCallback(
     async (deviceId: string) => {
