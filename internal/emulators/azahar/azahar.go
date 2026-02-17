@@ -53,8 +53,10 @@ var configTarget = model.ConfigTarget{
 
 type Config struct{}
 
-func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	return []model.ConfigPatch{{
+func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
+	store := ctx.Store
+
+	patches := []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
 			{Path: []string{"Data%20Storage", "use_custom_storage"}, Value: "true"},
@@ -68,17 +70,20 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 			{Path: []string{"UI", "Paths\\screenshotPath"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDAzahar)},
 			{Path: []string{"UI", "Paths\\screenshotPath\\default"}, Value: "false"},
 		},
-	}}, nil
-}
+	}}
 
-func (c *Config) Symlinks(store model.StoreReader, resolver model.BaseDirResolver) ([]model.SymlinkSpec, error) {
-	dataDir, err := resolver.UserDataDir()
+	dataDir, err := ctx.BaseDirResolver.UserDataDir()
 	if err != nil {
-		return nil, err
+		return model.GenerateResult{}, err
 	}
 	azaharDir := filepath.Join(dataDir, "azahar-emu")
 
-	return []model.SymlinkSpec{
+	symlinks := []model.SymlinkSpec{
 		{Source: filepath.Join(azaharDir, "states"), Target: store.EmulatorStatesDir(model.EmulatorIDAzahar)},
+	}
+
+	return model.GenerateResult{
+		Patches:  patches,
+		Symlinks: symlinks,
 	}, nil
 }

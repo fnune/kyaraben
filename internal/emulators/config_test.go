@@ -71,18 +71,19 @@ func TestDuckStationGenerate(t *testing.T) {
 	t.Parallel()
 
 	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
 	gen := duckstation.Definition{}.ConfigGenerator()
 
-	patches, err := gen.Generate(store)
+	result, err := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver})
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	if len(patches) != 1 {
-		t.Fatalf("expected 1 patch, got %d", len(patches))
+	if len(result.Patches) != 1 {
+		t.Fatalf("expected 1 patch, got %d", len(result.Patches))
 	}
 
-	patch := patches[0]
+	patch := result.Patches[0]
 
 	if patch.Target.Format != model.ConfigFormatINI {
 		t.Errorf("expected INI format, got %s", patch.Target.Format)
@@ -121,18 +122,19 @@ func TestRetroArchCoresGenerate(t *testing.T) {
 	t.Parallel()
 
 	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
 
 	gen := retroarchbsnes.Definition{}.ConfigGenerator()
-	patches, err := gen.Generate(store)
+	result, err := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver})
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	if len(patches) != 1 {
-		t.Fatalf("expected 1 patch (shared config), got %d", len(patches))
+	if len(result.Patches) != 1 {
+		t.Fatalf("expected 1 patch (shared config), got %d", len(result.Patches))
 	}
 
-	shared := patches[0]
+	shared := result.Patches[0]
 	if shared.Target.RelPath != "retroarch/retroarch.cfg" {
 		t.Errorf("expected shared config path, got %s", shared.Target.RelPath)
 	}
@@ -158,18 +160,19 @@ func TestMelonDSGenerate(t *testing.T) {
 	t.Parallel()
 
 	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
 	gen := melonds.Definition{}.ConfigGenerator()
 
-	patches, err := gen.Generate(store)
+	result, err := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver})
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	if len(patches) != 1 {
-		t.Fatalf("expected 1 patch, got %d", len(patches))
+	if len(result.Patches) != 1 {
+		t.Fatalf("expected 1 patch, got %d", len(result.Patches))
 	}
 
-	patch := patches[0]
+	patch := result.Patches[0]
 
 	if patch.Target.Format != model.ConfigFormatTOML {
 		t.Errorf("expected TOML format, got %s", patch.Target.Format)
@@ -205,18 +208,19 @@ func TestFlycastGenerate(t *testing.T) {
 	t.Parallel()
 
 	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
 	gen := flycast.Definition{}.ConfigGenerator()
 
-	patches, err := gen.Generate(store)
+	result, err := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver})
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	if len(patches) != 1 {
-		t.Fatalf("expected 1 patch, got %d", len(patches))
+	if len(result.Patches) != 1 {
+		t.Fatalf("expected 1 patch, got %d", len(result.Patches))
 	}
 
-	patch := patches[0]
+	patch := result.Patches[0]
 
 	if patch.Target.Format != model.ConfigFormatINI {
 		t.Errorf("expected INI format, got %s", patch.Target.Format)
@@ -253,18 +257,19 @@ func TestDolphinGenerate(t *testing.T) {
 	t.Parallel()
 
 	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
 	gen := dolphin.Definition{}.ConfigGenerator()
 
-	patches, err := gen.Generate(store)
+	result, err := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver})
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	if len(patches) != 1 {
-		t.Fatalf("expected 1 patch, got %d", len(patches))
+	if len(result.Patches) != 1 {
+		t.Fatalf("expected 1 patch, got %d", len(result.Patches))
 	}
 
-	patch := patches[0]
+	patch := result.Patches[0]
 
 	if patch.Target.Format != model.ConfigFormatINI {
 		t.Errorf("expected INI format, got %s", patch.Target.Format)
@@ -304,15 +309,12 @@ func TestDolphinSymlinks(t *testing.T) {
 	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
 	gen := dolphin.Definition{}.ConfigGenerator()
 
-	provider, ok := gen.(model.SymlinkProvider)
-	if !ok {
-		t.Fatal("Dolphin config generator should implement SymlinkProvider")
+	result, err := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver})
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
 	}
 
-	specs, err := provider.Symlinks(store, resolver)
-	if err != nil {
-		t.Fatalf("Symlinks() error = %v", err)
-	}
+	specs := result.Symlinks
 
 	if len(specs) != 4 {
 		t.Fatalf("expected 4 symlink specs, got %d", len(specs))
@@ -342,18 +344,19 @@ func TestMGBAGenerate(t *testing.T) {
 	t.Parallel()
 
 	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
 	gen := mgba.Definition{}.ConfigGenerator()
 
-	patches, err := gen.Generate(store)
+	result, err := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver})
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	if len(patches) != 1 {
-		t.Fatalf("expected 1 patch, got %d", len(patches))
+	if len(result.Patches) != 1 {
+		t.Fatalf("expected 1 patch, got %d", len(result.Patches))
 	}
 
-	patch := patches[0]
+	patch := result.Patches[0]
 
 	if patch.Target.Format != model.ConfigFormatINI {
 		t.Errorf("expected INI format, got %s", patch.Target.Format)
@@ -395,18 +398,19 @@ func TestRetroArchCoreOverrideContainsSystemDirectory(t *testing.T) {
 	t.Parallel()
 
 	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
 	gen := retroarchbeetlesaturn.Definition{}.ConfigGenerator()
 
-	patches, err := gen.Generate(store)
+	result, err := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver})
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	if len(patches) != 2 {
-		t.Fatalf("expected 2 patches (shared + override), got %d", len(patches))
+	if len(result.Patches) != 2 {
+		t.Fatalf("expected 2 patches (shared + override), got %d", len(result.Patches))
 	}
 
-	override := patches[1]
+	override := result.Patches[1]
 	expectedPath := retroarch.CoreOverrideTarget("mednafen_saturn").RelPath
 	if override.Target.RelPath != expectedPath {
 		t.Errorf("expected override path %q, got %q", expectedPath, override.Target.RelPath)
@@ -437,18 +441,19 @@ func TestRetroArchSharedConfigEnablesSorting(t *testing.T) {
 	t.Parallel()
 
 	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
 	gen := retroarchbsnes.Definition{}.ConfigGenerator()
 
-	patches, err := gen.Generate(store)
+	result, err := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver})
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	if len(patches) < 1 {
+	if len(result.Patches) < 1 {
 		t.Fatal("expected at least 1 patch")
 	}
 
-	shared := patches[0]
+	shared := result.Patches[0]
 	if shared.Target != retroarch.MainConfigTarget {
 		t.Fatalf("first patch should be shared config, got %v", shared.Target)
 	}
@@ -494,19 +499,20 @@ func TestVita3KGenerate(t *testing.T) {
 	t.Parallel()
 
 	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
 	gen := vita3k.Definition{}.ConfigGenerator()
 
-	patches, err := gen.Generate(store)
+	result, err := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver})
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	if len(patches) != 2 {
-		t.Fatalf("expected 2 patches, got %d", len(patches))
+	if len(result.Patches) != 2 {
+		t.Fatalf("expected 2 patches, got %d", len(result.Patches))
 	}
 
-	configPatch := patches[0]
-	userPatch := patches[1]
+	configPatch := result.Patches[0]
+	userPatch := result.Patches[1]
 
 	if configPatch.Target.Format != model.ConfigFormatYAML {
 		t.Errorf("expected YAML format for config, got %s", configPatch.Target.Format)
@@ -568,15 +574,12 @@ func TestVita3KSymlinks(t *testing.T) {
 
 	gen := vita3k.Definition{}.ConfigGenerator()
 
-	provider, ok := gen.(model.SymlinkProvider)
-	if !ok {
-		t.Fatal("Vita3K config generator should implement SymlinkProvider")
+	result, err := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver})
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
 	}
 
-	specs, err := provider.Symlinks(store, resolver)
-	if err != nil {
-		t.Fatalf("Symlinks() error = %v", err)
-	}
+	specs := result.Symlinks
 
 	if len(specs) != 3 {
 		t.Fatalf("expected 3 symlink specs, got %d", len(specs))
@@ -605,19 +608,20 @@ func TestRPCS3Generate(t *testing.T) {
 	t.Parallel()
 
 	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
 	gen := rpcs3.Definition{}.ConfigGenerator()
 
-	patches, err := gen.Generate(store)
+	result, err := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver})
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	if len(patches) != 2 {
-		t.Fatalf("expected 2 patches, got %d", len(patches))
+	if len(result.Patches) != 2 {
+		t.Fatalf("expected 2 patches, got %d", len(result.Patches))
 	}
 
-	vfsPatch := patches[0]
-	guiPatch := patches[1]
+	vfsPatch := result.Patches[0]
+	guiPatch := result.Patches[1]
 
 	if vfsPatch.Target.Format != model.ConfigFormatYAML {
 		t.Errorf("expected YAML format for vfs, got %s", vfsPatch.Target.Format)
@@ -664,14 +668,15 @@ func TestGeneratedEntriesContainStorePaths(t *testing.T) {
 	t.Parallel()
 
 	store := &fakeStoreReader{root: "/test/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
 	gen := duckstation.Definition{}.ConfigGenerator()
 
-	patches, err := gen.Generate(store)
+	result, err := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver})
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	patch := patches[0]
+	patch := result.Patches[0]
 
 	foundStorePath := false
 	for _, entry := range patch.Entries {
@@ -693,15 +698,12 @@ func TestCemuSymlinks(t *testing.T) {
 	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
 	gen := cemu.Definition{}.ConfigGenerator()
 
-	provider, ok := gen.(model.SymlinkProvider)
-	if !ok {
-		t.Fatal("Cemu config generator should implement SymlinkProvider")
+	result, err := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver})
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
 	}
 
-	specs, err := provider.Symlinks(store, resolver)
-	if err != nil {
-		t.Fatalf("Symlinks() error = %v", err)
-	}
+	specs := result.Symlinks
 
 	if len(specs) != 2 {
 		t.Fatalf("expected 2 symlink specs, got %d", len(specs))
@@ -729,18 +731,19 @@ func TestEdenGenerate(t *testing.T) {
 	t.Parallel()
 
 	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
 	gen := eden.Definition{}.ConfigGenerator()
 
-	patches, err := gen.Generate(store)
+	result, err := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver})
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	if len(patches) != 1 {
-		t.Fatalf("expected 1 patch, got %d", len(patches))
+	if len(result.Patches) != 1 {
+		t.Fatalf("expected 1 patch, got %d", len(result.Patches))
 	}
 
-	patch := patches[0]
+	patch := result.Patches[0]
 
 	if patch.Target.Format != model.ConfigFormatINI {
 		t.Errorf("expected INI format, got %s", patch.Target.Format)
@@ -762,15 +765,12 @@ func TestEdenSymlinks(t *testing.T) {
 	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
 	gen := eden.Definition{}.ConfigGenerator()
 
-	provider, ok := gen.(model.SymlinkProvider)
-	if !ok {
-		t.Fatal("Eden config generator should implement SymlinkProvider")
+	result, err := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver})
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
 	}
 
-	specs, err := provider.Symlinks(store, resolver)
-	if err != nil {
-		t.Fatalf("Symlinks() error = %v", err)
-	}
+	specs := result.Symlinks
 
 	if len(specs) != 4 {
 		t.Fatalf("expected 4 symlink specs, got %d", len(specs))

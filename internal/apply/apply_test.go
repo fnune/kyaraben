@@ -303,7 +303,7 @@ func TestApplyCreatesEmulatorStatesDirectories(t *testing.T) {
 	}
 }
 
-func TestApplyCreatesSymlinksForSymlinkProviders(t *testing.T) {
+func TestApplyCreatesSymlinks(t *testing.T) {
 	t.Parallel()
 
 	env := newTestEnv(t)

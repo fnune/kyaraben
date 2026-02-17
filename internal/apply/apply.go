@@ -63,17 +63,28 @@ type PreflightResult struct {
 func (a *Applier) Preflight(ctx context.Context, cfg *model.KyarabenConfig, userStore *store.UserStore) (*PreflightResult, error) {
 	allPatches := make([]model.ConfigPatch, 0)
 
+	controllerConfig, err := cfg.ResolveControllerConfig()
+	if err != nil {
+		return nil, fmt.Errorf("resolving controller config: %w", err)
+	}
+
+	genCtx := model.GenerateContext{
+		Store:            userStore,
+		BaseDirResolver:  a.BaseDirResolver,
+		ControllerConfig: controllerConfig,
+	}
+
 	for emuID := range a.collectEnabledEmulators(cfg) {
 		gen := a.Registry.GetConfigGenerator(emuID)
 		if gen == nil {
 			continue
 		}
 
-		patches, err := gen.Generate(userStore)
+		result, err := gen.Generate(genCtx)
 		if err != nil {
 			return nil, fmt.Errorf("generating config for %s: %w", emuID, err)
 		}
-		allPatches = append(allPatches, patches...)
+		allPatches = append(allPatches, result.Patches...)
 	}
 
 	manifest, err := a.manifestStore.Load(a.ManifestPath)
@@ -152,10 +163,23 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	})
 	defer logging.SetOutputHook(nil)
 
+	controllerConfig, err := cfg.ResolveControllerConfig()
+	if err != nil {
+		return nil, fmt.Errorf("resolving controller config: %w", err)
+	}
+
+	genCtx := model.GenerateContext{
+		Store:            userStore,
+		BaseDirResolver:  a.BaseDirResolver,
+		ControllerConfig: controllerConfig,
+	}
+
 	enabledEmulators := a.collectEnabledEmulators(cfg)
 	emulatorsToInstall := make([]model.EmulatorID, 0, len(enabledEmulators))
 	allPatches := make([]model.ConfigPatch, 0)
 	patchEmulators := make([]model.EmulatorID, 0)
+	allSymlinks := make(map[model.EmulatorID][]model.SymlinkSpec)
+	allLaunchArgs := make(map[model.EmulatorID][]string)
 
 	for emuID := range enabledEmulators {
 		emulatorsToInstall = append(emulatorsToInstall, emuID)
@@ -165,14 +189,20 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 			continue
 		}
 
-		patches, err := gen.Generate(userStore)
+		result, err := gen.Generate(genCtx)
 		if err != nil {
 			return nil, fmt.Errorf("generating config for %s: %w", emuID, err)
 		}
-		for range patches {
+		for range result.Patches {
 			patchEmulators = append(patchEmulators, emuID)
 		}
-		allPatches = append(allPatches, patches...)
+		allPatches = append(allPatches, result.Patches...)
+		if len(result.Symlinks) > 0 {
+			allSymlinks[emuID] = result.Symlinks
+		}
+		if len(result.LaunchArgs) > 0 {
+			allLaunchArgs[emuID] = result.LaunchArgs
+		}
 	}
 
 	enabledFrontends := cfg.EnabledFrontends()
@@ -192,13 +222,15 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		}
 
 		frontendCtx := model.FrontendContext{
-			EnabledSystems:     cfg.EnabledSystems(),
-			SystemEmulators:    cfg.Systems,
-			GetSystem:          a.Registry.GetSystem,
-			GetEmulator:        a.Registry.GetEmulator,
-			GetConfigGenerator: a.Registry.GetConfigGenerator,
-			Store:              userStore,
-			BinDir:             binDir,
+			EnabledSystems:  cfg.EnabledSystems(),
+			SystemEmulators: cfg.Systems,
+			GetSystem:       a.Registry.GetSystem,
+			GetEmulator:     a.Registry.GetEmulator,
+			GetLaunchArgs: func(emuID model.EmulatorID) []string {
+				return allLaunchArgs[emuID]
+			},
+			Store:  userStore,
+			BinDir: binDir,
 		}
 
 		patches, err := gen.Generate(frontendCtx)
@@ -303,7 +335,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 			DesktopFiles: manifest.DesktopFiles,
 			IconFiles:    manifest.IconFiles,
 		}
-		desktopEntries := a.buildDesktopEntries(emulatorsToInstall, frontendsToInstall, userStore)
+		desktopEntries := a.buildDesktopEntries(emulatorsToInstall, frontendsToInstall, allLaunchArgs)
 		launcherIcons := toLauncherIcons(installedIcons)
 		generatedFiles, err := a.LauncherManager.GenerateDesktopFiles(desktopEntries, launcherIcons, previousFiles)
 		if err != nil {
@@ -351,23 +383,16 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	}
 
 	var newSymlinks []model.SymlinkRecord
-	for emuID := range enabledEmulators {
-		gen := a.Registry.GetConfigGenerator(emuID)
-		if provider, ok := gen.(model.SymlinkProvider); ok {
-			specs, err := provider.Symlinks(userStore, a.BaseDirResolver)
-			if err != nil {
-				return nil, fmt.Errorf("getting symlink specs for %s: %w", emuID, err)
-			}
-			if err := symlink.CreateAll(symlinkCreator, specs); err != nil {
-				return nil, fmt.Errorf("creating symlinks for %s: %w", emuID, err)
-			}
-			for _, spec := range specs {
-				newSymlinks = append(newSymlinks, model.SymlinkRecord{
-					Source:     spec.Source,
-					Target:     spec.Target,
-					EmulatorID: emuID,
-				})
-			}
+	for emuID, specs := range allSymlinks {
+		if err := symlink.CreateAll(symlinkCreator, specs); err != nil {
+			return nil, fmt.Errorf("creating symlinks for %s: %w", emuID, err)
+		}
+		for _, spec := range specs {
+			newSymlinks = append(newSymlinks, model.SymlinkRecord{
+				Source:     spec.Source,
+				Target:     spec.Target,
+				EmulatorID: emuID,
+			})
 		}
 	}
 
@@ -1166,7 +1191,7 @@ func ComputeDiffs(patches []model.ConfigPatch) ([]*emulators.ConfigDiff, error) 
 	return diffs, nil
 }
 
-func (a *Applier) buildDesktopEntries(emulatorIDs []model.EmulatorID, frontendIDs []model.FrontendID, store model.StoreReader) []launcher.GeneratedDesktop {
+func (a *Applier) buildDesktopEntries(emulatorIDs []model.EmulatorID, frontendIDs []model.FrontendID, launchArgsMap map[model.EmulatorID][]string) []launcher.GeneratedDesktop {
 	seenBinaries := make(map[string]bool)
 	var entries []launcher.GeneratedDesktop
 
@@ -1187,11 +1212,8 @@ func (a *Applier) buildDesktopEntries(emulatorIDs []model.EmulatorID, frontendID
 		}
 
 		var launchArgs string
-		if gen := a.Registry.GetConfigGenerator(emuID); gen != nil {
-			if provider, ok := gen.(model.LaunchArgsProvider); ok {
-				args := provider.LaunchArgs(store)
-				launchArgs = strings.Join(args, " ")
-			}
+		if args, ok := launchArgsMap[emuID]; ok {
+			launchArgs = strings.Join(args, " ")
 		}
 
 		entries = append(entries, launcher.GeneratedDesktop{

@@ -53,19 +53,22 @@ var configTarget = model.ConfigTarget{
 
 type Config struct{}
 
-func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	return []model.ConfigPatch{{
-		Target: configTarget,
-		Entries: []model.ConfigEntry{
-			{Path: []string{"Main", "SettingsVersion"}, Value: "3"},
-			{Path: []string{"AutoUpdater", "CheckAtStartup"}, Value: "false"},
-			{Path: []string{"BIOS", "SearchDirectory"}, Value: store.SystemBiosDir(model.SystemIDPSX)},
-			{Path: []string{"MemoryCards", "Directory"}, Value: store.SystemSavesDir(model.SystemIDPSX)},
-			{Path: []string{"Folders", "SaveStates"}, Value: store.EmulatorStatesDir(model.EmulatorIDDuckStation)},
-			{Path: []string{"Folders", "Screenshots"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDDuckStation)},
-			{Path: []string{"GameList", "RecursivePaths"}, Value: store.SystemRomsDir(model.SystemIDPSX)},
-		},
-	}}, nil
+func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
+	store := ctx.Store
+	return model.GenerateResult{
+		Patches: []model.ConfigPatch{{
+			Target: configTarget,
+			Entries: []model.ConfigEntry{
+				{Path: []string{"Main", "SettingsVersion"}, Value: "3"},
+				{Path: []string{"AutoUpdater", "CheckAtStartup"}, Value: "false"},
+				{Path: []string{"BIOS", "SearchDirectory"}, Value: store.SystemBiosDir(model.SystemIDPSX)},
+				{Path: []string{"MemoryCards", "Directory"}, Value: store.SystemSavesDir(model.SystemIDPSX)},
+				{Path: []string{"Folders", "SaveStates"}, Value: store.EmulatorStatesDir(model.EmulatorIDDuckStation)},
+				{Path: []string{"Folders", "Screenshots"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDDuckStation)},
+				{Path: []string{"GameList", "RecursivePaths"}, Value: store.SystemRomsDir(model.SystemIDPSX)},
+			},
+		}},
+	}, nil
 }
 
 var psxBIOSProvisions = []model.Provision{

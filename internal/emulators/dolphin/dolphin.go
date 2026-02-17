@@ -62,8 +62,10 @@ var configTarget = model.ConfigTarget{
 	BaseDir: model.ConfigBaseDirUserConfig,
 }
 
-func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	return []model.ConfigPatch{{
+func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
+	store := ctx.Store
+
+	patches := []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
 			{Path: []string{"General", "ISOPath0"}, Value: store.SystemRomsDir(model.SystemIDGameCube)},
@@ -74,21 +76,24 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 			{Path: []string{"GBA", "SavesPath"}, Value: store.SystemSavesDir(model.SystemIDGBA)},
 			{Path: []string{"GBA", "SavesInRomPath"}, Value: "0"},
 		},
-	}}, nil
-}
+	}}
 
-func (c *Config) Symlinks(store model.StoreReader, resolver model.BaseDirResolver) ([]model.SymlinkSpec, error) {
-	dataDir, err := resolver.UserDataDir()
+	dataDir, err := ctx.BaseDirResolver.UserDataDir()
 	if err != nil {
-		return nil, err
+		return model.GenerateResult{}, err
 	}
 	dolphinDir := filepath.Join(dataDir, "dolphin-emu")
 
-	return []model.SymlinkSpec{
+	symlinks := []model.SymlinkSpec{
 		{Source: filepath.Join(dolphinDir, "GC"), Target: store.SystemSavesDir(model.SystemIDGameCube)},
 		{Source: filepath.Join(dolphinDir, "Wii"), Target: store.SystemSavesDir(model.SystemIDWii)},
 		{Source: filepath.Join(dolphinDir, "StateSaves"), Target: store.EmulatorStatesDir(model.EmulatorIDDolphin)},
 		{Source: filepath.Join(dolphinDir, "ScreenShots"), Target: store.EmulatorScreenshotsDir(model.EmulatorIDDolphin)},
+	}
+
+	return model.GenerateResult{
+		Patches:  patches,
+		Symlinks: symlinks,
 	}, nil
 }
 

@@ -65,17 +65,20 @@ var configTarget = model.ConfigTarget{
 
 type Config struct{}
 
-func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	return []model.ConfigPatch{{
-		Target: configTarget,
-		Entries: []model.ConfigEntry{
-			{Path: []string{"DS", "BIOS9Path"}, Value: store.SystemBiosDir(model.SystemIDNDS) + "/bios9.bin"},
-			{Path: []string{"DS", "BIOS7Path"}, Value: store.SystemBiosDir(model.SystemIDNDS) + "/bios7.bin"},
-			{Path: []string{"DS", "FirmwarePath"}, Value: store.SystemBiosDir(model.SystemIDNDS) + "/firmware.bin"},
-			{Path: []string{"Instance0", "SaveFilePath"}, Value: store.SystemSavesDir(model.SystemIDNDS)},
-			{Path: []string{"Instance0", "SavestatePath"}, Value: store.EmulatorStatesDir(model.EmulatorIDMelonDS)},
-			{Path: []string{"Instance0", "ScreenshotPath"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDMelonDS)},
-			{Path: []string{"Instance0", "LastROMFolder"}, Value: store.SystemRomsDir(model.SystemIDNDS)},
-		},
-	}}, nil
+func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
+	store := ctx.Store
+	return model.GenerateResult{
+		Patches: []model.ConfigPatch{{
+			Target: configTarget,
+			Entries: []model.ConfigEntry{
+				{Path: []string{"DS", "BIOS9Path"}, Value: store.SystemBiosDir(model.SystemIDNDS) + "/bios9.bin"},
+				{Path: []string{"DS", "BIOS7Path"}, Value: store.SystemBiosDir(model.SystemIDNDS) + "/bios7.bin"},
+				{Path: []string{"DS", "FirmwarePath"}, Value: store.SystemBiosDir(model.SystemIDNDS) + "/firmware.bin"},
+				{Path: []string{"Instance0", "SaveFilePath"}, Value: store.SystemSavesDir(model.SystemIDNDS)},
+				{Path: []string{"Instance0", "SavestatePath"}, Value: store.EmulatorStatesDir(model.EmulatorIDMelonDS)},
+				{Path: []string{"Instance0", "ScreenshotPath"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDMelonDS)},
+				{Path: []string{"Instance0", "LastROMFolder"}, Value: store.SystemRomsDir(model.SystemIDNDS)},
+			},
+		}},
+	}, nil
 }
