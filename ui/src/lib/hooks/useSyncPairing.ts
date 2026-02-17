@@ -27,11 +27,12 @@ export interface UseSyncPairingResult {
   refreshDiscoveredDevices: () => Promise<void>
 }
 
-const POLL_INTERVAL_SYNCING = 2000
+const POLL_INTERVAL_ACTIVE = 1000
+const POLL_INTERVAL_SYNC_VIEW = 2000
 const POLL_INTERVAL_NORMAL = 10000
 const DISCOVERY_POLL_INTERVAL = 3000
 
-export function useSyncPairing(showToast: ShowToast): UseSyncPairingResult {
+export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): UseSyncPairingResult {
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null)
   const [discoveredDevices, setDiscoveredDevices] = useState<SyncDiscoveredDevice[]>([])
   const [connectionProgress, setConnectionProgress] = useState<string | null>(null)
@@ -71,11 +72,16 @@ export function useSyncPairing(showToast: ShowToast): UseSyncPairingResult {
   useEffect(() => {
     const isSyncing = syncStatus?.state === SyncStateSyncing
     const isNotRunning = syncStatus?.enabled && !syncStatus?.running
-    const interval = isNotRunning
-      ? POLL_INTERVAL_SYNCING
-      : isSyncing
-        ? POLL_INTERVAL_SYNCING
-        : POLL_INTERVAL_NORMAL
+    const isActive = isSyncing || isNotRunning
+
+    let interval: number
+    if (isActive) {
+      interval = POLL_INTERVAL_ACTIVE
+    } else if (isViewingSync) {
+      interval = POLL_INTERVAL_SYNC_VIEW
+    } else {
+      interval = POLL_INTERVAL_NORMAL
+    }
 
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current)
@@ -90,7 +96,13 @@ export function useSyncPairing(showToast: ShowToast): UseSyncPairingResult {
         clearInterval(pollIntervalRef.current)
       }
     }
-  }, [syncStatus?.enabled, syncStatus?.running, syncStatus?.state, refreshSyncStatus])
+  }, [
+    syncStatus?.enabled,
+    syncStatus?.running,
+    syncStatus?.state,
+    isViewingSync,
+    refreshSyncStatus,
+  ])
 
   useEffect(() => {
     const isSecondary = syncStatus?.mode === 'secondary'

@@ -194,7 +194,7 @@ function AppContent() {
     handleStartPairing,
     handleStopPairing,
     refreshSyncStatus,
-  } = useSyncPairing(showToast)
+  } = useSyncPairing(showToast, currentView === VIEW_SYNC)
 
   const refreshAfterApply = useCallback(async () => {
     const [doctorResult, statusResult, configResult] = await Promise.all([
