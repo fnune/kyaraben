@@ -34,8 +34,10 @@ export function ActivityCard({
 
   const totalNeedBytes = syncingFolders.reduce((sum, f) => sum + f.needSize, 0)
   const totalGlobalBytes = syncingFolders.reduce((sum, f) => sum + f.globalSize, 0)
-  const totalLocalBytes = syncingFolders.reduce((sum, f) => sum + f.localSize, 0)
-  const percent = totalGlobalBytes > 0 ? Math.round((totalLocalBytes / totalGlobalBytes) * 100) : 0
+  const percent =
+    totalGlobalBytes > 0
+      ? Math.round(((totalGlobalBytes - totalNeedBytes) / totalGlobalBytes) * 100)
+      : 100
 
   if (!hasPairedDevices) {
     return (

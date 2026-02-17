@@ -19,6 +19,10 @@ const (
 	FolderTypeReceiveOnly FolderType = "receiveonly"
 )
 
+const (
+	ConfigSchemaVersion = 1
+)
+
 type SyncthingXMLConfig struct {
 	XMLName  xml.Name    `xml:"configuration"`
 	Version  int         `xml:"version,attr"`
