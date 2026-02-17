@@ -71,7 +71,7 @@ func TestManager_Sync_CreatesShortcut(t *testing.T) {
 	s := shortcuts[0]
 	assert.Equal(t, "ES-DE", s.AppName)
 	assert.Equal(t, "/home/user/.local/state/kyaraben/bin/es-de", s.Exe)
-	assert.Equal(t, "/home/user/.local/state/kyaraben/bin", s.StartDir)
+	assert.Equal(t, "/home/user/.local/state/kyaraben/bin/", s.StartDir)
 	assert.Equal(t, "--fullscreen", s.LaunchOptions)
 	assert.Equal(t, []string{"Kyaraben"}, s.Tags)
 	expectedAppID := GenerateAppID(entries[0].Exe, entries[0].AppName)
