@@ -249,6 +249,10 @@ func (c *FakeClient) AddDevice(_ context.Context, deviceID, name string) error {
 	return nil
 }
 
+func (c *FakeClient) AddDeviceAutoName(ctx context.Context, deviceID string) error {
+	return c.AddDevice(ctx, deviceID, "")
+}
+
 func (c *FakeClient) RemoveDevice(_ context.Context, deviceID string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
