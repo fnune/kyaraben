@@ -249,15 +249,6 @@ func (g *ConfigGenerator) generateDevices() []XMLDevice {
 		})
 	}
 
-	for _, dev := range g.syncConfig.Devices {
-		devices = append(devices, XMLDevice{
-			ID:                dev.ID,
-			Name:              dev.Name,
-			Compression:       "metadata",
-			AutoAcceptFolders: false,
-		})
-	}
-
 	return devices
 }
 
@@ -266,10 +257,6 @@ func (g *ConfigGenerator) folderDeviceRefs() []XMLFolderDevice {
 
 	if g.deviceID != "" {
 		refs = append(refs, XMLFolderDevice{ID: g.deviceID})
-	}
-
-	for _, dev := range g.syncConfig.Devices {
-		refs = append(refs, XMLFolderDevice{ID: dev.ID})
 	}
 
 	return refs

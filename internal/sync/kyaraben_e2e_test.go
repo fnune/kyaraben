@@ -211,9 +211,6 @@ func (k *kyarabenInstance) writeKyarabenConfig(peer *kyarabenInstance) error {
 			GUIPort:       k.guiPort,
 			RelayEnabled:  false,
 		},
-		Devices: []model.SyncDevice{
-			{ID: peer.deviceID, Name: peer.name},
-		},
 	}
 
 	gen := NewDefaultConfigGenerator(cfg, k.userStore, k.systems)
@@ -225,12 +222,15 @@ func (k *kyarabenInstance) writeKyarabenConfig(peer *kyarabenInstance) error {
 		return err
 	}
 
-	for i := range xmlCfg.Devices {
-		if xmlCfg.Devices[i].ID == peer.deviceID {
-			xmlCfg.Devices[i].Addresses = []string{
-				fmt.Sprintf("tcp://127.0.0.1:%d", peer.listenPort),
-			}
-		}
+	xmlCfg.Devices = append(xmlCfg.Devices, XMLDevice{
+		ID:          peer.deviceID,
+		Name:        peer.name,
+		Compression: "metadata",
+		Addresses:   []string{fmt.Sprintf("tcp://127.0.0.1:%d", peer.listenPort)},
+	})
+
+	for i := range xmlCfg.Folders {
+		xmlCfg.Folders[i].Devices = append(xmlCfg.Folders[i].Devices, XMLFolderDevice{ID: peer.deviceID})
 	}
 
 	xmlCfg.Options.GlobalAnnounceEnabled = false

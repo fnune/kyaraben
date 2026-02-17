@@ -99,37 +99,42 @@ func (cmd *SyncAddDeviceCmd) Run(cliCtx *Context) error {
 		return fmt.Errorf("invalid device ID format")
 	}
 
-	for _, existing := range cfg.Sync.Devices {
-		if existing.ID == deviceID {
+	client := sync.NewClient(cfg.Sync)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if !client.IsRunning(ctx) {
+		return fmt.Errorf("syncthing is not running; run 'kyaraben apply' first")
+	}
+
+	devices, err := client.GetConfiguredDevices(ctx)
+	if err != nil {
+		return fmt.Errorf("getting configured devices: %w", err)
+	}
+
+	for _, existing := range devices {
+		if strings.ToUpper(existing.ID) == deviceID {
 			return fmt.Errorf("device %s is already added", deviceID)
 		}
 	}
 
 	name := cmd.Name
 	if name == "" {
-		name = fmt.Sprintf("device-%d", len(cfg.Sync.Devices)+1)
+		name = fmt.Sprintf("device-%d", len(devices)+1)
 	}
 
-	cfg.Sync.Devices = append(cfg.Sync.Devices, model.SyncDevice{
-		ID:   deviceID,
-		Name: name,
-	})
-
-	configPath, err := cliCtx.GetConfigPath()
-	if err != nil {
-		return err
+	if err := client.AddDevice(ctx, deviceID, name); err != nil {
+		return fmt.Errorf("adding device: %w", err)
 	}
 
-	if err := cliCtx.SaveConfig(cfg, configPath); err != nil {
-		return fmt.Errorf("saving config: %w", err)
+	if err := client.ShareFoldersWithDevice(ctx, deviceID); err != nil {
+		return fmt.Errorf("sharing folders: %w", err)
 	}
 
 	fmt.Printf("Added device: %s (%s)\n", name, truncateDeviceID(deviceID))
 	fmt.Println()
 	fmt.Println("The other device also needs to add this device's ID.")
 	fmt.Println("Run 'kyaraben sync status' to see this device's ID.")
-	fmt.Println()
-	fmt.Println("Run 'kyaraben apply' to apply the configuration.")
 
 	return nil
 }
@@ -148,34 +153,37 @@ func (cmd *SyncRemoveDeviceCmd) Run(cliCtx *Context) error {
 		return fmt.Errorf("sync is not enabled")
 	}
 
+	client := sync.NewClient(cfg.Sync)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if !client.IsRunning(ctx) {
+		return fmt.Errorf("syncthing is not running; run 'kyaraben apply' first")
+	}
+
 	query := strings.ToUpper(strings.TrimSpace(cmd.DeviceID))
-	found := -1
-	for i, dev := range cfg.Sync.Devices {
+	devices, err := client.GetConfiguredDevices(ctx)
+	if err != nil {
+		return fmt.Errorf("getting configured devices: %w", err)
+	}
+
+	var found *sync.ConfiguredDevice
+	for _, dev := range devices {
 		if strings.ToUpper(dev.ID) == query || strings.EqualFold(dev.Name, cmd.DeviceID) {
-			found = i
+			found = &dev
 			break
 		}
 	}
 
-	if found == -1 {
+	if found == nil {
 		return fmt.Errorf("device not found: %s", cmd.DeviceID)
 	}
 
-	removed := cfg.Sync.Devices[found]
-	cfg.Sync.Devices = append(cfg.Sync.Devices[:found], cfg.Sync.Devices[found+1:]...)
-
-	configPath, err := cliCtx.GetConfigPath()
-	if err != nil {
-		return err
+	if err := client.RemoveDevice(ctx, found.ID); err != nil {
+		return fmt.Errorf("removing device: %w", err)
 	}
 
-	if err := cliCtx.SaveConfig(cfg, configPath); err != nil {
-		return fmt.Errorf("saving config: %w", err)
-	}
-
-	fmt.Printf("Removed device: %s (%s)\n", removed.Name, truncateDeviceID(removed.ID))
-	fmt.Println()
-	fmt.Println("Run 'kyaraben apply' to apply the configuration.")
+	fmt.Printf("Removed device: %s (%s)\n", found.Name, truncateDeviceID(found.ID))
 
 	return nil
 }
@@ -240,7 +248,7 @@ func (cmd *SyncPairCmd) runPrimary(ctx context.Context, cfg *model.KyarabenConfi
 		return fmt.Errorf("pairing: %w", err)
 	}
 
-	persistPairedDevice(cfg, configPath, result.PeerDeviceID, result.PeerName, model.SyncModePrimary, saveConfig)
+	persistSyncEnabled(cfg, configPath, model.SyncModePrimary, saveConfig)
 	fmt.Printf("Paired with %s (%s)\n", result.PeerName, truncateDeviceID(result.PeerDeviceID))
 	return nil
 }
@@ -258,22 +266,12 @@ func (cmd *SyncPairCmd) runSecondary(ctx context.Context, cfg *model.KyarabenCon
 		return fmt.Errorf("pairing: %w", err)
 	}
 
-	persistPairedDevice(cfg, configPath, result.PeerDeviceID, result.PeerName, model.SyncModeSecondary, saveConfig)
+	persistSyncEnabled(cfg, configPath, model.SyncModeSecondary, saveConfig)
 	fmt.Printf("Paired with %s (%s)\n", result.PeerName, truncateDeviceID(result.PeerDeviceID))
 	return nil
 }
 
-func persistPairedDevice(cfg *model.KyarabenConfig, configPath, peerDeviceID, peerName string, mode model.SyncMode, saveConfig func(*model.KyarabenConfig, string) error) {
-	for _, dev := range cfg.Sync.Devices {
-		if dev.ID == peerDeviceID {
-			return
-		}
-	}
-
-	cfg.Sync.Devices = append(cfg.Sync.Devices, model.SyncDevice{
-		ID:   peerDeviceID,
-		Name: peerName,
-	})
+func persistSyncEnabled(cfg *model.KyarabenConfig, configPath string, mode model.SyncMode, saveConfig func(*model.KyarabenConfig, string) error) {
 	cfg.Sync.Enabled = true
 	cfg.Sync.Mode = mode
 
