@@ -33,6 +33,10 @@ func (m *Manager) ApplicationsDir() string {
 	return filepath.Join(m.dataDir, "applications", "kyaraben")
 }
 
+func (m *Manager) EmulatorDesktopPath(binaryName string) string {
+	return filepath.Join(m.ApplicationsDir(), binaryName+".desktop")
+}
+
 func (m *Manager) IconsDir() string {
 	return filepath.Join(m.dataDir, "icons", "hicolor", "scalable", "apps")
 }

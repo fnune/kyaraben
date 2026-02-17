@@ -10,6 +10,7 @@ type ShortcutEntry struct {
 	Exe           string
 	StartDir      string
 	Icon          string
+	ShortcutPath  string
 	LaunchOptions string
 	Tags          []string
 	GridAssets    *GridAssets
