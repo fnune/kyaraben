@@ -13,6 +13,7 @@ type SyncClient interface {
 	GetFolderConfigs(ctx context.Context) ([]FolderConfig, error)
 	GetStatus(ctx context.Context) (*Status, error)
 	AddDevice(ctx context.Context, deviceID, name string) error
+	AddDeviceWithAddresses(ctx context.Context, deviceID, name string, addresses []string) error
 	AddDeviceAutoName(ctx context.Context, deviceID string) error
 	RemoveDevice(ctx context.Context, deviceID string) error
 	ShareFoldersWithDevice(ctx context.Context, deviceID string) error

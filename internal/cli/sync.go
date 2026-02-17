@@ -13,8 +13,8 @@ import (
 
 type SyncCmd struct {
 	Status       SyncStatusCmd       `cmd:"" help:"Show sync status."`
-	Pair         SyncPairCmd         `cmd:"" help:"Pair with another device on the local network."`
-	AddDevice    SyncAddDeviceCmd    `cmd:"" help:"Add a device by ID (for cross-network pairing)."`
+	Pair         SyncPairCmd         `cmd:"" help:"Pair with another device."`
+	AddDevice    SyncAddDeviceCmd    `cmd:"" help:"Add a device by ID (for manual pairing)."`
 	RemoveDevice SyncRemoveDeviceCmd `cmd:"" help:"Remove a paired device."`
 }
 
@@ -204,7 +204,8 @@ func isValidDeviceID(id string) bool {
 }
 
 type SyncPairCmd struct {
-	PrimaryDeviceID string `arg:"" optional:"" help:"Device ID from the primary device. Omit to start as primary."`
+	CodeOrDeviceID string `arg:"" optional:"" help:"6-character pairing code or full device ID. Omit to start as primary."`
+	DeviceID       bool   `help:"Show full device ID instead of pairing code (for manual pairing)."`
 }
 
 func (cmd *SyncPairCmd) Run(cliCtx *Context) error {
@@ -229,17 +230,45 @@ func (cmd *SyncPairCmd) Run(cliCtx *Context) error {
 		fmt.Println(msg)
 	}
 
-	if cmd.PrimaryDeviceID == "" {
+	if cmd.CodeOrDeviceID == "" {
 		return cmd.runPrimary(ctx, cfg, configPath, client, progress, cliCtx.SaveConfig)
 	}
-	return cmd.runSecondary(ctx, cfg, configPath, client, strings.ToUpper(strings.TrimSpace(cmd.PrimaryDeviceID)), progress, cliCtx.SaveConfig)
+
+	input := strings.ToUpper(strings.TrimSpace(cmd.CodeOrDeviceID))
+	if sync.IsRelayCode(input) {
+		return cmd.runSecondaryWithRelay(ctx, cfg, configPath, client, input, progress, cliCtx.SaveConfig)
+	}
+	return cmd.runSecondary(ctx, cfg, configPath, client, input, progress, cliCtx.SaveConfig)
 }
 
 func (cmd *SyncPairCmd) runPrimary(ctx context.Context, cfg *model.KyarabenConfig, configPath string, client *sync.Client, progress func(string), saveConfig func(*model.KyarabenConfig, string) error) error {
-	flow := sync.NewPrimaryPairingFlow(sync.PairingFlowConfig{
+	if cmd.DeviceID {
+		localID, err := client.GetDeviceID(ctx)
+		if err != nil {
+			return fmt.Errorf("getting device ID: %w", err)
+		}
+		fmt.Printf("Device ID: %s\n", localID)
+		fmt.Println()
+		fmt.Println("On the secondary device, run:")
+		fmt.Printf("  kyaraben sync pair %s\n", localID)
+		return nil
+	}
+
+	var relayURLs []string
+	if cfg.Sync.RelayURL != "" {
+		relayURLs = []string{cfg.Sync.RelayURL}
+	}
+
+	flow := sync.NewRelayPrimaryPairingFlow(sync.RelayPairingFlowConfig{
 		SyncConfig: cfg.Sync,
 		Client:     client,
+		RelayURLs:  relayURLs,
 		OnProgress: progress,
+		OnCode: func(code string, expiresIn int) {
+			fmt.Printf("Pairing code: %s\n", code)
+			fmt.Printf("Waiting for devices... (expires in %d minutes)\n", expiresIn/60)
+			fmt.Println()
+		},
 	})
 
 	result, err := flow.Run(ctx)
@@ -247,7 +276,38 @@ func (cmd *SyncPairCmd) runPrimary(ctx context.Context, cfg *model.KyarabenConfi
 		return fmt.Errorf("pairing: %w", err)
 	}
 
+	if result.Code == "" {
+		fmt.Printf("Device ID: %s\n", result.DeviceID)
+		fmt.Println()
+		fmt.Println("Relay unavailable. On the secondary device, run:")
+		fmt.Printf("  kyaraben sync pair %s\n", result.DeviceID)
+		return nil
+	}
+
 	persistSyncEnabled(cfg, configPath, model.SyncModePrimary, saveConfig)
+	fmt.Printf("Paired with %s (%s)\n", result.PeerName, truncateDeviceID(result.PeerDeviceID))
+	return nil
+}
+
+func (cmd *SyncPairCmd) runSecondaryWithRelay(ctx context.Context, cfg *model.KyarabenConfig, configPath string, client *sync.Client, code string, progress func(string), saveConfig func(*model.KyarabenConfig, string) error) error {
+	var relayURLs []string
+	if cfg.Sync.RelayURL != "" {
+		relayURLs = []string{cfg.Sync.RelayURL}
+	}
+
+	flow := sync.NewRelaySecondaryPairingFlow(sync.RelayPairingFlowConfig{
+		SyncConfig: cfg.Sync,
+		Client:     client,
+		RelayURLs:  relayURLs,
+		OnProgress: progress,
+	})
+
+	result, err := flow.Run(ctx, code)
+	if err != nil {
+		return fmt.Errorf("pairing: %w", err)
+	}
+
+	persistSyncEnabled(cfg, configPath, model.SyncModeSecondary, saveConfig)
 	fmt.Printf("Paired with %s (%s)\n", result.PeerName, truncateDeviceID(result.PeerDeviceID))
 	return nil
 }
