@@ -24,7 +24,12 @@ function ScanningProgress({ folders }: { readonly folders: SyncFolder[] }) {
   const currentFolder = folders[0]
   if (!currentFolder) return null
 
+  const totalNeedBytes = folders.reduce((sum, f) => sum + f.needSize, 0)
   const totalGlobalBytes = folders.reduce((sum, f) => sum + f.globalSize, 0)
+  const hasProgressData = totalGlobalBytes > 0
+  const percent = hasProgressData
+    ? Math.round(((totalGlobalBytes - totalNeedBytes) / totalGlobalBytes) * 100)
+    : null
   const queueCount = folders.length > 1 ? folders.length - 1 : 0
 
   return (
@@ -35,11 +40,15 @@ function ScanningProgress({ folders }: { readonly folders: SyncFolder[] }) {
           <span className="text-sm font-medium text-on-surface">{currentFolder.label}</span>
         </div>
         <span className="text-xs text-on-surface-muted">
-          Scanning {formatBytes(totalGlobalBytes)}
+          {hasProgressData ? `Scanning ${formatBytes(totalNeedBytes)} remaining` : 'Scanning...'}
         </span>
       </div>
       <ProgressRail className="h-2 bg-outline/30 rounded-full overflow-hidden">
-        <div className="h-full w-1/4 bg-on-surface-muted/50 rounded-full animate-shimmer" />
+        {percent !== null ? (
+          <ProgressBar percent={percent} />
+        ) : (
+          <div className="h-full w-1/4 bg-on-surface-muted/50 rounded-full animate-shimmer" />
+        )}
       </ProgressRail>
       {queueCount > 0 && (
         <div className="mt-2 text-xs text-on-surface-muted">
