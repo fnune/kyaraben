@@ -128,3 +128,41 @@ func TestFakeClient_SetFolders_ReplacesExisting(t *testing.T) {
 		t.Error("folder2 should exist after SetFolders")
 	}
 }
+
+func TestFakeClient_GetDeviceCompletion_ReturnsSetCompletion(t *testing.T) {
+	client := NewFakeClient(model.SyncConfig{Enabled: true})
+
+	client.SetDeviceCompletion("device-123", CompletionResponse{
+		Completion:  75.5,
+		GlobalBytes: 100_000_000,
+		NeedBytes:   24_500_000,
+	})
+
+	completion, err := client.GetDeviceCompletion(context.Background(), "device-123")
+	if err != nil {
+		t.Fatalf("GetDeviceCompletion() error = %v", err)
+	}
+
+	if completion.Completion != 75.5 {
+		t.Errorf("Completion = %f, want 75.5", completion.Completion)
+	}
+	if completion.GlobalBytes != 100_000_000 {
+		t.Errorf("GlobalBytes = %d, want 100000000", completion.GlobalBytes)
+	}
+	if completion.NeedBytes != 24_500_000 {
+		t.Errorf("NeedBytes = %d, want 24500000", completion.NeedBytes)
+	}
+}
+
+func TestFakeClient_GetDeviceCompletion_DefaultsTo100(t *testing.T) {
+	client := NewFakeClient(model.SyncConfig{Enabled: true})
+
+	completion, err := client.GetDeviceCompletion(context.Background(), "unknown-device")
+	if err != nil {
+		t.Fatalf("GetDeviceCompletion() error = %v", err)
+	}
+
+	if completion.Completion != 100 {
+		t.Errorf("Completion = %f, want 100", completion.Completion)
+	}
+}

@@ -20,6 +20,7 @@ type SyncClient interface {
 	GetLocalChanges(ctx context.Context, folderID string) ([]LocalChange, error)
 	GetPendingFolders(ctx context.Context) ([]PendingFolder, error)
 	DismissPendingFolder(ctx context.Context, folderID, deviceID string) error
+	GetDeviceCompletion(ctx context.Context, deviceID string) (*CompletionResponse, error)
 }
 
 var _ SyncClient = (*Client)(nil)

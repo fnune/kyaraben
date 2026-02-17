@@ -171,6 +171,34 @@ func (c *Client) RevertFolder(ctx context.Context, folderID string) error {
 	return nil
 }
 
+type CompletionResponse struct {
+	Completion  float64 `json:"completion"`
+	GlobalBytes int64   `json:"globalBytes"`
+	NeedBytes   int64   `json:"needBytes"`
+	GlobalItems int     `json:"globalItems"`
+	NeedItems   int     `json:"needItems"`
+	NeedDeletes int     `json:"needDeletes"`
+}
+
+func (c *Client) GetDeviceCompletion(ctx context.Context, deviceID string) (*CompletionResponse, error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/db/completion?device="+deviceID, nil)
+	if err != nil {
+		return nil, fmt.Errorf("getting device completion: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+
+	var completion CompletionResponse
+	if err := json.NewDecoder(resp.Body).Decode(&completion); err != nil {
+		return nil, fmt.Errorf("decoding response: %w", err)
+	}
+
+	return &completion, nil
+}
+
 type LocalChange struct {
 	Action   string `json:"action"`
 	Type     string `json:"type"`

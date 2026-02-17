@@ -194,6 +194,7 @@ export interface SyncDevice {
   name: string;
   connected: boolean;
   paused?: boolean;
+  completion?: number /* int */;
 }
 export interface SyncFolder {
   id: string;
