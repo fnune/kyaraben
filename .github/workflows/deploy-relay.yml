@@ -4,75 +4,23 @@ on:
   push:
     branches: [main]
     paths:
-      - "relay/**"
+      - "relay/**/*.go"
+      - "relay/go.mod"
+      - "relay/go.sum"
+      - "relay/Containerfile"
+      - "relay/scripts/deploy.sh"
       - ".github/workflows/deploy-relay.yml"
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/kyaraben-relay
-
 jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    outputs:
-      image_tag: ${{ steps.meta.outputs.tags }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Log in to container registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=sha,prefix=
-            type=raw,value=latest
-
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: relay
-          file: relay/Containerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-
   deploy:
     runs-on: ubuntu-latest
-    needs: build-and-push
-    permissions:
-      id-token: write
-      contents: read
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.24"
+      - name: Install Koyeb CLI
+        run: curl -fsSL https://raw.githubusercontent.com/koyeb/koyeb-cli/main/install.sh | bash
 
-      - name: Authenticate with Pulumi Cloud
-        uses: pulumi/auth-actions@v1
-        with:
-          organization: fnune
-          requested-token-type: urn:pulumi:token-type:access_token:organization
-
-      - name: Load secrets from ESC
-        uses: pulumi/esc-action@v1
-        with:
-          environment: kyaraben/relay-deploy
-
-      - uses: pulumi/actions@v6
-        with:
-          command: up
-          stack-name: prod
-          work-dir: relay/pulumi
+      - name: Deploy to Koyeb
+        env:
+          KOYEB_TOKEN: ${{ secrets.KOYEB_TOKEN }}
+        run: ./relay/scripts/deploy.sh

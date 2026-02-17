@@ -10,26 +10,43 @@ import (
 	"time"
 )
 
-const (
-	DefaultRelayURL = "https://kyaraben-relay.koyeb.app"
-	relayTimeout    = 10 * time.Second
-)
+const relayTimeout = 10 * time.Second
+
+var ProductionRelayURLs = []string{
+	"https://kyaraben-relay-kyaraben-28e14310.koyeb.app",
+}
 
 type RelayClient struct {
 	baseURL    string
 	httpClient *http.Client
 }
 
-func NewRelayClient(baseURL string) *RelayClient {
-	if baseURL == "" {
-		baseURL = DefaultRelayURL
+func NewRelayClient(urls []string) (*RelayClient, error) {
+	if len(urls) == 0 {
+		return nil, fmt.Errorf("no relay URLs provided")
 	}
-	return &RelayClient{
-		baseURL: baseURL,
-		httpClient: &http.Client{
-			Timeout: relayTimeout,
-		},
+
+	client := &http.Client{Timeout: 5 * time.Second}
+
+	for _, url := range urls {
+		resp, err := client.Get(url + "/health")
+		if err != nil {
+			continue
+		}
+		resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			return &RelayClient{
+				baseURL:    url,
+				httpClient: &http.Client{Timeout: relayTimeout},
+			}, nil
+		}
 	}
+
+	return nil, fmt.Errorf("no healthy relay server found")
+}
+
+func NewDefaultRelayClient() (*RelayClient, error) {
+	return NewRelayClient(ProductionRelayURLs)
 }
 
 type CreateSessionResponse struct {
