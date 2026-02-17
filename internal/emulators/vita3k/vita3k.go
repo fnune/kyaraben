@@ -81,8 +81,10 @@ const userXML = `<?xml version="1.0" encoding="utf-8"?>
 
 type Config struct{}
 
-func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	return []model.ConfigPatch{
+func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
+	store := ctx.Store
+
+	patches := []model.ConfigPatch{
 		{
 			Target: configTarget,
 			Entries: []model.ConfigEntry{
@@ -96,19 +98,17 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 			Target:  userTarget,
 			Entries: []model.ConfigEntry{{Value: userXML, Unmanaged: true}},
 		},
-	}, nil
-}
+	}
 
-func (c *Config) Symlinks(store model.StoreReader, resolver model.BaseDirResolver) ([]model.SymlinkSpec, error) {
-	dataDir, err := resolver.UserDataDir()
+	dataDir, err := ctx.BaseDirResolver.UserDataDir()
 	if err != nil {
-		return nil, err
+		return model.GenerateResult{}, err
 	}
 
 	vita3kDataDir := filepath.Join(dataDir, "Vita3K", "Vita3K")
 	vita3kScreenshotsDir := filepath.Join(dataDir, "Vita3K", "screenshots")
 
-	return []model.SymlinkSpec{
+	symlinks := []model.SymlinkSpec{
 		{
 			Source: filepath.Join(vita3kDataDir, "ux0", "user", "00", "savedata"),
 			Target: store.SystemSavesDir(model.SystemIDPSVita),
@@ -121,5 +121,10 @@ func (c *Config) Symlinks(store model.StoreReader, resolver model.BaseDirResolve
 			Source: filepath.Join(store.SystemRomsDir(model.SystemIDPSVita), "installed"),
 			Target: filepath.Join(vita3kDataDir, "ux0", "app"),
 		},
+	}
+
+	return model.GenerateResult{
+		Patches:  patches,
+		Symlinks: symlinks,
 	}, nil
 }

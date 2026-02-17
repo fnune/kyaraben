@@ -81,8 +81,10 @@ var guiTarget = model.ConfigTarget{
 
 type Config struct{}
 
-func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	return []model.ConfigPatch{
+func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
+	store := ctx.Store
+
+	patches := []model.ConfigPatch{
 		{
 			Target: vfsTarget,
 			Entries: []model.ConfigEntry{
@@ -98,18 +100,21 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 				{Path: []string{"Meta", "checkUpdateStart"}, Value: "false"},
 			},
 		},
-	}, nil
-}
+	}
 
-func (c *Config) Symlinks(store model.StoreReader, resolver model.BaseDirResolver) ([]model.SymlinkSpec, error) {
-	configDir, err := resolver.UserConfigDir()
+	configDir, err := ctx.BaseDirResolver.UserConfigDir()
 	if err != nil {
-		return nil, err
+		return model.GenerateResult{}, err
 	}
 	rpcs3Dir := filepath.Join(configDir, "rpcs3")
 
-	return []model.SymlinkSpec{
+	symlinks := []model.SymlinkSpec{
 		{Source: filepath.Join(rpcs3Dir, "savestates"), Target: store.EmulatorStatesDir(model.EmulatorIDRPCS3)},
 		{Source: filepath.Join(rpcs3Dir, "screenshots"), Target: store.EmulatorScreenshotsDir(model.EmulatorIDRPCS3)},
+	}
+
+	return model.GenerateResult{
+		Patches:  patches,
+		Symlinks: symlinks,
 	}, nil
 }

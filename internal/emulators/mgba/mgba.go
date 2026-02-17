@@ -5,6 +5,7 @@
 package mgba
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/fnune/kyaraben/internal/model"
@@ -56,28 +57,56 @@ var configTarget = model.ConfigTarget{
 
 type Config struct{}
 
-func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
+func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
+	store := ctx.Store
 	biosPaths := mgbaBiosPaths(store)
-	return []model.ConfigPatch{{
-		Target: configTarget,
-		Entries: []model.ConfigEntry{
-			{Path: []string{"bios"}, Value: biosPaths["bios"]},
-			{Path: []string{"gb.bios"}, Value: biosPaths["gb.bios"]},
-			{Path: []string{"gbc.bios"}, Value: biosPaths["gbc.bios"]},
-			{Path: []string{"sgb.bios"}, Value: biosPaths["sgb.bios"]},
-			{Path: []string{"gba.bios"}, Value: biosPaths["gba.bios"]},
-			{Path: []string{"ports.qt", "bios"}, Value: biosPaths["bios"]},
-			{Path: []string{"ports.qt", "gb.bios"}, Value: biosPaths["gb.bios"]},
-			{Path: []string{"ports.qt", "gbc.bios"}, Value: biosPaths["gbc.bios"]},
-			{Path: []string{"ports.qt", "sgb.bios"}, Value: biosPaths["sgb.bios"]},
-			{Path: []string{"ports.qt", "gba.bios"}, Value: biosPaths["gba.bios"]},
-			{Path: []string{"ports.qt", "useBios"}, Value: "1"},
-			{Path: []string{"ports.qt", "savegamePath"}, Value: store.SystemSavesDir(model.SystemIDGBA)},
-			{Path: []string{"ports.qt", "savestatePath"}, Value: store.EmulatorStatesDir(model.EmulatorIDMGBA)},
-			{Path: []string{"ports.qt", "screenshotPath"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDMGBA)},
-			{Path: []string{"ports.qt", "showLibrary"}, Value: "1"},
-		},
-	}}, nil
+	entries := []model.ConfigEntry{
+		{Path: []string{"bios"}, Value: biosPaths["bios"]},
+		{Path: []string{"gb.bios"}, Value: biosPaths["gb.bios"]},
+		{Path: []string{"gbc.bios"}, Value: biosPaths["gbc.bios"]},
+		{Path: []string{"sgb.bios"}, Value: biosPaths["sgb.bios"]},
+		{Path: []string{"gba.bios"}, Value: biosPaths["gba.bios"]},
+		{Path: []string{"ports.qt", "bios"}, Value: biosPaths["bios"]},
+		{Path: []string{"ports.qt", "gb.bios"}, Value: biosPaths["gb.bios"]},
+		{Path: []string{"ports.qt", "gbc.bios"}, Value: biosPaths["gbc.bios"]},
+		{Path: []string{"ports.qt", "sgb.bios"}, Value: biosPaths["sgb.bios"]},
+		{Path: []string{"ports.qt", "gba.bios"}, Value: biosPaths["gba.bios"]},
+		{Path: []string{"ports.qt", "useBios"}, Value: "1"},
+		{Path: []string{"ports.qt", "savegamePath"}, Value: store.SystemSavesDir(model.SystemIDGBA)},
+		{Path: []string{"ports.qt", "savestatePath"}, Value: store.EmulatorStatesDir(model.EmulatorIDMGBA)},
+		{Path: []string{"ports.qt", "screenshotPath"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDMGBA)},
+		{Path: []string{"ports.qt", "showLibrary"}, Value: "1"},
+	}
+
+	if cc := ctx.ControllerConfig; cc != nil {
+		entries = append(entries, padEntries(cc)...)
+	}
+
+	return model.GenerateResult{
+		Patches: []model.ConfigPatch{{Target: configTarget, Entries: entries}},
+	}, nil
+}
+
+func padEntries(cc *model.ControllerConfig) []model.ConfigEntry {
+	south, east, _, _ := cc.FaceButtons()
+	section := "gba.input.SDLB"
+	return []model.ConfigEntry{
+		{Path: []string{section, "keyA"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[south])},
+		{Path: []string{section, "keyB"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[east])},
+		{Path: []string{section, "keySelect"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[model.ButtonBack])},
+		{Path: []string{section, "keyStart"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[model.ButtonStart])},
+		{Path: []string{section, "keyRight"}, Value: "-1"},
+		{Path: []string{section, "keyLeft"}, Value: "-1"},
+		{Path: []string{section, "keyUp"}, Value: "-1"},
+		{Path: []string{section, "keyDown"}, Value: "-1"},
+		{Path: []string{section, "hat0Up"}, Value: "6"},
+		{Path: []string{section, "hat0Down"}, Value: "7"},
+		{Path: []string{section, "hat0Left"}, Value: "5"},
+		{Path: []string{section, "hat0Right"}, Value: "4"},
+		{Path: []string{section, "keyL"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[model.ButtonLeftShoulder])},
+		{Path: []string{section, "keyR"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[model.ButtonRightShoulder])},
+		// GBA has no analog sticks or X/Y buttons, so west and north are unmapped
+	}
 }
 
 func mgbaBiosPaths(store model.StoreReader) map[string]string {

@@ -1,7 +1,9 @@
 package ppsspp
 
 import (
+	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/fnune/kyaraben/internal/model"
 )
@@ -51,27 +53,128 @@ var configTarget = model.ConfigTarget{
 	BaseDir: model.ConfigBaseDirUserConfig,
 }
 
+var controlsTarget = model.ConfigTarget{
+	RelPath: "ppsspp/PSP/SYSTEM/controls.ini",
+	Format:  model.ConfigFormatINI,
+	BaseDir: model.ConfigBaseDirUserConfig,
+}
+
 type Config struct{}
 
-func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	return []model.ConfigPatch{{
+func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
+	store := ctx.Store
+
+	patches := []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
 			{Path: []string{"General", "CurrentDirectory"}, Value: store.SystemRomsDir(model.SystemIDPSP)},
 		},
-	}}, nil
-}
+	}}
 
-func (c *Config) Symlinks(store model.StoreReader, resolver model.BaseDirResolver) ([]model.SymlinkSpec, error) {
-	configDir, err := resolver.UserConfigDir()
+	if cc := ctx.ControllerConfig; cc != nil {
+		patches = append(patches, model.ConfigPatch{
+			Target:  controlsTarget,
+			Entries: padEntries(cc),
+		})
+	}
+
+	configDir, err := ctx.BaseDirResolver.UserConfigDir()
 	if err != nil {
-		return nil, err
+		return model.GenerateResult{}, err
 	}
 	pspDir := filepath.Join(configDir, "ppsspp", "PSP")
 
-	return []model.SymlinkSpec{
+	symlinks := []model.SymlinkSpec{
 		{Source: filepath.Join(pspDir, "SAVEDATA"), Target: store.SystemSavesDir(model.SystemIDPSP)},
 		{Source: filepath.Join(pspDir, "PPSSPP_STATE"), Target: store.EmulatorStatesDir(model.EmulatorIDPPSSPP)},
 		{Source: filepath.Join(pspDir, "SCREENSHOT"), Target: store.EmulatorScreenshotsDir(model.EmulatorIDPPSSPP)},
+	}
+
+	return model.GenerateResult{
+		Patches:  patches,
+		Symlinks: symlinks,
 	}, nil
+}
+
+// PPSSPP uses device-keycode format where device 10 is gamepad.
+// Keycodes: A=189, B=190, X=191, Y=188, Start=197, Select=196,
+// L=193, R=192, DPadUp=19, DPadDown=20, DPadLeft=21, DPadRight=22.
+// Analog: An.Up=4003, An.Down=4002, An.Left=4001, An.Right=4000.
+var ppssppKeycode = map[model.SDLButton]int{
+	model.ButtonA:             189,
+	model.ButtonB:             190,
+	model.ButtonX:             191,
+	model.ButtonY:             188,
+	model.ButtonStart:         197,
+	model.ButtonBack:          196,
+	model.ButtonLeftShoulder:  193,
+	model.ButtonRightShoulder: 192,
+	model.ButtonDPadUp:        19,
+	model.ButtonDPadDown:      20,
+	model.ButtonDPadLeft:      21,
+	model.ButtonDPadRight:     22,
+}
+
+func ppssppRef(button model.SDLButton) string {
+	return fmt.Sprintf("10-%d", ppssppKeycode[button])
+}
+
+func ppssppHotkeyRef(binding model.HotkeyBinding) string {
+	parts := make([]string, len(binding.Buttons))
+	for i, b := range binding.Buttons {
+		parts[i] = ppssppRef(b)
+	}
+	return strings.Join(parts, ":")
+}
+
+func padEntries(cc *model.ControllerConfig) []model.ConfigEntry {
+	south, east, west, north := cc.FaceButtons()
+	section := "ControlMapping"
+
+	// PSP maps: Cross=south, Circle=east, Square=west, Triangle=north
+	entries := []model.ConfigEntry{
+		{Path: []string{section, "Cross"}, Value: ppssppRef(south)},
+		{Path: []string{section, "Circle"}, Value: ppssppRef(east)},
+		{Path: []string{section, "Square"}, Value: ppssppRef(west)},
+		{Path: []string{section, "Triangle"}, Value: ppssppRef(north)},
+		{Path: []string{section, "Start"}, Value: ppssppRef(model.ButtonStart)},
+		{Path: []string{section, "Select"}, Value: ppssppRef(model.ButtonBack)},
+		{Path: []string{section, "L"}, Value: ppssppRef(model.ButtonLeftShoulder)},
+		{Path: []string{section, "R"}, Value: ppssppRef(model.ButtonRightShoulder)},
+		{Path: []string{section, "Up"}, Value: ppssppRef(model.ButtonDPadUp)},
+		{Path: []string{section, "Down"}, Value: ppssppRef(model.ButtonDPadDown)},
+		{Path: []string{section, "Left"}, Value: ppssppRef(model.ButtonDPadLeft)},
+		{Path: []string{section, "Right"}, Value: ppssppRef(model.ButtonDPadRight)},
+		{Path: []string{section, "An.Up"}, Value: "10-4003"},
+		{Path: []string{section, "An.Down"}, Value: "10-4002"},
+		{Path: []string{section, "An.Left"}, Value: "10-4001"},
+		{Path: []string{section, "An.Right"}, Value: "10-4000"},
+	}
+
+	hk := cc.Hotkeys
+	type mapping struct {
+		key     string
+		binding model.HotkeyBinding
+	}
+	mappings := []mapping{
+		{"Save State", hk.SaveState},
+		{"Load State", hk.LoadState},
+		{"Next Slot", hk.NextSlot},
+		{"Previous Slot", hk.PrevSlot},
+		{"Fast-forward", hk.FastForward},
+		{"Rewind", hk.Rewind},
+		{"Pause", hk.Pause},
+		{"Screenshot", hk.Screenshot},
+		{"Exit App", hk.Quit},
+	}
+	for _, m := range mappings {
+		if len(m.binding.Buttons) > 0 {
+			entries = append(entries, model.ConfigEntry{
+				Path:  []string{section, m.key},
+				Value: ppssppHotkeyRef(m.binding),
+			})
+		}
+	}
+
+	return entries
 }

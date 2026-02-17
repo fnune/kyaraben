@@ -124,10 +124,8 @@ func (c *Config) buildCommand(ctx model.FrontendContext, emuID model.EmulatorID,
 	}
 
 	var launchArgs []string
-	if gen := ctx.GetConfigGenerator(emuID); gen != nil {
-		if provider, ok := gen.(model.LaunchArgsProvider); ok {
-			launchArgs = provider.LaunchArgs(ctx.Store)
-		}
+	if ctx.GetLaunchArgs != nil {
+		launchArgs = ctx.GetLaunchArgs(emuID)
 	}
 
 	return emu.Launcher.RomCommand(model.RomLaunchOptions{
