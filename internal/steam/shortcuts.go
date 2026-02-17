@@ -60,17 +60,25 @@ func (m *Manager) syncForUser(userID string, entries []ShortcutEntry) error {
 		return fmt.Errorf("loading existing shortcuts: %w", err)
 	}
 
+	log.Debug("Loaded %d existing shortcuts", len(existing))
+	for _, s := range existing {
+		log.Debug("  Existing: %s (AppID %d)", s.AppName, s.AppID)
+	}
+
 	managed := make(map[uint32]bool)
 	for _, entry := range entries {
 		appID := GenerateAppID(entry.Exe, entry.AppName)
 		managed[appID] = true
+		log.Debug("Managing: %s (AppID %d)", entry.AppName, appID)
 	}
 
 	var updated []Shortcut
 	for _, s := range existing {
 		if managed[s.AppID] {
+			log.Debug("Replacing managed entry: %s (AppID %d)", s.AppName, s.AppID)
 			continue
 		}
+		log.Debug("Preserving non-managed entry: %s (AppID %d)", s.AppName, s.AppID)
 		updated = append(updated, s)
 	}
 
