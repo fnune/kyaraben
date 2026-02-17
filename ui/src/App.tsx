@@ -186,6 +186,7 @@ function AppContent() {
     isConnecting,
     isPairing,
     pairingDeviceId,
+    pairingCode,
     lastSyncedAt,
     handleRemoveDevice,
     handleConnectToDevice,
@@ -552,6 +553,7 @@ function AppContent() {
             isConnecting={isConnecting}
             isPairing={isPairing}
             pairingDeviceId={pairingDeviceId}
+            pairingCode={pairingCode}
             lastSyncedAt={lastSyncedAt}
             onRemoveDevice={handleRemoveDevice}
             onConnectToDevice={handleConnectToDevice}

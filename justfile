@@ -25,6 +25,7 @@ check: ensure lint test
 # Run Go tests
 test: ensure
     go test ./...
+    cd relay && go test ./...
 
 # Run Go linter
 lint: ensure
@@ -46,11 +47,12 @@ e2e: _container-e2e-build
     podman run -it --rm kyaraben-cli-e2e
 
 # Run Playwright UI e2e tests (run 'just build' first)
-ui-e2e *args: _extract-appimage
+ui-e2e *args: _extract-appimage _relay-binary
     #!/usr/bin/env bash
     cd ui && \
         KYARABEN_APPIMAGE="$(pwd)/../.sandbox/app/kyaraben-ui" \
         APPDIR="$(pwd)/../.sandbox/app" \
+        KYARABEN_RELAY_BINARY="$(pwd)/../.sandbox/relay/relay" \
         ../scripts/run-ui-e2e.sh npx playwright test {{ args }}
 
 # Run Playwright UI e2e tests with interactive UI (run 'just build' first)
@@ -85,6 +87,18 @@ site-dev: ensure
 # Build documentation site
 site-build: ensure
     cd site && npm run build
+
+# Run relay server in development mode
+relay-dev:
+    cd relay && go run ./cmd/relay
+
+# Run relay tests
+relay-test:
+    cd relay && go test ./...
+
+# Build relay container
+relay-build:
+    podman build -t kyaraben-relay -f relay/Containerfile relay/
 
 # Clean build artifacts
 clean:
@@ -205,6 +219,11 @@ instance name: _sidecar
 
 _sidecar:
     ./scripts/build-sidecar.sh
+
+_relay-binary:
+    #!/usr/bin/env bash
+    mkdir -p .sandbox/relay
+    cd relay && go build -o ../.sandbox/relay/relay ./cmd/relay
 
 _container-e2e-build:
     podman build -t kyaraben-cli-e2e -f Containerfile.cli-e2e .

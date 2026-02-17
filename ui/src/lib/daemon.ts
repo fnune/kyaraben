@@ -22,6 +22,7 @@ import type {
   SyncResetResponse,
   SyncRevertFolderRequest,
   SyncRevertFolderResponse,
+  SyncStartPairingResponse,
   SyncStatusResponse,
   System,
   UninstallPreviewResponse,
@@ -73,7 +74,7 @@ export const getSyncStatus = () => invoke<SyncStatusResponse>('sync_status')
 export const removeSyncDevice = (req: SyncRemoveDeviceRequest) =>
   invoke<SyncRemoveDeviceResponse>('sync_remove_device', req)
 
-export const startSyncPairing = () => invoke<{ deviceId: string }>('sync_start_pairing')
+export const startSyncPairing = () => invoke<SyncStartPairingResponse>('sync_start_pairing')
 
 export const joinSyncPrimary = (req: SyncJoinPrimaryRequest) =>
   invoke<SyncJoinPrimaryResponse>('sync_join_primary', req)

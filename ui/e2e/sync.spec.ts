@@ -12,8 +12,10 @@ import {
   EmulatorIDRetroArchBsnes,
   type FakeSyncthingOptions,
   type ManifestFixture,
+  type RelayServer,
   SystemIDSNES,
   setupFakeSyncthingApi,
+  startRelayServer,
   type TestFixture,
 } from './fixtures'
 import type { FakeSyncthingController } from './fixtures/fake-syncthing-server'
@@ -264,10 +266,16 @@ test.describe('Sync view discovery UI when no devices paired (secondary)', () =>
     await cleanupSyncTest(ctx)
   })
 
-  test('shows discovery UI for secondary with no devices', async () => {
+  test('shows pairing code input for secondary with no devices', async () => {
     await navigateToSync(ctx.page)
     await expect(ctx.page.getByText('Connect to primary')).toBeVisible()
-    await expect(ctx.page.getByText('Enter device ID manually')).toBeVisible()
+    await expect(ctx.page.getByPlaceholder('ABC123')).toBeVisible()
+    await expect(ctx.page.getByText('Advanced options')).toBeVisible()
+  })
+
+  test('can expand advanced options to see device ID input', async () => {
+    await ctx.page.getByText('Advanced options').click()
+    await expect(ctx.page.getByPlaceholder('XXXXXXX-XXXXXXX-XXXXXXX-...')).toBeVisible()
   })
 })
 
@@ -365,5 +373,84 @@ test.describe('Sync view remove device flow', () => {
     await ctx.page.getByRole('button', { name: 'Remove device' }).click()
     await expect(ctx.page.getByText(/Old Device/)).not.toBeVisible()
     await expect(ctx.page.getByText('Pair a device')).toBeVisible()
+  })
+})
+
+test.describe('Relay pairing - primary shows pairing code', () => {
+  let ctx: SyncTestContext
+  let relay: RelayServer
+
+  test.beforeAll(async () => {
+    relay = await startRelayServer()
+    ctx = await setupSyncTest({
+      config: {
+        systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
+        sync: { enabled: true, mode: 'primary', relayUrl: relay.url },
+      },
+      manifest: { installedEmulators: {} },
+      syncthing: {
+        devices: [],
+        folders: [{ id: 'saves', path: '/home/test/Emulation/saves' }],
+      },
+    })
+  })
+
+  test.afterAll(async () => {
+    await cleanupSyncTest(ctx)
+    relay.close()
+  })
+
+  test('shows 6-character pairing code when starting pairing', async () => {
+    await navigateToSync(ctx.page)
+    await ctx.page.getByRole('button', { name: 'Start pairing' }).click()
+    const codeElement = ctx.page.locator('code').filter({ hasText: /^[A-Z0-9]{6}$/ })
+    await expect(codeElement).toBeVisible({ timeout: 5000 })
+    await expect(ctx.page.getByText('Enter this code on your secondary device')).toBeVisible()
+  })
+
+  test('can reveal device ID in pairing mode', async () => {
+    await ctx.page.getByText('Show device ID').click()
+    await expect(ctx.page.locator('code').filter({ hasText: /-/ })).toBeVisible()
+  })
+
+  test('can stop pairing', async () => {
+    await ctx.page.getByRole('button', { name: 'Stop pairing' }).click()
+    await expect(ctx.page.getByRole('button', { name: 'Start pairing' })).toBeVisible()
+  })
+})
+
+test.describe('Relay pairing - secondary enters invalid code', () => {
+  let ctx: SyncTestContext
+  let relay: RelayServer
+
+  test.beforeAll(async () => {
+    relay = await startRelayServer()
+    ctx = await setupSyncTest({
+      config: {
+        systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
+        sync: { enabled: true, mode: 'secondary', relayUrl: relay.url },
+      },
+      manifest: { installedEmulators: {} },
+      syncthing: {
+        devices: [],
+        folders: [{ id: 'saves', path: '/home/test/Emulation/saves' }],
+      },
+    })
+  })
+
+  test.afterAll(async () => {
+    await cleanupSyncTest(ctx)
+    relay.close()
+  })
+
+  test('shows error for invalid pairing code', async () => {
+    await navigateToSync(ctx.page)
+    await ctx.page.getByPlaceholder('ABC123').fill('XXXXXX')
+    await ctx.page.getByRole('button', { name: 'Connect' }).click()
+    await expect(ctx.page.getByText(/invalid pairing code|session not found/i).first()).toBeVisible(
+      {
+        timeout: 5000,
+      },
+    )
   })
 })
