@@ -349,7 +349,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		manifest.IconFiles = generatedFiles.IconFiles
 	}
 
-	steamShortcuts := a.syncSteamShortcuts(frontendsToInstall, binDir, manifest)
+	steamShortcuts := a.syncSteamShortcuts(ctx, frontendsToInstall, binDir, manifest)
 	manifest.SteamShortcuts = steamShortcuts
 
 	configResults := make([]emulators.ApplyResult, len(allPatches))
@@ -1287,7 +1287,7 @@ func toLauncherIcons(icons []packages.InstalledIcon) []launcher.InstalledIcon {
 	return result
 }
 
-func (a *Applier) syncSteamShortcuts(frontendIDs []model.FrontendID, binDir string, manifest *model.Manifest) []model.SteamShortcutRecord {
+func (a *Applier) syncSteamShortcuts(ctx context.Context, frontendIDs []model.FrontendID, binDir string, manifest *model.Manifest) []model.SteamShortcutRecord {
 	if a.SteamManager == nil || !a.SteamManager.IsAvailable() {
 		return nil
 	}
@@ -1351,12 +1351,20 @@ func (a *Applier) syncSteamShortcuts(frontendIDs []model.FrontendID, binDir stri
 		return nil
 	}
 
-	if err := a.SteamManager.Sync(entries); err != nil {
+	changed, err := a.SteamManager.Sync(entries)
+	if err != nil {
 		log.Debug("Failed to sync Steam shortcuts: %v", err)
 		return manifest.SteamShortcuts
 	}
 
 	log.Info("Synced %d Steam shortcuts", len(entries))
+
+	if changed {
+		if err := a.SteamManager.Restart(ctx); err != nil {
+			log.Debug("Failed to restart Steam: %v", err)
+		}
+	}
+
 	return records
 }
 

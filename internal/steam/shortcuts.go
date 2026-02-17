@@ -38,26 +38,30 @@ func (m *Manager) IsAvailable() bool {
 	return m.install != nil && len(m.install.UserIDs) > 0
 }
 
-func (m *Manager) Sync(entries []ShortcutEntry) error {
+func (m *Manager) Sync(entries []ShortcutEntry) (changed bool, err error) {
 	if !m.IsAvailable() {
-		return nil
+		return false, nil
 	}
 
 	for _, userID := range m.install.UserIDs {
-		if err := m.syncForUser(userID, entries); err != nil {
-			return fmt.Errorf("syncing shortcuts for user %s: %w", userID, err)
+		userChanged, err := m.syncForUser(userID, entries)
+		if err != nil {
+			return false, fmt.Errorf("syncing shortcuts for user %s: %w", userID, err)
+		}
+		if userChanged {
+			changed = true
 		}
 	}
 
-	return nil
+	return changed, nil
 }
 
-func (m *Manager) syncForUser(userID string, entries []ShortcutEntry) error {
+func (m *Manager) syncForUser(userID string, entries []ShortcutEntry) (changed bool, err error) {
 	shortcutsPath := m.install.ShortcutsPath(userID)
 
 	existing, err := m.loadShortcuts(shortcutsPath)
 	if err != nil {
-		return fmt.Errorf("loading existing shortcuts: %w", err)
+		return false, fmt.Errorf("loading existing shortcuts: %w", err)
 	}
 
 	log.Debug("Loaded %d existing shortcuts", len(existing))
@@ -65,11 +69,19 @@ func (m *Manager) syncForUser(userID string, entries []ShortcutEntry) error {
 		log.Debug("  Existing: %s (AppID %d)", s.AppName, s.AppID)
 	}
 
+	existingManaged := make(map[uint32]bool)
+	for _, s := range existing {
+		existingManaged[s.AppID] = true
+	}
+
 	managed := make(map[uint32]bool)
 	for _, entry := range entries {
 		appID := GenerateAppID(entry.Exe, entry.AppName)
 		managed[appID] = true
 		log.Debug("Managing: %s (AppID %d)", entry.AppName, appID)
+		if !existingManaged[appID] {
+			changed = true
+		}
 	}
 
 	var updated []Shortcut
@@ -113,11 +125,11 @@ func (m *Manager) syncForUser(userID string, entries []ShortcutEntry) error {
 	}
 
 	if err := m.saveShortcuts(shortcutsPath, updated); err != nil {
-		return fmt.Errorf("saving shortcuts: %w", err)
+		return false, fmt.Errorf("saving shortcuts: %w", err)
 	}
 
 	log.Info("Synced %d shortcuts for Steam user %s", len(entries), userID)
-	return nil
+	return changed, nil
 }
 
 func (m *Manager) loadShortcuts(path string) ([]Shortcut, error) {
