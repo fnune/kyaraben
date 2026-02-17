@@ -1,6 +1,7 @@
 package eden
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -85,16 +86,19 @@ var configTarget = model.ConfigTarget{
 func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
 	store := ctx.Store
 
-	patches := []model.ConfigPatch{{
-		Target: configTarget,
-		Entries: []model.ConfigEntry{
-			{Path: []string{"UI", "Screenshots\\screenshot_path"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDEden)},
-			{Path: []string{"UI", "Paths\\gamedirs\\size"}, Value: "1"},
-			{Path: []string{"UI", "Paths\\gamedirs\\1\\deep_scan"}, Value: "false"},
-			{Path: []string{"UI", "Paths\\gamedirs\\1\\expanded"}, Value: "true"},
-			{Path: []string{"UI", "Paths\\gamedirs\\1\\path"}, Value: store.SystemRomsDir(model.SystemIDSwitch)},
-		},
-	}}
+	entries := []model.ConfigEntry{
+		{Path: []string{"UI", "Screenshots\\screenshot_path"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDEden)},
+		{Path: []string{"UI", "Paths\\gamedirs\\size"}, Value: "1"},
+		{Path: []string{"UI", "Paths\\gamedirs\\1\\deep_scan"}, Value: "false"},
+		{Path: []string{"UI", "Paths\\gamedirs\\1\\expanded"}, Value: "true"},
+		{Path: []string{"UI", "Paths\\gamedirs\\1\\path"}, Value: store.SystemRomsDir(model.SystemIDSwitch)},
+	}
+
+	if cc := ctx.ControllerConfig; cc != nil {
+		entries = append(entries, playerEntries(cc)...)
+	}
+
+	patches := []model.ConfigPatch{{Target: configTarget, Entries: entries}}
 
 	dataDir, err := ctx.BaseDirResolver.UserDataDir()
 	if err != nil {
@@ -114,4 +118,73 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		Patches:  patches,
 		Symlinks: symlinks,
 	}, nil
+}
+
+// Eden (yuzu-based) embeds GUID in every binding:
+// "engine:sdl,port:0,guid:<guid>,button:1"
+func edenButtonRef(guid string, port, button int) string {
+	return fmt.Sprintf("engine:sdl,port:%d,guid:%s,button:%d", port, guid, button)
+}
+
+func edenAxisRef(guid string, port, axis int) string {
+	return fmt.Sprintf("engine:sdl,port:%d,guid:%s,axis:%d,threshold:0.500000", port, guid, axis)
+}
+
+func edenHatRef(guid string, port, hat int, direction string) string {
+	return fmt.Sprintf("engine:sdl,port:%d,guid:%s,hat:%d,direction:%s", port, guid, hat, direction)
+}
+
+func edenStickRef(guid string, port, axisX, axisY int) string {
+	return fmt.Sprintf("engine:sdl,port:%d,guid:%s,axis_x:%d,axis_y:%d,deadzone:0.100000", port, guid, axisX, axisY)
+}
+
+func playerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
+	var entries []model.ConfigEntry
+	south, east, west, north := cc.FaceButtons()
+
+	// Use the first GUID from the GUIDs map; fall back to the Steam Deck virtual
+	// gamepad GUID which covers all controllers through Steam Input.
+	guid := "03000000de280000ff11000001000000"
+	for g := range cc.GUIDs {
+		guid = g
+		break
+	}
+
+	// Switch maps: A=east, B=south, X=north, Y=west in Nintendo layout.
+	// Eden is a Switch emulator, so Switch A/B/X/Y are the console buttons.
+	// With standard layout, physical south -> Switch B, physical east -> Switch A, etc.
+	faceMap := map[string]model.SDLButton{
+		"a": east,
+		"b": south,
+		"x": north,
+		"y": west,
+	}
+
+	for i := 0; i < 2; i++ {
+		prefix := fmt.Sprintf("Controls\\player_%d_", i)
+		entries = append(entries,
+			model.ConfigEntry{Path: []string{"Controls", prefix + "connected"}, Value: "true"},
+			model.ConfigEntry{Path: []string{"Controls", prefix + "type"}, Value: "0"},
+			model.ConfigEntry{Path: []string{"Controls", prefix + "button_a"}, Value: fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["a"]]))},
+			model.ConfigEntry{Path: []string{"Controls", prefix + "button_b"}, Value: fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["b"]]))},
+			model.ConfigEntry{Path: []string{"Controls", prefix + "button_x"}, Value: fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["x"]]))},
+			model.ConfigEntry{Path: []string{"Controls", prefix + "button_y"}, Value: fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["y"]]))},
+			model.ConfigEntry{Path: []string{"Controls", prefix + "button_lstick"}, Value: fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonLeftStick]))},
+			model.ConfigEntry{Path: []string{"Controls", prefix + "button_rstick"}, Value: fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonRightStick]))},
+			model.ConfigEntry{Path: []string{"Controls", prefix + "button_l"}, Value: fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonLeftShoulder]))},
+			model.ConfigEntry{Path: []string{"Controls", prefix + "button_r"}, Value: fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonRightShoulder]))},
+			model.ConfigEntry{Path: []string{"Controls", prefix + "button_zl"}, Value: fmt.Sprintf(`"%s"`, edenAxisRef(guid, i, model.AxisLeftTrigger))},
+			model.ConfigEntry{Path: []string{"Controls", prefix + "button_zr"}, Value: fmt.Sprintf(`"%s"`, edenAxisRef(guid, i, model.AxisRightTrigger))},
+			model.ConfigEntry{Path: []string{"Controls", prefix + "button_plus"}, Value: fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonStart]))},
+			model.ConfigEntry{Path: []string{"Controls", prefix + "button_minus"}, Value: fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonBack]))},
+			model.ConfigEntry{Path: []string{"Controls", prefix + "button_dleft"}, Value: fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "left"))},
+			model.ConfigEntry{Path: []string{"Controls", prefix + "button_dright"}, Value: fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "right"))},
+			model.ConfigEntry{Path: []string{"Controls", prefix + "button_dup"}, Value: fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "up"))},
+			model.ConfigEntry{Path: []string{"Controls", prefix + "button_ddown"}, Value: fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "down"))},
+			model.ConfigEntry{Path: []string{"Controls", prefix + "lstick"}, Value: fmt.Sprintf(`"%s"`, edenStickRef(guid, i, model.AxisLeftX, model.AxisLeftY))},
+			model.ConfigEntry{Path: []string{"Controls", prefix + "rstick"}, Value: fmt.Sprintf(`"%s"`, edenStickRef(guid, i, model.AxisRightX, model.AxisRightY))},
+		)
+	}
+
+	return entries
 }
