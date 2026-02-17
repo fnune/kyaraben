@@ -16,6 +16,7 @@ export interface UseSyncPairingResult {
   isConnecting: boolean
   isPairing: boolean
   pairingDeviceId: string | null
+  lastSyncedAt: Date | null
   handleRemoveDevice: (deviceId: string) => Promise<void>
   handleConnectToDevice: (deviceId: string) => Promise<{ ok: boolean; error?: string }>
   handleEnableSync: (mode: SyncMode) => Promise<void>
@@ -41,12 +42,21 @@ export function useSyncPairing(showToast: ShowToast): UseSyncPairingResult {
   const [isConnecting, setIsConnecting] = useState(false)
   const [isPairing, setIsPairing] = useState(false)
   const [pairingDeviceId, setPairingDeviceId] = useState<string | null>(null)
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null)
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const discoveryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const previousStateRef = useRef<string | undefined>(undefined)
 
   const refreshSyncStatus = useCallback(async () => {
     const result = await daemon.getSyncStatus()
     if (result.ok) {
+      const newState = result.data.state
+      const wasSyncing = previousStateRef.current === SyncStateSyncing
+      const nowSynced = newState === 'synced'
+      if (wasSyncing && nowSynced) {
+        setLastSyncedAt(new Date())
+      }
+      previousStateRef.current = newState
       setSyncStatus(result.data)
     }
   }, [])
@@ -221,6 +231,7 @@ export function useSyncPairing(showToast: ShowToast): UseSyncPairingResult {
     isConnecting,
     isPairing,
     pairingDeviceId,
+    lastSyncedAt,
     handleRemoveDevice,
     handleConnectToDevice,
     handleEnableSync,
