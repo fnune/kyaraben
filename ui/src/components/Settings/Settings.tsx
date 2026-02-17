@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react'
-import { IconButton } from '@/lib/IconButton'
-import { Input } from '@/lib/Input'
-import { FolderIcon } from '@/lib/icons'
 import { PathText } from '@/lib/PathText'
 import { useToast } from '@/lib/ToastContext'
+import { StorageSelector } from './StorageSelector'
 
 export interface SettingsProps {
   readonly userStore: string
@@ -44,25 +42,12 @@ export function Settings({ userStore, onUserStoreChange }: SettingsProps) {
   }
 
   return (
-    <div>
-      <span
-        id="user-store-label"
-        className="text-xs font-semibold text-on-surface-dim uppercase tracking-widest block"
-      >
-        Emulation folder
-      </span>
-      <div className="mt-1 flex gap-2">
-        <div className="flex-1">
-          <Input value={userStore} onChange={onUserStoreChange} placeholder="~/Emulation" />
-        </div>
-        <IconButton
-          icon={<FolderIcon className="w-5 h-5 text-on-surface-muted" />}
-          label={folderExists ? 'Open folder' : 'Folder does not exist'}
-          loading={opening}
-          disabled={!folderExists}
-          onClick={handleOpenFolder}
-        />
-      </div>
-    </div>
+    <StorageSelector
+      userStore={userStore}
+      onUserStoreChange={onUserStoreChange}
+      onOpenFolder={handleOpenFolder}
+      folderExists={folderExists}
+      opening={opening}
+    />
   )
 }

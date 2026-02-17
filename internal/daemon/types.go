@@ -37,6 +37,7 @@ const (
 	CommandTypeSyncLocalChanges      CommandType = "sync_local_changes"
 	CommandTypeSyncReset             CommandType = "sync_reset"
 	CommandTypeSyncDiscoveredDevices CommandType = "sync_discovered_devices"
+	CommandTypeGetStorageDevices     CommandType = "get_storage_devices"
 )
 
 // Command represents a command from the UI.
