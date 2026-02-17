@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sync"
 	"testing"
 	"time"
 
@@ -152,12 +153,17 @@ func TestPrimaryPairingFlowWithFakes(t *testing.T) {
 	fakeAdvertiser := NewFakeAdvertiser()
 
 	var messages []string
+	var messagesMu sync.Mutex
 
 	flow := NewPrimaryPairingFlow(PairingFlowConfig{
 		SyncConfig: fakeClient.config,
 		Advertiser: fakeAdvertiser,
 		Client:     fakeClient,
-		OnProgress: func(msg string) { messages = append(messages, msg) },
+		OnProgress: func(msg string) {
+			messagesMu.Lock()
+			messages = append(messages, msg)
+			messagesMu.Unlock()
+		},
 	})
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -177,6 +183,7 @@ func TestPrimaryPairingFlowWithFakes(t *testing.T) {
 		client := NewPairingClient()
 
 		var code string
+		messagesMu.Lock()
 		for _, msg := range messages {
 			if len(msg) > len("Pairing code: ") {
 				var c string
@@ -186,6 +193,7 @@ func TestPrimaryPairingFlowWithFakes(t *testing.T) {
 				}
 			}
 		}
+		messagesMu.Unlock()
 
 		if code == "" {
 			pairDone <- fmt.Errorf("no pairing code found in messages")
