@@ -78,8 +78,12 @@ func (w *ConfigWriter) ApplyWithOptions(patch model.ConfigPatch, opts ApplyOptio
 		}
 	}
 
+	if patch.ManagesWholeFile() {
+		_ = w.fs.Remove(path)
+	}
+
 	handler := configformat.NewHandler(w.fs, patch.Target.Format)
-	formatResult, err := handler.Apply(path, patch.Entries, patch.OwnedRegions)
+	formatResult, err := handler.Apply(path, patch.Entries, patch.ManagedRegions)
 	if err != nil {
 		return ApplyResult{}, err
 	}
@@ -88,26 +92,5 @@ func (w *ConfigWriter) ApplyWithOptions(patch model.ConfigPatch, opts ApplyOptio
 		Path:         formatResult.Path,
 		BaselineHash: formatResult.BaselineHash,
 		BackupPath:   backupPath,
-	}, nil
-}
-
-func (w *ConfigWriter) ApplyOwnedFile(file model.OwnedFile) (ApplyResult, error) {
-	path, err := file.Target.ResolveWith(w.resolver)
-	if err != nil {
-		return ApplyResult{}, fmt.Errorf("resolving config path: %w", err)
-	}
-
-	// Remove existing file so the handler writes from scratch.
-	_ = w.fs.Remove(path)
-
-	handler := configformat.NewHandler(w.fs, file.Target.Format)
-	formatResult, err := handler.Apply(path, file.Entries, nil)
-	if err != nil {
-		return ApplyResult{}, err
-	}
-
-	return ApplyResult{
-		Path:         formatResult.Path,
-		BaselineHash: formatResult.BaselineHash,
 	}, nil
 }

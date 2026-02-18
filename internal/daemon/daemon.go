@@ -265,17 +265,18 @@ func (d *Daemon) handleStatus() []Event {
 	installedEmulators := make([]InstalledEmulator, len(result.InstalledEmulators))
 	for i, emu := range result.InstalledEmulators {
 		managedConfigs := make([]ManagedConfigInfo, len(emu.ManagedConfigs))
-		for j, cfg := range emu.ManagedConfigs {
-			keys := make([]ManagedKeyInfo, len(cfg.Keys))
-			for k, key := range cfg.Keys {
-				keys[k] = ManagedKeyInfo{
-					Key:   key.Key,
-					Value: shortenPath(key.Value),
+		for j, mc := range emu.ManagedConfigs {
+			regions := make([]ManagedRegionInfo, len(mc.ManagedRegions))
+			for k, r := range mc.ManagedRegions {
+				regions[k] = ManagedRegionInfo{
+					Type:      r.Type,
+					Section:   r.Section,
+					KeyPrefix: r.KeyPrefix,
 				}
 			}
 			managedConfigs[j] = ManagedConfigInfo{
-				Path: shortenPath(cfg.Path),
-				Keys: keys,
+				Path:           shortenPath(mc.Path),
+				ManagedRegions: regions,
 			}
 		}
 		installed := InstalledEmulator{
@@ -548,6 +549,7 @@ func (d *Daemon) handlePreflight() []Event {
 		diff         ConfigFileDiff
 		seenChanges  map[string]bool
 		seenUserKeys map[string]bool
+		seenRegions  map[string]bool
 	}
 
 	diffsByPath := make(map[string]*fileDiffState)
@@ -574,9 +576,25 @@ func (d *Daemon) handlePreflight() []Event {
 				},
 				seenChanges:  make(map[string]bool),
 				seenUserKeys: make(map[string]bool),
+				seenRegions:  make(map[string]bool),
 			}
 			diffsByPath[diff.Path] = state
 			pathOrder = append(pathOrder, diff.Path)
+		}
+
+		for _, r := range patch.ManagedRegions {
+			var info ManagedRegionInfo
+			switch v := r.(type) {
+			case model.FileRegion:
+				info = ManagedRegionInfo{Type: "file"}
+			case model.SectionRegion:
+				info = ManagedRegionInfo{Type: "section", Section: v.Section, KeyPrefix: v.KeyPrefix}
+			}
+			regionKey := info.Type + ":" + info.Section + ":" + info.KeyPrefix
+			if !state.seenRegions[regionKey] {
+				state.seenRegions[regionKey] = true
+				state.diff.ManagedRegions = append(state.diff.ManagedRegions, info)
+			}
 		}
 
 		state.diff.HasChanges = state.diff.HasChanges || diff.HasChanges()

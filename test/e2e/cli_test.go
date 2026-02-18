@@ -198,7 +198,7 @@ func TestApplyWorkflow(t *testing.T) {
 
 		output := c.apply()
 		c.assertContains(output, "Done!")
-		c.assertNotContains(output, "managed keys will be overwritten")
+		c.assertNotContains(output, "managed settings will be overwritten")
 	})
 
 	t.Run("build failure is reported", func(t *testing.T) {
@@ -225,7 +225,7 @@ func TestApplyUserModifiedConfig(t *testing.T) {
 	cmd.Stdin = bytes.NewReader([]byte("n\n"))
 	output, _ := cmd.CombinedOutput()
 
-	c.assertContains(string(output), "managed keys will be overwritten")
+	c.assertContains(string(output), "managed settings will be overwritten")
 	c.assertContains(string(output), "Cancelled")
 }
 
@@ -260,7 +260,7 @@ wiiu = ["cemu"]
 	cmd.Stdin = bytes.NewReader([]byte("n\n"))
 	output, _ := cmd.CombinedOutput()
 
-	c.assertContains(string(output), "managed keys will be overwritten")
+	c.assertContains(string(output), "managed settings will be overwritten")
 	c.assertContains(string(output), "check_update")
 	c.assertContains(string(output), "Cancelled")
 }
