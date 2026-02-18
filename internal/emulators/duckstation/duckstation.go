@@ -80,13 +80,19 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 
 	patches := []model.ConfigPatch{{Target: configTarget, Entries: entries}}
 	if cc := ctx.ControllerConfig; cc != nil {
+		// Point to the profile preset (DefaultOnly so users can switch away).
 		entries = append(entries, model.ConfigEntry{
 			Path:        []string{"ControllerPorts", "InputProfileName"},
 			Value:       profileName,
 			DefaultOnly: true,
 		})
+
+		// Write bindings directly to main config (fully managed).
+		entries = append(entries, padEntries(cc)...)
+		entries = append(entries, hotkeyEntries(cc)...)
 		patches[0].Entries = entries
 
+		// Also write a profile file as a reusable preset (fully managed).
 		profileEntries := padEntries(cc)
 		profileEntries = append(profileEntries, hotkeyEntries(cc)...)
 		patches = append(patches, model.ConfigPatch{
