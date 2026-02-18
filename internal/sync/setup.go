@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net"
+	"os"
 	"path/filepath"
 
 	"github.com/twpayne/go-vfs/v5"
@@ -126,6 +127,24 @@ func (s *Setup) UpdateConfig(cfg model.SyncConfig, userStorePath string, allSyst
 func (s *Setup) Disable() error {
 	unitGen := NewSystemdUnit(s.fs, s.paths)
 	return unitGen.Disable()
+}
+
+func (s *Setup) Reset() error {
+	unitGen := NewSystemdUnit(s.fs, s.paths)
+
+	if unitGen.IsEnabled() {
+		if err := unitGen.Disable(); err != nil {
+			log.Error("Failed to disable syncthing service during reset: %v", err)
+		}
+	}
+
+	syncthingDir := filepath.Join(s.stateDir, "syncthing")
+	if err := os.RemoveAll(syncthingDir); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("removing syncthing directory: %w", err)
+	}
+
+	log.Info("Reset syncthing state at %s", syncthingDir)
+	return nil
 }
 
 func (s *Setup) IsEnabled() bool {

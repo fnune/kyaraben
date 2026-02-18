@@ -187,6 +187,7 @@ function AppContent() {
     handleCancelPairing,
     handleJoinPrimary,
     handleEnableSync,
+    handleResetSync,
     refreshSyncStatus,
   } = useSyncPairing()
 
@@ -544,6 +545,7 @@ function AppContent() {
             onCancelPairing={handleCancelPairing}
             onJoinPrimary={handleJoinPrimary}
             onEnableSync={handleEnableSync}
+            onResetSync={handleResetSync}
             onRefresh={refreshSyncStatus}
             pairingCode={pairingCode}
             pairingProgress={pairingProgress}
