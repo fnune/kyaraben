@@ -20,7 +20,13 @@ genesis_plus_gx = "genesis_plus_gx_libretro.so"
 mupen64plus_next = "mupen64plus_next_libretro.so"
 mednafen_saturn = "mednafen_saturn_libretro.so"
 mgba = "mgba_libretro.so"
-melonds = "melonds_libretro.so"
+
+# Standalone cores downloaded separately (not in the buildbot bundle)
+[retroarch-cores.standalone.melonds]
+filename = "melondsds_libretro.so"
+url = "https://github.com/JesseTG/melonds-ds/releases/download/v1.2.0/melondsds_libretro-linux-x86_64-Release.zip"
+sha256 = "9b7c1ef08a9ed3d1a61be3981cf40332c88ce3f59ca76336262701b27dabdb2b"
+size = 2075879
 
 # Core sizes in bytes (for progress indication)
 [retroarch-cores.sizes]

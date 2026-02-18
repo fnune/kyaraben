@@ -103,6 +103,7 @@ func TestHTTPDownloaderFallbackURLs(t *testing.T) {
 
 	err := dl.Download(context.Background(), DownloadRequest{
 		URLs:     []string{server.URL + "/bad", server.URL + "/good"},
+		SHA256:   "2689367b205c16ce32ed4200942b8b8b1e262dfc70d9bc9fbc77c49699a4f1df",
 		DestPath: dest,
 	})
 	if err != nil {
@@ -132,6 +133,7 @@ func TestHTTPDownloaderProgress(t *testing.T) {
 	var called atomic.Int32
 	err := dl.Download(context.Background(), DownloadRequest{
 		URLs:     []string{server.URL},
+		SHA256:   "ee0c51f7bb7946c79540d76ad4f33ea1264c20b01a0f1908fb8b82d0ce6ac3b7",
 		DestPath: dest,
 		OnProgress: func(p DownloadProgress) {
 			called.Add(1)

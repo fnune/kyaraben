@@ -133,7 +133,7 @@ var coreShortNames = map[model.EmulatorID]string{
 	model.EmulatorIDRetroArchMupen64Plus:   "mupen64plus_next",
 	model.EmulatorIDRetroArchBeetleSaturn:  "mednafen_saturn",
 	model.EmulatorIDRetroArchMGBA:          "mgba",
-	model.EmulatorIDRetroArchMelonDS:       "melonds",
+	model.EmulatorIDRetroArchMelonDS:       "melondsds",
 }
 
 var coreToSystem = map[model.EmulatorID]model.SystemID{

@@ -3,7 +3,6 @@ package packages
 import (
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/fnune/kyaraben/internal/hardware"
 	"github.com/fnune/kyaraben/internal/versions"
@@ -56,21 +55,8 @@ func RetroArchCoresInstalled(packagesDir string, coreNames []string, v *versions
 		return true
 	}
 
-	targetName := selectCoresTarget(v)
-	if targetName == "" {
-		return false
-	}
-
 	version := v.RetroArchCores.Default
 	if version == "" {
-		return false
-	}
-	build, ok := v.RetroArchCores.Versions[version]
-	if !ok {
-		return false
-	}
-	targetBuild, ok := build.Targets[targetName]
-	if !ok {
 		return false
 	}
 
@@ -78,8 +64,12 @@ func RetroArchCoresInstalled(packagesDir string, coreNames []string, v *versions
 	coresDir := filepath.Join(pkgDir, "lib", "retroarch", "cores")
 
 	for _, coreName := range coreNames {
-		filename, ok := v.RetroArchCores.Files[coreName]
-		if !ok {
+		var filename string
+		if standalone, ok := v.RetroArchCores.Standalone[coreName]; ok {
+			filename = standalone.Filename
+		} else if f, ok := v.RetroArchCores.Files[coreName]; ok {
+			filename = f
+		} else {
 			continue
 		}
 		if _, err := os.Stat(filepath.Join(coresDir, filename)); err != nil {
@@ -87,12 +77,7 @@ func RetroArchCoresInstalled(packagesDir string, coreNames []string, v *versions
 		}
 	}
 
-	markerPath := filepath.Join(pkgDir, ".sha256")
-	data, err := os.ReadFile(markerPath)
-	if err != nil {
-		return false
-	}
-	return strings.TrimSpace(string(data)) == targetBuild.SHA256
+	return true
 }
 
 func selectCoresTarget(v *versions.Versions) string {
