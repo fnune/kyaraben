@@ -1279,6 +1279,126 @@ func TestEdenControllerConfig(t *testing.T) {
 	}
 }
 
+func TestEdenControllerBindingValues(t *testing.T) {
+	t.Parallel()
+
+	guid := model.SteamDeckGUID
+
+	t.Run("standard layout", func(t *testing.T) {
+		t.Parallel()
+
+		store := &fakeStoreReader{root: "/emulation"}
+		resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+		gen := eden.Definition{}.ConfigGenerator()
+
+		result, err := gen.Generate(model.GenerateContext{
+			Store:            store,
+			BaseDirResolver:  resolver,
+			ControllerConfig: defaultControllerConfig(),
+		})
+		if err != nil {
+			t.Fatalf("Generate() error = %v", err)
+		}
+
+		entries := result.Patches[0].Entries
+		entryMap := make(map[string]string)
+		for _, e := range entries {
+			entryMap[e.Key()] = e.Value
+		}
+
+		// Standard layout: a=east=B(1), b=south=A(0), x=north=Y(3), y=west=X(2)
+		// Player 0 bindings.
+		wantP0 := map[string]string{
+			"Controls\\player_0_connected":    "true",
+			"Controls\\player_0_type":         "0",
+			"Controls\\player_0_button_a":     `"engine:sdl,port:0,guid:` + guid + `,button:1"`,
+			"Controls\\player_0_button_b":     `"engine:sdl,port:0,guid:` + guid + `,button:0"`,
+			"Controls\\player_0_button_x":     `"engine:sdl,port:0,guid:` + guid + `,button:3"`,
+			"Controls\\player_0_button_y":     `"engine:sdl,port:0,guid:` + guid + `,button:2"`,
+			"Controls\\player_0_button_lstick": `"engine:sdl,port:0,guid:` + guid + `,button:7"`,
+			"Controls\\player_0_button_rstick": `"engine:sdl,port:0,guid:` + guid + `,button:8"`,
+			"Controls\\player_0_button_l":     `"engine:sdl,port:0,guid:` + guid + `,button:9"`,
+			"Controls\\player_0_button_r":     `"engine:sdl,port:0,guid:` + guid + `,button:10"`,
+			"Controls\\player_0_button_zl":    `"engine:sdl,port:0,guid:` + guid + `,axis:2,threshold:0.500000"`,
+			"Controls\\player_0_button_zr":    `"engine:sdl,port:0,guid:` + guid + `,axis:5,threshold:0.500000"`,
+			"Controls\\player_0_button_plus":  `"engine:sdl,port:0,guid:` + guid + `,button:6"`,
+			"Controls\\player_0_button_minus": `"engine:sdl,port:0,guid:` + guid + `,button:4"`,
+			"Controls\\player_0_button_dleft":  `"engine:sdl,port:0,guid:` + guid + `,hat:0,direction:left"`,
+			"Controls\\player_0_button_dright": `"engine:sdl,port:0,guid:` + guid + `,hat:0,direction:right"`,
+			"Controls\\player_0_button_dup":    `"engine:sdl,port:0,guid:` + guid + `,hat:0,direction:up"`,
+			"Controls\\player_0_button_ddown":  `"engine:sdl,port:0,guid:` + guid + `,hat:0,direction:down"`,
+			"Controls\\player_0_lstick":        `"engine:sdl,port:0,guid:` + guid + `,axis_x:0,axis_y:1,deadzone:0.100000"`,
+			"Controls\\player_0_rstick":        `"engine:sdl,port:0,guid:` + guid + `,axis_x:3,axis_y:4,deadzone:0.100000"`,
+		}
+
+		for key, want := range wantP0 {
+			got, ok := entryMap[key]
+			if !ok {
+				t.Errorf("missing entry %q", key)
+				continue
+			}
+			if got != want {
+				t.Errorf("entry %q:\n  got  %s\n  want %s", key, got, want)
+			}
+		}
+
+		// Player 1 should use port:1.
+		p1ButtonA, ok := entryMap["Controls\\player_1_button_a"]
+		if !ok {
+			t.Error("missing player_1_button_a")
+		} else if !strings.Contains(p1ButtonA, "port:1") {
+			t.Errorf("player_1_button_a should use port:1, got %s", p1ButtonA)
+		}
+	})
+
+	t.Run("nintendo layout", func(t *testing.T) {
+		t.Parallel()
+
+		store := &fakeStoreReader{root: "/emulation"}
+		resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+		gen := eden.Definition{}.ConfigGenerator()
+
+		nintendoCC := &model.ControllerConfig{
+			Layout:  model.LayoutNintendo,
+			Hotkeys: model.DefaultHotkeys(),
+		}
+
+		result, err := gen.Generate(model.GenerateContext{
+			Store:            store,
+			BaseDirResolver:  resolver,
+			ControllerConfig: nintendoCC,
+		})
+		if err != nil {
+			t.Fatalf("Generate() error = %v", err)
+		}
+
+		entries := result.Patches[0].Entries
+		entryMap := make(map[string]string)
+		for _, e := range entries {
+			entryMap[e.Key()] = e.Value
+		}
+
+		// Nintendo layout: a=east=A(0), b=south=B(1), x=north=X(2), y=west=Y(3)
+		wantFace := map[string]string{
+			"Controls\\player_0_button_a": `"engine:sdl,port:0,guid:` + guid + `,button:0"`,
+			"Controls\\player_0_button_b": `"engine:sdl,port:0,guid:` + guid + `,button:1"`,
+			"Controls\\player_0_button_x": `"engine:sdl,port:0,guid:` + guid + `,button:2"`,
+			"Controls\\player_0_button_y": `"engine:sdl,port:0,guid:` + guid + `,button:3"`,
+		}
+
+		for key, want := range wantFace {
+			got, ok := entryMap[key]
+			if !ok {
+				t.Errorf("missing entry %q", key)
+				continue
+			}
+			if got != want {
+				t.Errorf("entry %q:\n  got  %s\n  want %s", key, got, want)
+			}
+		}
+	})
+}
+
 func TestAzaharControllerConfig(t *testing.T) {
 	t.Parallel()
 
@@ -1311,6 +1431,205 @@ func TestAzaharControllerConfig(t *testing.T) {
 	}
 	if !foundButtonA {
 		t.Error("Azahar should have Steam Deck GUID-based button_a entry")
+	}
+}
+
+func TestAzaharControllerBindingValues(t *testing.T) {
+	t.Parallel()
+
+	guid := model.SteamDeckGUID
+
+	t.Run("standard layout", func(t *testing.T) {
+		t.Parallel()
+
+		store := &fakeStoreReader{root: "/emulation"}
+		resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+		gen := azahar.Definition{}.ConfigGenerator()
+
+		result, err := gen.Generate(model.GenerateContext{
+			Store:            store,
+			BaseDirResolver:  resolver,
+			ControllerConfig: defaultControllerConfig(),
+		})
+		if err != nil {
+			t.Fatalf("Generate() error = %v", err)
+		}
+
+		entries := result.Patches[0].Entries
+		entryMap := make(map[string]string)
+		for _, e := range entries {
+			entryMap[e.Key()] = e.Value
+		}
+
+		// Profile metadata.
+		if got := entryMap["profile"]; got != "1" {
+			t.Errorf("profile = %q, want %q", got, "1")
+		}
+		if got := entryMap["profiles\\size"]; got != "1" {
+			t.Errorf("profiles\\size = %q, want %q", got, "1")
+		}
+		if got := entryMap["profiles\\1\\name"]; got != "default" {
+			t.Errorf("profiles\\1\\name = %q, want %q", got, "default")
+		}
+
+		// Standard layout: a=east=B(1), b=south=A(0), x=north=Y(3), y=west=X(2)
+		wantBindings := map[string]string{
+			"profiles\\1\\button_a":      `"button:1,engine:sdl,guid:` + guid + `,port:0"`,
+			"profiles\\1\\button_b":      `"button:0,engine:sdl,guid:` + guid + `,port:0"`,
+			"profiles\\1\\button_x":      `"button:3,engine:sdl,guid:` + guid + `,port:0"`,
+			"profiles\\1\\button_y":      `"button:2,engine:sdl,guid:` + guid + `,port:0"`,
+			"profiles\\1\\button_l":      `"button:9,engine:sdl,guid:` + guid + `,port:0"`,
+			"profiles\\1\\button_r":      `"button:10,engine:sdl,guid:` + guid + `,port:0"`,
+			"profiles\\1\\button_zl":     `"axis:2,direction:+,engine:sdl,guid:` + guid + `,port:0,threshold:0.5"`,
+			"profiles\\1\\button_zr":     `"axis:5,direction:+,engine:sdl,guid:` + guid + `,port:0,threshold:0.5"`,
+			"profiles\\1\\button_start":  `"button:6,engine:sdl,guid:` + guid + `,port:0"`,
+			"profiles\\1\\button_select": `"button:4,engine:sdl,guid:` + guid + `,port:0"`,
+			"profiles\\1\\button_up":     `"direction:up,engine:sdl,guid:` + guid + `,hat:0,port:0"`,
+			"profiles\\1\\button_down":   `"direction:down,engine:sdl,guid:` + guid + `,hat:0,port:0"`,
+			"profiles\\1\\button_left":   `"direction:left,engine:sdl,guid:` + guid + `,hat:0,port:0"`,
+			"profiles\\1\\button_right":  `"direction:right,engine:sdl,guid:` + guid + `,hat:0,port:0"`,
+			"profiles\\1\\circle_pad":    `"axis_x:0,axis_y:1,deadzone:0.100000,engine:sdl,guid:` + guid + `,port:0"`,
+			"profiles\\1\\c_stick":       `"axis_x:3,axis_y:4,deadzone:0.100000,engine:sdl,guid:` + guid + `,port:0"`,
+		}
+
+		for key, want := range wantBindings {
+			got, ok := entryMap[key]
+			if !ok {
+				t.Errorf("missing entry %q", key)
+				continue
+			}
+			if got != want {
+				t.Errorf("entry %q:\n  got  %s\n  want %s", key, got, want)
+			}
+		}
+	})
+
+	t.Run("nintendo layout", func(t *testing.T) {
+		t.Parallel()
+
+		store := &fakeStoreReader{root: "/emulation"}
+		resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+		gen := azahar.Definition{}.ConfigGenerator()
+
+		nintendoCC := &model.ControllerConfig{
+			Layout:  model.LayoutNintendo,
+			Hotkeys: model.DefaultHotkeys(),
+		}
+
+		result, err := gen.Generate(model.GenerateContext{
+			Store:            store,
+			BaseDirResolver:  resolver,
+			ControllerConfig: nintendoCC,
+		})
+		if err != nil {
+			t.Fatalf("Generate() error = %v", err)
+		}
+
+		entries := result.Patches[0].Entries
+		entryMap := make(map[string]string)
+		for _, e := range entries {
+			entryMap[e.Key()] = e.Value
+		}
+
+		// Nintendo layout: a=east=A(0), b=south=B(1), x=north=X(2), y=west=Y(3)
+		wantFace := map[string]string{
+			"profiles\\1\\button_a": `"button:0,engine:sdl,guid:` + guid + `,port:0"`,
+			"profiles\\1\\button_b": `"button:1,engine:sdl,guid:` + guid + `,port:0"`,
+			"profiles\\1\\button_x": `"button:2,engine:sdl,guid:` + guid + `,port:0"`,
+			"profiles\\1\\button_y": `"button:3,engine:sdl,guid:` + guid + `,port:0"`,
+		}
+
+		for key, want := range wantFace {
+			got, ok := entryMap[key]
+			if !ok {
+				t.Errorf("missing entry %q", key)
+				continue
+			}
+			if got != want {
+				t.Errorf("entry %q:\n  got  %s\n  want %s", key, got, want)
+			}
+		}
+	})
+}
+
+func TestAzaharGenerateEntries(t *testing.T) {
+	t.Parallel()
+
+	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+	gen := azahar.Definition{}.ConfigGenerator()
+
+	result, err := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver})
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	entries := result.Patches[0].Entries
+	entryMap := make(map[string]string)
+	for _, e := range entries {
+		entryMap[e.FullPath()] = e.Value
+	}
+
+	wantEntries := map[string]string{
+		"Data%20Storage.use_custom_storage":          "true",
+		"Data%20Storage.use_custom_storage\\default": "false",
+		"Data%20Storage.sdmc_directory":              "/emulation/saves/n3ds/",
+		"Data%20Storage.sdmc_directory\\default":     "false",
+		"UI.Paths\\gamedirs\\1\\path":               "INSTALLED",
+		"UI.Paths\\gamedirs\\2\\path":               "SYSTEM",
+		"UI.Paths\\gamedirs\\3\\path":               "/emulation/roms/n3ds",
+		"UI.Paths\\gamedirs\\size":                   "3",
+		"UI.Paths\\screenshotPath":                   "/emulation/screenshots/azahar",
+		"UI.Paths\\screenshotPath\\default":          "false",
+	}
+
+	for fullPath, want := range wantEntries {
+		got, ok := entryMap[fullPath]
+		if !ok {
+			t.Errorf("missing entry %q", fullPath)
+			continue
+		}
+		if got != want {
+			t.Errorf("entry %q = %q, want %q", fullPath, got, want)
+		}
+	}
+}
+
+func TestEdenGenerateEntries(t *testing.T) {
+	t.Parallel()
+
+	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+	gen := eden.Definition{}.ConfigGenerator()
+
+	result, err := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver})
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	entries := result.Patches[0].Entries
+	entryMap := make(map[string]string)
+	for _, e := range entries {
+		entryMap[e.FullPath()] = e.Value
+	}
+
+	wantEntries := map[string]string{
+		"UI.Screenshots\\screenshot_path":    "/emulation/screenshots/eden",
+		"UI.Paths\\gamedirs\\size":           "1",
+		"UI.Paths\\gamedirs\\1\\deep_scan":   "false",
+		"UI.Paths\\gamedirs\\1\\expanded":    "true",
+		"UI.Paths\\gamedirs\\1\\path":        "/emulation/roms/switch",
+	}
+
+	for fullPath, want := range wantEntries {
+		got, ok := entryMap[fullPath]
+		if !ok {
+			t.Errorf("missing entry %q", fullPath)
+			continue
+		}
+		if got != want {
+			t.Errorf("entry %q = %q, want %q", fullPath, got, want)
+		}
 	}
 }
 
