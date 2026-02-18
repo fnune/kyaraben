@@ -142,7 +142,7 @@ func playerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	var entries []model.ConfigEntry
 	south, east, west, north := cc.FaceButtons()
 
-	guid := cc.PreferredGUID()
+	guid := model.SteamDeckGUID
 
 	// Switch maps: A=east, B=south, X=north, Y=west in Nintendo layout.
 	// Eden is a Switch emulator, so Switch A/B/X/Y are the console buttons.
