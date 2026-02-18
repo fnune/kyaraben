@@ -621,7 +621,6 @@ function AppContent() {
         />
       )}
 
-
       <div className="flex-1 flex flex-col min-[720px]:flex-row min-h-0">
         <Sidebar
           currentView={currentView}
