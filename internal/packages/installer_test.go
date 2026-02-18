@@ -33,15 +33,15 @@ func TestPackageInstallerInstallEmulator(t *testing.T) {
 	installer := NewPackageInstaller(fs, stateDir, dl, ext)
 
 	var progressPhases []string
-	binary, err := installer.InstallEmulator(context.Background(), "mgba", func(p InstallProgress) {
+	binary, err := installer.InstallEmulator(context.Background(), "ppsspp", func(p InstallProgress) {
 		progressPhases = append(progressPhases, p.Phase)
 	})
 	if err != nil {
 		t.Fatalf("InstallEmulator: %v", err)
 	}
 
-	if binary.Name != "mgba" {
-		t.Errorf("binary name = %q, want %q", binary.Name, "mgba")
+	if binary.Name != "ppsspp" {
+		t.Errorf("binary name = %q, want %q", binary.Name, "ppsspp")
 	}
 
 	if _, err := fs.Stat(binary.Path); err != nil {
@@ -77,7 +77,7 @@ func TestPackageInstallerSkipsAlreadyInstalled(t *testing.T) {
 
 	installer := NewPackageInstaller(fs, stateDir, dl, ext)
 
-	_, err := installer.InstallEmulator(context.Background(), "mgba", nil)
+	_, err := installer.InstallEmulator(context.Background(), "ppsspp", nil)
 	if err != nil {
 		t.Fatalf("first install: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestPackageInstallerSkipsAlreadyInstalled(t *testing.T) {
 	dl.Calls = nil
 
 	var skipped bool
-	_, err = installer.InstallEmulator(context.Background(), "mgba", func(p InstallProgress) {
+	_, err = installer.InstallEmulator(context.Background(), "ppsspp", func(p InstallProgress) {
 		if p.Phase == "skipped" {
 			skipped = true
 		}
@@ -115,16 +115,16 @@ func TestPackageInstallerIsEmulatorInstalled(t *testing.T) {
 
 	installer := NewPackageInstaller(fs, stateDir, dl, ext)
 
-	if installer.IsEmulatorInstalled("mgba") {
+	if installer.IsEmulatorInstalled("ppsspp") {
 		t.Error("should not be installed yet")
 	}
 
-	_, err := installer.InstallEmulator(context.Background(), "mgba", nil)
+	_, err := installer.InstallEmulator(context.Background(), "ppsspp", nil)
 	if err != nil {
 		t.Fatalf("install: %v", err)
 	}
 
-	if !installer.IsEmulatorInstalled("mgba") {
+	if !installer.IsEmulatorInstalled("ppsspp") {
 		t.Error("should be installed after InstallEmulator")
 	}
 }
@@ -137,20 +137,20 @@ func TestPackageInstallerInstallArchive(t *testing.T) {
 	})
 
 	stateDir := "/state"
-	dl := NewFakeDownloader(fs, []byte("fake-zip-content"))
+	dl := NewFakeDownloader(fs, []byte("fake-7z-content"))
 	ext := NewFakeExtractor(fs, map[string]string{
-		"melonDS-x86_64.AppImage": "fake-melonds-binary",
+		"RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage": "fake-retroarch-binary",
 	})
 
 	installer := NewPackageInstaller(fs, stateDir, dl, ext)
 
-	binary, err := installer.InstallEmulator(context.Background(), "melonds", nil)
+	binary, err := installer.InstallEmulator(context.Background(), "retroarch", nil)
 	if err != nil {
 		t.Fatalf("InstallEmulator: %v", err)
 	}
 
-	if binary.Name != "melonds" {
-		t.Errorf("binary name = %q, want melonds", binary.Name)
+	if binary.Name != "retroarch" {
+		t.Errorf("binary name = %q, want retroarch", binary.Name)
 	}
 
 	if _, err := fs.Stat(binary.Path); err != nil {
@@ -160,8 +160,8 @@ func TestPackageInstallerInstallArchive(t *testing.T) {
 	if len(ext.Calls) != 1 {
 		t.Fatalf("expected 1 extract call, got %d", len(ext.Calls))
 	}
-	if ext.Calls[0].ArchiveType != "zip" {
-		t.Errorf("archive type = %q, want zip", ext.Calls[0].ArchiveType)
+	if ext.Calls[0].ArchiveType != "7z" {
+		t.Errorf("archive type = %q, want 7z", ext.Calls[0].ArchiveType)
 	}
 }
 
@@ -236,18 +236,18 @@ func TestPackageInstallerGarbageCollect(t *testing.T) {
 	ext := NewFakeExtractor(fs, nil)
 	installer := NewPackageInstaller(fs, stateDir, dl, ext)
 
-	_, _ = installer.InstallEmulator(context.Background(), "mgba", nil)
+	_, _ = installer.InstallEmulator(context.Background(), "ppsspp", nil)
 	_, _ = installer.InstallEmulator(context.Background(), "eden", nil)
 
 	keep := map[string]string{
-		"mgba": installer.ResolveVersion("mgba"),
+		"ppsspp": installer.ResolveVersion("ppsspp"),
 	}
 
 	if err := installer.GarbageCollect(keep); err != nil {
 		t.Fatalf("GarbageCollect: %v", err)
 	}
 
-	if !installer.IsEmulatorInstalled("mgba") {
+	if !installer.IsEmulatorInstalled("ppsspp") {
 		t.Error("mgba should still be installed")
 	}
 
@@ -269,7 +269,7 @@ func TestPackageInstallerResolveVersion(t *testing.T) {
 	ext := NewFakeExtractor(fs, nil)
 	installer := NewPackageInstaller(fs, stateDir, dl, ext)
 
-	version := installer.ResolveVersion("mgba")
+	version := installer.ResolveVersion("ppsspp")
 	if version == "" {
 		t.Error("should resolve a version for mgba")
 	}
@@ -308,7 +308,7 @@ func TestConcurrentInstallerInstallAll(t *testing.T) {
 
 	concurrent := NewConcurrentInstaller(installer, 3)
 
-	binaries, err := concurrent.InstallAll(context.Background(), []string{"mgba", "eden"}, nil)
+	binaries, err := concurrent.InstallAll(context.Background(), []string{"ppsspp", "eden"}, nil)
 	if err != nil {
 		t.Fatalf("InstallAll: %v", err)
 	}

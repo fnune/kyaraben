@@ -20,8 +20,6 @@ const EMULATOR_LOGOS: Partial<Record<EmulatorID, string>> = {
   duckstation,
   eden,
   flycast,
-  melonds,
-  mgba,
   pcsx2,
   ppsspp,
   retroarch,
@@ -32,6 +30,8 @@ const EMULATOR_LOGOS: Partial<Record<EmulatorID, string>> = {
   'retroarch:genesis_plus_gx': retroarch,
   'retroarch:mupen64plus_next': retroarch,
   'retroarch:mednafen_saturn': retroarch,
+  'retroarch:mgba': mgba,
+  'retroarch:melonds': melonds,
 }
 
 export function getEmulatorLogo(emulatorId: EmulatorID): string | undefined {

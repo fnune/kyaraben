@@ -9,14 +9,14 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/duckstation"
 	"github.com/fnune/kyaraben/internal/emulators/eden"
 	"github.com/fnune/kyaraben/internal/emulators/flycast"
-	"github.com/fnune/kyaraben/internal/emulators/melonds"
-	"github.com/fnune/kyaraben/internal/emulators/mgba"
 	"github.com/fnune/kyaraben/internal/emulators/pcsx2"
 	"github.com/fnune/kyaraben/internal/emulators/ppsspp"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbeetlesaturn"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbsnes"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchgenesisplusgx"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchmelonds"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmesen"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchmgba"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmupen64plus"
 	"github.com/fnune/kyaraben/internal/emulators/rpcs3"
 	"github.com/fnune/kyaraben/internal/emulators/vita3k"
@@ -73,13 +73,13 @@ func TestAllDefinitions(t *testing.T) {
 		retroarchgenesisplusgx.Definition{},
 		retroarchmupen64plus.Definition{},
 		retroarchbeetlesaturn.Definition{},
+		retroarchmgba.Definition{},
+		retroarchmelonds.Definition{},
 		duckstation.Definition{},
 		pcsx2.Definition{},
 		rpcs3.Definition{},
 		vita3k.Definition{},
 		ppsspp.Definition{},
-		mgba.Definition{},
-		melonds.Definition{},
 		flycast.Definition{},
 		cemu.Definition{},
 		azahar.Definition{},
@@ -188,8 +188,8 @@ func TestRegistryGetEmulator(t *testing.T) {
 		{model.EmulatorIDRPCS3, false},
 		{model.EmulatorIDVita3K, false},
 		{model.EmulatorIDPPSSPP, false},
-		{model.EmulatorIDMGBA, false},
-		{model.EmulatorIDMelonDS, false},
+		{model.EmulatorIDRetroArchMGBA, false},
+		{model.EmulatorIDRetroArchMelonDS, false},
 		{model.EmulatorIDFlycast, false},
 		{model.EmulatorIDCemu, false},
 		{model.EmulatorIDAzahar, false},
@@ -223,10 +223,10 @@ func TestRegistryGetEmulatorsForSystem(t *testing.T) {
 		{model.SystemIDNES, 1, []model.EmulatorID{model.EmulatorIDRetroArchMesen}},
 		{model.SystemIDSNES, 1, []model.EmulatorID{model.EmulatorIDRetroArchBsnes}},
 		{model.SystemIDN64, 1, []model.EmulatorID{model.EmulatorIDRetroArchMupen64Plus}},
-		{model.SystemIDGB, 1, []model.EmulatorID{model.EmulatorIDMGBA}},
-		{model.SystemIDGBC, 1, []model.EmulatorID{model.EmulatorIDMGBA}},
-		{model.SystemIDGBA, 1, []model.EmulatorID{model.EmulatorIDMGBA}},
-		{model.SystemIDNDS, 1, []model.EmulatorID{model.EmulatorIDMelonDS}},
+		{model.SystemIDGB, 1, []model.EmulatorID{model.EmulatorIDRetroArchMGBA}},
+		{model.SystemIDGBC, 1, []model.EmulatorID{model.EmulatorIDRetroArchMGBA}},
+		{model.SystemIDGBA, 1, []model.EmulatorID{model.EmulatorIDRetroArchMGBA}},
+		{model.SystemIDNDS, 1, []model.EmulatorID{model.EmulatorIDRetroArchMelonDS}},
 		{model.SystemIDN3DS, 1, []model.EmulatorID{model.EmulatorIDAzahar}},
 		{model.SystemIDGameCube, 1, []model.EmulatorID{model.EmulatorIDDolphin}},
 		{model.SystemIDWii, 1, []model.EmulatorID{model.EmulatorIDDolphin}},
@@ -275,10 +275,10 @@ func TestRegistryGetDefaultEmulator(t *testing.T) {
 		{model.SystemIDNES, model.EmulatorIDRetroArchMesen, false},
 		{model.SystemIDSNES, model.EmulatorIDRetroArchBsnes, false},
 		{model.SystemIDN64, model.EmulatorIDRetroArchMupen64Plus, false},
-		{model.SystemIDGB, model.EmulatorIDMGBA, false},
-		{model.SystemIDGBC, model.EmulatorIDMGBA, false},
-		{model.SystemIDGBA, model.EmulatorIDMGBA, false},
-		{model.SystemIDNDS, model.EmulatorIDMelonDS, false},
+		{model.SystemIDGB, model.EmulatorIDRetroArchMGBA, false},
+		{model.SystemIDGBC, model.EmulatorIDRetroArchMGBA, false},
+		{model.SystemIDGBA, model.EmulatorIDRetroArchMGBA, false},
+		{model.SystemIDNDS, model.EmulatorIDRetroArchMelonDS, false},
 		{model.SystemIDN3DS, model.EmulatorIDAzahar, false},
 		{model.SystemIDGameCube, model.EmulatorIDDolphin, false},
 		{model.SystemIDWii, model.EmulatorIDDolphin, false},
@@ -383,8 +383,8 @@ func TestGetConfigGenerator(t *testing.T) {
 		{model.EmulatorIDRPCS3, true},
 		{model.EmulatorIDVita3K, true},
 		{model.EmulatorIDPPSSPP, true},
-		{model.EmulatorIDMGBA, true},
-		{model.EmulatorIDMelonDS, true},
+		{model.EmulatorIDRetroArchMGBA, true},
+		{model.EmulatorIDRetroArchMelonDS, true},
 		{model.EmulatorIDFlycast, true},
 		{model.EmulatorIDCemu, true},
 		{model.EmulatorIDAzahar, true},

@@ -50,7 +50,7 @@ func TestGet(t *testing.T) {
 			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
-			model.SystemIDGBA:  {model.EmulatorIDMGBA},
+			model.SystemIDGBA:  {model.EmulatorIDRetroArchMGBA},
 			model.SystemIDSNES: {model.EmulatorIDRetroArchBsnes},
 		},
 	}
@@ -106,7 +106,7 @@ func TestGetWithInitializedStore(t *testing.T) {
 			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
-			model.SystemIDGBA: {model.EmulatorIDMGBA},
+			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
 		},
 	}
 
@@ -139,7 +139,7 @@ func TestGetSystemNames(t *testing.T) {
 			UserStore: "/Emulation",
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
-			model.SystemIDGBA: {model.EmulatorIDMGBA},
+			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
 		},
 	}
 
@@ -182,7 +182,7 @@ func TestGetMissingRequiredCount(t *testing.T) {
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDPSX: {model.EmulatorIDDuckStation},
-			model.SystemIDGBA: {model.EmulatorIDMGBA},
+			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
 		},
 	}
 
@@ -211,8 +211,8 @@ func TestGetWithManifest(t *testing.T) {
 	manifest := &model.Manifest{
 		LastApplied: time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC),
 		InstalledEmulators: map[model.EmulatorID]model.InstalledEmulator{
-			model.EmulatorIDMGBA: {
-				ID:          model.EmulatorIDMGBA,
+			model.EmulatorIDRetroArchMGBA: {
+				ID:          model.EmulatorIDRetroArchMGBA,
 				Version:     "latest",
 				PackagePath: "/test/packages",
 				Installed:   time.Now(),
@@ -230,7 +230,7 @@ func TestGetWithManifest(t *testing.T) {
 			UserStore: "/Emulation",
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
-			model.SystemIDGBA: {model.EmulatorIDMGBA},
+			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
 		},
 	}
 
@@ -248,11 +248,11 @@ func TestGetWithManifest(t *testing.T) {
 	}
 
 	emu := result.InstalledEmulators[0]
-	if emu.ID != model.EmulatorIDMGBA {
-		t.Errorf("Emulator ID: got %s, want %s", emu.ID, model.EmulatorIDMGBA)
+	if emu.ID != model.EmulatorIDRetroArchMGBA {
+		t.Errorf("Emulator ID: got %s, want %s", emu.ID, model.EmulatorIDRetroArchMGBA)
 	}
-	if emu.Name != "mGBA" {
-		t.Errorf("Emulator Name: got %s, want mGBA", emu.Name)
+	if emu.Name != "mGBA (RetroArch)" {
+		t.Errorf("Emulator Name: got %s, want mGBA (RetroArch)", emu.Name)
 	}
 	if emu.Version != "latest" {
 		t.Errorf("Emulator Version: got %s, want latest", emu.Version)
@@ -330,8 +330,8 @@ func TestGetManagedConfigsIncludesKeys(t *testing.T) {
 	manifest := &model.Manifest{
 		LastApplied: time.Now(),
 		InstalledEmulators: map[model.EmulatorID]model.InstalledEmulator{
-			model.EmulatorIDMGBA: {
-				ID:          model.EmulatorIDMGBA,
+			model.EmulatorIDRetroArchMGBA: {
+				ID:          model.EmulatorIDRetroArchMGBA,
 				Version:     "latest",
 				PackagePath: "/test/packages",
 				Installed:   time.Now(),
@@ -339,7 +339,7 @@ func TestGetManagedConfigsIncludesKeys(t *testing.T) {
 		},
 		ManagedConfigs: []model.ManagedConfig{
 			{
-				EmulatorIDs: []model.EmulatorID{model.EmulatorIDMGBA},
+				EmulatorIDs: []model.EmulatorID{model.EmulatorIDRetroArchMGBA},
 				Target: model.ConfigTarget{
 					RelPath: "mgba/config.ini",
 					BaseDir: model.ConfigBaseDirUserConfig,
@@ -355,7 +355,7 @@ func TestGetManagedConfigsIncludesKeys(t *testing.T) {
 
 	cfg := &model.KyarabenConfig{
 		Global:  model.GlobalConfig{UserStore: "/Emulation"},
-		Systems: map[model.SystemID][]model.EmulatorID{model.SystemIDGBA: {model.EmulatorIDMGBA}},
+		Systems: map[model.SystemID][]model.EmulatorID{model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA}},
 	}
 
 	reg := registry.NewDefault()

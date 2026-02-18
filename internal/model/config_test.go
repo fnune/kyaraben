@@ -118,7 +118,7 @@ func TestEnabledSystems(t *testing.T) {
 		Systems: map[SystemID][]EmulatorID{
 			SystemIDSNES: {EmulatorIDRetroArchBsnes},
 			SystemIDPSX:  {EmulatorIDDuckStation},
-			SystemIDGBA:  {EmulatorIDMGBA},
+			SystemIDGBA:  {EmulatorIDRetroArchMGBA},
 		},
 	}
 
@@ -186,7 +186,7 @@ func TestEmulatorVersion(t *testing.T) {
 		t.Errorf("Expected version v0.1-10655, got %s", version)
 	}
 
-	if version := cfg.EmulatorVersion(EmulatorIDMGBA); version != "" {
+	if version := cfg.EmulatorVersion(EmulatorIDRetroArchMGBA); version != "" {
 		t.Errorf("Expected empty version for unconfigured emulator, got %s", version)
 	}
 }

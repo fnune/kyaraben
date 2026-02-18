@@ -77,14 +77,14 @@ func TestProvisionCheckerWithFile(t *testing.T) {
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
 	}
-	if err := store.InitializeForEmulator(model.SystemIDGBA, model.EmulatorIDMGBA, model.StandardPathUsage()); err != nil {
+	if err := store.InitializeForEmulator(model.SystemIDGBA, model.EmulatorIDRetroArchMGBA, model.StandardPathUsage()); err != nil {
 		t.Fatalf("Failed to initialize GBA system: %v", err)
 	}
 
 	checker := NewProvisionChecker(store)
 
 	emu := model.Emulator{
-		ID:              model.EmulatorIDMGBA,
+		ID:              model.EmulatorIDRetroArchMGBA,
 		Systems:         []model.SystemID{model.SystemIDGBA},
 		ProvisionGroups: nil,
 	}

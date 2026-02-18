@@ -13,8 +13,6 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/duckstation"
 	"github.com/fnune/kyaraben/internal/emulators/eden"
 	"github.com/fnune/kyaraben/internal/emulators/flycast"
-	"github.com/fnune/kyaraben/internal/emulators/melonds"
-	"github.com/fnune/kyaraben/internal/emulators/mgba"
 	"github.com/fnune/kyaraben/internal/emulators/pcsx2"
 	"github.com/fnune/kyaraben/internal/emulators/ppsspp"
 	"github.com/fnune/kyaraben/internal/emulators/retroarch"
@@ -159,54 +157,6 @@ func collectKeys(entries []model.ConfigEntry) map[string]bool {
 	return keys
 }
 
-func TestMelonDSGenerate(t *testing.T) {
-	t.Parallel()
-
-	store := &fakeStoreReader{root: "/emulation"}
-	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
-	gen := melonds.Definition{}.ConfigGenerator()
-
-	result, err := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver})
-	if err != nil {
-		t.Fatalf("Generate() error = %v", err)
-	}
-
-	if len(result.Patches) != 1 {
-		t.Fatalf("expected 1 patch, got %d", len(result.Patches))
-	}
-
-	patch := result.Patches[0]
-
-	if patch.Target.Format != model.ConfigFormatTOML {
-		t.Errorf("expected TOML format, got %s", patch.Target.Format)
-	}
-
-	if !strings.Contains(patch.Target.RelPath, "melonDS") {
-		t.Errorf("expected RelPath to contain 'melonDS', got %s", patch.Target.RelPath)
-	}
-
-	expectedKeys := map[string]bool{
-		"BIOS9Path":      false,
-		"BIOS7Path":      false,
-		"SaveFilePath":   false,
-		"SavestatePath":  false,
-		"ScreenshotPath": false,
-		"LastROMFolder":  false,
-	}
-
-	for _, entry := range patch.Entries {
-		if _, ok := expectedKeys[entry.Key()]; ok {
-			expectedKeys[entry.Key()] = true
-		}
-	}
-
-	for key, found := range expectedKeys {
-		if !found {
-			t.Errorf("expected key %q not found in entries", key)
-		}
-	}
-}
-
 func TestFlycastGenerate(t *testing.T) {
 	t.Parallel()
 
@@ -339,60 +289,6 @@ func TestDolphinSymlinks(t *testing.T) {
 	for source, found := range expectedSources {
 		if !found {
 			t.Errorf("expected symlink source %q not found", source)
-		}
-	}
-}
-
-func TestMGBAGenerate(t *testing.T) {
-	t.Parallel()
-
-	store := &fakeStoreReader{root: "/emulation"}
-	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
-	gen := mgba.Definition{}.ConfigGenerator()
-
-	result, err := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver})
-	if err != nil {
-		t.Fatalf("Generate() error = %v", err)
-	}
-
-	if len(result.Patches) != 1 {
-		t.Fatalf("expected 1 patch, got %d", len(result.Patches))
-	}
-
-	patch := result.Patches[0]
-
-	if patch.Target.Format != model.ConfigFormatINI {
-		t.Errorf("expected INI format, got %s", patch.Target.Format)
-	}
-
-	// Verify mGBA sets the expected BIOS and Qt settings
-	expectedFullPaths := map[string]bool{
-		"bios":                    false,
-		"gb.bios":                 false,
-		"gbc.bios":                false,
-		"sgb.bios":                false,
-		"gba.bios":                false,
-		"ports.qt.bios":           false,
-		"ports.qt.gb.bios":        false,
-		"ports.qt.gbc.bios":       false,
-		"ports.qt.sgb.bios":       false,
-		"ports.qt.gba.bios":       false,
-		"ports.qt.useBios":        false,
-		"ports.qt.savegamePath":   false,
-		"ports.qt.savestatePath":  false,
-		"ports.qt.screenshotPath": false,
-		"ports.qt.showLibrary":    false,
-	}
-
-	for _, entry := range patch.Entries {
-		if _, ok := expectedFullPaths[entry.FullPath()]; ok {
-			expectedFullPaths[entry.FullPath()] = true
-		}
-	}
-
-	for fullPath, found := range expectedFullPaths {
-		if !found {
-			t.Errorf("expected config entry %q not found", fullPath)
 		}
 	}
 }
@@ -1170,56 +1066,6 @@ func TestDolphinControllerConfig(t *testing.T) {
 	hotkeys := result.Patches[2]
 	if !strings.Contains(hotkeys.Target.RelPath, "Hotkeys") {
 		t.Errorf("third patch should be Hotkeys.ini, got %s", hotkeys.Target.RelPath)
-	}
-}
-
-func TestMGBAControllerConfig(t *testing.T) {
-	t.Parallel()
-
-	store := &fakeStoreReader{root: "/emulation"}
-	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
-	gen := mgba.Definition{}.ConfigGenerator()
-
-	result, err := gen.Generate(model.GenerateContext{
-		Store:            store,
-		BaseDirResolver:  resolver,
-		ControllerConfig: defaultControllerConfig(),
-	})
-	if err != nil {
-		t.Fatalf("Generate() error = %v", err)
-	}
-
-	patch := result.Patches[0]
-	keys := collectKeys(patch.Entries)
-	for _, key := range []string{"keyA", "keyB", "keyL", "keyR", "keySelect", "keyStart"} {
-		if !keys[key] {
-			t.Errorf("missing mGBA pad key %q", key)
-		}
-	}
-}
-
-func TestMelonDSControllerConfigDisabled(t *testing.T) {
-	t.Parallel()
-
-	store := &fakeStoreReader{root: "/emulation"}
-	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
-	gen := melonds.Definition{}.ConfigGenerator()
-
-	result, err := gen.Generate(model.GenerateContext{
-		Store:            store,
-		BaseDirResolver:  resolver,
-		ControllerConfig: defaultControllerConfig(),
-	})
-	if err != nil {
-		t.Fatalf("Generate() error = %v", err)
-	}
-
-	patch := result.Patches[0]
-	keys := collectKeys(patch.Entries)
-	for _, key := range []string{"Joy_A", "Joy_B", "Joy_X", "Joy_Y", "Joy_L", "Joy_R"} {
-		if keys[key] {
-			t.Errorf("melonDS controller config is disabled, but found %q", key)
-		}
 	}
 }
 
