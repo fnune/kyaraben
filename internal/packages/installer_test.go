@@ -8,6 +8,7 @@ import (
 
 	"github.com/twpayne/go-vfs/v5/vfst"
 
+	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/testutil"
 	"github.com/fnune/kyaraben/internal/versions"
 )
@@ -18,6 +19,24 @@ func TestMain(m *testing.M) {
 	}
 	os.Exit(m.Run())
 }
+
+type fakeBaseDirResolver struct {
+	root string
+}
+
+func (f fakeBaseDirResolver) UserConfigDir() (string, error) {
+	return filepath.Join(f.root, ".config"), nil
+}
+
+func (f fakeBaseDirResolver) UserHomeDir() (string, error) {
+	return f.root, nil
+}
+
+func (f fakeBaseDirResolver) UserDataDir() (string, error) {
+	return filepath.Join(f.root, ".local", "share"), nil
+}
+
+var _ model.BaseDirResolver = fakeBaseDirResolver{}
 
 func TestPackageInstallerInstallEmulator(t *testing.T) {
 	t.Parallel()
@@ -30,7 +49,7 @@ func TestPackageInstallerInstallEmulator(t *testing.T) {
 	dl := NewFakeDownloader(fs, []byte("fake-appimage-binary"))
 	ext := NewFakeExtractor(fs, nil)
 
-	installer := NewPackageInstaller(fs, stateDir, dl, ext)
+	installer := NewPackageInstaller(fs, stateDir, dl, ext, fakeBaseDirResolver{root: "/home"})
 
 	var progressPhases []string
 	binary, err := installer.InstallEmulator(context.Background(), "ppsspp", func(p InstallProgress) {
@@ -75,7 +94,7 @@ func TestPackageInstallerSkipsAlreadyInstalled(t *testing.T) {
 	dl := NewFakeDownloader(fs, []byte("fake-binary"))
 	ext := NewFakeExtractor(fs, nil)
 
-	installer := NewPackageInstaller(fs, stateDir, dl, ext)
+	installer := NewPackageInstaller(fs, stateDir, dl, ext, fakeBaseDirResolver{root: "/home"})
 
 	_, err := installer.InstallEmulator(context.Background(), "ppsspp", nil)
 	if err != nil {
@@ -113,7 +132,7 @@ func TestPackageInstallerIsEmulatorInstalled(t *testing.T) {
 	dl := NewFakeDownloader(fs, []byte("fake-binary"))
 	ext := NewFakeExtractor(fs, nil)
 
-	installer := NewPackageInstaller(fs, stateDir, dl, ext)
+	installer := NewPackageInstaller(fs, stateDir, dl, ext, fakeBaseDirResolver{root: "/home"})
 
 	if installer.IsEmulatorInstalled("ppsspp") {
 		t.Error("should not be installed yet")
@@ -142,7 +161,7 @@ func TestPackageInstallerInstallArchive(t *testing.T) {
 		"RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage": "fake-retroarch-binary",
 	})
 
-	installer := NewPackageInstaller(fs, stateDir, dl, ext)
+	installer := NewPackageInstaller(fs, stateDir, dl, ext, fakeBaseDirResolver{root: "/home"})
 
 	binary, err := installer.InstallEmulator(context.Background(), "retroarch", nil)
 	if err != nil {
@@ -165,6 +184,77 @@ func TestPackageInstallerInstallArchive(t *testing.T) {
 	}
 }
 
+func TestPackageInstallerInstallArchiveExtractsDefaultConfig(t *testing.T) {
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/state":    &vfst.Dir{Perm: 0755},
+		"/userhome": &vfst.Dir{Perm: 0755},
+	})
+
+	stateDir := "/state"
+	dl := NewFakeDownloader(fs, []byte("fake-7z-content"))
+	ext := NewFakeExtractor(fs, map[string]string{
+		"RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage":                                          "fake-retroarch-binary",
+		"RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage.home/.config/retroarch/retroarch.cfg":     "default-config",
+		"RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage.home/.config/retroarch/assets/ozone/icon": "ozone-icon",
+	})
+
+	installer := NewPackageInstaller(fs, stateDir, dl, ext, fakeBaseDirResolver{root: "/userhome"})
+
+	_, err := installer.InstallEmulator(context.Background(), "retroarch", nil)
+	if err != nil {
+		t.Fatalf("InstallEmulator: %v", err)
+	}
+
+	configPath := "/userhome/.config/retroarch/retroarch.cfg"
+	if _, err := fs.Stat(configPath); err != nil {
+		t.Errorf("config not found at %s", configPath)
+	}
+
+	assetPath := "/userhome/.config/retroarch/assets/ozone/icon"
+	if _, err := fs.Stat(assetPath); err != nil {
+		t.Errorf("asset not found at %s", assetPath)
+	}
+}
+
+func TestPackageInstallerCoresCacheDownload(t *testing.T) {
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/state": &vfst.Dir{Perm: 0755},
+	})
+
+	stateDir := "/state"
+	dl := NewFakeDownloader(fs, []byte("fake-cores-bundle"))
+	ext := NewFakeExtractor(fs, map[string]string{
+		"cores/bsnes_libretro.so": "fake-bsnes-core",
+		"cores/mesen_libretro.so": "fake-mesen-core",
+	})
+
+	installer := NewPackageInstaller(fs, stateDir, dl, ext, fakeBaseDirResolver{root: "/home"})
+
+	_, err := installer.InstallCores(context.Background(), []string{"bsnes"}, nil)
+	if err != nil {
+		t.Fatalf("first InstallCores: %v", err)
+	}
+
+	if len(dl.Calls) != 1 {
+		t.Fatalf("expected 1 download call, got %d", len(dl.Calls))
+	}
+
+	dl.Calls = nil
+
+	_, err = installer.InstallCores(context.Background(), []string{"bsnes", "mesen"}, nil)
+	if err != nil {
+		t.Fatalf("second InstallCores: %v", err)
+	}
+
+	if len(dl.Calls) != 0 {
+		t.Error("should reuse cached download, not re-download")
+	}
+}
+
 func TestPackageInstallerInstallCores(t *testing.T) {
 	t.Parallel()
 
@@ -179,7 +269,7 @@ func TestPackageInstallerInstallCores(t *testing.T) {
 		"cores/mesen_libretro.so": "fake-mesen-core",
 	})
 
-	installer := NewPackageInstaller(fs, stateDir, dl, ext)
+	installer := NewPackageInstaller(fs, stateDir, dl, ext, fakeBaseDirResolver{root: "/home"})
 
 	cores, err := installer.InstallCores(context.Background(), []string{"bsnes", "mesen"}, nil)
 	if err != nil {
@@ -208,7 +298,7 @@ func TestPackageInstallerInstallIcon(t *testing.T) {
 	dl := NewFakeDownloader(fs, []byte("fake-icon-data"))
 	ext := NewFakeExtractor(fs, nil)
 
-	installer := NewPackageInstaller(fs, stateDir, dl, ext)
+	installer := NewPackageInstaller(fs, stateDir, dl, ext, fakeBaseDirResolver{root: "/home"})
 
 	icon, err := installer.InstallIcon(context.Background(), "eden", "https://example.com/eden.svg", "sha256-abc123")
 	if err != nil {
@@ -234,7 +324,7 @@ func TestPackageInstallerGarbageCollect(t *testing.T) {
 	stateDir := "/state"
 	dl := NewFakeDownloader(fs, []byte("fake-binary"))
 	ext := NewFakeExtractor(fs, nil)
-	installer := NewPackageInstaller(fs, stateDir, dl, ext)
+	installer := NewPackageInstaller(fs, stateDir, dl, ext, fakeBaseDirResolver{root: "/home"})
 
 	_, _ = installer.InstallEmulator(context.Background(), "ppsspp", nil)
 	_, _ = installer.InstallEmulator(context.Background(), "eden", nil)
@@ -267,7 +357,7 @@ func TestPackageInstallerResolveVersion(t *testing.T) {
 	stateDir := "/state"
 	dl := NewFakeDownloader(fs, nil)
 	ext := NewFakeExtractor(fs, nil)
-	installer := NewPackageInstaller(fs, stateDir, dl, ext)
+	installer := NewPackageInstaller(fs, stateDir, dl, ext, fakeBaseDirResolver{root: "/home"})
 
 	version := installer.ResolveVersion("ppsspp")
 	if version == "" {
@@ -285,7 +375,7 @@ func TestPackageInstallerVersionOverride(t *testing.T) {
 	stateDir := "/state"
 	dl := NewFakeDownloader(fs, []byte("fake-binary"))
 	ext := NewFakeExtractor(fs, nil)
-	installer := NewPackageInstaller(fs, stateDir, dl, ext)
+	installer := NewPackageInstaller(fs, stateDir, dl, ext, fakeBaseDirResolver{root: "/home"})
 	installer.SetVersionOverrides(map[string]string{"eden": "v0.1.0"})
 
 	version := installer.ResolveVersion("eden")
@@ -304,7 +394,7 @@ func TestConcurrentInstallerInstallAll(t *testing.T) {
 	stateDir := "/state"
 	dl := NewFakeDownloader(fs, []byte("fake-binary"))
 	ext := NewFakeExtractor(fs, nil)
-	installer := NewPackageInstaller(fs, stateDir, dl, ext)
+	installer := NewPackageInstaller(fs, stateDir, dl, ext, fakeBaseDirResolver{root: "/home"})
 
 	concurrent := NewConcurrentInstaller(installer, 3)
 
