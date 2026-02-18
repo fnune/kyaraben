@@ -8,15 +8,17 @@ import (
 )
 
 type FakeClient struct {
-	mu          gosync.Mutex
-	running     bool
-	deviceID    string
-	connections map[string]ConnectionInfo
-	addedPeers  []ConfiguredDevice
-	removedIDs  []string
-	sharedWith  []string
-	config      model.SyncConfig
-	folders     map[string]FolderStatusSummary
+	mu             gosync.Mutex
+	running        bool
+	deviceID       string
+	connections    map[string]ConnectionInfo
+	addedPeers     []ConfiguredDevice
+	removedIDs     []string
+	sharedWith     []string
+	config         model.SyncConfig
+	folders        map[string]FolderStatusSummary
+	discoveredDevs []DiscoveredDevice
+	pendingDevs    []PendingDevice
 }
 
 func NewFakeClient(config model.SyncConfig) *FakeClient {
@@ -112,6 +114,57 @@ func (c *FakeClient) GetConfiguredDevices(_ context.Context) ([]ConfiguredDevice
 	defer c.mu.Unlock()
 	result := make([]ConfiguredDevice, len(c.addedPeers))
 	copy(result, c.addedPeers)
+	return result, nil
+}
+
+func (c *FakeClient) SetConfiguredDevice(id, name string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for i, dev := range c.addedPeers {
+		if dev.ID == id {
+			c.addedPeers[i].Name = name
+			return
+		}
+	}
+	c.addedPeers = append(c.addedPeers, ConfiguredDevice{ID: id, Name: name})
+}
+
+func (c *FakeClient) RemoveConfiguredDevice(id string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for i, dev := range c.addedPeers {
+		if dev.ID == id {
+			c.addedPeers = append(c.addedPeers[:i], c.addedPeers[i+1:]...)
+			return
+		}
+	}
+}
+
+func (c *FakeClient) SetDiscoveredDevices(devs []DiscoveredDevice) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.discoveredDevs = devs
+}
+
+func (c *FakeClient) GetDiscoveredDevices(_ context.Context) ([]DiscoveredDevice, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	result := make([]DiscoveredDevice, len(c.discoveredDevs))
+	copy(result, c.discoveredDevs)
+	return result, nil
+}
+
+func (c *FakeClient) SetPendingDevices(devs []PendingDevice) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.pendingDevs = devs
+}
+
+func (c *FakeClient) GetPendingDevices(_ context.Context) ([]PendingDevice, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	result := make([]PendingDevice, len(c.pendingDevs))
+	copy(result, c.pendingDevs)
 	return result, nil
 }
 

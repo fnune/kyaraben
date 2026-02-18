@@ -53,6 +53,9 @@ type Daemon struct {
 	pairingMu         sync.Mutex
 	pairingCancelFunc context.CancelFunc
 	pairingActive     bool
+
+	autoAcceptMu         sync.Mutex
+	autoAcceptCancelFunc context.CancelFunc
 }
 
 func New(fs vfs.FS, p *paths.Paths, configPath, stateDir, manifestPath string, reg *registry.Registry, installer packages.Installer, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager) *Daemon {
@@ -154,6 +157,8 @@ func (d *Daemon) HandleWithEmit(cmd Command, emit func(Event)) []Event {
 		return d.handleSyncLocalChanges(nil)
 	case CommandTypeSyncReset:
 		return d.handleSyncReset()
+	case CommandTypeSyncDiscoveredDevices:
+		return d.handleSyncDiscoveredDevices()
 	default:
 		return d.errorResponse(fmt.Sprintf("unknown command: %s", cmd.Type))
 	}
@@ -1079,75 +1084,53 @@ func (d *Daemon) HandleSyncJoinPrimary(cmd SyncJoinPrimaryCommand, emit func(Eve
 	return d.handleSyncJoinPrimary(&cmd.Data, emit)
 }
 
+func (d *Daemon) HandleSyncDiscoveredDevices(cmd Command, emit func(Event)) []Event {
+	return d.handleSyncDiscoveredDevices()
+}
+
 func (d *Daemon) handleSyncStartPairing(emit func(Event)) []Event {
+	log.Info("Starting pairing mode")
 	cfg, err := d.loadConfig()
 	if err != nil {
+		log.Error("Failed to load config: %v", err)
 		return d.errorResponse(err.Error())
 	}
 
-	d.pairingMu.Lock()
-	if d.pairingActive {
-		d.pairingMu.Unlock()
-		return d.errorResponse("pairing already in progress")
+	if cfg.Sync.Mode != model.SyncModePrimary {
+		log.Error("Pairing rejected: not primary mode")
+		return d.errorResponse("pairing can only be started on primary device")
 	}
-	d.pairingActive = true
-	ctx, cancel := context.WithCancel(context.Background())
-	d.pairingCancelFunc = cancel
-	d.pairingMu.Unlock()
 
-	go func() {
-		defer func() {
-			d.pairingMu.Lock()
-			d.pairingActive = false
-			d.pairingMu.Unlock()
-		}()
+	client := syncpkg.NewClient(cfg.Sync)
+	loadedKey := d.loadSyncAPIKey()
+	if loadedKey != "" {
+		client.SetAPIKey(loadedKey)
+	}
 
-		client := syncpkg.NewClient(cfg.Sync)
-		loadedKey := d.loadSyncAPIKey()
-		if loadedKey != "" {
-			client.SetAPIKey(loadedKey)
-		}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-		flow := syncpkg.NewPrimaryPairingFlow(syncpkg.PairingFlowConfig{
-			SyncConfig: cfg.Sync,
-			Instance:   d.paths.Instance,
-			Advertiser: syncpkg.NewMDNSAdvertiser(),
-			Client:     client,
-			OnProgress: func(msg string) {
-				emit(Event{
-					Type: EventTypeProgress,
-					Data: SyncPairingProgressEvent{Message: msg},
-				})
-			},
-		})
+	deviceID, err := client.GetDeviceID(ctx)
+	if err != nil {
+		log.Error("Failed to get device ID: %v", err)
+		return d.errorResponse(fmt.Sprintf("getting device ID: %v", err))
+	}
 
-		result, code, err := flow.Run(ctx)
-		if err != nil {
-			emit(Event{Type: EventTypeError, Data: ErrorResponse{Error: err.Error()}})
-			return
-		}
+	log.Info("Starting auto-accept loop for device %s", deviceID)
+	d.startAutoAcceptLoop(cfg)
 
-		_ = code
-
-		d.persistSyncEnabled(cfg, model.SyncModePrimary)
-
-		emit(Event{
-			Type: EventTypeResult,
-			Data: SyncPairingCompleteResponse{
-				Success:      true,
-				PeerDeviceID: result.PeerDeviceID,
-				PeerName:     result.PeerName,
-			},
-		})
-	}()
-
-	return nil
+	return []Event{{
+		Type: EventTypeResult,
+		Data: SyncStartPairingResponse{DeviceID: deviceID},
+	}}
 }
 
 func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest, emit func(Event)) []Event {
 	if data == nil || data.Code == "" {
-		return d.errorResponse("code is required")
+		return d.errorResponse("primary device ID is required")
 	}
+	log.Info("handleSyncJoinPrimary called with code=%s", data.Code)
+	primaryDeviceID := strings.ToUpper(strings.TrimSpace(data.Code))
 
 	cfg, err := d.loadConfig()
 	if err != nil {
@@ -1164,8 +1147,11 @@ func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest, emit func(E
 	d.pairingCancelFunc = cancel
 	d.pairingMu.Unlock()
 
+	log.Info("Starting secondary pairing flow for device %s", primaryDeviceID)
+
 	go func() {
 		defer func() {
+			log.Info("Secondary pairing flow ended")
 			d.pairingMu.Lock()
 			d.pairingActive = false
 			d.pairingMu.Unlock()
@@ -1180,7 +1166,6 @@ func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest, emit func(E
 		flow := syncpkg.NewSecondaryPairingFlow(syncpkg.PairingFlowConfig{
 			SyncConfig: cfg.Sync,
 			Instance:   d.paths.Instance,
-			Browser:    syncpkg.NewMDNSBrowser(),
 			Client:     client,
 			OnProgress: func(msg string) {
 				emit(Event{
@@ -1190,7 +1175,7 @@ func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest, emit func(E
 			},
 		})
 
-		result, err := flow.Run(ctx, data.Code)
+		result, err := flow.Run(ctx, primaryDeviceID)
 		if err != nil {
 			emit(Event{Type: EventTypeError, Data: ErrorResponse{Error: err.Error()}})
 			return
@@ -1214,17 +1199,23 @@ func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest, emit func(E
 }
 
 func (d *Daemon) handleSyncCancelPairing() []Event {
-	d.pairingMu.Lock()
-	defer d.pairingMu.Unlock()
-	if d.pairingCancelFunc != nil {
-		d.pairingCancelFunc()
-		d.pairingCancelFunc = nil
-	}
-	d.pairingActive = false
+	d.stopAutoAcceptLoop()
+	d.stopSecondaryPairing()
 	return []Event{{
 		Type: EventTypeResult,
 		Data: map[string]bool{"cancelled": true},
 	}}
+}
+
+func (d *Daemon) stopSecondaryPairing() {
+	d.pairingMu.Lock()
+	defer d.pairingMu.Unlock()
+	if d.pairingCancelFunc != nil {
+		log.Info("Stopping secondary pairing flow")
+		d.pairingCancelFunc()
+		d.pairingCancelFunc = nil
+	}
+	d.pairingActive = false
 }
 
 func (d *Daemon) handleSyncEnable(data *SyncEnableRequest, emit func(Event)) []Event {
@@ -1327,6 +1318,8 @@ func (d *Daemon) handleSyncEnable(data *SyncEnableRequest, emit func(Event)) []E
 }
 
 func (d *Daemon) handleSyncReset() []Event {
+	d.stopAutoAcceptLoop()
+	d.stopSecondaryPairing()
 	setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir)
 	var removedFiles []string
 
@@ -1361,6 +1354,54 @@ func (d *Daemon) handleSyncReset() []Event {
 			Success:      true,
 			RemovedFiles: removedFiles,
 		},
+	}}
+}
+
+func (d *Daemon) handleSyncDiscoveredDevices() []Event {
+	cfg, err := d.loadConfig()
+	if err != nil {
+		return d.errorResponse(err.Error())
+	}
+
+	if !cfg.Sync.Enabled {
+		return []Event{{
+			Type: EventTypeResult,
+			Data: SyncDiscoveredDevicesResponse{Devices: []SyncDiscoveredDevice{}},
+		}}
+	}
+
+	client := syncpkg.NewClient(cfg.Sync)
+	loadedKey := d.loadSyncAPIKey()
+	if loadedKey != "" {
+		client.SetAPIKey(loadedKey)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if !client.IsRunning(ctx) {
+		return []Event{{
+			Type: EventTypeResult,
+			Data: SyncDiscoveredDevicesResponse{Devices: []SyncDiscoveredDevice{}},
+		}}
+	}
+
+	discovered, err := client.GetDiscoveredDevices(ctx)
+	if err != nil {
+		return d.errorResponse(fmt.Sprintf("getting discovered devices: %v", err))
+	}
+
+	devices := make([]SyncDiscoveredDevice, len(discovered))
+	for i, dev := range discovered {
+		devices[i] = SyncDiscoveredDevice{
+			DeviceID:  dev.DeviceID,
+			Addresses: dev.Addresses,
+		}
+	}
+
+	return []Event{{
+		Type: EventTypeResult,
+		Data: SyncDiscoveredDevicesResponse{Devices: devices},
 	}}
 }
 
@@ -1496,12 +1537,13 @@ func (d *Daemon) ensureSyncthingRunning(cfg *model.KyarabenConfig) {
 		log.Error("Failed to save manifest: %v", err)
 	}
 
+	client := syncpkg.NewClient(cfg.Sync)
+	loadedKey := d.loadSyncAPIKey()
+	if loadedKey != "" {
+		client.SetAPIKey(loadedKey)
+	}
+
 	if cfg.Sync.Mode == model.SyncModeSecondary {
-		client := syncpkg.NewClient(cfg.Sync)
-		loadedKey := d.loadSyncAPIKey()
-		if loadedKey != "" {
-			client.SetAPIKey(loadedKey)
-		}
 		d.dismissUnwantedPendingFolders(client)
 	}
 }
@@ -1545,6 +1587,7 @@ func (d *Daemon) updateSyncConfig(cfg *model.KyarabenConfig, userStorePath strin
 		if err := client.Restart(ctx); err != nil {
 			log.Info("Syncthing restart requested (may take a moment)")
 		}
+
 		if cfg.Sync.Mode == model.SyncModeSecondary {
 			d.dismissUnwantedPendingFolders(client)
 		}
@@ -1564,6 +1607,79 @@ func (d *Daemon) persistSyncEnabled(cfg *model.KyarabenConfig, mode model.SyncMo
 
 	if err := d.configStore.Save(cfg, path); err != nil {
 		log.Error("Failed to persist sync config: %v", err)
+	}
+}
+
+func (d *Daemon) startAutoAcceptLoop(cfg *model.KyarabenConfig) {
+	d.autoAcceptMu.Lock()
+	if d.autoAcceptCancelFunc != nil {
+		d.autoAcceptCancelFunc()
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	d.autoAcceptCancelFunc = cancel
+	d.autoAcceptMu.Unlock()
+
+	go func() {
+		client := syncpkg.NewClient(cfg.Sync)
+		loadedKey := d.loadSyncAPIKey()
+		if loadedKey != "" {
+			client.SetAPIKey(loadedKey)
+		}
+
+		seenDevices := make(map[string]bool)
+		ticker := time.NewTicker(3 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				pollCtx, pollCancel := context.WithTimeout(ctx, 5*time.Second)
+				pending, err := client.GetPendingDevices(pollCtx)
+				pollCancel()
+				if err != nil {
+					log.Debug("Auto-accept: error getting pending devices: %v", err)
+					continue
+				}
+
+				if len(pending) > 0 {
+					log.Info("Auto-accept: found %d pending device(s)", len(pending))
+				}
+
+				for _, dev := range pending {
+					if seenDevices[dev.DeviceID] {
+						continue
+					}
+					seenDevices[dev.DeviceID] = true
+
+					log.Info("Auto-accepting pending device: %s (ID: %s)", dev.Name, dev.DeviceID[:7])
+					addCtx, addCancel := context.WithTimeout(ctx, 10*time.Second)
+					if err := client.AddDevice(addCtx, dev.DeviceID, dev.Name); err != nil {
+						log.Error("Failed to add device %s: %v", dev.Name, err)
+						addCancel()
+						continue
+					}
+					if err := client.ShareFoldersWithDevice(addCtx, dev.DeviceID); err != nil {
+						log.Error("Failed to share folders with %s: %v", dev.Name, err)
+					}
+					addCancel()
+
+					log.Info("Auto-accept: pairing complete, stopping loop")
+					d.stopAutoAcceptLoop()
+					return
+				}
+			}
+		}
+	}()
+}
+
+func (d *Daemon) stopAutoAcceptLoop() {
+	d.autoAcceptMu.Lock()
+	defer d.autoAcceptMu.Unlock()
+	if d.autoAcceptCancelFunc != nil {
+		d.autoAcceptCancelFunc()
+		d.autoAcceptCancelFunc = nil
 	}
 }
 

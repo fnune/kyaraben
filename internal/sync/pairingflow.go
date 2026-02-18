@@ -3,20 +3,18 @@ package sync
 import (
 	"context"
 	"fmt"
-	"net"
-	"os"
+	"strings"
 	"time"
 
 	"github.com/fnune/kyaraben/internal/model"
 )
 
 const pairingTimeout = 5 * time.Minute
+const pollInterval = 2 * time.Second
 
 type PairingFlowConfig struct {
 	SyncConfig model.SyncConfig
 	Instance   string
-	Advertiser Advertiser
-	Browser    Browser
 	Client     SyncClient
 	OnProgress func(msg string)
 }
@@ -29,63 +27,56 @@ func NewPrimaryPairingFlow(cfg PairingFlowConfig) *PrimaryPairingFlow {
 	return &PrimaryPairingFlow{cfg: cfg}
 }
 
-func (f *PrimaryPairingFlow) Run(ctx context.Context) (*PairResult, string, error) {
+func (f *PrimaryPairingFlow) Run(ctx context.Context) (*PairResult, error) {
 	ctx, cancel := context.WithTimeout(ctx, pairingTimeout)
 	defer cancel()
 
-	code, err := GeneratePairingCode()
-	if err != nil {
-		return nil, "", fmt.Errorf("generating pairing code: %w", err)
-	}
-
 	localID, err := f.cfg.Client.GetDeviceID(ctx)
 	if err != nil {
-		return nil, "", fmt.Errorf("getting local device ID: %w", err)
+		return nil, fmt.Errorf("getting local device ID: %w", err)
 	}
 
-	hostname, _ := os.Hostname()
-	localName := hostname + "-kyaraben"
-	if f.cfg.Instance != "" {
-		localName = hostname + "-kyaraben-" + f.cfg.Instance
-	}
+	f.emit("DEVICE_ID:%s", localID)
+	f.emit("On your secondary device, open the Sync tab and select this device from the list.")
+	f.emit("Waiting for secondary to connect...")
 
-	listener, err := net.Listen("tcp", "0.0.0.0:0")
-	if err != nil {
-		return nil, "", fmt.Errorf("creating pairing listener: %w", err)
-	}
+	seenPending := make(map[string]bool)
 
-	server := NewPairingServer(code, localID, localName)
-	server.SetOnPairAccept(func(peerDeviceID, peerName string) error {
-		if err := f.cfg.Client.AddDevice(ctx, peerDeviceID, peerName); err != nil {
-			return fmt.Errorf("adding device to syncthing: %w", err)
+	ticker := time.NewTicker(pollInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			pending, err := f.cfg.Client.GetPendingDevices(ctx)
+			if err != nil {
+				log.Debug("error getting pending devices: %v", err)
+				continue
+			}
+
+			for _, dev := range pending {
+				if seenPending[dev.DeviceID] {
+					continue
+				}
+				seenPending[dev.DeviceID] = true
+
+				f.emit("Device found: %s", dev.Name)
+				f.emit("Pairing with %s...", dev.Name)
+
+				if err := f.cfg.Client.AddDevice(ctx, dev.DeviceID, dev.Name); err != nil {
+					return nil, fmt.Errorf("adding device: %w", err)
+				}
+				if err := f.cfg.Client.ShareFoldersWithDevice(ctx, dev.DeviceID); err != nil {
+					return nil, fmt.Errorf("sharing folders: %w", err)
+				}
+
+				f.emit("Paired with %s", dev.Name)
+				return &PairResult{PeerDeviceID: dev.DeviceID, PeerName: dev.Name}, nil
+			}
+
+		case <-ctx.Done():
+			return nil, ctx.Err()
 		}
-		if err := f.cfg.Client.ShareFoldersWithDevice(ctx, peerDeviceID); err != nil {
-			return fmt.Errorf("sharing folders: %w", err)
-		}
-		return nil
-	})
-
-	if err := server.Start(listener); err != nil {
-		return nil, "", fmt.Errorf("starting pairing server: %w", err)
-	}
-	defer server.Stop()
-
-	port := server.Port()
-
-	if err := f.cfg.Advertiser.Advertise(ctx, hostname, port); err != nil {
-		return nil, "", fmt.Errorf("starting mDNS advertisement: %w", err)
-	}
-	defer f.cfg.Advertiser.Stop()
-
-	f.emit("Pairing code: %s", code)
-	f.emit("Waiting for devices... (expires in 5 minutes)")
-
-	select {
-	case result := <-server.Result():
-		f.emit("Paired with %s", result.PeerName)
-		return &result, code, nil
-	case <-ctx.Done():
-		return nil, code, fmt.Errorf("pairing timed out")
 	}
 }
 
@@ -103,65 +94,102 @@ func NewSecondaryPairingFlow(cfg PairingFlowConfig) *SecondaryPairingFlow {
 	return &SecondaryPairingFlow{cfg: cfg}
 }
 
-func (f *SecondaryPairingFlow) Run(ctx context.Context, code string) (*PairResult, error) {
+func (f *SecondaryPairingFlow) Run(ctx context.Context, primaryDeviceID string) (*PairResult, error) {
 	ctx, cancel := context.WithTimeout(ctx, pairingTimeout)
 	defer cancel()
 
-	localID, err := f.cfg.Client.GetDeviceID(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("getting local device ID: %w", err)
+	f.emit("Connecting to %s...", truncateDeviceID(primaryDeviceID))
+
+	if err := f.cfg.Client.AddDevice(ctx, primaryDeviceID, "primary"); err != nil {
+		return nil, fmt.Errorf("adding primary device: %w", err)
 	}
 
-	hostname, _ := os.Hostname()
-	localName := hostname + "-kyaraben"
-	if f.cfg.Instance != "" {
-		localName = hostname + "-kyaraben-" + f.cfg.Instance
-	}
+	f.emit("Waiting for primary to accept connection...")
 
-	f.emit("Searching for primary...")
+	ticker := time.NewTicker(pollInterval)
+	defer ticker.Stop()
 
-	offers, err := f.cfg.Browser.Browse(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("browsing for devices: %w", err)
-	}
-
-	var offer PairingOffer
 	for {
 		select {
-		case o, ok := <-offers:
-			if !ok {
-				return nil, fmt.Errorf("no primaries found on the network")
+		case <-ticker.C:
+			devices, err := f.cfg.Client.GetConfiguredDevices(ctx)
+			if err != nil {
+				log.Debug("error getting configured devices: %v", err)
+				continue
 			}
-			offer = o
-			f.emit("Found: %s (%s)", offer.Hostname, offer.PairingAddr)
-			goto pair
+
+			deviceStillConfigured := false
+			peerName := ""
+			for _, dev := range devices {
+				if dev.ID == primaryDeviceID {
+					deviceStillConfigured = true
+					peerName = dev.Name
+					break
+				}
+			}
+
+			if !deviceStillConfigured {
+				f.emit("Device was removed from configuration")
+				return nil, fmt.Errorf("pairing cancelled: device was removed")
+			}
+
+			connections, err := f.cfg.Client.GetConnections(ctx)
+			if err != nil {
+				log.Debug("error getting connections: %v", err)
+				continue
+			}
+
+			conn, ok := connections[primaryDeviceID]
+			if ok && conn.Connected {
+				if err := f.cfg.Client.ShareFoldersWithDevice(ctx, primaryDeviceID); err != nil {
+					return nil, fmt.Errorf("sharing folders: %w", err)
+				}
+
+				f.emit("Paired with %s", peerName)
+				return &PairResult{PeerDeviceID: primaryDeviceID, PeerName: peerName}, nil
+			}
+
+			f.emit("Waiting for primary to accept... (device ID: %s)", truncateDeviceID(primaryDeviceID))
+
 		case <-ctx.Done():
-			return nil, fmt.Errorf("discovery timed out")
+			if ctx.Err() == context.DeadlineExceeded {
+				return nil, fmt.Errorf("pairing timed out: primary device did not accept connection")
+			}
+			return nil, fmt.Errorf("pairing cancelled")
 		}
 	}
-
-pair:
-	f.emit("Pairing...")
-
-	pairingClient := NewPairingClient()
-	result, err := pairingClient.Pair(ctx, offer.PairingAddr, code, localID, localName, string(f.cfg.SyncConfig.Mode))
-	if err != nil {
-		return nil, fmt.Errorf("pairing with primary: %w", err)
-	}
-
-	if err := f.cfg.Client.AddDevice(ctx, result.PeerDeviceID, result.PeerName); err != nil {
-		return nil, fmt.Errorf("adding device to syncthing: %w", err)
-	}
-	if err := f.cfg.Client.ShareFoldersWithDevice(ctx, result.PeerDeviceID); err != nil {
-		return nil, fmt.Errorf("sharing folders: %w", err)
-	}
-
-	f.emit("Paired with %s", result.PeerName)
-	return result, nil
 }
 
 func (f *SecondaryPairingFlow) emit(format string, args ...any) {
 	if f.cfg.OnProgress != nil {
 		f.cfg.OnProgress(fmt.Sprintf(format, args...))
+	}
+}
+
+func truncateDeviceID(id string) string {
+	if len(id) > 7 {
+		return id[:7] + "..."
+	}
+	return id
+}
+
+type FormattedDeviceID struct {
+	Full   string
+	Groups []string
+}
+
+func FormatDeviceID(id string) FormattedDeviceID {
+	clean := strings.ReplaceAll(id, "-", "")
+	var groups []string
+	for i := 0; i < len(clean); i += 7 {
+		end := i + 7
+		if end > len(clean) {
+			end = len(clean)
+		}
+		groups = append(groups, clean[i:end])
+	}
+	return FormattedDeviceID{
+		Full:   id,
+		Groups: groups,
 	}
 }
