@@ -21,21 +21,11 @@ type GenerateContext struct {
 }
 
 // GenerateResult consolidates all outputs from a config generator:
-// config patches, owned files, symlinks, and launch args.
+// config patches, symlinks, and launch args.
 type GenerateResult struct {
 	Patches    []ConfigPatch
-	OwnedFiles []OwnedFile
 	Symlinks   []SymlinkSpec
 	LaunchArgs []string
-}
-
-// OwnedFile represents a config file that kyaraben owns entirely.
-// On every apply, the file is written from scratch (no merging with existing content).
-// Users who want to customize should create their own file through the emulator UI
-// rather than editing a kyaraben-owned file.
-type OwnedFile struct {
-	Target  ConfigTarget
-	Entries []ConfigEntry
 }
 
 type ConfigGenerator interface {

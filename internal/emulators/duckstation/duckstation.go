@@ -78,25 +78,26 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		{Path: []string{"GameList", "RecursivePaths"}, Value: store.SystemRomsDir(model.SystemIDPSX)},
 	}
 
-	var ownedFiles []model.OwnedFile
+	patches := []model.ConfigPatch{{Target: configTarget, Entries: entries}}
 	if cc := ctx.ControllerConfig; cc != nil {
 		entries = append(entries, model.ConfigEntry{
-			Path:      []string{"ControllerPorts", "InputProfileName"},
-			Value:     profileName,
-			Unmanaged: true,
+			Path:        []string{"ControllerPorts", "InputProfileName"},
+			Value:       profileName,
+			DefaultOnly: true,
 		})
+		patches[0].Entries = entries
 
 		profileEntries := padEntries(cc)
 		profileEntries = append(profileEntries, hotkeyEntries(cc)...)
-		ownedFiles = append(ownedFiles, model.OwnedFile{
-			Target:  ProfileTarget,
-			Entries: profileEntries,
+		patches = append(patches, model.ConfigPatch{
+			Target:         ProfileTarget,
+			Entries:        profileEntries,
+			ManagedRegions: []model.ManagedRegion{model.FileRegion{}},
 		})
 	}
 
 	return model.GenerateResult{
-		Patches:    []model.ConfigPatch{{Target: configTarget, Entries: entries}},
-		OwnedFiles: ownedFiles,
+		Patches: patches,
 	}, nil
 }
 

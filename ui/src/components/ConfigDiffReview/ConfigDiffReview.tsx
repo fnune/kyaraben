@@ -2,7 +2,12 @@ import { BottomBar } from '@/lib/BottomBar'
 import { Button } from '@/lib/Button'
 import { openPath } from '@/lib/daemon'
 import { useScrollToTop } from '@/lib/useScrollToTop'
-import type { ConfigChangeDetail, ConfigFileDiff, PreflightResponse } from '@/types/daemon'
+import type {
+  ConfigChangeDetail,
+  ConfigFileDiff,
+  ManagedRegionInfo,
+  PreflightResponse,
+} from '@/types/daemon'
 
 export interface ConfigDiffReviewProps {
   readonly data: PreflightResponse
@@ -34,6 +39,17 @@ function changeColor(type: string): string {
     default:
       return 'text-on-surface-muted'
   }
+}
+
+function isWholeFile(regions?: readonly ManagedRegionInfo[]): boolean {
+  return regions?.some((r) => r.type === 'file') ?? false
+}
+
+function conflictMessage(regions?: readonly ManagedRegionInfo[]): string {
+  if (isWholeFile(regions)) {
+    return 'This entire file is managed by kyaraben and will be rewritten:'
+  }
+  return 'You modified settings managed by kyaraben (will be overwritten):'
 }
 
 function ChangeRow({ change }: { readonly change: ConfigChangeDetail }) {
@@ -91,7 +107,7 @@ function FileDiff({ diff }: { readonly diff: ConfigFileDiff }) {
       {hasConflict && diff.userChanges && (
         <div className="bg-status-warning/10 border border-status-warning/30 rounded px-3 py-2">
           <p className="text-xs text-status-warning font-medium mb-1">
-            You modified keys managed by kyaraben (will be overwritten):
+            {conflictMessage(diff.managedRegions)}
           </p>
           {diff.userChanges.map((uc) => (
             <div key={uc.key} className="font-mono text-xs text-status-warning/80 pl-2">

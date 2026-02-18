@@ -113,15 +113,18 @@ func (d *DiffComputer) ComputeDiffWithBaseline(patch model.ConfigPatch, baseline
 			return diff, nil
 		}
 
-		for _, mk := range baseline.ManagedKeys {
-			section := configformat.SectionKey(mk.Path[:len(mk.Path)-1])
-			key := mk.Path[len(mk.Path)-1]
+		for _, entry := range patch.Entries {
+			if entry.DefaultOnly {
+				continue
+			}
+			section := configformat.SectionKey(entry.Parent())
+			key := entry.Key()
 
 			if sectionMap, ok := current[section]; ok {
-				if currentVal, ok := sectionMap[key]; ok && configformat.NormalizePath(currentVal, d.homeDir()) != configformat.NormalizePath(mk.Value, d.homeDir()) {
+				if currentVal, ok := sectionMap[key]; ok && configformat.NormalizePath(currentVal, d.homeDir()) != configformat.NormalizePath(entry.Value, d.homeDir()) {
 					diff.UserChanges = append(diff.UserChanges, UserChange{
-						Path:          mk.Path,
-						BaselineValue: mk.Value,
+						Path:          entry.Path,
+						BaselineValue: entry.Value,
 						CurrentValue:  currentVal,
 					})
 				}
@@ -281,7 +284,7 @@ func (d *ConfigDiff) FormatWithColor(useColor bool) string {
 	} else if !d.HasChanges() {
 		sb.WriteString(fmt.Sprintf("  %s %s\n", dim("UNCHANGED"), d.Path))
 		if d.UserModified && len(d.UserChanges) > 0 {
-			sb.WriteString(fmt.Sprintf("    %s\n", yellow("⚠ You modified keys managed by kyaraben:")))
+			sb.WriteString(fmt.Sprintf("    %s\n", yellow("⚠ You modified settings managed by kyaraben:")))
 			for _, uc := range d.UserChanges {
 				key := uc.Path[len(uc.Path)-1]
 				sb.WriteString(fmt.Sprintf("      %s: %s → %s\n", key, dim(uc.BaselineValue), yellow(uc.CurrentValue)))
@@ -293,7 +296,7 @@ func (d *ConfigDiff) FormatWithColor(useColor bool) string {
 	}
 
 	if d.UserModified && len(d.UserChanges) > 0 {
-		sb.WriteString(fmt.Sprintf("    %s\n", yellow("⚠ You modified keys managed by kyaraben (will be overwritten):")))
+		sb.WriteString(fmt.Sprintf("    %s\n", yellow("⚠ You modified settings managed by kyaraben (will be overwritten):")))
 		for _, uc := range d.UserChanges {
 			key := uc.Path[len(uc.Path)-1]
 			sb.WriteString(fmt.Sprintf("      %s: %s → %s\n", key, dim(uc.BaselineValue), yellow(uc.CurrentValue)))

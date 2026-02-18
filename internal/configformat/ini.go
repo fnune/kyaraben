@@ -61,7 +61,7 @@ func (h *iniHandler) Read(path string) (map[string]map[string]string, error) {
 	return result, scanner.Err()
 }
 
-func (h *iniHandler) Apply(path string, entries []model.ConfigEntry, ownedRegions []model.OwnedRegion) (ApplyResult, error) {
+func (h *iniHandler) Apply(path string, entries []model.ConfigEntry, managedRegions []model.ManagedRegion) (ApplyResult, error) {
 	if err := vfs.MkdirAll(h.fs, filepath.Dir(path), 0755); err != nil {
 		return ApplyResult{}, fmt.Errorf("creating config directory: %w", err)
 	}
@@ -98,7 +98,7 @@ func (h *iniHandler) Apply(path string, entries []model.ConfigEntry, ownedRegion
 	// Snapshot pre-deletion state so unmanaged checks use original values.
 	snapshot := snapshotSections(sections)
 
-	deleteOwnedKeys(sections, ownedRegions)
+	deleteManagedKeys(sections, managedRegions)
 
 	for _, entry := range entries {
 		section := SectionKey(entry.Parent())
@@ -106,7 +106,7 @@ func (h *iniHandler) Apply(path string, entries []model.ConfigEntry, ownedRegion
 			sections[section] = make(map[string]string)
 		}
 		key := entry.Key()
-		if entry.Unmanaged {
+		if entry.DefaultOnly {
 			if snapshotSection, ok := snapshot[section]; ok {
 				if _, exists := snapshotSection[key]; exists {
 					continue

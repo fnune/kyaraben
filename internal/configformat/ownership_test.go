@@ -10,7 +10,7 @@ import (
 	"github.com/fnune/kyaraben/internal/testutil"
 )
 
-func TestINI_OwnedRegionDeletesMatchingKeys(t *testing.T) {
+func TestINI_SectionRegionDeletesMatchingKeys(t *testing.T) {
 	t.Parallel()
 
 	fs := testutil.NewTestFS(t, map[string]any{
@@ -31,8 +31,8 @@ profiles\2\button_a = user-value-a
 		{Path: []string{"Controls", `profiles\1\name`}, Value: "kyaraben-steamdeck"},
 		{Path: []string{"Controls", `profiles\1\button_a`}, Value: "new-a"},
 	}
-	regions := []model.OwnedRegion{
-		{Section: "Controls", KeyPrefix: `profiles\1\`},
+	regions := []model.ManagedRegion{
+		model.SectionRegion{Section: "Controls", KeyPrefix: `profiles\1\`},
 	}
 
 	_, err := handler.Apply("/config/test.ini", entries, regions)
@@ -50,20 +50,20 @@ profiles\2\button_a = user-value-a
 		t.Errorf("should contain new button_a, got:\n%s", s)
 	}
 	if strings.Contains(s, "old-value") {
-		t.Errorf("should not contain old values from owned region, got:\n%s", s)
+		t.Errorf("should not contain old values from managed region, got:\n%s", s)
 	}
 	if strings.Contains(s, `profiles\1\button_b`) {
-		t.Errorf("old button_b should be deleted (was in owned region), got:\n%s", s)
+		t.Errorf("old button_b should be deleted (was in managed region), got:\n%s", s)
 	}
 	if !strings.Contains(s, `profiles\2\name = user-profile`) {
-		t.Errorf("should preserve user profile outside owned region, got:\n%s", s)
+		t.Errorf("should preserve user profile outside managed region, got:\n%s", s)
 	}
 	if !strings.Contains(s, `profiles\2\button_a = user-value-a`) {
-		t.Errorf("should preserve user keys outside owned region, got:\n%s", s)
+		t.Errorf("should preserve user keys outside managed region, got:\n%s", s)
 	}
 }
 
-func TestINI_OwnedRegionPreservesUnmanagedOutsideRegion(t *testing.T) {
+func TestINI_SectionRegionPreservesDefaultOnlyOutsideRegion(t *testing.T) {
 	t.Parallel()
 
 	fs := testutil.NewTestFS(t, map[string]any{
@@ -78,15 +78,15 @@ profiles\1\button_a = old-a
 	handler := NewHandler(fs, model.ConfigFormatINI)
 
 	entries := []model.ConfigEntry{
-		// Unmanaged entries outside the owned region.
-		{Path: []string{"Controls", "profile"}, Value: "1", Unmanaged: true},
-		{Path: []string{"Controls", `profiles\size`}, Value: "1", Unmanaged: true},
-		// Managed entries inside the owned region.
+		// DefaultOnly entries outside the managed region.
+		{Path: []string{"Controls", "profile"}, Value: "1", DefaultOnly: true},
+		{Path: []string{"Controls", `profiles\size`}, Value: "1", DefaultOnly: true},
+		// Managed entries inside the managed region.
 		{Path: []string{"Controls", `profiles\1\name`}, Value: "kyaraben-steamdeck"},
 		{Path: []string{"Controls", `profiles\1\button_a`}, Value: "new-a"},
 	}
-	regions := []model.OwnedRegion{
-		{Section: "Controls", KeyPrefix: `profiles\1\`},
+	regions := []model.ManagedRegion{
+		model.SectionRegion{Section: "Controls", KeyPrefix: `profiles\1\`},
 	}
 
 	_, err := handler.Apply("/config/test.ini", entries, regions)
@@ -97,21 +97,21 @@ profiles\1\button_a = old-a
 	content, _ := fs.ReadFile("/config/test.ini")
 	s := string(content)
 
-	// User changed profile to 2 before apply. Since it's unmanaged and existed,
+	// User changed profile to 2 before apply. Since it's default-only and existed,
 	// it should be preserved.
 	if !strings.Contains(s, "profile = 2") {
-		t.Errorf("unmanaged 'profile' should be preserved at user value, got:\n%s", s)
+		t.Errorf("default-only 'profile' should be preserved at user value, got:\n%s", s)
 	}
 	if !strings.Contains(s, `profiles\size = 2`) {
-		t.Errorf("unmanaged 'profiles\\size' should be preserved at user value, got:\n%s", s)
+		t.Errorf("default-only 'profiles\\size' should be preserved at user value, got:\n%s", s)
 	}
-	// Owned region keys should be rewritten.
+	// Managed region keys should be rewritten.
 	if !strings.Contains(s, `profiles\1\name = kyaraben-steamdeck`) {
 		t.Errorf("managed profile name should be written, got:\n%s", s)
 	}
 }
 
-func TestINI_OwnedRegionEmptyPrefixDeletesEntireSection(t *testing.T) {
+func TestINI_SectionRegionEmptyPrefixDeletesEntireSection(t *testing.T) {
 	t.Parallel()
 
 	fs := testutil.NewTestFS(t, map[string]any{
@@ -128,8 +128,8 @@ Left = 10-21
 		{Path: []string{"ControlMapping", "Up"}, Value: "10-19,1-38"},
 		{Path: []string{"ControlMapping", "Down"}, Value: "10-20,1-40"},
 	}
-	regions := []model.OwnedRegion{
-		{Section: "ControlMapping"},
+	regions := []model.ManagedRegion{
+		model.SectionRegion{Section: "ControlMapping"},
 	}
 
 	_, err := handler.Apply("/config/test.ini", entries, regions)
@@ -147,11 +147,11 @@ Left = 10-21
 		t.Errorf("should contain new Down value, got:\n%s", s)
 	}
 	if strings.Contains(s, "Left") {
-		t.Errorf("Left should be deleted (entire section owned), got:\n%s", s)
+		t.Errorf("Left should be deleted (entire section managed), got:\n%s", s)
 	}
 }
 
-func TestINI_OwnedRegionUnmanagedOnFreshFile(t *testing.T) {
+func TestINI_SectionRegionDefaultOnlyOnFreshFile(t *testing.T) {
 	t.Parallel()
 
 	fs := testutil.NewTestFS(t, map[string]any{
@@ -161,13 +161,13 @@ func TestINI_OwnedRegionUnmanagedOnFreshFile(t *testing.T) {
 	handler := NewHandler(fs, model.ConfigFormatINI)
 
 	entries := []model.ConfigEntry{
-		{Path: []string{"Controls", "profile"}, Value: "1", Unmanaged: true},
-		{Path: []string{"Controls", `profiles\size`}, Value: "1", Unmanaged: true},
+		{Path: []string{"Controls", "profile"}, Value: "1", DefaultOnly: true},
+		{Path: []string{"Controls", `profiles\size`}, Value: "1", DefaultOnly: true},
 		{Path: []string{"Controls", `profiles\1\name`}, Value: "kyaraben-steamdeck"},
 		{Path: []string{"Controls", `profiles\1\button_a`}, Value: "new-a"},
 	}
-	regions := []model.OwnedRegion{
-		{Section: "Controls", KeyPrefix: `profiles\1\`},
+	regions := []model.ManagedRegion{
+		model.SectionRegion{Section: "Controls", KeyPrefix: `profiles\1\`},
 	}
 
 	_, err := handler.Apply("/config/test.ini", entries, regions)
@@ -178,19 +178,19 @@ func TestINI_OwnedRegionUnmanagedOnFreshFile(t *testing.T) {
 	content, _ := fs.ReadFile("/config/test.ini")
 	s := string(content)
 
-	// On fresh file, unmanaged entries should be written (nothing to preserve).
+	// On fresh file, default-only entries should be written (nothing to preserve).
 	if !strings.Contains(s, "profile = 1") {
-		t.Errorf("unmanaged 'profile' should be written on fresh file, got:\n%s", s)
+		t.Errorf("default-only 'profile' should be written on fresh file, got:\n%s", s)
 	}
 	if !strings.Contains(s, `profiles\size = 1`) {
-		t.Errorf("unmanaged 'profiles\\size' should be written on fresh file, got:\n%s", s)
+		t.Errorf("default-only 'profiles\\size' should be written on fresh file, got:\n%s", s)
 	}
 	if !strings.Contains(s, `profiles\1\name = kyaraben-steamdeck`) {
 		t.Errorf("managed profile name should be written, got:\n%s", s)
 	}
 }
 
-func TestCFG_OwnedRegionDeletesMatchingKeys(t *testing.T) {
+func TestCFG_SectionRegionDeletesMatchingKeys(t *testing.T) {
 	t.Parallel()
 
 	fs := testutil.NewTestFS(t, map[string]any{
@@ -207,9 +207,9 @@ menu_driver = "ozone"
 		{Path: []string{"input_enable_hotkey_btn"}, Value: "5"},
 		{Path: []string{"input_save_state_btn"}, Value: "11"},
 	}
-	regions := []model.OwnedRegion{
-		{KeyPrefix: "input_enable_hotkey_btn"},
-		{KeyPrefix: "input_save_state_btn"},
+	regions := []model.ManagedRegion{
+		model.SectionRegion{KeyPrefix: "input_enable_hotkey_btn"},
+		model.SectionRegion{KeyPrefix: "input_save_state_btn"},
 	}
 
 	_, err := handler.Apply("/config/test.cfg", entries, regions)
@@ -226,7 +226,7 @@ menu_driver = "ozone"
 	if !strings.Contains(s, `input_save_state_btn = "11"`) {
 		t.Errorf("should contain new save state value, got:\n%s", s)
 	}
-	// Keyboard key should be preserved (not in owned region).
+	// Keyboard key should be preserved (not in managed region).
 	if !strings.Contains(s, `input_save_state = "f2"`) {
 		t.Errorf("keyboard key should be preserved, got:\n%s", s)
 	}
@@ -236,7 +236,7 @@ menu_driver = "ozone"
 	}
 }
 
-func TestINI_NoOwnedRegions(t *testing.T) {
+func TestINI_NoManagedRegions(t *testing.T) {
 	t.Parallel()
 
 	fs := testutil.NewTestFS(t, map[string]any{
@@ -258,7 +258,7 @@ func TestINI_NoOwnedRegions(t *testing.T) {
 	s := string(content)
 
 	if !strings.Contains(s, "existing = value") {
-		t.Errorf("should preserve existing when no owned regions, got:\n%s", s)
+		t.Errorf("should preserve existing when no managed regions, got:\n%s", s)
 	}
 	if !strings.Contains(s, "new = entry") {
 		t.Errorf("should add new entry, got:\n%s", s)

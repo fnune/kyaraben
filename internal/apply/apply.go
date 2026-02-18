@@ -40,9 +40,8 @@ type Progress struct {
 }
 
 type Result struct {
-	Patches    []model.ConfigPatch
-	OwnedFiles []model.OwnedFile
-	Backups    []BackupInfo
+	Patches []model.ConfigPatch
+	Backups []BackupInfo
 }
 
 type BackupInfo struct {
@@ -179,8 +178,6 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	emulatorsToInstall := make([]model.EmulatorID, 0, len(enabledEmulators))
 	allPatches := make([]model.ConfigPatch, 0)
 	patchEmulators := make([]model.EmulatorID, 0)
-	allOwnedFiles := make([]model.OwnedFile, 0)
-	ownedFileEmulators := make([]model.EmulatorID, 0)
 	allSymlinks := make(map[model.EmulatorID][]model.SymlinkSpec)
 	allLaunchArgs := make(map[model.EmulatorID][]string)
 
@@ -200,10 +197,6 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 			patchEmulators = append(patchEmulators, emuID)
 		}
 		allPatches = append(allPatches, result.Patches...)
-		for range result.OwnedFiles {
-			ownedFileEmulators = append(ownedFileEmulators, emuID)
-		}
-		allOwnedFiles = append(allOwnedFiles, result.OwnedFiles...)
 		if len(result.Symlinks) > 0 {
 			allSymlinks[emuID] = result.Symlinks
 		}
@@ -274,7 +267,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	}
 
 	if opts.DryRun {
-		return &Result{Patches: allPatches, OwnedFiles: allOwnedFiles}, nil
+		return &Result{Patches: allPatches}, nil
 	}
 
 	var storeMsg string
@@ -384,15 +377,6 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		}
 	}
 
-	ownedFileResults := make([]emulators.ApplyResult, len(allOwnedFiles))
-	for i, file := range allOwnedFiles {
-		result, err := a.ConfigWriter.ApplyOwnedFile(file)
-		if err != nil {
-			return nil, fmt.Errorf("applying owned file: %w", err)
-		}
-		ownedFileResults[i] = result
-	}
-
 	symlinkCreator := a.SymlinkCreator
 	if symlinkCreator == nil {
 		symlinkCreator = symlink.NewDefaultCreator()
@@ -476,46 +460,23 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	}
 
 	emulatorPatchCount := len(patchEmulators)
-	newManagedConfigs := make([]model.ManagedConfig, 0, emulatorPatchCount+len(ownedFileEmulators))
+	newManagedConfigs := make([]model.ManagedConfig, 0, emulatorPatchCount)
 	for i, patch := range allPatches {
 		if i >= emulatorPatchCount {
 			break
 		}
 
-		var managedKeys []model.ManagedKey
-		for _, entry := range patch.Entries {
-			if entry.Unmanaged {
-				continue
-			}
-			managedKeys = append(managedKeys, model.ManagedKey{
-				Path:  entry.Path,
-				Value: entry.Value,
-			})
+		var regions model.ManagedRegions
+		for _, r := range patch.ManagedRegions {
+			regions = append(regions, r)
 		}
 
 		newManagedConfigs = append(newManagedConfigs, model.ManagedConfig{
-			EmulatorIDs:  []model.EmulatorID{patchEmulators[i]},
-			Target:       patch.Target,
-			BaselineHash: configResults[i].BaselineHash,
-			LastModified: now,
-			ManagedKeys:  managedKeys,
-		})
-	}
-
-	for i, file := range allOwnedFiles {
-		var managedKeys []model.ManagedKey
-		for _, entry := range file.Entries {
-			managedKeys = append(managedKeys, model.ManagedKey{
-				Path:  entry.Path,
-				Value: entry.Value,
-			})
-		}
-		newManagedConfigs = append(newManagedConfigs, model.ManagedConfig{
-			EmulatorIDs:  []model.EmulatorID{ownedFileEmulators[i]},
-			Target:       file.Target,
-			BaselineHash: ownedFileResults[i].BaselineHash,
-			LastModified: now,
-			ManagedKeys:  managedKeys,
+			EmulatorIDs:    []model.EmulatorID{patchEmulators[i]},
+			Target:         patch.Target,
+			BaselineHash:   configResults[i].BaselineHash,
+			LastModified:   now,
+			ManagedRegions: regions,
 		})
 	}
 
@@ -555,9 +516,8 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	}
 
 	return &Result{
-		Patches:    allPatches,
-		OwnedFiles: allOwnedFiles,
-		Backups:    backups,
+		Patches: allPatches,
+		Backups: backups,
 	}, nil
 }
 
