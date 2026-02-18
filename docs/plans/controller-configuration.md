@@ -657,11 +657,60 @@ func TestHotkeyBindingParsing(t *testing.T) {
 }
 ```
 
+## Profile ownership per emulator
+
+Kyaraben writes controller bindings as managed entries. The config patching system merges: it reads the existing file, overwrites managed keys, and preserves all other keys. This means user-added settings outside kyaraben's managed keys survive `apply`. However, if a user tweaks a managed binding through the emulator UI, the next `apply` overwrites it.
+
+The table below documents whether each emulator supports separate profile storage, allowing kyaraben to own its profile without conflicting with user-created profiles.
+
+| Emulator | Profile storage | Kyaraben scope | User profiles safe? |
+|----------|----------------|----------------|---------------------|
+| Eden | Separate files in `~/.config/eden/input/` | Writes `player_N_*` keys in main config | Partially: user can create named profile files, but main config bindings are overwritten |
+| Azahar | Inline in `qt-config.ini` as numbered profiles | Writes `profiles\1\*` | Yes: user profiles 2, 3, etc. are untouched |
+| DuckStation | Inline in `settings.ini` | Writes `Pad1`-`Pad4` sections | No separate profiles: managed keys are overwritten |
+| PCSX2 | Inline in `PCSX2.ini` | Writes `Pad1`-`Pad4` sections | No separate profiles: managed keys are overwritten |
+| Dolphin | Separate file `GCPadNew.ini` | Writes `GCPad1`-`GCPad4` sections | No separate profiles: managed keys are overwritten |
+| PPSSPP | Separate file `controls.ini` | Writes `ControlMapping` section | No separate profiles: managed keys are overwritten |
+| melonDS | Inline in `melonDS.toml` | Writes `Instance0.Joy_*` keys | No separate profiles: managed keys are overwritten |
+| mGBA | Inline in `config.ini` | Writes `gba.input.SDLB` section | No separate profiles: managed keys are overwritten |
+| Flycast | Separate files in `~/.config/flycast/mappings/` | Writes per-device `.cfg` file | Yes: other device mapping files are untouched |
+| RetroArch | Shared `retroarch.cfg` | Writes `input_*` keys | Auto-detect handles devices; managed hotkey keys are overwritten |
+| Vita3K | N/A | No controller config | N/A |
+| RPCS3 | N/A | No controller config | N/A |
+| Cemu | N/A | No controller config | N/A |
+
+## Design problem: managed areas
+
+The current config system has two modes:
+
+1. **Managed** (default): kyaraben always writes the value. User changes are overwritten on next `apply`.
+2. **Unmanaged** (`Unmanaged: true`): kyaraben writes the value only if the key does not exist. Once set, kyaraben never touches it again.
+
+Neither mode expresses what we actually want for controller profiles:
+
+- Kyaraben should own a **Steam Deck gamepad profile** and be able to update it in future versions (managed).
+- Kyaraben should ship **keyboard defaults** that users can customize, and not overwrite their changes (unmanaged).
+- The **active profile selector** (e.g., which profile is loaded on startup) should be unmanaged so users can switch away from the kyaraben default.
+- Users should be able to **create their own profiles** alongside kyaraben's without conflict.
+
+The deeper problem is that we cannot express a managed "area" of a config file. For example, Azahar stores profiles as `profiles\1\*`, `profiles\2\*`, etc. Kyaraben can manage `profiles\1\*` without touching `profiles\2\*`. But for emulators like DuckStation where there is only `Pad1`, kyaraben and the user are fighting over the same keys.
+
+Possible approaches (needs design work):
+
+- **Separate files where possible**: Eden supports profile files in `~/.config/eden/input/`. Kyaraben could write a `kyaraben-steamdeck.ini` profile file and set it as the default, without touching other profile files. Similarly for Flycast mapping files and Dolphin's `GCPadNew.ini`.
+- **Namespaced profiles for inline configs**: For Azahar, kyaraben already writes to `profiles\1\*`. The profile selector (`profile=1`) could be unmanaged so users can switch to their own profile without kyaraben switching it back.
+- **Ownership markers**: Track which keys kyaraben manages in the manifest. On apply, only overwrite keys kyaraben previously wrote. This would let users modify a kyaraben-managed binding and have it stick, at the cost of kyaraben losing the ability to update that specific key.
+- **Config format list support**: Some emulators store profiles as indexed lists (Azahar's `profiles\N\*`). Kyaraben currently cannot append to or manage items within a list. Adding list awareness to the config format handlers would allow kyaraben to manage its own list entry while preserving others.
+
+This is left as a design task. The current implementation works correctly for the primary use case (Steam Deck with Steam Input) where users rarely need to customize bindings.
+
 ## Future plans
 
 ### Keyboard bindings
 
 Generate keyboard bindings for emulators alongside gamepad bindings. A fixed, sensible default keyboard layout would allow users without a controller to play immediately. This is lower priority than gamepad support but straightforward to implement since keyboard bindings do not depend on GUIDs or device detection.
+
+Keyboard defaults should be unmanaged: shipped once, then owned by the user. Kyaraben should not need to update keyboard layouts in future versions.
 
 ### User-selectable controller model
 
@@ -672,6 +721,10 @@ Allow users to select their controller model in kyaraben's config or UI. Kyarabe
 3. Eden and Azahar generators reading the selected device's GUID instead of hardcoding the Steam Deck GUID
 
 This is only useful for Eden and Azahar (Group C emulators). All other emulators use SDL standard names or auto-detection and work with any controller regardless of GUID.
+
+### Separate profile files
+
+For emulators that support external profile files (Eden, Flycast), kyaraben should write its profile as a named file (e.g., `kyaraben-steamdeck.ini`) rather than inlining into the main config. This cleanly separates kyaraben-managed profiles from user-created profiles and avoids the managed areas problem entirely.
 
 ## Sources
 
