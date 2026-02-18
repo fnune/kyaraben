@@ -1,6 +1,7 @@
 package emulators
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -1269,6 +1270,9 @@ func TestEdenControllerConfig(t *testing.T) {
 	for _, entry := range patch.Entries {
 		if strings.Contains(entry.Key(), "button_a") && strings.Contains(entry.Value, "engine:sdl") {
 			foundButtonA = true
+			if !strings.Contains(entry.Value, model.SteamDeckGUID) {
+				t.Errorf("Eden button_a should use Steam Deck GUID, got %s", entry.Value)
+			}
 			break
 		}
 	}
@@ -1284,10 +1288,11 @@ func TestAzaharControllerConfig(t *testing.T) {
 	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
 	gen := azahar.Definition{}.ConfigGenerator()
 
+	cc := defaultControllerConfig()
 	result, err := gen.Generate(model.GenerateContext{
 		Store:            store,
 		BaseDirResolver:  resolver,
-		ControllerConfig: defaultControllerConfig(),
+		ControllerConfig: cc,
 	})
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
@@ -1295,20 +1300,32 @@ func TestAzaharControllerConfig(t *testing.T) {
 
 	patch := result.Patches[0]
 	foundProfile := false
-	foundButtonA := false
+	guidsSeen := make(map[string]bool)
+	expectedGUIDs := len(cc.GUIDs)
+	profilesSize := ""
 	for _, entry := range patch.Entries {
 		if entry.Key() == "profile" {
 			foundProfile = true
 		}
+		if entry.Key() == "profiles\\size" {
+			profilesSize = entry.Value
+		}
 		if strings.Contains(entry.Key(), "button_a") && strings.Contains(entry.Value, "engine:sdl") {
-			foundButtonA = true
+			for guid := range cc.GUIDs {
+				if strings.Contains(entry.Value, guid) {
+					guidsSeen[guid] = true
+				}
+			}
 		}
 	}
 	if !foundProfile {
 		t.Error("Azahar should set active profile")
 	}
-	if !foundButtonA {
-		t.Error("Azahar should have GUID-based button_a entry")
+	if profilesSize != fmt.Sprintf("%d", expectedGUIDs) {
+		t.Errorf("Azahar profiles\\size = %s, want %d", profilesSize, expectedGUIDs)
+	}
+	if len(guidsSeen) != expectedGUIDs {
+		t.Errorf("Azahar generated profiles for %d GUIDs, want %d", len(guidsSeen), expectedGUIDs)
 	}
 }
 
