@@ -18,7 +18,7 @@ type ApplyResult struct {
 
 type Handler interface {
 	Read(path string) (map[string]map[string]string, error)
-	Apply(path string, entries []model.ConfigEntry) (ApplyResult, error)
+	Apply(path string, entries []model.ConfigEntry, ownedRegions []model.OwnedRegion) (ApplyResult, error)
 }
 
 func GetHandler(format model.ConfigFormat) Handler {
@@ -41,6 +41,38 @@ func NewHandler(fs vfs.FS, format model.ConfigFormat) Handler {
 		return &rawHandler{fs: fs}
 	default:
 		return &iniHandler{fs: fs}
+	}
+}
+
+func snapshotSections(sections map[string]map[string]string) map[string]map[string]string {
+	snap := make(map[string]map[string]string, len(sections))
+	for section, keys := range sections {
+		snapKeys := make(map[string]string, len(keys))
+		for k, v := range keys {
+			snapKeys[k] = v
+		}
+		snap[section] = snapKeys
+	}
+	return snap
+}
+
+func deleteOwnedKeys(sections map[string]map[string]string, regions []model.OwnedRegion) {
+	for _, region := range regions {
+		sectionMap, ok := sections[region.Section]
+		if !ok {
+			continue
+		}
+		if region.KeyPrefix == "" {
+			for k := range sectionMap {
+				delete(sectionMap, k)
+			}
+			continue
+		}
+		for k := range sectionMap {
+			if strings.HasPrefix(k, region.KeyPrefix) {
+				delete(sectionMap, k)
+			}
+		}
 	}
 }
 

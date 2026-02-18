@@ -48,7 +48,7 @@ func (h *cfgHandler) Read(path string) (map[string]map[string]string, error) {
 	return result, scanner.Err()
 }
 
-func (h *cfgHandler) Apply(path string, entries []model.ConfigEntry) (ApplyResult, error) {
+func (h *cfgHandler) Apply(path string, entries []model.ConfigEntry, ownedRegions []model.OwnedRegion) (ApplyResult, error) {
 	if err := vfs.MkdirAll(h.fs, filepath.Dir(path), 0755); err != nil {
 		return ApplyResult{}, fmt.Errorf("creating config directory: %w", err)
 	}
@@ -70,9 +70,31 @@ func (h *cfgHandler) Apply(path string, entries []model.ConfigEntry) (ApplyResul
 		_ = data.Close()
 	}
 
+	snapshot := make(map[string]string, len(existing))
+	for k, v := range existing {
+		snapshot[k] = v
+	}
+
+	for _, region := range ownedRegions {
+		if region.Section != "" {
+			continue
+		}
+		if region.KeyPrefix == "" {
+			for k := range existing {
+				delete(existing, k)
+			}
+			continue
+		}
+		for k := range existing {
+			if strings.HasPrefix(k, region.KeyPrefix) {
+				delete(existing, k)
+			}
+		}
+	}
+
 	for _, entry := range entries {
 		key := entry.Key()
-		if entry.Unmanaged && existing[key] != "" {
+		if entry.Unmanaged && snapshot[key] != "" {
 			continue
 		}
 		existing[key] = `"` + entry.Value + `"`

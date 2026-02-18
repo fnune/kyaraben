@@ -226,37 +226,19 @@ Steam Deck GUID: 03000000de280000ff11000001000000
 
 This means any controller connected to a Steam Deck (Xbox, PlayStation, 8BitDo, etc.) appears to emulators as the Steam Deck controller. EmuDeck exploits this: they ship configs with the Steam Deck GUID and it works for all controllers.
 
+Neither Eden nor Azahar auto-detects controller GUIDs at runtime. Eden loads profiles by name from `~/.config/eden/input/`, not by GUID matching. Azahar stores profiles inline in `qt-config.ini` and uses a static index to select the active one. Neither emulator switches profiles when a new controller is connected. EmuDeck and RetroDECK both rely entirely on Steam Input to virtualize all controllers to the Steam Deck GUID. Kyaraben follows the same approach.
+
 #### Multiplayer behavior
 
-**Eden** (yuzu-based) supports per-player controller profiles. The config uses `player_0_*`, `player_1_*`, etc. keys, each with its own GUID and port. Two players can use different physical controllers simultaneously. Kyaraben generates bindings for each known GUID per player slot.
+**Eden** (yuzu-based) supports per-player controller profiles. The config uses `player_0_*`, `player_1_*`, etc. keys, each with its own GUID and port. Two players can use different physical controllers simultaneously. Kyaraben generates bindings for two player slots using the Steam Deck GUID.
 
 **Azahar** (Citra-based) is single-player only (the 3DS is a handheld). There is one active profile at a time. Multiplayer requires separate emulator instances. Kyaraben generates a single profile.
 
-#### GUID mapping design
+#### GUID approach
 
-Kyaraben ships a built-in GUID-to-profile mapping in Go code. Users extend or override it in `config.toml`. At runtime, user mappings are merged over built-in mappings (user wins on conflicts).
+Kyaraben hardcodes the Steam Deck virtual gamepad GUID for Eden and Azahar configs. This covers all controllers on Steam Deck (where Steam Input virtualizes every physical controller to this GUID) and all controllers on desktop Linux when launched through Steam.
 
-Built-in mapping covers:
-
-| Profile | GUIDs |
-|---------|-------|
-| Steam Deck | `03000000de280000ff11000001000000` (Neptune) |
-| Xbox | `030000005e0400008e02000010010000` (360 wired), `030000005e0400009102000007010000` (360 wireless), `030000005e040000ea02000001030000` (One), `030000005e040000d102000001010000` (One S), `030000005e040000130b000011050000` (Series X/S) |
-| PlayStation | `030000004c0500006802000011010000` (DS3), `030000004c050000c405000011010000` (DS4 v1), `030000004c050000cc09000011010000` (DS4 v2), `030000004c050000e60c000011010000` (DualSense) |
-| Nintendo | `030000007e0500000920000011010000` (Switch Pro), `03000000c82d00000161000000010000` (8BitDo SN30 Pro) |
-| Handheld (Xbox-compatible) | `0300000005b000004c1b000000000000` (ROG Ally X), `030000007eef00008261000000000000` (Legion Go), `03000000861a000010e3000000000000` (Legion Go S), `03000000b00d000001190000000000000` (MSI Claw), `030000006325000058d0000000000000` (OneXPlayer) |
-
-Many handheld devices (ROG Ally original, AYANEO, GPD Win 4/Max 2) use the generic Microsoft Xbox 360 VID/PID (`045e:028e`), so they already match the Xbox profile. Devices like the ROG Ally X, Legion Go, and MSI Claw use their own VID/PID but behave as Xbox 360 controllers, so they map to the Xbox profile.
-
-The user extends this via `config.toml`:
-
-```toml
-[controller.guids]
-# Map an unsupported controller GUID to a known profile
-"030000001234567890abcdef01000000" = "xbox"
-```
-
-This means users with uncommon controllers can self-serve without waiting for a Kyaraben update.
+Desktop Linux users running emulators without Steam Input must configure their controller through the emulator UI.
 
 #### Eden format
 
@@ -369,7 +351,6 @@ Migration is mechanical: each emulator replaces `store StoreReader` with `ctx Ge
 type ControllerConfig struct {
     Layout  LayoutID
     Hotkeys HotkeyConfig
-    GUIDs   map[string]ProfileID  // merged: built-in + user overrides
 }
 
 type LayoutID string
@@ -379,14 +360,7 @@ const (
     LayoutNintendo LayoutID = "nintendo"  // A=right, B=bottom
 )
 
-type ProfileID string
-
-const (
-    ProfileSteamDeck ProfileID = "steam-deck"
-    ProfileXbox      ProfileID = "xbox"
-    ProfilePS        ProfileID = "playstation"
-    ProfileNintendo  ProfileID = "nintendo"
-)
+const SteamDeckGUID = "03000000de280000ff11000001000000"
 
 type HotkeyConfig struct {
     SaveState        HotkeyBinding
@@ -440,21 +414,9 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 }
 ```
 
-### GUID-to-profile mapping
+### GUID handling for Group C emulators
 
-Built-in mapping lives in Go code:
-
-```go
-var BuiltinGUIDs = map[string]ProfileID{
-    "03000000de280000ff11000001000000": ProfileSteamDeck,
-    "030000005e0400008e02000010010000": ProfileXbox,
-    // ... all GUIDs from the table above
-}
-```
-
-At apply time, the apply flow builds `ControllerConfig.GUIDs` by starting with `BuiltinGUIDs` and overlaying the user's `[controller.guids]` from config.toml. User entries win on conflicts.
-
-This means Group C emulators (Eden, Azahar) iterate over the merged GUID map and generate bindings for each GUID that maps to the relevant profile.
+Eden and Azahar use the `SteamDeckGUID` constant directly. No GUID-to-profile mapping is needed because Steam Input virtualizes all controllers to a single GUID. The `SteamDeckGUID` is embedded in every binding string for these emulators.
 
 ### Multi-player
 
@@ -499,16 +461,9 @@ screenshot = "Back+B"
 quit = "Back+Start"
 toggle_fullscreen = "Start+LeftStick"
 open_menu = "Back+RightStick"
-
-[controller.guids]
-# Users add custom GUID-to-profile mappings here.
-# These override built-in mappings for the same GUID.
-# Supported profiles: "steam-deck", "xbox", "playstation", "nintendo"
-# Example:
-# "030000001234567890abcdef01000000" = "xbox"
 ```
 
-When `[controller]` is absent from an existing config.toml, Kyaraben uses the defaults (standard layout, default hotkeys, no user GUID overrides).
+When `[controller]` is absent from an existing config.toml, Kyaraben uses the defaults (standard layout, default hotkeys).
 
 ### Layout naming
 
@@ -590,20 +545,15 @@ This is an optional enhancement, not required for controllers to work.
 - Turbo/rapid-fire
 - Macro recording
 - Advanced deadzone curves
-- Controllers not in built-in GUID list and not added via `[controller.guids]` (configure through emulator UI)
+- Controllers on desktop Linux without Steam (configure through emulator UI)
 
 ## Decisions
 
-### GUID mapping: built-in defaults with user overrides
+### GUID approach: Steam Deck GUID only
 
-The built-in GUID-to-profile mapping lives in Go code. Users extend or override it via `[controller.guids]` in config.toml. At runtime, user entries merge over built-in entries (user wins on conflicts).
+Eden and Azahar configs use the Steam Deck virtual gamepad GUID (`03000000de280000ff11000001000000`). Steam Input virtualizes all physical controllers to this GUID on Steam Deck and when launched through Steam on desktop Linux. This matches what EmuDeck and RetroDECK do.
 
-This means:
-- Common controllers work out of the box
-- Users with uncommon controllers can self-serve by adding their GUID
-- No need to wait for a Kyaraben update
-
-Config file size for GUID-based emulators (Eden, Azahar): we generate bindings for each GUID in the merged map. With ~15 built-in GUIDs x ~20 bindings = ~300 config lines per emulator. Acceptable tradeoff.
+Neither Eden nor Azahar auto-selects profiles based on connected controller GUIDs, so shipping per-controller-model profiles would not improve the out-of-the-box experience. Desktop Linux users running emulators outside Steam configure their controller through the emulator UI.
 
 ### Multi-player: context-dependent
 
@@ -706,6 +656,503 @@ func TestHotkeyBindingParsing(t *testing.T) {
     assert.Contains(t, err.Error(), "Bck")
 }
 ```
+
+## Profile ownership per emulator
+
+Kyaraben writes controller bindings as managed entries. The config patching system merges: it reads the existing file, overwrites managed keys, and preserves all other keys. This means user-added settings outside kyaraben's managed keys survive `apply`. However, if a user tweaks a managed binding through the emulator UI, the next `apply` overwrites it.
+
+The table below documents whether each emulator supports separate profile storage, allowing kyaraben to own its profile without conflicting with user-created profiles.
+
+| Emulator | Profile storage | Current kyaraben scope | Target strategy |
+|----------|----------------|------------------------|-----------------|
+| Eden | Separate files in `~/.config/eden/input/` | Writes `player_N_*` keys in main config | Separate file: write `kyaraben-steamdeck.ini` to input dir |
+| Azahar | Inline in `qt-config.ini` as numbered profiles | Writes `profiles\1\*` | Owned region: `profiles\1\*` in `[Controls]` |
+| DuckStation | Separate files in `~/.local/share/duckstation/inputprofiles/` | Writes `Pad1`-`Pad4` in main config | Separate file: write `kyaraben-steamdeck.ini` to inputprofiles dir |
+| PCSX2 | Separate files in `~/.config/PCSX2/inputprofiles/` | Writes `Pad1`-`Pad4` in main config | Separate file: write `kyaraben-steamdeck.ini` to inputprofiles dir |
+| Dolphin | Separate files in `~/.local/share/dolphin-emu/Config/Profiles/GCPad/` | Writes `GCPad1`-`GCPad4` in `GCPadNew.ini` | Separate file: write `kyaraben-steamdeck.ini` to Profiles dir |
+| PPSSPP | Separate file `controls.ini` | Writes `ControlMapping` section | Owned region: entire `[ControlMapping]` section |
+| melonDS | Inline in `melonDS.toml` | Writes `Instance0.Joy_*` keys | Owned region: `Joy_` prefix in `[Instance0]` |
+| mGBA | Inline in `config.ini` | Writes `gba.input.SDLB` section | Owned region: entire `[gba.input.SDLB]` section |
+| Flycast | Separate files in `~/.config/flycast/mappings/` | Writes per-device `.cfg` file | Already separate files (no change needed) |
+| RetroArch | Shared `retroarch.cfg` | Writes `input_*_btn` keys | Owned region: individual `*_btn` hotkey keys |
+| Vita3K | N/A | No controller config | N/A |
+| RPCS3 | N/A | No controller config | N/A |
+| Cemu | N/A | No controller config | N/A |
+
+## Design: config ownership model
+
+The current config system has two modes:
+
+1. **Managed** (default): kyaraben always writes the value. User changes are overwritten on next `apply`.
+2. **Unmanaged** (`Unmanaged: true`): kyaraben writes the value only if the key does not exist. Once set, kyaraben never touches it again.
+
+Neither mode expresses what we actually want for controller profiles:
+
+- Kyaraben should own a **Steam Deck gamepad profile** and be able to update it in future versions (managed).
+- Kyaraben should ship **keyboard defaults** that users can customize, and not overwrite their changes (unmanaged).
+- The **active profile selector** (e.g., which profile is loaded on startup) should be unmanaged so users can switch away from the kyaraben default.
+- Users should be able to **create their own profiles** alongside kyaraben's without conflict.
+
+### Two strategies
+
+Most emulators support separate profile files. For those, kyaraben writes a named profile file (e.g., `kyaraben-steamdeck.ini`) and does not touch other files in the directory. Users create their own profiles through the emulator UI. No conflict.
+
+A few emulators store profiles inline (Azahar) or use flat key-value configs without a profile concept (RetroArch, melonDS, mGBA, PPSSPP). For these, kyaraben needs to express ownership over a region of a config file: "I own all keys matching this prefix; everything else is yours."
+
+| Emulator | Strategy | Profile directory or region |
+|----------|----------|-----------------------------|
+| Eden | Separate file | `~/.config/eden/input/` |
+| DuckStation | Separate file | `~/.local/share/duckstation/inputprofiles/` |
+| PCSX2 | Separate file | `~/.config/PCSX2/inputprofiles/` |
+| Dolphin | Separate file | `~/.local/share/dolphin-emu/Config/Profiles/GCPad/` |
+| Flycast | Separate file | `~/.config/flycast/mappings/` |
+| Azahar | Owned region | `profiles\1\*` in `[Controls]` section |
+| RetroArch | Owned region | `input_*_btn` keys (gamepad hotkeys) |
+| melonDS | Owned region | `Instance0.Joy_*` keys |
+| mGBA | Owned region | `gba.input.SDLB` section |
+| PPSSPP | Owned region | `[ControlMapping]` section |
+
+### Strategy 1: separate profile files
+
+For emulators that discover profiles by scanning a directory for `.ini` files, kyaraben writes its own file and sets it as the active profile in the main config.
+
+Each emulator generator produces two outputs:
+
+1. A **profile file** that kyaraben owns entirely. On every `apply`, kyaraben writes this file from scratch. No merging, no preserving existing keys. This lets kyaraben update bindings in future versions.
+2. A **main config patch** that references the profile by name. The profile selector entry is unmanaged: kyaraben sets it on first run, then never touches it again. Users can switch to a different profile through the emulator UI.
+
+#### Types
+
+```go
+type GenerateResult struct {
+    Patches    []ConfigPatch
+    OwnedFiles []OwnedFile      // files kyaraben owns entirely
+    Symlinks   []SymlinkSpec
+    LaunchArgs []string
+}
+
+type OwnedFile struct {
+    Target  ConfigTarget    // where to write
+    Entries []ConfigEntry   // all entries in the file (written from scratch)
+}
+```
+
+`OwnedFile` differs from `ConfigPatch` in that it does not merge: it writes the file contents from scratch on every apply. The file is fully managed by kyaraben. Users should not edit it (their changes would be lost). The filename makes this clear (e.g., `kyaraben-steamdeck.ini`).
+
+#### Example: DuckStation
+
+Currently kyaraben writes `Pad1`-`Pad4` sections directly into `settings.ini`. After this change, it writes a profile file and sets the profile selector.
+
+```go
+func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
+    // Main config: paths, settings, and profile selector.
+    mainEntries := []model.ConfigEntry{
+        {Path: []string{"BIOS", "SearchDirectory"}, Value: ctx.Store.SystemBiosDir(model.SystemIDPSX)},
+        // ... other path entries ...
+    }
+
+    var ownedFiles []model.OwnedFile
+    if cc := ctx.ControllerConfig; cc != nil {
+        // Profile selector: unmanaged so users can switch away.
+        mainEntries = append(mainEntries, model.ConfigEntry{
+            Path:      []string{"ControllerPorts", "InputProfileName"},
+            Value:     "kyaraben-steamdeck",
+            Unmanaged: true,
+        })
+
+        // Profile file: owned entirely by kyaraben, written from scratch.
+        ownedFiles = append(ownedFiles, model.OwnedFile{
+            Target: model.ConfigTarget{
+                RelPath: "duckstation/inputprofiles/kyaraben-steamdeck.ini",
+                Format:  model.ConfigFormatINI,
+                BaseDir: model.ConfigBaseDirUserData,
+            },
+            Entries: duckstationProfileEntries(cc),
+        })
+    }
+
+    return model.GenerateResult{
+        Patches:    []model.ConfigPatch{{Target: mainConfigTarget, Entries: mainEntries}},
+        OwnedFiles: ownedFiles,
+    }, nil
+}
+
+func duckstationProfileEntries(cc *model.ControllerConfig) []model.ConfigEntry {
+    south, east, west, north := cc.FaceButtons()
+    return []model.ConfigEntry{
+        {Path: []string{"Controller1", "Type"}, Value: "AnalogController"},
+        {Path: []string{"Controller1", "Cross"}, Value: sdlRef(0, south)},
+        {Path: []string{"Controller1", "Circle"}, Value: sdlRef(0, east)},
+        {Path: []string{"Controller1", "Square"}, Value: sdlRef(0, west)},
+        {Path: []string{"Controller1", "Triangle"}, Value: sdlRef(0, north)},
+        // ... all bindings for Controller1 through Controller4 ...
+    }
+}
+```
+
+On disk after apply:
+
+```
+~/.local/share/duckstation/
+  inputprofiles/
+    kyaraben-steamdeck.ini    # owned by kyaraben, rewritten each apply
+    my-custom-xbox.ini        # user-created, never touched by kyaraben
+  settings.ini                # patched by kyaraben (paths, profile selector)
+```
+
+`settings.ini` after first apply:
+
+```ini
+[ControllerPorts]
+InputProfileName = kyaraben-steamdeck
+```
+
+If the user switches to `my-custom-xbox` through the DuckStation UI, the next `kyaraben apply` does not change `InputProfileName` back (unmanaged). Kyaraben still rewrites `kyaraben-steamdeck.ini` in case bindings changed in config.toml, but DuckStation loads the user's chosen profile.
+
+#### Example: Eden
+
+Eden discovers profile files in `~/.config/eden/input/`. The main config references a profile by name in `Controls\player_N_profile_name`.
+
+```go
+func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
+    entries := []model.ConfigEntry{
+        {Path: []string{"UI", "Screenshots\\screenshot_path"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDEden)},
+        // ... path entries ...
+    }
+
+    var ownedFiles []model.OwnedFile
+    if cc := ctx.ControllerConfig; cc != nil {
+        // Profile selector: unmanaged.
+        entries = append(entries,
+            model.ConfigEntry{
+                Path:      []string{"Controls", "player_0_profile_name"},
+                Value:     "kyaraben-steamdeck",
+                Unmanaged: true,
+            },
+            model.ConfigEntry{
+                Path:      []string{"Controls", "player_1_profile_name"},
+                Value:     "kyaraben-steamdeck",
+                Unmanaged: true,
+            },
+        )
+
+        // Profile file: owned entirely.
+        ownedFiles = append(ownedFiles, model.OwnedFile{
+            Target: model.ConfigTarget{
+                RelPath: "eden/input/kyaraben-steamdeck.ini",
+                Format:  model.ConfigFormatINI,
+                BaseDir: model.ConfigBaseDirUserConfig,
+            },
+            Entries: edenProfileEntries(cc),
+        })
+    }
+
+    return model.GenerateResult{
+        Patches:    []model.ConfigPatch{{Target: configTarget, Entries: entries}},
+        OwnedFiles: ownedFiles,
+    }, nil
+}
+```
+
+#### Example: Dolphin
+
+Dolphin stores GCPad profiles in `~/.local/share/dolphin-emu/Config/Profiles/GCPad/`.
+
+```go
+ownedFiles = append(ownedFiles, model.OwnedFile{
+    Target: model.ConfigTarget{
+        RelPath: "dolphin-emu/Config/Profiles/GCPad/kyaraben-steamdeck.ini",
+        Format:  model.ConfigFormatINI,
+        BaseDir: model.ConfigBaseDirUserData,
+    },
+    Entries: dolphinProfileEntries(cc),
+})
+```
+
+The main `GCPadNew.ini` is still patched to set `Device` and reference the profile, with the profile name entry as unmanaged.
+
+#### Keyboard profile files
+
+For emulators with separate profile files, keyboard defaults are a second owned file:
+
+```go
+// Gamepad profile: managed (kyaraben can update bindings in future versions).
+ownedFiles = append(ownedFiles, model.OwnedFile{
+    Target: model.ConfigTarget{
+        RelPath: "duckstation/inputprofiles/kyaraben-steamdeck.ini",
+        // ...
+    },
+    Entries: gamepadEntries,
+})
+
+// Keyboard profile: also an owned file, but the profile selector is unmanaged
+// so users are not forced to use it.
+ownedFiles = append(ownedFiles, model.OwnedFile{
+    Target: model.ConfigTarget{
+        RelPath: "duckstation/inputprofiles/kyaraben-keyboard.ini",
+        // ...
+    },
+    Entries: keyboardEntries,
+})
+```
+
+Both files are written from scratch on each apply. But the profile selector in the main config only points to `kyaraben-steamdeck` (unmanaged). Users who prefer keyboard can switch to `kyaraben-keyboard` through the emulator UI. They can also copy `kyaraben-keyboard.ini`, rename it, customize it, and kyaraben will never touch their copy.
+
+### Strategy 2: owned regions (for inline configs)
+
+For emulators that store profiles inline or use flat key-value configs, kyaraben declares **owned regions**: prefixes within a config file section that kyaraben controls exclusively.
+
+#### Types
+
+```go
+type OwnedRegion struct {
+    Section   string // INI section name. Empty for flat formats (CFG, TOML root).
+    KeyPrefix string // Keys starting with this prefix are owned. Empty = entire section.
+}
+
+type ConfigPatch struct {
+    Target       ConfigTarget
+    Entries      []ConfigEntry
+    OwnedRegions []OwnedRegion   // regions kyaraben owns in this file
+}
+```
+
+#### Apply algorithm
+
+When a `ConfigPatch` has owned regions, the apply step changes:
+
+```
+1. Read existing config file.
+2. Snapshot all existing key-value pairs (for unmanaged checks later).
+3. For each owned region:
+   a. Find all existing keys matching the region (section + prefix).
+   b. Delete them.
+4. For each entry in the patch:
+   a. If entry is unmanaged AND key existed in the snapshot from step 2:
+      skip (preserve user's value).
+   b. Otherwise: write the entry.
+5. Write config file.
+```
+
+Step 2 happens before step 3 so that unmanaged entries are checked against the pre-deletion state. This means an unmanaged entry like `profile=1` is preserved even though kyaraben deletes and rewrites the managed `profiles\1\*` keys around it.
+
+Constraint: **unmanaged entries must not fall within an owned region.** An owned region means "kyaraben can delete and rewrite everything here." An unmanaged entry means "kyaraben does not touch this." These are contradictory. Validate at patch construction time and panic if violated.
+
+#### Example: Azahar
+
+Azahar stores profiles inline as `profiles\N\*` in the `[Controls]` section. Kyaraben owns profile 1. Users can create profiles 2, 3, etc. through the Azahar UI.
+
+```go
+func profileEntries(cc *model.ControllerConfig) model.ConfigPatch {
+    south, east, west, north := cc.FaceButtons()
+    guid := model.SteamDeckGUID
+    prefix := `profiles\1\`
+
+    return model.ConfigPatch{
+        Target: configTarget,
+        OwnedRegions: []model.OwnedRegion{
+            {Section: "Controls", KeyPrefix: `profiles\1\`},
+        },
+        Entries: []model.ConfigEntry{
+            // Outside owned region: unmanaged profile selector.
+            // User can switch to profile 2 via UI; kyaraben won't switch it back.
+            {
+                Path:      []string{"Controls", "profile"},
+                Value:     "1",
+                Unmanaged: true,
+            },
+            // Outside owned region: unmanaged profile count.
+            // If user adds profile 2, Azahar sets this to 2; kyaraben preserves it.
+            {
+                Path:      []string{"Controls", `profiles\size`},
+                Value:     "1",
+                Unmanaged: true,
+            },
+
+            // Inside owned region: managed gamepad bindings.
+            // Kyaraben can update these in future versions.
+            {Path: []string{"Controls", prefix + "name"}, Value: "kyaraben-steamdeck"},
+            {Path: []string{"Controls", prefix + "button_a"}, Value: azaharButtonRef(guid, east)},
+            {Path: []string{"Controls", prefix + "button_b"}, Value: azaharButtonRef(guid, south)},
+            // ... remaining bindings ...
+        },
+    }
+}
+```
+
+On disk after apply with a user-created profile 2:
+
+```ini
+[Controls]
+profile=2
+profiles\size=2
+profiles\1\name=kyaraben-steamdeck
+profiles\1\button_a="button:1,engine:sdl,guid:03000000de280000ff11000001000000,port:0"
+profiles\1\button_b="button:0,engine:sdl,guid:03000000de280000ff11000001000000,port:0"
+; ... remaining kyaraben bindings for profile 1 ...
+profiles\2\name=my custom profile
+profiles\2\button_a="button:0,engine:sdl,guid:abc123,port:0"
+; ... user's custom bindings ...
+```
+
+Kyaraben deleted and rewrote all `profiles\1\*` keys (owned region) but preserved `profiles\2\*` (outside owned region), `profile=2` (unmanaged), and `profiles\size=2` (unmanaged).
+
+#### Example: RetroArch
+
+RetroArch uses a flat CFG file. Gamepad hotkey keys use the `_btn` suffix (`input_save_state_btn`). Keyboard keys use no suffix (`input_save_state`). Kyaraben owns only the `_btn` keys.
+
+```go
+func controllerEntries(cc *model.ControllerConfig) model.ConfigPatch {
+    return model.ConfigPatch{
+        Target: mainConfigTarget,
+        OwnedRegions: []model.OwnedRegion{
+            {KeyPrefix: "input_enable_hotkey_btn"},
+            {KeyPrefix: "input_save_state_btn"},
+            {KeyPrefix: "input_load_state_btn"},
+            // ... one per hotkey key ...
+        },
+        Entries: []model.ConfigEntry{
+            {Path: []string{"input_joypad_driver"}, Value: "sdl2"},
+            {Path: []string{"input_autodetect_enable"}, Value: "true"},
+            {Path: []string{"input_enable_hotkey_btn"}, Value: "4"},
+            {Path: []string{"input_save_state_btn"}, Value: "10"},
+            // ... remaining hotkey btn entries ...
+        },
+    }
+}
+```
+
+Keyboard keys like `input_save_state` (no `_btn` suffix) are not in any owned region and not in the patch entries, so they are preserved exactly as the user set them.
+
+Note: for RetroArch, the owned regions are individual keys rather than prefixes because the keys do not share a common prefix that excludes keyboard keys. An alternative is to list the exact managed keys instead of using prefix matching. This could be expressed as:
+
+```go
+// Exact key match: KeyPrefix with no wildcard semantics.
+// "input_save_state_btn" matches only that exact key, not "input_save_state_btn_extra".
+OwnedRegion{KeyPrefix: "input_save_state_btn"}
+```
+
+Since these are exact matches (no other key starts with `input_save_state_btn`), prefix semantics and exact-match semantics produce the same result.
+
+#### Example: melonDS
+
+melonDS stores joystick bindings as `Joy_*` keys in `[Instance0]` (TOML format).
+
+```go
+patch := model.ConfigPatch{
+    Target: configTarget,
+    OwnedRegions: []model.OwnedRegion{
+        {Section: "Instance0", KeyPrefix: "Joy_"},
+    },
+    Entries: []model.ConfigEntry{
+        {Path: []string{"Instance0", "Joy_A"}, Value: "0"},
+        {Path: []string{"Instance0", "Joy_B"}, Value: "1"},
+        {Path: []string{"Instance0", "Joy_Select"}, Value: "6"},
+        // ... remaining Joy_ entries ...
+    },
+}
+```
+
+Keyboard bindings in melonDS use different key names (`Key_A`, `Key_B`, etc.) so they fall outside the owned region and are never touched.
+
+#### Example: PPSSPP
+
+PPSSPP stores all bindings in `[ControlMapping]` in a separate `controls.ini` file. Kyaraben owns the entire section.
+
+```go
+patch := model.ConfigPatch{
+    Target: controlsTarget,
+    OwnedRegions: []model.OwnedRegion{
+        {Section: "ControlMapping"},  // KeyPrefix empty = own entire section
+    },
+    Entries: []model.ConfigEntry{
+        {Path: []string{"ControlMapping", "Up"}, Value: "10-19"},
+        {Path: []string{"ControlMapping", "Down"}, Value: "10-20"},
+        // ... remaining bindings ...
+    },
+}
+```
+
+Owning the entire section means kyaraben deletes all existing keys in `[ControlMapping]` before writing its entries. Users who want custom bindings should configure PPSSPP through its UI after disabling controller management in config.toml, or wait for a future release with keyboard profile support.
+
+#### Keyboard bindings in inline configs
+
+For Azahar, keyboard bindings are separate keys (`key_*`) from gamepad bindings (`button_*`) within the same profile. Kyaraben can ship keyboard defaults as unmanaged entries within the same profile, outside the owned region:
+
+```go
+OwnedRegions: []model.OwnedRegion{
+    // Own only the gamepad button bindings.
+    {Section: "Controls", KeyPrefix: `profiles\1\button_`},
+},
+Entries: []model.ConfigEntry{
+    // Managed gamepad bindings (inside owned region).
+    {Path: []string{"Controls", `profiles\1\button_a`}, Value: "..."},
+
+    // Unmanaged keyboard defaults (outside owned region).
+    // Set once, user can customize, kyaraben won't overwrite.
+    {
+        Path:      []string{"Controls", `profiles\1\key_a`},
+        Value:     "keyboard_z",
+        Unmanaged: true,
+    },
+},
+```
+
+For melonDS, keyboard keys use a `Key_` prefix (vs `Joy_` for gamepad). Keyboard entries would be unmanaged, gamepad entries inside the `Joy_` owned region:
+
+```go
+OwnedRegions: []model.OwnedRegion{
+    {Section: "Instance0", KeyPrefix: "Joy_"},
+},
+Entries: []model.ConfigEntry{
+    // Managed gamepad (inside owned region).
+    {Path: []string{"Instance0", "Joy_A"}, Value: "0"},
+    // Unmanaged keyboard (outside owned region).
+    {Path: []string{"Instance0", "Key_A"}, Value: "32", Unmanaged: true},
+},
+```
+
+### Migration from current implementation
+
+The current implementation writes controller bindings directly into main config files as managed entries. Migrating to the new model:
+
+1. **Separate-file emulators** (Eden, DuckStation, PCSX2, Dolphin, Flycast): stop writing controller entries to the main config. Start writing a profile file. Add an unmanaged profile selector to the main config. On first apply after migration, the old inline bindings remain in the main config (harmless: the profile file takes precedence once loaded by name). They can be cleaned up in a future version.
+
+2. **Inline emulators** (Azahar, RetroArch, melonDS, mGBA, PPSSPP): add `OwnedRegions` to existing patches. First apply after migration: the owned-region logic deletes old keys matching the prefix and rewrites them. Net effect is the same as before but now kyaraben tracks what it owns.
+
+3. **Profile selectors**: change from managed to unmanaged. First apply after migration: since the key already exists (from previous managed writes), the unmanaged check sees it and preserves the user's value. If the user had changed it through the emulator UI, their choice is now respected.
+
+### Edge cases
+
+**User deletes kyaraben's profile file**: next `apply` recreates it. The unmanaged profile selector still points to it. No problem.
+
+**User edits kyaraben's profile file directly**: changes are lost on next `apply` (the file is owned, written from scratch). This is intentional and the filename `kyaraben-steamdeck.ini` signals "do not edit." Users who want customization should copy the file, rename it, and switch to their copy.
+
+**Azahar `profiles\size` after kyaraben removes profile 1**: if a future kyaraben version stops writing controller config for Azahar, it should also remove profile 1 entries. But `profiles\size` is unmanaged and would still say 1 (or whatever the user set). Azahar handles missing profiles gracefully, so this is harmless. A manifest-based cleanup could handle this in the future.
+
+**PPSSPP section ownership is total**: owning the entire `[ControlMapping]` section means keyboard bindings in that section are also deleted. This is acceptable because PPSSPP uses device-prefixed values (`10-19` for gamepad, `1-` prefix for keyboard) in the same keys. The same `Up` key can hold both `10-19,1-38` (gamepad and keyboard). Kyaraben would write both gamepad and keyboard values for PPSSPP as managed entries within the owned section.
+
+## Future plans
+
+### Keyboard bindings
+
+Generate keyboard bindings for emulators alongside gamepad bindings. A fixed, sensible default keyboard layout would allow users without a controller to play immediately. This is lower priority than gamepad support but straightforward to implement since keyboard bindings do not depend on GUIDs or device detection.
+
+Keyboard defaults should be unmanaged: shipped once, then owned by the user. Kyaraben should not need to update keyboard layouts in future versions.
+
+### User-selectable controller model
+
+Allow users to select their controller model in kyaraben's config or UI. Kyaraben would then generate emulator configs with the matching GUID for Eden and Azahar. This would improve the desktop-without-Steam experience by eliminating manual emulator configuration. The implementation would involve:
+
+1. A `[controller.device]` setting in config.toml (e.g., `device = "xbox-series-x"`)
+2. A mapping from device names to SDL GUIDs
+3. Eden and Azahar generators reading the selected device's GUID instead of hardcoding the Steam Deck GUID
+
+This is only useful for Eden and Azahar (Group C emulators). All other emulators use SDL standard names or auto-detection and work with any controller regardless of GUID.
+
+### Separate profile files
+
+Five emulators support external profile files: Eden, DuckStation, PCSX2, Dolphin, and Flycast. Kyaraben should write a `kyaraben-steamdeck.ini` profile file to each emulator's profile directory rather than inlining bindings into the main config. This cleanly separates kyaraben-managed profiles from user-created profiles. See the "Strategy 1: separate profile files" section above for the full design and per-emulator examples.
 
 ## Sources
 

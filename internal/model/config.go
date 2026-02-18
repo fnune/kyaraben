@@ -23,9 +23,8 @@ type KyarabenConfig struct {
 
 // ControllerTomlConfig is the TOML representation of controller settings.
 type ControllerTomlConfig struct {
-	Layout  string            `toml:"layout"`
-	Hotkeys HotkeyTomlConfig  `toml:"hotkeys"`
-	GUIDs   map[string]string `toml:"guids,omitempty"`
+	Layout  string           `toml:"layout"`
+	Hotkeys HotkeyTomlConfig `toml:"hotkeys"`
 }
 
 // HotkeyTomlConfig is the TOML representation of hotkey bindings (raw strings).
@@ -58,16 +57,6 @@ func (c *KyarabenConfig) ResolveControllerConfig() (*ControllerConfig, error) {
 		}
 		cc.Layout = layout
 	}
-
-	guids := make(map[string]ProfileID, len(c.Controller.GUIDs))
-	for guid, profile := range c.Controller.GUIDs {
-		p, err := ValidateProfileID(profile)
-		if err != nil {
-			return nil, fmt.Errorf("controller.guids.%s: %w", guid, err)
-		}
-		guids[guid] = p
-	}
-	cc.GUIDs = MergeGUIDs(guids)
 
 	hk := c.Controller.Hotkeys
 	resolvers := []struct {
