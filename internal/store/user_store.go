@@ -9,24 +9,26 @@ import (
 	"github.com/twpayne/go-vfs/v5"
 
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/paths"
 )
 
 type UserStore struct {
 	fs       vfs.FS
+	paths    *paths.Paths
 	path     string
 	resolved string
 }
 
-func NewUserStore(fs vfs.FS, path string) (*UserStore, error) {
+func NewUserStore(fs vfs.FS, p *paths.Paths, path string) (*UserStore, error) {
 	resolved, err := expandPath(path)
 	if err != nil {
 		return nil, err
 	}
-	return &UserStore{fs: fs, path: path, resolved: resolved}, nil
+	return &UserStore{fs: fs, paths: p, path: path, resolved: resolved}, nil
 }
 
 func NewDefaultUserStore(path string) (*UserStore, error) {
-	return NewUserStore(vfs.OSFS, path)
+	return NewUserStore(vfs.OSFS, paths.DefaultPaths(), path)
 }
 
 func (s *UserStore) Path() string {
@@ -79,6 +81,14 @@ func (s *UserStore) EmulatorScreenshotsDir(emu model.EmulatorID) string {
 		name = "retroarch"
 	}
 	return filepath.Join(s.ScreenshotsDir(), name)
+}
+
+func (s *UserStore) CoresDir() string {
+	dir, err := s.paths.CoresDir()
+	if err != nil {
+		return ""
+	}
+	return dir
 }
 
 func (s *UserStore) Initialize() error {

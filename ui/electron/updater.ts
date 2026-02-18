@@ -97,7 +97,8 @@ export async function checkForUpdates(): Promise<UpdateInfo> {
       releaseNotes: release.body,
     }
   } catch (error) {
-    console.error('[kyaraben] Update check failed:', error)
+    const msg = error instanceof Error ? error.message : String(error)
+    console.error(`[kyaraben] Update check failed: ${msg}`)
     return {
       available: false,
       currentVersion,

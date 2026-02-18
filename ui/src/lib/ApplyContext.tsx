@@ -10,7 +10,7 @@ import {
 import * as daemon from '@/lib/daemon'
 import { installApp } from '@/lib/daemon'
 import { useToast } from '@/lib/ToastContext'
-import type { PreflightResponse } from '@/types/daemon'
+import type { PreflightResponse, SyncPendingResponse } from '@/types/daemon'
 import type { ApplyStatus, ProgressStep } from '@/types/ui'
 
 const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
@@ -40,9 +40,11 @@ interface ApplyContextValue {
   progressSteps: readonly ProgressStep[]
   error: string | null
   preflightData: PreflightResponse | null
+  syncPendingData: SyncPendingResponse | null
   logPosition: number | null
   apply: (config: ApplyConfig) => Promise<boolean>
   confirmApply: () => Promise<boolean>
+  confirmSyncPending: () => Promise<boolean>
   cancel: () => Promise<void>
   reset: () => void
   onCompleteRef: MutableRefObject<(() => void) | null>
@@ -55,6 +57,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
   const [progressSteps, setProgressSteps] = useState<readonly ProgressStep[]>([])
   const [error, setError] = useState<string | null>(null)
   const [preflightData, setPreflightData] = useState<PreflightResponse | null>(null)
+  const [syncPendingData, setSyncPendingData] = useState<SyncPendingResponse | null>(null)
   const [logPosition, setLogPosition] = useState<number | null>(null)
   const onCompleteRef = useRef<(() => void) | null>(null)
   const summaryMessageRef = useRef<string | null>(null)
@@ -216,6 +219,13 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
         return false
       }
 
+      const syncPendingResult = await daemon.getSyncPending()
+      if (syncPendingResult.ok && syncPendingResult.data.pending) {
+        setSyncPendingData(syncPendingResult.data)
+        setStatus('confirming_sync')
+        return false
+      }
+
       return runApply()
     },
     [runApply],
@@ -223,6 +233,19 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
 
   const confirmApply = useCallback(async (): Promise<boolean> => {
     setPreflightData(null)
+
+    const syncPendingResult = await daemon.getSyncPending()
+    if (syncPendingResult.ok && syncPendingResult.data.pending) {
+      setSyncPendingData(syncPendingResult.data)
+      setStatus('confirming_sync')
+      return false
+    }
+
+    return runApply()
+  }, [runApply])
+
+  const confirmSyncPending = useCallback(async (): Promise<boolean> => {
+    setSyncPendingData(null)
     return runApply()
   }, [runApply])
 
@@ -235,6 +258,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
     setProgressSteps([])
     setError(null)
     setPreflightData(null)
+    setSyncPendingData(null)
     setLogPosition(null)
   }, [])
 
@@ -245,9 +269,11 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
         progressSteps,
         error,
         preflightData,
+        syncPendingData,
         logPosition,
         apply,
         confirmApply,
+        confirmSyncPending,
         cancel,
         reset,
         onCompleteRef,

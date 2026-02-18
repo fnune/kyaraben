@@ -4,11 +4,28 @@ import * as os from 'node:os'
 import * as path from 'node:path'
 import * as readline from 'node:readline'
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import type { InvokeChannel } from './channels'
 import { checkForUpdates, downloadUpdate } from './updater'
+
+function getInstanceName(): string | null {
+  for (let i = 0; i < process.argv.length; i++) {
+    const arg = process.argv[i]
+    if (arg.startsWith('--instance=')) {
+      return arg.split('=')[1]
+    }
+    if (arg === '--instance' && i + 1 < process.argv.length) {
+      return process.argv[i + 1]
+    }
+  }
+  return null
+}
+
+const instanceName = getInstanceName()
+const kyarabenDirName = instanceName ? `kyaraben-${instanceName}` : 'kyaraben'
 
 // Set userData to XDG state directory instead of config
 const stateDir = process.env.XDG_STATE_HOME || path.join(os.homedir(), '.local', 'state')
-const kyarabenStateDir = path.join(stateDir, 'kyaraben')
+const kyarabenStateDir = path.join(stateDir, kyarabenDirName)
 app.setPath('userData', path.join(kyarabenStateDir, 'ui'))
 
 // Protocol types for daemon communication.
@@ -78,8 +95,12 @@ function findSidecarPath(): string {
   // app.getAppPath() returns dist-electron/ when running main.js directly
   const appPath = app.getAppPath()
   searchPaths.push(path.join(appPath, '..', 'binaries', sidecarName))
+  searchPaths.push(path.join(appPath, 'binaries', sidecarName))
 
-  // 4. Check APPDIR for AppImage
+  // 4. Check relative to __dirname (dist-electron/)
+  searchPaths.push(path.join(__dirname, '..', 'binaries', sidecarName))
+
+  // 5. Check APPDIR for AppImage
   const appdir = process.env.APPDIR
   if (appdir) {
     searchPaths.push(path.join(appdir, 'usr', 'bin', sidecarName))
@@ -182,9 +203,13 @@ async function ensureDaemon(): Promise<void> {
   if (daemon) return
 
   const sidecarPath = findSidecarPath()
-  console.error(`[kyaraben] Starting daemon: ${sidecarPath}`)
+  const daemonArgs = ['daemon']
+  if (instanceName) {
+    daemonArgs.push('--instance', instanceName)
+  }
+  console.error(`[kyaraben] Starting daemon: ${sidecarPath} ${daemonArgs.join(' ')}`)
 
-  const child = spawn(sidecarPath, ['daemon'], {
+  const child = spawn(sidecarPath, daemonArgs, {
     stdio: ['pipe', 'pipe', 'inherit'],
     env: process.env,
   })
@@ -335,7 +360,9 @@ async function applyCommand(): Promise<{ messages: string[]; cancelled: boolean 
               logPosition: data?.logPosition,
             })
           } catch (sendErr) {
-            console.error('[kyaraben] Failed to send progress:', sendErr)
+            console.error(
+              `[kyaraben] Failed to send progress: ${sendErr instanceof Error ? sendErr.message : String(sendErr)}`,
+            )
           }
         }
       } else if (event.type === 'result') {
@@ -347,6 +374,190 @@ async function applyCommand(): Promise<{ messages: string[]; cancelled: boolean 
         clearTimeout(timeout)
         currentDaemon.pending.delete(requestId)
         resolve({ messages, cancelled: true })
+      } else if (event.type === 'error') {
+        clearTimeout(timeout)
+        currentDaemon.pending.delete(requestId)
+        reject(new Error((event.data as { error?: string })?.error || 'Unknown error'))
+      }
+    }
+
+    currentDaemon.pending.set(requestId, { resolve: handleEvent, reject })
+  })
+}
+
+// Pairing streams progress events like apply
+async function pairingCommand(): Promise<{
+  success: boolean
+  peerDeviceId?: string
+  peerName?: string
+}> {
+  await ensureDaemon()
+
+  if (!daemon || !daemon.process.stdin) {
+    throw new Error('Daemon not running')
+  }
+
+  const currentDaemon = daemon
+  const stdin = daemon.process.stdin
+  const requestId = randomUUID()
+  const json = `${JSON.stringify({ type: 'sync_start_pairing', id: requestId })}\n`
+  stdin.write(json)
+
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(
+      () => {
+        currentDaemon.pending.delete(requestId)
+        reject(new Error('Pairing timeout'))
+      },
+      6 * 60 * 1000,
+    )
+
+    const handleEvent = (event: DaemonEvent) => {
+      if (event.type === 'progress') {
+        const data = event.data as { message?: string } | undefined
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          try {
+            mainWindow.webContents.send('pairing:progress', {
+              message: data?.message ?? '',
+            })
+          } catch (sendErr) {
+            console.error(
+              `[sync] Failed to send pairing progress: ${sendErr instanceof Error ? sendErr.message : String(sendErr)}`,
+            )
+          }
+        }
+      } else if (event.type === 'result') {
+        clearTimeout(timeout)
+        currentDaemon.pending.delete(requestId)
+        const data = event.data as { success?: boolean; peerDeviceId?: string; peerName?: string }
+        resolve({
+          success: data?.success ?? true,
+          peerDeviceId: data?.peerDeviceId,
+          peerName: data?.peerName,
+        })
+      } else if (event.type === 'cancelled') {
+        clearTimeout(timeout)
+        currentDaemon.pending.delete(requestId)
+        resolve({ success: false })
+      } else if (event.type === 'error') {
+        clearTimeout(timeout)
+        currentDaemon.pending.delete(requestId)
+        reject(new Error((event.data as { error?: string })?.error || 'Unknown error'))
+      }
+    }
+
+    currentDaemon.pending.set(requestId, { resolve: handleEvent, reject })
+  })
+}
+
+async function joinPrimaryCommand(code: string): Promise<{
+  success: boolean
+  peerDeviceId?: string
+  peerName?: string
+}> {
+  await ensureDaemon()
+
+  if (!daemon || !daemon.process.stdin) {
+    throw new Error('Daemon not running')
+  }
+
+  const currentDaemon = daemon
+  const stdin = daemon.process.stdin
+  const requestId = randomUUID()
+  const json = `${JSON.stringify({ type: 'sync_join_primary', id: requestId, data: { code, pairingAddr: '' } })}\n`
+  stdin.write(json)
+
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(
+      () => {
+        currentDaemon.pending.delete(requestId)
+        reject(new Error('Join primary timeout'))
+      },
+      6 * 60 * 1000,
+    )
+
+    const handleEvent = (event: DaemonEvent) => {
+      if (event.type === 'progress') {
+        const data = event.data as { message?: string } | undefined
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          try {
+            mainWindow.webContents.send('pairing:progress', {
+              message: data?.message ?? '',
+            })
+          } catch (sendErr) {
+            console.error(
+              `[sync] Failed to send join progress: ${sendErr instanceof Error ? sendErr.message : String(sendErr)}`,
+            )
+          }
+        }
+      } else if (event.type === 'result') {
+        clearTimeout(timeout)
+        currentDaemon.pending.delete(requestId)
+        const data = event.data as { success?: boolean; peerDeviceId?: string; peerName?: string }
+        resolve({
+          success: data?.success ?? true,
+          peerDeviceId: data?.peerDeviceId,
+          peerName: data?.peerName,
+        })
+      } else if (event.type === 'cancelled') {
+        clearTimeout(timeout)
+        currentDaemon.pending.delete(requestId)
+        resolve({ success: false })
+      } else if (event.type === 'error') {
+        clearTimeout(timeout)
+        currentDaemon.pending.delete(requestId)
+        reject(new Error((event.data as { error?: string })?.error || 'Unknown error'))
+      }
+    }
+
+    currentDaemon.pending.set(requestId, { resolve: handleEvent, reject })
+  })
+}
+
+async function syncEnableCommand(mode: string): Promise<{ success: boolean }> {
+  await ensureDaemon()
+
+  if (!daemon || !daemon.process.stdin) {
+    throw new Error('Daemon not running')
+  }
+
+  const currentDaemon = daemon
+  const stdin = daemon.process.stdin
+  const requestId = randomUUID()
+  const json = `${JSON.stringify({ type: 'sync_enable', id: requestId, data: { mode } })}\n`
+  stdin.write(json)
+
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(
+      () => {
+        currentDaemon.pending.delete(requestId)
+        reject(new Error('Sync enable timeout'))
+      },
+      10 * 60 * 1000,
+    )
+
+    const handleEvent = (event: DaemonEvent) => {
+      if (event.type === 'progress') {
+        const data = event.data as
+          | { phase?: string; message?: string; percent?: number }
+          | undefined
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          try {
+            mainWindow.webContents.send('sync_enable:progress', {
+              phase: data?.phase ?? '',
+              message: data?.message ?? '',
+              percent: data?.percent ?? 0,
+            })
+          } catch (sendErr) {
+            console.error(
+              `[sync] Failed to send enable progress: ${sendErr instanceof Error ? sendErr.message : String(sendErr)}`,
+            )
+          }
+        }
+      } else if (event.type === 'result') {
+        clearTimeout(timeout)
+        currentDaemon.pending.delete(requestId)
+        resolve({ success: true })
       } else if (event.type === 'error') {
         clearTimeout(timeout)
         currentDaemon.pending.delete(requestId)
@@ -402,7 +613,8 @@ function setupIpcHandlers(): void {
     try {
       return await applyCommand()
     } catch (err) {
-      console.error('[kyaraben] Apply failed:', err)
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error(`[kyaraben] Apply failed: ${msg}`)
       throw err
     }
   })
@@ -439,6 +651,81 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle('sync_remove_device', async (_, data: { deviceId: string }) => {
     const event = await sendCommand({ type: 'sync_remove_device', data })
+    return event.data
+  })
+
+  ipcMain.handle('sync_start_pairing', async () => {
+    try {
+      return await pairingCommand()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error(`[sync] Pairing failed: ${msg}`)
+      const cleanError = new Error(msg)
+      cleanError.stack = undefined
+      throw cleanError
+    }
+  })
+
+  ipcMain.handle('sync_join_primary', async (_, data: { code: string; pairingAddr: string }) => {
+    return await joinPrimaryCommand(data.code)
+  })
+
+  ipcMain.handle('sync_cancel_pairing', async () => {
+    const event = await sendCommand({ type: 'sync_cancel_pairing' })
+    return event.data
+  })
+
+  ipcMain.handle('sync_revert_folder', async (_, data: { folderId: string }) => {
+    const event = await sendCommand({ type: 'sync_revert_folder', data })
+    return event.data
+  })
+
+  ipcMain.handle('sync_local_changes', async (_, data: { folderId: string }) => {
+    const event = await sendCommand({ type: 'sync_local_changes', data })
+    return event.data
+  })
+
+  ipcMain.handle('sync_pause', async () => {
+    console.log('[sync] Pause requested')
+    try {
+      const event = await sendCommand({ type: 'sync_pause' })
+      console.log('[sync] Pause result:', JSON.stringify(event.data))
+      return event.data
+    } catch (err) {
+      console.error(`[sync] Pause failed: ${err instanceof Error ? err.message : String(err)}`)
+      throw err
+    }
+  })
+
+  ipcMain.handle('sync_resume', async () => {
+    console.log('[sync] Resume requested')
+    try {
+      const event = await sendCommand({ type: 'sync_resume' })
+      console.log('[sync] Resume result:', JSON.stringify(event.data))
+      return event.data
+    } catch (err) {
+      console.error(`[sync] Resume failed: ${err instanceof Error ? err.message : String(err)}`)
+      throw err
+    }
+  })
+
+  ipcMain.handle('sync_pending', async () => {
+    const event = await sendCommand({ type: 'sync_pending' })
+    return event.data
+  })
+
+  ipcMain.handle('sync_enable', async (_, data: { mode: string }) => {
+    try {
+      return await syncEnableCommand(data.mode)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error(`[sync] Enable failed: ${msg}`)
+      throw err
+    }
+  })
+
+  ipcMain.handle('sync_reset', async () => {
+    const event = await sendCommand({ type: 'sync_reset' })
     return event.data
   })
 
@@ -582,6 +869,48 @@ function setupIpcHandlers(): void {
     app.exit(0)
     return { success: true }
   })
+
+  // Compile-time check: ensure all INVOKE_CHANNELS have handlers registered above.
+  // If this errors, add the missing handler to this function.
+  const _dependencies = [
+    'get_systems',
+    'get_frontends',
+    'get_config',
+    'set_config',
+    'status',
+    'doctor',
+    'preflight',
+    'apply',
+    'cancel_apply',
+    'sync_status',
+    'sync_remove_device',
+    'sync_start_pairing',
+    'sync_join_primary',
+    'sync_cancel_pairing',
+    'sync_pending',
+    'sync_enable',
+    'sync_revert_folder',
+    'sync_local_changes',
+    'sync_reset',
+    'uninstall_preview',
+    'refresh_icon_caches',
+    'get_install_status',
+    'install_app',
+    'open_path',
+    'path_exists',
+    'read_file',
+    'get_bug_report_info',
+    'launch_emulator',
+    'open_log_tail',
+    'launch_cli_uninstall',
+    'check_for_updates',
+    'download_update',
+    'apply_update',
+  ] as const
+  type HandledChannels = (typeof _dependencies)[number]
+  type _AssertAllChannelsHandled = InvokeChannel extends HandledChannels ? true : never
+  const _check: _AssertAllChannelsHandled = true
+  void _check
 }
 
 // Window creation

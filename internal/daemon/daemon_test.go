@@ -83,33 +83,6 @@ func TestSetConfigCommandParsingWithMultipleEmulators(t *testing.T) {
 	}
 }
 
-func TestSyncAddDeviceCommandParsing(t *testing.T) {
-	jsonData := `{
-		"type": "sync_add_device",
-		"data": {
-			"deviceId": "ABC123",
-			"name": "My Phone"
-		}
-	}`
-
-	var cmd SyncAddDeviceCommand
-	if err := json.Unmarshal([]byte(jsonData), &cmd); err != nil {
-		t.Fatalf("failed to unmarshal: %v", err)
-	}
-
-	if cmd.Type != CommandTypeSyncAddDevice {
-		t.Errorf("expected type %q, got %q", CommandTypeSyncAddDevice, cmd.Type)
-	}
-
-	if cmd.Data.DeviceID != "ABC123" {
-		t.Errorf("expected deviceId %q, got %q", "ABC123", cmd.Data.DeviceID)
-	}
-
-	if cmd.Data.Name != "My Phone" {
-		t.Errorf("expected name %q, got %q", "My Phone", cmd.Data.Name)
-	}
-}
-
 func TestSyncRemoveDeviceCommandParsing(t *testing.T) {
 	jsonData := `{
 		"type": "sync_remove_device",

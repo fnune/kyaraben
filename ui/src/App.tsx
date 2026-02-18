@@ -10,6 +10,7 @@ import { ApplyProvider, useApply } from '@/lib/ApplyContext'
 import { BottomBarSlot, BottomBarSlotProvider } from '@/lib/BottomBarSlot'
 import * as daemon from '@/lib/daemon'
 import { useOnWindowFocus } from '@/lib/hooks/useOnWindowFocus'
+import { useSyncPairing } from '@/lib/hooks/useSyncPairing'
 import { useUpdateChecker } from '@/lib/hooks/useUpdateChecker'
 import { type FoundProvision, getNewlyFoundProvisions } from '@/lib/provisions'
 import { Spinner } from '@/lib/Spinner'
@@ -23,7 +24,6 @@ import type {
   FrontendRef,
   ManagedConfigInfo,
   StatusResponse,
-  SyncStatusResponse,
   System,
   SystemID,
 } from '@/types/daemon'
@@ -151,7 +151,6 @@ function AppContent() {
   const [configState, setConfigState] = useState<ConfigState>(emptyConfigState)
   const [configReady, setConfigReady] = useState(false)
   const [fontsReady, setFontsReady] = useState(false)
-  const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null)
 
   const savedConfigState = useRef<ConfigState>(emptyConfigState())
 
@@ -175,6 +174,22 @@ function AppContent() {
     setShowApplyBanner,
     clearApplyBannerDismissal,
   } = useUpdateChecker(showToast, setCurrentView)
+
+  const {
+    syncStatus,
+    pairingCode,
+    pairingProgress,
+    pairingError,
+    enableError,
+    isEnabling,
+    handleRemoveDevice,
+    handleStartPairing,
+    handleCancelPairing,
+    handleJoinPrimary,
+    handleEnableSync,
+    handleResetSync,
+    refreshSyncStatus,
+  } = useSyncPairing()
 
   const refreshAfterApply = useCallback(async () => {
     const [doctorResult, statusResult, configResult] = await Promise.all([
@@ -274,22 +289,16 @@ function AppContent() {
         }
       }
 
-      const [doctorResult, syncResult] = await Promise.all([
-        daemon.runDoctor(),
-        daemon.getSyncStatus(),
-      ])
-
+      const doctorResult = await daemon.runDoctor()
       if (doctorResult.ok) {
         setProvisions(doctorResult.data)
       }
 
-      if (syncResult.ok) {
-        setSyncStatus(syncResult.data)
-      }
+      await refreshSyncStatus()
     }
 
     init()
-  }, [showToast, setShowApplyBanner])
+  }, [showToast, setShowApplyBanner, refreshSyncStatus])
 
   useEffect(() => {
     if (applyStatus === lastApplyStatus.current) return
@@ -412,26 +421,6 @@ function AppContent() {
     [],
   )
 
-  const handleAddDevice = useCallback(async (deviceId: string, name: string) => {
-    const result = await daemon.addSyncDevice({ deviceId, name })
-    if (result.ok) {
-      const syncResult = await daemon.getSyncStatus()
-      if (syncResult.ok) {
-        setSyncStatus(syncResult.data)
-      }
-    }
-  }, [])
-
-  const handleRemoveDevice = useCallback(async (deviceId: string) => {
-    const result = await daemon.removeSyncDevice({ deviceId })
-    if (result.ok) {
-      const syncResult = await daemon.getSyncStatus()
-      if (syncResult.ok) {
-        setSyncStatus(syncResult.data)
-      }
-    }
-  }, [])
-
   const handleEnableAll = useCallback(() => {
     const newSystemEmulators = new Map<SystemID, EmulatorID[]>()
     for (const sys of systems) {
@@ -551,8 +540,18 @@ function AppContent() {
         return (
           <SyncView
             status={syncStatus}
-            onAddDevice={handleAddDevice}
             onRemoveDevice={handleRemoveDevice}
+            onStartPairing={handleStartPairing}
+            onCancelPairing={handleCancelPairing}
+            onJoinPrimary={handleJoinPrimary}
+            onEnableSync={handleEnableSync}
+            onResetSync={handleResetSync}
+            onRefresh={refreshSyncStatus}
+            pairingCode={pairingCode}
+            pairingProgress={pairingProgress}
+            pairingError={pairingError}
+            enableError={enableError}
+            isEnabling={isEnabling}
           />
         )
       default:

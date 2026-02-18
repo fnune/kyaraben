@@ -15,6 +15,7 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/symlink"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/packages"
+	"github.com/fnune/kyaraben/internal/paths"
 	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/store"
 	"github.com/fnune/kyaraben/internal/testutil"
@@ -63,7 +64,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	userStorePath := filepath.Join(rootDir, "Emulation")
 	packagesDir := filepath.Join(rootDir, "packages")
 
-	userStore, err := store.NewUserStore(fs, userStorePath)
+	userStore, err := store.NewUserStore(fs, paths.DefaultPaths(), userStorePath)
 	if err != nil {
 		t.Fatalf("Failed to create user store: %v", err)
 	}

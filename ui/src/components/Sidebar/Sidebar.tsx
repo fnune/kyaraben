@@ -27,7 +27,7 @@ const syncDotColors: Record<SyncState, string> = {
   [SyncStateDisabled]: 'bg-on-surface-faint',
   [SyncStateSynced]: 'bg-status-ok',
   [SyncStateSyncing]: 'bg-accent animate-pulse',
-  [SyncStateDisconnected]: 'bg-status-error',
+  [SyncStateDisconnected]: 'bg-outline',
   [SyncStateConflict]: 'bg-status-warning',
   [SyncStateError]: 'bg-status-error',
 }

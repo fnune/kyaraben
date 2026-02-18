@@ -89,13 +89,13 @@ func TestStatus_OverallState(t *testing.T) {
 			want: SyncStateError,
 		},
 		{
-			name: "synced with no devices configured",
+			name: "disconnected with no devices configured",
 			status: Status{
 				Enabled: true,
 				Devices: []DeviceStatus{},
 				Folders: []FolderStatusSummary{},
 			},
-			want: SyncStateSynced,
+			want: SyncStateDisconnected,
 		},
 	}
 

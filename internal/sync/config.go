@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/twpayne/go-vfs/v5"
 
@@ -19,12 +20,13 @@ const (
 )
 
 type SyncthingXMLConfig struct {
-	XMLName xml.Name    `xml:"configuration"`
-	Version int         `xml:"version,attr"`
-	Folders []XMLFolder `xml:"folder"`
-	Devices []XMLDevice `xml:"device"`
-	GUI     XMLGUI      `xml:"gui"`
-	Options XMLOptions  `xml:"options"`
+	XMLName  xml.Name    `xml:"configuration"`
+	Version  int         `xml:"version,attr"`
+	Folders  []XMLFolder `xml:"folder"`
+	Devices  []XMLDevice `xml:"device"`
+	GUI      XMLGUI      `xml:"gui"`
+	Options  XMLOptions  `xml:"options"`
+	Defaults XMLDefaults `xml:"defaults"`
 }
 
 type XMLFolder struct {
@@ -66,6 +68,14 @@ type XMLOptions struct {
 	RelaysEnabled         bool     `xml:"relaysEnabled"`
 	URAccepted            int      `xml:"urAccepted"`
 	AutoUpgradeIntervalH  int      `xml:"autoUpgradeIntervalH"`
+}
+
+type XMLDefaults struct {
+	Folder XMLDefaultFolder `xml:"folder"`
+}
+
+type XMLDefaultFolder struct {
+	Path string `xml:"path,attr"`
 }
 
 type XMLVersioning struct {
@@ -137,6 +147,11 @@ func (g *ConfigGenerator) Generate() (*SyncthingXMLConfig, error) {
 			RelaysEnabled:         g.syncConfig.Syncthing.RelayEnabled,
 			URAccepted:            -1,
 			AutoUpgradeIntervalH:  0,
+		},
+		Defaults: XMLDefaults{
+			Folder: XMLDefaultFolder{
+				Path: g.userStore,
+			},
 		},
 	}
 
@@ -234,17 +249,6 @@ func (g *ConfigGenerator) generateDevices() []XMLDevice {
 		})
 	}
 
-	isPrimary := g.syncConfig.Mode == model.SyncModePrimary
-
-	for _, dev := range g.syncConfig.Devices {
-		devices = append(devices, XMLDevice{
-			ID:                dev.ID,
-			Name:              dev.Name,
-			Compression:       "metadata",
-			AutoAcceptFolders: isPrimary,
-		})
-	}
-
 	return devices
 }
 
@@ -253,10 +257,6 @@ func (g *ConfigGenerator) folderDeviceRefs() []XMLFolderDevice {
 
 	if g.deviceID != "" {
 		refs = append(refs, XMLFolderDevice{ID: g.deviceID})
-	}
-
-	for _, dev := range g.syncConfig.Devices {
-		refs = append(refs, XMLFolderDevice{ID: dev.ID})
 	}
 
 	return refs
@@ -297,5 +297,37 @@ func (g *ConfigGenerator) WriteConfig(configDir string) error {
 	}
 
 	log.Info("Wrote syncthing config to %s", configPath)
+
+	if err := g.writeIgnoreFiles(config.Folders); err != nil {
+		return fmt.Errorf("writing ignore files: %w", err)
+	}
+
+	return nil
+}
+
+func (g *ConfigGenerator) writeIgnoreFiles(folders []XMLFolder) error {
+	if len(g.syncConfig.Ignore.Patterns) == 0 {
+		return nil
+	}
+
+	var content strings.Builder
+	for _, pattern := range g.syncConfig.Ignore.Patterns {
+		content.WriteString(pattern)
+		content.WriteString("\n")
+	}
+	ignoreContent := []byte(content.String())
+
+	for _, folder := range folders {
+		if err := vfs.MkdirAll(g.fs, folder.Path, 0755); err != nil {
+			return fmt.Errorf("creating folder %s: %w", folder.Path, err)
+		}
+
+		ignorePath := filepath.Join(folder.Path, ".stignore")
+		if err := g.fs.WriteFile(ignorePath, ignoreContent, 0644); err != nil {
+			return fmt.Errorf("writing %s: %w", ignorePath, err)
+		}
+	}
+
+	log.Info("Wrote .stignore files to %d folders", len(folders))
 	return nil
 }

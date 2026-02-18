@@ -21,14 +21,21 @@ const (
 	CommandTypeGetConfig         CommandType = "get_config"
 	CommandTypeSetConfig         CommandType = "set_config"
 	CommandTypeSyncStatus        CommandType = "sync_status"
-	CommandTypeSyncAddDevice     CommandType = "sync_add_device"
 	CommandTypeSyncRemoveDevice  CommandType = "sync_remove_device"
+	CommandTypeSyncStartPairing  CommandType = "sync_start_pairing"
+	CommandTypeSyncJoinPrimary   CommandType = "sync_join_primary"
+	CommandTypeSyncCancelPairing CommandType = "sync_cancel_pairing"
+	CommandTypeSyncPending       CommandType = "sync_pending"
 	CommandTypeUninstallPreview  CommandType = "uninstall_preview"
 	CommandTypeUninstall         CommandType = "uninstall"
 	CommandTypeInstallKyaraben   CommandType = "install_kyaraben"
 	CommandTypeInstallStatus     CommandType = "install_status"
 	CommandTypeRefreshIconCaches CommandType = "refresh_icon_caches"
 	CommandTypePreflight         CommandType = "preflight"
+	CommandTypeSyncEnable        CommandType = "sync_enable"
+	CommandTypeSyncRevertFolder  CommandType = "sync_revert_folder"
+	CommandTypeSyncLocalChanges  CommandType = "sync_local_changes"
+	CommandTypeSyncReset         CommandType = "sync_reset"
 )
 
 // Command represents a command from the UI.
@@ -44,13 +51,6 @@ type SetConfigCommand struct {
 	Data SetConfigRequest `json:"data"`
 }
 
-// SyncAddDeviceCommand includes the device to add.
-type SyncAddDeviceCommand struct {
-	Type CommandType          `json:"type"`
-	ID   string               `json:"id,omitempty"`
-	Data SyncAddDeviceRequest `json:"data"`
-}
-
 // SyncRemoveDeviceCommand includes the device to remove.
 type SyncRemoveDeviceCommand struct {
 	Type CommandType             `json:"type"`
@@ -58,11 +58,39 @@ type SyncRemoveDeviceCommand struct {
 	Data SyncRemoveDeviceRequest `json:"data"`
 }
 
+// SyncJoinPrimaryCommand includes the pairing code and selected primary.
+type SyncJoinPrimaryCommand struct {
+	Type CommandType            `json:"type"`
+	ID   string                 `json:"id,omitempty"`
+	Data SyncJoinPrimaryRequest `json:"data"`
+}
+
 // InstallKyarabenCommand includes the install options.
 type InstallKyarabenCommand struct {
 	Type CommandType            `json:"type"`
 	ID   string                 `json:"id,omitempty"`
 	Data InstallKyarabenRequest `json:"data"`
+}
+
+// SyncEnableCommand includes the sync enable options.
+type SyncEnableCommand struct {
+	Type CommandType       `json:"type"`
+	ID   string            `json:"id,omitempty"`
+	Data SyncEnableRequest `json:"data"`
+}
+
+// SyncRevertFolderCommand includes the folder to revert.
+type SyncRevertFolderCommand struct {
+	Type CommandType             `json:"type"`
+	ID   string                  `json:"id,omitempty"`
+	Data SyncRevertFolderRequest `json:"data"`
+}
+
+// SyncLocalChangesCommand includes the folder to get local changes for.
+type SyncLocalChangesCommand struct {
+	Type CommandType             `json:"type"`
+	ID   string                  `json:"id,omitempty"`
+	Data SyncLocalChangesRequest `json:"data"`
 }
 
 // EventType identifies the type of event.

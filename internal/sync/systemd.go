@@ -9,6 +9,8 @@ import (
 	"text/template"
 
 	"github.com/twpayne/go-vfs/v5"
+
+	"github.com/fnune/kyaraben/internal/paths"
 )
 
 const unitTemplate = `[Unit]
@@ -17,7 +19,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart={{.BinaryPath}} serve --no-browser --no-default-folder --config={{.ConfigDir}} --data={{.DataDir}} --gui-address=127.0.0.1:{{.GUIPort}} --gui-apikey={{.APIKey}}
+ExecStart={{.BinaryPath}} serve --no-browser --config={{.ConfigDir}} --data={{.DataDir}} --gui-address=127.0.0.1:{{.GUIPort}} --gui-apikey={{.APIKey}}
 Restart=on-failure
 RestartSec=10
 Environment=STNODEFAULTFOLDER=1
@@ -28,15 +30,20 @@ WantedBy=default.target
 `
 
 type SystemdUnit struct {
-	fs vfs.FS
+	fs    vfs.FS
+	paths *paths.Paths
 }
 
-func NewSystemdUnit(fs vfs.FS) *SystemdUnit {
-	return &SystemdUnit{fs: fs}
+func NewSystemdUnit(fs vfs.FS, p *paths.Paths) *SystemdUnit {
+	return &SystemdUnit{fs: fs, paths: p}
 }
 
 func NewDefaultSystemdUnit() *SystemdUnit {
-	return NewSystemdUnit(vfs.OSFS)
+	return NewSystemdUnit(vfs.OSFS, paths.DefaultPaths())
+}
+
+func (s *SystemdUnit) unitName() string {
+	return s.paths.DirName() + "-syncthing.service"
 }
 
 type UnitParams struct {
@@ -52,7 +59,7 @@ func (s *SystemdUnit) unitPath() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("getting home dir: %w", err)
 	}
-	return filepath.Join(home, ".config", "systemd", "user", "kyaraben-syncthing.service"), nil
+	return filepath.Join(home, ".config", "systemd", "user", s.unitName()), nil
 }
 
 func (s *SystemdUnit) Generate(params UnitParams) (string, error) {
@@ -98,16 +105,27 @@ func (s *SystemdUnit) Enable() error {
 		return fmt.Errorf("daemon-reload: %w", err)
 	}
 
-	if err := exec.Command("systemctl", "--user", "enable", "--now", "kyaraben-syncthing.service").Run(); err != nil {
+	unitName := s.unitName()
+
+	if s.IsEnabled() {
+		if err := exec.Command("systemctl", "--user", "restart", unitName).Run(); err != nil {
+			return fmt.Errorf("restart service: %w", err)
+		}
+		log.Info("Restarted %s", unitName)
+		return nil
+	}
+
+	if err := exec.Command("systemctl", "--user", "enable", "--now", unitName).Run(); err != nil {
 		return fmt.Errorf("enable service: %w", err)
 	}
 
-	log.Info("Enabled and started kyaraben-syncthing.service")
+	log.Info("Enabled and started %s", unitName)
 	return nil
 }
 
 func (s *SystemdUnit) Disable() error {
-	if err := exec.Command("systemctl", "--user", "disable", "--now", "kyaraben-syncthing.service").Run(); err != nil {
+	unitName := s.unitName()
+	if err := exec.Command("systemctl", "--user", "disable", "--now", unitName).Run(); err != nil {
 		return fmt.Errorf("disable service: %w", err)
 	}
 
@@ -120,11 +138,81 @@ func (s *SystemdUnit) Disable() error {
 		return fmt.Errorf("removing unit file: %w", err)
 	}
 
-	log.Info("Disabled and removed kyaraben-syncthing.service")
+	log.Info("Disabled and removed %s", unitName)
 	return nil
 }
 
 func (s *SystemdUnit) IsEnabled() bool {
-	err := exec.Command("systemctl", "--user", "is-enabled", "--quiet", "kyaraben-syncthing.service").Run()
+	err := exec.Command("systemctl", "--user", "is-enabled", "--quiet", s.unitName()).Run()
 	return err == nil
+}
+
+func FindKyarabenSyncthingServices() ([]string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("getting home dir: %w", err)
+	}
+
+	systemdDir := filepath.Join(home, ".config", "systemd", "user")
+	entries, err := os.ReadDir(systemdDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("reading systemd user dir: %w", err)
+	}
+
+	var services []string
+	for _, entry := range entries {
+		name := entry.Name()
+		if strings.HasPrefix(name, "kyaraben") && strings.Contains(name, "syncthing") && strings.HasSuffix(name, ".service") {
+			services = append(services, filepath.Join(systemdDir, name))
+		}
+	}
+	return services, nil
+}
+
+func StopAndRemoveService(servicePath string) error {
+	name := filepath.Base(servicePath)
+
+	_ = exec.Command("systemctl", "--user", "stop", name).Run()
+	_ = exec.Command("systemctl", "--user", "disable", name).Run()
+
+	if err := os.Remove(servicePath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("removing %s: %w", servicePath, err)
+	}
+
+	_ = exec.Command("systemctl", "--user", "daemon-reload").Run()
+	return nil
+}
+
+type ServiceStatus struct {
+	Active  string
+	Failed  bool
+	Message string
+}
+
+func (s *SystemdUnit) Status() ServiceStatus {
+	unitName := s.unitName()
+
+	output, _ := exec.Command("systemctl", "--user", "is-active", unitName).Output()
+	active := strings.TrimSpace(string(output))
+
+	status := ServiceStatus{
+		Active: active,
+		Failed: active == "failed",
+	}
+
+	if active != "active" && active != "activating" {
+		logs, _ := exec.Command("journalctl", "--user", "-u", unitName, "-n", "10", "--no-pager", "-o", "cat").Output()
+		if len(logs) > 0 {
+			status.Message = strings.TrimSpace(string(logs))
+		} else if active == "inactive" {
+			status.Message = "Service is not running. It may not have been started yet."
+		} else if active == "" {
+			status.Message = "Service unit not found. Sync may not be fully configured."
+		}
+	}
+
+	return status
 }
