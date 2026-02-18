@@ -68,6 +68,12 @@ var gcPadTarget = model.ConfigTarget{
 	BaseDir: model.ConfigBaseDirUserConfig,
 }
 
+var gcPadProfileTarget = model.ConfigTarget{
+	RelPath: "dolphin-emu/Profiles/GCPad/Kyaraben.ini",
+	Format:  model.ConfigFormatINI,
+	BaseDir: model.ConfigBaseDirUserConfig,
+}
+
 var hotkeysTarget = model.ConfigTarget{
 	RelPath: "dolphin-emu/Hotkeys.ini",
 	Format:  model.ConfigFormatINI,
@@ -84,6 +90,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 			{Path: []string{"General", "ISOPath1"}, Value: store.SystemRomsDir(model.SystemIDWii)},
 			{Path: []string{"General", "ISOPaths"}, Value: "2"},
 			{Path: []string{"General", "DumpPath"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDDolphin)},
+			{Path: []string{"AutoUpdate", "UpdateTrack"}, Value: ""},
 			{Path: []string{"GBA", "BIOS"}, Value: store.SystemBiosDir(model.SystemIDGBA) + "/gba_bios.bin"},
 			{Path: []string{"GBA", "SavesPath"}, Value: store.SystemSavesDir(model.SystemIDGBA)},
 			{Path: []string{"GBA", "SavesInRomPath"}, Value: "0"},
@@ -94,6 +101,12 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		patches = append(patches,
 			model.ConfigPatch{Target: gcPadTarget, Entries: gcPadEntries(cc)},
 			model.ConfigPatch{Target: hotkeysTarget, Entries: dolphinHotkeyEntries(cc)},
+			// Profile file so users can reload kyaraben bindings from the UI.
+			model.ConfigPatch{
+				Target:         gcPadProfileTarget,
+				Entries:        gcPadProfileEntries(cc),
+				ManagedRegions: []model.ManagedRegion{model.FileRegion{}},
+			},
 		)
 	}
 
@@ -116,8 +129,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	}, nil
 }
 
-func gcPadEntries(cc *model.ControllerConfig) []model.ConfigEntry {
-	var entries []model.ConfigEntry
+func gcPadBindingEntries(cc *model.ControllerConfig, section string, defaultOnly bool) []model.ConfigEntry {
 	south, east, west, north := cc.FaceButtons()
 
 	// Dolphin maps SDL buttons to its own descriptive names.
@@ -130,37 +142,48 @@ func gcPadEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 		"Y": west,
 	}
 
+	return []model.ConfigEntry{
+		{Path: []string{section, "Buttons/A"}, Value: fmt.Sprintf("`Button %s`", string(faceMap["A"])), DefaultOnly: defaultOnly},
+		{Path: []string{section, "Buttons/B"}, Value: fmt.Sprintf("`Button %s`", string(faceMap["B"])), DefaultOnly: defaultOnly},
+		{Path: []string{section, "Buttons/X"}, Value: fmt.Sprintf("`Button %s`", string(faceMap["X"])), DefaultOnly: defaultOnly},
+		{Path: []string{section, "Buttons/Y"}, Value: fmt.Sprintf("`Button %s`", string(faceMap["Y"])), DefaultOnly: defaultOnly},
+		{Path: []string{section, "Buttons/Z"}, Value: "`Shoulder R`", DefaultOnly: defaultOnly},
+		{Path: []string{section, "Buttons/Start"}, Value: "Start", DefaultOnly: defaultOnly},
+		{Path: []string{section, "Main Stick/Up"}, Value: "`Left Y+`", DefaultOnly: defaultOnly},
+		{Path: []string{section, "Main Stick/Down"}, Value: "`Left Y-`", DefaultOnly: defaultOnly},
+		{Path: []string{section, "Main Stick/Left"}, Value: "`Left X-`", DefaultOnly: defaultOnly},
+		{Path: []string{section, "Main Stick/Right"}, Value: "`Left X+`", DefaultOnly: defaultOnly},
+		{Path: []string{section, "C-Stick/Up"}, Value: "`Right Y+`", DefaultOnly: defaultOnly},
+		{Path: []string{section, "C-Stick/Down"}, Value: "`Right Y-`", DefaultOnly: defaultOnly},
+		{Path: []string{section, "C-Stick/Left"}, Value: "`Right X-`", DefaultOnly: defaultOnly},
+		{Path: []string{section, "C-Stick/Right"}, Value: "`Right X+`", DefaultOnly: defaultOnly},
+		{Path: []string{section, "Triggers/L"}, Value: "`Trigger L`", DefaultOnly: defaultOnly},
+		{Path: []string{section, "Triggers/R"}, Value: "`Trigger R`", DefaultOnly: defaultOnly},
+		{Path: []string{section, "Triggers/L-Analog"}, Value: "`Trigger L`", DefaultOnly: defaultOnly},
+		{Path: []string{section, "Triggers/R-Analog"}, Value: "`Trigger R`", DefaultOnly: defaultOnly},
+		{Path: []string{section, "D-Pad/Down"}, Value: "`Pad S`", DefaultOnly: defaultOnly},
+		{Path: []string{section, "D-Pad/Left"}, Value: "`Pad W`", DefaultOnly: defaultOnly},
+		{Path: []string{section, "D-Pad/Right"}, Value: "`Pad E`", DefaultOnly: defaultOnly},
+		{Path: []string{section, "Rumble/Motor"}, Value: "`Motor L`|`Motor R`", DefaultOnly: defaultOnly},
+	}
+}
+
+// gcPadEntries returns entries for GCPadNew.ini. DefaultOnly so user
+// customizations are preserved; users can reload kyaraben bindings via
+// the Kyaraben profile.
+func gcPadEntries(cc *model.ControllerConfig) []model.ConfigEntry {
+	var entries []model.ConfigEntry
 	for i := 0; i < 4; i++ {
 		section := fmt.Sprintf("GCPad%d", i+1)
 		device := fmt.Sprintf("SDL/%d/Gamepad", i)
-		entries = append(entries,
-			model.ConfigEntry{Path: []string{section, "Device"}, Value: device},
-			model.ConfigEntry{Path: []string{section, "Buttons/A"}, Value: fmt.Sprintf("`Button %s`", string(faceMap["A"]))},
-			model.ConfigEntry{Path: []string{section, "Buttons/B"}, Value: fmt.Sprintf("`Button %s`", string(faceMap["B"]))},
-			model.ConfigEntry{Path: []string{section, "Buttons/X"}, Value: fmt.Sprintf("`Button %s`", string(faceMap["X"]))},
-			model.ConfigEntry{Path: []string{section, "Buttons/Y"}, Value: fmt.Sprintf("`Button %s`", string(faceMap["Y"]))},
-			model.ConfigEntry{Path: []string{section, "Buttons/Z"}, Value: "`Shoulder R`"},
-			model.ConfigEntry{Path: []string{section, "Buttons/Start"}, Value: "Start"},
-			model.ConfigEntry{Path: []string{section, "Main Stick/Up"}, Value: "`Axis 1-`"},
-			model.ConfigEntry{Path: []string{section, "Main Stick/Down"}, Value: "`Axis 1+`"},
-			model.ConfigEntry{Path: []string{section, "Main Stick/Left"}, Value: "`Axis 0-`"},
-			model.ConfigEntry{Path: []string{section, "Main Stick/Right"}, Value: "`Axis 0+`"},
-			model.ConfigEntry{Path: []string{section, "C-Stick/Up"}, Value: "`Axis 4-`"},
-			model.ConfigEntry{Path: []string{section, "C-Stick/Down"}, Value: "`Axis 4+`"},
-			model.ConfigEntry{Path: []string{section, "C-Stick/Left"}, Value: "`Axis 3-`"},
-			model.ConfigEntry{Path: []string{section, "C-Stick/Right"}, Value: "`Axis 3+`"},
-			model.ConfigEntry{Path: []string{section, "Triggers/L"}, Value: "`Trigger L`"},
-			model.ConfigEntry{Path: []string{section, "Triggers/R"}, Value: "`Trigger R`"},
-			model.ConfigEntry{Path: []string{section, "Triggers/L-Analog"}, Value: "`Trigger L`"},
-			model.ConfigEntry{Path: []string{section, "Triggers/R-Analog"}, Value: "`Trigger R`"},
-			model.ConfigEntry{Path: []string{section, "D-Pad/Up"}, Value: "`Pad N`"},
-			model.ConfigEntry{Path: []string{section, "D-Pad/Down"}, Value: "`Pad S`"},
-			model.ConfigEntry{Path: []string{section, "D-Pad/Left"}, Value: "`Pad W`"},
-			model.ConfigEntry{Path: []string{section, "D-Pad/Right"}, Value: "`Pad E`"},
-			model.ConfigEntry{Path: []string{section, "Rumble/Motor"}, Value: "Strong"},
-		)
+		entries = append(entries, model.ConfigEntry{Path: []string{section, "Device"}, Value: device, DefaultOnly: true})
+		entries = append(entries, gcPadBindingEntries(cc, section, true)...)
 	}
 	return entries
+}
+
+func gcPadProfileEntries(cc *model.ControllerConfig) []model.ConfigEntry {
+	return gcPadBindingEntries(cc, "Profile", false)
 }
 
 func dolphinHotkeyChord(binding model.HotkeyBinding) string {
@@ -178,12 +201,14 @@ func dolphinHotkeyChord(binding model.HotkeyBinding) string {
 	return "@(" + strings.Join(parts, "+") + ")"
 }
 
+// dolphinHotkeyEntries returns entries for Hotkeys.ini. DefaultOnly so user
+// customizations are preserved.
 func dolphinHotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	hk := cc.Hotkeys
 	section := "Hotkeys"
 
 	entries := []model.ConfigEntry{
-		{Path: []string{section, "Device"}, Value: "SDL/0/Gamepad"},
+		{Path: []string{section, "Device"}, Value: "SDL/0/Gamepad", DefaultOnly: true},
 	}
 
 	type mapping struct {
@@ -205,8 +230,9 @@ func dolphinHotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	for _, m := range mappings {
 		if len(m.binding.Buttons) > 0 {
 			entries = append(entries, model.ConfigEntry{
-				Path:  []string{section, m.key},
-				Value: dolphinHotkeyChord(m.binding),
+				Path:        []string{section, m.key},
+				Value:       dolphinHotkeyChord(m.binding),
+				DefaultOnly: true,
 			})
 		}
 	}

@@ -32,7 +32,7 @@ func (h *yamlHandler) Read(path string) (map[string]map[string]string, error) {
 	return result, nil
 }
 
-func (h *yamlHandler) Apply(path string, entries []model.ConfigEntry, _ []model.ManagedRegion) (ApplyResult, error) {
+func (h *yamlHandler) Apply(path string, entries []model.ConfigEntry, managedRegions []model.ManagedRegion) (ApplyResult, error) {
 	if err := vfs.MkdirAll(h.fs, filepath.Dir(path), 0755); err != nil {
 		return ApplyResult{}, fmt.Errorf("creating config directory: %w", err)
 	}
@@ -58,7 +58,11 @@ func (h *yamlHandler) Apply(path string, entries []model.ConfigEntry, _ []model.
 	defer func() { _ = f.Close() }()
 
 	_, _ = fmt.Fprintln(f, "# Configuration managed by kyaraben")
-	_, _ = fmt.Fprintln(f, "# Manual changes will be preserved on next apply")
+	if isFullyManaged(managedRegions) {
+		_, _ = fmt.Fprintln(f, "# Manual changes will be overwritten on next apply")
+	} else {
+		_, _ = fmt.Fprintln(f, "# Manual changes will be preserved on next apply")
+	}
 	_, _ = fmt.Fprintln(f)
 
 	encoder := yaml.NewEncoder(f)

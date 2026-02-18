@@ -121,7 +121,7 @@ func (d *DiffComputer) ComputeDiffWithBaseline(patch model.ConfigPatch, baseline
 			key := entry.Key()
 
 			if sectionMap, ok := current[section]; ok {
-				if currentVal, ok := sectionMap[key]; ok && configformat.NormalizePath(currentVal, d.homeDir()) != configformat.NormalizePath(entry.Value, d.homeDir()) {
+				if currentVal, ok := sectionMap[key]; ok && !valuesEqual(entry, currentVal, d.homeDir()) {
 					diff.UserChanges = append(diff.UserChanges, UserChange{
 						Path:          entry.Path,
 						BaselineValue: entry.Value,
@@ -204,7 +204,7 @@ func (d *DiffComputer) ComputeDiff(patch model.ConfigPatch) (*ConfigDiff, error)
 			continue
 		}
 
-		if configformat.NormalizePath(oldValue, d.homeDir()) != configformat.NormalizePath(newValue, d.homeDir()) {
+		if !valuesEqual(entry, oldValue, d.homeDir()) {
 			diff.Changes = append(diff.Changes, ConfigChange{
 				Type:     ChangeModify,
 				Path:     entry.Path,
@@ -351,4 +351,14 @@ func (d *ConfigDiff) FormatWithColor(useColor bool) string {
 func (d *DiffComputer) readConfig(path string, format model.ConfigFormat) (map[string]map[string]string, error) {
 	handler := configformat.NewHandler(d.fs, format)
 	return handler.Read(path)
+}
+
+// valuesEqual compares the entry's value against an existing value.
+// Uses the entry's custom EqualityFunc if set, otherwise falls back to
+// path-normalized string comparison.
+func valuesEqual(entry model.ConfigEntry, existingValue, homeDir string) bool {
+	if entry.EqualityFunc != nil {
+		return entry.EqualityFunc(entry.Value, existingValue)
+	}
+	return configformat.NormalizePath(entry.Value, homeDir) == configformat.NormalizePath(existingValue, homeDir)
 }

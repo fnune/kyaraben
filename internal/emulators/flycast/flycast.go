@@ -58,7 +58,7 @@ var configTarget = model.ConfigTarget{
 type Config struct{}
 
 var mappingTarget = model.ConfigTarget{
-	RelPath: "flycast/mappings/SDL_Gamepad.cfg",
+	RelPath: "flycast/mappings/SDL_Xbox 360 Controller.cfg",
 	Format:  model.ConfigFormatINI,
 	BaseDir: model.ConfigBaseDirUserConfig,
 }
@@ -90,22 +90,46 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	return model.GenerateResult{Patches: patches}, nil
 }
 
+// Raw joystick button indices for Xbox 360/Steam Deck controller.
+// Flycast uses raw indices, not SDL GameController indices.
+var rawJoystickIndex = map[model.SDLButton]int{
+	model.ButtonA:             0,
+	model.ButtonB:             1,
+	model.ButtonX:             2,
+	model.ButtonY:             3,
+	model.ButtonLeftShoulder:  4,
+	model.ButtonRightShoulder: 5,
+	model.ButtonBack:          6,
+	model.ButtonStart:         7,
+	model.ButtonGuide:         8,
+	model.ButtonLeftStick:     9,
+	model.ButtonRightStick:    10,
+}
+
+// DPad uses HAT indices in Flycast (256 + direction).
+const (
+	hatUp    = 256
+	hatDown  = 257
+	hatLeft  = 258
+	hatRight = 259
+)
+
 func mappingEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	south, east, west, north := cc.FaceButtons()
 
 	// Flycast uses axis:action format for analog and button:action for digital.
 	// Dreamcast: A=south, B=east, X=west, Y=north.
-	return []model.ConfigEntry{
-		{Path: []string{"digital", "bind0"}, Value: fmt.Sprintf("%d:btn_a", model.SDLButtonIndex[south])},
-		{Path: []string{"digital", "bind1"}, Value: fmt.Sprintf("%d:btn_b", model.SDLButtonIndex[east])},
-		{Path: []string{"digital", "bind2"}, Value: fmt.Sprintf("%d:btn_x", model.SDLButtonIndex[west])},
-		{Path: []string{"digital", "bind3"}, Value: fmt.Sprintf("%d:btn_y", model.SDLButtonIndex[north])},
-		{Path: []string{"digital", "bind4"}, Value: fmt.Sprintf("%d:btn_menu", model.SDLButtonIndex[model.ButtonBack])},
-		{Path: []string{"digital", "bind5"}, Value: fmt.Sprintf("%d:btn_start", model.SDLButtonIndex[model.ButtonStart])},
-		{Path: []string{"digital", "bind6"}, Value: fmt.Sprintf("%d:btn_dpad1_up", model.SDLButtonIndex[model.ButtonDPadUp])},
-		{Path: []string{"digital", "bind7"}, Value: fmt.Sprintf("%d:btn_dpad1_down", model.SDLButtonIndex[model.ButtonDPadDown])},
-		{Path: []string{"digital", "bind8"}, Value: fmt.Sprintf("%d:btn_dpad1_left", model.SDLButtonIndex[model.ButtonDPadLeft])},
-		{Path: []string{"digital", "bind9"}, Value: fmt.Sprintf("%d:btn_dpad1_right", model.SDLButtonIndex[model.ButtonDPadRight])},
+	entries := []model.ConfigEntry{
+		{Path: []string{"digital", "bind0"}, Value: fmt.Sprintf("%d:btn_a", rawJoystickIndex[south])},
+		{Path: []string{"digital", "bind1"}, Value: fmt.Sprintf("%d:btn_b", rawJoystickIndex[east])},
+		{Path: []string{"digital", "bind2"}, Value: fmt.Sprintf("%d:btn_x", rawJoystickIndex[west])},
+		{Path: []string{"digital", "bind3"}, Value: fmt.Sprintf("%d:btn_y", rawJoystickIndex[north])},
+		{Path: []string{"digital", "bind4"}, Value: fmt.Sprintf("%d:btn_menu", rawJoystickIndex[model.ButtonBack])},
+		{Path: []string{"digital", "bind5"}, Value: fmt.Sprintf("%d:btn_start", rawJoystickIndex[model.ButtonStart])},
+		{Path: []string{"digital", "bind6"}, Value: fmt.Sprintf("%d:btn_dpad1_up", hatUp)},
+		{Path: []string{"digital", "bind7"}, Value: fmt.Sprintf("%d:btn_dpad1_down", hatDown)},
+		{Path: []string{"digital", "bind8"}, Value: fmt.Sprintf("%d:btn_dpad1_left", hatLeft)},
+		{Path: []string{"digital", "bind9"}, Value: fmt.Sprintf("%d:btn_dpad1_right", hatRight)},
 		{Path: []string{"analog", "bind0"}, Value: "0-:btn_analog_left"},
 		{Path: []string{"analog", "bind1"}, Value: "0+:btn_analog_right"},
 		{Path: []string{"analog", "bind2"}, Value: "1-:btn_analog_up"},
@@ -113,7 +137,60 @@ func mappingEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 		{Path: []string{"analog", "bind4"}, Value: "2+:btn_trigger_left"},
 		{Path: []string{"analog", "bind5"}, Value: "5+:btn_trigger_right"},
 		{Path: []string{"emulator", "dead_zone"}, Value: "10"},
+		{Path: []string{"emulator", "mapping_name"}, Value: "X360 Controller"},
+		{Path: []string{"emulator", "rumble_power"}, Value: "100"},
+		{Path: []string{"emulator", "saturation"}, Value: "100"},
+		{Path: []string{"emulator", "triggers"}, Value: "2,5"},
+		{Path: []string{"emulator", "version"}, Value: "4"},
 	}
+
+	entries = append(entries, hotkeyEntries(cc)...)
+	return entries
+}
+
+func hotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
+	hk := cc.Hotkeys
+	var entries []model.ConfigEntry
+	bindNum := 0
+
+	type mapping struct {
+		action  string
+		binding model.HotkeyBinding
+	}
+	mappings := []mapping{
+		{"btn_quick_save", hk.SaveState},
+		{"btn_jump_state", hk.LoadState},
+		{"btn_escape", hk.Quit},
+		{"btn_screenshot", hk.Screenshot},
+	}
+
+	for _, m := range mappings {
+		if len(m.binding.Buttons) >= 2 {
+			buttonIndices := make([]string, len(m.binding.Buttons))
+			for i, b := range m.binding.Buttons {
+				buttonIndices[i] = fmt.Sprintf("%d", rawJoystickIndex[b])
+			}
+			// Format: button1,button2:action:sequential (0=simultaneous, 1=sequential)
+			value := fmt.Sprintf("%s:%s:0", join(buttonIndices, ","), m.action)
+			entries = append(entries, model.ConfigEntry{
+				Path:  []string{"combo", fmt.Sprintf("bind%d", bindNum)},
+				Value: value,
+			})
+			bindNum++
+		}
+	}
+	return entries
+}
+
+func join(parts []string, sep string) string {
+	if len(parts) == 0 {
+		return ""
+	}
+	result := parts[0]
+	for i := 1; i < len(parts); i++ {
+		result += sep + parts[i]
+	}
+	return result
 }
 
 var dreamcastBIOSProvisions = []model.Provision{

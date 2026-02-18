@@ -454,8 +454,8 @@ save_state = "Back+RightShoulder"
 load_state = "Back+LeftShoulder"
 next_slot = "Start+RightShoulder"
 prev_slot = "Start+LeftShoulder"
-fast_forward = "Back+RightTrigger"
-rewind = "Back+LeftTrigger"
+fast_forward = "Back+Y"
+rewind = "Back+X"
 pause = "Back+A"
 screenshot = "Back+B"
 quit = "Back+Start"
@@ -482,25 +482,51 @@ Hotkey strings are parsed into structured types at config load time. The parser 
 
 Not all emulators support all hotkeys. This table documents what's supported.
 
-| Hotkey | DuckStation | PCSX2 | Dolphin | RetroArch | mGBA | melonDS | PPSSPP | Flycast |
-|--------|-------------|-------|---------|-----------|------|---------|--------|---------|
-| save_state | SaveSelectedSaveState | SaveStateToSlot | Save to Selected Slot | input_save_state | saveState | - | Save State | - |
-| load_state | LoadSelectedSaveState | LoadStateFromSlot | Load from Selected Slot | input_load_state | loadState | - | Load State | - |
-| next_slot | SelectNextSaveStateSlot | NextSaveStateSlot | Increase Selected State Slot | input_state_slot_increase | - | - | Next Slot | - |
-| prev_slot | SelectPreviousSaveStateSlot | PreviousSaveStateSlot | Decrease Selected State Slot | input_state_slot_decrease | - | - | Previous Slot | - |
-| fast_forward | ToggleFastForward | ToggleTurbo | Disable Emulation Speed Limit | input_toggle_fast_forward | fastForward | HKJoy_FastForward | Fast-forward | - |
-| rewind | Rewind | ToggleSlowMotion | - | input_rewind | rewind | - | Rewind | - |
-| pause | TogglePause | TogglePause | Toggle Pause | input_pause_toggle | pause | HKJoy_Pause | Pause | - |
-| screenshot | Screenshot | Screenshot | Take Screenshot | input_screenshot | screenshot | - | Screenshot | - |
-| quit | - | ShutdownVM | Exit | input_exit_emulator | quit | - | Exit App | - |
-| toggle_fullscreen | - | ToggleFullscreen | Toggle Fullscreen | input_toggle_fullscreen | fullscreen | HKJoy_FullscreenToggle | - | - |
-| open_menu | OpenPauseMenu | OpenPauseMenu | - | input_menu_toggle | - | - | - | - |
+| Hotkey | DuckStation | PCSX2 | Dolphin | RetroArch | mGBA | melonDS | PPSSPP | Flycast | Eden |
+|--------|-------------|-------|---------|-----------|------|---------|--------|---------|------|
+| save_state | SaveSelectedSaveState | SaveStateToSlot | Save to Selected Slot | input_save_state | saveState | - | Save State | - | - |
+| load_state | LoadSelectedSaveState | LoadStateFromSlot | Load from Selected Slot | input_load_state | loadState | - | Load State | - | - |
+| next_slot | SelectNextSaveStateSlot | NextSaveStateSlot | Increase Selected State Slot | input_state_slot_increase | - | - | Next Slot | - | - |
+| prev_slot | SelectPreviousSaveStateSlot | PreviousSaveStateSlot | Decrease Selected State Slot | input_state_slot_decrease | - | - | Previous Slot | - | - |
+| fast_forward | ToggleFastForward | ToggleTurbo | Disable Emulation Speed Limit | input_toggle_fast_forward | fastForward | HKJoy_FastForward | Fast-forward | - | Toggle Framerate Limit |
+| rewind | Rewind | ToggleSlowMotion | - | input_rewind | rewind | - | Rewind | - | - |
+| pause | TogglePause | TogglePause | Toggle Pause | input_pause_toggle | pause | HKJoy_Pause | Pause | - | Continue/Pause Emulation |
+| screenshot | Screenshot | Screenshot | Take Screenshot | input_screenshot | screenshot | - | Screenshot | - | Capture Screenshot |
+| quit | - | ShutdownVM | Exit | input_exit_emulator | quit | - | Exit App | - | Exit Eden |
+| toggle_fullscreen | - | ToggleFullscreen | Toggle Fullscreen | input_toggle_fullscreen | fullscreen | HKJoy_FullscreenToggle | - | - | Fullscreen |
+| open_menu | OpenPauseMenu | OpenPauseMenu | - | input_menu_toggle | - | - | - | - | - |
 
 Key:
 - `-` = Not supported or not found in config
 - Config key names shown for reference
 
 If an emulator doesn't support a configured hotkey (e.g., rewind on Dolphin), skip silently.
+
+### Trigger buttons not used in default hotkeys
+
+SDL treats triggers (L2/R2) as analog axes, not digital buttons. This causes issues across multiple emulators:
+
+1. **SDL button index**: Triggers are not in `SDLButtonIndex` because they're axes (indices 2 and 5), not buttons (indices 0-14). Code looking up `SDLButtonIndex[ButtonRightTrigger]` gets 0 (zero value).
+
+2. **PPSSPP**: The PSP has L/R shoulder buttons but no L2/R2 triggers. Trigger-based hotkeys produce invalid keycodes.
+
+3. **RetroArch**: Supports triggers via separate `_axis` config keys, but this requires special handling.
+
+The default hotkeys use `Back+Y` for fast_forward and `Back+X` for rewind instead of triggers. Users who prefer trigger-based hotkeys can configure them in `config.toml`, but support varies by emulator.
+
+### Emulators without controller hotkey support
+
+Some emulators only support keyboard shortcuts for hotkeys and have no mechanism for binding controller buttons to actions like save state, load state, or fast forward.
+
+| Emulator | Limitation |
+|----------|------------|
+| Azahar | Hotkeys are keyboard-only. No controller binding mechanism. [Upstream issue](https://github.com/azahar-emu/azahar/issues/119). |
+| mGBA | Hotkeys are single-button only, no chord support. Consider migrating to RetroArch mGBA core for consistent hotkey scheme. |
+| melonDS | Hotkeys are single-button only, no chord support. Consider migrating to RetroArch melonDS core for consistent hotkey scheme. |
+
+For these emulators, users can work around the limitation using Steam Input to map controller button combinations to keyboard presses. For example, mapping Select+R1 on the controller to F5 (quick save) allows controller-based save states even though the emulator only accepts keyboard input for hotkeys.
+
+Steam Input configuration is outside kyaraben's scope but is the recommended approach for controller hotkeys on emulators that lack native support.
 
 ### Emulator-specific hotkeys (not in Kyaraben scope)
 
@@ -1153,6 +1179,17 @@ This is only useful for Eden and Azahar (Group C emulators). All other emulators
 ### Separate profile files
 
 Five emulators support external profile files: Eden, DuckStation, PCSX2, Dolphin, and Flycast. Kyaraben should write a `kyaraben-steamdeck.ini` profile file to each emulator's profile directory rather than inlining bindings into the main config. This cleanly separates kyaraben-managed profiles from user-created profiles. See the "Strategy 1: separate profile files" section above for the full design and per-emulator examples.
+
+### Migrate mGBA and melonDS to RetroArch cores
+
+Both mGBA and melonDS standalone only support single-button hotkeys, not button combinations. This makes them incompatible with kyaraben's chord-based hotkey scheme (e.g., Back+RightShoulder for save state). RetroArch cores support the `input_enable_hotkey_btn` modifier approach, enabling consistent hotkeys across all emulators.
+
+Migration steps:
+1. Add mGBA and melonDS as RetroArch cores (libretro) instead of standalone
+2. Remove standalone mGBA and melonDS from kyaraben's emulator list
+3. RetroArch's unified hotkey system handles save/load state, fast forward, etc.
+
+This reduces the number of standalone emulators to maintain and gives users a consistent experience for GB/GBC/GBA and NDS.
 
 ## Implementation guidelines
 

@@ -500,3 +500,71 @@ func TestHasNestedValue(t *testing.T) {
 		t.Error("expected not to find x")
 	}
 }
+
+func TestBindingValuesEqual(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		a    string
+		b    string
+		want bool
+	}{
+		{
+			name: "identical strings",
+			a:    "foo",
+			b:    "foo",
+			want: true,
+		},
+		{
+			name: "different strings",
+			a:    "foo",
+			b:    "bar",
+			want: false,
+		},
+		{
+			name: "binding same order",
+			a:    `"engine:sdl,port:0,guid:abc,button:1"`,
+			b:    `"engine:sdl,port:0,guid:abc,button:1"`,
+			want: true,
+		},
+		{
+			name: "binding different order",
+			a:    `"engine:sdl,port:0,guid:abc,button:1"`,
+			b:    `"button:1,guid:abc,port:0,engine:sdl"`,
+			want: true,
+		},
+		{
+			name: "binding different values",
+			a:    `"engine:sdl,port:0,guid:abc,button:1"`,
+			b:    `"engine:sdl,port:0,guid:abc,button:2"`,
+			want: false,
+		},
+		{
+			name: "binding vs non-binding",
+			a:    `"engine:sdl,port:0"`,
+			b:    "some-path",
+			want: false,
+		},
+		{
+			name: "axis binding different order",
+			a:    `"threshold:0.500000,axis:2,guid:abc,port:0,engine:sdl"`,
+			b:    `"engine:sdl,port:0,guid:abc,axis:2,threshold:0.500000"`,
+			want: true,
+		},
+		{
+			name: "stick binding different order",
+			a:    `"deadzone:0.100000,axis_y:1,axis_x:0,guid:abc,port:0,engine:sdl"`,
+			b:    `"engine:sdl,port:0,guid:abc,axis_x:0,axis_y:1,deadzone:0.100000"`,
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := BindingValuesEqual(tt.a, tt.b); got != tt.want {
+				t.Errorf("BindingValuesEqual(%q, %q) = %v, want %v", tt.a, tt.b, got, tt.want)
+			}
+		})
+	}
+}

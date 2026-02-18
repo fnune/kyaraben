@@ -102,6 +102,57 @@ func NormalizePath(v, homeDir string) string {
 	return v
 }
 
+// BindingValuesEqual compares two binding strings (key:value,key:value,...)
+// for semantic equality, ignoring key ordering. Returns true if both strings
+// parse to the same key-value pairs. Use this as a ConfigEntry.EqualityFunc
+// for emulator binding values where key ordering is nondeterministic.
+func BindingValuesEqual(a, b string) bool {
+	mapA, okA := parseBindingString(a)
+	mapB, okB := parseBindingString(b)
+
+	if !okA || !okB {
+		return Unquote(a) == Unquote(b)
+	}
+
+	return bindingMapsEqual(mapA, mapB)
+}
+
+// parseBindingString parses a string like "engine:sdl,port:0,guid:X,button:1"
+// into a map. Returns ok=false if the string doesn't look like a binding.
+func parseBindingString(s string) (map[string]string, bool) {
+	s = Unquote(s)
+	if s == "" || !strings.Contains(s, ":") {
+		return nil, false
+	}
+
+	result := make(map[string]string)
+	parts := strings.Split(s, ",")
+
+	for _, part := range parts {
+		idx := strings.Index(part, ":")
+		if idx <= 0 {
+			return nil, false
+		}
+		key := part[:idx]
+		value := part[idx+1:]
+		result[key] = value
+	}
+
+	return result, len(result) > 0
+}
+
+func bindingMapsEqual(a, b map[string]string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for k, va := range a {
+		if vb, ok := b[k]; !ok || va != vb {
+			return false
+		}
+	}
+	return true
+}
+
 func hashFileWithFS(fs vfs.FS, path string) (string, error) {
 	data, err := fs.ReadFile(path)
 	if err != nil {
@@ -244,6 +295,15 @@ func hasNestedValue(m map[string]interface{}, path []string) bool {
 	key := path[0]
 	if nested, ok := m[key].(map[string]interface{}); ok {
 		return hasNestedValue(nested, path[1:])
+	}
+	return false
+}
+
+func isFullyManaged(regions []model.ManagedRegion) bool {
+	for _, r := range regions {
+		if _, ok := r.(model.FileRegion); ok {
+			return true
+		}
 	}
 	return false
 }
