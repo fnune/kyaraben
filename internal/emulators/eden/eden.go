@@ -375,18 +375,18 @@ func edenHotkeyRef(binding model.HotkeyBinding) string {
 
 func hotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	hk := cc.Hotkeys
-	section := "Shortcuts"
 
 	type mapping struct {
 		key     string
 		binding model.HotkeyBinding
 	}
+	// Eden uses Shortcuts\ as part of the key name, not as a section header.
 	mappings := []mapping{
-		{`Main%20Window\Continue\Pause%20Emulation\Controller_KeySeq`, hk.Pause},
-		{`Main%20Window\Exit%20Eden\Controller_KeySeq`, hk.Quit},
-		{`Main%20Window\Capture%20Screenshot\Controller_KeySeq`, hk.Screenshot},
-		{`Main%20Window\Fullscreen\Controller_KeySeq`, hk.ToggleFullscreen},
-		{`Main%20Window\Toggle%20Framerate%20Limit\Controller_KeySeq`, hk.FastForward},
+		{`Shortcuts\Main%20Window\Continue\Pause%20Emulation\Controller_KeySeq`, hk.Pause},
+		{`Shortcuts\Main%20Window\Exit%20Eden\Controller_KeySeq`, hk.Quit},
+		{`Shortcuts\Main%20Window\Capture%20Screenshot\Controller_KeySeq`, hk.Screenshot},
+		{`Shortcuts\Main%20Window\Fullscreen\Controller_KeySeq`, hk.ToggleFullscreen},
+		{`Shortcuts\Main%20Window\Toggle%20Framerate%20Limit\Controller_KeySeq`, hk.FastForward},
 	}
 
 	var entries []model.ConfigEntry
@@ -394,11 +394,11 @@ func hotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 		if len(m.binding.Buttons) > 0 {
 			entries = append(entries,
 				model.ConfigEntry{
-					Path:  []string{section, m.key},
+					Path:  []string{m.key},
 					Value: edenHotkeyRef(m.binding),
 				},
 				model.ConfigEntry{
-					Path:  []string{section, m.key + `\default`},
+					Path:  []string{m.key + `\default`},
 					Value: "false",
 				},
 			)
