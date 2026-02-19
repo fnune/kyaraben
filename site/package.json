@@ -10,7 +10,7 @@
     "fmt:check": "prettier --check 'src/**/*.{md,mdx}'"
   },
   "dependencies": {
-    "@astrojs/starlight": "^0.34",
+    "@astrojs/starlight": "^0.37.6",
     "astro": "^5",
     "sharp": "^0.34"
   },
