@@ -70,6 +70,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		{Path: []string{"UI", "SettingsVersion"}, Value: "1"},
 		{Path: []string{"UI", "SetupWizardIncomplete"}, Value: "false"},
 		{Path: []string{"UI", "ConfirmShutdown"}, Value: "false"},
+		{Path: []string{"UI", "StartFullscreen"}, Value: "true"},
 		{Path: []string{"Folders", "Bios"}, Value: store.SystemBiosDir(model.SystemIDPS2)},
 		{Path: []string{"Folders", "MemoryCards"}, Value: store.SystemSavesDir(model.SystemIDPS2)},
 		{Path: []string{"Folders", "Savestates"}, Value: store.EmulatorStatesDir(model.EmulatorIDPCSX2)},
