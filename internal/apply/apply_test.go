@@ -614,3 +614,35 @@ func TestApplyInstallsFrontendIcon(t *testing.T) {
 		t.Errorf("InstallIcon should be called for es-de, got calls for: %v", installer.iconCalls)
 	}
 }
+
+func TestGarbageCollectKeepsSyncthing(t *testing.T) {
+	t.Parallel()
+
+	env := newTestEnv(t)
+
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{
+			UserStore: filepath.Join(env.rootDir, "Emulation"),
+		},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
+		},
+	}
+
+	env.installer.Versions["retroarch"] = "1.22.0"
+	env.installer.Versions["syncthing"] = "v2.0.14"
+
+	_, err := env.applier.Apply(context.Background(), cfg, env.userStore, Options{})
+	if err != nil {
+		t.Fatalf("Apply failed: %v", err)
+	}
+
+	if len(env.installer.GCCalls) != 1 {
+		t.Fatalf("Expected 1 GC call, got %d", len(env.installer.GCCalls))
+	}
+
+	keepMap := env.installer.GCCalls[0]
+	if _, ok := keepMap["syncthing"]; !ok {
+		t.Errorf("syncthing should always be in the GC keep map, got: %v", keepMap)
+	}
+}

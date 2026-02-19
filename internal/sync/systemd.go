@@ -250,7 +250,7 @@ func (s *SystemdUnit) Status() ServiceStatus {
 		Failed: active == "failed",
 	}
 
-	if active != "active" && active != "activating" {
+	if active != "active" {
 		logs := s.service.Logs(unitName, 10)
 		if logs != "" {
 			status.Message = logs

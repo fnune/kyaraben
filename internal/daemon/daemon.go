@@ -939,7 +939,7 @@ func (d *Daemon) handleSyncStatus() []Event {
 		}
 
 		serviceError := status.Message
-		if status.Active == "activating" {
+		if serviceError == "" && status.Active == "activating" {
 			serviceError = "Syncthing is starting..."
 		}
 

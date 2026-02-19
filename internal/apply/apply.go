@@ -1178,6 +1178,7 @@ func (a *Applier) garbageCollect(emulatorIDs []model.EmulatorID, frontendIDs []m
 	if len(keep) > 0 {
 		keep["retroarch-cores"] = a.Installer.ResolveVersion("retroarch-cores")
 	}
+	keep["syncthing"] = a.Installer.ResolveVersion("syncthing")
 	return a.Installer.GarbageCollect(keep)
 }
 
