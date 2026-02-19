@@ -2,7 +2,12 @@ package daemon
 
 import (
 	"encoding/json"
+	"sync/atomic"
 	"testing"
+
+	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/paths"
+	syncpkg "github.com/fnune/kyaraben/internal/sync"
 )
 
 func TestSetConfigCommandParsing(t *testing.T) {
@@ -185,5 +190,64 @@ func TestErrorEventSerialization(t *testing.T) {
 
 	if dataMap["error"] != "something went wrong" {
 		t.Errorf("expected error message, got %v", dataMap["error"])
+	}
+}
+
+type fakeServiceManager struct {
+	state      string
+	stateCalls atomic.Int32
+}
+
+func (f *fakeServiceManager) DaemonReload() error            { return nil }
+func (f *fakeServiceManager) Start(unit string) error        { return nil }
+func (f *fakeServiceManager) Stop(unit string) error         { return nil }
+func (f *fakeServiceManager) Restart(unit string) error      { return nil }
+func (f *fakeServiceManager) Enable(unit string) error       { return nil }
+func (f *fakeServiceManager) Disable(unit string) error      { return nil }
+func (f *fakeServiceManager) IsEnabled(unit string) bool     { return f.state == "active" }
+func (f *fakeServiceManager) State(unit string) string       { f.stateCalls.Add(1); return f.state }
+func (f *fakeServiceManager) Logs(unit string, n int) string { return "" }
+
+var _ syncpkg.ServiceManager = (*fakeServiceManager)(nil)
+
+func TestEnsureSyncthingManagedSkipsWhenActivating(t *testing.T) {
+	t.Parallel()
+
+	service := &fakeServiceManager{state: "activating"}
+	d := &Daemon{
+		paths:   paths.NewPaths(""),
+		service: service,
+	}
+
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{UserStore: "/tmp/test"},
+		Sync:   model.SyncConfig{Enabled: true, Mode: model.SyncModePrimary},
+	}
+
+	d.ensureSyncthingManaged(cfg)
+
+	if service.stateCalls.Load() != 1 {
+		t.Errorf("expected State to be called once, got %d", service.stateCalls.Load())
+	}
+}
+
+func TestEnsureSyncthingManagedSkipsWhenActive(t *testing.T) {
+	t.Parallel()
+
+	service := &fakeServiceManager{state: "active"}
+	d := &Daemon{
+		paths:   paths.NewPaths(""),
+		service: service,
+	}
+
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{UserStore: "/tmp/test"},
+		Sync:   model.SyncConfig{Enabled: true, Mode: model.SyncModePrimary},
+	}
+
+	d.ensureSyncthingManaged(cfg)
+
+	if service.stateCalls.Load() != 1 {
+		t.Errorf("expected State to be called once, got %d", service.stateCalls.Load())
 	}
 }

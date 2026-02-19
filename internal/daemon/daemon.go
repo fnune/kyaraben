@@ -48,6 +48,7 @@ type Daemon struct {
 	installer       packages.Installer
 	configWriter    *emulators.ConfigWriter
 	launcherManager *launcher.Manager
+	service         syncpkg.ServiceManager
 
 	mu              sync.Mutex
 	applyCancelFunc context.CancelFunc
@@ -65,7 +66,7 @@ type Daemon struct {
 	syncReconfigFailCount   int
 }
 
-func New(fs vfs.FS, p *paths.Paths, configPath, stateDir, manifestPath string, reg *registry.Registry, installer packages.Installer, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager) *Daemon {
+func New(fs vfs.FS, p *paths.Paths, configPath, stateDir, manifestPath string, reg *registry.Registry, installer packages.Installer, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager, service syncpkg.ServiceManager) *Daemon {
 	return &Daemon{
 		fs:              fs,
 		paths:           p,
@@ -78,11 +79,12 @@ func New(fs vfs.FS, p *paths.Paths, configPath, stateDir, manifestPath string, r
 		installer:       installer,
 		configWriter:    configWriter,
 		launcherManager: launcherManager,
+		service:         service,
 	}
 }
 
 func NewDefault(p *paths.Paths, configPath, stateDir, manifestPath string, reg *registry.Registry, installer packages.Installer, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager) *Daemon {
-	return New(vfs.OSFS, p, configPath, stateDir, manifestPath, reg, installer, configWriter, launcherManager)
+	return New(vfs.OSFS, p, configPath, stateDir, manifestPath, reg, installer, configWriter, launcherManager, syncpkg.NewDefaultServiceManager())
 }
 
 func shortenPath(path string) string {
@@ -893,7 +895,7 @@ func (d *Daemon) handleSyncStatus() []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	unit := syncpkg.NewSystemdUnit(d.fs, d.paths, syncpkg.NewDefaultServiceManager())
+	unit := syncpkg.NewSystemdUnit(d.fs, d.paths, d.service)
 	serviceInstalled := unit.IsEnabled()
 
 	manifest, _ := d.loadManifest()
@@ -1416,7 +1418,7 @@ func (d *Daemon) handleSyncEnable(data *SyncEnableRequest, emit func(Event)) []E
 	go func() {
 		emitProgress("installing", "Installing syncthing...", 0)
 
-		setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir, syncpkg.NewDefaultServiceManager())
+		setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir, d.service)
 		result, err := setup.Install(context.Background(), cfg.Sync, userStore.Root(), allSystems, func(p packages.InstallProgress) {
 			percent := 0
 			if p.BytesTotal > 0 {
@@ -1474,7 +1476,7 @@ func (d *Daemon) handleSyncEnable(data *SyncEnableRequest, emit func(Event)) []E
 func (d *Daemon) handleSyncReset() []Event {
 	d.stopAutoAcceptLoop()
 	d.stopSecondaryPairing()
-	setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir, syncpkg.NewDefaultServiceManager())
+	setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir, d.service)
 	var removedFiles []string
 
 	if setup.IsEnabled() {
@@ -1661,9 +1663,8 @@ func (d *Daemon) dismissUnwantedPendingFolders(client syncpkg.SyncClient) {
 // ensureSyncthingManaged sets up syncthing if it's not already being managed
 // by our systemd unit. "Managed" means systemd state is "active" or "activating".
 func (d *Daemon) ensureSyncthingManaged(cfg *model.KyarabenConfig) {
-	service := syncpkg.NewDefaultServiceManager()
-	unit := syncpkg.NewSystemdUnit(d.fs, d.paths, service)
-	state := service.State(unit.UnitName())
+	unit := syncpkg.NewSystemdUnit(d.fs, d.paths, d.service)
+	state := d.service.State(unit.UnitName())
 	if state == "active" || state == "activating" {
 		log.Debug("Syncthing already managed by systemd (state=%s)", state)
 		return
@@ -1696,7 +1697,7 @@ func (d *Daemon) ensureSyncthingManaged(cfg *model.KyarabenConfig) {
 
 	allSystems := d.syncSystems(cfg)
 
-	setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir, syncpkg.NewDefaultServiceManager())
+	setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir, d.service)
 	result, err := setup.Install(context.Background(), cfg.Sync, userStore.Root(), allSystems, nil)
 	if err != nil {
 		log.Error("Syncthing setup failed: %v", err)
@@ -1771,7 +1772,7 @@ func (d *Daemon) updateSyncConfig(cfg *model.KyarabenConfig, userStorePath strin
 		return fmt.Errorf("loading manifest: %w", err)
 	}
 
-	setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir, syncpkg.NewDefaultServiceManager())
+	setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir, d.service)
 	result, installErr := setup.Install(context.Background(), cfg.Sync, userStorePath, allSystems, nil)
 	if installErr != nil {
 		return fmt.Errorf("updating syncthing: %w", installErr)
@@ -2175,7 +2176,7 @@ func (d *Daemon) handleUninstall() []Event {
 
 	syncServices, _ := syncpkg.FindKyarabenSyncthingServices()
 	for _, servicePath := range syncServices {
-		if err := syncpkg.StopAndRemoveServiceWithWait(syncpkg.NewDefaultServiceManager(), servicePath, 10*time.Second, syncPorts); err != nil {
+		if err := syncpkg.StopAndRemoveServiceWithWait(d.service, servicePath, 10*time.Second, syncPorts); err != nil {
 			errors = append(errors, fmt.Sprintf("could not remove syncthing service %s: %v", servicePath, err))
 		} else {
 			removedFiles = append(removedFiles, servicePath)
