@@ -1413,7 +1413,7 @@ func TestAzaharControllerConfig(t *testing.T) {
 				t.Error("profiles\\size entry should be default-only")
 			}
 		}
-		if strings.Contains(entry.Key(), "button_a") && strings.Contains(entry.Value, model.SteamDeckGUID) {
+		if strings.Contains(entry.Key(), "button_a") && strings.Contains(entry.Value, model.AzaharGUID) {
 			foundButtonA = true
 		}
 	}
@@ -1421,14 +1421,14 @@ func TestAzaharControllerConfig(t *testing.T) {
 		t.Error("Azahar should set active profile")
 	}
 	if !foundButtonA {
-		t.Error("Azahar should have Steam Deck GUID-based button_a entry")
+		t.Error("Azahar should have Azahar GUID-based button_a entry")
 	}
 }
 
 func TestAzaharControllerBindingValues(t *testing.T) {
 	t.Parallel()
 
-	guid := model.SteamDeckGUID
+	guid := model.AzaharGUID
 
 	t.Run("standard layout", func(t *testing.T) {
 		t.Parallel()
@@ -1464,15 +1464,16 @@ func TestAzaharControllerBindingValues(t *testing.T) {
 		}
 
 		// Standard layout: a=east=B(1), b=south=A(0), x=north=Y(3), y=west=X(2)
+		// L/R use triggers (axes), ZL/ZR use shoulder buttons to match EmuDeck.
 		wantBindings := map[string]string{
 			"profiles\\1\\button_a":      `"button:1,engine:sdl,guid:` + guid + `,port:0"`,
 			"profiles\\1\\button_b":      `"button:0,engine:sdl,guid:` + guid + `,port:0"`,
 			"profiles\\1\\button_x":      `"button:3,engine:sdl,guid:` + guid + `,port:0"`,
 			"profiles\\1\\button_y":      `"button:2,engine:sdl,guid:` + guid + `,port:0"`,
-			"profiles\\1\\button_l":      `"button:9,engine:sdl,guid:` + guid + `,port:0"`,
-			"profiles\\1\\button_r":      `"button:10,engine:sdl,guid:` + guid + `,port:0"`,
-			"profiles\\1\\button_zl":     `"axis:2,direction:+,engine:sdl,guid:` + guid + `,port:0,threshold:0.5"`,
-			"profiles\\1\\button_zr":     `"axis:5,direction:+,engine:sdl,guid:` + guid + `,port:0,threshold:0.5"`,
+			"profiles\\1\\button_l":      `"axis:2,direction:+,engine:sdl,guid:` + guid + `,port:0,threshold:0.5"`,
+			"profiles\\1\\button_r":      `"axis:5,direction:+,engine:sdl,guid:` + guid + `,port:0,threshold:0.5"`,
+			"profiles\\1\\button_zl":     `"button:9,engine:sdl,guid:` + guid + `,port:0"`,
+			"profiles\\1\\button_zr":     `"button:10,engine:sdl,guid:` + guid + `,port:0"`,
 			"profiles\\1\\button_start":  `"button:6,engine:sdl,guid:` + guid + `,port:0"`,
 			"profiles\\1\\button_select": `"button:4,engine:sdl,guid:` + guid + `,port:0"`,
 			"profiles\\1\\button_up":     `"direction:up,engine:sdl,guid:` + guid + `,hat:0,port:0"`,

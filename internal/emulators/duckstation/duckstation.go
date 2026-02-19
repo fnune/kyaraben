@@ -183,6 +183,7 @@ func hotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 		{"TogglePause", hk.Pause},
 		{"Screenshot", hk.Screenshot},
 		{"OpenPauseMenu", hk.OpenMenu},
+		{"PowerOff", hk.Quit},
 	}
 
 	var entries []model.ConfigEntry
