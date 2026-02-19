@@ -29,17 +29,13 @@ Testing after emulator config fixes.
 ## Eden (Switch)
 
 - [x] Fixed: use_fast_gpu_time -> fast_gpu_time with proper enum value
-- [ ] Hotkeys not working (needs further investigation)
+- [x] Fixed: Added `\default=false` flags for performance settings (Eden requires this to read custom values)
+- [x] Fixed: Added `\default=false` flags for hotkeys (Eden ignores custom values without this)
 
 ## PPSSPP (PSP)
 
 - [x] Fixed: Added FirstRun = False to suppress startup messages
 - [x] Fixed: L/R keycodes updated to match EmuDeck (L=193, R=192)
-
-## Azahar (3DS)
-
-- [x] Controls working
-- [ ] Hotkeys don't work at all
 
 ## Flycast (Dreamcast)
 
