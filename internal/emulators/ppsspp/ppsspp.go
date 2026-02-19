@@ -99,7 +99,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 
 // PPSSPP uses device-keycode format where device 10 is gamepad.
 // Keycodes: A=189, B=190, X=191, Y=188, Start=197, Select=196,
-// L=193, R=192, DPadUp=19, DPadDown=20, DPadLeft=21, DPadRight=22.
+// L=194, R=195, DPadUp=19, DPadDown=20, DPadLeft=21, DPadRight=22.
 // Analog: An.Up=4003, An.Down=4002, An.Left=4001, An.Right=4000.
 var ppssppKeycode = map[model.SDLButton]int{
 	model.ButtonA:             189,
@@ -108,8 +108,8 @@ var ppssppKeycode = map[model.SDLButton]int{
 	model.ButtonY:             188,
 	model.ButtonStart:         197,
 	model.ButtonBack:          196,
-	model.ButtonLeftShoulder:  193,
-	model.ButtonRightShoulder: 192,
+	model.ButtonLeftShoulder:  194,
+	model.ButtonRightShoulder: 195,
 	model.ButtonDPadUp:        19,
 	model.ButtonDPadDown:      20,
 	model.ButtonDPadLeft:      21,
