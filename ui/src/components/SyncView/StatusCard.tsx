@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react'
+import syncthingLogo from '@/assets/syncthing.svg'
 import { Button } from '@/lib/Button'
 import { Input } from '@/lib/Input'
+import { openUrl } from '@/lib/daemon'
 import { CopyIcon, TrashIcon } from '@/lib/icons'
 import { Modal } from '@/lib/Modal'
 import { Spinner } from '@/lib/Spinner'
@@ -512,10 +514,20 @@ export function StatusCard({
         </div>
       </Modal>
 
-      <div className="flex items-center gap-2">
-        <StatusBadge label={status.mode ?? 'unknown'} ok={true} />
-        <StatusBadge label="running" ok={true} />
-        {connectedDevice && <StatusBadge label="connected" ok={true} />}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <StatusBadge label={status.mode ?? 'unknown'} ok={true} />
+          <StatusBadge label="running" ok={true} />
+          {connectedDevice && <StatusBadge label="connected" ok={true} />}
+        </div>
+        <button
+          type="button"
+          onClick={() => openUrl('https://syncthing.net')}
+          className="flex items-center gap-1 text-xs text-on-surface-muted hover:text-on-surface transition-colors"
+        >
+          <span>powered by</span>
+          <img src={syncthingLogo} alt="Syncthing" className="h-5" />
+        </button>
       </div>
 
       {hasDevices && (
