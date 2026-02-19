@@ -97,7 +97,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 				{Path: []string{"General", "ISOPath1"}, Value: store.SystemRomsDir(model.SystemIDWii)},
 				{Path: []string{"General", "ISOPaths"}, Value: "2"},
 				{Path: []string{"General", "DumpPath"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDDolphin)},
-				{Path: []string{"General", "ConfirmStop"}, Value: "False"},
+				{Path: []string{"Interface", "ConfirmStop"}, Value: "False"},
 				{Path: []string{"AutoUpdate", "UpdateTrack"}, Value: ""},
 				{Path: []string{"GBA", "BIOS"}, Value: store.SystemBiosDir(model.SystemIDGBA) + "/gba_bios.bin"},
 				{Path: []string{"GBA", "SavesPath"}, Value: store.SystemSavesDir(model.SystemIDGBA)},
@@ -275,9 +275,9 @@ func dolphinHotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	}
 	mappings := []mapping{
 		{"Save State/Save to Selected Slot", hk.SaveState},
-		{"Save State/Load from Selected Slot", hk.LoadState},
-		{"Save State/Increase Selected State Slot", hk.NextSlot},
-		{"Save State/Decrease Selected State Slot", hk.PrevSlot},
+		{"Load State/Load from Selected Slot", hk.LoadState},
+		{"Other State Hotkeys/Increase Selected State Slot", hk.NextSlot},
+		{"Other State Hotkeys/Decrease Selected State Slot", hk.PrevSlot},
 		{"Emulation Speed/Disable Emulation Speed Limit", hk.FastForward},
 		{"General/Toggle Pause", hk.Pause},
 		{"General/Take Screenshot", hk.Screenshot},

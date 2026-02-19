@@ -34,11 +34,11 @@ func (Definition) Emulator() model.Emulator {
 			GenericName: "PlayStation Emulator",
 			Categories:  []string{"Game", "Emulator"},
 			RomCommand: func(opts model.RomLaunchOptions) string {
-				cmd := opts.BinaryPath
+				cmd := opts.BinaryPath + " -batch"
 				if opts.Fullscreen {
 					cmd += " -fullscreen"
 				}
-				cmd += " %ROM%"
+				cmd += " -- %ROM%"
 				return cmd
 			},
 		},
@@ -70,6 +70,8 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	store := ctx.Store
 	entries := []model.ConfigEntry{
 		{Path: []string{"Main", "SettingsVersion"}, Value: "3"},
+		{Path: []string{"Main", "ConfirmPowerOff"}, Value: "false"},
+		{Path: []string{"Main", "SaveStateOnExit"}, Value: "false"},
 		{Path: []string{"AutoUpdater", "CheckAtStartup"}, Value: "false"},
 		{Path: []string{"BIOS", "SearchDirectory"}, Value: store.SystemBiosDir(model.SystemIDPSX)},
 		{Path: []string{"MemoryCards", "Directory"}, Value: store.SystemSavesDir(model.SystemIDPSX)},
