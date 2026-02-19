@@ -222,7 +222,6 @@ var packageNames = []string{
 	"ppsspp",
 	"mgba",
 	"cemu",
-	"azahar",
 	"dolphin",
 	"melonds",
 	"vita3k",
