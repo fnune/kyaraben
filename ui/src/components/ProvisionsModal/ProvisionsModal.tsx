@@ -55,8 +55,8 @@ function ProvisionAction({
   const isInline = variant === 'inline'
   const iconClass = isInline ? 'w-4 h-4 shrink-0' : 'w-3.5 h-3.5 shrink-0'
   const textClass = isInline
-    ? 'flex items-center gap-1 text-accent hover:text-accent-hover transition-colors shrink-0 ml-auto'
-    : 'flex items-center gap-1 text-xs text-accent hover:text-accent-hover transition-colors truncate'
+    ? 'flex items-center gap-1 text-accent hover:text-accent-hover transition-colors ml-auto min-w-0 overflow-hidden max-w-full'
+    : 'flex items-center gap-1 text-xs text-accent hover:text-accent-hover transition-colors overflow-hidden min-w-0 max-w-full'
   const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : ''
 
   if (provision.importViaUI) {
@@ -71,7 +71,9 @@ function ProvisionAction({
           className={textClass}
         >
           <PlayIcon className={iconClass} />
-          <span className={isInline ? 'hidden sm:inline' : 'truncate'}>Import in emulator</span>
+          <span className={isInline ? 'hidden sm:inline' : 'truncate min-w-0'}>
+            Import in emulator
+          </span>
         </button>
       )
     }
@@ -81,7 +83,7 @@ function ProvisionAction({
           Import after install
         </span>
       ) : (
-        <span className="text-xs text-on-surface-dim truncate">Import after install</span>
+        <span className="text-xs text-on-surface-dim truncate min-w-0">Import after install</span>
       )
     }
     return null
@@ -108,7 +110,7 @@ function ProvisionAction({
           </span>
         </>
       ) : (
-        <span className="truncate">
+        <span className="truncate min-w-0">
           Open <PathText>{expectedPath}</PathText>
         </span>
       )}
@@ -266,10 +268,14 @@ function ProvisionRow({
           {kindLabel}
           {provision.description && ` (${provision.description})`}
         </span>
-        {statusLabel && <span className="text-xs text-on-surface-dim">{statusLabel}</span>}
+        {statusLabel && (
+          <span className="text-xs text-on-surface-dim hidden min-[450px]:inline">
+            {statusLabel}
+          </span>
+        )}
       </div>
-      <div className="flex items-center gap-1 ml-5">
-        <span className="text-xs text-on-surface-dim truncate">
+      <div className="flex flex-col min-[450px]:flex-row min-[450px]:items-center gap-1 ml-5 min-w-0">
+        <span className="text-xs text-on-surface-dim truncate min-w-0 min-[450px]:flex-1">
           {isFound ? (
             <>
               Verified (
@@ -286,7 +292,7 @@ function ProvisionRow({
             provision.instructions
           )}
         </span>
-        <div className="ml-auto">
+        <div className="min-[450px]:ml-auto shrink-0 min-[450px]:max-w-[50%]">
           <ProvisionAction
             provision={provision}
             disabled={disabled}

@@ -25,7 +25,7 @@ Name={{.Name}}
 GenericName={{.GenericName}}
 {{- end}}
 Exec={{.BinDir}}/{{.BinaryName}}{{if .LaunchArgs}} {{.LaunchArgs}}{{end}} %f
-Icon=kyaraben-{{.BinaryName}}
+Icon={{.IconPath}}
 Categories={{.CategoriesStr}};
 `
 
@@ -85,21 +85,24 @@ func (m *Manager) GenerateDesktopFiles(entries []GeneratedDesktop, icons []Insta
 		iconsByName[icon.Name] = icon
 	}
 
+	installedIconPaths := make(map[string]string)
+	for _, icon := range icons {
+		iconPath, err := m.installIcon(icon)
+		if err != nil {
+			log.Debug("Failed to install icon for %s: %v", icon.Name, err)
+		} else {
+			installedIconPaths[icon.Name] = iconPath
+			result.IconFiles = append(result.IconFiles, iconPath)
+		}
+	}
+
 	for _, entry := range entries {
-		desktopPath, err := m.generateDesktopFile(tmpl, entry)
+		iconPath := installedIconPaths[entry.BinaryName]
+		desktopPath, err := m.generateDesktopFile(tmpl, entry, iconPath)
 		if err != nil {
 			return nil, fmt.Errorf("generating desktop file for %s: %w", entry.BinaryName, err)
 		}
 		result.DesktopFiles = append(result.DesktopFiles, desktopPath)
-
-		if icon, ok := iconsByName[entry.BinaryName]; ok {
-			iconPath, err := m.installIcon(icon)
-			if err != nil {
-				log.Debug("Failed to install icon for %s: %v", entry.BinaryName, err)
-			} else {
-				result.IconFiles = append(result.IconFiles, iconPath)
-			}
-		}
 	}
 
 	m.updateIconCache()
@@ -176,9 +179,10 @@ type desktopTemplateData struct {
 	CategoriesStr string
 	BinDir        string
 	LaunchArgs    string
+	IconPath      string
 }
 
-func (m *Manager) generateDesktopFile(tmpl *template.Template, entry GeneratedDesktop) (string, error) {
+func (m *Manager) generateDesktopFile(tmpl *template.Template, entry GeneratedDesktop, iconPath string) (string, error) {
 	desktopPath := filepath.Join(m.ApplicationsDir(), entry.BinaryName+".desktop")
 
 	f, err := m.fs.Create(desktopPath)
@@ -193,6 +197,7 @@ func (m *Manager) generateDesktopFile(tmpl *template.Template, entry GeneratedDe
 		CategoriesStr: entry.CategoriesStr,
 		BinDir:        m.BinDir(),
 		LaunchArgs:    entry.LaunchArgs,
+		IconPath:      iconPath,
 	}
 
 	execErr := tmpl.Execute(f, data)
