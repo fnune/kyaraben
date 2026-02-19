@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { UpdateInfo } from '@/lib/daemon'
 import * as daemon from '@/lib/daemon'
-import { VIEW_CATALOG, type View } from '@/types/ui'
 
 const UPDATE_DISMISSED_KEY = 'kyaraben:update-dismissed'
 const APPLY_BANNER_DISMISSED_KEY = 'kyaraben:apply-banner-dismissed'
@@ -16,14 +15,12 @@ export interface UseUpdateCheckerResult {
   handleUpdate: () => Promise<void>
   handleDismissUpdate: () => void
   handleDismissApplyBanner: () => void
-  handleApplyFromBanner: () => void
   setShowApplyBanner: (show: boolean) => void
   clearApplyBannerDismissal: () => void
 }
 
 export function useUpdateChecker(
   showToast: (message: string, variant: 'success' | 'error') => void,
-  setCurrentView: (view: View) => void,
 ): UseUpdateCheckerResult {
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
@@ -96,11 +93,6 @@ export function useUpdateChecker(
     setApplyBannerDismissed(true)
   }, [])
 
-  const handleApplyFromBanner = useCallback(() => {
-    setCurrentView(VIEW_CATALOG)
-    setApplyBannerDismissed(true)
-  }, [setCurrentView])
-
   const clearApplyBannerDismissal = useCallback(() => {
     setShowApplyBanner(false)
     localStorage.removeItem(APPLY_BANNER_DISMISSED_KEY)
@@ -117,7 +109,6 @@ export function useUpdateChecker(
     handleUpdate,
     handleDismissUpdate,
     handleDismissApplyBanner,
-    handleApplyFromBanner,
     setShowApplyBanner,
     clearApplyBannerDismissal,
   }

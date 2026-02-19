@@ -8,6 +8,8 @@ export interface StickyActionBarProps {
   readonly onApply: (changes: ChangeSummary) => void
   readonly onDiscard: () => void
   readonly applying?: boolean
+  readonly upgradeAvailable?: boolean
+  readonly onReapply?: () => void
 }
 
 export function StickyActionBar({
@@ -15,6 +17,8 @@ export function StickyActionBar({
   onApply,
   onDiscard,
   applying = false,
+  upgradeAvailable = false,
+  onReapply,
 }: StickyActionBarProps) {
   const [confirmingDiscard, setConfirmingDiscard] = useState(false)
 
@@ -24,7 +28,8 @@ export function StickyActionBar({
     return () => clearTimeout(timer)
   }, [confirmingDiscard])
 
-  if (changes.total === 0 && !changes.hasConfigChanges) return null
+  const hasChanges = changes.total > 0 || changes.hasConfigChanges
+  if (!hasChanges && !upgradeAvailable) return null
 
   const handleDiscard = () => {
     if (confirmingDiscard) {
@@ -38,42 +43,51 @@ export function StickyActionBar({
   const netBytes = changes.downloadBytes - changes.freeBytes
   const hasSize = changes.downloadBytes > 0 || changes.freeBytes > 0
   const changeGroups = getChangeGroups(changes)
+  const upgradeOnly = upgradeAvailable && !hasChanges
 
   return (
     <BottomBar>
       <div className="flex items-center gap-4 text-sm min-w-0 overflow-hidden">
-        {changeGroups.length > 0 && (
-          <div className="flex items-center gap-3 min-w-0">
-            {changeGroups.map(({ type, items }) => {
-              const config = CHANGE_CONFIG[type]
-              const names = items.map((i) => i.name).join(', ')
-              return (
-                <span
-                  key={type}
-                  className={`flex items-center gap-1.5 min-w-0 ${config.textColor}`}
-                >
-                  <span className="shrink-0">{config.icon}</span>
-                  <span className="truncate">{names}</span>
-                </span>
-              )
-            })}
-          </div>
-        )}
-        {hasSize && (
-          <div className="flex items-center gap-2 font-mono shrink-0">
-            {changes.downloadBytes > 0 && (
-              <span className="text-status-ok">+{formatBytes(changes.downloadBytes)}</span>
+        {upgradeOnly ? (
+          <span className="text-on-surface-secondary">
+            Kyaraben was updated. Apply to get the latest emulator configs.
+          </span>
+        ) : (
+          <>
+            {changeGroups.length > 0 && (
+              <div className="flex items-center gap-3 min-w-0">
+                {changeGroups.map(({ type, items }) => {
+                  const config = CHANGE_CONFIG[type]
+                  const names = items.map((i) => i.name).join(', ')
+                  return (
+                    <span
+                      key={type}
+                      className={`flex items-center gap-1.5 min-w-0 ${config.textColor}`}
+                    >
+                      <span className="shrink-0">{config.icon}</span>
+                      <span className="truncate">{names}</span>
+                    </span>
+                  )
+                })}
+              </div>
             )}
-            {changes.freeBytes > 0 && (
-              <span className="text-status-error">-{formatBytes(changes.freeBytes)}</span>
+            {hasSize && (
+              <div className="flex items-center gap-2 font-mono shrink-0">
+                {changes.downloadBytes > 0 && (
+                  <span className="text-status-ok">+{formatBytes(changes.downloadBytes)}</span>
+                )}
+                {changes.freeBytes > 0 && (
+                  <span className="text-status-error">-{formatBytes(changes.freeBytes)}</span>
+                )}
+                {changes.downloadBytes > 0 && changes.freeBytes > 0 && (
+                  <span className="text-on-surface-dim">
+                    ({netBytes >= 0 ? '+' : '-'}
+                    {formatBytes(netBytes)})
+                  </span>
+                )}
+              </div>
             )}
-            {changes.downloadBytes > 0 && changes.freeBytes > 0 && (
-              <span className="text-on-surface-dim">
-                ({netBytes >= 0 ? '+' : '-'}
-                {formatBytes(netBytes)})
-              </span>
-            )}
-          </div>
+          </>
         )}
       </div>
 
@@ -88,7 +102,10 @@ export function StickyActionBar({
             {confirmingDiscard ? 'Click again to confirm' : 'Discard changes'}
           </button>
         )}
-        <Button onClick={() => onApply(changes)} disabled={applying}>
+        <Button
+          onClick={upgradeOnly && onReapply ? onReapply : () => onApply(changes)}
+          disabled={applying}
+        >
           {applying ? 'Applying...' : 'Apply'}
         </Button>
       </div>

@@ -140,17 +140,10 @@ test.describe('Version mismatch detection', () => {
     fixture?.cleanup()
   })
 
-  test('shows apply banner when manifest version differs from running version', async () => {
+  test('shows upgrade message in action bar when manifest version differs from running version', async () => {
     await expect(
-      page.getByText('Kyaraben was updated. Run Apply to get the latest emulator configs.'),
+      page.getByText('Kyaraben was updated. Apply to get the latest emulator configs.'),
     ).toBeVisible({ timeout: 10000 })
-  })
-
-  test('can dismiss apply banner', async () => {
-    const laterButton = page.getByRole('button', { name: 'Dismiss' })
-    await laterButton.click()
-    await expect(
-      page.getByText('Kyaraben was updated. Run Apply to get the latest emulator configs.'),
-    ).not.toBeVisible()
+    await expect(page.getByRole('button', { name: 'Apply' })).toBeVisible()
   })
 })
