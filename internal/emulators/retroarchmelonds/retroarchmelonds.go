@@ -46,4 +46,4 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	}, nil
 }
 
-const libretroCoreName = "melonds_libretro"
+const libretroCoreName = "melondsds_libretro"

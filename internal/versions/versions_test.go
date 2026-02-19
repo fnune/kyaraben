@@ -235,6 +235,42 @@ func TestAllPackagesHaveSize(t *testing.T) {
 	}
 }
 
+func TestAllPackagesHaveSHA256(t *testing.T) {
+	v := MustGet()
+	for name, spec := range v.Packages {
+		for version, entry := range spec.Versions {
+			for target, build := range entry.Targets {
+				if build.SHA256 == "" {
+					t.Errorf("%s %s %s: missing SHA256", name, version, target)
+				}
+			}
+		}
+	}
+
+	version := v.RetroArchCores.Default
+	if version == "" {
+		t.Fatal("retroarch-cores default version missing")
+	}
+	build, ok := v.RetroArchCores.Versions[version]
+	if !ok {
+		t.Fatalf("retroarch-cores version %s not found", version)
+	}
+	for target, targetBuild := range build.Targets {
+		if targetBuild.SHA256 == "" {
+			t.Errorf("retroarch-cores %s: missing SHA256", target)
+		}
+	}
+
+	for name, core := range v.RetroArchCores.Standalone {
+		if core.SHA256 == "" {
+			t.Errorf("retroarch-cores standalone %s: missing SHA256", name)
+		}
+		if core.Size == 0 {
+			t.Errorf("retroarch-cores standalone %s: missing size", name)
+		}
+	}
+}
+
 func TestGetPackage(t *testing.T) {
 	v := MustGet()
 

@@ -129,12 +129,16 @@ func (f *FakeInstaller) InstallCores(ctx context.Context, coreNames []string, on
 	if err := vfs.MkdirAll(f.fs, coresDir, 0755); err != nil {
 		return nil, err
 	}
-	coreFiles := versions.MustGet().RetroArchCores.Files
+	v := versions.MustGet()
 	installed := make([]InstalledCore, 0, len(coreNames))
 	for _, name := range coreNames {
-		filename := name
-		if mapped, ok := coreFiles[name]; ok {
+		var filename string
+		if standalone, ok := v.RetroArchCores.Standalone[name]; ok {
+			filename = standalone.Filename
+		} else if mapped, ok := v.RetroArchCores.Files[name]; ok {
 			filename = mapped
+		} else {
+			filename = name
 		}
 		corePath := filepath.Join(coresDir, filename)
 		if err := f.fs.WriteFile(corePath, []byte("fake core"), 0644); err != nil {
