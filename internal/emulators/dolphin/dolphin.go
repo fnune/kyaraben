@@ -94,6 +94,10 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 			{Path: []string{"GBA", "BIOS"}, Value: store.SystemBiosDir(model.SystemIDGBA) + "/gba_bios.bin"},
 			{Path: []string{"GBA", "SavesPath"}, Value: store.SystemSavesDir(model.SystemIDGBA)},
 			{Path: []string{"GBA", "SavesInRomPath"}, Value: "0"},
+			{Path: []string{"Core", "SIDevice0"}, Value: "6", DefaultOnly: true},
+			{Path: []string{"Core", "SIDevice1"}, Value: "0", DefaultOnly: true},
+			{Path: []string{"Core", "SIDevice2"}, Value: "0", DefaultOnly: true},
+			{Path: []string{"Core", "SIDevice3"}, Value: "0", DefaultOnly: true},
 		},
 	}}
 
@@ -175,7 +179,7 @@ func gcPadEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	var entries []model.ConfigEntry
 	for i := 0; i < 4; i++ {
 		section := fmt.Sprintf("GCPad%d", i+1)
-		device := fmt.Sprintf("SDL/%d/Gamepad", i)
+		device := fmt.Sprintf("SDL/%d/Steam Deck Controller", i)
 		entries = append(entries, model.ConfigEntry{Path: []string{section, "Device"}, Value: device, DefaultOnly: true})
 		entries = append(entries, gcPadBindingEntries(cc, section, true)...)
 	}
@@ -208,7 +212,7 @@ func dolphinHotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	section := "Hotkeys"
 
 	entries := []model.ConfigEntry{
-		{Path: []string{section, "Device"}, Value: "SDL/0/Gamepad", DefaultOnly: true},
+		{Path: []string{section, "Device"}, Value: "SDL/0/Steam Deck Controller", DefaultOnly: true},
 	}
 
 	type mapping struct {
