@@ -3,6 +3,8 @@ package apply
 import (
 	"context"
 	"fmt"
+	"hash/crc32"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -26,6 +28,28 @@ import (
 var versionsGet = versions.Get
 
 const installTimeout = 30 * time.Minute
+
+type SteamShortcutManager interface {
+	IsAvailable() bool
+	Sync(entries []SteamShortcutEntry) error
+}
+
+type SteamShortcutEntry struct {
+	AppName       string
+	Exe           string
+	StartDir      string
+	Icon          string
+	LaunchOptions string
+	Tags          []string
+	GridAssets    *SteamGridAssets
+}
+
+type SteamGridAssets struct {
+	Grid    []byte
+	Hero    []byte
+	Logo    []byte
+	Capsule []byte
+}
 
 type Progress struct {
 	Step            string
@@ -133,6 +157,7 @@ type Applier struct {
 	LauncherManager *launcher.Manager
 	BaseDirResolver model.BaseDirResolver
 	SymlinkCreator  model.SymlinkCreator
+	SteamManager    SteamShortcutManager
 }
 
 func NewApplier(fs vfs.FS, installer packages.Installer, configWriter *emulators.ConfigWriter, reg *registry.Registry, manifestPath string, launcherManager *launcher.Manager, resolver model.BaseDirResolver, symlinkCreator model.SymlinkCreator) *Applier {
@@ -344,6 +369,9 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		manifest.DesktopFiles = generatedFiles.DesktopFiles
 		manifest.IconFiles = generatedFiles.IconFiles
 	}
+
+	steamShortcuts := a.syncSteamShortcuts(frontendsToInstall, binDir, manifest)
+	manifest.SteamShortcuts = steamShortcuts
 
 	configResults := make([]emulators.ApplyResult, len(allPatches))
 	var backups []BackupInfo
@@ -1278,4 +1306,81 @@ func toLauncherIcons(icons []packages.InstalledIcon) []launcher.InstalledIcon {
 		result[i] = launcher.InstalledIcon{Name: ic.Name, Filename: ic.Filename, Path: ic.Path}
 	}
 	return result
+}
+
+func (a *Applier) syncSteamShortcuts(frontendIDs []model.FrontendID, binDir string, manifest *model.Manifest) []model.SteamShortcutRecord {
+	if a.SteamManager == nil || !a.SteamManager.IsAvailable() {
+		return nil
+	}
+
+	var entries []SteamShortcutEntry
+	var records []model.SteamShortcutRecord
+
+	for _, feID := range frontendIDs {
+		def := a.Registry.GetFrontendDefinition(feID)
+		if def == nil {
+			continue
+		}
+
+		provider, ok := def.(model.SteamShortcutProvider)
+		if !ok {
+			continue
+		}
+
+		info := provider.SteamShortcut(binDir)
+		if info == nil {
+			continue
+		}
+
+		fe, err := a.Registry.GetFrontend(feID)
+		if err != nil {
+			continue
+		}
+
+		exe := filepath.Join(binDir, fe.Launcher.Binary)
+
+		entry := SteamShortcutEntry{
+			AppName:       info.AppName,
+			Exe:           exe,
+			StartDir:      binDir,
+			LaunchOptions: info.LaunchOptions,
+			Tags:          info.Tags,
+		}
+
+		if info.GridAssets != nil {
+			entry.GridAssets = &SteamGridAssets{
+				Grid:    info.GridAssets.Grid,
+				Hero:    info.GridAssets.Hero,
+				Logo:    info.GridAssets.Logo,
+				Capsule: info.GridAssets.Capsule,
+			}
+		}
+
+		entries = append(entries, entry)
+
+		appID := generateSteamAppID(exe, info.AppName)
+		records = append(records, model.SteamShortcutRecord{
+			AppID:      appID,
+			AppName:    info.AppName,
+			FrontendID: feID,
+		})
+	}
+
+	if len(entries) == 0 {
+		return nil
+	}
+
+	if err := a.SteamManager.Sync(entries); err != nil {
+		log.Debug("Failed to sync Steam shortcuts: %v", err)
+		return manifest.SteamShortcuts
+	}
+
+	log.Info("Synced %d Steam shortcuts", len(entries))
+	return records
+}
+
+func generateSteamAppID(exe, appName string) uint32 {
+	input := exe + appName
+	crc := crc32.ChecksumIEEE([]byte(input))
+	return crc | 0x80000000
 }
