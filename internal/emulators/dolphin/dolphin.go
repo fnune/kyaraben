@@ -272,24 +272,29 @@ func dolphinHotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	type mapping struct {
 		key     string
 		binding model.HotkeyBinding
+		toggle  bool
 	}
 	mappings := []mapping{
-		{"Save State/Save to Selected Slot", hk.SaveState},
-		{"Load State/Load from Selected Slot", hk.LoadState},
-		{"Other State Hotkeys/Increase Selected State Slot", hk.NextSlot},
-		{"Other State Hotkeys/Decrease Selected State Slot", hk.PrevSlot},
-		{"Emulation Speed/Disable Emulation Speed Limit", hk.FastForward},
-		{"General/Toggle Pause", hk.Pause},
-		{"General/Take Screenshot", hk.Screenshot},
-		{"General/Exit", hk.Quit},
-		{"General/Toggle Fullscreen", hk.ToggleFullscreen},
+		{key: "Save State/Save to Selected Slot", binding: hk.SaveState},
+		{key: "Load State/Load from Selected Slot", binding: hk.LoadState},
+		{key: "Other State Hotkeys/Increase Selected State Slot", binding: hk.NextSlot},
+		{key: "Other State Hotkeys/Decrease Selected State Slot", binding: hk.PrevSlot},
+		{key: "Emulation Speed/Disable Emulation Speed Limit", binding: hk.FastForward, toggle: true},
+		{key: "General/Toggle Pause", binding: hk.Pause},
+		{key: "General/Take Screenshot", binding: hk.Screenshot},
+		{key: "General/Exit", binding: hk.Quit},
+		{key: "General/Toggle Fullscreen", binding: hk.ToggleFullscreen},
 	}
 
 	for _, m := range mappings {
 		if len(m.binding.Buttons) > 0 {
+			value := dolphinHotkeyChord(m.binding)
+			if m.toggle {
+				value = "toggle(" + value + ")"
+			}
 			entries = append(entries, model.ConfigEntry{
 				Path:        []string{section, m.key},
-				Value:       dolphinHotkeyChord(m.binding),
+				Value:       value,
 				DefaultOnly: true,
 			})
 		}
