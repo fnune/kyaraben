@@ -68,6 +68,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
 			{Path: []string{"General", "CurrentDirectory"}, Value: store.SystemRomsDir(model.SystemIDPSP)},
+			{Path: []string{"General", "AskForExitConfirmationAfterSeconds"}, Value: "0"},
 		},
 	}}
 

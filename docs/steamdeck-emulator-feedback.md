@@ -118,7 +118,7 @@ Low priority or unclear if fixable.
 
 - (PPSSPP) Fast forward binding is hold, but most other emulators use toggle. EmuDeck has both `Fast-forward` (hold) and `SpeedToggle` (toggle).
 
-- (PPSSPP) Exit shows confirmation "you haven't saved". No disable setting found in EmuDeck.
+- (PPSSPP) ~~Exit shows confirmation "you haven't saved".~~ Fixed: Set `AskForExitConfirmationAfterSeconds = 0`.
 
 - (Eden) Emulator loading/splash screen is ugly. Can't be avoided.
 
