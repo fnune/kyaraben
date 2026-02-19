@@ -74,13 +74,13 @@ func WriteShortcuts(w io.Writer, shortcuts []Shortcut) error {
 		if err := writeStringField(buf, "AppName", s.AppName); err != nil {
 			return err
 		}
-		if err := writeStringField(buf, "Exe", quoteExe(s.Exe)); err != nil {
+		if err := writeStringField(buf, "Exe", quotePath(s.Exe)); err != nil {
 			return err
 		}
-		if err := writeStringField(buf, "StartDir", s.StartDir); err != nil {
+		if err := writeStringField(buf, "StartDir", quotePath(s.StartDir)); err != nil {
 			return err
 		}
-		if err := writeStringField(buf, "icon", s.Icon); err != nil {
+		if err := writeStringField(buf, "icon", quotePath(s.Icon)); err != nil {
 			return err
 		}
 		if err := writeStringField(buf, "ShortcutPath", s.ShortcutPath); err != nil {
@@ -253,11 +253,11 @@ func (p *parser) parseShortcut() (Shortcut, error) {
 			case "AppName", "appname":
 				s.AppName = val
 			case "Exe", "exe":
-				s.Exe = unquoteExe(val)
+				s.Exe = unquotePath(val)
 			case "StartDir", "startdir":
-				s.StartDir = val
+				s.StartDir = unquotePath(val)
 			case "icon":
-				s.Icon = val
+				s.Icon = unquotePath(val)
 			case "ShortcutPath", "shortcutpath":
 				s.ShortcutPath = val
 			case "LaunchOptions", "launchoptions":
@@ -436,19 +436,19 @@ func writeInt32Field(w *bytes.Buffer, key string, val uint32) error {
 	return err
 }
 
-func quoteExe(exe string) string {
-	if len(exe) == 0 {
-		return exe
+func quotePath(path string) string {
+	if len(path) == 0 {
+		return path
 	}
-	if exe[0] == '"' {
-		return exe
+	if path[0] == '"' {
+		return path
 	}
-	return `"` + exe + `"`
+	return `"` + path + `"`
 }
 
-func unquoteExe(exe string) string {
-	if len(exe) >= 2 && exe[0] == '"' && exe[len(exe)-1] == '"' {
-		return exe[1 : len(exe)-1]
+func unquotePath(path string) string {
+	if len(path) >= 2 && path[0] == '"' && path[len(path)-1] == '"' {
+		return path[1 : len(path)-1]
 	}
-	return exe
+	return path
 }

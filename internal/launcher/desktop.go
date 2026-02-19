@@ -41,6 +41,10 @@ func (m *Manager) IconsDir() string {
 	return filepath.Join(m.dataDir, "icons", "hicolor", "scalable", "apps")
 }
 
+func (m *Manager) IconPath(binaryName string) string {
+	return filepath.Join(m.IconsDir(), "kyaraben-"+binaryName+".svg")
+}
+
 func (m *Manager) iconsDirForExt(ext string) string {
 	if ext == ".svg" {
 		return filepath.Join(m.dataDir, "icons", "hicolor", "scalable", "apps")
