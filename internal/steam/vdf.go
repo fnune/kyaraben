@@ -116,6 +116,9 @@ func WriteShortcuts(w io.Writer, shortcuts []Shortcut) error {
 		if err := writeStringField(buf, "FlatpakAppID", s.FlatpakAppID); err != nil {
 			return err
 		}
+		if err := writeStringField(buf, "sortas", ""); err != nil {
+			return err
+		}
 
 		if err := buf.WriteByte(typeMap); err != nil {
 			return err
