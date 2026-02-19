@@ -27,6 +27,10 @@ test: ensure
     go test ./...
     cd relay && go test ./...
 
+# Check for package version updates
+check-versions:
+    go run ./cmd/check-versions
+
 # Run Go linter
 lint: ensure
     golangci-lint run
