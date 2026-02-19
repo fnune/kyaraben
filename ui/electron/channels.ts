@@ -21,6 +21,7 @@ const DAEMON_CHANNELS = [
   'sync_revert_folder',
   'sync_local_changes',
   'sync_reset',
+  'sync_discovered_devices',
   'uninstall_preview',
   'refresh_icon_caches',
 ] as const

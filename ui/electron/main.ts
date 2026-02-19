@@ -385,71 +385,6 @@ async function applyCommand(): Promise<{ messages: string[]; cancelled: boolean 
   })
 }
 
-// Pairing streams progress events like apply
-async function pairingCommand(): Promise<{
-  success: boolean
-  peerDeviceId?: string
-  peerName?: string
-}> {
-  await ensureDaemon()
-
-  if (!daemon || !daemon.process.stdin) {
-    throw new Error('Daemon not running')
-  }
-
-  const currentDaemon = daemon
-  const stdin = daemon.process.stdin
-  const requestId = randomUUID()
-  const json = `${JSON.stringify({ type: 'sync_start_pairing', id: requestId })}\n`
-  stdin.write(json)
-
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(
-      () => {
-        currentDaemon.pending.delete(requestId)
-        reject(new Error('Pairing timeout'))
-      },
-      6 * 60 * 1000,
-    )
-
-    const handleEvent = (event: DaemonEvent) => {
-      if (event.type === 'progress') {
-        const data = event.data as { message?: string } | undefined
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          try {
-            mainWindow.webContents.send('pairing:progress', {
-              message: data?.message ?? '',
-            })
-          } catch (sendErr) {
-            console.error(
-              `[sync] Failed to send pairing progress: ${sendErr instanceof Error ? sendErr.message : String(sendErr)}`,
-            )
-          }
-        }
-      } else if (event.type === 'result') {
-        clearTimeout(timeout)
-        currentDaemon.pending.delete(requestId)
-        const data = event.data as { success?: boolean; peerDeviceId?: string; peerName?: string }
-        resolve({
-          success: data?.success ?? true,
-          peerDeviceId: data?.peerDeviceId,
-          peerName: data?.peerName,
-        })
-      } else if (event.type === 'cancelled') {
-        clearTimeout(timeout)
-        currentDaemon.pending.delete(requestId)
-        resolve({ success: false })
-      } else if (event.type === 'error') {
-        clearTimeout(timeout)
-        currentDaemon.pending.delete(requestId)
-        reject(new Error((event.data as { error?: string })?.error || 'Unknown error'))
-      }
-    }
-
-    currentDaemon.pending.set(requestId, { resolve: handleEvent, reject })
-  })
-}
-
 async function joinPrimaryCommand(code: string): Promise<{
   success: boolean
   peerDeviceId?: string
@@ -655,15 +590,8 @@ function setupIpcHandlers(): void {
   })
 
   ipcMain.handle('sync_start_pairing', async () => {
-    try {
-      return await pairingCommand()
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      console.error(`[sync] Pairing failed: ${msg}`)
-      const cleanError = new Error(msg)
-      cleanError.stack = undefined
-      throw cleanError
-    }
+    const event = await sendCommand({ type: 'sync_start_pairing' })
+    return event.data
   })
 
   ipcMain.handle('sync_join_primary', async (_, data: { code: string; pairingAddr: string }) => {
@@ -726,6 +654,11 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle('sync_reset', async () => {
     const event = await sendCommand({ type: 'sync_reset' })
+    return event.data
+  })
+
+  ipcMain.handle('sync_discovered_devices', async () => {
+    const event = await sendCommand({ type: 'sync_discovered_devices' })
     return event.data
   })
 
@@ -887,6 +820,7 @@ function setupIpcHandlers(): void {
     'sync_start_pairing',
     'sync_join_primary',
     'sync_cancel_pairing',
+    'sync_discovered_devices',
     'sync_pending',
     'sync_enable',
     'sync_revert_folder',

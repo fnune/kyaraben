@@ -3,10 +3,11 @@ import { Button } from '@/lib/Button'
 import { formatBytes } from '@/lib/changeUtils'
 import { getSyncLocalChanges, openPath, revertSyncFolder } from '@/lib/daemon'
 import { Input } from '@/lib/Input'
-import { FolderIcon, TrashIcon } from '@/lib/icons'
+import { CopyIcon, FolderIcon, TrashIcon } from '@/lib/icons'
 import { Spinner } from '@/lib/Spinner'
 import type {
   SyncDevice,
+  SyncDiscoveredDevice,
   SyncFolder,
   SyncLocalChange,
   SyncMode,
@@ -15,16 +16,20 @@ import type {
 
 export interface SyncViewProps {
   readonly status: SyncStatusResponse | null
+  readonly discoveredDevices: SyncDiscoveredDevice[]
+  readonly connectionProgress: string | null
+  readonly connectionError: string | null
+  readonly isDiscovering: boolean
+  readonly isConnecting: boolean
+  readonly isPairing: boolean
+  readonly pairingDeviceId: string | null
   readonly onRemoveDevice: (deviceId: string) => Promise<void>
-  readonly onStartPairing: () => Promise<void>
-  readonly onCancelPairing: () => Promise<void>
-  readonly onJoinPrimary: (code: string) => Promise<{ ok: boolean; error?: string }>
+  readonly onConnectToDevice: (deviceId: string) => Promise<{ ok: boolean; error?: string }>
   readonly onEnableSync: (mode: SyncMode) => Promise<void>
   readonly onResetSync: () => Promise<void>
+  readonly onStartPairing: () => Promise<void>
+  readonly onStopPairing: () => Promise<void>
   readonly onRefresh: () => void
-  readonly pairingCode: string | null
-  readonly pairingProgress: string | null
-  readonly pairingError: string | null
   readonly isEnabling: boolean
   readonly enableError: string | null
 }
@@ -383,162 +388,248 @@ function DisabledState({
   )
 }
 
-function PairingSection({
+function formatDeviceIdGroup(group: string, index: number) {
+  if (index === 0) {
+    return (
+      <span key={index} className="text-accent font-semibold">
+        {group}
+      </span>
+    )
+  }
+  return (
+    <span key={index} className="text-on-surface-muted">
+      {group}
+    </span>
+  )
+}
+
+function DeviceIdDisplay({
+  deviceId,
+  showCopy = true,
+}: {
+  readonly deviceId: string
+  readonly showCopy?: boolean
+}) {
+  const [copied, setCopied] = useState(false)
+  const groups = deviceId.split('-')
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(deviceId)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }, [deviceId])
+
+  return (
+    <div className="flex items-center gap-2">
+      <code className="bg-surface-raised px-3 py-2 rounded-sm font-mono text-sm tracking-wide">
+        {groups.map((group, i) => (
+          <span key={`${i}-${group}`}>
+            {formatDeviceIdGroup(group, i)}
+            {i < groups.length - 1 && <span className="text-outline mx-0.5">-</span>}
+          </span>
+        ))}
+      </code>
+      {showCopy && (
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="p-2 text-on-surface-muted hover:text-on-surface rounded"
+          title={copied ? 'Copied!' : 'Copy device ID'}
+        >
+          <CopyIcon className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  )
+}
+
+function DiscoveredDeviceRow({
+  device,
+  onConnect,
+  isConnecting,
+}: {
+  readonly device: SyncDiscoveredDevice
+  readonly onConnect: () => void
+  readonly isConnecting: boolean
+}) {
+  const groups = device.deviceId.split('-')
+
+  return (
+    <div className="flex items-center justify-between py-3 border-b border-outline last:border-0">
+      <code className="font-mono text-sm">
+        <span className="text-accent font-semibold">{groups[0]}</span>
+        <span className="text-outline mx-0.5">-</span>
+        <span className="text-on-surface-muted">{groups[1]}</span>
+        <span className="text-on-surface-muted">...</span>
+      </code>
+      <Button size="sm" onClick={onConnect} disabled={isConnecting}>
+        {isConnecting ? 'Connecting...' : 'Connect'}
+      </Button>
+    </div>
+  )
+}
+
+function PrimaryPairingSection({
   status,
-  pairingCode,
-  pairingProgress,
-  pairingError,
+  isPairing,
+  pairingDeviceId,
   onStartPairing,
-  onCancelPairing,
-  onJoinPrimary,
+  onStopPairing,
 }: {
   readonly status: SyncStatusResponse
-  readonly pairingCode: string | null
-  readonly pairingProgress: string | null
-  readonly pairingError: string | null
+  readonly isPairing: boolean
+  readonly pairingDeviceId: string | null
   readonly onStartPairing: () => Promise<void>
-  readonly onCancelPairing: () => Promise<void>
-  readonly onJoinPrimary: (code: string) => Promise<{ ok: boolean; error?: string }>
+  readonly onStopPairing: () => Promise<void>
 }) {
-  const [joinCode, setJoinCode] = useState('')
-  const [isJoining, setIsJoining] = useState(false)
-  const [isStartingPairing, setIsStartingPairing] = useState(false)
-  const [localError, setLocalError] = useState<string | null>(null)
-  const isPairing = status.pairing || pairingCode !== null
-  const isRunning = status.running ?? false
   const hasDevices = (status.devices?.length ?? 0) > 0
 
-  const displayError = localError || pairingError
-
-  const handleJoin = useCallback(
-    async (code: string) => {
-      setIsJoining(true)
-      setLocalError(null)
-      try {
-        const result = await onJoinPrimary(code)
-        if (result.ok) {
-          setJoinCode('')
-        } else {
-          setLocalError(result.error ?? 'Failed to join primary')
-        }
-      } finally {
-        setIsJoining(false)
-      }
-    },
-    [onJoinPrimary],
-  )
-
-  const handleStartPairing = useCallback(async () => {
-    setIsStartingPairing(true)
-    setLocalError(null)
-    try {
-      await onStartPairing()
-    } finally {
-      setIsStartingPairing(false)
-    }
-  }, [onStartPairing])
-
-  if (!isRunning) {
+  if (isPairing && pairingDeviceId) {
     return (
-      <Section title="Syncthing not running">
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <Spinner />
-            <span className="text-sm text-on-surface-muted">Waiting for syncthing to start...</span>
-          </div>
-          {status.serviceError && (
-            <details className="text-sm">
-              <summary className="text-on-surface-muted cursor-pointer hover:text-on-surface">
-                Service logs
-              </summary>
-              <pre className="mt-2 text-xs text-on-surface-muted bg-surface-raised p-3 rounded-sm overflow-x-auto whitespace-pre-wrap">
-                {status.serviceError}
-              </pre>
-            </details>
-          )}
+      <Section title="Pairing mode">
+        <p className="text-sm text-on-surface-muted mb-3">
+          Share this device ID with your secondary device. It will appear in the Sync tab.
+        </p>
+        <DeviceIdDisplay deviceId={pairingDeviceId} />
+        <div className="flex items-center gap-3 mt-4">
+          <Spinner />
+          <span className="text-sm text-on-surface-muted">Waiting for devices to connect...</span>
         </div>
-      </Section>
-    )
-  }
-
-  if (isPairing) {
-    return (
-      <Section title="Pairing in progress">
-        {pairingCode && (
-          <div className="mb-4">
-            <p className="text-sm text-on-surface-muted mb-2">
-              Enter this code on the other device:
-            </p>
-            <code className="block bg-surface-raised text-on-surface px-4 py-3 rounded-sm text-2xl font-mono text-center tracking-widest tabular-nums">
-              {pairingCode}
-            </code>
-          </div>
-        )}
-        {pairingProgress && <p className="text-sm text-on-surface-muted mb-3">{pairingProgress}</p>}
-        <Button variant="secondary" onClick={onCancelPairing}>
-          Cancel pairing
-        </Button>
-      </Section>
-    )
-  }
-
-  if (status.mode === 'secondary') {
-    if (hasDevices) {
-      return null
-    }
-
-    if (isJoining) {
-      return (
-        <Section title="Joining primary">
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <Spinner />
-              <span className="text-sm text-on-surface-muted">
-                {pairingProgress || 'Searching for primary on local network...'}
-              </span>
-            </div>
-            <Button variant="secondary" onClick={onCancelPairing}>
-              Cancel
-            </Button>
-          </div>
-        </Section>
-      )
-    }
-
-    return (
-      <Section title="Join a primary device">
-        <div className="space-y-3">
-          <p className="text-sm text-on-surface-muted">
-            Enter the pairing code shown on the primary device. The primary will be discovered
-            automatically on your local network.
-          </p>
-          <Input value={joinCode} onChange={setJoinCode} placeholder="Pairing code (e.g. 6MDLRF)" />
-          {displayError && <p className="text-sm text-status-error">{displayError}</p>}
-          <Button onClick={() => handleJoin(joinCode.trim())} disabled={!joinCode.trim()}>
-            Join primary
+        <div className="mt-4">
+          <Button variant="secondary" onClick={onStopPairing}>
+            Stop pairing
           </Button>
         </div>
       </Section>
     )
   }
 
-  if (isStartingPairing) {
+  if (hasDevices) {
+    return null
+  }
+
+  return (
+    <Section title="Pair a device">
+      <p className="text-sm text-on-surface-muted mb-3">
+        Start pairing to allow secondary devices to connect. Your device ID will be shown and
+        secondary devices on the network will be able to discover and connect to this device.
+      </p>
+      <Button onClick={onStartPairing}>Start pairing</Button>
+    </Section>
+  )
+}
+
+function SecondaryDiscoverySection({
+  status,
+  discoveredDevices,
+  connectionProgress,
+  connectionError,
+  isDiscovering,
+  isConnecting,
+  onConnectToDevice,
+}: {
+  readonly status: SyncStatusResponse
+  readonly discoveredDevices: SyncDiscoveredDevice[]
+  readonly connectionProgress: string | null
+  readonly connectionError: string | null
+  readonly isDiscovering: boolean
+  readonly isConnecting: boolean
+  readonly onConnectToDevice: (deviceId: string) => Promise<{ ok: boolean; error?: string }>
+}) {
+  const [manualDeviceId, setManualDeviceId] = useState('')
+  const [showManualInput, setShowManualInput] = useState(false)
+  const hasDevices = (status.devices?.length ?? 0) > 0
+
+  const handleConnectManual = useCallback(async () => {
+    const trimmed = manualDeviceId.trim().toUpperCase()
+    if (trimmed) {
+      const result = await onConnectToDevice(trimmed)
+      if (result.ok) {
+        setManualDeviceId('')
+        setShowManualInput(false)
+      }
+    }
+  }, [manualDeviceId, onConnectToDevice])
+
+  if (hasDevices) {
+    return null
+  }
+
+  if (isConnecting) {
     return (
-      <Section title="Pair a device">
+      <Section title="Connecting to primary">
         <div className="flex items-center gap-3">
           <Spinner />
-          <span className="text-sm text-on-surface-muted">Starting pairing...</span>
+          <span className="text-sm text-on-surface-muted">
+            {connectionProgress || 'Connecting...'}
+          </span>
         </div>
       </Section>
     )
   }
 
   return (
-    <Section title="Pair a device">
+    <Section title="Connect to primary">
       <p className="text-sm text-on-surface-muted mb-3">
-        Start pairing to connect another device on your local network.
+        Select a kyaraben primary device from your network to start syncing.
       </p>
-      <Button onClick={handleStartPairing}>Start pairing</Button>
+
+      {isDiscovering && discoveredDevices.length === 0 && (
+        <div className="flex items-center gap-3 mb-4">
+          <Spinner />
+          <span className="text-sm text-on-surface-muted">Searching for devices...</span>
+        </div>
+      )}
+
+      {discoveredDevices.length > 0 && (
+        <div className="border border-outline rounded-card px-3 bg-surface mb-4">
+          {[...discoveredDevices]
+            .sort((a, b) => a.deviceId.localeCompare(b.deviceId))
+            .map((device) => (
+              <DiscoveredDeviceRow
+                key={device.deviceId}
+                device={device}
+                onConnect={() => onConnectToDevice(device.deviceId)}
+                isConnecting={isConnecting}
+              />
+            ))}
+        </div>
+      )}
+
+      {connectionError && (
+        <div className="p-3 bg-status-error/10 border border-status-error/30 rounded text-sm text-status-error mb-4">
+          {connectionError}
+        </div>
+      )}
+
+      {showManualInput ? (
+        <div className="space-y-3">
+          <p className="text-sm text-on-surface-muted">
+            Enter the device ID from the primary device:
+          </p>
+          <Input
+            value={manualDeviceId}
+            onChange={setManualDeviceId}
+            placeholder="XXXXXXX-XXXXXXX-XXXXXXX-..."
+          />
+          <div className="flex gap-2">
+            <Button onClick={handleConnectManual} disabled={!manualDeviceId.trim()}>
+              Connect
+            </Button>
+            <Button variant="secondary" onClick={() => setShowManualInput(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowManualInput(true)}
+          className="text-sm text-accent hover:underline"
+        >
+          Enter device ID manually
+        </button>
+      )}
     </Section>
   )
 }
@@ -559,16 +650,20 @@ function StatusBadge({ label, ok }: { label: string; ok: boolean }) {
 
 export function SyncView({
   status,
+  discoveredDevices,
+  connectionProgress,
+  connectionError,
+  isDiscovering,
+  isConnecting,
+  isPairing,
+  pairingDeviceId,
   onRemoveDevice,
-  onStartPairing,
-  onCancelPairing,
-  onJoinPrimary,
+  onConnectToDevice,
   onEnableSync,
   onResetSync,
+  onStartPairing,
+  onStopPairing,
   onRefresh,
-  pairingCode,
-  pairingProgress,
-  pairingError,
   isEnabling,
   enableError,
 }: SyncViewProps) {
@@ -597,6 +692,33 @@ export function SyncView({
     )
   }
 
+  if (!status.running) {
+    return (
+      <div className="p-6">
+        <Section title="Syncthing not running">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <Spinner />
+              <span className="text-sm text-on-surface-muted">
+                Waiting for syncthing to start...
+              </span>
+            </div>
+            {status.serviceError && (
+              <details className="text-sm">
+                <summary className="text-on-surface-muted cursor-pointer hover:text-on-surface">
+                  Service logs
+                </summary>
+                <pre className="mt-2 text-xs text-on-surface-muted bg-surface-raised p-3 rounded-sm overflow-x-auto whitespace-pre-wrap">
+                  {status.serviceError}
+                </pre>
+              </details>
+            )}
+          </div>
+        </Section>
+      </div>
+    )
+  }
+
   const connectedCount = status.devices?.filter((d) => d.connected).length ?? 0
   const totalDevices = status.devices?.length ?? 0
 
@@ -608,13 +730,38 @@ export function SyncView({
     <div className="p-6 space-y-6">
       <div className="flex items-center gap-2">
         <StatusBadge label={status.mode ?? 'unknown'} ok={true} />
-        <StatusBadge label={status.running ? 'running' : 'stopped'} ok={status.running ?? false} />
+        <StatusBadge label="running" ok={true} />
       </div>
+
+      {status.mode === 'primary' && (
+        <PrimaryPairingSection
+          status={status}
+          isPairing={isPairing}
+          pairingDeviceId={pairingDeviceId}
+          onStartPairing={onStartPairing}
+          onStopPairing={onStopPairing}
+        />
+      )}
+
+      {status.mode === 'secondary' && (
+        <SecondaryDiscoverySection
+          status={status}
+          discoveredDevices={discoveredDevices}
+          connectionProgress={connectionProgress}
+          connectionError={connectionError}
+          isDiscovering={isDiscovering}
+          isConnecting={isConnecting}
+          onConnectToDevice={onConnectToDevice}
+        />
+      )}
 
       <Section title="Paired devices">
         {totalDevices === 0 ? (
           <p className="text-sm text-on-surface-muted">
-            No devices paired yet. Pair a device to start syncing.
+            No devices paired yet.{' '}
+            {status.mode === 'primary'
+              ? 'Secondary devices will appear here when they connect.'
+              : 'Connect to a primary device above to start syncing.'}
           </p>
         ) : (
           <>
@@ -633,16 +780,6 @@ export function SyncView({
           </>
         )}
       </Section>
-
-      <PairingSection
-        status={status}
-        pairingCode={pairingCode}
-        pairingProgress={pairingProgress}
-        pairingError={pairingError}
-        onStartPairing={onStartPairing}
-        onCancelPairing={onCancelPairing}
-        onJoinPrimary={onJoinPrimary}
-      />
 
       {sortedFolders.length > 0 && (
         <Section title="Synced folders">

@@ -276,7 +276,7 @@ type SyncRemoveDeviceResponse struct {
 }
 
 type SyncStartPairingResponse struct {
-	Code string `json:"code"`
+	DeviceID string `json:"deviceId"`
 }
 
 type SyncPairingCompleteResponse struct {
@@ -292,7 +292,8 @@ type SyncJoinPrimaryResponse struct {
 }
 
 type SyncPairingProgressEvent struct {
-	Message string `json:"message"`
+	Message  string `json:"message"`
+	DeviceID string `json:"deviceId,omitempty"`
 }
 
 type SyncEnableProgressEvent struct {
@@ -310,9 +311,13 @@ type SyncResetResponse struct {
 	RemovedFiles []string `json:"removedFiles,omitempty"`
 }
 
-type SyncDiscoveredPrimary struct {
-	Hostname    string `json:"hostname"`
-	PairingAddr string `json:"pairingAddr"`
+type SyncDiscoveredDevice struct {
+	DeviceID  string   `json:"deviceId"`
+	Addresses []string `json:"addresses"`
+}
+
+type SyncDiscoveredDevicesResponse struct {
+	Devices []SyncDiscoveredDevice `json:"devices"`
 }
 
 type UninstallPreviewResponse struct {
