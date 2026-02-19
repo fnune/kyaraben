@@ -75,6 +75,11 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		Entries: []model.ConfigEntry{
 			{Path: []string{"content", "GamePaths", "Entry"}, Value: store.SystemRomsDir(model.SystemIDWiiU)},
 			{Path: []string{"content", "check_update"}, Value: "false"},
+			{Path: []string{"content", "Graphic", "api"}, Value: "1", DefaultOnly: true},
+			{Path: []string{"content", "Graphic", "VSync"}, Value: "0", DefaultOnly: true},
+			{Path: []string{"content", "Graphic", "AsyncCompile"}, Value: "true", DefaultOnly: true},
+			{Path: []string{"content", "Graphic", "GX2DrawdoneSync"}, Value: "true", DefaultOnly: true},
+			{Path: []string{"content", "Graphic", "Notification", "ShaderCompiling"}, Value: "false", DefaultOnly: true},
 		},
 	}}
 
