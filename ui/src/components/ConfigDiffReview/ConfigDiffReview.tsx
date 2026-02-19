@@ -1,6 +1,6 @@
 import { BottomBar } from '@/lib/BottomBar'
 import { Button } from '@/lib/Button'
-import { openPath } from '@/lib/daemon'
+import { useOpenPath } from '@/lib/hooks/useOpenPath'
 import { useScrollToTop } from '@/lib/useScrollToTop'
 import type {
   ConfigChangeDetail,
@@ -72,6 +72,7 @@ function ChangeRow({ change }: { readonly change: ConfigChangeDetail }) {
 }
 
 function FileDiff({ diff }: { readonly diff: ConfigFileDiff }) {
+  const openPath = useOpenPath()
   const hasConflict = diff.userModified && diff.hasChanges && (diff.userChanges?.length ?? 0) > 0
 
   return (
