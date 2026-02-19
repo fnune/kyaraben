@@ -238,6 +238,58 @@ func TestFaceButtonsNintendo(t *testing.T) {
 	}
 }
 
+func TestSDLIndexStandard(t *testing.T) {
+	t.Parallel()
+
+	cc := &ControllerConfig{Layout: LayoutStandard}
+
+	tests := []struct {
+		btn  SDLButton
+		want int
+	}{
+		{ButtonA, 1},
+		{ButtonB, 0},
+		{ButtonX, 3},
+		{ButtonY, 2},
+		{ButtonBack, 4},
+		{ButtonStart, 6},
+		{ButtonLeftShoulder, 9},
+	}
+
+	for _, tt := range tests {
+		got := cc.SDLIndex(tt.btn)
+		if got != tt.want {
+			t.Errorf("standard SDLIndex(%q) = %d, want %d", tt.btn, got, tt.want)
+		}
+	}
+}
+
+func TestSDLIndexNintendo(t *testing.T) {
+	t.Parallel()
+
+	cc := &ControllerConfig{Layout: LayoutNintendo}
+
+	tests := []struct {
+		btn  SDLButton
+		want int
+	}{
+		{ButtonA, 0},
+		{ButtonB, 1},
+		{ButtonX, 2},
+		{ButtonY, 3},
+		{ButtonBack, 4},
+		{ButtonStart, 6},
+		{ButtonLeftShoulder, 9},
+	}
+
+	for _, tt := range tests {
+		got := cc.SDLIndex(tt.btn)
+		if got != tt.want {
+			t.Errorf("nintendo SDLIndex(%q) = %d, want %d", tt.btn, got, tt.want)
+		}
+	}
+}
+
 func TestDefaultHotkeysAllPopulated(t *testing.T) {
 	t.Parallel()
 
