@@ -27,8 +27,10 @@ type ControllerTomlConfig struct {
 	Hotkeys HotkeyTomlConfig `toml:"hotkeys"`
 }
 
-// HotkeyTomlConfig is the TOML representation of hotkey bindings (raw strings).
+// HotkeyTomlConfig is the TOML representation of hotkey bindings.
+// All hotkeys share the same modifier button, with individual action buttons.
 type HotkeyTomlConfig struct {
+	Modifier         string `toml:"modifier"`
 	SaveState        string `toml:"save_state"`
 	LoadState        string `toml:"load_state"`
 	NextSlot         string `toml:"next_slot"`
@@ -59,6 +61,15 @@ func (c *KyarabenConfig) ResolveControllerConfig() (*ControllerConfig, error) {
 	}
 
 	hk := c.Controller.Hotkeys
+
+	modifier := SDLButton(ButtonBack)
+	if hk.Modifier != "" {
+		if !validButtons[SDLButton(hk.Modifier)] {
+			return nil, fmt.Errorf("controller.hotkeys.modifier: unknown button %q", hk.Modifier)
+		}
+		modifier = SDLButton(hk.Modifier)
+	}
+
 	resolvers := []struct {
 		src  string
 		dest *HotkeyBinding
@@ -79,11 +90,11 @@ func (c *KyarabenConfig) ResolveControllerConfig() (*ControllerConfig, error) {
 		if r.src == "" {
 			continue
 		}
-		b, err := ParseHotkeyBinding(r.src)
-		if err != nil {
-			return nil, fmt.Errorf("controller.hotkeys: %w", err)
+		action := SDLButton(r.src)
+		if !validButtons[action] {
+			return nil, fmt.Errorf("controller.hotkeys: unknown button %q", r.src)
 		}
-		*r.dest = b
+		*r.dest = HotkeyBinding{Buttons: []SDLButton{modifier, action}}
 	}
 
 	return cc, nil
@@ -242,7 +253,6 @@ func (c *KyarabenConfig) SystemsForEmulator(emu EmulatorID) []SystemID {
 
 // NewDefaultConfig creates a new config with default values.
 func NewDefaultConfig() *KyarabenConfig {
-	defaults := DefaultHotkeys()
 	return &KyarabenConfig{
 		Global: GlobalConfig{
 			UserStore: DefaultUserStore(),
@@ -251,17 +261,18 @@ func NewDefaultConfig() *KyarabenConfig {
 		Controller: ControllerTomlConfig{
 			Layout: string(LayoutStandard),
 			Hotkeys: HotkeyTomlConfig{
-				SaveState:        defaults.SaveState.String(),
-				LoadState:        defaults.LoadState.String(),
-				NextSlot:         defaults.NextSlot.String(),
-				PrevSlot:         defaults.PrevSlot.String(),
-				FastForward:      defaults.FastForward.String(),
-				Rewind:           defaults.Rewind.String(),
-				Pause:            defaults.Pause.String(),
-				Screenshot:       defaults.Screenshot.String(),
-				Quit:             defaults.Quit.String(),
-				ToggleFullscreen: defaults.ToggleFullscreen.String(),
-				OpenMenu:         defaults.OpenMenu.String(),
+				Modifier:         string(ButtonBack),
+				SaveState:        string(ButtonRightShoulder),
+				LoadState:        string(ButtonLeftShoulder),
+				NextSlot:         string(ButtonDPadRight),
+				PrevSlot:         string(ButtonDPadLeft),
+				FastForward:      string(ButtonY),
+				Rewind:           string(ButtonX),
+				Pause:            string(ButtonA),
+				Screenshot:       string(ButtonB),
+				Quit:             string(ButtonStart),
+				ToggleFullscreen: string(ButtonLeftStick),
+				OpenMenu:         string(ButtonRightStick),
 			},
 		},
 		Systems: map[SystemID][]EmulatorID{
