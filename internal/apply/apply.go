@@ -1317,11 +1317,13 @@ func (a *Applier) syncSteamShortcuts(frontendIDs []model.FrontendID, binDir stri
 		}
 
 		exe := filepath.Join(binDir, fe.Launcher.Binary)
+		desktopPath := a.LauncherManager.EmulatorDesktopPath(fe.Launcher.Binary)
 
 		entry := steam.ShortcutEntry{
 			AppName:       info.AppName,
 			Exe:           exe,
 			StartDir:      binDir,
+			ShortcutPath:  desktopPath,
 			LaunchOptions: info.LaunchOptions,
 			Tags:          info.Tags,
 		}
