@@ -143,6 +143,9 @@ func WriteShortcuts(w io.Writer, shortcuts []Shortcut) error {
 	if err := buf.WriteByte(typeEnd); err != nil {
 		return err
 	}
+	if err := buf.WriteByte(typeEnd); err != nil {
+		return err
+	}
 
 	_, err := w.Write(buf.Bytes())
 	return err
