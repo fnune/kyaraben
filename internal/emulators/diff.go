@@ -26,17 +26,25 @@ func NewDefaultDiffComputer() *DiffComputer {
 }
 
 type ConfigDiff struct {
-	Path         string
-	IsNewFile    bool
-	UserModified bool
-	Changes      []ConfigChange
-	UserChanges  []UserChange
+	Path            string
+	IsNewFile       bool
+	UserModified    bool
+	KyarabenChanged bool
+	Changes         []ConfigChange
+	UserChanges     []UserChange
+	KyarabenUpdates []KyarabenUpdate
 }
 
 type UserChange struct {
 	Path          []string
 	BaselineValue string
 	CurrentValue  string
+}
+
+type KyarabenUpdate struct {
+	Path     []string
+	OldValue string
+	NewValue string
 }
 
 type ConfigChange struct {
@@ -100,14 +108,26 @@ func (d *DiffComputer) ComputeDiffWithBaseline(patch model.ConfigPatch, baseline
 		return diff, nil
 	}
 
+	currentPatchHash := configformat.ComputePatchHash(patch.Entries)
+	if baseline.PatchHash != "" && currentPatchHash != baseline.PatchHash {
+		diff.KyarabenChanged = true
+		for _, change := range diff.Changes {
+			if change.Type == ChangeModify {
+				diff.KyarabenUpdates = append(diff.KyarabenUpdates, KyarabenUpdate{
+					Path:     change.Path,
+					OldValue: change.OldValue,
+					NewValue: change.NewValue,
+				})
+			}
+		}
+	}
+
 	currentHash, err := d.hashConfigFile(diff.Path)
 	if err != nil {
 		return diff, nil
 	}
 
 	if currentHash != baseline.BaselineHash {
-		diff.UserModified = true
-
 		current, err := d.readConfig(diff.Path, patch.Target.Format)
 		if err != nil {
 			return diff, nil
@@ -122,17 +142,39 @@ func (d *DiffComputer) ComputeDiffWithBaseline(patch model.ConfigPatch, baseline
 
 			if sectionMap, ok := current[section]; ok {
 				if currentVal, ok := sectionMap[key]; ok && !valuesEqual(entry, currentVal, d.homeDir()) {
-					diff.UserChanges = append(diff.UserChanges, UserChange{
-						Path:          entry.Path,
-						BaselineValue: entry.Value,
-						CurrentValue:  currentVal,
-					})
+					isKyarabenUpdate := false
+					for _, ku := range diff.KyarabenUpdates {
+						if pathsEqual(ku.Path, entry.Path) {
+							isKyarabenUpdate = true
+							break
+						}
+					}
+					if !isKyarabenUpdate {
+						diff.UserModified = true
+						diff.UserChanges = append(diff.UserChanges, UserChange{
+							Path:          entry.Path,
+							BaselineValue: entry.Value,
+							CurrentValue:  currentVal,
+						})
+					}
 				}
 			}
 		}
 	}
 
 	return diff, nil
+}
+
+func pathsEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func (d *DiffComputer) hashConfigFile(path string) (string, error) {

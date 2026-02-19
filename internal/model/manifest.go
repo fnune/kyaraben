@@ -118,6 +118,7 @@ type ManagedConfig struct {
 	EmulatorIDs    []EmulatorID   `json:"emulator_ids"`
 	Target         ConfigTarget   `json:"target"`
 	BaselineHash   string         `json:"baseline_hash"`
+	PatchHash      string         `json:"patch_hash,omitempty"`
 	LastModified   time.Time      `json:"last_modified"`
 	ManagedRegions ManagedRegions `json:"managed_regions,omitempty"`
 }
@@ -250,6 +251,7 @@ func (m *Manifest) AddManagedConfig(cfg ManagedConfig) error {
 			m.ManagedConfigs[i].EmulatorIDs = appendUniqueEmulatorIDs(existing.EmulatorIDs, cfg.EmulatorIDs...)
 			m.ManagedConfigs[i].ManagedRegions = cfg.ManagedRegions
 			m.ManagedConfigs[i].BaselineHash = cfg.BaselineHash
+			m.ManagedConfigs[i].PatchHash = cfg.PatchHash
 			m.ManagedConfigs[i].LastModified = cfg.LastModified
 			return nil
 		}

@@ -482,6 +482,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 			EmulatorIDs:    []model.EmulatorID{patchEmulators[i]},
 			Target:         patch.Target,
 			BaselineHash:   configResults[i].BaselineHash,
+			PatchHash:      configResults[i].PatchHash,
 			LastModified:   now,
 			ManagedRegions: regions,
 		})

@@ -551,10 +551,11 @@ func (d *Daemon) handlePreflight() []Event {
 	}
 
 	type fileDiffState struct {
-		diff         ConfigFileDiff
-		seenChanges  map[string]bool
-		seenUserKeys map[string]bool
-		seenRegions  map[string]bool
+		diff             ConfigFileDiff
+		seenChanges      map[string]bool
+		seenUserKeys     map[string]bool
+		seenKyarabenKeys map[string]bool
+		seenRegions      map[string]bool
 	}
 
 	diffsByPath := make(map[string]*fileDiffState)
@@ -579,9 +580,10 @@ func (d *Daemon) handlePreflight() []Event {
 					Path:      diff.Path,
 					IsNewFile: diff.IsNewFile,
 				},
-				seenChanges:  make(map[string]bool),
-				seenUserKeys: make(map[string]bool),
-				seenRegions:  make(map[string]bool),
+				seenChanges:      make(map[string]bool),
+				seenUserKeys:     make(map[string]bool),
+				seenKyarabenKeys: make(map[string]bool),
+				seenRegions:      make(map[string]bool),
 			}
 			diffsByPath[diff.Path] = state
 			pathOrder = append(pathOrder, diff.Path)
@@ -604,6 +606,20 @@ func (d *Daemon) handlePreflight() []Event {
 
 		state.diff.HasChanges = state.diff.HasChanges || diff.HasChanges()
 		state.diff.UserModified = state.diff.UserModified || diff.UserModified
+		state.diff.KyarabenChanged = state.diff.KyarabenChanged || diff.KyarabenChanged
+
+		for _, ku := range diff.KyarabenUpdates {
+			key := ku.Path[len(ku.Path)-1]
+			if state.seenKyarabenKeys[key] {
+				continue
+			}
+			state.seenKyarabenKeys[key] = true
+			state.diff.KyarabenUpdates = append(state.diff.KyarabenUpdates, KyarabenUpdateDetail{
+				Key:      key,
+				OldValue: ku.OldValue,
+				NewValue: ku.NewValue,
+			})
+		}
 
 		for _, uc := range diff.UserChanges {
 			key := uc.Path[len(uc.Path)-1]

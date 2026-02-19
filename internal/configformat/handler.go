@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/twpayne/go-vfs/v5"
@@ -14,6 +15,7 @@ import (
 type ApplyResult struct {
 	Path         string
 	BaselineHash string
+	PatchHash    string
 }
 
 type Handler interface {
@@ -306,4 +308,29 @@ func isFullyManaged(regions []model.ManagedRegion) bool {
 		}
 	}
 	return false
+}
+
+func ComputePatchHash(entries []model.ConfigEntry) string {
+	sorted := make([]model.ConfigEntry, len(entries))
+	copy(sorted, entries)
+	slices.SortFunc(sorted, func(a, b model.ConfigEntry) int {
+		pathA := strings.Join(a.Path, ".")
+		pathB := strings.Join(b.Path, ".")
+		if pathA < pathB {
+			return -1
+		}
+		if pathA > pathB {
+			return 1
+		}
+		return 0
+	})
+
+	h := sha256.New()
+	for _, e := range sorted {
+		h.Write([]byte(strings.Join(e.Path, ".")))
+		h.Write([]byte{0})
+		h.Write([]byte(e.Value))
+		h.Write([]byte{0})
+	}
+	return hex.EncodeToString(h.Sum(nil))
 }
