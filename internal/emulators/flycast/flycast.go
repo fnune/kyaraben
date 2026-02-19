@@ -58,7 +58,7 @@ var configTarget = model.ConfigTarget{
 type Config struct{}
 
 var mappingTarget = model.ConfigTarget{
-	RelPath: "flycast/mappings/SDL_controller_neptune.cfg",
+	RelPath: "flycast/mappings/SDL_Steam Deck Controller.cfg",
 	Format:  model.ConfigFormatINI,
 	BaseDir: model.ConfigBaseDirUserConfig,
 }
@@ -119,24 +119,33 @@ func mappingEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 
 	// Flycast uses axis:action format for analog and button:action for digital.
 	// Dreamcast: A=south, B=east, X=west, Y=north.
+	// Dreamcast has 6 face buttons: A, B, X, Y plus Z and C (digital triggers behind A/B).
+	// L/R shoulders map to Z/C since Steam Deck has analog triggers for L/R.
 	entries := []model.ConfigEntry{
 		{Path: []string{"digital", "bind0"}, Value: fmt.Sprintf("%d:btn_a", rawJoystickIndex[south])},
 		{Path: []string{"digital", "bind1"}, Value: fmt.Sprintf("%d:btn_b", rawJoystickIndex[east])},
 		{Path: []string{"digital", "bind2"}, Value: fmt.Sprintf("%d:btn_x", rawJoystickIndex[west])},
 		{Path: []string{"digital", "bind3"}, Value: fmt.Sprintf("%d:btn_y", rawJoystickIndex[north])},
-		{Path: []string{"digital", "bind4"}, Value: fmt.Sprintf("%d:btn_start", rawJoystickIndex[model.ButtonStart])},
-		{Path: []string{"digital", "bind5"}, Value: fmt.Sprintf("%d:btn_dpad1_up", hatUp)},
-		{Path: []string{"digital", "bind6"}, Value: fmt.Sprintf("%d:btn_dpad1_down", hatDown)},
-		{Path: []string{"digital", "bind7"}, Value: fmt.Sprintf("%d:btn_dpad1_left", hatLeft)},
-		{Path: []string{"digital", "bind8"}, Value: fmt.Sprintf("%d:btn_dpad1_right", hatRight)},
+		{Path: []string{"digital", "bind4"}, Value: fmt.Sprintf("%d:btn_z", rawJoystickIndex[model.ButtonLeftShoulder])},
+		{Path: []string{"digital", "bind5"}, Value: fmt.Sprintf("%d:btn_c", rawJoystickIndex[model.ButtonRightShoulder])},
+		{Path: []string{"digital", "bind6"}, Value: fmt.Sprintf("%d:btn_start", rawJoystickIndex[model.ButtonStart])},
+		{Path: []string{"digital", "bind7"}, Value: fmt.Sprintf("%d:btn_dpad2_up", rawJoystickIndex[model.ButtonGuide])},
+		{Path: []string{"digital", "bind8"}, Value: fmt.Sprintf("%d:btn_dpad1_up", hatUp)},
+		{Path: []string{"digital", "bind9"}, Value: fmt.Sprintf("%d:btn_dpad1_down", hatDown)},
+		{Path: []string{"digital", "bind10"}, Value: fmt.Sprintf("%d:btn_dpad1_left", hatLeft)},
+		{Path: []string{"digital", "bind11"}, Value: fmt.Sprintf("%d:btn_dpad1_right", hatRight)},
 		{Path: []string{"analog", "bind0"}, Value: "0-:btn_analog_left"},
 		{Path: []string{"analog", "bind1"}, Value: "0+:btn_analog_right"},
 		{Path: []string{"analog", "bind2"}, Value: "1-:btn_analog_up"},
 		{Path: []string{"analog", "bind3"}, Value: "1+:btn_analog_down"},
 		{Path: []string{"analog", "bind4"}, Value: "2+:btn_trigger_left"},
-		{Path: []string{"analog", "bind5"}, Value: "5+:btn_trigger_right"},
+		{Path: []string{"analog", "bind5"}, Value: "3-:axis2_left"},
+		{Path: []string{"analog", "bind6"}, Value: "3+:axis2_right"},
+		{Path: []string{"analog", "bind7"}, Value: "4-:axis2_up"},
+		{Path: []string{"analog", "bind8"}, Value: "4+:axis2_down"},
+		{Path: []string{"analog", "bind9"}, Value: "5+:btn_trigger_right"},
 		{Path: []string{"emulator", "dead_zone"}, Value: "10"},
-		{Path: []string{"emulator", "mapping_name"}, Value: "controller_neptune"},
+		{Path: []string{"emulator", "mapping_name"}, Value: "Steam Deck Controller"},
 		{Path: []string{"emulator", "rumble_power"}, Value: "100"},
 		{Path: []string{"emulator", "saturation"}, Value: "100"},
 		{Path: []string{"emulator", "triggers"}, Value: "2,5"},
@@ -157,10 +166,11 @@ func hotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 		binding model.HotkeyBinding
 	}
 	mappings := []mapping{
-		{"btn_quick_save", hk.SaveState},
-		{"btn_jump_state", hk.LoadState},
-		{"btn_escape", hk.Quit},
 		{"btn_screenshot", hk.Screenshot},
+		{"btn_fforward", hk.FastForward},
+		{"btn_jump_state", hk.LoadState},
+		{"btn_quick_save", hk.SaveState},
+		{"btn_escape", hk.Quit},
 	}
 
 	for _, m := range mappings {
