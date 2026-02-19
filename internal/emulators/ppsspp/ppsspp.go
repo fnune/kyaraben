@@ -162,7 +162,7 @@ func padEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 		{"Load State", hk.LoadState},
 		{"Next Slot", hk.NextSlot},
 		{"Previous Slot", hk.PrevSlot},
-		{"Fast-forward", hk.FastForward},
+		{"SpeedToggle", hk.FastForward},
 		{"Rewind", hk.Rewind},
 		{"Pause", hk.Pause},
 		{"Screenshot", hk.Screenshot},
