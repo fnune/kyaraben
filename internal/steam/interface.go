@@ -2,7 +2,7 @@ package steam
 
 type ShortcutManager interface {
 	IsAvailable() bool
-	Sync(entries []ShortcutEntry) error
+	Sync(entries []ShortcutEntry) (changed bool, err error)
 }
 
 type ShortcutEntry struct {

@@ -35,7 +35,7 @@ func TestManager_Sync_NoSteam(t *testing.T) {
 	})
 
 	manager := NewManager(fs, "/home/user")
-	err := manager.Sync([]ShortcutEntry{{
+	_, err := manager.Sync([]ShortcutEntry{{
 		AppName: "Test",
 		Exe:     "/usr/bin/test",
 	}})
@@ -57,7 +57,7 @@ func TestManager_Sync_CreatesShortcut(t *testing.T) {
 		Tags:          []string{"Kyaraben"},
 	}}
 
-	err := manager.Sync(entries)
+	_, err := manager.Sync(entries)
 	require.NoError(t, err)
 
 	shortcutsPath := "/home/user/.steam/steam/userdata/12345678/config/shortcuts.vdf"
@@ -98,7 +98,7 @@ func TestManager_Sync_PreservesExistingShortcuts(t *testing.T) {
 		Exe:     "/home/user/.local/state/kyaraben/bin/es-de",
 	}}
 
-	err := manager.Sync(entries)
+	_, err := manager.Sync(entries)
 	require.NoError(t, err)
 
 	shortcutsPath := "/home/user/.steam/steam/userdata/12345678/config/shortcuts.vdf"
@@ -139,7 +139,7 @@ func TestManager_Sync_UpdatesExistingManagedShortcut(t *testing.T) {
 		LaunchOptions: "--new-option",
 	}}
 
-	err := manager.Sync(entries)
+	_, err := manager.Sync(entries)
 	require.NoError(t, err)
 
 	shortcutsPath := "/home/user/.steam/steam/userdata/12345678/config/shortcuts.vdf"
@@ -166,7 +166,7 @@ func TestManager_Sync_MultipleUsers(t *testing.T) {
 		Exe:     "/home/user/.local/state/kyaraben/bin/es-de",
 	}}
 
-	err := manager.Sync(entries)
+	_, err := manager.Sync(entries)
 	require.NoError(t, err)
 
 	for _, userID := range []string{"11111111", "22222222"} {
@@ -199,7 +199,7 @@ func TestManager_Sync_WithGridAssets(t *testing.T) {
 		},
 	}}
 
-	err := manager.Sync(entries)
+	_, err := manager.Sync(entries)
 	require.NoError(t, err)
 
 	appID := GenerateAppID(entries[0].Exe, entries[0].AppName)
@@ -280,7 +280,7 @@ func TestManager_Sync_RemovesPreviouslyManagedShortcut(t *testing.T) {
 
 	manager := NewManager(fs, "/home/user")
 
-	err := manager.Sync([]ShortcutEntry{})
+	_, err := manager.Sync([]ShortcutEntry{})
 	require.NoError(t, err)
 
 	shortcutsPath := "/home/user/.steam/steam/userdata/12345678/config/shortcuts.vdf"
