@@ -28,7 +28,7 @@ func (Definition) ConfigGenerator() model.FrontendConfigGenerator {
 
 func (Definition) SteamShortcut(binDir string) *model.SteamShortcutInfo {
 	return &model.SteamShortcutInfo{
-		AppName: "ES-DE",
+		AppName: "EmulationStation DE",
 		Tags:    []string{"Kyaraben"},
 		GridAssets: &model.SteamGridAssets{
 			Grid:    esdeGridAssets.Grid,
