@@ -130,7 +130,7 @@
       "quoteStyle": "single",
       "semicolons": "asNeeded"
     },
-    "globals": ["describe", "it", "browser", "$", "__DEV_BUILD_TIME__"]
+    "globals": ["describe", "it", "browser", "$"]
   },
   "css": {
     "parser": {
