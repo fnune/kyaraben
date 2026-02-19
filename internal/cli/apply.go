@@ -261,9 +261,13 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	clearProgress()
 	fmt.Println()
 
+	seenPaths := make(map[string]bool)
 	for _, patch := range result.Patches {
 		path, _ := patch.Target.Resolve()
-		fmt.Printf("  Applied: %s\n", path)
+		if !seenPaths[path] {
+			seenPaths[path] = true
+			fmt.Printf("  Applied: %s\n", path)
+		}
 	}
 	fmt.Println()
 
