@@ -53,13 +53,13 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 var configTarget = model.ConfigTarget{
 	RelPath: "duckstation/settings.ini",
 	Format:  model.ConfigFormatINI,
-	BaseDir: model.ConfigBaseDirUserConfig,
+	BaseDir: model.ConfigBaseDirUserData,
 }
 
 var ProfileTarget = model.ConfigTarget{
 	RelPath: "duckstation/inputprofiles/kyaraben-steamdeck.ini",
 	Format:  model.ConfigFormatINI,
-	BaseDir: model.ConfigBaseDirUserConfig,
+	BaseDir: model.ConfigBaseDirUserData,
 }
 
 const profileName = "kyaraben-steamdeck"
