@@ -368,10 +368,12 @@ Detailed findings on which emulators support controller hotkeys via text config.
 
 #### Flycast
 
-- Format: INI (`emu.cfg`)
-- Config only handles paths
-- Known issue: save state hotkeys don't work when launching via CLI
-- Would need Steam Input for controller hotkeys
+- Format: INI (`emu.cfg` for paths, `mappings/SDL_{controller_name}.cfg` for controls)
+- Controller mapping files are auto-loaded based on detected controller name
+- Multiple controller profiles supported simultaneously (e.g., `SDL_controller_neptune.cfg` for Steam Deck, `SDL_Xbox 360 Controller.cfg` for Xbox controllers)
+- Combo bindings supported for hotkeys (format: `button1,button2:action:sequential`)
+- To prevent Back button opening menu, omit `btn_menu` binding from the mapping file
+- EmuDeck reference: `configs/org.flycast.Flycast/config/flycast/mappings/`
 
 ### UI configuration only (no text config)
 
@@ -402,7 +404,7 @@ Detailed findings on which emulators support controller hotkeys via text config.
 | mGBA | No | Yes | Keyboard only |
 | Azahar | No | Yes | Keyboard only |
 | Cemu | No | Yes | Hardcoded keyboard shortcuts |
-| Flycast | No | Yes | CLI hotkey issues |
+| Flycast | Yes | Yes | Auto-loads per-controller mapping files |
 | RPCS3 | No | Probably | UI config only |
 | Vita3K | No | Probably | UI config only |
 | Eden | N/A | N/A | No save states for Switch |
