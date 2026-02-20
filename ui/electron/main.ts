@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import * as readline from 'node:readline'
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import type { InvokeChannel } from './channels'
 import { checkForUpdates, downloadUpdate } from './updater'
 
@@ -696,6 +696,20 @@ function setupIpcHandlers(): void {
     return fs.readFileSync(expandedPath, 'utf-8')
   })
 
+  ipcMain.handle('select_directory', async () => {
+    if (!mainWindow) return null
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory', 'createDirectory'],
+    })
+    if (result.canceled || !result.filePaths.length) return null
+    return result.filePaths[0]
+  })
+
+  ipcMain.handle('get_storage_devices', async () => {
+    const event = await sendCommand({ type: 'get_storage_devices' })
+    return event.data
+  })
+
   ipcMain.handle('launch_emulator', (_, execLine: string) => {
     const { spawn } = require('node:child_process')
     spawn(execLine, [], {
@@ -840,6 +854,8 @@ function setupIpcHandlers(): void {
     'check_for_updates',
     'download_update',
     'apply_update',
+    'select_directory',
+    'get_storage_devices',
   ] as const
   type HandledChannels = (typeof _dependencies)[number]
   type _AssertAllChannelsHandled = InvokeChannel extends HandledChannels ? true : never

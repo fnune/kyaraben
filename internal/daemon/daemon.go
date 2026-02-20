@@ -159,6 +159,8 @@ func (d *Daemon) HandleWithEmit(cmd Command, emit func(Event)) []Event {
 		return d.handleSyncReset()
 	case CommandTypeSyncDiscoveredDevices:
 		return d.handleSyncDiscoveredDevices()
+	case CommandTypeGetStorageDevices:
+		return d.handleGetStorageDevices()
 	default:
 		return d.errorResponse(fmt.Sprintf("unknown command: %s", cmd.Type))
 	}
@@ -2036,4 +2038,88 @@ func retroArchCoreName(id model.EmulatorID) string {
 		return ""
 	}
 	return strings.TrimPrefix(string(id), "retroarch:")
+}
+
+func (d *Daemon) handleGetStorageDevices() []Event {
+	var devices []StorageDevice
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return d.errorResponse(fmt.Sprintf("getting home directory: %v", err))
+	}
+
+	var stat syscall.Statfs_t
+	if err := syscall.Statfs(homeDir, &stat); err == nil {
+		devices = append(devices, StorageDevice{
+			ID:         "internal",
+			Label:      "Internal storage",
+			Path:       filepath.Join(homeDir, "Emulation"),
+			FreeBytes:  int64(stat.Bavail) * stat.Bsize,
+			TotalBytes: int64(stat.Blocks) * stat.Bsize,
+		})
+	}
+
+	user := os.Getenv("USER")
+	if user == "" {
+		user = filepath.Base(homeDir)
+	}
+
+	mediaPaths := []string{
+		filepath.Join("/run/media", user),
+		filepath.Join("/media", user),
+	}
+
+	var internalDevID uint64
+	if info, err := os.Stat(homeDir); err == nil {
+		if sys, ok := info.Sys().(*syscall.Stat_t); ok {
+			internalDevID = sys.Dev
+		}
+	}
+
+	for _, mediaBase := range mediaPaths {
+		entries, err := os.ReadDir(mediaBase)
+		if err != nil {
+			continue
+		}
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				continue
+			}
+			mountPath := filepath.Join(mediaBase, entry.Name())
+
+			info, err := os.Stat(mountPath)
+			if err != nil {
+				continue
+			}
+			sys, ok := info.Sys().(*syscall.Stat_t)
+			if !ok {
+				continue
+			}
+			if sys.Dev == internalDevID {
+				continue
+			}
+
+			var stat syscall.Statfs_t
+			if err := syscall.Statfs(mountPath, &stat); err != nil {
+				continue
+			}
+
+			devices = append(devices, StorageDevice{
+				ID:         "sdcard",
+				Label:      entry.Name(),
+				Path:       filepath.Join(mountPath, "Emulation"),
+				FreeBytes:  int64(stat.Bavail) * stat.Bsize,
+				TotalBytes: int64(stat.Blocks) * stat.Bsize,
+			})
+			break
+		}
+		if len(devices) > 1 {
+			break
+		}
+	}
+
+	return []Event{{
+		Type: EventTypeResult,
+		Data: StorageDevicesResponse{Devices: devices},
+	}}
 }

@@ -109,4 +109,29 @@ test.describe('Kyaraben App', () => {
     await input.clear()
     await input.fill('~/Emulation')
   })
+
+  test('shows storage selector with internal storage card', async () => {
+    await expect(page.getByRole('button', { name: /Internal storage/i })).toBeVisible()
+  })
+
+  test('shows custom folder option', async () => {
+    await expect(page.getByRole('button', { name: /Custom folder/i })).toBeVisible()
+  })
+
+  test('shows storage info message', async () => {
+    await expect(page.getByText(/Changing storage will not move existing files/i)).toBeVisible()
+  })
+
+  test('internal storage card shows free space info', async () => {
+    const storageCard = page.getByRole('button', { name: /Internal storage/i })
+    await expect(storageCard.getByText(/free of/i)).toBeVisible()
+  })
+
+  test('selecting internal storage updates path input', async () => {
+    const internalCard = page.getByRole('button', { name: /Internal storage/i })
+    await internalCard.click()
+
+    const input = page.getByPlaceholder('~/Emulation')
+    await expect(input).toHaveValue(/\/Emulation$/)
+  })
 })
