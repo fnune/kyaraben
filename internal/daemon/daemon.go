@@ -526,6 +526,8 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 		log.Debug("Failed to install Kyaraben to PATH: %v", err)
 	}
 
+	d.maybeCreateDesktopShortcut()
+
 	if cfg.Sync.Enabled {
 		if syncWasStopped && emit != nil {
 			emit(Event{
@@ -2334,11 +2336,26 @@ func (d *Daemon) handleInstallKyaraben(data *InstallKyarabenRequest) []Event {
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
+
+	shortcutGiven := manifest.KyarabenInstall != nil && manifest.KyarabenInstall.DesktopShortcutGiven
+
 	manifest.KyarabenInstall = &model.KyarabenInstall{
-		AppPath:     result.AppPath,
-		CLIPath:     result.CLIPath,
-		DesktopPath: result.DesktopPath,
+		AppPath:              result.AppPath,
+		CLIPath:              result.CLIPath,
+		DesktopPath:          result.DesktopPath,
+		DesktopShortcutGiven: shortcutGiven,
 	}
+
+	if !shortcutGiven {
+		shortcutPath, err := d.launcherManager.CreateDesktopShortcut()
+		if err != nil {
+			log.Debug("Failed to create desktop shortcut: %v", err)
+		} else {
+			manifest.KyarabenInstall.DesktopShortcutGiven = true
+			log.Info("Created one-shot desktop shortcut: %s", shortcutPath)
+		}
+	}
+
 	if saveErr := manifest.SaveWithBackup(d.manifestPath); saveErr != nil {
 		return d.errorResponse(fmt.Sprintf("failed to save manifest: %v", saveErr))
 	}
@@ -2407,6 +2424,36 @@ func retroArchCoreName(id model.EmulatorID) string {
 		return ""
 	}
 	return strings.TrimPrefix(string(id), "retroarch:")
+}
+
+func (d *Daemon) maybeCreateDesktopShortcut() {
+	manifest, err := d.loadManifest()
+	if err != nil {
+		log.Debug("Failed to load manifest for desktop shortcut: %v", err)
+		return
+	}
+
+	if manifest.KyarabenInstall == nil {
+		return
+	}
+
+	if manifest.KyarabenInstall.DesktopShortcutGiven {
+		return
+	}
+
+	shortcutPath, err := d.launcherManager.CreateDesktopShortcut()
+	if err != nil {
+		log.Debug("Failed to create desktop shortcut: %v", err)
+		return
+	}
+
+	manifest.KyarabenInstall.DesktopShortcutGiven = true
+	if err := d.manifestStore.Save(manifest, d.manifestPath); err != nil {
+		log.Debug("Failed to save manifest after desktop shortcut: %v", err)
+		return
+	}
+
+	log.Info("Created one-shot desktop shortcut: %s", shortcutPath)
 }
 
 func (d *Daemon) handleGetStorageDevices() []Event {
