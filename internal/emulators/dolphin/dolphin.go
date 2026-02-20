@@ -62,6 +62,12 @@ var configTarget = model.ConfigTarget{
 	BaseDir: model.ConfigBaseDirUserConfig,
 }
 
+var gfxTarget = model.ConfigTarget{
+	RelPath: "dolphin-emu/GFX.ini",
+	Format:  model.ConfigFormatINI,
+	BaseDir: model.ConfigBaseDirUserConfig,
+}
+
 var gcPadTarget = model.ConfigTarget{
 	RelPath: "dolphin-emu/GCPadNew.ini",
 	Format:  model.ConfigFormatINI,
@@ -83,23 +89,32 @@ var hotkeysTarget = model.ConfigTarget{
 func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
 	store := ctx.Store
 
-	patches := []model.ConfigPatch{{
-		Target: configTarget,
-		Entries: []model.ConfigEntry{
-			{Path: []string{"General", "ISOPath0"}, Value: store.SystemRomsDir(model.SystemIDGameCube)},
-			{Path: []string{"General", "ISOPath1"}, Value: store.SystemRomsDir(model.SystemIDWii)},
-			{Path: []string{"General", "ISOPaths"}, Value: "2"},
-			{Path: []string{"General", "DumpPath"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDDolphin)},
-			{Path: []string{"AutoUpdate", "UpdateTrack"}, Value: ""},
-			{Path: []string{"GBA", "BIOS"}, Value: store.SystemBiosDir(model.SystemIDGBA) + "/gba_bios.bin"},
-			{Path: []string{"GBA", "SavesPath"}, Value: store.SystemSavesDir(model.SystemIDGBA)},
-			{Path: []string{"GBA", "SavesInRomPath"}, Value: "0"},
-			{Path: []string{"Core", "SIDevice0"}, Value: "6", DefaultOnly: true},
-			{Path: []string{"Core", "SIDevice1"}, Value: "0", DefaultOnly: true},
-			{Path: []string{"Core", "SIDevice2"}, Value: "0", DefaultOnly: true},
-			{Path: []string{"Core", "SIDevice3"}, Value: "0", DefaultOnly: true},
+	patches := []model.ConfigPatch{
+		{
+			Target: configTarget,
+			Entries: []model.ConfigEntry{
+				{Path: []string{"General", "ISOPath0"}, Value: store.SystemRomsDir(model.SystemIDGameCube)},
+				{Path: []string{"General", "ISOPath1"}, Value: store.SystemRomsDir(model.SystemIDWii)},
+				{Path: []string{"General", "ISOPaths"}, Value: "2"},
+				{Path: []string{"General", "DumpPath"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDDolphin)},
+				{Path: []string{"General", "ConfirmStop"}, Value: "False"},
+				{Path: []string{"AutoUpdate", "UpdateTrack"}, Value: ""},
+				{Path: []string{"GBA", "BIOS"}, Value: store.SystemBiosDir(model.SystemIDGBA) + "/gba_bios.bin"},
+				{Path: []string{"GBA", "SavesPath"}, Value: store.SystemSavesDir(model.SystemIDGBA)},
+				{Path: []string{"GBA", "SavesInRomPath"}, Value: "0"},
+				{Path: []string{"Core", "SIDevice0"}, Value: "6", DefaultOnly: true},
+				{Path: []string{"Core", "SIDevice1"}, Value: "0", DefaultOnly: true},
+				{Path: []string{"Core", "SIDevice2"}, Value: "0", DefaultOnly: true},
+				{Path: []string{"Core", "SIDevice3"}, Value: "0", DefaultOnly: true},
+			},
 		},
-	}}
+		{
+			Target: gfxTarget,
+			Entries: []model.ConfigEntry{
+				{Path: []string{"Settings", "InternalResolution"}, Value: "2", DefaultOnly: true},
+			},
+		},
+	}
 
 	if cc := ctx.ControllerConfig; cc != nil {
 		patches = append(patches,
