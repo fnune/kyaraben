@@ -206,7 +206,7 @@ export function startFakeSyncthingServer(
 
     if (req.method === 'GET' && url.pathname === '/rest/system/status') {
       res.writeHead(200)
-      res.end(JSON.stringify({ myID: state.myID }))
+      res.end(JSON.stringify({ myID: state.myID, uptime: 60 }))
       return
     }
 

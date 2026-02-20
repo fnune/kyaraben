@@ -380,13 +380,6 @@ func (c *Client) getConfiguredDevicesWithRetry(ctx context.Context, attempt int)
 		return nil, fmt.Errorf("decoding devices: %w", err)
 	}
 
-	status, _ := c.GetSystemStatus(ctx)
-	uptime := 0
-	if status != nil {
-		uptime = status.Uptime
-	}
-	stLog.Debug("GetConfiguredDevices: raw=%d, uptime=%ds, attempt=%d", len(devices), uptime, attempt)
-
 	myID, _ := c.GetDeviceID(ctx)
 	var result []ConfiguredDevice
 	for _, dev := range devices {
@@ -404,14 +397,23 @@ func (c *Client) getConfiguredDevicesWithRetry(ctx context.Context, attempt int)
 		stLog.Debug("GetConfiguredDevices: only self device in config (filtered %d)", len(devices))
 	}
 
-	if len(result) == 0 && uptime < 5 && attempt < 3 {
-		stLog.Info("GetConfiguredDevices: empty result with low uptime (%ds), retrying in 500ms (attempt %d)", uptime, attempt+1)
-		select {
-		case <-ctx.Done():
-			return result, nil
-		case <-time.After(500 * time.Millisecond):
+	if len(result) == 0 && attempt < 3 {
+		status, _ := c.GetSystemStatus(ctx)
+		uptime := 0
+		if status != nil {
+			uptime = status.Uptime
 		}
-		return c.getConfiguredDevicesWithRetry(ctx, attempt+1)
+		stLog.Debug("GetConfiguredDevices: raw=%d, uptime=%ds, attempt=%d", len(devices), uptime, attempt)
+
+		if uptime < 5 {
+			stLog.Info("GetConfiguredDevices: empty result with low uptime (%ds), retrying in 500ms (attempt %d)", uptime, attempt+1)
+			select {
+			case <-ctx.Done():
+				return result, nil
+			case <-time.After(500 * time.Millisecond):
+			}
+			return c.getConfiguredDevicesWithRetry(ctx, attempt+1)
+		}
 	}
 
 	return result, nil
