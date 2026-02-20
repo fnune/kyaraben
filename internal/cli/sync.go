@@ -82,6 +82,20 @@ func (cmd *SyncStatusCmd) Run(cliCtx *Context) error {
 		}
 	}
 
+	fmt.Println()
+	if len(status.Folders) == 0 {
+		fmt.Println("Synced folders: none")
+	} else {
+		fmt.Println("Synced folders:")
+		for _, f := range status.Folders {
+			if f.State == "error" && f.Error != "" {
+				fmt.Printf("  %-20s %s: %s\n", f.Label, f.State, f.Error)
+			} else {
+				fmt.Printf("  %-20s %s\n", f.Label, f.State)
+			}
+		}
+	}
+
 	return nil
 }
 

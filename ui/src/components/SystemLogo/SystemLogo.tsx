@@ -1,13 +1,17 @@
 import dreamcast from '@/assets/systems/dreamcast.svg'
+import gamegear from '@/assets/systems/gamegear.svg'
 import gb from '@/assets/systems/gb.svg'
 import gba from '@/assets/systems/gba.svg'
 import gbc from '@/assets/systems/gbc.svg'
 import gc from '@/assets/systems/gc.svg'
 import genesis from '@/assets/systems/genesis.svg'
+import mastersystem from '@/assets/systems/mastersystem.svg'
 import n3ds from '@/assets/systems/n3ds.svg'
 import n64 from '@/assets/systems/n64.svg'
 import nds from '@/assets/systems/nds.svg'
 import nes from '@/assets/systems/nes.svg'
+import ngp from '@/assets/systems/ngp.svg'
+import pcengine from '@/assets/systems/pcengine.svg'
 import ps2 from '@/assets/systems/ps2.svg'
 import ps3 from '@/assets/systems/ps3.svg'
 import psp from '@/assets/systems/psp.svg'
@@ -42,8 +46,14 @@ export const SYSTEM_LOGOS: Record<SystemID, string> = {
   psvita,
   // Sega
   genesis,
+  mastersystem,
+  gamegear,
   saturn,
   dreamcast,
+  // NEC
+  pcengine,
+  // SNK
+  ngp,
 }
 
 export interface SystemLogoProps {

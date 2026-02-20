@@ -18,6 +18,7 @@ func (Definition) Frontend() model.Frontend {
 			DisplayName: "EmulationStation DE",
 			GenericName: "Game Frontend",
 			Categories:  []string{"Game"},
+			Keywords:    []string{"esde", "ES-DE", "frontend", "game launcher", "emulator"},
 		},
 	}
 }

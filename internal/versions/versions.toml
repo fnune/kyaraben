@@ -20,6 +20,8 @@ mesen = "mesen_libretro.so"
 genesis_plus_gx = "genesis_plus_gx_libretro.so"
 mupen64plus_next = "mupen64plus_next_libretro.so"
 mednafen_saturn = "mednafen_saturn_libretro.so"
+mednafen_pce_fast = "mednafen_pce_fast_libretro.so"
+mednafen_ngp = "mednafen_ngp_libretro.so"
 mgba = "mgba_libretro.so"
 citra = "citra_libretro.so"
 
@@ -38,6 +40,8 @@ mesen = 3783048
 genesis_plus_gx = 12729616
 mupen64plus_next = 8725856
 mednafen_saturn = 8316472
+mednafen_pce_fast = 4277936
+mednafen_ngp = 334064
 mgba = 1466704
 melonds = 4070336
 citra = 32347128

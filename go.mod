@@ -4,6 +4,7 @@ go 1.24.7
 
 require (
 	github.com/BurntSushi/toml v1.6.0
+	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/alecthomas/kong v1.13.0
 	github.com/beevik/etree v1.6.0
 	github.com/bodgit/sevenzip v1.6.1
@@ -15,7 +16,6 @@ require (
 )
 
 require (
-	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/andybalholm/brotli v1.1.1 // indirect
 	github.com/bodgit/plumbing v1.3.0 // indirect
 	github.com/bodgit/windows v1.0.1 // indirect

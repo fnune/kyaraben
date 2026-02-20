@@ -10,6 +10,8 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/flycast"
 	"github.com/fnune/kyaraben/internal/emulators/pcsx2"
 	"github.com/fnune/kyaraben/internal/emulators/ppsspp"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchbeetlengp"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchbeetlepce"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbeetlesaturn"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbsnes"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchcitra"
@@ -23,14 +25,18 @@ import (
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/systems/dreamcast"
 	"github.com/fnune/kyaraben/internal/systems/gamecube"
+	"github.com/fnune/kyaraben/internal/systems/gamegear"
 	"github.com/fnune/kyaraben/internal/systems/gb"
 	"github.com/fnune/kyaraben/internal/systems/gba"
 	"github.com/fnune/kyaraben/internal/systems/gbc"
 	"github.com/fnune/kyaraben/internal/systems/genesis"
+	"github.com/fnune/kyaraben/internal/systems/mastersystem"
 	"github.com/fnune/kyaraben/internal/systems/n64"
 	"github.com/fnune/kyaraben/internal/systems/nds"
 	"github.com/fnune/kyaraben/internal/systems/nes"
+	"github.com/fnune/kyaraben/internal/systems/ngp"
 	n3ds "github.com/fnune/kyaraben/internal/systems/nintendo3ds"
+	"github.com/fnune/kyaraben/internal/systems/pcengine"
 	"github.com/fnune/kyaraben/internal/systems/ps2"
 	"github.com/fnune/kyaraben/internal/systems/ps3"
 	"github.com/fnune/kyaraben/internal/systems/psp"
@@ -63,8 +69,12 @@ func TestAllDefinitions(t *testing.T) {
 		psp.Definition{},
 		psvita.Definition{},
 		genesis.Definition{},
+		mastersystem.Definition{},
+		gamegear.Definition{},
 		saturn.Definition{},
 		dreamcast.Definition{},
+		pcengine.Definition{},
+		ngp.Definition{},
 	}
 
 	emulatorDefs := []model.EmulatorDefinition{
@@ -73,6 +83,8 @@ func TestAllDefinitions(t *testing.T) {
 		retroarchgenesisplusgx.Definition{},
 		retroarchmupen64plus.Definition{},
 		retroarchbeetlesaturn.Definition{},
+		retroarchbeetlepce.Definition{},
+		retroarchbeetlengp.Definition{},
 		retroarchmgba.Definition{},
 		retroarchmelonds.Definition{},
 		duckstation.Definition{},

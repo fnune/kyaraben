@@ -229,6 +229,47 @@ test.describe('Sync view with device disconnected', () => {
   })
 })
 
+test.describe('Sync view with folder in error state', () => {
+  let ctx: SyncTestContext
+
+  test.beforeAll(async () => {
+    ctx = await setupSyncTest({
+      config: {
+        systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
+        sync: { enabled: true, mode: 'primary' },
+      },
+      manifest: { installedEmulators: {} },
+      syncthing: {
+        devices: [{ deviceID: 'REMOTE-DEVICE-1234567890ABCDEF', name: 'Steam Deck' }],
+        folders: [
+          { id: 'saves', path: '/home/test/Emulation/saves' },
+          { id: 'states', path: '/home/test/Emulation/states' },
+        ],
+      },
+      setup: (c) => {
+        c.setConnected('REMOTE-DEVICE-1234567890ABCDEF', true)
+        c.setFolderState('saves', 'error', 'folder path missing')
+      },
+    })
+  })
+
+  test.afterAll(async () => {
+    await cleanupSyncTest(ctx)
+  })
+
+  test('shows error state in activity card with folder name and error message', async () => {
+    await navigateToSync(ctx.page)
+    await expect(ctx.page.getByText('Sync error')).toBeVisible()
+    await expect(ctx.page.getByText('saves')).toBeVisible()
+    await expect(ctx.page.getByText('folder path missing')).toBeVisible()
+  })
+
+  test('shows error indicator in folders list', async () => {
+    await ctx.page.getByRole('button', { name: /Folders/ }).click()
+    await expect(ctx.page.getByText('Error', { exact: true })).toBeVisible()
+  })
+})
+
 test.describe('Sync view with local changes on secondary', () => {
   let ctx: SyncTestContext
 
