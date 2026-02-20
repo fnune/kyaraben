@@ -77,7 +77,7 @@ Items I can fix without user input:
 Items that need design decisions or more context:
 
 - [x] Emulation directory field UX (storage selection UI)
-- Steam Deck virtual keyboard for text inputs (platform-specific research needed)
+- [ ] Steam Deck virtual keyboard for text inputs: limitation - Steam doesn't auto-detect text input focus. Users must press STEAM + X to open keyboard. Auto-open requires Steamworks SDK which needs a Steam app ID.
 - [x] Sync showing diff on unpaired device: don't show sync status indicators (syncing, local changes, size diff) when no devices are paired
 - Option to pause sync during gameplay
 - Sync UX redesign
