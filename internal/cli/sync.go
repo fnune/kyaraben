@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -38,6 +39,11 @@ func (cmd *SyncStatusCmd) Run(cliCtx *Context) error {
 	}
 
 	client := sync.NewClient(cfg.Sync)
+	if stateDir, err := cliCtx.GetPaths().StateDir(); err == nil {
+		if apiKey := loadSyncAPIKey(stateDir); apiKey != "" {
+			client.SetAPIKey(apiKey)
+		}
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -100,6 +106,11 @@ func (cmd *SyncAddDeviceCmd) Run(cliCtx *Context) error {
 	}
 
 	client := sync.NewClient(cfg.Sync)
+	if stateDir, err := cliCtx.GetPaths().StateDir(); err == nil {
+		if apiKey := loadSyncAPIKey(stateDir); apiKey != "" {
+			client.SetAPIKey(apiKey)
+		}
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -154,6 +165,11 @@ func (cmd *SyncRemoveDeviceCmd) Run(cliCtx *Context) error {
 	}
 
 	client := sync.NewClient(cfg.Sync)
+	if stateDir, err := cliCtx.GetPaths().StateDir(); err == nil {
+		if apiKey := loadSyncAPIKey(stateDir); apiKey != "" {
+			client.SetAPIKey(apiKey)
+		}
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -220,6 +236,11 @@ func (cmd *SyncPairCmd) Run(cliCtx *Context) error {
 	}
 
 	client := sync.NewClient(cfg.Sync)
+	if stateDir, err := cliCtx.GetPaths().StateDir(); err == nil {
+		if apiKey := loadSyncAPIKey(stateDir); apiKey != "" {
+			client.SetAPIKey(apiKey)
+		}
+	}
 	ctx := context.Background()
 
 	if !client.IsRunning(ctx) {
@@ -343,4 +364,13 @@ func truncateDeviceID(id string) string {
 		return id[:7] + "..." + id[len(id)-7:]
 	}
 	return id
+}
+
+func loadSyncAPIKey(stateDir string) string {
+	keyPath := filepath.Join(stateDir, "syncthing", "config", ".apikey")
+	data, err := os.ReadFile(keyPath)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(data))
 }

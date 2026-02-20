@@ -95,6 +95,12 @@ func (c *FakeClient) IsRunning(_ context.Context) bool {
 	return c.running
 }
 
+func (c *FakeClient) GetSystemStatus(_ context.Context) (*SystemStatus, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return &SystemStatus{MyID: c.deviceID, Uptime: 60}, nil
+}
+
 func (c *FakeClient) GetDeviceID(_ context.Context) (string, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
