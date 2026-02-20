@@ -175,6 +175,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	var totalAdds, totalModifies, totalRemoves int
 	var filesCreated, filesModified, filesUnchanged int
 	var hasOverwrittenUserChanges bool
+	var hasKyarabenUpdates bool
 
 	diffs := make([]*emulators.ConfigDiff, 0, len(dryResult.Patches))
 	for _, patch := range dryResult.Patches {
@@ -210,6 +211,9 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		if diff.UserModified && len(diff.UserChanges) > 0 && diff.HasChanges() {
 			hasOverwrittenUserChanges = true
 		}
+		if diff.KyarabenChanged && len(diff.KyarabenUpdates) > 0 {
+			hasKyarabenUpdates = true
+		}
 	}
 
 	if cmd.DryRun {
@@ -233,12 +237,43 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		return nil
 	}
 
-	if hasOverwrittenUserChanges {
-		fmt.Println("Your changes to managed settings will be overwritten:")
+	if hasKyarabenUpdates {
+		fmt.Println("\033[32mKyaraben has updated its defaults:\033[0m")
 		fmt.Println()
+		seenKyarabenPaths := make(map[string]bool)
 		for _, diff := range diffs {
-			if diff.UserModified && len(diff.UserChanges) > 0 {
-				fmt.Print(diff.Format())
+			if diff.KyarabenChanged && len(diff.KyarabenUpdates) > 0 && !seenKyarabenPaths[diff.Path] {
+				seenKyarabenPaths[diff.Path] = true
+				fmt.Printf("  %s\n", diff.Path)
+				seenKeys := make(map[string]bool)
+				for _, ku := range diff.KyarabenUpdates {
+					key := ku.Path[len(ku.Path)-1]
+					if !seenKeys[key] {
+						seenKeys[key] = true
+						fmt.Printf("    %s: %s → %s\n", key, ku.OldValue, ku.NewValue)
+					}
+				}
+			}
+		}
+		fmt.Println()
+	}
+
+	if hasOverwrittenUserChanges {
+		fmt.Println("\033[33mYour changes to managed settings will be overwritten:\033[0m")
+		fmt.Println()
+		seenUserPaths := make(map[string]bool)
+		for _, diff := range diffs {
+			if diff.UserModified && len(diff.UserChanges) > 0 && !seenUserPaths[diff.Path] {
+				seenUserPaths[diff.Path] = true
+				fmt.Printf("  %s\n", diff.Path)
+				seenKeys := make(map[string]bool)
+				for _, uc := range diff.UserChanges {
+					key := uc.Path[len(uc.Path)-1]
+					if !seenKeys[key] {
+						seenKeys[key] = true
+						fmt.Printf("    %s: %s → %s\n", key, uc.BaselineValue, uc.CurrentValue)
+					}
+				}
 			}
 		}
 		fmt.Println()

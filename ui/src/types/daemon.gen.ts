@@ -321,9 +321,16 @@ export interface ConfigFileDiff {
   isNewFile: boolean;
   hasChanges: boolean;
   userModified: boolean;
+  kyarabenChanged: boolean;
   userChanges?: UserChangeDetail[];
+  kyarabenUpdates?: KyarabenUpdateDetail[];
   changes?: ConfigChangeDetail[];
   managedRegions?: ManagedRegionInfo[];
+}
+export interface KyarabenUpdateDetail {
+  key: string;
+  oldValue: string;
+  newValue: string;
 }
 export interface UserChangeDetail {
   key: string;

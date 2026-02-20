@@ -77,5 +77,5 @@ func (h *yamlHandler) Apply(path string, entries []model.ConfigEntry, managedReg
 		return ApplyResult{}, fmt.Errorf("hashing config file: %w", err)
 	}
 
-	return ApplyResult{Path: path, BaselineHash: hash}, nil
+	return ApplyResult{Path: path, BaselineHash: hash, PatchHash: ComputePatchHash(entries)}, nil
 }

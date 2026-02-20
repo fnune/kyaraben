@@ -32,7 +32,7 @@ func (h *rawHandler) Apply(path string, entries []model.ConfigEntry, _ []model.M
 			if err != nil {
 				return ApplyResult{}, fmt.Errorf("hashing existing file: %w", err)
 			}
-			return ApplyResult{Path: path, BaselineHash: hash}, nil
+			return ApplyResult{Path: path, BaselineHash: hash, PatchHash: ComputePatchHash(entries)}, nil
 		}
 	}
 
@@ -49,5 +49,5 @@ func (h *rawHandler) Apply(path string, entries []model.ConfigEntry, _ []model.M
 		return ApplyResult{}, fmt.Errorf("hashing config file: %w", err)
 	}
 
-	return ApplyResult{Path: path, BaselineHash: hash}, nil
+	return ApplyResult{Path: path, BaselineHash: hash, PatchHash: ComputePatchHash(entries)}, nil
 }

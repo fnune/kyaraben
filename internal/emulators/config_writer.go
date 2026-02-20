@@ -31,6 +31,7 @@ func (w *ConfigWriter) resolvePath(target model.ConfigTarget) (string, error) {
 type ApplyResult struct {
 	Path         string
 	BaselineHash string
+	PatchHash    string
 	BackupPath   string
 }
 
@@ -91,6 +92,7 @@ func (w *ConfigWriter) ApplyWithOptions(patch model.ConfigPatch, opts ApplyOptio
 	return ApplyResult{
 		Path:         formatResult.Path,
 		BaselineHash: formatResult.BaselineHash,
+		PatchHash:    formatResult.PatchHash,
 		BackupPath:   backupPath,
 	}, nil
 }

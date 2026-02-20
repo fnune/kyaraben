@@ -7,6 +7,7 @@ import (
 
 	"github.com/twpayne/go-vfs/v5/vfst"
 
+	"github.com/fnune/kyaraben/internal/configformat"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/testutil"
 )
@@ -661,4 +662,114 @@ savestate_directory = "/custom/states"
 	if uc.CurrentValue != `"/custom/states"` {
 		t.Errorf("expected current value \"/custom/states\", got %s", uc.CurrentValue)
 	}
+}
+
+func TestComputeDiffWithBaseline_DetectsKyarabenChanged(t *testing.T) {
+	t.Parallel()
+	content := "[video]\nresolution = 1280x720\n"
+
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/config/test.ini": content,
+	})
+
+	resolver := testutil.FakeResolver{ConfigDir: "/config"}
+	dc := NewDiffComputer(fs, resolver)
+
+	oldEntries := []model.ConfigEntry{
+		{Path: []string{"video", "resolution"}, Value: "1280x720"},
+	}
+	newEntries := []model.ConfigEntry{
+		{Path: []string{"video", "resolution"}, Value: "1920x1080"},
+	}
+
+	baseline := &model.ManagedConfig{
+		BaselineHash: sha256sum(content),
+		PatchHash:    computePatchHash(oldEntries),
+	}
+
+	patch := model.ConfigPatch{
+		Target: model.ConfigTarget{
+			RelPath: "test.ini",
+			Format:  model.ConfigFormatINI,
+			BaseDir: model.ConfigBaseDirUserConfig,
+		},
+		Entries: newEntries,
+	}
+
+	diff, err := dc.ComputeDiffWithBaseline(patch, baseline)
+	if err != nil {
+		t.Fatalf("ComputeDiffWithBaseline: %v", err)
+	}
+
+	if !diff.KyarabenChanged {
+		t.Error("expected KyarabenChanged to be true")
+	}
+	if len(diff.KyarabenUpdates) != 1 {
+		t.Fatalf("expected 1 kyaraben update, got %d", len(diff.KyarabenUpdates))
+	}
+
+	ku := diff.KyarabenUpdates[0]
+	if ku.Path[len(ku.Path)-1] != "resolution" {
+		t.Errorf("expected changed key resolution, got %s", ku.Path[len(ku.Path)-1])
+	}
+	if ku.OldValue != "1280x720" {
+		t.Errorf("expected old value 1280x720, got %s", ku.OldValue)
+	}
+	if ku.NewValue != "1920x1080" {
+		t.Errorf("expected new value 1920x1080, got %s", ku.NewValue)
+	}
+
+	if diff.UserModified {
+		t.Error("expected UserModified to be false when only kyaraben changed")
+	}
+}
+
+func TestComputeDiffWithBaseline_KyarabenChangedDoesNotReportAsUserModified(t *testing.T) {
+	t.Parallel()
+	oldEntries := []model.ConfigEntry{
+		{Path: []string{"video", "resolution"}, Value: "1280x720"},
+	}
+	newEntries := []model.ConfigEntry{
+		{Path: []string{"video", "resolution"}, Value: "1920x1080"},
+	}
+
+	oldContent := "[video]\nresolution = 1280x720\n"
+	currentContent := "[video]\nresolution = 1920x1080\n"
+
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/config/test.ini": currentContent,
+	})
+
+	resolver := testutil.FakeResolver{ConfigDir: "/config"}
+	dc := NewDiffComputer(fs, resolver)
+
+	baseline := &model.ManagedConfig{
+		BaselineHash: sha256sum(oldContent),
+		PatchHash:    computePatchHash(oldEntries),
+	}
+
+	patch := model.ConfigPatch{
+		Target: model.ConfigTarget{
+			RelPath: "test.ini",
+			Format:  model.ConfigFormatINI,
+			BaseDir: model.ConfigBaseDirUserConfig,
+		},
+		Entries: newEntries,
+	}
+
+	diff, err := dc.ComputeDiffWithBaseline(patch, baseline)
+	if err != nil {
+		t.Fatalf("ComputeDiffWithBaseline: %v", err)
+	}
+
+	if diff.UserModified {
+		t.Error("expected UserModified to be false when change is a kyaraben update")
+	}
+	if len(diff.UserChanges) != 0 {
+		t.Errorf("expected 0 user changes, got %d", len(diff.UserChanges))
+	}
+}
+
+func computePatchHash(entries []model.ConfigEntry) string {
+	return configformat.ComputePatchHash(entries)
 }
