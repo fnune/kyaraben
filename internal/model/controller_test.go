@@ -385,8 +385,9 @@ func TestResolveControllerConfigWithHotkeys(t *testing.T) {
 	cfg := &KyarabenConfig{
 		Controller: ControllerTomlConfig{
 			Hotkeys: HotkeyTomlConfig{
-				SaveState: "Start+A",
-				Quit:      "Back+Start+A",
+				Modifier:  "Start",
+				SaveState: "A",
+				Quit:      "B",
 			},
 		},
 	}
@@ -398,8 +399,8 @@ func TestResolveControllerConfigWithHotkeys(t *testing.T) {
 	if cc.Hotkeys.SaveState.String() != "Start+A" {
 		t.Errorf("SaveState = %q, want %q", cc.Hotkeys.SaveState.String(), "Start+A")
 	}
-	if cc.Hotkeys.Quit.String() != "Back+Start+A" {
-		t.Errorf("Quit = %q, want %q", cc.Hotkeys.Quit.String(), "Back+Start+A")
+	if cc.Hotkeys.Quit.String() != "Start+B" {
+		t.Errorf("Quit = %q, want %q", cc.Hotkeys.Quit.String(), "Start+B")
 	}
 
 	// Unset hotkeys should keep defaults.
@@ -414,12 +415,28 @@ func TestResolveControllerConfigInvalidHotkey(t *testing.T) {
 	cfg := &KyarabenConfig{
 		Controller: ControllerTomlConfig{
 			Hotkeys: HotkeyTomlConfig{
-				SaveState: "Back+InvalidButton",
+				SaveState: "InvalidButton",
 			},
 		},
 	}
 	_, err := cfg.ResolveControllerConfig()
 	if err == nil {
 		t.Error("expected error for invalid hotkey, got nil")
+	}
+}
+
+func TestResolveControllerConfigInvalidModifier(t *testing.T) {
+	t.Parallel()
+
+	cfg := &KyarabenConfig{
+		Controller: ControllerTomlConfig{
+			Hotkeys: HotkeyTomlConfig{
+				Modifier: "InvalidButton",
+			},
+		},
+	}
+	_, err := cfg.ResolveControllerConfig()
+	if err == nil {
+		t.Error("expected error for invalid modifier, got nil")
 	}
 }
