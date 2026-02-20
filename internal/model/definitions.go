@@ -10,6 +10,9 @@ type StoreReader interface {
 	EmulatorScreenshotsDir(EmulatorID) string
 	SystemRomsDir(SystemID) string
 	CoresDir() string
+	FrontendGamelistDir(FrontendID, SystemID) string
+	FrontendMediaDir(FrontendID, SystemID) string
+	FrontendMediaBaseDir(FrontendID) string
 }
 
 // GenerateContext provides all dependencies a config generator needs.

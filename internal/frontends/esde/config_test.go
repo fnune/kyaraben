@@ -48,6 +48,18 @@ func (f *fakeStoreReader) CoresDir() string {
 	return "/state/cores"
 }
 
+func (f *fakeStoreReader) FrontendGamelistDir(fe model.FrontendID, sys model.SystemID) string {
+	return filepath.Join(f.root, "frontends", string(fe), "gamelists", string(sys))
+}
+
+func (f *fakeStoreReader) FrontendMediaDir(fe model.FrontendID, sys model.SystemID) string {
+	return filepath.Join(f.root, "frontends", string(fe), "media", string(sys))
+}
+
+func (f *fakeStoreReader) FrontendMediaBaseDir(fe model.FrontendID) string {
+	return filepath.Join(f.root, "frontends", string(fe), "media")
+}
+
 func TestBuildCommandPassesSavesDir(t *testing.T) {
 	store := &fakeStoreReader{root: "/emulation"}
 
@@ -122,6 +134,7 @@ func TestGenerateSettingsIncludesDefaults(t *testing.T) {
 		defaultOnly bool
 	}{
 		"ROMDirectory":     {"/emulation/roms", false},
+		"MediaDirectory":   {"/emulation/frontends/es-de/media", false},
 		"Theme":            {"linear-es-de", true},
 		"ThemeVariant":     {"simpleCarousel", true},
 		"SystemsSorting":   {"manufacturer_year", true},

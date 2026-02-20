@@ -21,6 +21,7 @@ var CLI struct {
 	Daemon         cli.DaemonCmd       `cmd:"" help:"Run in daemon mode for UI communication."`
 	Sync           cli.SyncCmd         `cmd:"" help:"Manage sync settings and status."`
 	CheckDownloads cli.ValidateURLsCmd `cmd:"" help:"Validate download URLs and show sizes (CI check)."`
+	System         cli.SystemCmd       `cmd:"" hidden:"" help:"Internal system utilities."`
 
 	Config   string `short:"c" help:"Path to config file." type:"path"`
 	Instance string `short:"i" help:"Instance name for running multiple isolated kyaraben instances (e.g. 'primary', 'secondary')."`

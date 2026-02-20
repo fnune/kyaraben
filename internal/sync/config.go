@@ -194,6 +194,8 @@ func (g *ConfigGenerator) generateFolders() ([]XMLFolder, error) {
 
 	isPrimary := g.syncConfig.Mode == model.SyncModePrimary
 
+	deviceRefs := g.folderDeviceRefs()
+
 	folderTypes := map[string]struct {
 		subdirs       []string
 		primaryType   FolderType
@@ -207,7 +209,10 @@ func (g *ConfigGenerator) generateFolders() ([]XMLFolder, error) {
 		"screenshots": {subdirs: nil, primaryType: FolderTypeSendReceive, secondaryType: FolderTypeSendReceive, versioning: false},
 	}
 
-	deviceRefs := g.folderDeviceRefs()
+	frontendFolders, err := g.generateFrontendFolders(deviceRefs)
+	if err != nil {
+		return nil, fmt.Errorf("generating frontend folders: %w", err)
+	}
 
 	for category, spec := range folderTypes {
 		folderType := spec.primaryType
@@ -252,6 +257,35 @@ func (g *ConfigGenerator) generateFolders() ([]XMLFolder, error) {
 
 			if spec.versioning {
 				folder.Versioning = g.versioningConfig()
+			}
+
+			folders = append(folders, folder)
+		}
+	}
+
+	folders = append(folders, frontendFolders...)
+
+	return folders, nil
+}
+
+func (g *ConfigGenerator) generateFrontendFolders(deviceRefs []XMLFolderDevice) ([]XMLFolder, error) {
+	var folders []XMLFolder
+
+	folderType := FolderTypeSendReceive
+
+	for _, subType := range []string{"gamelists", "media"} {
+		for _, sys := range g.allSystems {
+			folderID := fmt.Sprintf("kyaraben-frontends-esde-%s-%s", subType, sys)
+			path := filepath.Join(g.userStore, "frontends", "esde", subType, string(sys))
+
+			folder := XMLFolder{
+				ID:               folderID,
+				Label:            folderID,
+				Path:             path,
+				Type:             folderType,
+				Devices:          deviceRefs,
+				FSWatcherEnabled: true,
+				IgnorePerms:      true,
 			}
 
 			folders = append(folders, folder)

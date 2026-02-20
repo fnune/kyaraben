@@ -48,6 +48,7 @@ func (c *Config) generateSettings(ctx model.FrontendContext) (model.ConfigPatch,
 		Target: settingsTarget,
 		Entries: []model.ConfigEntry{
 			{Path: []string{"ROMDirectory"}, Value: ctx.Store.RomsDir()},
+			{Path: []string{"MediaDirectory"}, Value: ctx.Store.FrontendMediaBaseDir(model.FrontendIDESDE)},
 			{Path: []string{"Theme"}, Value: "linear-es-de", DefaultOnly: true},
 			{Path: []string{"ThemeVariant"}, Value: "simpleCarousel", DefaultOnly: true},
 			{Path: []string{"SystemsSorting"}, Value: "manufacturer_year", DefaultOnly: true},

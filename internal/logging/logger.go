@@ -128,6 +128,14 @@ func (l *Logger) Error(format string, args ...interface{}) {
 	callHook(content)
 }
 
+func (l *Logger) Warn(format string, args ...interface{}) {
+	content := l.formatMessage(format, args...)
+	if logger != nil {
+		logger.Printf("[WARN] [%s] %s", l.component, content)
+	}
+	callHook(content)
+}
+
 func (l *Logger) Debug(format string, args ...interface{}) {
 	content := l.formatMessage(format, args...)
 	if logger != nil {
@@ -152,6 +160,16 @@ func Error(format string, args ...interface{}) {
 	content := fmt.Sprintf(format, args...)
 	if logger != nil {
 		logger.Printf("[ERROR] %s", content)
+	}
+	callHook(content)
+}
+
+// Warn logs a warning message without component context.
+// Prefer using a Logger instance from New() for better traceability.
+func Warn(format string, args ...interface{}) {
+	content := fmt.Sprintf(format, args...)
+	if logger != nil {
+		logger.Printf("[WARN] %s", content)
 	}
 	callHook(content)
 }
