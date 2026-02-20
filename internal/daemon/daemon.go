@@ -522,7 +522,7 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	if _, err := d.launcherManager.InstallKyaraben("", ""); err != nil {
+	if _, err := d.launcherManager.InstallCLI(); err != nil {
 		log.Debug("Failed to install Kyaraben to PATH: %v", err)
 	}
 
@@ -2304,14 +2304,11 @@ func (d *Daemon) dirExists(path string) bool {
 }
 
 func (d *Daemon) handleInstallKyaraben(data *InstallKyarabenRequest) []Event {
-	appImagePath := ""
-	sidecarPath := ""
-	if data != nil {
-		appImagePath = data.AppImagePath
-		sidecarPath = data.SidecarPath
+	if data == nil || data.AppImagePath == "" || data.SidecarPath == "" {
+		return d.errorResponse("appImagePath and sidecarPath are required")
 	}
 
-	result, err := d.launcherManager.InstallKyaraben(appImagePath, sidecarPath)
+	result, err := d.launcherManager.InstallApp(data.AppImagePath, data.SidecarPath)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
