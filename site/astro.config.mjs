@@ -5,6 +5,9 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "Kyaraben",
+      components: {
+        SiteTitle: "./src/components/SiteTitle.astro",
+      },
       customCss: ["./src/styles/custom.css"],
       expressiveCode: {
         themes: ["dark-plus"],

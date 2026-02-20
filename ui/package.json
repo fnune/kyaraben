@@ -21,6 +21,7 @@
     "appId": "com.kyaraben.app",
     "productName": "Kyaraben",
     "artifactName": "${productName}-${version}-${arch}.${ext}",
+    "icon": "build/icon.png",
     "directories": {
       "output": "release"
     },
@@ -42,7 +43,8 @@
         "AppImage"
       ],
       "category": "Game",
-      "maintainer": "Kyaraben Developers"
+      "maintainer": "Kyaraben Developers",
+      "icon": "build/icon.png"
     },
     "mac": {
       "target": [
