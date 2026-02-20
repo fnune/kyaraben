@@ -5,7 +5,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/twpayne/go-vfs/v5"
 
@@ -55,6 +57,22 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	if err != nil {
 		return err
 	}
+
+	lockDir := filepath.Dir(manifestPath)
+	if err := os.MkdirAll(lockDir, 0755); err != nil {
+		return fmt.Errorf("creating state directory: %w", err)
+	}
+	lockPath := filepath.Join(lockDir, "apply.lock")
+	lockFile, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		return fmt.Errorf("creating lock file: %w", err)
+	}
+	defer func() { _ = lockFile.Close() }()
+
+	if err := syscall.Flock(int(lockFile.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
+		return fmt.Errorf("another installation is already in progress")
+	}
+	defer func() { _ = syscall.Flock(int(lockFile.Fd()), syscall.LOCK_UN) }()
 
 	launcherManager, err := launcher.NewManager(ctx.GetPaths())
 	if err != nil {
