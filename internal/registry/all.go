@@ -8,13 +8,9 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/flycast"
 	"github.com/fnune/kyaraben/internal/emulators/pcsx2"
 	"github.com/fnune/kyaraben/internal/emulators/ppsspp"
-	"github.com/fnune/kyaraben/internal/emulators/retroarchbeetlelynx"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbeetlengp"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbeetlepce"
-	"github.com/fnune/kyaraben/internal/emulators/retroarchbeetlepcfx"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbeetlesaturn"
-	"github.com/fnune/kyaraben/internal/emulators/retroarchbeetlevb"
-	"github.com/fnune/kyaraben/internal/emulators/retroarchbeetlewswan"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbsnes"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchcitra"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchgenesisplusgx"
@@ -33,7 +29,6 @@ import (
 	"github.com/fnune/kyaraben/internal/systems/gba"
 	"github.com/fnune/kyaraben/internal/systems/gbc"
 	"github.com/fnune/kyaraben/internal/systems/genesis"
-	"github.com/fnune/kyaraben/internal/systems/lynx"
 	"github.com/fnune/kyaraben/internal/systems/mastersystem"
 	"github.com/fnune/kyaraben/internal/systems/n64"
 	"github.com/fnune/kyaraben/internal/systems/nds"
@@ -41,7 +36,6 @@ import (
 	"github.com/fnune/kyaraben/internal/systems/ngp"
 	n3ds "github.com/fnune/kyaraben/internal/systems/nintendo3ds"
 	"github.com/fnune/kyaraben/internal/systems/pcengine"
-	"github.com/fnune/kyaraben/internal/systems/pcfx"
 	"github.com/fnune/kyaraben/internal/systems/ps2"
 	"github.com/fnune/kyaraben/internal/systems/ps3"
 	"github.com/fnune/kyaraben/internal/systems/psp"
@@ -50,10 +44,8 @@ import (
 	"github.com/fnune/kyaraben/internal/systems/saturn"
 	"github.com/fnune/kyaraben/internal/systems/snes"
 	switchsys "github.com/fnune/kyaraben/internal/systems/switch"
-	"github.com/fnune/kyaraben/internal/systems/virtualboy"
 	"github.com/fnune/kyaraben/internal/systems/wii"
 	"github.com/fnune/kyaraben/internal/systems/wiiu"
-	"github.com/fnune/kyaraben/internal/systems/wonderswan"
 )
 
 func NewDefault() *Registry {
@@ -72,7 +64,6 @@ func NewDefault() *Registry {
 			wii.Definition{},
 			wiiu.Definition{},
 			switchsys.Definition{},
-			virtualboy.Definition{},
 			// Sony
 			psx.Definition{},
 			ps2.Definition{},
@@ -87,13 +78,8 @@ func NewDefault() *Registry {
 			dreamcast.Definition{},
 			// NEC
 			pcengine.Definition{},
-			pcfx.Definition{},
-			// Atari
-			lynx.Definition{},
 			// SNK
 			ngp.Definition{},
-			// Bandai
-			wonderswan.Definition{},
 		},
 		[]model.EmulatorDefinition{
 			retroarchbsnes.Definition{},
@@ -102,11 +88,7 @@ func NewDefault() *Registry {
 			retroarchmupen64plus.Definition{},
 			retroarchbeetlesaturn.Definition{},
 			retroarchbeetlepce.Definition{},
-			retroarchbeetlelynx.Definition{},
 			retroarchbeetlengp.Definition{},
-			retroarchbeetlepcfx.Definition{},
-			retroarchbeetlevb.Definition{},
-			retroarchbeetlewswan.Definition{},
 			retroarchmgba.Definition{},
 			retroarchmelonds.Definition{},
 			duckstation.Definition{},
