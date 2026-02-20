@@ -414,6 +414,70 @@ func TestRawHandler_ApplyDefaultOnlyCreatesIfMissing(t *testing.T) {
 	}
 }
 
+func TestXMLAttrHandler_Apply(t *testing.T) {
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/config": &vfst.Dir{Perm: 0755},
+	})
+
+	handler := NewHandler(fs, model.ConfigFormatXMLAttr)
+	entries := []model.ConfigEntry{
+		{Path: []string{"ROMDirectory"}, Value: "/roms"},
+		{Path: []string{"Theme"}, Value: "linear-es-de"},
+	}
+
+	_, err := handler.Apply("/config/es_settings.xml", entries, nil)
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+
+	readResult, err := handler.Read("/config/es_settings.xml")
+	if err != nil {
+		t.Fatalf("Read: %v", err)
+	}
+
+	if readResult[""]["ROMDirectory"] != "/roms" {
+		t.Errorf("expected ROMDirectory=/roms, got %s", readResult[""]["ROMDirectory"])
+	}
+	if readResult[""]["Theme"] != "linear-es-de" {
+		t.Errorf("expected Theme=linear-es-de, got %s", readResult[""]["Theme"])
+	}
+}
+
+func TestXMLAttrHandler_DefaultOnly(t *testing.T) {
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/config/es_settings.xml": `<?xml version="1.0"?>
+<string name="Theme" value="custom-theme"/>
+`,
+	})
+
+	handler := NewHandler(fs, model.ConfigFormatXMLAttr)
+	entries := []model.ConfigEntry{
+		{Path: []string{"Theme"}, Value: "linear-es-de", DefaultOnly: true},
+		{Path: []string{"NewSetting"}, Value: "new-value", DefaultOnly: true},
+	}
+
+	_, err := handler.Apply("/config/es_settings.xml", entries, nil)
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+
+	readResult, err := handler.Read("/config/es_settings.xml")
+	if err != nil {
+		t.Fatalf("Read: %v", err)
+	}
+
+	if readResult[""]["Theme"] != "custom-theme" {
+		t.Errorf("expected Theme=custom-theme (preserved), got %s", readResult[""]["Theme"])
+	}
+	if readResult[""]["NewSetting"] != "new-value" {
+		t.Errorf("expected NewSetting=new-value (created), got %s", readResult[""]["NewSetting"])
+	}
+}
+
 func TestGetHandler(t *testing.T) {
 	t.Parallel()
 
@@ -425,6 +489,7 @@ func TestGetHandler(t *testing.T) {
 		{model.ConfigFormatTOML},
 		{model.ConfigFormatYAML},
 		{model.ConfigFormatXML},
+		{model.ConfigFormatXMLAttr},
 		{model.ConfigFormatRaw},
 		{"unknown"},
 	}
