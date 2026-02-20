@@ -231,7 +231,7 @@ var packageNames = []string{
 	"rpcs3",
 	"flycast",
 	"retroarch",
-	"es-de",
+	"esde",
 	"syncthing",
 }
 

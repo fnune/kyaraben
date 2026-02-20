@@ -51,7 +51,7 @@ func TestManager_Sync_CreatesShortcut(t *testing.T) {
 
 	entries := []ShortcutEntry{{
 		AppName:       "ES-DE",
-		Exe:           "/home/user/.local/state/kyaraben/bin/es-de",
+		Exe:           "/home/user/.local/state/kyaraben/bin/esde",
 		StartDir:      "/home/user/.local/state/kyaraben/bin",
 		LaunchOptions: "--fullscreen",
 		Tags:          []string{"Kyaraben"},
@@ -70,7 +70,7 @@ func TestManager_Sync_CreatesShortcut(t *testing.T) {
 
 	s := shortcuts[0]
 	assert.Equal(t, "ES-DE", s.AppName)
-	assert.Equal(t, "/home/user/.local/state/kyaraben/bin/es-de", s.Exe)
+	assert.Equal(t, "/home/user/.local/state/kyaraben/bin/esde", s.Exe)
 	assert.Equal(t, "/home/user/.local/state/kyaraben/bin/", s.StartDir)
 	assert.Equal(t, "--fullscreen", s.LaunchOptions)
 	assert.Equal(t, []string{"Kyaraben"}, s.Tags)
@@ -95,7 +95,7 @@ func TestManager_Sync_PreservesExistingShortcuts(t *testing.T) {
 
 	entries := []ShortcutEntry{{
 		AppName: "ES-DE",
-		Exe:     "/home/user/.local/state/kyaraben/bin/es-de",
+		Exe:     "/home/user/.local/state/kyaraben/bin/esde",
 	}}
 
 	_, err := manager.Sync(entries)
@@ -114,7 +114,7 @@ func TestManager_Sync_PreservesExistingShortcuts(t *testing.T) {
 }
 
 func TestManager_Sync_UpdatesExistingManagedShortcut(t *testing.T) {
-	exe := "/home/user/.local/state/kyaraben/bin/es-de"
+	exe := "/home/user/.local/state/kyaraben/bin/esde"
 	appName := "ES-DE"
 	appID := GenerateAppID(exe, appName)
 
@@ -163,7 +163,7 @@ func TestManager_Sync_MultipleUsers(t *testing.T) {
 
 	entries := []ShortcutEntry{{
 		AppName: "ES-DE",
-		Exe:     "/home/user/.local/state/kyaraben/bin/es-de",
+		Exe:     "/home/user/.local/state/kyaraben/bin/esde",
 	}}
 
 	_, err := manager.Sync(entries)
@@ -192,7 +192,7 @@ func TestManager_Sync_WithGridAssets(t *testing.T) {
 
 	entries := []ShortcutEntry{{
 		AppName: "ES-DE",
-		Exe:     "/home/user/.local/state/kyaraben/bin/es-de",
+		Exe:     "/home/user/.local/state/kyaraben/bin/esde",
 		GridAssets: &GridAssets{
 			Grid: gridData,
 			Hero: heroData,
@@ -215,7 +215,7 @@ func TestManager_Sync_WithGridAssets(t *testing.T) {
 }
 
 func TestManager_RemoveShortcuts(t *testing.T) {
-	exe := "/home/user/.local/state/kyaraben/bin/es-de"
+	exe := "/home/user/.local/state/kyaraben/bin/esde"
 	appName := "ES-DE"
 	appID := GenerateAppID(exe, appName)
 
@@ -255,7 +255,7 @@ func TestManager_RemoveShortcuts(t *testing.T) {
 }
 
 func TestManager_Sync_RemovesPreviouslyManagedShortcut(t *testing.T) {
-	exe := "/home/user/.local/state/kyaraben/bin/es-de"
+	exe := "/home/user/.local/state/kyaraben/bin/esde"
 	appName := "ES-DE"
 	appID := GenerateAppID(exe, appName)
 

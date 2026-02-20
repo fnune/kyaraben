@@ -18,7 +18,7 @@ func TestParseShortcuts_SingleEntry(t *testing.T) {
 	data := buildShortcutsVDF(t, []Shortcut{{
 		AppID:              2684466978,
 		AppName:            "ES-DE",
-		Exe:                "/home/user/.local/state/kyaraben/bin/es-de",
+		Exe:                "/home/user/.local/state/kyaraben/bin/esde",
 		StartDir:           "/home/user/.local/state/kyaraben/bin",
 		Icon:               "",
 		LaunchOptions:      "",
@@ -35,7 +35,7 @@ func TestParseShortcuts_SingleEntry(t *testing.T) {
 	s := shortcuts[0]
 	assert.Equal(t, uint32(2684466978), s.AppID)
 	assert.Equal(t, "ES-DE", s.AppName)
-	assert.Equal(t, "/home/user/.local/state/kyaraben/bin/es-de", s.Exe)
+	assert.Equal(t, "/home/user/.local/state/kyaraben/bin/esde", s.Exe)
 	assert.Equal(t, "/home/user/.local/state/kyaraben/bin", s.StartDir)
 	assert.Equal(t, uint32(1), s.AllowDesktopConfig)
 	assert.Equal(t, uint32(1), s.AllowOverlay)
@@ -83,7 +83,7 @@ func TestWriteShortcuts_RoundTrip(t *testing.T) {
 		{
 			AppID:              2684466978,
 			AppName:            "ES-DE",
-			Exe:                "/home/user/.local/state/kyaraben/bin/es-de",
+			Exe:                "/home/user/.local/state/kyaraben/bin/esde",
 			StartDir:           "/home/user/.local/state/kyaraben/bin",
 			Icon:               "/path/to/icon.png",
 			LaunchOptions:      "--fullscreen",
@@ -181,7 +181,7 @@ func TestGenerateAppID(t *testing.T) {
 		exe     string
 		appName string
 	}{
-		{"/home/user/.local/state/kyaraben/bin/es-de", "ES-DE"},
+		{"/home/user/.local/state/kyaraben/bin/esde", "ES-DE"},
 		{"/usr/bin/retroarch", "RetroArch"},
 		{"/home/user/Games/game.exe", "My Game"},
 	}

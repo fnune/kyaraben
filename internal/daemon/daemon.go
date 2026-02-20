@@ -100,6 +100,15 @@ func shortenPath(path string) string {
 
 func folderLabel(id string) string {
 	id = strings.TrimPrefix(id, "kyaraben-")
+
+	if strings.HasPrefix(id, "frontends-esde-") {
+		rest := strings.TrimPrefix(id, "frontends-esde-")
+		parts := strings.SplitN(rest, "-", 2)
+		if len(parts) == 2 {
+			return fmt.Sprintf("%s (ES-DE %s)", parts[1], parts[0])
+		}
+	}
+
 	parts := strings.SplitN(id, "-", 2)
 	if len(parts) == 2 {
 		return fmt.Sprintf("%s (%s)", parts[1], parts[0])
@@ -453,6 +462,17 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 		d.mu.Unlock()
 	}()
 
+	syncWasStopped := false
+	if cfg.Sync.Enabled {
+		syncWasStopped = d.stopSyncthing(cfg)
+		if syncWasStopped && emit != nil {
+			emit(Event{
+				Type: EventTypeProgress,
+				Data: ProgressEvent{Step: "sync-pause", Message: "Pausing sync"},
+			})
+		}
+	}
+
 	applier := apply.NewApplier(
 		d.fs,
 		d.installer,
@@ -506,6 +526,12 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 	}
 
 	if cfg.Sync.Enabled {
+		if syncWasStopped && emit != nil {
+			emit(Event{
+				Type: EventTypeProgress,
+				Data: ProgressEvent{Step: "sync-resume", Message: "Resuming sync"},
+			})
+		}
 		if err := d.updateSyncConfig(cfg, userStore.Root()); err != nil {
 			log.Info("Failed to update sync config: %v", err)
 		}
@@ -1612,6 +1638,26 @@ func (d *Daemon) loadSyncAPIKey() string {
 		return ""
 	}
 	return strings.TrimSpace(string(data))
+}
+
+func (d *Daemon) stopSyncthing(cfg *model.KyarabenConfig) bool {
+	unit := syncpkg.NewSystemdUnit(d.fs, d.paths, d.service)
+	unitName := unit.UnitName()
+	state := d.service.State(unitName)
+	if state != "active" && state != "activating" {
+		return false
+	}
+	log.Info("Stopping syncthing before apply")
+	if err := d.service.Stop(unitName); err != nil {
+		log.Debug("Error stopping syncthing: %v", err)
+	}
+	ports := []int{cfg.Sync.Syncthing.GUIPort, cfg.Sync.Syncthing.ListenPort}
+	for _, port := range ports {
+		if err := syncpkg.WaitForPortRelease(port, 5*time.Second); err != nil {
+			log.Debug("Port %d not released: %v", port, err)
+		}
+	}
+	return true
 }
 
 func (d *Daemon) syncSystems(cfg *model.KyarabenConfig) []model.SystemID {

@@ -266,19 +266,19 @@ size = 19818086
 # specified directly per target rather than using url_template.
 # ============================================================================
 
-[es-de]
+[esde]
 releases_url = "gitlab:es-de/emulationstation-de"
 default = "3.4.0"
 icon_url = "https://gitlab.com/es-de/emulationstation-de/-/raw/9a2deb803700c3f9c2d4a98d57e14d56eb4d01ff/es-app/assets/org.es_de.frontend.svg"
 icon_sha256 = "sha256-hsZGRNcl/wAzSTMtt3Z2rtbBTKKU5zjA1baYSC4EMWA="
 
-[es-de."3.4.0".targets.x64]
+[esde."3.4.0".targets.x64]
 variant = "x86_64"
 url = "https://gitlab.com/es-de/emulationstation-de/-/package_files/246875981/download"
 sha256 = "sha256-TLZs/JIwmXEc+g7d2D22R0SmKU4C4//Rnuhn93qI7H4="
 size = 129931768
 
-[es-de."3.4.0".targets.steamdeck]
+[esde."3.4.0".targets.steamdeck]
 variant = "x86_64"
 url = "https://gitlab.com/es-de/emulationstation-de/-/package_files/246876039/download"
 sha256 = "sha256-/RaIA4KO3QaDPlxboj36Nmujvs58BUMpVU+8Qj5+lws="
