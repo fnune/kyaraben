@@ -239,6 +239,169 @@ When symlinks work, the emulator runs identically to a manual installation.
 Prefer this over CLI flags like `-u <dir>` which create kyaraben-specific
 launch commands that diverge from default behavior and complicate debugging.
 
+## Testing emulator support
+
+Emulator integration requires manual testing on real hardware. Automated tests
+verify config generation, but only hardware testing catches issues with paths,
+controllers, hotkeys, and first-run behavior.
+
+### When to test
+
+- Adding a new emulator
+- Upgrading an emulator version
+- Changing config generation logic
+- Modifying path or symlink handling
+
+### Test hardware
+
+- Steam Deck (primary target)
+- Desktop Linux (secondary)
+- Controllers: Xbox-style (full features) and SNES USB (limited buttons)
+
+### Pre-testing checks
+
+Before manual testing, run automated checks to catch obvious issues:
+
+```bash
+just check  # Lint, test, typecheck
+```
+
+### Feature parity reference
+
+Not all emulators support all features. See the [emulator support table](/using-the-app/#emulator-support)
+for what each emulator supports. Use it to know what to test and what to skip.
+
+Source files are in `internal/emulators/<name>/`. Each emulator's definition
+file contains:
+
+- `StateKinds`: which data types are synced (saves, states, screenshots)
+- `ProvisionGroups`: BIOS/firmware requirements
+- `ConfigGenerator.Generate()`: config patches, symlinks, and controller bindings
+
+### Emulator-specific notes
+
+**Cemu** (`cemu/cemu.go`): No savestate support. No hotkey support (upstream
+limitation, see https://github.com/cemu-project/Cemu/issues/721). Single Wii U
+GamePad only. Symlinks for saves and screenshots.
+
+**Dolphin** (`dolphin/dolphin.go`): 4 GameCube controllers configured. Hotkeys
+use toggle syntax for fast-forward. Kyaraben profile (`Profiles/GCPad/Kyaraben.ini`)
+can be reloaded from Dolphin's UI. Symlinks for GC saves, Wii saves, savestates,
+screenshots.
+
+**DuckStation** (`duckstation/duckstation.go`): 4 analog controllers with rumble.
+Profile preset at `inputprofiles/kyaraben-steamdeck.ini`. No symlinks; all paths
+configured via `settings.ini`.
+
+**Eden** (`eden/eden.go`): No savestate support (Switch emulation limitation).
+Uses raw SDL joystick API, not GameController. Bindings include controller GUID.
+Symlinks for keys, firmware, screenshots, user saves, system saves.
+
+**Flycast** (`flycast/flycast.go`): Uses raw joystick indices for buttons. HAT
+values (256-259) for D-pad. Hotkeys require 2+ buttons and use combo system.
+Single player only.
+
+**PCSX2** (`pcsx2/pcsx2.go`): 4 DualShock2 controllers with rumble. Profile at
+`inputprofiles/Kyaraben.ini`. Extensive BIOS support (60+ variants).
+
+**PPSSPP** (`ppsspp/ppsspp.go`): Uses device-keycode format (device 10 = gamepad).
+Symlinks for saves, savestates, screenshots. No BIOS required.
+
+**RPCS3** (`rpcs3/rpcs3.go`): No kyaraben controller or hotkey config. Controller
+handled by RPCS3's internal system. Firmware installed via File > Install Firmware.
+Uses YAML config format.
+
+**Vita3K** (`vita3k/vita3k.go`): No savestate support. No kyaraben controller or
+hotkey config. Firmware installed via UI. Generates hardcoded user profile.
+
+**RetroArch cores** (`retroarch/shared.go`): All cores share `retroarch.cfg`.
+Hotkey system: first button in chord = enable_hotkey, last button = action.
+Per-core symlinks redirect sorted save/state directories. BIOS requirements
+vary by core (Saturn requires BIOS; most others do not).
+
+### Path configuration testing
+
+Verify paths by checking where files actually land after gameplay:
+
+1. **Saves**: play a game, save in-game, check `~/Emulation/saves/<system>/`
+2. **Savestates**: create a savestate via hotkey (if supported), check
+   `~/Emulation/states/<emulator>/`
+3. **Screenshots**: take a screenshot via hotkey (if supported), check
+   `~/Emulation/screenshots/<emulator>/`
+4. **BIOS**: verify the emulator finds BIOS from `~/Emulation/bios/<system>/`
+
+For emulators using symlinks, verify the symlink exists and points to the
+correct user store location. Symlink specs are returned from each emulator's
+`ConfigGenerator.Generate()` method.
+
+### Controller testing
+
+For emulators with `Controller: configured` in the support table, test:
+
+1. **Face buttons**: verify A/B/X/Y map correctly (some emulators swap layouts)
+2. **D-pad**: all four directions register
+3. **Analog sticks**: left and right sticks work (if system has them)
+4. **Shoulders**: L/R buttons register
+5. **Triggers**: LT/RT register (analog for systems that support it)
+6. **Start/Select**: both buttons work
+
+For multiplayer (`Players > 1`), connect additional controllers and verify
+each slot binds correctly.
+
+Skip controller testing for emulators with `Controller: auto` (RPCS3, Vita3K);
+these emulators handle controller detection internally.
+
+### Hotkey testing
+
+For emulators with `Hotkeys: full` or `Hotkeys: partial` in the support table,
+test the supported hotkeys. Default bindings use Back (Select) as the modifier:
+
+| Action        | Chord        |
+| ------------- | ------------ |
+| Save state    | Back + RB    |
+| Load state    | Back + LB    |
+| Next slot     | Start + RB   |
+| Previous slot | Start + LB   |
+| Fast forward  | Back + RT    |
+| Rewind        | Back + LT    |
+| Pause         | Back + A     |
+| Screenshot    | Back + B     |
+| Quit          | Back + Start |
+
+Not all emulators support all hotkeys. Check the hotkey entries in each
+emulator's config generator to see which are implemented:
+
+- `Hotkeys: full`: all hotkeys above should work
+- `Hotkeys: partial`: only some hotkeys work (check source)
+- `Hotkeys: none`: skip hotkey testing (Cemu, RPCS3, Vita3K)
+
+For detailed per-emulator hotkey checklists, see
+`docs/plans/controller-config-testing.md`.
+
+### First-run behavior testing
+
+Verify kyaraben suppresses setup wizards and prompts:
+
+1. Delete the emulator's config directory to simulate first run
+2. Run `kyaraben apply` to regenerate config
+3. Launch the emulator and verify no wizard or prompt appears
+
+Check for these common issues:
+
+- Update check prompts (should be disabled)
+- Welcome dialogs (should be suppressed)
+- Controller setup wizards (should be skipped)
+- BIOS selection prompts (should use configured path)
+
+### Frontend testing
+
+Verify ES-DE launches games correctly:
+
+1. Add a ROM to `~/Emulation/roms/<system>/`
+2. Open ES-DE and navigate to the system
+3. Launch the game and verify the correct emulator opens
+4. Verify fullscreen mode works (if configured)
+
 ## Dependency management
 
 Pass dependencies explicitly. No hidden instantiation deep in the call stack.
