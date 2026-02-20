@@ -98,24 +98,6 @@ func shortenPath(path string) string {
 	return path
 }
 
-func folderLabel(id string) string {
-	id = strings.TrimPrefix(id, "kyaraben-")
-
-	if strings.HasPrefix(id, "frontends-esde-") {
-		rest := strings.TrimPrefix(id, "frontends-esde-")
-		parts := strings.SplitN(rest, "-", 2)
-		if len(parts) == 2 {
-			return fmt.Sprintf("%s (ES-DE %s)", parts[1], parts[0])
-		}
-	}
-
-	parts := strings.SplitN(id, "-", 2)
-	if len(parts) == 2 {
-		return fmt.Sprintf("%s (%s)", parts[1], parts[0])
-	}
-	return id
-}
-
 func computeFolderPath(userStoreRoot, folderID string) string {
 	id := strings.TrimPrefix(folderID, "kyaraben-")
 	parts := strings.SplitN(id, "-", 2)
@@ -1023,8 +1005,9 @@ func (d *Daemon) handleSyncStatus() []Event {
 		folders[i] = SyncFolder{
 			ID:                 f.ID,
 			Path:               path,
-			Label:              folderLabel(f.ID),
+			Label:              syncpkg.FolderLabel(f.ID),
 			State:              f.State,
+			Error:              f.Error,
 			Type:               f.Type,
 			GlobalSize:         f.GlobalSize,
 			LocalSize:          f.LocalSize,
