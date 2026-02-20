@@ -7,6 +7,12 @@ packages:
       - frontend_id.go
     enum_style: union
 
+  - path: github.com/fnune/kyaraben/internal/logging
+    output_path: ui/src/types/logging.gen.ts
+    include_files:
+      - types.go
+    enum_style: union
+
   - path: github.com/fnune/kyaraben/internal/daemon
     output_path: ui/src/types/daemon.gen.ts
     include_files:
@@ -18,5 +24,7 @@ packages:
       model.EmulatorID: EmulatorID
       model.FrontendID: FrontendID
       model.Manufacturer: Manufacturer
+      logging.LogEntry: LogEntry
     frontmatter: |
       import type { SystemID, EmulatorID, FrontendID, Manufacturer } from './model.gen'
+      import type { LogEntry } from './logging.gen'

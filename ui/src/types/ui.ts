@@ -1,4 +1,5 @@
 import type { EmulatorID, ProvisionResult, SystemID } from './daemon'
+import type { LogEntry } from './logging.gen'
 import type { Manufacturer } from './model.gen'
 
 export const VIEW_CATALOG = 'catalog' as const
@@ -36,6 +37,7 @@ export interface ProgressStep {
   readonly status: ProgressStepStatus
   readonly message?: string
   readonly output?: readonly string[]
+  readonly logEntries?: readonly LogEntry[]
   readonly buildPhase?: string
   readonly packageName?: string
   readonly progressPercent?: number
