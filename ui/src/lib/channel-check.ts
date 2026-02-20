@@ -8,6 +8,7 @@ import type { CommandType } from '../types/daemon.gen'
 // Extract just the daemon channels from InvokeChannel
 type DaemonChannel = Exclude<
   InvokeChannel,
+  | 'get_home_dir'
   | 'get_install_status'
   | 'install_app'
   | 'open_path'

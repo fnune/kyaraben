@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
 import { ErrorBoundary } from './lib/ErrorBoundary'
+import { HomeDirProvider } from './lib/HomeDirContext'
 import './index.css'
 
 const container = document.getElementById('root')
@@ -12,7 +13,9 @@ if (!container) {
 createRoot(container).render(
   <StrictMode>
     <ErrorBoundary>
-      <App />
+      <HomeDirProvider>
+        <App />
+      </HomeDirProvider>
     </ErrorBoundary>
   </StrictMode>,
 )

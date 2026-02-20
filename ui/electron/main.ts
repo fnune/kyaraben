@@ -684,6 +684,10 @@ function setupIpcHandlers(): void {
     return event.data
   })
 
+  ipcMain.handle('get_home_dir', () => {
+    return app.getPath('home')
+  })
+
   ipcMain.handle('open_path', (_, pathToOpen: string) => {
     const expandedPath = pathToOpen.startsWith('~')
       ? pathToOpen.replace('~', app.getPath('home'))
@@ -859,6 +863,7 @@ function setupIpcHandlers(): void {
     'sync_reset',
     'uninstall_preview',
     'refresh_icon_caches',
+    'get_home_dir',
     'get_install_status',
     'install_app',
     'open_path',
