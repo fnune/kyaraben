@@ -205,7 +205,7 @@ func TestManager_Sync_WithGridAssets(t *testing.T) {
 	appID := GenerateAppID(entries[0].Exe, entries[0].AppName)
 	gridDir := "/home/user/.steam/steam/userdata/12345678/config/grid"
 
-	data, err := fs.ReadFile(gridDir + "/" + itoa(appID) + ".jpg")
+	data, err := fs.ReadFile(gridDir + "/" + itoa(appID) + "p.jpg")
 	require.NoError(t, err)
 	assert.Equal(t, gridData, data)
 
