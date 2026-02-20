@@ -278,14 +278,14 @@ func TestDefaultHotkeysStringValues(t *testing.T) {
 	expected := map[string]string{
 		"SaveState":        "Back+RightShoulder",
 		"LoadState":        "Back+LeftShoulder",
-		"NextSlot":         "Start+RightShoulder",
-		"PrevSlot":         "Start+LeftShoulder",
+		"NextSlot":         "Back+DPadRight",
+		"PrevSlot":         "Back+DPadLeft",
 		"FastForward":      "Back+Y",
 		"Rewind":           "Back+X",
 		"Pause":            "Back+A",
 		"Screenshot":       "Back+B",
 		"Quit":             "Back+Start",
-		"ToggleFullscreen": "Start+LeftStick",
+		"ToggleFullscreen": "Back+LeftStick",
 		"OpenMenu":         "Back+RightStick",
 	}
 

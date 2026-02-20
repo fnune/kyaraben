@@ -111,14 +111,14 @@ func DefaultHotkeys() HotkeyConfig {
 	return HotkeyConfig{
 		SaveState:        HotkeyBinding{Buttons: []SDLButton{ButtonBack, ButtonRightShoulder}},
 		LoadState:        HotkeyBinding{Buttons: []SDLButton{ButtonBack, ButtonLeftShoulder}},
-		NextSlot:         HotkeyBinding{Buttons: []SDLButton{ButtonStart, ButtonRightShoulder}},
-		PrevSlot:         HotkeyBinding{Buttons: []SDLButton{ButtonStart, ButtonLeftShoulder}},
+		NextSlot:         HotkeyBinding{Buttons: []SDLButton{ButtonBack, ButtonDPadRight}},
+		PrevSlot:         HotkeyBinding{Buttons: []SDLButton{ButtonBack, ButtonDPadLeft}},
 		FastForward:      HotkeyBinding{Buttons: []SDLButton{ButtonBack, ButtonY}},
 		Rewind:           HotkeyBinding{Buttons: []SDLButton{ButtonBack, ButtonX}},
 		Pause:            HotkeyBinding{Buttons: []SDLButton{ButtonBack, ButtonA}},
 		Screenshot:       HotkeyBinding{Buttons: []SDLButton{ButtonBack, ButtonB}},
 		Quit:             HotkeyBinding{Buttons: []SDLButton{ButtonBack, ButtonStart}},
-		ToggleFullscreen: HotkeyBinding{Buttons: []SDLButton{ButtonStart, ButtonLeftStick}},
+		ToggleFullscreen: HotkeyBinding{Buttons: []SDLButton{ButtonBack, ButtonLeftStick}},
 		OpenMenu:         HotkeyBinding{Buttons: []SDLButton{ButtonBack, ButtonRightStick}},
 	}
 }
