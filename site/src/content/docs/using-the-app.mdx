@@ -42,15 +42,24 @@ manifest is only updated after all steps succeed.
 
 ## Browsing and launching games
 
-Kyaraben can install [EmulationStation-DE](https://es-de.org/) as a frontend
-for browsing and launching your games. Enable it in the settings. ES-DE scans
-your ROM directories and provides a unified game launcher with metadata
-scraping, media art, and controller-friendly navigation.
+Kyaraben can install [EmulationStation DE](https://es-de.org/) as a frontend
+for browsing and launching your games. Enable it in the settings.
+EmulationStation DE scans your ROM directories and provides a unified game
+launcher with metadata scraping, media art, and controller-friendly navigation.
 
-{/* Screenshot: v0.1-app-esde-option.png - ES-DE option in settings */}
+{/* Screenshot: v0.1-app-esde-option.png - EmulationStation DE option in settings */}
+
+:::note[EmulationStation DE shows all systems with ROMs]
+EmulationStation DE has built-in definitions for hundreds of systems. It will
+show any system where it finds ROMs in your emulation directory, regardless of
+which systems you have enabled in kyaraben. Enabling a system in kyaraben
+configures an emulator to run that system's games. If you have ROMs for a
+system you haven't enabled, EmulationStation DE will show them but they won't
+launch correctly.
+:::
 
 :::caution[Work in progress]
-Adding EmulationStation-DE to Steam as a non-Steam application (for launching
+Adding EmulationStation DE to Steam as a non-Steam application (for launching
 from Steam Deck game mode) is planned but not yet implemented.
 :::
 
@@ -208,7 +217,7 @@ configurations included in the update. This is optional but recommended.
 ## Non-goals
 
 - Windows, macOS, iOS, or Android support
-- ROM management or scraping (use ES-DE, Skraper, or similar tools)
+- ROM management or scraping (use EmulationStation DE, Skraper, or similar tools)
 - Netplay configuration
 - Abstracting every emulator setting (kyaraben manages paths and launches
   emulators fullscreen; detailed settings are configured in each emulator)
@@ -216,6 +225,6 @@ configurations included in the update. This is optional but recommended.
 ## Future plans
 
 - Controller configuration abstraction
-- EmulationStation-DE as a non-Steam application for Steam Deck game mode
+- EmulationStation DE as a non-Steam application for Steam Deck game mode
 - Conservative expansion of managed emulator settings
 - Sync across devices (see [save sync](/sync/))
