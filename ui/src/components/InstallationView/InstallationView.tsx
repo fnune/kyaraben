@@ -12,6 +12,7 @@ import {
   installApp,
   launchCliUninstall,
   openPath,
+  openUrl,
   readFile,
 } from '@/lib/daemon'
 import { PathText } from '@/lib/PathText'
@@ -226,14 +227,13 @@ export function InstallationView() {
           <p className="text-sm text-status-error/80">
             To fix this, click Apply in the {VIEW_LABELS[VIEW_CATALOG]} view to restore the
             installation state. Please also consider{' '}
-            <a
-              href="https://github.com/fnune/kyaraben/issues"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => openUrl('https://github.com/fnune/kyaraben/issues')}
               className="underline hover:no-underline"
             >
               reporting this issue
-            </a>
+            </button>
             .
           </p>
         </div>

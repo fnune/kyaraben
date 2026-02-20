@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/fnune/kyaraben/internal/logging"
@@ -192,10 +194,31 @@ func (c *Client) GetLocalChanges(ctx context.Context, folderID string) ([]LocalC
 		return nil, fmt.Errorf("decoding response: %w", err)
 	}
 
+	// Get folder path to check local filesystem
+	folderPath := ""
+	folders, err := c.GetFolderConfigs(ctx)
+	if err == nil {
+		for _, f := range folders {
+			if f.ID == folderID {
+				folderPath = f.Path
+				break
+			}
+		}
+	}
+
 	changes := make([]LocalChange, len(response.Files))
 	for i, f := range response.Files {
+		action := ""
+		if folderPath != "" {
+			fullPath := filepath.Join(folderPath, f.Name)
+			if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+				action = "deleted"
+			} else if err == nil {
+				action = "changed"
+			}
+		}
 		changes[i] = LocalChange{
-			Action:   f.Action,
+			Action:   action,
 			Type:     f.Type,
 			Path:     f.Name,
 			Modified: f.Modified,

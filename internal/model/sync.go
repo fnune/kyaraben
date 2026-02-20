@@ -42,6 +42,7 @@ func DefaultSyncConfig() SyncConfig {
 				"**/*.tmp",
 				".DS_Store",
 				"Thumbs.db",
+				"/installed",
 			},
 		},
 	}

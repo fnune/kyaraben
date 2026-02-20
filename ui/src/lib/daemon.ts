@@ -108,6 +108,8 @@ export const launchEmulator = (execLine: string) =>
 
 export const openPath = (path: string) => invoke<string>('open_path', path)
 
+export const openUrl = (url: string) => invoke<string>('open_url', url)
+
 export const readFile = (path: string) => invoke<string>('read_file', path)
 
 export const openLogTail = (position?: number) =>
