@@ -6,21 +6,21 @@ import (
 	"github.com/fnune/kyaraben/internal/model"
 )
 
-//go:embed assets/grid.png
-var gridPNG []byte
+//go:embed assets/grid.jpg
+var gridJPG []byte
 
-//go:embed assets/hero.png
-var heroPNG []byte
+//go:embed assets/hero.jpg
+var heroJPG []byte
 
 //go:embed assets/logo.png
 var logoPNG []byte
 
-//go:embed assets/capsule.png
-var capsulePNG []byte
+//go:embed assets/capsule.jpg
+var capsuleJPG []byte
 
 var esdeGridAssets = model.SteamGridAssets{
-	Grid:    gridPNG,
-	Hero:    heroPNG,
+	Grid:    gridJPG,
+	Hero:    heroJPG,
 	Logo:    logoPNG,
-	Capsule: capsulePNG,
+	Capsule: capsuleJPG,
 }
