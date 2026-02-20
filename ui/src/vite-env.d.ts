@@ -17,7 +17,6 @@ type EventPayloadMap = {
 declare global {
   interface Window {
     electron: {
-      homeDir: string
       invoke<T>(command: InvokeChannel, data?: unknown): Promise<T>
       on<C extends EventChannel>(
         channel: C,
