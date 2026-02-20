@@ -17,8 +17,8 @@ func (Definition) Emulator() model.Emulator {
 		Systems: []model.SystemID{model.SystemIDWiiU},
 		Package: model.AppImageRef("cemu"),
 		ProvisionGroups: []model.ProvisionGroup{{
-			MinRequired: 1,
-			Message:     "Encryption keys required",
+			MinRequired: 0,
+			Message:     "Only needed for encrypted game dumps",
 			Provisions: []model.Provision{
 				model.FileProvision(model.ProvisionKeys, "keys.txt", "Wii U keys").WithImportViaUI(),
 			},
