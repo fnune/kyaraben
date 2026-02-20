@@ -1,14 +1,20 @@
 import type { SystemID } from '@/types/daemon'
 import dreamcastLogo from './logos/dreamcast.svg'
 import gamecubeLogo from './logos/gamecube.svg'
+import gamegearLogo from './logos/gamegear.svg'
 import gbLogo from './logos/gb.svg'
 import gbaLogo from './logos/gba.svg'
 import gbcLogo from './logos/gbc.svg'
 import genesisLogo from './logos/genesis.svg'
+import lynxLogo from './logos/lynx.svg'
+import mastersystemLogo from './logos/mastersystem.svg'
 import n3dsLogo from './logos/n3ds.svg'
 import n64Logo from './logos/n64.svg'
 import ndsLogo from './logos/nds.svg'
 import nesLogo from './logos/nes.svg'
+import ngpLogo from './logos/ngp.svg'
+import pcengineLogo from './logos/pcengine.svg'
+import pcfxLogo from './logos/pcfx.svg'
 import ps2Logo from './logos/ps2.svg'
 import ps3Logo from './logos/ps3.svg'
 import pspLogo from './logos/psp.svg'
@@ -17,8 +23,10 @@ import psxLogo from './logos/psx.svg'
 import saturnLogo from './logos/saturn.svg'
 import snesLogo from './logos/snes.svg'
 import switchLogo from './logos/switch.svg'
+import virtualboyLogo from './logos/virtualboy.svg'
 import wiiLogo from './logos/wii.svg'
 import wiiuLogo from './logos/wiiu.svg'
+import wonderswanLogo from './logos/wonderswan.svg'
 
 export const ESDE_LOGOS: Record<SystemID, string> = {
   nes: nesLogo,
@@ -39,6 +47,14 @@ export const ESDE_LOGOS: Record<SystemID, string> = {
   psp: pspLogo,
   psvita: psvitaLogo,
   genesis: genesisLogo,
+  mastersystem: mastersystemLogo,
+  gamegear: gamegearLogo,
   saturn: saturnLogo,
   dreamcast: dreamcastLogo,
+  pcengine: pcengineLogo,
+  pcfx: pcfxLogo,
+  lynx: lynxLogo,
+  ngp: ngpLogo,
+  virtualboy: virtualboyLogo,
+  wonderswan: wonderswanLogo,
 }

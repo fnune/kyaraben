@@ -1,13 +1,19 @@
 import dreamcast from '@/assets/systems/dreamcast.svg'
+import gamegear from '@/assets/systems/gamegear.svg'
 import gb from '@/assets/systems/gb.svg'
 import gba from '@/assets/systems/gba.svg'
 import gbc from '@/assets/systems/gbc.svg'
 import gc from '@/assets/systems/gc.svg'
 import genesis from '@/assets/systems/genesis.svg'
+import lynx from '@/assets/systems/lynx.svg'
+import mastersystem from '@/assets/systems/mastersystem.svg'
 import n3ds from '@/assets/systems/n3ds.svg'
 import n64 from '@/assets/systems/n64.svg'
 import nds from '@/assets/systems/nds.svg'
 import nes from '@/assets/systems/nes.svg'
+import ngp from '@/assets/systems/ngp.svg'
+import pcengine from '@/assets/systems/pcengine.svg'
+import pcfx from '@/assets/systems/pcfx.svg'
 import ps2 from '@/assets/systems/ps2.svg'
 import ps3 from '@/assets/systems/ps3.svg'
 import psp from '@/assets/systems/psp.svg'
@@ -16,8 +22,10 @@ import psx from '@/assets/systems/psx.svg'
 import saturn from '@/assets/systems/saturn.svg'
 import snes from '@/assets/systems/snes.svg'
 import nswitch from '@/assets/systems/switch.svg'
+import virtualboy from '@/assets/systems/virtualboy.svg'
 import wii from '@/assets/systems/wii.svg'
 import wiiu from '@/assets/systems/wiiu.svg'
+import wonderswan from '@/assets/systems/wonderswan.svg'
 import type { SystemID } from '@/types/daemon'
 
 export const SYSTEM_LOGOS: Record<SystemID, string> = {
@@ -34,6 +42,7 @@ export const SYSTEM_LOGOS: Record<SystemID, string> = {
   wii,
   wiiu,
   switch: nswitch,
+  virtualboy,
   // Sony
   psx,
   ps2,
@@ -42,8 +51,19 @@ export const SYSTEM_LOGOS: Record<SystemID, string> = {
   psvita,
   // Sega
   genesis,
+  mastersystem,
+  gamegear,
   saturn,
   dreamcast,
+  // NEC
+  pcengine,
+  pcfx,
+  // Atari
+  lynx,
+  // SNK
+  ngp,
+  // Bandai
+  wonderswan,
 }
 
 export interface SystemLogoProps {
