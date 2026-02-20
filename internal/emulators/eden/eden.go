@@ -166,7 +166,7 @@ func performanceEntries() []model.ConfigEntry {
 	for _, s := range settings {
 		entries = append(entries,
 			model.ConfigEntry{Path: []string{s.section, s.key}, Value: s.value, DefaultOnly: true},
-			model.ConfigEntry{Path: []string{s.section, s.key + `\default`}, Value: "false"},
+			model.ConfigEntry{Path: []string{s.section, s.key + `\default`}, Value: "false", DefaultOnly: true},
 		)
 	}
 	return entries
@@ -316,8 +316,9 @@ func defaultBindingEntries(path []string, value string) []model.ConfigEntry {
 			EqualityFunc: configformat.BindingValuesEqual,
 		},
 		{
-			Path:  defaultFlagPath,
-			Value: "false",
+			Path:        defaultFlagPath,
+			Value:       "false",
+			DefaultOnly: true,
 		},
 	}
 }
