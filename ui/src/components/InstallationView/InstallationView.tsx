@@ -42,7 +42,9 @@ function PathItem({
   const bgColor = variant === 'preserved' ? 'bg-status-ok/10' : 'bg-surface-raised'
   const textColor = variant === 'preserved' ? 'text-status-ok' : 'text-on-surface-secondary'
   return (
-    <li className={`font-mono text-xs ${bgColor} ${textColor} px-2 py-1 rounded-sm`}>{path}</li>
+    <li className={`text-xs ${bgColor} ${textColor} px-2 py-1 rounded-sm`}>
+      <PathText>{path}</PathText>
+    </li>
   )
 }
 
@@ -131,7 +133,7 @@ export function InstallationView() {
   const handleUninstall = async () => {
     if (
       !window.confirm(
-        'Are you sure you want to uninstall Kyaraben? Your ROMs, saves, and configuration will be preserved.',
+        'Are you sure you want to uninstall Kyaraben? Your ROMs, saves, and Kyaraben configuration will be preserved.',
       )
     ) {
       return

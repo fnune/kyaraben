@@ -1,5 +1,6 @@
 import { FolderIcon } from '@/lib/icons'
 import { Modal } from '@/lib/Modal'
+import { PathText } from '@/lib/PathText'
 import type { EmulatorPaths, ManagedConfigInfo, ManagedRegionInfo } from '@/types/daemon'
 
 export interface PathsModalProps {
@@ -48,9 +49,9 @@ export function PathsModal({
           <div key={label}>
             <p className="text-sm text-on-surface-muted mb-1">{label}</p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 text-sm bg-surface-raised px-2 py-1.5 rounded-sm text-on-surface-secondary select-all truncate">
-                {path}
-              </code>
+              <span className="flex-1 text-sm bg-surface-raised px-2 py-1.5 rounded-sm text-on-surface-secondary select-all truncate">
+                <PathText>{path}</PathText>
+              </span>
               <button
                 type="button"
                 onClick={() => handleOpenFolder(path)}
@@ -67,12 +68,14 @@ export function PathsModal({
           <div>
             <p className="text-sm text-on-surface-muted mb-1">Managed settings</p>
             <p className="text-xs text-on-surface-dim mb-2">
-              These settings are controlled by kyaraben. Changing them may cause issues.
+              These settings are controlled by Kyaraben. Changing them may cause issues.
             </p>
             <div className="space-y-2">
               {managedConfigs.map((config) => (
                 <div key={config.path}>
-                  <code className="block text-xs text-on-surface-dim truncate">{config.path}</code>
+                  <span className="block text-xs text-on-surface-dim truncate">
+                    <PathText>{config.path}</PathText>
+                  </span>
                   {config.managedRegions && config.managedRegions.length > 0 && (
                     <div className="mt-0.5 ml-2 space-y-0.5">
                       {config.managedRegions.map((region, i) => (

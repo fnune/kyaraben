@@ -80,9 +80,9 @@ The core entities and their relationships:
 - `Provision`: a user-provided file enabling emulation (BIOS, keys)
 - `State`: data an emulator produces (saves, savestates, screenshots)
 - `EmulatorConfig`: a configuration file for an emulator
-- `KyarabenConfig`: kyaraben's own configuration (config.toml)
+- `KyarabenConfig`: Kyaraben's own configuration (config.toml)
 - `UserStore`: where the user's emulation data lives (~/Emulation)
-- `Manifest`: tracks what kyaraben has installed and managed
+- `Manifest`: tracks what Kyaraben has installed and managed
 
 ### Storage model
 
@@ -190,18 +190,18 @@ that all definitions have required fields and that cross-references are valid.
 
 The goal is that users enable a system, run apply, and the emulator is
 immediately ready to use with paths pointing to the user store. If the user
-has data from another kyaraben installation (ROMs, saves, BIOS files in the
-expected locations), kyaraben should pick them up without reconfiguration.
+has data from another Kyaraben installation (ROMs, saves, BIOS files in the
+expected locations), Kyaraben should pick them up without reconfiguration.
 
 Kyaraben assumes it is the only tool installing these emulators. If the user
-has existing installations from their package manager or other tools, kyaraben
-may conflict with them. When kyaraben uninstalls a system, it removes the
+has existing installations from their package manager or other tools, Kyaraben
+may conflict with them. When Kyaraben uninstalls a system, it removes the
 emulator configuration it created.
 
 The first-run experience should be "launch and play", not "configure before
 you can play". Suppress setup wizards and first-run prompts where possible.
 
-When an emulator does not fully cooperate with kyaraben's configuration model,
+When an emulator does not fully cooperate with Kyaraben's configuration model,
 handle the workaround in the implementation:
 
 - Emulators that lack config options for certain paths need symlinks from
@@ -213,7 +213,7 @@ handle the workaround in the implementation:
 - Game library configuration varies: some emulators can be pre-configured with
   ROM directories, others require the user to manually browse to them
 
-The goal is that users can discover and resolve issues from within kyaraben
+The goal is that users can discover and resolve issues from within Kyaraben
 (UI or CLI) or the emulators themselves, without needing external documentation.
 
 ### Emulator installation methods
@@ -244,7 +244,7 @@ When integrating an emulator, follow this priority order for configuring paths:
    those locations to the user store. Implement the `SymlinkProvider` interface.
 
 Symlinks work by redirecting specific subdirectories from the emulator's data
-location to kyaraben's standard locations:
+location to Kyaraben's standard locations:
 
 ```
 ~/.local/share/dolphin-emu/GC/          → ~/Emulation/saves/gamecube/
@@ -254,7 +254,7 @@ location to kyaraben's standard locations:
 ```
 
 When symlinks work, the emulator runs identically to a manual installation.
-Prefer this over CLI flags like `-u <dir>` which create kyaraben-specific
+Prefer this over CLI flags like `-u <dir>` which create Kyaraben-specific
 launch commands that diverge from default behavior and complicate debugging.
 
 ## Testing emulator support
