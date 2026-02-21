@@ -60,25 +60,30 @@ var configTarget = model.ConfigTarget{
 
 type Config struct{}
 
-func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	return []model.ConfigPatch{{
+func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
+	store := ctx.Store
+
+	patches := []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
 			{Path: []string{"content", "GamePaths", "Entry"}, Value: store.SystemRomsDir(model.SystemIDWiiU)},
 			{Path: []string{"content", "check_update"}, Value: "false"},
 		},
-	}}, nil
-}
+	}}
 
-func (c *Config) Symlinks(store model.StoreReader, resolver model.BaseDirResolver) ([]model.SymlinkSpec, error) {
-	dataDir, err := resolver.UserDataDir()
+	dataDir, err := ctx.BaseDirResolver.UserDataDir()
 	if err != nil {
-		return nil, err
+		return model.GenerateResult{}, err
 	}
 	cemuDir := filepath.Join(dataDir, "Cemu")
 
-	return []model.SymlinkSpec{
+	symlinks := []model.SymlinkSpec{
 		{Source: filepath.Join(cemuDir, "mlc01", "usr", "save", "00050000"), Target: store.SystemSavesDir(model.SystemIDWiiU)},
 		{Source: filepath.Join(cemuDir, "screenshots"), Target: store.EmulatorScreenshotsDir(model.EmulatorIDCemu)},
+	}
+
+	return model.GenerateResult{
+		Patches:  patches,
+		Symlinks: symlinks,
 	}, nil
 }

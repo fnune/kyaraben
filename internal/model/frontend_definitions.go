@@ -10,11 +10,11 @@ type FrontendConfigGenerator interface {
 }
 
 type FrontendContext struct {
-	EnabledSystems     []SystemID
-	SystemEmulators    map[SystemID][]EmulatorID
-	GetSystem          func(SystemID) (System, error)
-	GetEmulator        func(EmulatorID) (Emulator, error)
-	GetConfigGenerator func(EmulatorID) ConfigGenerator
-	Store              StoreReader
-	BinDir             string
+	EnabledSystems  []SystemID
+	SystemEmulators map[SystemID][]EmulatorID
+	GetSystem       func(SystemID) (System, error)
+	GetEmulator     func(EmulatorID) (Emulator, error)
+	GetLaunchArgs   func(EmulatorID) []string
+	Store           StoreReader
+	BinDir          string
 }
