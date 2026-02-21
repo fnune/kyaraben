@@ -137,6 +137,23 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	}, nil
 }
 
+// Steam Deck raw joystick button indices. Eden uses raw SDL joystick API
+// (not GameController), so button indices differ from SDL GameController standard.
+// Indices correspond to physical positions, matching EmuDeck's configuration.
+const (
+	steamDeckButtonA      = 0 // south position
+	steamDeckButtonB      = 1 // east position
+	steamDeckButtonX      = 2 // west position
+	steamDeckButtonY      = 3 // north position
+	steamDeckButtonL      = 4
+	steamDeckButtonR      = 5
+	steamDeckButtonMinus  = 6
+	steamDeckButtonPlus   = 7
+	steamDeckButtonHome   = 8
+	steamDeckButtonLStick = 9
+	steamDeckButtonRStick = 10
+)
+
 // Eden (yuzu-based) embeds GUID in every binding.
 // Key ordering must match Eden's native format to avoid config churn when Eden
 // rewrites its config on close. Eden uses: engine,port,guid,<binding-specific>
@@ -166,6 +183,22 @@ func bindingEntry(path []string, value string) model.ConfigEntry {
 	}
 }
 
+// steamDeckFaceButton returns the Steam Deck raw joystick button index for a face button.
+func steamDeckFaceButton(btn model.SDLButton) int {
+	switch btn {
+	case model.ButtonA:
+		return steamDeckButtonA
+	case model.ButtonB:
+		return steamDeckButtonB
+	case model.ButtonX:
+		return steamDeckButtonX
+	case model.ButtonY:
+		return steamDeckButtonY
+	default:
+		return steamDeckButtonA
+	}
+}
+
 // profileEntries returns entries for the Kyaraben.ini profile file.
 // This profile is fully managed (FileRegion) and can be reloaded by users
 // at any time to restore kyaraben bindings.
@@ -173,27 +206,20 @@ func profileEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	south, east, west, north := cc.FaceButtons()
 	guid := model.SteamDeckGUID
 
-	faceMap := map[string]model.SDLButton{
-		"a": east,
-		"b": south,
-		"x": north,
-		"y": west,
-	}
-
 	return []model.ConfigEntry{
 		{Path: []string{"Controls", "type"}, Value: "0"},
-		bindingEntry([]string{"Controls", "button_a"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, model.SDLButtonIndex[faceMap["a"]]))),
-		bindingEntry([]string{"Controls", "button_b"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, model.SDLButtonIndex[faceMap["b"]]))),
-		bindingEntry([]string{"Controls", "button_x"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, model.SDLButtonIndex[faceMap["x"]]))),
-		bindingEntry([]string{"Controls", "button_y"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, model.SDLButtonIndex[faceMap["y"]]))),
-		bindingEntry([]string{"Controls", "button_lstick"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonLeftStick]))),
-		bindingEntry([]string{"Controls", "button_rstick"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonRightStick]))),
-		bindingEntry([]string{"Controls", "button_l"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonLeftShoulder]))),
-		bindingEntry([]string{"Controls", "button_r"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonRightShoulder]))),
+		bindingEntry([]string{"Controls", "button_a"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckFaceButton(east)))),
+		bindingEntry([]string{"Controls", "button_b"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckFaceButton(south)))),
+		bindingEntry([]string{"Controls", "button_x"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckFaceButton(north)))),
+		bindingEntry([]string{"Controls", "button_y"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckFaceButton(west)))),
+		bindingEntry([]string{"Controls", "button_lstick"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckButtonLStick))),
+		bindingEntry([]string{"Controls", "button_rstick"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckButtonRStick))),
+		bindingEntry([]string{"Controls", "button_l"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckButtonL))),
+		bindingEntry([]string{"Controls", "button_r"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckButtonR))),
 		bindingEntry([]string{"Controls", "button_zl"}, fmt.Sprintf(`"%s"`, edenAxisRef(guid, 0, model.AxisLeftTrigger))),
 		bindingEntry([]string{"Controls", "button_zr"}, fmt.Sprintf(`"%s"`, edenAxisRef(guid, 0, model.AxisRightTrigger))),
-		bindingEntry([]string{"Controls", "button_plus"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonStart]))),
-		bindingEntry([]string{"Controls", "button_minus"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonBack]))),
+		bindingEntry([]string{"Controls", "button_plus"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckButtonPlus))),
+		bindingEntry([]string{"Controls", "button_minus"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckButtonMinus))),
 		bindingEntry([]string{"Controls", "button_dleft"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, 0, 0, "left"))),
 		bindingEntry([]string{"Controls", "button_dright"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, 0, 0, "right"))),
 		bindingEntry([]string{"Controls", "button_dup"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, 0, 0, "up"))),
@@ -212,13 +238,6 @@ func qtConfigControllerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 
 	guid := model.SteamDeckGUID
 
-	faceMap := map[string]model.SDLButton{
-		"a": east,
-		"b": south,
-		"x": north,
-		"y": west,
-	}
-
 	for i := 0; i < 2; i++ {
 		prefix := fmt.Sprintf("player_%d_", i)
 		entries = append(entries,
@@ -226,18 +245,18 @@ func qtConfigControllerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 			model.ConfigEntry{Path: []string{"Controls", prefix + "profile_name"}, Value: "Kyaraben", DefaultOnly: true},
 			model.ConfigEntry{Path: []string{"Controls", prefix + "type"}, Value: "0", DefaultOnly: true},
 		)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_a"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["a"]])))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_b"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["b"]])))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_x"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["x"]])))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_y"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["y"]])))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_lstick"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonLeftStick])))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_rstick"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonRightStick])))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_l"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonLeftShoulder])))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_r"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonRightShoulder])))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_a"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckFaceButton(east))))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_b"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckFaceButton(south))))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_x"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckFaceButton(north))))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_y"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckFaceButton(west))))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_lstick"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckButtonLStick)))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_rstick"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckButtonRStick)))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_l"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckButtonL)))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_r"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckButtonR)))...)
 		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_zl"}, fmt.Sprintf(`"%s"`, edenAxisRef(guid, i, model.AxisLeftTrigger)))...)
 		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_zr"}, fmt.Sprintf(`"%s"`, edenAxisRef(guid, i, model.AxisRightTrigger)))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_plus"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonStart])))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_minus"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonBack])))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_plus"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckButtonPlus)))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_minus"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckButtonMinus)))...)
 		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_dleft"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "left")))...)
 		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_dright"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "right")))...)
 		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_dup"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "up")))...)
@@ -268,7 +287,8 @@ func defaultBindingEntries(path []string, value string) []model.ConfigEntry {
 	}
 }
 
-// edenButtonName maps SDL button names to Eden's Switch-style button names.
+// edenButtonName maps SDL button names to Eden's Switch-style button names for hotkeys.
+// Names match EmuDeck's configuration format.
 func edenButtonName(b model.SDLButton) string {
 	switch b {
 	case model.ButtonA:
@@ -294,9 +314,9 @@ func edenButtonName(b model.SDLButton) string {
 	case model.ButtonRightTrigger:
 		return "ZR"
 	case model.ButtonLeftStick:
-		return "Lstick"
+		return "Left_Stick"
 	case model.ButtonRightStick:
-		return "Rstick"
+		return "Right_Stick"
 	case model.ButtonDPadUp:
 		return "Dpad_Up"
 	case model.ButtonDPadDown:
