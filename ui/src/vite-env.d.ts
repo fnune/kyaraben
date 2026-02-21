@@ -23,6 +23,8 @@ declare global {
         callback: (data: EventPayloadMap[C]) => void,
       ): () => void
       off(channel: EventChannel): void
+      getZoomFactor(): number
+      setZoomFactor(factor: number): void
     }
   }
 }
