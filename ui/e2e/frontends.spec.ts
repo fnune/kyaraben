@@ -49,10 +49,10 @@ test.describe('Frontend installation', () => {
     fixture?.cleanup()
   })
 
-  test('can enable and install ES-DE frontend', async () => {
+  test('can enable and install EmulationStation DE frontend', async () => {
     const esdeSection = page
       .locator('div')
-      .filter({ hasText: /^ES-DE/ })
+      .filter({ hasText: /^EmulationStation DE/ })
       .first()
     const toggle = esdeSection.getByRole('switch')
     await expect(toggle).toHaveAttribute('aria-checked', 'false')
@@ -71,7 +71,7 @@ test.describe('Frontend installation', () => {
 
     const esdeToggleAfter = page
       .locator('div')
-      .filter({ hasText: /^ES-DE/ })
+      .filter({ hasText: /^EmulationStation DE/ })
       .first()
       .getByRole('switch')
     await expect(esdeToggleAfter).toHaveAttribute('aria-checked', 'true')
@@ -98,10 +98,10 @@ test.describe('Frontend already enabled', () => {
     fixture?.cleanup()
   })
 
-  test('shows ES-DE as enabled when configured', async () => {
+  test('shows EmulationStation DE as enabled when configured', async () => {
     const esdeSection = page
       .locator('div')
-      .filter({ hasText: /^ES-DE/ })
+      .filter({ hasText: /^EmulationStation DE/ })
       .first()
     const toggle = esdeSection.getByRole('switch')
     await expect(toggle).toHaveAttribute('aria-checked', 'true')

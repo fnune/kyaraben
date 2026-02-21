@@ -29,7 +29,7 @@ export const SystemIDPSX = 'psx' as const
 export const EmulatorIDRetroArchBsnes = 'retroarch:bsnes' as const
 export const EmulatorIDRetroArchMGBA = 'retroarch:mgba' as const
 export const EmulatorIDDuckStation = 'duckstation' as const
-export const FrontendIDESDE = 'es-de' as const
+export const FrontendIDESDE = 'esde' as const
 
 export type SystemID = typeof SystemIDSNES | typeof SystemIDGBA | typeof SystemIDPSX | string
 export type EmulatorID =
