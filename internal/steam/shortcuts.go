@@ -85,11 +85,16 @@ func (m *Manager) syncForUser(userID string, entries []ShortcutEntry) error {
 	for _, entry := range entries {
 		appID := GenerateAppID(entry.Exe, entry.AppName)
 
+		startDir := entry.StartDir
+		if startDir != "" && startDir[len(startDir)-1] != '/' {
+			startDir += "/"
+		}
+
 		shortcut := Shortcut{
 			AppID:              appID,
 			AppName:            entry.AppName,
 			Exe:                entry.Exe,
-			StartDir:           entry.StartDir,
+			StartDir:           startDir,
 			Icon:               entry.Icon,
 			ShortcutPath:       entry.ShortcutPath,
 			LaunchOptions:      entry.LaunchOptions,
