@@ -7,6 +7,7 @@ import (
 
 	"github.com/twpayne/go-vfs/v5/vfst"
 
+	"github.com/fnune/kyaraben/internal/emulators/azahar"
 	"github.com/fnune/kyaraben/internal/emulators/cemu"
 	"github.com/fnune/kyaraben/internal/emulators/dolphin"
 	"github.com/fnune/kyaraben/internal/emulators/duckstation"
@@ -14,6 +15,8 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/flycast"
 	"github.com/fnune/kyaraben/internal/emulators/melonds"
 	"github.com/fnune/kyaraben/internal/emulators/mgba"
+	"github.com/fnune/kyaraben/internal/emulators/pcsx2"
+	"github.com/fnune/kyaraben/internal/emulators/ppsspp"
 	"github.com/fnune/kyaraben/internal/emulators/retroarch"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbeetlesaturn"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbsnes"
@@ -1008,5 +1011,390 @@ func TestConfigTargetResolve(t *testing.T) {
 		if path != tt.expected {
 			t.Errorf("ResolveWith() = %q, want %q", path, tt.expected)
 		}
+	}
+}
+
+func defaultControllerConfig() *model.ControllerConfig {
+	return &model.ControllerConfig{
+		Layout:  model.LayoutStandard,
+		Hotkeys: model.DefaultHotkeys(),
+		GUIDs:   model.BuiltinGUIDs,
+	}
+}
+
+func TestDuckStationControllerConfig(t *testing.T) {
+	t.Parallel()
+
+	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+	gen := duckstation.Definition{}.ConfigGenerator()
+
+	result, err := gen.Generate(model.GenerateContext{
+		Store:            store,
+		BaseDirResolver:  resolver,
+		ControllerConfig: defaultControllerConfig(),
+	})
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	patch := result.Patches[0]
+	keys := collectKeys(patch.Entries)
+
+	for _, key := range []string{"Cross", "Circle", "Square", "Triangle", "L1", "R1", "Start", "Select"} {
+		if !keys[key] {
+			t.Errorf("missing pad key %q", key)
+		}
+	}
+	for _, key := range []string{"SaveSelectedSaveState", "LoadSelectedSaveState", "ToggleFastForward"} {
+		if !keys[key] {
+			t.Errorf("missing hotkey %q", key)
+		}
+	}
+
+	foundPad1Cross := false
+	for _, entry := range patch.Entries {
+		if entry.Key() == "Cross" && strings.Contains(strings.Join(entry.Path, "."), "Pad1") {
+			foundPad1Cross = true
+			if !strings.HasPrefix(entry.Value, "SDL-0/") {
+				t.Errorf("Pad1 Cross should start with SDL-0/, got %s", entry.Value)
+			}
+		}
+	}
+	if !foundPad1Cross {
+		t.Error("Pad1.Cross entry not found")
+	}
+}
+
+func TestPCSX2ControllerConfig(t *testing.T) {
+	t.Parallel()
+
+	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+	gen := pcsx2.Definition{}.ConfigGenerator()
+
+	result, err := gen.Generate(model.GenerateContext{
+		Store:            store,
+		BaseDirResolver:  resolver,
+		ControllerConfig: defaultControllerConfig(),
+	})
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	patch := result.Patches[0]
+	keys := collectKeys(patch.Entries)
+	if !keys["SaveStateToSlot"] {
+		t.Error("missing PCSX2 hotkey SaveStateToSlot")
+	}
+	if !keys["ToggleTurbo"] {
+		t.Error("missing PCSX2 hotkey ToggleTurbo")
+	}
+}
+
+func TestDolphinControllerConfig(t *testing.T) {
+	t.Parallel()
+
+	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+	gen := dolphin.Definition{}.ConfigGenerator()
+
+	result, err := gen.Generate(model.GenerateContext{
+		Store:            store,
+		BaseDirResolver:  resolver,
+		ControllerConfig: defaultControllerConfig(),
+	})
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	if len(result.Patches) != 3 {
+		t.Fatalf("expected 3 patches (Dolphin.ini, GCPadNew.ini, Hotkeys.ini), got %d", len(result.Patches))
+	}
+
+	gcPad := result.Patches[1]
+	if !strings.Contains(gcPad.Target.RelPath, "GCPadNew") {
+		t.Errorf("second patch should be GCPadNew.ini, got %s", gcPad.Target.RelPath)
+	}
+	keys := collectKeys(gcPad.Entries)
+	if !keys["Buttons/A"] {
+		t.Error("missing GCPad Buttons/A")
+	}
+
+	hotkeys := result.Patches[2]
+	if !strings.Contains(hotkeys.Target.RelPath, "Hotkeys") {
+		t.Errorf("third patch should be Hotkeys.ini, got %s", hotkeys.Target.RelPath)
+	}
+}
+
+func TestMGBAControllerConfig(t *testing.T) {
+	t.Parallel()
+
+	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+	gen := mgba.Definition{}.ConfigGenerator()
+
+	result, err := gen.Generate(model.GenerateContext{
+		Store:            store,
+		BaseDirResolver:  resolver,
+		ControllerConfig: defaultControllerConfig(),
+	})
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	patch := result.Patches[0]
+	keys := collectKeys(patch.Entries)
+	for _, key := range []string{"keyA", "keyB", "keyL", "keyR", "keySelect", "keyStart"} {
+		if !keys[key] {
+			t.Errorf("missing mGBA pad key %q", key)
+		}
+	}
+}
+
+func TestMelonDSControllerConfig(t *testing.T) {
+	t.Parallel()
+
+	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+	gen := melonds.Definition{}.ConfigGenerator()
+
+	result, err := gen.Generate(model.GenerateContext{
+		Store:            store,
+		BaseDirResolver:  resolver,
+		ControllerConfig: defaultControllerConfig(),
+	})
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	patch := result.Patches[0]
+	keys := collectKeys(patch.Entries)
+	for _, key := range []string{"Joy_A", "Joy_B", "Joy_X", "Joy_Y", "Joy_L", "Joy_R"} {
+		if !keys[key] {
+			t.Errorf("missing melonDS pad key %q", key)
+		}
+	}
+}
+
+func TestPPSSPPControllerConfig(t *testing.T) {
+	t.Parallel()
+
+	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+	gen := ppsspp.Definition{}.ConfigGenerator()
+
+	result, err := gen.Generate(model.GenerateContext{
+		Store:            store,
+		BaseDirResolver:  resolver,
+		ControllerConfig: defaultControllerConfig(),
+	})
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	if len(result.Patches) != 2 {
+		t.Fatalf("expected 2 patches (ppsspp.ini, controls.ini), got %d", len(result.Patches))
+	}
+
+	controls := result.Patches[1]
+	if !strings.Contains(controls.Target.RelPath, "controls.ini") {
+		t.Errorf("second patch should be controls.ini, got %s", controls.Target.RelPath)
+	}
+
+	keys := collectKeys(controls.Entries)
+	if !keys["Cross"] {
+		t.Error("missing PPSSPP Cross mapping")
+	}
+	if !keys["Save State"] {
+		t.Error("missing PPSSPP Save State hotkey")
+	}
+}
+
+func TestFlycastControllerConfig(t *testing.T) {
+	t.Parallel()
+
+	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+	gen := flycast.Definition{}.ConfigGenerator()
+
+	result, err := gen.Generate(model.GenerateContext{
+		Store:            store,
+		BaseDirResolver:  resolver,
+		ControllerConfig: defaultControllerConfig(),
+	})
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	if len(result.Patches) != 2 {
+		t.Fatalf("expected 2 patches (emu.cfg, mapping), got %d", len(result.Patches))
+	}
+
+	mapping := result.Patches[1]
+	if !strings.Contains(mapping.Target.RelPath, "mappings") {
+		t.Errorf("second patch should be mappings file, got %s", mapping.Target.RelPath)
+	}
+
+	found := false
+	for _, entry := range mapping.Entries {
+		if strings.Contains(entry.Value, "btn_a") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("mapping should contain btn_a binding")
+	}
+}
+
+func TestEdenControllerConfig(t *testing.T) {
+	t.Parallel()
+
+	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+	gen := eden.Definition{}.ConfigGenerator()
+
+	result, err := gen.Generate(model.GenerateContext{
+		Store:            store,
+		BaseDirResolver:  resolver,
+		ControllerConfig: defaultControllerConfig(),
+	})
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	patch := result.Patches[0]
+	foundButtonA := false
+	for _, entry := range patch.Entries {
+		if strings.Contains(entry.Key(), "button_a") && strings.Contains(entry.Value, "engine:sdl") {
+			foundButtonA = true
+			break
+		}
+	}
+	if !foundButtonA {
+		t.Error("Eden should have GUID-based button_a entry")
+	}
+}
+
+func TestAzaharControllerConfig(t *testing.T) {
+	t.Parallel()
+
+	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+	gen := azahar.Definition{}.ConfigGenerator()
+
+	result, err := gen.Generate(model.GenerateContext{
+		Store:            store,
+		BaseDirResolver:  resolver,
+		ControllerConfig: defaultControllerConfig(),
+	})
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	patch := result.Patches[0]
+	foundProfile := false
+	foundButtonA := false
+	for _, entry := range patch.Entries {
+		if entry.Key() == "profile" {
+			foundProfile = true
+		}
+		if strings.Contains(entry.Key(), "button_a") && strings.Contains(entry.Value, "engine:sdl") {
+			foundButtonA = true
+		}
+	}
+	if !foundProfile {
+		t.Error("Azahar should set active profile")
+	}
+	if !foundButtonA {
+		t.Error("Azahar should have GUID-based button_a entry")
+	}
+}
+
+func TestRetroArchControllerConfig(t *testing.T) {
+	t.Parallel()
+
+	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+	gen := retroarchbsnes.Definition{}.ConfigGenerator()
+
+	result, err := gen.Generate(model.GenerateContext{
+		Store:            store,
+		BaseDirResolver:  resolver,
+		ControllerConfig: defaultControllerConfig(),
+	})
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	shared := result.Patches[0]
+	keys := collectKeys(shared.Entries)
+	if !keys["input_joypad_driver"] {
+		t.Error("missing input_joypad_driver in shared config")
+	}
+	if !keys["input_autodetect_enable"] {
+		t.Error("missing input_autodetect_enable in shared config")
+	}
+	if !keys["input_enable_hotkey_btn"] {
+		t.Error("missing input_enable_hotkey_btn in shared config")
+	}
+}
+
+func TestNintendoLayoutSwapsFaceButtons(t *testing.T) {
+	t.Parallel()
+
+	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+
+	standardCC := &model.ControllerConfig{
+		Layout:  model.LayoutStandard,
+		Hotkeys: model.DefaultHotkeys(),
+		GUIDs:   model.BuiltinGUIDs,
+	}
+	nintendoCC := &model.ControllerConfig{
+		Layout:  model.LayoutNintendo,
+		Hotkeys: model.DefaultHotkeys(),
+		GUIDs:   model.BuiltinGUIDs,
+	}
+
+	gen := duckstation.Definition{}.ConfigGenerator()
+
+	standardResult, _ := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver, ControllerConfig: standardCC})
+	nintendoResult, _ := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver, ControllerConfig: nintendoCC})
+
+	findPad1Value := func(entries []model.ConfigEntry, key string) string {
+		for _, e := range entries {
+			if len(e.Path) == 2 && e.Path[0] == "Pad1" && e.Path[1] == key {
+				return e.Value
+			}
+		}
+		return ""
+	}
+
+	stdCross := findPad1Value(standardResult.Patches[0].Entries, "Cross")
+	ninCross := findPad1Value(nintendoResult.Patches[0].Entries, "Cross")
+
+	if stdCross == ninCross {
+		t.Errorf("Nintendo layout should produce different Cross mapping, both got %s", stdCross)
+	}
+}
+
+func TestNoControllerConfigWhenNil(t *testing.T) {
+	t.Parallel()
+
+	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+	gen := duckstation.Definition{}.ConfigGenerator()
+
+	result, err := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver})
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	patch := result.Patches[0]
+	keys := collectKeys(patch.Entries)
+	if keys["Cross"] || keys["Circle"] {
+		t.Error("controller entries should not be present when ControllerConfig is nil")
 	}
 }

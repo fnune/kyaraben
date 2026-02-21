@@ -45,7 +45,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	}
 	return model.GenerateResult{
 		Patches: []model.ConfigPatch{
-			retroarch.SharedConfig(ctx.Store),
+			retroarch.SharedConfig(ctx.Store, ctx.ControllerConfig),
 			coreOverrideConfig(ctx.Store),
 		},
 		Symlinks: symlinks,

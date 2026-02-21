@@ -45,23 +45,76 @@ var MainConfigTarget = model.ConfigTarget{
 // We symlink these sorted directories to kyaraben's store locations.
 // Screenshots go directly to a shared retroarch directory (no per-core sorting).
 // See: https://docs.libretro.com/guides/change-directories/
-func SharedConfig(store model.StoreReader) model.ConfigPatch {
-	return model.ConfigPatch{
-		Target: MainConfigTarget,
-		Entries: []model.ConfigEntry{
-			{Path: []string{"libretro_directory"}, Value: store.CoresDir()},
-			{Path: []string{"screenshot_directory"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDRetroArchBsnes)},
-			{Path: []string{"sort_savefiles_enable"}, Value: "true"},
-			{Path: []string{"sort_savestates_enable"}, Value: "true"},
-			{Path: []string{"sort_savefiles_by_content_enable"}, Value: "false"},
-			{Path: []string{"sort_savestates_by_content_enable"}, Value: "false"},
-			{Path: []string{"rgui_browser_directory"}, Value: store.RomsDir(), Unmanaged: true},
-			{Path: []string{"menu_driver"}, Value: "rgui", Unmanaged: true},
-			{Path: []string{"menu_show_load_content_animation"}, Value: "false"},
-			{Path: []string{"notification_show_config_override_load"}, Value: "false"},
-			{Path: []string{"notification_show_remap_load"}, Value: "false"},
-		},
+func SharedConfig(store model.StoreReader, cc *model.ControllerConfig) model.ConfigPatch {
+	entries := []model.ConfigEntry{
+		{Path: []string{"libretro_directory"}, Value: store.CoresDir()},
+		{Path: []string{"screenshot_directory"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDRetroArchBsnes)},
+		{Path: []string{"sort_savefiles_enable"}, Value: "true"},
+		{Path: []string{"sort_savestates_enable"}, Value: "true"},
+		{Path: []string{"sort_savefiles_by_content_enable"}, Value: "false"},
+		{Path: []string{"sort_savestates_by_content_enable"}, Value: "false"},
+		{Path: []string{"rgui_browser_directory"}, Value: store.RomsDir(), Unmanaged: true},
+		{Path: []string{"menu_driver"}, Value: "rgui", Unmanaged: true},
+		{Path: []string{"menu_show_load_content_animation"}, Value: "false"},
+		{Path: []string{"notification_show_config_override_load"}, Value: "false"},
+		{Path: []string{"notification_show_remap_load"}, Value: "false"},
 	}
+
+	if cc != nil {
+		entries = append(entries, controllerEntries(cc)...)
+	}
+
+	return model.ConfigPatch{Target: MainConfigTarget, Entries: entries}
+}
+
+func controllerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
+	entries := []model.ConfigEntry{
+		{Path: []string{"input_joypad_driver"}, Value: "sdl2"},
+		{Path: []string{"input_autodetect_enable"}, Value: "true"},
+	}
+
+	// RetroArch hotkeys use input_enable_hotkey_btn as a modifier.
+	// Pressing enable_hotkey + action_btn triggers the hotkey.
+	hk := cc.Hotkeys
+	type mapping struct {
+		key     string
+		binding model.HotkeyBinding
+	}
+	mappings := []mapping{
+		{"input_save_state_btn", hk.SaveState},
+		{"input_load_state_btn", hk.LoadState},
+		{"input_state_slot_increase_btn", hk.NextSlot},
+		{"input_state_slot_decrease_btn", hk.PrevSlot},
+		{"input_toggle_fast_forward_btn", hk.FastForward},
+		{"input_rewind_btn", hk.Rewind},
+		{"input_pause_toggle_btn", hk.Pause},
+		{"input_screenshot_btn", hk.Screenshot},
+		{"input_exit_emulator_btn", hk.Quit},
+		{"input_toggle_fullscreen_btn", hk.ToggleFullscreen},
+		{"input_menu_toggle_btn", hk.OpenMenu},
+	}
+
+	// RetroArch's hotkey system: the first button in the chord is the enable_hotkey,
+	// the last button is the action.
+	for _, m := range mappings {
+		if len(m.binding.Buttons) < 2 {
+			continue
+		}
+		enableBtn := m.binding.Buttons[0]
+		actionBtn := m.binding.Buttons[len(m.binding.Buttons)-1]
+		entries = append(entries,
+			model.ConfigEntry{
+				Path:  []string{"input_enable_hotkey_btn"},
+				Value: fmt.Sprintf("%d", model.SDLButtonIndex[enableBtn]),
+			},
+			model.ConfigEntry{
+				Path:  []string{m.key},
+				Value: fmt.Sprintf("%d", model.SDLButtonIndex[actionBtn]),
+			},
+		)
+	}
+
+	return entries
 }
 
 func CoreOverrideTarget(shortName string) model.ConfigTarget {

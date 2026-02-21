@@ -4,7 +4,12 @@
 // - Libretro documentation (https://docs.libretro.com)
 package duckstation
 
-import "github.com/fnune/kyaraben/internal/model"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/fnune/kyaraben/internal/model"
+)
 
 type Definition struct{}
 
@@ -55,20 +60,114 @@ type Config struct{}
 
 func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
 	store := ctx.Store
+	entries := []model.ConfigEntry{
+		{Path: []string{"Main", "SettingsVersion"}, Value: "3"},
+		{Path: []string{"AutoUpdater", "CheckAtStartup"}, Value: "false"},
+		{Path: []string{"BIOS", "SearchDirectory"}, Value: store.SystemBiosDir(model.SystemIDPSX)},
+		{Path: []string{"MemoryCards", "Directory"}, Value: store.SystemSavesDir(model.SystemIDPSX)},
+		{Path: []string{"Folders", "SaveStates"}, Value: store.EmulatorStatesDir(model.EmulatorIDDuckStation)},
+		{Path: []string{"Folders", "Screenshots"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDDuckStation)},
+		{Path: []string{"GameList", "RecursivePaths"}, Value: store.SystemRomsDir(model.SystemIDPSX)},
+	}
+
+	if cc := ctx.ControllerConfig; cc != nil {
+		entries = append(entries, padEntries(cc)...)
+		entries = append(entries, hotkeyEntries(cc)...)
+	}
+
 	return model.GenerateResult{
-		Patches: []model.ConfigPatch{{
-			Target: configTarget,
-			Entries: []model.ConfigEntry{
-				{Path: []string{"Main", "SettingsVersion"}, Value: "3"},
-				{Path: []string{"AutoUpdater", "CheckAtStartup"}, Value: "false"},
-				{Path: []string{"BIOS", "SearchDirectory"}, Value: store.SystemBiosDir(model.SystemIDPSX)},
-				{Path: []string{"MemoryCards", "Directory"}, Value: store.SystemSavesDir(model.SystemIDPSX)},
-				{Path: []string{"Folders", "SaveStates"}, Value: store.EmulatorStatesDir(model.EmulatorIDDuckStation)},
-				{Path: []string{"Folders", "Screenshots"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDDuckStation)},
-				{Path: []string{"GameList", "RecursivePaths"}, Value: store.SystemRomsDir(model.SystemIDPSX)},
-			},
-		}},
+		Patches: []model.ConfigPatch{{Target: configTarget, Entries: entries}},
 	}, nil
+}
+
+func sdlRef(playerIdx int, button model.SDLButton) string {
+	return fmt.Sprintf("SDL-%d/%s", playerIdx, string(button))
+}
+
+func sdlAxisRef(playerIdx int, axis string, positive bool) string {
+	sign := "-"
+	if positive {
+		sign = "+"
+	}
+	return fmt.Sprintf("SDL-%d/%s%s", playerIdx, sign, axis)
+}
+
+func padEntries(cc *model.ControllerConfig) []model.ConfigEntry {
+	var entries []model.ConfigEntry
+	south, east, west, north := cc.FaceButtons()
+
+	for i := 0; i < 4; i++ {
+		section := fmt.Sprintf("Pad%d", i+1)
+		entries = append(entries,
+			model.ConfigEntry{Path: []string{section, "Type"}, Value: "AnalogController"},
+			model.ConfigEntry{Path: []string{section, "Cross"}, Value: sdlRef(i, south)},
+			model.ConfigEntry{Path: []string{section, "Circle"}, Value: sdlRef(i, east)},
+			model.ConfigEntry{Path: []string{section, "Square"}, Value: sdlRef(i, west)},
+			model.ConfigEntry{Path: []string{section, "Triangle"}, Value: sdlRef(i, north)},
+			model.ConfigEntry{Path: []string{section, "L1"}, Value: sdlRef(i, model.ButtonLeftShoulder)},
+			model.ConfigEntry{Path: []string{section, "R1"}, Value: sdlRef(i, model.ButtonRightShoulder)},
+			model.ConfigEntry{Path: []string{section, "L2"}, Value: sdlAxisRef(i, "LeftTrigger", true)},
+			model.ConfigEntry{Path: []string{section, "R2"}, Value: sdlAxisRef(i, "RightTrigger", true)},
+			model.ConfigEntry{Path: []string{section, "L3"}, Value: sdlRef(i, model.ButtonLeftStick)},
+			model.ConfigEntry{Path: []string{section, "R3"}, Value: sdlRef(i, model.ButtonRightStick)},
+			model.ConfigEntry{Path: []string{section, "Up"}, Value: sdlRef(i, model.ButtonDPadUp)},
+			model.ConfigEntry{Path: []string{section, "Down"}, Value: sdlRef(i, model.ButtonDPadDown)},
+			model.ConfigEntry{Path: []string{section, "Left"}, Value: sdlRef(i, model.ButtonDPadLeft)},
+			model.ConfigEntry{Path: []string{section, "Right"}, Value: sdlRef(i, model.ButtonDPadRight)},
+			model.ConfigEntry{Path: []string{section, "LLeft"}, Value: sdlAxisRef(i, "LeftX", false)},
+			model.ConfigEntry{Path: []string{section, "LRight"}, Value: sdlAxisRef(i, "LeftX", true)},
+			model.ConfigEntry{Path: []string{section, "LUp"}, Value: sdlAxisRef(i, "LeftY", false)},
+			model.ConfigEntry{Path: []string{section, "LDown"}, Value: sdlAxisRef(i, "LeftY", true)},
+			model.ConfigEntry{Path: []string{section, "RLeft"}, Value: sdlAxisRef(i, "RightX", false)},
+			model.ConfigEntry{Path: []string{section, "RRight"}, Value: sdlAxisRef(i, "RightX", true)},
+			model.ConfigEntry{Path: []string{section, "RUp"}, Value: sdlAxisRef(i, "RightY", false)},
+			model.ConfigEntry{Path: []string{section, "RDown"}, Value: sdlAxisRef(i, "RightY", true)},
+			model.ConfigEntry{Path: []string{section, "Start"}, Value: sdlRef(i, model.ButtonStart)},
+			model.ConfigEntry{Path: []string{section, "Select"}, Value: sdlRef(i, model.ButtonBack)},
+			model.ConfigEntry{Path: []string{section, "SmallMotor"}, Value: fmt.Sprintf("SDL-%d/SmallMotor", i)},
+			model.ConfigEntry{Path: []string{section, "LargeMotor"}, Value: fmt.Sprintf("SDL-%d/LargeMotor", i)},
+		)
+	}
+	return entries
+}
+
+func hotkeyRef(binding model.HotkeyBinding) string {
+	parts := make([]string, len(binding.Buttons))
+	for i, b := range binding.Buttons {
+		parts[i] = sdlRef(0, b)
+	}
+	return strings.Join(parts, " & ")
+}
+
+func hotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
+	hk := cc.Hotkeys
+	section := "Hotkeys"
+	type mapping struct {
+		key     string
+		binding model.HotkeyBinding
+	}
+	mappings := []mapping{
+		{"SaveSelectedSaveState", hk.SaveState},
+		{"LoadSelectedSaveState", hk.LoadState},
+		{"SelectNextSaveStateSlot", hk.NextSlot},
+		{"SelectPreviousSaveStateSlot", hk.PrevSlot},
+		{"ToggleFastForward", hk.FastForward},
+		{"Rewind", hk.Rewind},
+		{"TogglePause", hk.Pause},
+		{"Screenshot", hk.Screenshot},
+		{"OpenPauseMenu", hk.OpenMenu},
+	}
+
+	var entries []model.ConfigEntry
+	for _, m := range mappings {
+		if len(m.binding.Buttons) > 0 {
+			entries = append(entries, model.ConfigEntry{
+				Path:  []string{section, m.key},
+				Value: hotkeyRef(m.binding),
+			})
+		}
+	}
+	return entries
 }
 
 var psxBIOSProvisions = []model.Provision{

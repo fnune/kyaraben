@@ -208,3 +208,44 @@ func ValidateLayoutID(s string) (LayoutID, error) {
 		return "", fmt.Errorf("unknown controller layout %q (valid: standard, nintendo)", s)
 	}
 }
+
+// FaceButtons returns the four face buttons (south, east, west, north) adjusted
+// for the configured layout. Standard layout: A=south, B=east, X=west, Y=north.
+// Nintendo layout swaps A/B and X/Y so that the physical button positions match
+// the expected console behavior.
+func (cc *ControllerConfig) FaceButtons() (south, east, west, north SDLButton) {
+	if cc.Layout == LayoutNintendo {
+		return ButtonB, ButtonA, ButtonY, ButtonX
+	}
+	return ButtonA, ButtonB, ButtonX, ButtonY
+}
+
+// SDLButtonIndex returns the standard SDL GameController button index.
+// These indices are consistent across all controllers in SDL GameControllerDB.
+var SDLButtonIndex = map[SDLButton]int{
+	ButtonA:             0,
+	ButtonB:             1,
+	ButtonX:             2,
+	ButtonY:             3,
+	ButtonBack:          4,
+	ButtonGuide:         5,
+	ButtonStart:         6,
+	ButtonLeftStick:     7,
+	ButtonRightStick:    8,
+	ButtonLeftShoulder:  9,
+	ButtonRightShoulder: 10,
+	ButtonDPadUp:        11,
+	ButtonDPadDown:      12,
+	ButtonDPadLeft:      13,
+	ButtonDPadRight:     14,
+}
+
+// SDLAxisIndex maps SDL axis names to their standard indices.
+const (
+	AxisLeftX        = 0
+	AxisLeftY        = 1
+	AxisLeftTrigger  = 2
+	AxisRightX       = 3
+	AxisRightY       = 4
+	AxisRightTrigger = 5
+)

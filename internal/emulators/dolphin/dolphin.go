@@ -62,6 +62,18 @@ var configTarget = model.ConfigTarget{
 	BaseDir: model.ConfigBaseDirUserConfig,
 }
 
+var gcPadTarget = model.ConfigTarget{
+	RelPath: "dolphin-emu/GCPadNew.ini",
+	Format:  model.ConfigFormatINI,
+	BaseDir: model.ConfigBaseDirUserConfig,
+}
+
+var hotkeysTarget = model.ConfigTarget{
+	RelPath: "dolphin-emu/Hotkeys.ini",
+	Format:  model.ConfigFormatINI,
+	BaseDir: model.ConfigBaseDirUserConfig,
+}
+
 func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
 	store := ctx.Store
 
@@ -77,6 +89,13 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 			{Path: []string{"GBA", "SavesInRomPath"}, Value: "0"},
 		},
 	}}
+
+	if cc := ctx.ControllerConfig; cc != nil {
+		patches = append(patches,
+			model.ConfigPatch{Target: gcPadTarget, Entries: gcPadEntries(cc)},
+			model.ConfigPatch{Target: hotkeysTarget, Entries: dolphinHotkeyEntries(cc)},
+		)
+	}
 
 	dataDir, err := ctx.BaseDirResolver.UserDataDir()
 	if err != nil {
@@ -95,6 +114,103 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		Patches:  patches,
 		Symlinks: symlinks,
 	}, nil
+}
+
+func gcPadEntries(cc *model.ControllerConfig) []model.ConfigEntry {
+	var entries []model.ConfigEntry
+	south, east, west, north := cc.FaceButtons()
+
+	// Dolphin maps SDL buttons to its own descriptive names.
+	// GameCube A=east (green), B=south (red), X=north, Y=west.
+	// Standard layout: A(SDL south)->GC B, B(SDL east)->GC A, X(SDL west)->GC Y, Y(SDL north)->GC X
+	faceMap := map[string]model.SDLButton{
+		"A": east,
+		"B": south,
+		"X": north,
+		"Y": west,
+	}
+
+	for i := 0; i < 4; i++ {
+		section := fmt.Sprintf("GCPad%d", i+1)
+		device := fmt.Sprintf("SDL/%d/Gamepad", i)
+		entries = append(entries,
+			model.ConfigEntry{Path: []string{section, "Device"}, Value: device},
+			model.ConfigEntry{Path: []string{section, "Buttons/A"}, Value: fmt.Sprintf("`Button %s`", string(faceMap["A"]))},
+			model.ConfigEntry{Path: []string{section, "Buttons/B"}, Value: fmt.Sprintf("`Button %s`", string(faceMap["B"]))},
+			model.ConfigEntry{Path: []string{section, "Buttons/X"}, Value: fmt.Sprintf("`Button %s`", string(faceMap["X"]))},
+			model.ConfigEntry{Path: []string{section, "Buttons/Y"}, Value: fmt.Sprintf("`Button %s`", string(faceMap["Y"]))},
+			model.ConfigEntry{Path: []string{section, "Buttons/Z"}, Value: "`Shoulder R`"},
+			model.ConfigEntry{Path: []string{section, "Buttons/Start"}, Value: "Start"},
+			model.ConfigEntry{Path: []string{section, "Main Stick/Up"}, Value: "`Axis 1-`"},
+			model.ConfigEntry{Path: []string{section, "Main Stick/Down"}, Value: "`Axis 1+`"},
+			model.ConfigEntry{Path: []string{section, "Main Stick/Left"}, Value: "`Axis 0-`"},
+			model.ConfigEntry{Path: []string{section, "Main Stick/Right"}, Value: "`Axis 0+`"},
+			model.ConfigEntry{Path: []string{section, "C-Stick/Up"}, Value: "`Axis 4-`"},
+			model.ConfigEntry{Path: []string{section, "C-Stick/Down"}, Value: "`Axis 4+`"},
+			model.ConfigEntry{Path: []string{section, "C-Stick/Left"}, Value: "`Axis 3-`"},
+			model.ConfigEntry{Path: []string{section, "C-Stick/Right"}, Value: "`Axis 3+`"},
+			model.ConfigEntry{Path: []string{section, "Triggers/L"}, Value: "`Trigger L`"},
+			model.ConfigEntry{Path: []string{section, "Triggers/R"}, Value: "`Trigger R`"},
+			model.ConfigEntry{Path: []string{section, "Triggers/L-Analog"}, Value: "`Trigger L`"},
+			model.ConfigEntry{Path: []string{section, "Triggers/R-Analog"}, Value: "`Trigger R`"},
+			model.ConfigEntry{Path: []string{section, "D-Pad/Up"}, Value: "`Pad N`"},
+			model.ConfigEntry{Path: []string{section, "D-Pad/Down"}, Value: "`Pad S`"},
+			model.ConfigEntry{Path: []string{section, "D-Pad/Left"}, Value: "`Pad W`"},
+			model.ConfigEntry{Path: []string{section, "D-Pad/Right"}, Value: "`Pad E`"},
+			model.ConfigEntry{Path: []string{section, "Rumble/Motor"}, Value: "Strong"},
+		)
+	}
+	return entries
+}
+
+func dolphinHotkeyChord(binding model.HotkeyBinding) string {
+	if len(binding.Buttons) == 0 {
+		return ""
+	}
+	if len(binding.Buttons) == 1 {
+		return string(binding.Buttons[0])
+	}
+	// Dolphin chord notation: modifier button + @(modifier+`action button`)
+	parts := make([]string, len(binding.Buttons))
+	for i, b := range binding.Buttons {
+		parts[i] = string(b)
+	}
+	return "@(" + strings.Join(parts, "+") + ")"
+}
+
+func dolphinHotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
+	hk := cc.Hotkeys
+	section := "Hotkeys"
+
+	entries := []model.ConfigEntry{
+		{Path: []string{section, "Device"}, Value: "SDL/0/Gamepad"},
+	}
+
+	type mapping struct {
+		key     string
+		binding model.HotkeyBinding
+	}
+	mappings := []mapping{
+		{"Save State/Save to Selected Slot", hk.SaveState},
+		{"Save State/Load from Selected Slot", hk.LoadState},
+		{"Save State/Increase Selected State Slot", hk.NextSlot},
+		{"Save State/Decrease Selected State Slot", hk.PrevSlot},
+		{"Emulation Speed/Disable Emulation Speed Limit", hk.FastForward},
+		{"General/Toggle Pause", hk.Pause},
+		{"General/Take Screenshot", hk.Screenshot},
+		{"General/Exit", hk.Quit},
+		{"General/Toggle Fullscreen", hk.ToggleFullscreen},
+	}
+
+	for _, m := range mappings {
+		if len(m.binding.Buttons) > 0 {
+			entries = append(entries, model.ConfigEntry{
+				Path:  []string{section, m.key},
+				Value: dolphinHotkeyChord(m.binding),
+			})
+		}
+	}
+	return entries
 }
 
 type iplRegionSpec struct {
