@@ -81,8 +81,8 @@ Config exists but something isn't working, or requires more complex setup.
 
 ### PCSX2 (PS2)
 
-- [ ] Exit hotkey goes to emulator UI instead of exiting to ESDE.
-  - Emulator limitation: PCSX2's `ShutdownVM` exits the game but returns to PCSX2's UI. There's no "power off entire emulator" hotkey. EmuDeck has the same behavior.
+- [x] Exit hotkey goes to emulator UI instead of exiting to ESDE.
+  - Fix: Added `-batch` flag to launch command. PCSX2 now exits completely when game shuts down.
 
 ### PPSSPP (PSP)
 
