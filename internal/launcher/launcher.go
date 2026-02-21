@@ -347,3 +347,35 @@ func (m *Manager) copyFile(src, dst string) error {
 	}
 	return m.fs.WriteFile(dst, data, 0644)
 }
+
+func (m *Manager) CreateDesktopShortcut() (string, error) {
+	homeDir, err := m.resolver.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("getting home directory: %w", err)
+	}
+	desktopDir := filepath.Join(homeDir, "Desktop")
+
+	info, err := m.fs.Stat(desktopDir)
+	if err != nil || !info.IsDir() {
+		return "", fmt.Errorf("desktop directory does not exist: %s", desktopDir)
+	}
+
+	dataDir, err := m.resolver.UserDataDir()
+	if err != nil {
+		return "", fmt.Errorf("getting data directory: %w", err)
+	}
+
+	appsDir := filepath.Join(dataDir, "applications")
+	appDesktopPath := filepath.Join(appsDir, m.paths.DesktopFileName())
+	if _, err := m.fs.Stat(appDesktopPath); err != nil {
+		return "", fmt.Errorf("app menu desktop file not found: %s", appDesktopPath)
+	}
+
+	shortcutPath := filepath.Join(desktopDir, m.paths.DesktopFileName())
+	if err := m.fs.Symlink(appDesktopPath, shortcutPath); err != nil {
+		return "", fmt.Errorf("creating desktop shortcut: %w", err)
+	}
+
+	log.Info("Created desktop shortcut: %s -> %s", shortcutPath, appDesktopPath)
+	return shortcutPath, nil
+}
