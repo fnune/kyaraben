@@ -39,6 +39,8 @@ func NewHandler(fs vfs.FS, format model.ConfigFormat) Handler {
 		return &yamlHandler{fs: fs}
 	case model.ConfigFormatXML:
 		return &xmlHandler{fs: fs}
+	case model.ConfigFormatXMLAttr:
+		return &xmlAttrHandler{fs: fs}
 	case model.ConfigFormatRaw:
 		return &rawHandler{fs: fs}
 	default:

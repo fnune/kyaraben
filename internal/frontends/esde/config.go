@@ -15,7 +15,7 @@ type Config struct{}
 
 var settingsTarget = model.ConfigTarget{
 	RelPath: "ES-DE/settings/es_settings.xml",
-	Format:  model.ConfigFormatRaw,
+	Format:  model.ConfigFormatXMLAttr,
 	BaseDir: model.ConfigBaseDirHome,
 }
 
@@ -44,23 +44,14 @@ func (c *Config) Generate(ctx model.FrontendContext) ([]model.ConfigPatch, error
 }
 
 func (c *Config) generateSettings(ctx model.FrontendContext) (model.ConfigPatch, error) {
-	doc := etree.NewDocument()
-	doc.CreateProcInst("xml", `version="1.0"`)
-
-	romDirElem := doc.CreateElement("string")
-	romDirElem.CreateAttr("name", "ROMDirectory")
-	romDirElem.CreateAttr("value", ctx.Store.RomsDir())
-
-	doc.Indent(2)
-	content, err := doc.WriteToString()
-	if err != nil {
-		return model.ConfigPatch{}, fmt.Errorf("serializing settings XML: %w", err)
-	}
-
 	return model.ConfigPatch{
 		Target: settingsTarget,
 		Entries: []model.ConfigEntry{
-			{Value: content},
+			{Path: []string{"ROMDirectory"}, Value: ctx.Store.RomsDir()},
+			{Path: []string{"Theme"}, Value: "linear-es-de", DefaultOnly: true},
+			{Path: []string{"ThemeVariant"}, Value: "simpleCarousel", DefaultOnly: true},
+			{Path: []string{"SystemsSorting"}, Value: "manufacturer_year", DefaultOnly: true},
+			{Path: []string{"DefaultSortOrder"}, Value: "last played, descending", DefaultOnly: true},
 		},
 	}, nil
 }

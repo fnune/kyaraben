@@ -104,6 +104,54 @@ func TestBuildCommandPassesSavesDir(t *testing.T) {
 	}
 }
 
+func TestGenerateSettingsIncludesDefaults(t *testing.T) {
+	store := &fakeStoreReader{root: "/emulation"}
+
+	ctx := model.FrontendContext{
+		Store: store,
+	}
+
+	c := &Config{}
+	patch, err := c.generateSettings(ctx)
+	if err != nil {
+		t.Fatalf("generateSettings() error = %v", err)
+	}
+
+	expectedSettings := map[string]struct {
+		value       string
+		defaultOnly bool
+	}{
+		"ROMDirectory":     {"/emulation/roms", false},
+		"Theme":            {"linear-es-de", true},
+		"ThemeVariant":     {"simpleCarousel", true},
+		"SystemsSorting":   {"manufacturer_year", true},
+		"DefaultSortOrder": {"last played, descending", true},
+	}
+
+	if len(patch.Entries) != len(expectedSettings) {
+		t.Fatalf("expected %d entries, got %d", len(expectedSettings), len(patch.Entries))
+	}
+
+	for _, entry := range patch.Entries {
+		if len(entry.Path) != 1 {
+			t.Errorf("expected path length 1, got %d for %v", len(entry.Path), entry.Path)
+			continue
+		}
+		name := entry.Path[0]
+		expected, ok := expectedSettings[name]
+		if !ok {
+			t.Errorf("unexpected setting: %s", name)
+			continue
+		}
+		if entry.Value != expected.value {
+			t.Errorf("setting %s: got %q, want %q", name, entry.Value, expected.value)
+		}
+		if entry.DefaultOnly != expected.defaultOnly {
+			t.Errorf("setting %s: DefaultOnly got %v, want %v", name, entry.DefaultOnly, expected.defaultOnly)
+		}
+	}
+}
+
 func TestBuildCommandIncludesLaunchArgs(t *testing.T) {
 	store := &fakeStoreReader{root: "/emulation"}
 

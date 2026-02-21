@@ -10,13 +10,14 @@ import (
 type ConfigFormat string
 
 const (
-	ConfigFormatINI  ConfigFormat = "ini"
-	ConfigFormatTOML ConfigFormat = "toml"
-	ConfigFormatCFG  ConfigFormat = "cfg"
-	ConfigFormatXML  ConfigFormat = "xml"
-	ConfigFormatJSON ConfigFormat = "json"
-	ConfigFormatYAML ConfigFormat = "yaml"
-	ConfigFormatRaw  ConfigFormat = "raw"
+	ConfigFormatINI     ConfigFormat = "ini"
+	ConfigFormatTOML    ConfigFormat = "toml"
+	ConfigFormatCFG     ConfigFormat = "cfg"
+	ConfigFormatXML     ConfigFormat = "xml"
+	ConfigFormatXMLAttr ConfigFormat = "xml_attr"
+	ConfigFormatJSON    ConfigFormat = "json"
+	ConfigFormatYAML    ConfigFormat = "yaml"
+	ConfigFormatRaw     ConfigFormat = "raw"
 )
 
 type ConfigBaseDir string
