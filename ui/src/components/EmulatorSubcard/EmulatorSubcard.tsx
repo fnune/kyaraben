@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ChangeNotch } from '@/components/ChangeNotch/ChangeNotch'
-import { getEmulatorLogo } from '@/components/EmulatorLogo/EmulatorLogo'
+import { EmulatorLogo, getEmulatorLogo } from '@/components/EmulatorLogo/EmulatorLogo'
 import { PathsModal } from '@/components/PathsModal/PathsModal'
 import { ProvisionSummary } from '@/components/ProvisionSummary/ProvisionSummary'
 import {
@@ -159,9 +159,11 @@ export function EmulatorSubcard({
 
       <div className="flex items-center gap-4 p-3">
         {logo && (
-          <div className="hidden min-[720px]:flex items-center justify-center w-10 h-10 shrink-0">
-            <img src={logo} alt="" className="w-full h-full object-contain" />
-          </div>
+          <EmulatorLogo
+            emulatorId={emulator.id}
+            emulatorName={emulator.name}
+            className="hidden min-[720px]:flex items-center justify-center w-10 h-10 shrink-0"
+          />
         )}
         <div className="flex-1 space-y-0.5">
           <div className="flex flex-col gap-2 min-[400px]:flex-row min-[400px]:items-center">
