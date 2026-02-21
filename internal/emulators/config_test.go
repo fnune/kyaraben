@@ -1169,10 +1169,11 @@ func TestFlycastHotkeyEntries(t *testing.T) {
 	// Default hotkeys use ButtonBack(6) as modifier.
 	// Format: button1,button2:action:sequential (0=simultaneous, 1=sequential)
 	wantHotkeys := map[string]string{
-		"combo.bind0": "6,5:btn_quick_save:0", // Back + RightShoulder
-		"combo.bind1": "6,4:btn_jump_state:0", // Back + LeftShoulder
-		"combo.bind2": "6,7:btn_escape:0",     // Back + Start
-		"combo.bind3": "6,1:btn_screenshot:0", // Back + B
+		"combo.bind0": "6,1:btn_screenshot:0", // Back + B
+		"combo.bind1": "6,3:btn_fforward:0",   // Back + Y
+		"combo.bind2": "6,4:btn_jump_state:0", // Back + LeftShoulder
+		"combo.bind3": "6,5:btn_quick_save:0", // Back + RightShoulder
+		"combo.bind4": "6,7:btn_escape:0",     // Back + Start
 	}
 
 	for key, want := range wantHotkeys {
