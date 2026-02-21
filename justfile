@@ -100,6 +100,10 @@ relay-test:
 relay-build:
     podman build -t kyaraben-relay -f relay/Containerfile relay/
 
+# Deploy relay to Koyeb (requires KOYEB_TOKEN)
+relay-deploy:
+    ./relay/scripts/deploy.sh
+
 # Clean build artifacts
 clean:
     rm -f kyaraben

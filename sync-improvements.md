@@ -110,16 +110,12 @@ Discovery polling:
 
 The relay server:
 
-- Generates short-lived 6-digit pairing codes
-- Maps codes to Syncthing device IDs
-    - NOTE: it would be ideal to not store plaintext device IDs, even if in memory
-        - What are ways around this?
-        - Could we have each primary Kyaraben installation generate its own public/private key pair?
-            - Then device IDs are transferred encrypted by this?
-            - When secondary tries to connect to primary, the relay server asks primary to decrypt
-        - Or whatever other design is simpler than this but still confers security
+- Generates short-lived 6-digit pairing codes (5 minute TTL)
+- Maps codes to Syncthing device IDs (stored in memory only)
 - Works across any network (no firewall configuration needed)
+- Rate limited per IP to prevent abuse
 - After pairing, devices connect directly or via Syncthing relays
+- Deployed to Koyeb with scale-to-zero for cost efficiency
 
 **User flow:**
 
@@ -425,12 +421,15 @@ Response types in `client.go` are hand-rolled (e.g., `FolderStatus`, `localChang
 - [x] Add open_url IPC handler for opening syncthing web UI
 - [x] Sync config schema versioning (regenerate when defaults change)
 
-### Not started
-
 **Relay server pairing:**
-- [ ] Build relay service with 6-digit codes
+- [x] Build relay service with 6-digit codes (deployed to Koyeb)
+- [x] Integrate relay client into daemon with URL fallback support
+- [x] Keep manual device ID entry as fallback (advanced section)
 - [ ] Remove local discovery (UDP 21027)
-- [ ] Keep manual device ID entry as fallback
+- [ ] Rebuild the sync CLI to match the new system
+- [ ] Update documentation site
+
+### Not started
 
 **Future settings:**
 - [ ] Pause sync during gameplay toggle
@@ -443,4 +442,4 @@ Response types in `client.go` are hand-rolled (e.g., `FolderStatus`, `localChang
 
 1. **Sync state in emulator cards**: Since sync status is per-system (saves/gamecube, saves/psx, etc.), we could show sync state directly on each emulator card in the main view. For example, a small indicator showing "syncing" or "2 local saves" on the GameCube card. This would make sync status visible without visiting the Sync tab.
 
-2. **Fake Syncthing API for e2e tests**: The existing `FakeClient` is for unit tests. For e2e tests, we could build a fake Syncthing HTTP server that keeps state in memory and exposes the same REST API. Kyaraben would connect to it via env var (e.g., `KYARABEN_SYNCTHING_URL`). This would let us test the full sync UI flow: enabling sync, pairing, watching progress, handling local files, etc.
+1. **Fake Syncthing API for e2e tests**: The existing `FakeClient` is for unit tests. For e2e tests, we could build a fake Syncthing HTTP server that keeps state in memory and exposes the same REST API. Kyaraben would connect to it via env var (e.g., `KYARABEN_SYNCTHING_URL`). This would let us test the full sync UI flow: enabling sync, pairing, watching progress, handling local files, etc.
