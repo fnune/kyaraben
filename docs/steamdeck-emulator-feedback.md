@@ -101,8 +101,8 @@ Config exists but something isn't working, or requires more complex setup.
 
 ### Flycast (Dreamcast)
 
-- [ ] Pressing modifier key alone opens Flycast menu. Expected: modifier + key triggers action.
-  - Emulator limitation: Flycast has no "hotkey enable" mechanism. EmuDeck has the same behavior.
+- [x] Pressing modifier key alone opens Flycast menu. Expected: modifier + key triggers action.
+  - Fix: Removed btn_menu mapping from Back button. Back is now only used as modifier for combo hotkeys.
 
 ---
 
