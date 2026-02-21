@@ -26,6 +26,7 @@ import (
 	"github.com/fnune/kyaraben/internal/paths"
 	"github.com/fnune/kyaraben/internal/registry"
 	"github.com/fnune/kyaraben/internal/status"
+	"github.com/fnune/kyaraben/internal/steam"
 	"github.com/fnune/kyaraben/internal/store"
 	syncpkg "github.com/fnune/kyaraben/internal/sync"
 	"github.com/fnune/kyaraben/internal/version"
@@ -460,6 +461,7 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 		model.OSBaseDirResolver{},
 		symlink.NewCreator(d.fs),
 	)
+	applier.SteamManager = steam.NewDefaultManager()
 
 	logPosition := logging.CurrentPosition()
 
@@ -536,6 +538,7 @@ func (d *Daemon) handlePreflight() []Event {
 		model.OSBaseDirResolver{},
 		symlink.NewCreator(d.fs),
 	)
+	applier.SteamManager = steam.NewDefaultManager()
 
 	preflight, err := applier.Preflight(context.Background(), cfg, userStore)
 	if err != nil {
