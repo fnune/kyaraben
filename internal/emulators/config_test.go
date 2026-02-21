@@ -1702,6 +1702,62 @@ func TestNintendoLayoutSwapsFaceButtons(t *testing.T) {
 	}
 }
 
+func TestRetroArchLayoutSwapsFaceButtons(t *testing.T) {
+	t.Parallel()
+
+	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+
+	standardCC := &model.ControllerConfig{
+		Layout:  model.LayoutStandard,
+		Hotkeys: model.DefaultHotkeys(),
+	}
+	nintendoCC := &model.ControllerConfig{
+		Layout:  model.LayoutNintendo,
+		Hotkeys: model.DefaultHotkeys(),
+	}
+
+	gen := retroarchbsnes.Definition{}.ConfigGenerator()
+
+	standardResult, _ := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver, ControllerConfig: standardCC})
+	nintendoResult, _ := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver, ControllerConfig: nintendoCC})
+
+	findValue := func(entries []model.ConfigEntry, key string) string {
+		for _, e := range entries {
+			if len(e.Path) == 1 && e.Path[0] == key {
+				return e.Value
+			}
+		}
+		return ""
+	}
+
+	stdEntries := standardResult.Patches[0].Entries
+	ninEntries := nintendoResult.Patches[0].Entries
+
+	stdA := findValue(stdEntries, "input_player1_a_btn")
+	ninA := findValue(ninEntries, "input_player1_a_btn")
+	stdB := findValue(stdEntries, "input_player1_b_btn")
+	ninB := findValue(ninEntries, "input_player1_b_btn")
+
+	if stdA == "" || ninA == "" {
+		t.Fatal("missing input_player1_a_btn entries")
+	}
+
+	if stdA == ninA {
+		t.Errorf("Nintendo layout should produce different A button mapping, both got %s", stdA)
+	}
+	if stdB == ninB {
+		t.Errorf("Nintendo layout should produce different B button mapping, both got %s", stdB)
+	}
+
+	if stdA != "1" || stdB != "0" {
+		t.Errorf("standard layout: a_btn=%s (want 1), b_btn=%s (want 0)", stdA, stdB)
+	}
+	if ninA != "0" || ninB != "1" {
+		t.Errorf("nintendo layout: a_btn=%s (want 0), b_btn=%s (want 1)", ninA, ninB)
+	}
+}
+
 func TestNoControllerConfigWhenNil(t *testing.T) {
 	t.Parallel()
 

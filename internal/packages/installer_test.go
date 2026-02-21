@@ -195,8 +195,8 @@ func TestPackageInstallerInstallArchiveExtractsAssets(t *testing.T) {
 	stateDir := "/state"
 	dl := NewFakeDownloader(fs, []byte("fake-7z-content"))
 	ext := NewFakeExtractor(fs, map[string]string{
-		"RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage":                                              "fake-retroarch-binary",
-		"RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage.home/.config/retroarch/assets/ozone/icon":     "ozone-icon",
+		"RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage":                                               "fake-retroarch-binary",
+		"RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage.home/.config/retroarch/assets/ozone/icon":      "ozone-icon",
 		"RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage.home/.config/retroarch/autoconfig/profile.cfg": "controller-profile",
 	})
 
@@ -259,9 +259,9 @@ func TestPackageInstallerExtractsAssetsWhenDirExistsButEmpty(t *testing.T) {
 	t.Parallel()
 
 	fs := testutil.NewTestFS(t, map[string]any{
-		"/state":                                &vfst.Dir{Perm: 0755},
-		"/userhome":                             &vfst.Dir{Perm: 0755},
-		"/userhome/.config/retroarch/assets":    &vfst.Dir{Perm: 0755},
+		"/state":                             &vfst.Dir{Perm: 0755},
+		"/userhome":                          &vfst.Dir{Perm: 0755},
+		"/userhome/.config/retroarch/assets": &vfst.Dir{Perm: 0755},
 		"/userhome/.config/retroarch/retroarch.cfg": "user-config",
 	})
 
