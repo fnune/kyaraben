@@ -1337,20 +1337,20 @@ func TestEdenControllerBindingValues(t *testing.T) {
 		// Standard layout: a=east=B(1), b=south=A(0), x=north=Y(3), y=west=X(2)
 		// Player 0 bindings.
 		wantP0 := map[string]string{
-			"Controls\\player_0_connected":    "true",
-			"Controls\\player_0_type":         "0",
-			"Controls\\player_0_button_a":     `"engine:sdl,port:0,guid:` + guid + `,button:1"`,
-			"Controls\\player_0_button_b":     `"engine:sdl,port:0,guid:` + guid + `,button:0"`,
-			"Controls\\player_0_button_x":     `"engine:sdl,port:0,guid:` + guid + `,button:3"`,
-			"Controls\\player_0_button_y":     `"engine:sdl,port:0,guid:` + guid + `,button:2"`,
+			"Controls\\player_0_connected":     "true",
+			"Controls\\player_0_type":          "0",
+			"Controls\\player_0_button_a":      `"engine:sdl,port:0,guid:` + guid + `,button:1"`,
+			"Controls\\player_0_button_b":      `"engine:sdl,port:0,guid:` + guid + `,button:0"`,
+			"Controls\\player_0_button_x":      `"engine:sdl,port:0,guid:` + guid + `,button:3"`,
+			"Controls\\player_0_button_y":      `"engine:sdl,port:0,guid:` + guid + `,button:2"`,
 			"Controls\\player_0_button_lstick": `"engine:sdl,port:0,guid:` + guid + `,button:7"`,
 			"Controls\\player_0_button_rstick": `"engine:sdl,port:0,guid:` + guid + `,button:8"`,
-			"Controls\\player_0_button_l":     `"engine:sdl,port:0,guid:` + guid + `,button:9"`,
-			"Controls\\player_0_button_r":     `"engine:sdl,port:0,guid:` + guid + `,button:10"`,
-			"Controls\\player_0_button_zl":    `"engine:sdl,port:0,guid:` + guid + `,axis:2,threshold:0.500000"`,
-			"Controls\\player_0_button_zr":    `"engine:sdl,port:0,guid:` + guid + `,axis:5,threshold:0.500000"`,
-			"Controls\\player_0_button_plus":  `"engine:sdl,port:0,guid:` + guid + `,button:6"`,
-			"Controls\\player_0_button_minus": `"engine:sdl,port:0,guid:` + guid + `,button:4"`,
+			"Controls\\player_0_button_l":      `"engine:sdl,port:0,guid:` + guid + `,button:9"`,
+			"Controls\\player_0_button_r":      `"engine:sdl,port:0,guid:` + guid + `,button:10"`,
+			"Controls\\player_0_button_zl":     `"engine:sdl,port:0,guid:` + guid + `,axis:2,threshold:0.500000"`,
+			"Controls\\player_0_button_zr":     `"engine:sdl,port:0,guid:` + guid + `,axis:5,threshold:0.500000"`,
+			"Controls\\player_0_button_plus":   `"engine:sdl,port:0,guid:` + guid + `,button:6"`,
+			"Controls\\player_0_button_minus":  `"engine:sdl,port:0,guid:` + guid + `,button:4"`,
 			"Controls\\player_0_button_dleft":  `"engine:sdl,port:0,guid:` + guid + `,hat:0,direction:left"`,
 			"Controls\\player_0_button_dright": `"engine:sdl,port:0,guid:` + guid + `,hat:0,direction:right"`,
 			"Controls\\player_0_button_dup":    `"engine:sdl,port:0,guid:` + guid + `,hat:0,direction:up"`,
@@ -1626,9 +1626,9 @@ func TestAzaharGenerateEntries(t *testing.T) {
 		"Data%20Storage.use_custom_storage\\default": "false",
 		"Data%20Storage.sdmc_directory":              "/emulation/saves/n3ds/",
 		"Data%20Storage.sdmc_directory\\default":     "false",
-		"UI.Paths\\gamedirs\\1\\path":               "INSTALLED",
-		"UI.Paths\\gamedirs\\2\\path":               "SYSTEM",
-		"UI.Paths\\gamedirs\\3\\path":               "/emulation/roms/n3ds",
+		"UI.Paths\\gamedirs\\1\\path":                "INSTALLED",
+		"UI.Paths\\gamedirs\\2\\path":                "SYSTEM",
+		"UI.Paths\\gamedirs\\3\\path":                "/emulation/roms/n3ds",
 		"UI.Paths\\gamedirs\\size":                   "3",
 		"UI.Paths\\screenshotPath":                   "/emulation/screenshots/azahar",
 		"UI.Paths\\screenshotPath\\default":          "false",
@@ -1665,11 +1665,11 @@ func TestEdenGenerateEntries(t *testing.T) {
 	}
 
 	wantEntries := map[string]string{
-		"UI.Screenshots\\screenshot_path":    "/emulation/screenshots/eden",
-		"UI.Paths\\gamedirs\\size":           "1",
-		"UI.Paths\\gamedirs\\1\\deep_scan":   "false",
-		"UI.Paths\\gamedirs\\1\\expanded":    "true",
-		"UI.Paths\\gamedirs\\1\\path":        "/emulation/roms/switch",
+		"UI.Screenshots\\screenshot_path":  "/emulation/screenshots/eden",
+		"UI.Paths\\gamedirs\\size":         "1",
+		"UI.Paths\\gamedirs\\1\\deep_scan": "false",
+		"UI.Paths\\gamedirs\\1\\expanded":  "true",
+		"UI.Paths\\gamedirs\\1\\path":      "/emulation/roms/switch",
 	}
 
 	for fullPath, want := range wantEntries {

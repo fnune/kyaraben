@@ -14,7 +14,7 @@ func TestFileRegionWritesFromScratch(t *testing.T) {
 	t.Parallel()
 
 	fs := testutil.NewTestFS(t, map[string]any{
-		"/config/duckstation/inputprofiles": &vfst.Dir{Perm: 0755},
+		"/config/duckstation/inputprofiles":                        &vfst.Dir{Perm: 0755},
 		"/config/duckstation/inputprofiles/kyaraben-steamdeck.ini": "[Pad1]\nCross = old-value\nOldKey = should-disappear\n",
 	})
 

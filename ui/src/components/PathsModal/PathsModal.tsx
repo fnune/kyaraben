@@ -72,9 +72,7 @@ export function PathsModal({
             <div className="space-y-2">
               {managedConfigs.map((config) => (
                 <div key={config.path}>
-                  <code className="block text-xs text-on-surface-dim truncate">
-                    {config.path}
-                  </code>
+                  <code className="block text-xs text-on-surface-dim truncate">{config.path}</code>
                   {config.managedRegions && config.managedRegions.length > 0 && (
                     <div className="mt-0.5 ml-2 space-y-0.5">
                       {config.managedRegions.map((region, i) => (
