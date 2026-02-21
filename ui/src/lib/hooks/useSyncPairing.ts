@@ -191,7 +191,8 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
       setConnectionProgress(null)
       setIsConnecting(false)
       if (result.ok) {
-        showToast('Connected to device.', 'success')
+        const peerName = result.data.peerName || 'primary'
+        showToast(`Connected to ${peerName}.`, 'success')
         await refreshSyncStatus()
         return { ok: true }
       }
