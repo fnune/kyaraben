@@ -83,6 +83,7 @@ func (m *Manager) syncForUser(userID string, entries []ShortcutEntry) error {
 			Exe:                entry.Exe,
 			StartDir:           entry.StartDir,
 			Icon:               entry.Icon,
+			ShortcutPath:       entry.ShortcutPath,
 			LaunchOptions:      entry.LaunchOptions,
 			AllowDesktopConfig: 1,
 			AllowOverlay:       1,
