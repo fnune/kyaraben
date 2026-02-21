@@ -14,11 +14,11 @@ Testing after emulator config fixes.
 
 ## PCSX2 (PS2)
 
-- [ ] Shows emulator UI while loading game
+- [x] Fixed: Added StartFullscreen = true to hide UI during game load
 
 ## RetroArch
 
-- [ ] Assets still missing
+- [ ] Assets still missing (requires reinstall to trigger extraction)
 
 ## DuckStation (PS1)
 
@@ -41,6 +41,10 @@ Testing after emulator config fixes.
 
 - [x] Fixed: switched to controller_neptune mapping, no btn_menu binding
 
+## 3DS
+
+- [x] Switched from Azahar (standalone) to RetroArch Citra core for consistent hotkey support
+
 ## ES-DE
 
-- [ ] Final Fantasy Tactics shows up twice
+- [ ] Final Fantasy Tactics shows up twice (needs investigation: is this PSX + PSP versions, or actual duplicate in same system?)
