@@ -921,15 +921,26 @@ func (d *Daemon) handleSyncStatus() []Event {
 	loadedKey := d.loadSyncAPIKey()
 	if loadedKey != "" {
 		client.SetAPIKey(loadedKey)
+	} else {
+		log.Debug("No API key found at %s", filepath.Join(d.stateDir, "syncthing", "config", ".apikey"))
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if !client.IsRunning(ctx) {
 		status := unit.Status()
+		systemdManaged := status.Active == "active" || status.Active == "activating"
 
-		if !status.Failed {
+		log.Debug("Syncthing API not responding (systemd state=%s, port=%d, hasApiKey=%v)",
+			status.Active, cfg.Sync.Syncthing.GUIPort, loadedKey != "")
+
+		if !status.Failed && !systemdManaged {
 			go d.ensureSyncthingManaged(cfg)
+		}
+
+		serviceError := status.Message
+		if status.Active == "activating" {
+			serviceError = "Syncthing is starting..."
 		}
 
 		return []Event{{
@@ -941,7 +952,7 @@ func (d *Daemon) handleSyncStatus() []Event {
 				Installed:        installed,
 				ServiceInstalled: serviceInstalled,
 				GUIURL:           fmt.Sprintf("http://127.0.0.1:%d", cfg.Sync.Syncthing.GUIPort),
-				ServiceError:     status.Message,
+				ServiceError:     serviceError,
 			},
 		}}
 	}

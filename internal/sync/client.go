@@ -270,10 +270,15 @@ func (c *Client) GetLocalChanges(ctx context.Context, folderID string) ([]LocalC
 func (c *Client) IsRunning(ctx context.Context) bool {
 	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/system/ping", nil)
 	if err != nil {
+		stLog.Debug("Ping failed: %v", err)
 		return false
 	}
 	defer func() { _ = resp.Body.Close() }()
-	return resp.StatusCode == http.StatusOK
+	if resp.StatusCode != http.StatusOK {
+		stLog.Debug("Ping returned status %d", resp.StatusCode)
+		return false
+	}
+	return true
 }
 
 func (c *Client) SetAPIKey(key string) {
