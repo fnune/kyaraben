@@ -55,11 +55,11 @@ type UnitParams struct {
 }
 
 func (s *SystemdUnit) unitPath() (string, error) {
-	home, err := os.UserHomeDir()
+	configDir, err := paths.ConfigDir()
 	if err != nil {
-		return "", fmt.Errorf("getting home dir: %w", err)
+		return "", fmt.Errorf("getting config dir: %w", err)
 	}
-	return filepath.Join(home, ".config", "systemd", "user", s.unitName()), nil
+	return filepath.Join(configDir, "systemd", "user", s.unitName()), nil
 }
 
 func (s *SystemdUnit) Generate(params UnitParams) (string, error) {
@@ -143,17 +143,24 @@ func (s *SystemdUnit) Disable() error {
 }
 
 func (s *SystemdUnit) IsEnabled() bool {
-	err := exec.Command("systemctl", "--user", "is-enabled", "--quiet", s.unitName()).Run()
+	unitPath, err := s.unitPath()
+	if err != nil {
+		return false
+	}
+	if _, err := s.fs.Stat(unitPath); err != nil {
+		return false
+	}
+	err = exec.Command("systemctl", "--user", "is-enabled", "--quiet", s.unitName()).Run()
 	return err == nil
 }
 
 func FindKyarabenSyncthingServices() ([]string, error) {
-	home, err := os.UserHomeDir()
+	configDir, err := paths.ConfigDir()
 	if err != nil {
-		return nil, fmt.Errorf("getting home dir: %w", err)
+		return nil, fmt.Errorf("getting config dir: %w", err)
 	}
 
-	systemdDir := filepath.Join(home, ".config", "systemd", "user")
+	systemdDir := filepath.Join(configDir, "systemd", "user")
 	entries, err := os.ReadDir(systemdDir)
 	if err != nil {
 		if os.IsNotExist(err) {

@@ -3,6 +3,12 @@ import type * as http from 'node:http'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import { startFakeReleasesServer } from './fake-releases-server'
+import {
+  type Device,
+  FakeSyncthingController,
+  type Folder,
+  startFakeSyncthingServer,
+} from './fake-syncthing-server'
 
 export function buildEnv(fixture: TestFixture): Record<string, string> {
   const env: Record<string, string> = {}
@@ -37,6 +43,7 @@ export interface TestFixture {
   env: Record<string, string>
   cleanup: () => void
   releasesServer?: http.Server
+  syncthingServer?: http.Server
 }
 
 export interface ConfigFixture {
@@ -58,6 +65,15 @@ export interface InstalledEmulatorFixture {
   installed: string
 }
 
+export interface SyncthingInstallFixture {
+  version?: string
+  configSchemaVersion?: number
+  binaryPath?: string
+  configDir?: string
+  dataDir?: string
+  systemdUnitPath?: string
+}
+
 export interface ManifestFixture {
   version?: number
   kyarabenVersion?: string
@@ -72,6 +88,7 @@ export interface ManifestFixture {
   }>
   desktopFiles?: string[]
   iconFiles?: string[]
+  syncthingInstall?: SyncthingInstallFixture
 }
 
 export function createFixture(config?: ConfigFixture, manifest?: ManifestFixture): TestFixture {
@@ -102,6 +119,16 @@ export function createFixture(config?: ConfigFixture, manifest?: ManifestFixture
     }
     if (manifest.kyarabenVersion) {
       manifestJson.kyaraben_version = manifest.kyarabenVersion
+    }
+    if (manifest.syncthingInstall) {
+      manifestJson.syncthing_install = {
+        version: manifest.syncthingInstall.version ?? '1.27.0',
+        config_schema_version: manifest.syncthingInstall.configSchemaVersion ?? 1,
+        binary_path: manifest.syncthingInstall.binaryPath,
+        config_dir: manifest.syncthingInstall.configDir,
+        data_dir: manifest.syncthingInstall.dataDir,
+        systemd_unit_path: manifest.syncthingInstall.systemdUnitPath,
+      }
     }
     fs.writeFileSync(
       path.join(stateDir, 'kyaraben', 'build', 'manifest.json'),
@@ -350,4 +377,76 @@ export function setupFakeReleasesApi(fixture: TestFixture, options: FakeReleases
     server.close()
     originalCleanup()
   }
+}
+
+export interface FakeSyncthingOptions {
+  myID?: string
+  devices?: Device[]
+  folders?: Folder[]
+}
+
+export function setupFakeSyncthingApi(
+  fixture: TestFixture,
+  options: FakeSyncthingOptions = {},
+): FakeSyncthingController {
+  const port = nextPort++
+  const myID = options.myID ?? 'LOCAL-DEVICE-ID-FAKE-1234567890ABCDEF'
+
+  const controller = new FakeSyncthingController(myID)
+
+  if (options.devices) {
+    for (const device of options.devices) {
+      controller.addDevice(device)
+    }
+  }
+
+  if (options.folders) {
+    for (const folder of options.folders) {
+      controller.addFolder(folder)
+    }
+  }
+
+  const server = startFakeSyncthingServer(port, controller)
+  fixture.syncthingServer = server
+
+  const configPath = path.join(fixture.configDir, 'kyaraben', 'config.toml')
+  if (fs.existsSync(configPath)) {
+    let content = fs.readFileSync(configPath, 'utf-8')
+    if (content.includes('[sync.syncthing]')) {
+      content = content.replace(
+        /\[sync\.syncthing\]/,
+        `[sync.syncthing]\nbase_url = "http://localhost:${port}"`,
+      )
+    } else {
+      content += `\n[sync.syncthing]\nbase_url = "http://localhost:${port}"\n`
+    }
+    fs.writeFileSync(configPath, content)
+  }
+
+  const syncthingDir = path.join(fixture.stateDir, 'kyaraben', 'syncthing-bin')
+  fs.mkdirSync(syncthingDir, { recursive: true })
+  const fakeBinaryPath = path.join(syncthingDir, 'syncthing')
+  fs.writeFileSync(fakeBinaryPath, '#!/bin/sh\necho "fake syncthing"')
+  fs.chmodSync(fakeBinaryPath, 0o755)
+
+  const manifestPath = path.join(fixture.stateDir, 'kyaraben', 'build', 'manifest.json')
+  if (fs.existsSync(manifestPath)) {
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'))
+    manifest.syncthing_install = {
+      version: '1.27.0',
+      config_schema_version: 1,
+      binary_path: fakeBinaryPath,
+      config_dir: path.join(fixture.stateDir, 'kyaraben', 'syncthing'),
+      data_dir: path.join(fixture.stateDir, 'kyaraben', 'syncthing-data'),
+    }
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2))
+  }
+
+  const originalCleanup = fixture.cleanup
+  fixture.cleanup = () => {
+    server.close()
+    originalCleanup()
+  }
+
+  return controller
 }
