@@ -26,19 +26,25 @@ func NewRelayClient(urls []string) (*RelayClient, error) {
 		return nil, fmt.Errorf("no relay URLs provided")
 	}
 
-	client := &http.Client{Timeout: 5 * time.Second}
+	client := &http.Client{Timeout: 30 * time.Second}
 
 	for _, url := range urls {
-		resp, err := client.Get(url + "/health")
-		if err != nil {
-			continue
-		}
-		_ = resp.Body.Close()
-		if resp.StatusCode == http.StatusOK {
-			return &RelayClient{
-				baseURL:    url,
-				httpClient: &http.Client{Timeout: relayTimeout},
-			}, nil
+		for attempt := 0; attempt < 3; attempt++ {
+			resp, err := client.Get(url + "/health")
+			if err != nil {
+				log.Debug("Relay health check attempt %d failed for %s: %v", attempt+1, url, err)
+				time.Sleep(time.Duration(attempt+1) * time.Second)
+				continue
+			}
+			_ = resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				return &RelayClient{
+					baseURL:    url,
+					httpClient: &http.Client{Timeout: relayTimeout},
+				}, nil
+			}
+			log.Debug("Relay health check attempt %d got status %d for %s", attempt+1, resp.StatusCode, url)
+			time.Sleep(time.Duration(attempt+1) * time.Second)
 		}
 	}
 

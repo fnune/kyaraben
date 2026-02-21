@@ -93,12 +93,13 @@ type XMLVersioningParam struct {
 }
 
 type ConfigGenerator struct {
-	fs         vfs.FS
-	syncConfig model.SyncConfig
-	userStore  string
-	deviceID   string
-	apiKey     string
-	allSystems []model.SystemID
+	fs              vfs.FS
+	syncConfig      model.SyncConfig
+	userStore       string
+	deviceID        string
+	apiKey          string
+	allSystems      []model.SystemID
+	existingDevices []XMLDevice
 }
 
 func NewConfigGenerator(fs vfs.FS, syncConfig model.SyncConfig, userStore string, allSystems []model.SystemID) *ConfigGenerator {
@@ -120,6 +121,32 @@ func (g *ConfigGenerator) SetDeviceID(id string) {
 
 func (g *ConfigGenerator) SetAPIKey(key string) {
 	g.apiKey = key
+}
+
+func (g *ConfigGenerator) LoadExistingDevices(configDir string) error {
+	configPath := filepath.Join(configDir, "config.xml")
+	data, err := g.fs.ReadFile(configPath)
+	if err != nil {
+		return nil
+	}
+
+	var existing SyncthingXMLConfig
+	if err := xml.Unmarshal(data, &existing); err != nil {
+		log.Info("Could not parse existing config.xml, will create fresh: %v", err)
+		return nil
+	}
+
+	for _, dev := range existing.Devices {
+		if dev.ID != g.deviceID {
+			g.existingDevices = append(g.existingDevices, dev)
+		}
+	}
+
+	if len(g.existingDevices) > 0 {
+		log.Info("Preserving %d existing paired device(s) from config", len(g.existingDevices))
+	}
+
+	return nil
 }
 
 func (g *ConfigGenerator) Generate() (*SyncthingXMLConfig, error) {
@@ -253,6 +280,8 @@ func (g *ConfigGenerator) generateDevices() []XMLDevice {
 		})
 	}
 
+	devices = append(devices, g.existingDevices...)
+
 	return devices
 }
 
@@ -261,6 +290,10 @@ func (g *ConfigGenerator) folderDeviceRefs() []XMLFolderDevice {
 
 	if g.deviceID != "" {
 		refs = append(refs, XMLFolderDevice{ID: g.deviceID})
+	}
+
+	for _, dev := range g.existingDevices {
+		refs = append(refs, XMLFolderDevice{ID: dev.ID})
 	}
 
 	return refs
@@ -277,6 +310,10 @@ func (g *ConfigGenerator) versioningConfig() XMLVersioning {
 }
 
 func (g *ConfigGenerator) WriteConfig(configDir string) error {
+	if err := g.LoadExistingDevices(configDir); err != nil {
+		log.Info("Could not load existing devices: %v", err)
+	}
+
 	config, err := g.Generate()
 	if err != nil {
 		return err

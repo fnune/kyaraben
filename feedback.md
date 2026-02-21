@@ -16,19 +16,6 @@ What we won't do: full performance tuning, per-game settings, target-specific op
 
 ## Low-hanging fruit
 
-- Sync tab shows "Start pairing (no devices connected)" even when devices are paired
-  - Observed: opened Sync tab on primary, showed no devices, tried to start pairing, after a while the Steam Deck appeared
-  - Root cause: race condition during Syncthing startup
-    - `IsRunning()` checks `/rest/system/ping` which succeeds early
-    - `GetConfiguredDevices()` calls `/rest/config/devices` which may return empty before config fully loaded
-    - Backend returns `SyncStatusResponse` with empty `Devices` field
-    - Frontend sees `hasDevices = false` and shows "Start pairing"
-  - Fix options:
-    1. Backend fallback: Read devices from `{stateDir}/syncthing/config/config.xml` when API returns empty
-    2. Backend retry: Retry `GetConfiguredDevices()` with backoff if empty
-    3. Frontend: Show loading state instead of "Start pairing" when running but devices unexpectedly empty
-  - Recommended: Option 1 (config.xml fallback) - most robust, handles API unavailability gracefully
-
 - Controller config gets written as this:
     [controller]
     ```

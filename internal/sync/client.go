@@ -73,25 +73,35 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any) (
 }
 
 type SystemStatus struct {
-	MyID string `json:"myID"`
+	MyID      string `json:"myID"`
+	StartTime string `json:"startTime"`
+	Uptime    int    `json:"uptime"`
 }
 
-func (c *Client) GetDeviceID(ctx context.Context) (string, error) {
+func (c *Client) GetSystemStatus(ctx context.Context) (*SystemStatus, error) {
 	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/system/status", nil)
 	if err != nil {
-		return "", fmt.Errorf("getting system status: %w", err)
+		return nil, fmt.Errorf("getting system status: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("unexpected status: %d", resp.StatusCode)
+		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
 	}
 
 	var status SystemStatus
 	if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
-		return "", fmt.Errorf("decoding response: %w", err)
+		return nil, fmt.Errorf("decoding response: %w", err)
 	}
 
+	return &status, nil
+}
+
+func (c *Client) GetDeviceID(ctx context.Context) (string, error) {
+	status, err := c.GetSystemStatus(ctx)
+	if err != nil {
+		return "", err
+	}
 	return status.MyID, nil
 }
 
@@ -351,6 +361,10 @@ type ConfiguredDevice struct {
 }
 
 func (c *Client) GetConfiguredDevices(ctx context.Context) ([]ConfiguredDevice, error) {
+	return c.getConfiguredDevicesWithRetry(ctx, 0)
+}
+
+func (c *Client) getConfiguredDevicesWithRetry(ctx context.Context, attempt int) ([]ConfiguredDevice, error) {
 	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/config/devices", nil)
 	if err != nil {
 		return nil, fmt.Errorf("getting devices config: %w", err)
@@ -366,6 +380,13 @@ func (c *Client) GetConfiguredDevices(ctx context.Context) ([]ConfiguredDevice, 
 		return nil, fmt.Errorf("decoding devices: %w", err)
 	}
 
+	status, _ := c.GetSystemStatus(ctx)
+	uptime := 0
+	if status != nil {
+		uptime = status.Uptime
+	}
+	stLog.Debug("GetConfiguredDevices: raw=%d, uptime=%ds, attempt=%d", len(devices), uptime, attempt)
+
 	myID, _ := c.GetDeviceID(ctx)
 	var result []ConfiguredDevice
 	for _, dev := range devices {
@@ -378,6 +399,21 @@ func (c *Client) GetConfiguredDevices(ctx context.Context) ([]ConfiguredDevice, 
 			Paused: dev.Paused,
 		})
 	}
+
+	if len(result) == 0 && len(devices) > 0 {
+		stLog.Debug("GetConfiguredDevices: only self device in config (filtered %d)", len(devices))
+	}
+
+	if len(result) == 0 && uptime < 5 && attempt < 3 {
+		stLog.Info("GetConfiguredDevices: empty result with low uptime (%ds), retrying in 500ms (attempt %d)", uptime, attempt+1)
+		select {
+		case <-ctx.Done():
+			return result, nil
+		case <-time.After(500 * time.Millisecond):
+		}
+		return c.getConfiguredDevicesWithRetry(ctx, attempt+1)
+	}
+
 	return result, nil
 }
 
