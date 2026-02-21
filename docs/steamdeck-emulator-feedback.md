@@ -128,13 +128,13 @@ Low priority or unclear if fixable.
 
 ## EmuDeck Eden config reference
 
-Performance settings we may be missing:
-- `use_multi_core=true`
-- `backend=1` (Vulkan), `gpu_accuracy=0` (fastest)
-- `use_asynchronous_gpu_emulation=true`, `use_asynchronous_shaders=true`
-- `use_disk_shader_cache=true`, `use_fast_gpu_time=true`
-- `resolution_setup=2` (2x scale), `scaling_filter=5` (FSR), `fsr_sharpening_slider=25`
-- `use_vsync=2`, `fullscreen_mode=1`, `fps_cap=1000`
-- `use_docked_mode=1`
-- CPU accuracy=0 (fastest), all JIT optimizations enabled
-- Uses GUID `03000000de280000ff11000001000000` for controller
+Performance settings (now implemented):
+- [x] `use_multi_core=true`
+- [x] `backend=1` (Vulkan), `gpu_accuracy=0` (fastest)
+- [x] `use_asynchronous_gpu_emulation=true`, `use_asynchronous_shaders=true`
+- [x] `use_disk_shader_cache=true`, `use_fast_gpu_time=true`
+- [x] `resolution_setup=2` (2x scale), `scaling_filter=5` (FSR), `fsr_sharpening_slider=25`
+- [x] `use_vsync=2`, `fullscreen_mode=1`, `fps_cap=1000`
+- [x] `use_docked_mode=1`
+- [x] CPU accuracy=0 (fastest)
+- [x] Uses GUID `03000000de280000ff11000001000000` for controller
