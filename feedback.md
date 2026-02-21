@@ -97,6 +97,8 @@ What we won't do: full performance tuning, per-game settings, target-specific op
 
 ## Nice to have
 
+- Hotkey ergonomics: Select + D-pad combinations are awkward on Steam Deck. Consider alternative default bindings
+- RetroArch autosave on exit: EmuDeck has `RetroArch_autoSaveOn()` but off by default. Unclear if supportable across all emulators
 - RetroAchievements integration: global credential storage with per-emulator login. Supported by DuckStation, PCSX2, PPSSPP, RetroArch cores, and Dolphin (experimental)
 - Cross-emulator presets: toggle high-level features that cascade to all compatible emulators (widescreen, integer scaling, Discord presence, RetroAchievements, auto-save on exit)
 - Performance defaults: ship sensible defaults for renderer (Vulkan), resolution scale, recompilers, fast boot. Currently kyaraben focuses on paths but users must manually configure performance settings
@@ -115,3 +117,4 @@ What we won't do: full performance tuning, per-game settings, target-specific op
 - Reconsider the manifest: could derive state from filesystem instead of tracking in manifest, but risky refactor for unclear benefit
 - Home-manager module: very niche audience, unclear if AppImages work on NixOS
 - Reduce download size: 190MB is acceptable for one-time download, effort better spent elsewhere
+- Eden/Cemu splash screens: emulator loading screens are ugly but can't be avoided
