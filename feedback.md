@@ -16,6 +16,9 @@ What we won't do: full performance tuning, per-game settings, target-specific op
 
 ## Low-hanging fruit
 
+- For most retroarch cores we show the retroarch logo
+    - But they also have their own logos, I think?
+    - We could show the default logo with the Retroarch logo in tiny in the bottom right, overlayed?
 - On Steam Deck, clicking on 'Open Syncthing web interface' opens Discover
     - Even though Firefox is installed
     - I suppose this is because I haven't refreshed the session?
