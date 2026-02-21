@@ -58,6 +58,7 @@ func SharedConfig(store model.StoreReader, cc *model.ControllerConfig) model.Con
 		{Path: []string{"menu_show_load_content_animation"}, Value: "false"},
 		{Path: []string{"notification_show_config_override_load"}, Value: "false"},
 		{Path: []string{"notification_show_remap_load"}, Value: "false"},
+		{Path: []string{"quit_press_twice"}, Value: "false"},
 		{Path: []string{"input_player1_analog_dpad_mode"}, Value: "1", DefaultOnly: true},
 		{Path: []string{"input_player2_analog_dpad_mode"}, Value: "1", DefaultOnly: true},
 		{Path: []string{"input_player3_analog_dpad_mode"}, Value: "1", DefaultOnly: true},
