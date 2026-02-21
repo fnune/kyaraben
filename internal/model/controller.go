@@ -137,7 +137,6 @@ func ValidateLayoutID(s string) (LayoutID, error) {
 // controller (Xbox, PlayStation, etc.) appears with this GUID.
 const SteamDeckGUID = "03000000de280000ff11000001000000"
 
-
 // FaceButtons returns the four face buttons (south, east, west, north) adjusted
 // for the configured layout. Standard layout: A=south, B=east, X=west, Y=north.
 // Nintendo layout swaps A/B and X/Y so that the physical button positions match

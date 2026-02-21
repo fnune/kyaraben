@@ -18,6 +18,7 @@ type Versions struct {
 }
 
 type RetroArchCoresSpec struct {
+	ReleasesURL string `toml:"releases_url"`
 	URLTemplate string `toml:"url_template"`
 	Default     string `toml:"default"`
 	Versions    map[string]RetroArchCoresBuild
@@ -27,10 +28,11 @@ type RetroArchCoresSpec struct {
 }
 
 type StandaloneCore struct {
-	Filename string `toml:"filename"`
-	URL      string `toml:"url"`
-	SHA256   string `toml:"sha256"`
-	Size     int64  `toml:"size"`
+	ReleasesURL string `toml:"releases_url"`
+	Filename    string `toml:"filename"`
+	URL         string `toml:"url"`
+	SHA256      string `toml:"sha256"`
+	Size        int64  `toml:"size"`
 }
 
 type RetroArchCoresBuild struct {
@@ -59,6 +61,7 @@ func (r *RetroArchCoresSpec) GetCoresURL(targetName string) (string, string, boo
 
 // PackageSpec describes all available versions of a package.
 type PackageSpec struct {
+	ReleasesURL string                  // URL for checking releases (e.g., "github:owner/repo" or "gitlab:namespace/project")
 	URLTemplate string                  // URL template with {version}, {release_tag}, {variant} placeholders
 	BinaryPath  string                  // Default binary path for archives
 	Default     string                  // Default version string
@@ -293,6 +296,9 @@ func parse(data string) (*Versions, error) {
 	}
 
 	if racRaw, ok := raw["retroarch-cores"].(map[string]interface{}); ok {
+		if releasesURL, ok := racRaw["releases_url"].(string); ok {
+			v.RetroArchCores.ReleasesURL = releasesURL
+		}
 		if urlTemplate, ok := racRaw["url_template"].(string); ok {
 			v.RetroArchCores.URLTemplate = urlTemplate
 		}
@@ -320,6 +326,9 @@ func parse(data string) (*Versions, error) {
 			for name, coreRaw := range standaloneRaw {
 				if coreData, ok := coreRaw.(map[string]interface{}); ok {
 					core := StandaloneCore{}
+					if r, ok := coreData["releases_url"].(string); ok {
+						core.ReleasesURL = r
+					}
 					if f, ok := coreData["filename"].(string); ok {
 						core.Filename = f
 					}
@@ -387,6 +396,9 @@ func parsePackageSpec(raw map[string]interface{}) (PackageSpec, error) {
 		Versions: make(map[string]VersionEntry),
 	}
 
+	if v, ok := raw["releases_url"].(string); ok {
+		spec.ReleasesURL = v
+	}
 	if v, ok := raw["url_template"].(string); ok {
 		spec.URLTemplate = v
 	}
@@ -405,6 +417,7 @@ func parsePackageSpec(raw map[string]interface{}) (PackageSpec, error) {
 
 	// Everything else is a version entry
 	knownKeys := map[string]bool{
+		"releases_url": true,
 		"url_template": true,
 		"binary_path":  true,
 		"default":      true,

@@ -3,7 +3,6 @@ package registry
 import (
 	"testing"
 
-	"github.com/fnune/kyaraben/internal/emulators/retroarchcitra"
 	"github.com/fnune/kyaraben/internal/emulators/cemu"
 	"github.com/fnune/kyaraben/internal/emulators/dolphin"
 	"github.com/fnune/kyaraben/internal/emulators/duckstation"
@@ -13,6 +12,7 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/ppsspp"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbeetlesaturn"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbsnes"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchcitra"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchgenesisplusgx"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmelonds"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmesen"
