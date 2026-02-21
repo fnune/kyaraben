@@ -220,3 +220,30 @@ func TestTruncateDeviceID(t *testing.T) {
 		})
 	}
 }
+
+func TestIsRelayCode(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		{"ABC123", true},
+		{"ABCDEF", true},
+		{"123456", true},
+		{"A1B2C3", true},
+		{"abc123", false},
+		{"ABCDE", false},
+		{"ABCDEFG", false},
+		{"ABC-12", false},
+		{"", false},
+		{"LGFPDIT7-SKNNJVJZ", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := IsRelayCode(tt.input)
+			if result != tt.expected {
+				t.Errorf("IsRelayCode(%q) = %v, want %v", tt.input, result, tt.expected)
+			}
+		})
+	}
+}

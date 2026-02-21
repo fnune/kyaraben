@@ -273,10 +273,15 @@ Folders:
 
 Pause or resume sync. Useful on metered connections or to save battery.
 
+#### `kyaraben sync pair --device-id`
+
+Show the full 56-character device ID instead of a pairing code. Use this when
+the relay server is unavailable.
+
 #### `kyaraben sync add-device <DEVICE-ID>`
 
-Add a device by its 56-character Syncthing device ID. Use this when devices
-are not on the same network and mDNS discovery is not available.
+Add a device by its 56-character Syncthing device ID. Use this for manual
+pairing without the interactive flow.
 
 #### `kyaraben sync remove-device <ID-or-NAME>`
 
