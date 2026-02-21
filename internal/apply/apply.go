@@ -40,6 +40,7 @@ type Progress struct {
 	BytesDownloaded int64
 	BytesTotal      int64
 	BytesPerSecond  int64
+	LogEntry        *logging.LogEntry
 }
 
 type Result struct {
@@ -162,10 +163,10 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		opts.OnProgress = func(Progress) {}
 	}
 
-	logging.SetOutputHook(func(line string) {
-		opts.OnProgress(Progress{Step: "build", Output: line})
+	logging.SetUICallback(func(entry logging.LogEntry) {
+		opts.OnProgress(Progress{Step: "build", Output: entry.Message, LogEntry: &entry})
 	})
-	defer logging.SetOutputHook(nil)
+	defer logging.SetUICallback(nil)
 
 	controllerConfig, err := cfg.ResolveControllerConfig()
 	if err != nil {

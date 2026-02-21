@@ -502,6 +502,7 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 					BytesTotal:      p.BytesTotal,
 					BytesPerSecond:  p.BytesPerSecond,
 					LogPosition:     logPosition,
+					LogEntry:        p.LogEntry,
 				},
 			}
 			if emit != nil {

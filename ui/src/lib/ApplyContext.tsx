@@ -11,6 +11,7 @@ import * as daemon from '@/lib/daemon'
 import { installApp } from '@/lib/daemon'
 import { useToast } from '@/lib/ToastContext'
 import type { PreflightResponse, SyncPendingResponse } from '@/types/daemon'
+import type { LogEntry } from '@/types/logging.gen'
 import type { ApplyStatus, ProgressStep } from '@/types/ui'
 
 const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
@@ -79,6 +80,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
     setLogPosition(null)
 
     const MAX_OUTPUT_LINES = 10000
+    const MAX_LOG_ENTRIES = 10000
     let logPositionCaptured = false
 
     const progressHandler = (data: {
@@ -92,6 +94,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
       bytesTotal?: number
       bytesPerSecond?: number
       logPosition?: number
+      logEntry?: LogEntry
     }) => {
       if (!logPositionCaptured && data.logPosition !== undefined) {
         setLogPosition(data.logPosition)
@@ -129,6 +132,9 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
               ...(effectiveMessage && { message: effectiveMessage }),
               ...(data.output && {
                 output: [...(s.output ?? []), data.output].slice(-MAX_OUTPUT_LINES),
+              }),
+              ...(data.logEntry && {
+                logEntries: [...(s.logEntries ?? []), data.logEntry].slice(-MAX_LOG_ENTRIES),
               }),
               ...(data.buildPhase && { buildPhase: data.buildPhase }),
               ...(data.packageName && { packageName: data.packageName }),
