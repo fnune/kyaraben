@@ -25,6 +25,7 @@ export interface SyncViewProps {
   readonly onResetSync: () => Promise<void>
   readonly onStartPairing: () => Promise<void>
   readonly onStopPairing: () => Promise<void>
+  readonly onClearConnectionError: () => void
   readonly onRefresh: () => void
   readonly isEnabling: boolean
   readonly enableError: string | null
@@ -188,6 +189,7 @@ export function SyncView({
   onResetSync,
   onStartPairing,
   onStopPairing,
+  onClearConnectionError,
   onRefresh,
   isEnabling,
   enableError,
@@ -226,6 +228,7 @@ export function SyncView({
         onConnectToDevice={onConnectToDevice}
         onStartPairing={onStartPairing}
         onStopPairing={onStopPairing}
+        onClearConnectionError={onClearConnectionError}
       />
 
       <ActivityCard

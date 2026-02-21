@@ -33,6 +33,7 @@ import (
 )
 
 var log = logging.New("daemon")
+var pairingLog = log.WithPrefix("[pairing]")
 
 type Daemon struct {
 	fs              vfs.FS
@@ -1219,7 +1220,7 @@ func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest, emit func(E
 
 	go func(relayCode string, relayClient *syncpkg.RelayClient) {
 		defer func() {
-			log.Info("Secondary pairing flow ended")
+			pairingLog.Info("Secondary pairing goroutine ended")
 			d.pairingMu.Lock()
 			d.pairingActive = false
 			d.pairingMu.Unlock()
@@ -1231,18 +1232,27 @@ func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest, emit func(E
 			client.SetAPIKey(loadedKey)
 		}
 
+		pairingLog.Info("Waiting for syncthing to be ready")
+		if err := d.waitForSyncthingReady(ctx, client); err != nil {
+			pairingLog.Error("Syncthing not ready: %v", err)
+			emit(Event{Type: EventTypeError, Data: ErrorResponse{Error: fmt.Sprintf("syncthing not ready: %v", err)}})
+			return
+		}
+
 		localDeviceID, err := client.GetDeviceID(ctx)
 		if err != nil {
+			pairingLog.Error("Failed to get local device ID: %v", err)
 			emit(Event{Type: EventTypeError, Data: ErrorResponse{Error: fmt.Sprintf("getting local device ID: %v", err)}})
 			return
 		}
+		pairingLog.Info("Local device ID: %s", localDeviceID[:7]+"...")
 
 		if relayCode != "" && relayClient != nil {
 			submitCtx, submitCancel := context.WithTimeout(ctx, 10*time.Second)
 			if err := relayClient.SubmitResponse(submitCtx, relayCode, localDeviceID); err != nil {
-				log.Info("Failed to submit response to relay: %v", err)
+				pairingLog.Error("Failed to submit response to relay: %v", err)
 			} else {
-				log.Info("Submitted device ID to relay for code %s", relayCode)
+				pairingLog.Info("Submitted device ID to relay for code %s", relayCode)
 			}
 			submitCancel()
 		}
@@ -1261,14 +1271,17 @@ func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest, emit func(E
 
 		result, err := flow.Run(ctx, primaryDeviceID)
 		if err != nil {
+			pairingLog.Error("Secondary pairing flow failed: %v", err)
 			emit(Event{Type: EventTypeError, Data: ErrorResponse{Error: err.Error()}})
 			return
 		}
 
+		pairingLog.Info("Secondary pairing flow succeeded, persisting config")
 		d.persistSyncEnabled(cfg, model.SyncModeSecondary)
 
 		d.dismissUnwantedPendingFolders(client)
 
+		pairingLog.Info("Emitting success result for peer %s (%s)", result.PeerName, result.PeerDeviceID[:7]+"...")
 		emit(Event{
 			Type: EventTypeResult,
 			Data: SyncJoinPrimaryResponse{
@@ -1697,6 +1710,30 @@ func (d *Daemon) updateSyncConfig(cfg *model.KyarabenConfig, userStorePath strin
 	return nil
 }
 
+func (d *Daemon) waitForSyncthingReady(ctx context.Context, client syncpkg.SyncClient) error {
+	const maxAttempts = 15
+	const retryInterval = 500 * time.Millisecond
+
+	for i := 0; i < maxAttempts; i++ {
+		checkCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		if client.IsRunning(checkCtx) {
+			cancel()
+			pairingLog.Info("Syncthing ready after %d attempts", i+1)
+			return nil
+		}
+		cancel()
+
+		if i < maxAttempts-1 {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(retryInterval):
+			}
+		}
+	}
+	return fmt.Errorf("syncthing not ready after %d attempts", maxAttempts)
+}
+
 func (d *Daemon) persistSyncEnabled(cfg *model.KyarabenConfig, mode model.SyncMode) {
 	cfg.Sync.Enabled = true
 	cfg.Sync.Mode = mode
@@ -1786,43 +1823,50 @@ func (d *Daemon) stopAutoAcceptLoop() {
 
 func (d *Daemon) startRelayPollLoop(cfg *model.KyarabenConfig, relayClient *syncpkg.RelayClient, code string, syncClient syncpkg.SyncClient, emit func(Event)) {
 	go func() {
+		pairingLog.Info("Starting relay poll loop for code %s", code)
 		ticker := time.NewTicker(2 * time.Second)
 		defer ticker.Stop()
 
 		timeout := time.After(5 * time.Minute)
+		pollCount := 0
 
 		for {
 			select {
 			case <-timeout:
-				log.Info("Relay poll loop timed out for code %s", code)
+				pairingLog.Info("Relay poll loop timed out for code %s after %d polls", code, pollCount)
 				_ = relayClient.DeleteSession(context.Background(), code)
 				return
 			case <-ticker.C:
+				pollCount++
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				resp, err := relayClient.GetResponse(ctx, code)
 				cancel()
 				if err != nil {
-					log.Debug("Relay poll error for code %s: %v", code, err)
+					pairingLog.Info("Relay poll %d error for code %s: %v", pollCount, code, err)
 					continue
 				}
 
 				if !resp.Ready {
+					pairingLog.Debug("Relay poll %d for code %s: not ready", pollCount, code)
 					continue
 				}
 
-				log.Info("Relay response ready: secondary device ID %s", resp.DeviceID)
+				pairingLog.Info("Relay poll %d: secondary device ID received: %s", pollCount, resp.DeviceID[:7]+"...")
 
 				addCtx, addCancel := context.WithTimeout(context.Background(), 10*time.Second)
+				pairingLog.Info("Adding secondary device to syncthing config")
 				if err := syncClient.AddDeviceAutoName(addCtx, resp.DeviceID); err != nil {
-					log.Error("Failed to add device from relay: %v", err)
+					pairingLog.Error("Failed to add device from relay: %v", err)
 					addCancel()
 					continue
 				}
+				pairingLog.Info("Sharing folders with secondary device")
 				if err := syncClient.ShareFoldersWithDevice(addCtx, resp.DeviceID); err != nil {
-					log.Error("Failed to share folders with relay device: %v", err)
+					pairingLog.Error("Failed to share folders with relay device: %v", err)
 				}
 				addCancel()
 
+				pairingLog.Info("Primary pairing via relay completed successfully")
 				emit(Event{
 					Type: EventTypeProgress,
 					Data: SyncPairingProgressEvent{Message: "Device connected via pairing code"},

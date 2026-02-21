@@ -194,6 +194,7 @@ function AppContent() {
     handleResetSync,
     handleStartPairing,
     handleStopPairing,
+    clearConnectionError,
     refreshSyncStatus,
   } = useSyncPairing(showToast, currentView === VIEW_SYNC)
 
@@ -561,6 +562,7 @@ function AppContent() {
             onResetSync={handleResetSync}
             onStartPairing={handleStartPairing}
             onStopPairing={handleStopPairing}
+            onClearConnectionError={clearConnectionError}
             onRefresh={refreshSyncStatus}
             enableError={enableError}
             isEnabling={isEnabling}
