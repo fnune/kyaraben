@@ -60,6 +60,8 @@ export interface CatalogViewProps {
   readonly onFrontendVersionChange: (frontendId: FrontendID, version: string | null) => void
   readonly onDiscard: () => void
   readonly onEnableAll: () => void
+  readonly upgradeAvailable?: boolean
+  readonly onReapply?: () => void
 }
 
 function groupSystemsByManufacturer(systems: readonly System[]) {
@@ -116,6 +118,8 @@ export function CatalogView({
   onFrontendVersionChange,
   onDiscard,
   onEnableAll,
+  upgradeAvailable,
+  onReapply,
 }: CatalogViewProps) {
   const {
     status: applyStatus,
@@ -538,6 +542,8 @@ export function CatalogView({
         onApply={handleApply}
         onDiscard={onDiscard}
         applying={isApplying}
+        {...(upgradeAvailable && { upgradeAvailable })}
+        {...(onReapply && { onReapply })}
       />
     </div>
   )
