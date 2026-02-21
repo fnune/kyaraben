@@ -45,7 +45,14 @@ OUTPUT_NAME="kyaraben-$TARGET_TRIPLE"
 
 echo "Building kyaraben sidecar for $TARGET_TRIPLE..."
 
-VERSION=$(node -p "require('$PROJECT_ROOT/ui/package.json').version" 2>/dev/null || echo "dev")
+BASE_VERSION=$(node -p "require('$PROJECT_ROOT/ui/package.json').version" 2>/dev/null || echo "0.0.0")
+
+if [ -n "${CI:-}" ] || [ -n "${RELEASE_BUILD:-}" ]; then
+    VERSION="$BASE_VERSION"
+else
+    TIMESTAMP=$(date -u +%Y%m%d%H%M%S)
+    VERSION="${BASE_VERSION}-dev.${TIMESTAMP}"
+fi
 
 mkdir -p "$BINARIES_DIR"
 cd "$PROJECT_ROOT"

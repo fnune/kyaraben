@@ -150,6 +150,7 @@ function AppContent() {
   const [provisions, setProvisions] = useState<DoctorResponse>({})
   const [configState, setConfigState] = useState<ConfigState>(emptyConfigState)
   const [configReady, setConfigReady] = useState(false)
+  const [kyarabenVersion, setKyarabenVersion] = useState<string | null>(null)
   const [fontsReady, setFontsReady] = useState(false)
 
   const savedConfigState = useRef<ConfigState>(emptyConfigState())
@@ -218,6 +219,7 @@ function AppContent() {
       setManagedConfigs(configs)
       setInstalledFrontendVersions(feVersions)
       setInstalledPaths(paths)
+      setKyarabenVersion(statusResult.data.kyarabenVersion)
     }
 
     if (configResult.ok) {
@@ -272,6 +274,7 @@ function AppContent() {
         setManagedConfigs(configs)
         setInstalledFrontendVersions(feVersions)
         setInstalledPaths(paths)
+        setKyarabenVersion(statusResult.data.kyarabenVersion)
 
         if (statusResult.data.healthWarning === 'orphaned_artifacts') {
           showToast(
@@ -454,6 +457,7 @@ function AppContent() {
       setManagedConfigs(configs)
       setInstalledFrontendVersions(feVersions)
       setInstalledPaths(paths)
+      setKyarabenVersion(statusResult.data.kyarabenVersion)
     }
   }, [])
 
@@ -601,7 +605,12 @@ function AppContent() {
       )}
 
       <div className="flex-1 flex flex-col min-[720px]:flex-row min-h-0">
-        <Sidebar currentView={currentView} onNavigate={setCurrentView} syncStatus={syncStatus} />
+        <Sidebar
+          currentView={currentView}
+          onNavigate={setCurrentView}
+          syncStatus={syncStatus}
+          version={kyarabenVersion}
+        />
         <main id="main-content" className="flex-1 overflow-y-scroll">
           {renderView()}
         </main>
