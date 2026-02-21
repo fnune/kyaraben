@@ -3,10 +3,10 @@ package sync
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/twpayne/go-vfs/v5"
 
@@ -30,19 +30,20 @@ WantedBy=default.target
 `
 
 type SystemdUnit struct {
-	fs    vfs.FS
-	paths *paths.Paths
+	fs      vfs.FS
+	paths   *paths.Paths
+	service ServiceManager
 }
 
-func NewSystemdUnit(fs vfs.FS, p *paths.Paths) *SystemdUnit {
-	return &SystemdUnit{fs: fs, paths: p}
+func NewSystemdUnit(fs vfs.FS, p *paths.Paths, service ServiceManager) *SystemdUnit {
+	return &SystemdUnit{fs: fs, paths: p, service: service}
 }
 
 func NewDefaultSystemdUnit() *SystemdUnit {
-	return NewSystemdUnit(vfs.OSFS, paths.DefaultPaths())
+	return NewSystemdUnit(vfs.OSFS, paths.DefaultPaths(), NewDefaultServiceManager())
 }
 
-func (s *SystemdUnit) unitName() string {
+func (s *SystemdUnit) UnitName() string {
 	return s.paths.DirName() + "-syncthing.service"
 }
 
@@ -59,7 +60,7 @@ func (s *SystemdUnit) unitPath() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("getting config dir: %w", err)
 	}
-	return filepath.Join(configDir, "systemd", "user", s.unitName()), nil
+	return filepath.Join(configDir, "systemd", "user", s.UnitName()), nil
 }
 
 func (s *SystemdUnit) Generate(params UnitParams) (string, error) {
@@ -101,21 +102,21 @@ func (s *SystemdUnit) Write(params UnitParams) error {
 }
 
 func (s *SystemdUnit) Enable() error {
-	if err := exec.Command("systemctl", "--user", "daemon-reload").Run(); err != nil {
+	if err := s.service.DaemonReload(); err != nil {
 		return fmt.Errorf("daemon-reload: %w", err)
 	}
 
-	unitName := s.unitName()
+	unitName := s.UnitName()
 
 	if s.IsEnabled() {
-		if err := exec.Command("systemctl", "--user", "restart", unitName).Run(); err != nil {
+		if err := s.service.Restart(unitName); err != nil {
 			return fmt.Errorf("restart service: %w", err)
 		}
 		log.Info("Restarted %s", unitName)
 		return nil
 	}
 
-	if err := exec.Command("systemctl", "--user", "enable", "--now", unitName).Run(); err != nil {
+	if err := s.service.Enable(unitName); err != nil {
 		return fmt.Errorf("enable service: %w", err)
 	}
 
@@ -124,8 +125,8 @@ func (s *SystemdUnit) Enable() error {
 }
 
 func (s *SystemdUnit) Disable() error {
-	unitName := s.unitName()
-	if err := exec.Command("systemctl", "--user", "disable", "--now", unitName).Run(); err != nil {
+	unitName := s.UnitName()
+	if err := s.service.Disable(unitName); err != nil {
 		return fmt.Errorf("disable service: %w", err)
 	}
 
@@ -150,8 +151,7 @@ func (s *SystemdUnit) IsEnabled() bool {
 	if _, err := s.fs.Stat(unitPath); err != nil {
 		return false
 	}
-	err = exec.Command("systemctl", "--user", "is-enabled", "--quiet", s.unitName()).Run()
-	return err == nil
+	return s.service.IsEnabled(s.UnitName())
 }
 
 func FindKyarabenSyncthingServices() ([]string, error) {
@@ -180,17 +180,59 @@ func FindKyarabenSyncthingServices() ([]string, error) {
 }
 
 func StopAndRemoveService(servicePath string) error {
+	return StopAndRemoveServiceWithWait(NewDefaultServiceManager(), servicePath, 10*time.Second, nil)
+}
+
+func StopAndRemoveServiceWithWait(service ServiceManager, servicePath string, timeout time.Duration, ports []int) error {
 	name := filepath.Base(servicePath)
 
-	_ = exec.Command("systemctl", "--user", "stop", name).Run()
-	_ = exec.Command("systemctl", "--user", "disable", name).Run()
+	if err := service.Stop(name); err != nil {
+		log.Debug("Error stopping %s: %v", name, err)
+	}
+
+	if err := waitForServiceStop(service, name, timeout); err != nil {
+		log.Debug("Service %s did not stop cleanly: %v", name, err)
+	}
+
+	for _, port := range ports {
+		pid, err := FindPIDByPort(port)
+		if err != nil {
+			continue
+		}
+		if pid != 0 && IsKyarabenInstance(pid) {
+			log.Info("Killing orphaned syncthing process (PID %d) on port %d", pid, port)
+			if err := KillProcess(pid, 5*time.Second); err != nil {
+				log.Debug("Error killing process %d: %v", pid, err)
+			}
+		}
+	}
+
+	for _, port := range ports {
+		if err := WaitForPortRelease(port, 5*time.Second); err != nil {
+			log.Debug("Port %d not released: %v", port, err)
+		}
+	}
+
+	_ = service.Disable(name)
 
 	if err := os.Remove(servicePath); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("removing %s: %w", servicePath, err)
 	}
 
-	_ = exec.Command("systemctl", "--user", "daemon-reload").Run()
+	_ = service.DaemonReload()
 	return nil
+}
+
+func waitForServiceStop(service ServiceManager, name string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		state := service.State(name)
+		if state == "inactive" || state == "failed" || state == "" {
+			return nil
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	return fmt.Errorf("service %s did not stop within %v", name, timeout)
 }
 
 type ServiceStatus struct {
@@ -200,10 +242,8 @@ type ServiceStatus struct {
 }
 
 func (s *SystemdUnit) Status() ServiceStatus {
-	unitName := s.unitName()
-
-	output, _ := exec.Command("systemctl", "--user", "is-active", unitName).Output()
-	active := strings.TrimSpace(string(output))
+	unitName := s.UnitName()
+	active := s.service.State(unitName)
 
 	status := ServiceStatus{
 		Active: active,
@@ -211,9 +251,9 @@ func (s *SystemdUnit) Status() ServiceStatus {
 	}
 
 	if active != "active" && active != "activating" {
-		logs, _ := exec.Command("journalctl", "--user", "-u", unitName, "-n", "10", "--no-pager", "-o", "cat").Output()
-		if len(logs) > 0 {
-			status.Message = strings.TrimSpace(string(logs))
+		logs := s.service.Logs(unitName, 10)
+		if logs != "" {
+			status.Message = logs
 		} else if active == "inactive" {
 			status.Message = "Service is not running. It may not have been started yet."
 		} else if active == "" {

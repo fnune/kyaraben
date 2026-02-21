@@ -58,8 +58,10 @@ type Daemon struct {
 	autoAcceptMu         sync.Mutex
 	autoAcceptCancelFunc context.CancelFunc
 
-	syncReconfigMu      sync.Mutex
-	syncReconfigRunning bool
+	syncReconfigMu          sync.Mutex
+	syncReconfigRunning     bool
+	syncReconfigLastFailure time.Time
+	syncReconfigFailCount   int
 }
 
 func New(fs vfs.FS, p *paths.Paths, configPath, stateDir, manifestPath string, reg *registry.Registry, installer packages.Installer, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager) *Daemon {
@@ -872,7 +874,7 @@ func (d *Daemon) handleSyncStatus() []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	unit := syncpkg.NewSystemdUnit(d.fs, d.paths)
+	unit := syncpkg.NewSystemdUnit(d.fs, d.paths, syncpkg.NewDefaultServiceManager())
 	serviceInstalled := unit.IsEnabled()
 
 	manifest, _ := d.loadManifest()
@@ -882,7 +884,7 @@ func (d *Daemon) handleSyncStatus() []Event {
 		manifest.SyncthingInstall.ConfigSchemaVersion < syncpkg.ConfigSchemaVersion {
 		log.Info("Sync config schema version changed (%d -> %d), regenerating config",
 			manifest.SyncthingInstall.ConfigSchemaVersion, syncpkg.ConfigSchemaVersion)
-		go d.ensureSyncthingRunning(cfg)
+		go d.ensureSyncthingManaged(cfg)
 	}
 
 	if !cfg.Sync.Enabled {
@@ -908,7 +910,7 @@ func (d *Daemon) handleSyncStatus() []Event {
 		status := unit.Status()
 
 		if !status.Failed {
-			go d.ensureSyncthingRunning(cfg)
+			go d.ensureSyncthingManaged(cfg)
 		}
 
 		return []Event{{
@@ -1384,7 +1386,7 @@ func (d *Daemon) handleSyncEnable(data *SyncEnableRequest, emit func(Event)) []E
 	go func() {
 		emitProgress("installing", "Installing syncthing...", 0)
 
-		setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir)
+		setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir, syncpkg.NewDefaultServiceManager())
 		result, err := setup.Install(context.Background(), cfg.Sync, userStore.Root(), allSystems, func(p packages.InstallProgress) {
 			percent := 0
 			if p.BytesTotal > 0 {
@@ -1442,7 +1444,7 @@ func (d *Daemon) handleSyncEnable(data *SyncEnableRequest, emit func(Event)) []E
 func (d *Daemon) handleSyncReset() []Event {
 	d.stopAutoAcceptLoop()
 	d.stopSecondaryPairing()
-	setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir)
+	setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir, syncpkg.NewDefaultServiceManager())
 	var removedFiles []string
 
 	if setup.IsEnabled() {
@@ -1626,9 +1628,23 @@ func (d *Daemon) dismissUnwantedPendingFolders(client syncpkg.SyncClient) {
 	}
 }
 
-func (d *Daemon) ensureSyncthingRunning(cfg *model.KyarabenConfig) {
+// ensureSyncthingManaged sets up syncthing if it's not already being managed
+// by our systemd unit. "Managed" means systemd state is "active" or "activating".
+func (d *Daemon) ensureSyncthingManaged(cfg *model.KyarabenConfig) {
+	service := syncpkg.NewDefaultServiceManager()
+	unit := syncpkg.NewSystemdUnit(d.fs, d.paths, service)
+	state := service.State(unit.UnitName())
+	if state == "active" || state == "activating" {
+		log.Debug("Syncthing already managed by systemd (state=%s)", state)
+		return
+	}
+
 	d.syncReconfigMu.Lock()
 	if d.syncReconfigRunning {
+		d.syncReconfigMu.Unlock()
+		return
+	}
+	if !d.shouldRetrySyncSetup() {
 		d.syncReconfigMu.Unlock()
 		return
 	}
@@ -1644,17 +1660,21 @@ func (d *Daemon) ensureSyncthingRunning(cfg *model.KyarabenConfig) {
 	userStore, err := store.NewUserStore(d.fs, d.paths, cfg.Global.UserStore)
 	if err != nil {
 		log.Error("Failed to create user store for sync setup: %v", err)
+		d.recordSyncSetupFailure()
 		return
 	}
 
 	allSystems := d.syncSystems(cfg)
 
-	setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir)
+	setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir, syncpkg.NewDefaultServiceManager())
 	result, err := setup.Install(context.Background(), cfg.Sync, userStore.Root(), allSystems, nil)
 	if err != nil {
-		log.Error("Failed to ensure syncthing running: %v", err)
+		log.Error("Syncthing setup failed: %v", err)
+		d.recordSyncSetupFailure()
 		return
 	}
+
+	d.resetSyncSetupBackoff()
 
 	manifest, err := d.loadManifest()
 	if err != nil {
@@ -1685,6 +1705,34 @@ func (d *Daemon) ensureSyncthingRunning(cfg *model.KyarabenConfig) {
 	}
 }
 
+func (d *Daemon) shouldRetrySyncSetup() bool {
+	if d.syncReconfigFailCount == 0 {
+		return true
+	}
+
+	backoffSeconds := 5 << min(d.syncReconfigFailCount-1, 3)
+	if backoffSeconds > 60 {
+		backoffSeconds = 60
+	}
+
+	elapsed := time.Since(d.syncReconfigLastFailure)
+	return elapsed >= time.Duration(backoffSeconds)*time.Second
+}
+
+func (d *Daemon) recordSyncSetupFailure() {
+	d.syncReconfigMu.Lock()
+	defer d.syncReconfigMu.Unlock()
+	d.syncReconfigLastFailure = time.Now()
+	d.syncReconfigFailCount++
+}
+
+func (d *Daemon) resetSyncSetupBackoff() {
+	d.syncReconfigMu.Lock()
+	defer d.syncReconfigMu.Unlock()
+	d.syncReconfigFailCount = 0
+	d.syncReconfigLastFailure = time.Time{}
+}
+
 func (d *Daemon) updateSyncConfig(cfg *model.KyarabenConfig, userStorePath string) error {
 	allSystems := d.syncSystems(cfg)
 
@@ -1693,7 +1741,7 @@ func (d *Daemon) updateSyncConfig(cfg *model.KyarabenConfig, userStorePath strin
 		return fmt.Errorf("loading manifest: %w", err)
 	}
 
-	setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir)
+	setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir, syncpkg.NewDefaultServiceManager())
 	result, installErr := setup.Install(context.Background(), cfg.Sync, userStorePath, allSystems, nil)
 	if installErr != nil {
 		return fmt.Errorf("updating syncthing: %w", installErr)
@@ -1735,27 +1783,32 @@ func (d *Daemon) updateSyncConfig(cfg *model.KyarabenConfig, userStorePath strin
 }
 
 func (d *Daemon) waitForSyncthingReady(ctx context.Context, client syncpkg.SyncClient) error {
-	const maxAttempts = 15
-	const retryInterval = 500 * time.Millisecond
+	const maxDuration = 10 * time.Second
+	deadline := time.Now().Add(maxDuration)
+	attempt := 0
+	interval := 50 * time.Millisecond
 
-	for i := 0; i < maxAttempts; i++ {
+	for time.Now().Before(deadline) {
+		attempt++
 		checkCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 		if client.IsRunning(checkCtx) {
 			cancel()
-			pairingLog.Info("Syncthing ready after %d attempts", i+1)
+			pairingLog.Info("Syncthing ready after %d attempts", attempt)
 			return nil
 		}
 		cancel()
 
-		if i < maxAttempts-1 {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-time.After(retryInterval):
-			}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(interval):
+		}
+
+		if interval < 500*time.Millisecond {
+			interval = interval * 2
 		}
 	}
-	return fmt.Errorf("syncthing not ready after %d attempts", maxAttempts)
+	return fmt.Errorf("syncthing not ready after %v", maxDuration)
 }
 
 func (d *Daemon) persistSyncEnabled(cfg *model.KyarabenConfig, mode model.SyncMode) {
@@ -2084,9 +2137,15 @@ func (d *Daemon) handleUninstall() []Event {
 		}
 	}
 
+	cfg, cfgErr := d.loadConfig()
+	var syncPorts []int
+	if cfgErr == nil {
+		syncPorts = []int{cfg.Sync.Syncthing.GUIPort, cfg.Sync.Syncthing.ListenPort}
+	}
+
 	syncServices, _ := syncpkg.FindKyarabenSyncthingServices()
 	for _, servicePath := range syncServices {
-		if err := syncpkg.StopAndRemoveService(servicePath); err != nil {
+		if err := syncpkg.StopAndRemoveServiceWithWait(syncpkg.NewDefaultServiceManager(), servicePath, 10*time.Second, syncPorts); err != nil {
 			errors = append(errors, fmt.Sprintf("could not remove syncthing service %s: %v", servicePath, err))
 		} else {
 			removedFiles = append(removedFiles, servicePath)

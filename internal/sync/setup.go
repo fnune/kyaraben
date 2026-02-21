@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/twpayne/go-vfs/v5"
 
@@ -21,19 +22,21 @@ type Setup struct {
 	paths     *paths.Paths
 	installer packages.Installer
 	stateDir  string
+	service   ServiceManager
 }
 
-func NewSetup(fs vfs.FS, p *paths.Paths, installer packages.Installer, stateDir string) *Setup {
+func NewSetup(fs vfs.FS, p *paths.Paths, installer packages.Installer, stateDir string, service ServiceManager) *Setup {
 	return &Setup{
 		fs:        fs,
 		paths:     p,
 		installer: installer,
 		stateDir:  stateDir,
+		service:   service,
 	}
 }
 
 func NewDefaultSetup(installer packages.Installer, stateDir string) *Setup {
-	return NewSetup(vfs.OSFS, paths.DefaultPaths(), installer, stateDir)
+	return NewSetup(vfs.OSFS, paths.DefaultPaths(), installer, stateDir, NewDefaultServiceManager())
 }
 
 type SetupResult struct {
@@ -47,6 +50,10 @@ type SetupResult struct {
 func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, userStorePath string, allSystems []model.SystemID, onProgress func(packages.InstallProgress)) (*SetupResult, error) {
 	if !cfg.Enabled {
 		return nil, nil
+	}
+
+	if err := s.killUnmanagedSyncthing(cfg.Syncthing); err != nil {
+		return nil, err
 	}
 
 	if err := CheckPorts(cfg.Syncthing); err != nil {
@@ -73,7 +80,7 @@ func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, userStorePath
 		return nil, fmt.Errorf("writing syncthing config: %w", err)
 	}
 
-	unitGen := NewSystemdUnit(s.fs, s.paths)
+	unitGen := NewSystemdUnit(s.fs, s.paths, s.service)
 	params := UnitParams{
 		BinaryPath: binary.Path,
 		ConfigDir:  configDir,
@@ -125,12 +132,12 @@ func (s *Setup) UpdateConfig(cfg model.SyncConfig, userStorePath string, allSyst
 }
 
 func (s *Setup) Disable() error {
-	unitGen := NewSystemdUnit(s.fs, s.paths)
+	unitGen := NewSystemdUnit(s.fs, s.paths, s.service)
 	return unitGen.Disable()
 }
 
 func (s *Setup) Reset() error {
-	unitGen := NewSystemdUnit(s.fs, s.paths)
+	unitGen := NewSystemdUnit(s.fs, s.paths, s.service)
 
 	if unitGen.IsEnabled() {
 		if err := unitGen.Disable(); err != nil {
@@ -148,8 +155,60 @@ func (s *Setup) Reset() error {
 }
 
 func (s *Setup) IsEnabled() bool {
-	unitGen := NewSystemdUnit(s.fs, s.paths)
+	unitGen := NewSystemdUnit(s.fs, s.paths, s.service)
 	return unitGen.IsEnabled()
+}
+
+// killUnmanagedSyncthing kills any syncthing process using our ports that is
+// not managed by our systemd unit. This handles stale processes left over from
+// crashes or incomplete shutdowns.
+func (s *Setup) killUnmanagedSyncthing(cfg model.SyncthingConfig) error {
+	unit := NewSystemdUnit(s.fs, s.paths, s.service)
+	state := s.service.State(unit.UnitName())
+	if state == "active" || state == "activating" {
+		log.Debug("Syncthing is managed by systemd (state=%s), nothing to clean up", state)
+		return nil
+	}
+
+	ports := []struct {
+		port int
+		name string
+	}{
+		{cfg.GUIPort, "GUI"},
+		{cfg.ListenPort, "listen"},
+	}
+
+	for _, p := range ports {
+		pid, err := FindPIDByPort(p.port)
+		if err != nil {
+			continue
+		}
+		if pid == 0 {
+			continue
+		}
+
+		if IsKyarabenSyncthing(pid, s.stateDir) {
+			log.Info("Killing orphaned syncthing on %s port %d (PID %d)", p.name, p.port, pid)
+			if err := KillProcess(pid, 5*time.Second); err != nil {
+				return fmt.Errorf("killing orphaned syncthing on %s port %d: %w", p.name, p.port, err)
+			}
+			if err := WaitForPortRelease(p.port, 5*time.Second); err != nil {
+				return fmt.Errorf("waiting for %s port %d to be released: %w", p.name, p.port, err)
+			}
+		} else if IsKyarabenInstance(pid) {
+			log.Info("Killing syncthing from another kyaraben instance on %s port %d (PID %d)", p.name, p.port, pid)
+			if err := KillProcess(pid, 5*time.Second); err != nil {
+				return fmt.Errorf("killing syncthing on %s port %d: %w", p.name, p.port, err)
+			}
+			if err := WaitForPortRelease(p.port, 5*time.Second); err != nil {
+				return fmt.Errorf("waiting for %s port %d to be released: %w", p.name, p.port, err)
+			}
+		} else {
+			return fmt.Errorf("syncthing %s port %d is in use by another application (PID %d)", p.name, p.port, pid)
+		}
+	}
+
+	return nil
 }
 
 func (s *Setup) loadOrGenerateAPIKey(configDir string) (string, error) {
