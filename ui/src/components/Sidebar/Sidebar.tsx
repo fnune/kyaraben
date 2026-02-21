@@ -81,13 +81,18 @@ export function Sidebar({ currentView, onNavigate, syncStatus, version }: Sideba
           onClick={() => onNavigate(VIEW_SYNC)}
           indicator={<span className={`w-2 h-2 rounded-full ${syncDotColor}`} />}
         />
-        <NavItem
-          label="Documentation"
-          active={false}
-          onClick={() => openUrl('http://localhost:4321')}
-          indicator={<ExternalLinkIcon className="w-3 h-3" />}
-        />
       </nav>
+
+      <div className="hidden min-[720px]:block min-[720px]:py-2 min-[720px]:mt-auto">
+        <button
+          type="button"
+          onClick={() => openUrl('http://localhost:4321')}
+          className="px-4 py-2 text-sm tracking-wide flex items-center gap-2 text-on-surface-secondary hover:bg-surface-raised min-[720px]:border-l-2 border-transparent"
+        >
+          <span>Documentation</span>
+          <ExternalLinkIcon className="w-3 h-3" />
+        </button>
+      </div>
 
       <div className="flex items-center justify-between p-4 min-[720px]:border-t border-l min-[720px]:border-l-0 border-outline">
         <span className="text-xs text-on-surface-dim font-mono truncate">{version ?? ''}</span>
