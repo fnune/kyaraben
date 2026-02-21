@@ -140,38 +140,36 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 }
 
 func performanceEntries() []model.ConfigEntry {
-	return []model.ConfigEntry{
-		{Path: []string{"Core", "use_multi_core"}, Value: "true", DefaultOnly: true},
-		{Path: []string{"Core", "use_multi_core\\default"}, Value: "true"},
-		{Path: []string{"Cpu", "cpu_accuracy"}, Value: "0", DefaultOnly: true},
-		{Path: []string{"Cpu", "cpu_accuracy\\default"}, Value: "false"},
-		{Path: []string{"Renderer", "backend"}, Value: "1", DefaultOnly: true},
-		{Path: []string{"Renderer", "backend\\default"}, Value: "false"},
-		{Path: []string{"Renderer", "gpu_accuracy"}, Value: "0", DefaultOnly: true},
-		{Path: []string{"Renderer", "gpu_accuracy\\default"}, Value: "false"},
-		{Path: []string{"Renderer", "use_asynchronous_gpu_emulation"}, Value: "true", DefaultOnly: true},
-		{Path: []string{"Renderer", "use_asynchronous_gpu_emulation\\default"}, Value: "true"},
-		{Path: []string{"Renderer", "use_asynchronous_shaders"}, Value: "true", DefaultOnly: true},
-		{Path: []string{"Renderer", "use_asynchronous_shaders\\default"}, Value: "false"},
-		{Path: []string{"Renderer", "use_disk_shader_cache"}, Value: "true", DefaultOnly: true},
-		{Path: []string{"Renderer", "use_disk_shader_cache\\default"}, Value: "true"},
-		{Path: []string{"Renderer", "fast_gpu_time"}, Value: "1", DefaultOnly: true},
-		{Path: []string{"Renderer", "fast_gpu_time\\default"}, Value: "false"},
-		{Path: []string{"Renderer", "resolution_setup"}, Value: "2", DefaultOnly: true},
-		{Path: []string{"Renderer", "resolution_setup\\default"}, Value: "false"},
-		{Path: []string{"Renderer", "scaling_filter"}, Value: "5", DefaultOnly: true},
-		{Path: []string{"Renderer", "scaling_filter\\default"}, Value: "false"},
-		{Path: []string{"Renderer", "fsr_sharpening_slider"}, Value: "25", DefaultOnly: true},
-		{Path: []string{"Renderer", "fsr_sharpening_slider\\default"}, Value: "false"},
-		{Path: []string{"Renderer", "use_vsync"}, Value: "2", DefaultOnly: true},
-		{Path: []string{"Renderer", "use_vsync\\default"}, Value: "false"},
-		{Path: []string{"Renderer", "fullscreen_mode"}, Value: "1", DefaultOnly: true},
-		{Path: []string{"Renderer", "fullscreen_mode\\default"}, Value: "false"},
-		{Path: []string{"Renderer", "fps_cap"}, Value: "1000", DefaultOnly: true},
-		{Path: []string{"Renderer", "fps_cap\\default"}, Value: "false"},
-		{Path: []string{"System", "use_docked_mode"}, Value: "1", DefaultOnly: true},
-		{Path: []string{"System", "use_docked_mode\\default"}, Value: "false"},
+	settings := []struct {
+		section string
+		key     string
+		value   string
+	}{
+		{"Core", "use_multi_core", "true"},
+		{"Cpu", "cpu_accuracy", "0"},
+		{"Renderer", "backend", "1"},
+		{"Renderer", "gpu_accuracy", "0"},
+		{"Renderer", "use_asynchronous_gpu_emulation", "true"},
+		{"Renderer", "use_asynchronous_shaders", "true"},
+		{"Renderer", "use_disk_shader_cache", "true"},
+		{"Renderer", "fast_gpu_time", "1"},
+		{"Renderer", "resolution_setup", "2"},
+		{"Renderer", "scaling_filter", "5"},
+		{"Renderer", "fsr_sharpening_slider", "25"},
+		{"Renderer", "use_vsync", "2"},
+		{"Renderer", "fullscreen_mode", "1"},
+		{"Renderer", "fps_cap", "1000"},
+		{"System", "use_docked_mode", "1"},
 	}
+
+	var entries []model.ConfigEntry
+	for _, s := range settings {
+		entries = append(entries,
+			model.ConfigEntry{Path: []string{s.section, s.key}, Value: s.value, DefaultOnly: true},
+			model.ConfigEntry{Path: []string{s.section, s.key + `\default`}, Value: "false"},
+		)
+	}
+	return entries
 }
 
 // Steam Deck raw joystick button indices. Eden uses raw SDL joystick API
@@ -394,10 +392,16 @@ func hotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	var entries []model.ConfigEntry
 	for _, m := range mappings {
 		if len(m.binding.Buttons) > 0 {
-			entries = append(entries, model.ConfigEntry{
-				Path:  []string{section, m.key},
-				Value: edenHotkeyRef(m.binding),
-			})
+			entries = append(entries,
+				model.ConfigEntry{
+					Path:  []string{section, m.key},
+					Value: edenHotkeyRef(m.binding),
+				},
+				model.ConfigEntry{
+					Path:  []string{section, m.key + `\default`},
+					Value: "false",
+				},
+			)
 		}
 	}
 	return entries
