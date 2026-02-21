@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -2480,6 +2481,13 @@ func (d *Daemon) handleGetStorageDevices() []Event {
 		}
 	}
 
+	type externalMount struct {
+		path     string
+		isSDCard bool
+		stat     syscall.Statfs_t
+	}
+	var candidates []externalMount
+
 	for _, mediaBase := range mediaPaths {
 		entries, err := os.ReadDir(mediaBase)
 		if err != nil {
@@ -2508,22 +2516,53 @@ func (d *Daemon) handleGetStorageDevices() []Event {
 				continue
 			}
 
-			devices = append(devices, StorageDevice{
-				ID:         "sdcard",
-				Label:      entry.Name(),
-				Path:       filepath.Join(mountPath, "Emulation"),
-				FreeBytes:  int64(stat.Bavail) * stat.Bsize,
-				TotalBytes: int64(stat.Blocks) * stat.Bsize,
+			candidates = append(candidates, externalMount{
+				path:     mountPath,
+				isSDCard: isSDCard(mountPath),
+				stat:     stat,
 			})
-			break
 		}
-		if len(devices) > 1 {
-			break
+	}
+
+	if len(candidates) > 0 {
+		best := candidates[0]
+		for _, c := range candidates[1:] {
+			if c.isSDCard && !best.isSDCard {
+				best = c
+			}
 		}
+		devices = append(devices, StorageDevice{
+			ID:         "external",
+			Label:      filepath.Base(best.path),
+			Path:       filepath.Join(best.path, "Emulation"),
+			FreeBytes:  int64(best.stat.Bavail) * best.stat.Bsize,
+			TotalBytes: int64(best.stat.Blocks) * best.stat.Bsize,
+		})
 	}
 
 	return []Event{{
 		Type: EventTypeResult,
 		Data: StorageDevicesResponse{Devices: devices},
 	}}
+}
+
+func isSDCard(mountPath string) bool {
+	file, err := os.Open("/proc/mounts")
+	if err != nil {
+		return false
+	}
+	defer func() { _ = file.Close() }()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) < 2 {
+			continue
+		}
+		if fields[1] == mountPath {
+			device := filepath.Base(fields[0])
+			return strings.HasPrefix(device, "mmcblk")
+		}
+	}
+	return false
 }
