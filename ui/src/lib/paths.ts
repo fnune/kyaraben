@@ -19,3 +19,8 @@ export function collapseTilde(path: string, homeDir: string): string {
   }
   return path
 }
+
+export function collapsePathsInText(text: string, homeDir: string): string {
+  if (!homeDir || !text) return text
+  return text.replaceAll(homeDir, '~')
+}

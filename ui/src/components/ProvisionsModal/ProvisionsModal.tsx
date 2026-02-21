@@ -160,7 +160,11 @@ export function ProvisionsModal({
 
   const handleOpenFolder = (path: string) => {
     window.electron.invoke('open_path', path)
-    showToast(`Opening ${path}.`)
+    showToast(
+      <span>
+        Opening <PathText>{path}</PathText>.
+      </span>,
+    )
   }
 
   const found = provisions.filter((p) => p.status === 'found')
