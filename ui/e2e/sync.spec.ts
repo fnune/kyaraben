@@ -7,8 +7,11 @@ import {
 } from '@playwright/test'
 import {
   buildEnv,
+  type ConfigFixture,
   createFixture,
   EmulatorIDRetroArchBsnes,
+  type FakeSyncthingOptions,
+  type ManifestFixture,
   SystemIDSNES,
   setupFakeSyncthingApi,
   type TestFixture,
@@ -23,9 +26,23 @@ function getAppImagePath(): string {
   return appImagePath
 }
 
-async function launchWithFixture(
-  fixture: TestFixture,
-): Promise<{ app: ElectronApplication; page: Page }> {
+interface SyncTestContext {
+  app: ElectronApplication
+  page: Page
+  fixture: TestFixture
+  controller: FakeSyncthingController
+}
+
+async function setupSyncTest(options: {
+  config: ConfigFixture
+  manifest: ManifestFixture
+  syncthing: FakeSyncthingOptions
+  setup?: (controller: FakeSyncthingController) => void
+}): Promise<SyncTestContext> {
+  const fixture = createFixture(options.config, options.manifest)
+  const controller = setupFakeSyncthingApi(fixture, options.syncthing)
+  options.setup?.(controller)
+
   const app = await electron.launch({
     executablePath: getAppImagePath(),
     args: ['--no-sandbox'],
@@ -35,300 +52,318 @@ async function launchWithFixture(
   const page = await app.firstWindow()
   await page.getByRole('heading', { level: 1 }).waitFor({ timeout: 30000 })
 
-  return { app, page }
+  return { app, page, fixture, controller }
+}
+
+async function cleanupSyncTest(ctx: SyncTestContext): Promise<void> {
+  await ctx.app?.close()
+  ctx.fixture?.cleanup()
+}
+
+async function navigateToSync(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Sync' }).click()
+  await expect(page.getByText('running')).toBeVisible()
 }
 
 test.describe('Sync view with connected device showing synced status', () => {
-  let fixture: TestFixture
-  let app: ElectronApplication
-  let page: Page
-  let controller: FakeSyncthingController
+  let ctx: SyncTestContext
 
   test.beforeAll(async () => {
-    fixture = createFixture(
-      {
+    ctx = await setupSyncTest({
+      config: {
         systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
         sync: { enabled: true, mode: 'primary' },
       },
-      { installedEmulators: {} },
-    )
-
-    controller = setupFakeSyncthingApi(fixture, {
-      devices: [{ deviceID: 'REMOTE-DEVICE-1234567890ABCDEF', name: 'Steam Deck' }],
-      folders: [
-        { id: 'saves', path: '/home/test/Emulation/saves' },
-        { id: 'states', path: '/home/test/Emulation/states' },
-      ],
+      manifest: { installedEmulators: {} },
+      syncthing: {
+        devices: [{ deviceID: 'REMOTE-DEVICE-1234567890ABCDEF', name: 'Steam Deck' }],
+        folders: [
+          { id: 'saves', path: '/home/test/Emulation/saves' },
+          { id: 'states', path: '/home/test/Emulation/states' },
+        ],
+      },
+      setup: (c) => c.setConnected('REMOTE-DEVICE-1234567890ABCDEF', true),
     })
-
-    controller.setConnected('REMOTE-DEVICE-1234567890ABCDEF', true)
-
-    const result = await launchWithFixture(fixture)
-    app = result.app
-    page = result.page
   })
 
   test.afterAll(async () => {
-    await app?.close()
-    fixture?.cleanup()
+    await cleanupSyncTest(ctx)
   })
 
-  test('navigates to sync view and shows running state', async () => {
-    await page.getByRole('button', { name: 'Sync' }).click()
-    await expect(page.getByText('running')).toBeVisible()
-  })
-
-  test('shows connected status badge', async () => {
-    await expect(page.getByText('connected', { exact: true })).toBeVisible()
-  })
-
-  test('shows paired device name', async () => {
-    await expect(page.getByText(/Steam Deck/)).toBeVisible()
-  })
-
-  test('shows all synced message', async () => {
-    await expect(page.getByText('All synced')).toBeVisible()
+  test('shows running state with connected device', async () => {
+    await navigateToSync(ctx.page)
+    await expect(ctx.page.getByText('connected', { exact: true })).toBeVisible()
+    await expect(ctx.page.getByText(/Steam Deck/)).toBeVisible()
+    await expect(ctx.page.getByText('All synced')).toBeVisible()
   })
 })
 
 test.describe('Sync view showing sync in progress', () => {
-  let fixture: TestFixture
-  let app: ElectronApplication
-  let page: Page
-  let controller: FakeSyncthingController
+  let ctx: SyncTestContext
 
   test.beforeAll(async () => {
-    fixture = createFixture(
-      {
+    ctx = await setupSyncTest({
+      config: {
         systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
         sync: { enabled: true, mode: 'secondary' },
       },
-      { installedEmulators: {} },
-    )
-
-    controller = setupFakeSyncthingApi(fixture, {
-      devices: [{ deviceID: 'PRIMARY-DEVICE-1234567890ABCDEF', name: 'Desktop PC' }],
-      folders: [{ id: 'saves', path: '/home/test/Emulation/saves' }],
+      manifest: { installedEmulators: {} },
+      syncthing: {
+        devices: [{ deviceID: 'PRIMARY-DEVICE-1234567890ABCDEF', name: 'Desktop PC' }],
+        folders: [{ id: 'saves', path: '/home/test/Emulation/saves' }],
+      },
+      setup: (c) => {
+        c.setConnected('PRIMARY-DEVICE-1234567890ABCDEF', true)
+        c.setFolderProgress('saves', 50_000_000, 100_000_000)
+      },
     })
-
-    controller.setConnected('PRIMARY-DEVICE-1234567890ABCDEF', true)
-    controller.setFolderProgress('saves', 50_000_000, 100_000_000)
-
-    const result = await launchWithFixture(fixture)
-    app = result.app
-    page = result.page
   })
 
   test.afterAll(async () => {
-    await app?.close()
-    fixture?.cleanup()
+    await cleanupSyncTest(ctx)
   })
 
-  test('navigates to sync view and shows running state', async () => {
-    await page.getByRole('button', { name: 'Sync' }).click()
-    await expect(page.getByText('running')).toBeVisible()
-  })
-
-  test('shows syncing folder with remaining bytes', async () => {
-    await expect(page.getByText(/remaining/)).toBeVisible()
+  test('shows syncing progress with remaining bytes', async () => {
+    await navigateToSync(ctx.page)
+    await expect(ctx.page.getByText(/remaining/)).toBeVisible()
   })
 })
 
 test.describe('Sync view with device disconnected', () => {
-  let fixture: TestFixture
-  let app: ElectronApplication
-  let page: Page
-  let controller: FakeSyncthingController
+  let ctx: SyncTestContext
 
   test.beforeAll(async () => {
-    fixture = createFixture(
-      {
+    ctx = await setupSyncTest({
+      config: {
         systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
         sync: { enabled: true, mode: 'primary' },
       },
-      { installedEmulators: {} },
-    )
-
-    controller = setupFakeSyncthingApi(fixture, {
-      devices: [{ deviceID: 'REMOTE-DEVICE-OFFLINE-1234567890', name: 'Offline Device' }],
-      folders: [{ id: 'saves', path: '/home/test/Emulation/saves' }],
+      manifest: { installedEmulators: {} },
+      syncthing: {
+        devices: [{ deviceID: 'REMOTE-DEVICE-OFFLINE-1234567890', name: 'Offline Device' }],
+        folders: [{ id: 'saves', path: '/home/test/Emulation/saves' }],
+      },
+      setup: (c) => c.setConnected('REMOTE-DEVICE-OFFLINE-1234567890', false),
     })
-
-    controller.setConnected('REMOTE-DEVICE-OFFLINE-1234567890', false)
-
-    const result = await launchWithFixture(fixture)
-    app = result.app
-    page = result.page
   })
 
   test.afterAll(async () => {
-    await app?.close()
-    fixture?.cleanup()
-  })
-
-  test('navigates to sync view and shows running state', async () => {
-    await page.getByRole('button', { name: 'Sync' }).click()
-    await expect(page.getByText('running')).toBeVisible()
+    await cleanupSyncTest(ctx)
   })
 
   test('shows offline status for disconnected device', async () => {
-    await expect(page.getByText('offline', { exact: true })).toBeVisible()
-  })
-
-  test('shows device name', async () => {
-    await expect(page.getByText(/Offline Device/)).toBeVisible()
+    await navigateToSync(ctx.page)
+    await expect(ctx.page.getByText('offline', { exact: true })).toBeVisible()
+    await expect(ctx.page.getByText(/Offline Device/)).toBeVisible()
   })
 })
 
 test.describe('Sync view with local changes on secondary', () => {
-  let fixture: TestFixture
-  let app: ElectronApplication
-  let page: Page
-  let controller: FakeSyncthingController
+  let ctx: SyncTestContext
 
   test.beforeAll(async () => {
-    fixture = createFixture(
-      {
+    ctx = await setupSyncTest({
+      config: {
         systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
         sync: { enabled: true, mode: 'secondary' },
       },
-      { installedEmulators: {} },
-    )
-
-    controller = setupFakeSyncthingApi(fixture, {
-      devices: [{ deviceID: 'PRIMARY-DEVICE-1234567890ABCDEF', name: 'Desktop PC' }],
-      folders: [{ id: 'saves', path: '/home/test/Emulation/saves' }],
+      manifest: { installedEmulators: {} },
+      syncthing: {
+        devices: [{ deviceID: 'PRIMARY-DEVICE-1234567890ABCDEF', name: 'Desktop PC' }],
+        folders: [{ id: 'saves', path: '/home/test/Emulation/saves' }],
+      },
+      setup: (c) => {
+        c.setConnected('PRIMARY-DEVICE-1234567890ABCDEF', true)
+        c.addLocalChanges('saves', [
+          {
+            action: 'changed',
+            type: 'file',
+            name: 'game1.sav',
+            modified: new Date().toISOString(),
+            size: 8192,
+          },
+          {
+            action: 'changed',
+            type: 'file',
+            name: 'game2.sav',
+            modified: new Date().toISOString(),
+            size: 4096,
+          },
+        ])
+      },
     })
-
-    controller.setConnected('PRIMARY-DEVICE-1234567890ABCDEF', true)
-    controller.addLocalChanges('saves', [
-      {
-        action: 'changed',
-        type: 'file',
-        name: 'game1.sav',
-        modified: new Date().toISOString(),
-        size: 8192,
-      },
-      {
-        action: 'changed',
-        type: 'file',
-        name: 'game2.sav',
-        modified: new Date().toISOString(),
-        size: 4096,
-      },
-    ])
-
-    const result = await launchWithFixture(fixture)
-    app = result.app
-    page = result.page
   })
 
   test.afterAll(async () => {
-    await app?.close()
-    fixture?.cleanup()
+    await cleanupSyncTest(ctx)
   })
 
-  test('navigates to sync view', async () => {
-    await page.getByRole('button', { name: 'Sync' }).click()
-    await expect(page.getByText('running')).toBeVisible()
+  test('shows local changes indicator and revert action', async () => {
+    await navigateToSync(ctx.page)
+    await expect(ctx.page.getByText(/local changes/)).toBeVisible()
+    await ctx.page.getByRole('button', { name: /Folders/ }).click()
+    await expect(ctx.page.getByText('Revert...')).toBeVisible()
   })
 
-  test('shows folders section with local changes indicator', async () => {
-    await expect(page.getByText(/local changes/)).toBeVisible()
-  })
-
-  test('can expand folders to see local change actions', async () => {
-    await page.getByRole('button', { name: /Folders/ }).click()
-    await expect(page.getByText('Revert...')).toBeVisible()
+  test('can open revert modal and see file list', async () => {
+    await ctx.page.getByText('Revert...').click()
+    await expect(ctx.page.getByText(/Revert local changes/)).toBeVisible()
+    await expect(ctx.page.getByText('game1.sav')).toBeVisible()
+    await expect(ctx.page.getByText('game2.sav')).toBeVisible()
+    await ctx.page.getByRole('button', { name: 'Cancel' }).click()
   })
 })
 
 test.describe('Sync view pairing UI when no devices paired (primary)', () => {
-  let fixture: TestFixture
-  let app: ElectronApplication
-  let page: Page
+  let ctx: SyncTestContext
 
   test.beforeAll(async () => {
-    fixture = createFixture(
-      {
+    ctx = await setupSyncTest({
+      config: {
         systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
         sync: { enabled: true, mode: 'primary' },
       },
-      { installedEmulators: {} },
-    )
-
-    setupFakeSyncthingApi(fixture, {
-      devices: [],
-      folders: [{ id: 'saves', path: '/home/test/Emulation/saves' }],
+      manifest: { installedEmulators: {} },
+      syncthing: {
+        devices: [],
+        folders: [{ id: 'saves', path: '/home/test/Emulation/saves' }],
+      },
     })
-
-    const result = await launchWithFixture(fixture)
-    app = result.app
-    page = result.page
   })
 
   test.afterAll(async () => {
-    await app?.close()
-    fixture?.cleanup()
+    await cleanupSyncTest(ctx)
   })
 
-  test('navigates to sync view', async () => {
-    await page.getByRole('button', { name: 'Sync' }).click()
-    await expect(page.getByText('running')).toBeVisible()
-  })
-
-  test('shows pairing prompt for primary with no devices', async () => {
-    await expect(page.getByText('Pair a device')).toBeVisible()
-  })
-
-  test('shows start pairing button', async () => {
-    await expect(page.getByRole('button', { name: 'Start pairing' })).toBeVisible()
-  })
-
-  test('shows waiting for device connection message', async () => {
-    await expect(page.getByText('Waiting for device connection')).toBeVisible()
+  test('shows pairing UI for primary with no devices', async () => {
+    await navigateToSync(ctx.page)
+    await expect(ctx.page.getByText('Pair a device')).toBeVisible()
+    await expect(ctx.page.getByRole('button', { name: 'Start pairing' })).toBeVisible()
+    await expect(ctx.page.getByText('Waiting for device connection')).toBeVisible()
   })
 })
 
 test.describe('Sync view discovery UI when no devices paired (secondary)', () => {
-  let fixture: TestFixture
-  let app: ElectronApplication
-  let page: Page
+  let ctx: SyncTestContext
 
   test.beforeAll(async () => {
-    fixture = createFixture(
-      {
+    ctx = await setupSyncTest({
+      config: {
         systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
         sync: { enabled: true, mode: 'secondary' },
       },
-      { installedEmulators: {} },
-    )
-
-    setupFakeSyncthingApi(fixture, {
-      devices: [],
-      folders: [{ id: 'saves', path: '/home/test/Emulation/saves' }],
+      manifest: { installedEmulators: {} },
+      syncthing: {
+        devices: [],
+        folders: [{ id: 'saves', path: '/home/test/Emulation/saves' }],
+      },
     })
-
-    const result = await launchWithFixture(fixture)
-    app = result.app
-    page = result.page
   })
 
   test.afterAll(async () => {
-    await app?.close()
-    fixture?.cleanup()
+    await cleanupSyncTest(ctx)
   })
 
-  test('navigates to sync view', async () => {
-    await page.getByRole('button', { name: 'Sync' }).click()
-    await expect(page.getByText('running')).toBeVisible()
+  test('shows discovery UI for secondary with no devices', async () => {
+    await navigateToSync(ctx.page)
+    await expect(ctx.page.getByText('Connect to primary')).toBeVisible()
+    await expect(ctx.page.getByText('Enter device ID manually')).toBeVisible()
+  })
+})
+
+test.describe('Sync view settings section', () => {
+  let ctx: SyncTestContext
+
+  test.beforeAll(async () => {
+    ctx = await setupSyncTest({
+      config: {
+        systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
+        sync: { enabled: true, mode: 'primary' },
+      },
+      manifest: { installedEmulators: {} },
+      syncthing: {
+        devices: [{ deviceID: 'REMOTE-DEVICE-1234567890ABCDEF', name: 'Steam Deck' }],
+        folders: [{ id: 'saves', path: '/home/test/Emulation/saves' }],
+      },
+      setup: (c) => c.setConnected('REMOTE-DEVICE-1234567890ABCDEF', true),
+    })
   })
 
-  test('shows connect to primary prompt for secondary with no devices', async () => {
-    await expect(page.getByText('Connect to primary')).toBeVisible()
+  test.afterAll(async () => {
+    await cleanupSyncTest(ctx)
   })
 
-  test('shows manual device ID entry option', async () => {
-    await expect(page.getByText('Enter device ID manually')).toBeVisible()
+  test('can expand settings to see reset option', async () => {
+    await navigateToSync(ctx.page)
+    await ctx.page.getByRole('button', { name: /Settings/ }).click()
+    await expect(ctx.page.getByRole('button', { name: 'Reset sync' })).toBeVisible()
+    await expect(ctx.page.getByText('Open Syncthing web interface')).toBeVisible()
+  })
+})
+
+test.describe('Sync view with multiple folders', () => {
+  let ctx: SyncTestContext
+
+  test.beforeAll(async () => {
+    ctx = await setupSyncTest({
+      config: {
+        systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
+        sync: { enabled: true, mode: 'primary' },
+      },
+      manifest: { installedEmulators: {} },
+      syncthing: {
+        devices: [{ deviceID: 'REMOTE-DEVICE-1234567890ABCDEF', name: 'Steam Deck' }],
+        folders: [
+          { id: 'saves', path: '/home/test/Emulation/saves' },
+          { id: 'states', path: '/home/test/Emulation/states' },
+          { id: 'screenshots', path: '/home/test/Emulation/screenshots' },
+        ],
+      },
+      setup: (c) => c.setConnected('REMOTE-DEVICE-1234567890ABCDEF', true),
+    })
+  })
+
+  test.afterAll(async () => {
+    await cleanupSyncTest(ctx)
+  })
+
+  test('shows folder count and can expand to see all folders', async () => {
+    await navigateToSync(ctx.page)
+    await expect(ctx.page.getByText(/Folders \(3\)/)).toBeVisible()
+    await ctx.page.getByRole('button', { name: /Folders/ }).click()
+    await expect(ctx.page.getByText('saves')).toBeVisible()
+    await expect(ctx.page.getByText('states')).toBeVisible()
+    await expect(ctx.page.getByText('screenshots')).toBeVisible()
+  })
+})
+
+test.describe('Sync view remove device flow', () => {
+  let ctx: SyncTestContext
+
+  test.beforeAll(async () => {
+    ctx = await setupSyncTest({
+      config: {
+        systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
+        sync: { enabled: true, mode: 'primary' },
+      },
+      manifest: { installedEmulators: {} },
+      syncthing: {
+        devices: [{ deviceID: 'DEVICE-TO-REMOVE-1234567890AB', name: 'Old Device' }],
+        folders: [{ id: 'saves', path: '/home/test/Emulation/saves' }],
+      },
+      setup: (c) => c.setConnected('DEVICE-TO-REMOVE-1234567890AB', true),
+    })
+  })
+
+  test.afterAll(async () => {
+    await cleanupSyncTest(ctx)
+  })
+
+  test('can remove a paired device', async () => {
+    await navigateToSync(ctx.page)
+    await expect(ctx.page.getByText(/Old Device/)).toBeVisible()
+    await ctx.page.getByRole('button', { name: 'Remove device' }).click()
+    await expect(ctx.page.getByText(/Old Device/)).not.toBeVisible()
+    await expect(ctx.page.getByText('Pair a device')).toBeVisible()
   })
 })
