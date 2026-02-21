@@ -8,25 +8,27 @@ import (
 )
 
 type FakeClient struct {
-	mu             gosync.Mutex
-	running        bool
-	deviceID       string
-	connections    map[string]ConnectionInfo
-	addedPeers     []ConfiguredDevice
-	removedIDs     []string
-	sharedWith     []string
-	config         model.SyncConfig
-	folders        map[string]FolderStatusSummary
-	discoveredDevs []DiscoveredDevice
-	pendingDevs    []PendingDevice
+	mu                gosync.Mutex
+	running           bool
+	deviceID          string
+	connections       map[string]ConnectionInfo
+	addedPeers        []ConfiguredDevice
+	removedIDs        []string
+	sharedWith        []string
+	config            model.SyncConfig
+	folders           map[string]FolderStatusSummary
+	discoveredDevs    []DiscoveredDevice
+	pendingDevs       []PendingDevice
+	deviceCompletions map[string]CompletionResponse
 }
 
 func NewFakeClient(config model.SyncConfig) *FakeClient {
 	return &FakeClient{
-		running:     true,
-		connections: make(map[string]ConnectionInfo),
-		folders:     make(map[string]FolderStatusSummary),
-		config:      config,
+		running:           true,
+		connections:       make(map[string]ConnectionInfo),
+		folders:           make(map[string]FolderStatusSummary),
+		deviceCompletions: make(map[string]CompletionResponse),
+		config:            config,
 	}
 }
 
@@ -265,6 +267,21 @@ func (c *FakeClient) ShareFoldersWithDevice(_ context.Context, deviceID string) 
 	defer c.mu.Unlock()
 	c.sharedWith = append(c.sharedWith, deviceID)
 	return nil
+}
+
+func (c *FakeClient) SetDeviceCompletion(deviceID string, completion CompletionResponse) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.deviceCompletions[deviceID] = completion
+}
+
+func (c *FakeClient) GetDeviceCompletion(_ context.Context, deviceID string) (*CompletionResponse, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if comp, ok := c.deviceCompletions[deviceID]; ok {
+		return &comp, nil
+	}
+	return &CompletionResponse{Completion: 100}, nil
 }
 
 var _ SyncClient = (*FakeClient)(nil)

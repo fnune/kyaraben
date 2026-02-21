@@ -32,7 +32,10 @@ function DeviceRow({
       return { dotClass: 'bg-status-warning', label: 'paused' }
     }
     if (device.connected) {
-      return { dotClass: 'bg-status-ok', label: 'connected' }
+      if (device.completion !== undefined && device.completion < 100) {
+        return { dotClass: 'bg-accent', label: `${device.completion}% synced` }
+      }
+      return { dotClass: 'bg-status-ok', label: 'synced' }
     }
     return { dotClass: 'bg-outline', label: 'offline' }
   }

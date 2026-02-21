@@ -52,6 +52,12 @@ interface ConnectionState {
   paused: boolean
 }
 
+interface DeviceCompletion {
+  completion: number
+  globalBytes: number
+  needBytes: number
+}
+
 interface ServerState {
   myID: string
   devices: Map<string, Device>
@@ -60,6 +66,7 @@ interface ServerState {
   connections: Map<string, ConnectionState>
   localChanges: Map<string, LocalChange[]>
   pendingDevices: Map<string, PendingDevice>
+  deviceCompletions: Map<string, DeviceCompletion>
 }
 
 export class FakeSyncthingController {
@@ -74,6 +81,7 @@ export class FakeSyncthingController {
       connections: new Map(),
       localChanges: new Map(),
       pendingDevices: new Map(),
+      deviceCompletions: new Map(),
     }
   }
 
@@ -167,6 +175,14 @@ export class FakeSyncthingController {
     this.state.pendingDevices.delete(deviceID)
   }
 
+  setDeviceCompletion(deviceID: string, completion: number, needBytes = 0, globalBytes = 0): void {
+    this.state.deviceCompletions.set(deviceID, {
+      completion,
+      needBytes,
+      globalBytes,
+    })
+  }
+
   getState(): ServerState {
     return this.state
   }
@@ -248,6 +264,32 @@ export function startFakeSyncthingServer(
       }
       res.writeHead(200)
       res.end(JSON.stringify({ connections }))
+      return
+    }
+
+    if (req.method === 'GET' && url.pathname === '/rest/db/completion') {
+      const deviceID = url.searchParams.get('device')
+      if (!deviceID) {
+        res.writeHead(400)
+        res.end(JSON.stringify({ error: 'device parameter required' }))
+        return
+      }
+      const completion = state.deviceCompletions.get(deviceID) ?? {
+        completion: 100,
+        needBytes: 0,
+        globalBytes: 0,
+      }
+      res.writeHead(200)
+      res.end(
+        JSON.stringify({
+          completion: completion.completion,
+          globalBytes: completion.globalBytes,
+          needBytes: completion.needBytes,
+          globalItems: 0,
+          needItems: 0,
+          needDeletes: 0,
+        }),
+      )
       return
     }
 

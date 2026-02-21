@@ -94,9 +94,41 @@ test.describe('Sync view with connected device showing synced status', () => {
 
   test('shows running state with connected device', async () => {
     await navigateToSync(ctx.page)
-    await expect(ctx.page.getByText('connected', { exact: true })).toBeVisible()
+    await expect(ctx.page.getByText('synced', { exact: true })).toBeVisible()
     await expect(ctx.page.getByText(/Steam Deck/)).toBeVisible()
     await expect(ctx.page.getByText('All synced')).toBeVisible()
+  })
+})
+
+test.describe('Sync view primary showing remote device completion', () => {
+  let ctx: SyncTestContext
+
+  test.beforeAll(async () => {
+    ctx = await setupSyncTest({
+      config: {
+        systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
+        sync: { enabled: true, mode: 'primary' },
+      },
+      manifest: { installedEmulators: {} },
+      syncthing: {
+        devices: [{ deviceID: 'REMOTE-DEVICE-1234567890ABCDEF', name: 'Steam Deck' }],
+        folders: [{ id: 'saves', path: '/home/test/Emulation/saves' }],
+      },
+      setup: (c) => {
+        c.setConnected('REMOTE-DEVICE-1234567890ABCDEF', true)
+        c.setDeviceCompletion('REMOTE-DEVICE-1234567890ABCDEF', 75, 25_000_000, 100_000_000)
+      },
+    })
+  })
+
+  test.afterAll(async () => {
+    await cleanupSyncTest(ctx)
+  })
+
+  test('shows device completion percentage when syncing', async () => {
+    await navigateToSync(ctx.page)
+    await expect(ctx.page.getByText(/Steam Deck/)).toBeVisible()
+    await expect(ctx.page.getByText('75% synced')).toBeVisible()
   })
 })
 
