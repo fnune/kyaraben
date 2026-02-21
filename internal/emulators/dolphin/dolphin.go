@@ -205,17 +205,56 @@ func gcPadProfileEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	return gcPadBindingEntries(cc, "Profile", false)
 }
 
+// dolphinButtonName maps SDL button names to Dolphin's naming scheme.
+func dolphinButtonName(b model.SDLButton) string {
+	switch b {
+	case model.ButtonA:
+		return "`Button S`"
+	case model.ButtonB:
+		return "`Button E`"
+	case model.ButtonX:
+		return "`Button W`"
+	case model.ButtonY:
+		return "`Button N`"
+	case model.ButtonBack:
+		return "Back"
+	case model.ButtonStart:
+		return "Start"
+	case model.ButtonLeftShoulder:
+		return "`Shoulder L`"
+	case model.ButtonRightShoulder:
+		return "`Shoulder R`"
+	case model.ButtonLeftTrigger:
+		return "`Trigger L`"
+	case model.ButtonRightTrigger:
+		return "`Trigger R`"
+	case model.ButtonLeftStick:
+		return "`Thumb L`"
+	case model.ButtonRightStick:
+		return "`Thumb R`"
+	case model.ButtonDPadUp:
+		return "`Pad N`"
+	case model.ButtonDPadDown:
+		return "`Pad S`"
+	case model.ButtonDPadLeft:
+		return "`Pad W`"
+	case model.ButtonDPadRight:
+		return "`Pad E`"
+	default:
+		return string(b)
+	}
+}
+
 func dolphinHotkeyChord(binding model.HotkeyBinding) string {
 	if len(binding.Buttons) == 0 {
 		return ""
 	}
 	if len(binding.Buttons) == 1 {
-		return string(binding.Buttons[0])
+		return dolphinButtonName(binding.Buttons[0])
 	}
-	// Dolphin chord notation: modifier button + @(modifier+`action button`)
 	parts := make([]string, len(binding.Buttons))
 	for i, b := range binding.Buttons {
-		parts[i] = string(b)
+		parts[i] = dolphinButtonName(b)
 	}
 	return "@(" + strings.Join(parts, "+") + ")"
 }

@@ -116,7 +116,7 @@ func azaharStickRef(guid string, port, axisX, axisY int) string {
 func profileEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	south, east, west, north := cc.FaceButtons()
 	section := "Controls"
-	guid := model.SteamDeckGUID
+	guid := model.AzaharGUID
 
 	// 3DS maps: A=east, B=south, X=north, Y=west (Nintendo layout).
 	faceMap := map[string]model.SDLButton{
@@ -135,10 +135,10 @@ func profileEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 		{Path: []string{section, prefix + "button_b"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[faceMap["b"]]))},
 		{Path: []string{section, prefix + "button_x"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[faceMap["x"]]))},
 		{Path: []string{section, prefix + "button_y"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[faceMap["y"]]))},
-		{Path: []string{section, prefix + "button_l"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonLeftShoulder]))},
-		{Path: []string{section, prefix + "button_r"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonRightShoulder]))},
-		{Path: []string{section, prefix + "button_zl"}, Value: fmt.Sprintf(`"%s"`, azaharAxisRef(guid, 0, model.AxisLeftTrigger, "+"))},
-		{Path: []string{section, prefix + "button_zr"}, Value: fmt.Sprintf(`"%s"`, azaharAxisRef(guid, 0, model.AxisRightTrigger, "+"))},
+		{Path: []string{section, prefix + "button_l"}, Value: fmt.Sprintf(`"%s"`, azaharAxisRef(guid, 0, model.AxisLeftTrigger, "+"))},
+		{Path: []string{section, prefix + "button_r"}, Value: fmt.Sprintf(`"%s"`, azaharAxisRef(guid, 0, model.AxisRightTrigger, "+"))},
+		{Path: []string{section, prefix + "button_zl"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonLeftShoulder]))},
+		{Path: []string{section, prefix + "button_zr"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonRightShoulder]))},
 		{Path: []string{section, prefix + "button_start"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonStart]))},
 		{Path: []string{section, prefix + "button_select"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonBack]))},
 		{Path: []string{section, prefix + "button_up"}, Value: fmt.Sprintf(`"%s"`, azaharHatRef(guid, 0, 0, "up"))},
