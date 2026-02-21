@@ -464,13 +464,13 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 
 	syncWasStopped := false
 	if cfg.Sync.Enabled {
-		syncWasStopped = d.stopSyncthing(cfg)
-		if syncWasStopped && emit != nil {
+		if emit != nil {
 			emit(Event{
 				Type: EventTypeProgress,
 				Data: ProgressEvent{Step: "sync-pause", Message: "Pausing sync"},
 			})
 		}
+		syncWasStopped = d.stopSyncthing(cfg)
 	}
 
 	applier := apply.NewApplier(
