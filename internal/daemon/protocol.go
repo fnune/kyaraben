@@ -61,14 +61,15 @@ type InstalledEmulator struct {
 	Paths          map[string]EmulatorPaths `json:"paths,omitempty"`
 }
 
-type ManagedConfigInfo struct {
-	Path string           `json:"path"`
-	Keys []ManagedKeyInfo `json:"keys"`
+type ManagedRegionInfo struct {
+	Type      string `json:"type"`
+	Section   string `json:"section,omitempty"`
+	KeyPrefix string `json:"keyPrefix,omitempty"`
 }
 
-type ManagedKeyInfo struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
+type ManagedConfigInfo struct {
+	Path           string              `json:"path"`
+	ManagedRegions []ManagedRegionInfo `json:"managedRegions,omitempty"`
 }
 
 type SymlinkInfo struct {
@@ -374,12 +375,13 @@ type PreflightResponse struct {
 }
 
 type ConfigFileDiff struct {
-	Path         string               `json:"path"`
-	IsNewFile    bool                 `json:"isNewFile"`
-	HasChanges   bool                 `json:"hasChanges"`
-	UserModified bool                 `json:"userModified"`
-	UserChanges  []UserChangeDetail   `json:"userChanges,omitempty"`
-	Changes      []ConfigChangeDetail `json:"changes,omitempty"`
+	Path           string               `json:"path"`
+	IsNewFile      bool                 `json:"isNewFile"`
+	HasChanges     bool                 `json:"hasChanges"`
+	UserModified   bool                 `json:"userModified"`
+	UserChanges    []UserChangeDetail   `json:"userChanges,omitempty"`
+	Changes        []ConfigChangeDetail `json:"changes,omitempty"`
+	ManagedRegions []ManagedRegionInfo  `json:"managedRegions,omitempty"`
 }
 
 type UserChangeDetail struct {

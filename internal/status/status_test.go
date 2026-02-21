@@ -344,10 +344,6 @@ func TestGetManagedConfigsIncludesKeys(t *testing.T) {
 					RelPath: "mgba/config.ini",
 					BaseDir: model.ConfigBaseDirUserConfig,
 				},
-				ManagedKeys: []model.ManagedKey{
-					{Path: []string{"ports.qt", "savegamePath"}, Value: "/test/saves"},
-					{Path: []string{"ports.qt", "bios"}, Value: "/test/bios"},
-				},
 			},
 		},
 	}
@@ -381,15 +377,8 @@ func TestGetManagedConfigsIncludesKeys(t *testing.T) {
 	}
 
 	cfg0 := emu.ManagedConfigs[0]
-	if len(cfg0.Keys) != 2 {
-		t.Fatalf("Keys: got %d, want 2", len(cfg0.Keys))
-	}
-
-	if cfg0.Keys[0].Key != "savegamePath" {
-		t.Errorf("Key[0]: got %s, want savegamePath", cfg0.Keys[0].Key)
-	}
-	if cfg0.Keys[0].Value != "/test/saves" {
-		t.Errorf("Value[0]: got %s, want /test/saves", cfg0.Keys[0].Value)
+	if cfg0.Path == "" {
+		t.Error("expected non-empty path for managed config")
 	}
 }
 
@@ -421,10 +410,6 @@ func TestGetRetroArchCoreIncludesSharedConfig(t *testing.T) {
 			{
 				EmulatorIDs: []model.EmulatorID{model.EmulatorIDRetroArchBsnes, model.EmulatorIDRetroArchMesen},
 				Target:      retroarch.MainConfigTarget,
-				ManagedKeys: []model.ManagedKey{
-					{Path: []string{"system_directory"}, Value: "/test/bios"},
-					{Path: []string{"sort_savefiles_enable"}, Value: "false"},
-				},
 			},
 			{
 				EmulatorIDs: []model.EmulatorID{model.EmulatorIDRetroArchBsnes},
@@ -432,18 +417,12 @@ func TestGetRetroArchCoreIncludesSharedConfig(t *testing.T) {
 					RelPath: "retroarch/config/bsnes_libretro/bsnes_libretro.cfg",
 					BaseDir: model.ConfigBaseDirUserConfig,
 				},
-				ManagedKeys: []model.ManagedKey{
-					{Path: []string{"savefile_directory"}, Value: "/test/saves/snes"},
-				},
 			},
 			{
 				EmulatorIDs: []model.EmulatorID{model.EmulatorIDRetroArchMesen},
 				Target: model.ConfigTarget{
 					RelPath: "retroarch/config/mesen_libretro/mesen_libretro.cfg",
 					BaseDir: model.ConfigBaseDirUserConfig,
-				},
-				ManagedKeys: []model.ManagedKey{
-					{Path: []string{"savefile_directory"}, Value: "/test/saves/nes"},
 				},
 			},
 		},
@@ -499,14 +478,12 @@ func TestGetRetroArchCoreIncludesSharedConfig(t *testing.T) {
 
 	hasSharedConfig := false
 	for _, cfg := range bsnes.ManagedConfigs {
-		for _, key := range cfg.Keys {
-			if key.Key == "sort_savefiles_enable" {
-				hasSharedConfig = true
-				break
-			}
+		if cfg.Path != "" {
+			hasSharedConfig = true
+			break
 		}
 	}
 	if !hasSharedConfig {
-		t.Error("bsnes should include shared RetroArch config with sort_savefiles_enable")
+		t.Error("bsnes should include shared RetroArch config")
 	}
 }

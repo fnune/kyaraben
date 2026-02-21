@@ -258,13 +258,11 @@ func TestManifest_AddManagedConfig_MergesEmulatorIDs(t *testing.T) {
 
 	m := NewManifest()
 	target := ConfigTarget{RelPath: "config.ini", BaseDir: ConfigBaseDirUserConfig}
-	keys := []ManagedKey{{Path: []string{"key"}, Value: "value"}}
 
 	if err := m.AddManagedConfig(ManagedConfig{
 		EmulatorIDs:  []EmulatorID{"emu1"},
 		Target:       target,
 		BaselineHash: "hash1",
-		ManagedKeys:  keys,
 	}); err != nil {
 		t.Fatalf("AddManagedConfig failed: %v", err)
 	}
@@ -272,7 +270,6 @@ func TestManifest_AddManagedConfig_MergesEmulatorIDs(t *testing.T) {
 		EmulatorIDs:  []EmulatorID{"emu2"},
 		Target:       target,
 		BaselineHash: "hash2",
-		ManagedKeys:  keys,
 	}); err != nil {
 		t.Fatalf("AddManagedConfig failed: %v", err)
 	}
@@ -363,18 +360,20 @@ func TestManifest_AddManagedConfig_UpdatesKeysOnChange(t *testing.T) {
 	m := NewManifest()
 	target := ConfigTarget{RelPath: "shared.cfg", BaseDir: ConfigBaseDirUserConfig}
 
+	regions1 := ManagedRegions{SectionRegion{Section: "sec", KeyPrefix: "pfx1"}}
 	if err := m.AddManagedConfig(ManagedConfig{
-		EmulatorIDs: []EmulatorID{"emu1"},
-		Target:      target,
-		ManagedKeys: []ManagedKey{{Path: []string{"key"}, Value: "value1"}},
+		EmulatorIDs:    []EmulatorID{"emu1"},
+		Target:         target,
+		ManagedRegions: regions1,
 	}); err != nil {
 		t.Fatalf("first AddManagedConfig failed: %v", err)
 	}
 
+	regions2 := ManagedRegions{SectionRegion{Section: "sec", KeyPrefix: "pfx2"}}
 	err := m.AddManagedConfig(ManagedConfig{
-		EmulatorIDs: []EmulatorID{"emu2"},
-		Target:      target,
-		ManagedKeys: []ManagedKey{{Path: []string{"key"}, Value: "different_value"}},
+		EmulatorIDs:    []EmulatorID{"emu2"},
+		Target:         target,
+		ManagedRegions: regions2,
 	})
 
 	if err != nil {
@@ -389,8 +388,15 @@ func TestManifest_AddManagedConfig_UpdatesKeysOnChange(t *testing.T) {
 	if len(cfg.EmulatorIDs) != 2 {
 		t.Errorf("expected 2 emulator IDs, got %d", len(cfg.EmulatorIDs))
 	}
-	if len(cfg.ManagedKeys) != 1 || cfg.ManagedKeys[0].Value != "different_value" {
-		t.Errorf("expected keys to be updated to new value, got %v", cfg.ManagedKeys)
+	if len(cfg.ManagedRegions) != 1 {
+		t.Errorf("expected 1 managed region, got %d", len(cfg.ManagedRegions))
+	}
+	sr, ok := cfg.ManagedRegions[0].(SectionRegion)
+	if !ok {
+		t.Fatalf("expected SectionRegion, got %T", cfg.ManagedRegions[0])
+	}
+	if sr.KeyPrefix != "pfx2" {
+		t.Errorf("expected managed region to be updated to new value, got %v", sr.KeyPrefix)
 	}
 }
 

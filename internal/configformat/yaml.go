@@ -32,7 +32,7 @@ func (h *yamlHandler) Read(path string) (map[string]map[string]string, error) {
 	return result, nil
 }
 
-func (h *yamlHandler) Apply(path string, entries []model.ConfigEntry, _ []model.OwnedRegion) (ApplyResult, error) {
+func (h *yamlHandler) Apply(path string, entries []model.ConfigEntry, _ []model.ManagedRegion) (ApplyResult, error) {
 	if err := vfs.MkdirAll(h.fs, filepath.Dir(path), 0755); err != nil {
 		return ApplyResult{}, fmt.Errorf("creating config directory: %w", err)
 	}
@@ -45,7 +45,7 @@ func (h *yamlHandler) Apply(path string, entries []model.ConfigEntry, _ []model.
 	}
 
 	for _, entry := range entries {
-		if entry.Unmanaged && hasNestedValue(existing, entry.Path) {
+		if entry.DefaultOnly && hasNestedValue(existing, entry.Path) {
 			continue
 		}
 		setNestedValue(existing, entry.Path, entry.Value)
