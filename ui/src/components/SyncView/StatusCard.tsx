@@ -138,10 +138,37 @@ function DiscoveredDeviceRow({
   )
 }
 
+function PairingCodeDisplay({ code }: { readonly code: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(code)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }, [code])
+
+  return (
+    <div className="flex items-center gap-3">
+      <code className="bg-surface-raised px-4 py-3 rounded-sm font-mono text-2xl tracking-[0.3em] text-accent">
+        {code}
+      </code>
+      <button
+        type="button"
+        onClick={handleCopy}
+        className="p-2 text-on-surface-muted hover:text-on-surface rounded"
+        title={copied ? 'Copied!' : 'Copy code'}
+      >
+        <CopyIcon className="w-5 h-5" />
+      </button>
+    </div>
+  )
+}
+
 interface PrimaryPairingContentProps {
   readonly status: SyncStatusResponse
   readonly isPairing: boolean
   readonly pairingDeviceId: string | null
+  readonly pairingCode: string | null
   readonly onStartPairing: () => Promise<void>
   readonly onStopPairing: () => Promise<void>
 }
@@ -150,28 +177,55 @@ function PrimaryPairingContent({
   status,
   isPairing,
   pairingDeviceId,
+  pairingCode,
   onStartPairing,
   onStopPairing,
 }: PrimaryPairingContentProps) {
+  const [showDeviceId, setShowDeviceId] = useState(false)
   const hasDevices = (status.devices?.length ?? 0) > 0
 
-  if (isPairing && pairingDeviceId) {
+  if (isPairing && (pairingCode || pairingDeviceId)) {
     return (
       <div className="mt-4 pt-4 border-t border-outline">
         <h4 className="text-sm font-medium text-on-surface mb-2">Pairing mode</h4>
-        <p className="text-sm text-on-surface-muted mb-3">
-          Share this device ID with your secondary device. It will appear in the Sync tab.
-        </p>
-        <DeviceIdDisplay deviceId={pairingDeviceId} />
+        {pairingCode ? (
+          <>
+            <p className="text-sm text-on-surface-muted mb-3">
+              Enter this code on your secondary device to pair.
+            </p>
+            <PairingCodeDisplay code={pairingCode} />
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-on-surface-muted mb-3">
+              Share this device ID with your secondary device.
+            </p>
+            {pairingDeviceId && <DeviceIdDisplay deviceId={pairingDeviceId} />}
+          </>
+        )}
         <div className="flex items-center gap-3 mt-4">
           <Spinner />
           <span className="text-sm text-on-surface-muted">Waiting for devices to connect...</span>
         </div>
-        <div className="mt-4">
+        <div className="mt-4 flex items-center gap-3">
           <Button variant="secondary" onClick={onStopPairing}>
             Stop pairing
           </Button>
+          {pairingCode && pairingDeviceId && (
+            <button
+              type="button"
+              onClick={() => setShowDeviceId(!showDeviceId)}
+              className="text-sm text-accent hover:underline"
+            >
+              {showDeviceId ? 'Hide device ID' : 'Show device ID'}
+            </button>
+          )}
         </div>
+        {showDeviceId && pairingDeviceId && (
+          <div className="mt-3">
+            <DeviceIdDisplay deviceId={pairingDeviceId} />
+          </div>
+        )}
       </div>
     )
   }
@@ -210,9 +264,20 @@ function SecondaryDiscoveryContent({
   isConnecting,
   onConnectToDevice,
 }: SecondaryDiscoveryContentProps) {
+  const [pairingCode, setPairingCode] = useState('')
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const [manualDeviceId, setManualDeviceId] = useState('')
-  const [showManualInput, setShowManualInput] = useState(false)
   const hasDevices = (status.devices?.length ?? 0) > 0
+
+  const handleConnectWithCode = useCallback(async () => {
+    const trimmed = pairingCode.trim().toUpperCase()
+    if (trimmed) {
+      const result = await onConnectToDevice(trimmed)
+      if (result.ok) {
+        setPairingCode('')
+      }
+    }
+  }, [pairingCode, onConnectToDevice])
 
   const handleConnectManual = useCallback(async () => {
     const trimmed = manualDeviceId.trim().toUpperCase()
@@ -220,7 +285,7 @@ function SecondaryDiscoveryContent({
       const result = await onConnectToDevice(trimmed)
       if (result.ok) {
         setManualDeviceId('')
-        setShowManualInput(false)
+        setShowAdvanced(false)
       }
     }
   }, [manualDeviceId, onConnectToDevice])
@@ -247,28 +312,20 @@ function SecondaryDiscoveryContent({
     <div className="mt-4 pt-4 border-t border-outline">
       <h4 className="text-sm font-medium text-on-surface mb-2">Connect to primary</h4>
       <p className="text-sm text-on-surface-muted mb-3">
-        Select a kyaraben primary device from your network to start syncing.
+        Enter the pairing code from your primary device.
       </p>
 
-      {isDiscovering && discoveredDevices.length === 0 && (
-        <div className="flex items-center gap-3 mb-4">
-          <Spinner />
-          <span className="text-sm text-on-surface-muted">Searching for devices...</span>
-        </div>
-      )}
-
-      {discoveredDevices.length > 0 && (
-        <div className="border border-outline rounded-card px-3 bg-surface mb-4">
-          {discoveredDevices.map((device) => (
-            <DiscoveredDeviceRow
-              key={device.deviceId}
-              device={device}
-              onConnect={() => onConnectToDevice(device.deviceId)}
-              isConnecting={isConnecting}
-            />
-          ))}
-        </div>
-      )}
+      <div className="space-y-3 mb-4">
+        <Input
+          value={pairingCode}
+          onChange={setPairingCode}
+          placeholder="ABC123"
+          className="font-mono text-lg tracking-wider uppercase"
+        />
+        <Button onClick={handleConnectWithCode} disabled={!pairingCode.trim() || isConnecting}>
+          {isConnecting ? 'Connecting...' : 'Connect'}
+        </Button>
+      </div>
 
       {connectionError && (
         <div className="p-3 bg-status-error/10 border border-status-error/30 rounded text-sm text-status-error mb-4">
@@ -276,33 +333,58 @@ function SecondaryDiscoveryContent({
         </div>
       )}
 
-      {showManualInput ? (
-        <div className="space-y-3">
-          <p className="text-sm text-on-surface-muted">
-            Enter the device ID from the primary device:
-          </p>
-          <Input
-            value={manualDeviceId}
-            onChange={setManualDeviceId}
-            placeholder="XXXXXXX-XXXXXXX-XXXXXXX-..."
-          />
-          <div className="flex gap-2">
-            <Button onClick={handleConnectManual} disabled={!manualDeviceId.trim()}>
-              Connect
-            </Button>
-            <Button variant="secondary" onClick={() => setShowManualInput(false)}>
-              Cancel
-            </Button>
+      <button
+        type="button"
+        onClick={() => setShowAdvanced(!showAdvanced)}
+        className="text-sm text-accent hover:underline"
+      >
+        {showAdvanced ? 'Hide advanced options' : 'Advanced options'}
+      </button>
+
+      {showAdvanced && (
+        <div className="mt-4 space-y-4">
+          {isDiscovering && discoveredDevices.length === 0 && (
+            <div className="flex items-center gap-3">
+              <Spinner />
+              <span className="text-sm text-on-surface-muted">
+                Searching for devices on local network...
+              </span>
+            </div>
+          )}
+
+          {discoveredDevices.length > 0 && (
+            <div>
+              <p className="text-sm text-on-surface-muted mb-2">Devices found on local network:</p>
+              <div className="border border-outline rounded-card px-3 bg-surface">
+                {discoveredDevices.map((device) => (
+                  <DiscoveredDeviceRow
+                    key={device.deviceId}
+                    device={device}
+                    onConnect={() => onConnectToDevice(device.deviceId)}
+                    isConnecting={isConnecting}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <p className="text-sm text-on-surface-muted mb-2">Or enter a device ID manually:</p>
+            <div className="space-y-3">
+              <Input
+                value={manualDeviceId}
+                onChange={setManualDeviceId}
+                placeholder="XXXXXXX-XXXXXXX-XXXXXXX-..."
+              />
+              <Button
+                onClick={handleConnectManual}
+                disabled={!manualDeviceId.trim() || isConnecting}
+              >
+                Connect with device ID
+              </Button>
+            </div>
           </div>
         </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setShowManualInput(true)}
-          className="text-sm text-accent hover:underline"
-        >
-          Enter device ID manually
-        </button>
       )}
     </div>
   )
@@ -317,6 +399,7 @@ export interface StatusCardProps {
   readonly isConnecting: boolean
   readonly isPairing: boolean
   readonly pairingDeviceId: string | null
+  readonly pairingCode: string | null
   readonly onRemoveDevice: (deviceId: string) => Promise<void>
   readonly onConnectToDevice: (deviceId: string) => Promise<{ ok: boolean; error?: string }>
   readonly onStartPairing: () => Promise<void>
@@ -332,6 +415,7 @@ export function StatusCard({
   isConnecting,
   isPairing,
   pairingDeviceId,
+  pairingCode,
   onRemoveDevice,
   onConnectToDevice,
   onStartPairing,
@@ -361,6 +445,7 @@ export function StatusCard({
           status={status}
           isPairing={isPairing}
           pairingDeviceId={pairingDeviceId}
+          pairingCode={pairingCode}
           onStartPairing={onStartPairing}
           onStopPairing={onStopPairing}
         />

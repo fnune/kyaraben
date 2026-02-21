@@ -10,6 +10,7 @@ const (
 type SyncConfig struct {
 	Enabled   bool             `toml:"enabled"`
 	Mode      SyncMode         `toml:"mode"`
+	RelayURL  string           `toml:"relay_url,omitempty"`
 	Syncthing SyncthingConfig  `toml:"syncthing"`
 	Ignore    SyncIgnoreConfig `toml:"ignore"`
 }

@@ -16,6 +16,7 @@ export interface UseSyncPairingResult {
   isConnecting: boolean
   isPairing: boolean
   pairingDeviceId: string | null
+  pairingCode: string | null
   lastSyncedAt: Date | null
   handleRemoveDevice: (deviceId: string) => Promise<void>
   handleConnectToDevice: (deviceId: string) => Promise<{ ok: boolean; error?: string }>
@@ -43,6 +44,7 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
   const [isConnecting, setIsConnecting] = useState(false)
   const [isPairing, setIsPairing] = useState(false)
   const [pairingDeviceId, setPairingDeviceId] = useState<string | null>(null)
+  const [pairingCode, setPairingCode] = useState<string | null>(null)
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null)
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const discoveryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -204,6 +206,7 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
     setConnectionError(null)
     setIsPairing(false)
     setPairingDeviceId(null)
+    setPairingCode(null)
     const result = await daemon.resetSync()
     if (result.ok) {
       showToast('Sync reset.', 'info')
@@ -218,6 +221,7 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
     if (result.ok) {
       setIsPairing(true)
       setPairingDeviceId(result.data.deviceId)
+      setPairingCode(result.data.code ?? null)
       showToast('Pairing mode started.', 'info')
     } else {
       const errorMsg = result.error?.message ?? 'Failed to start pairing'
@@ -230,6 +234,7 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
     await daemon.cancelSyncPairing()
     setIsPairing(false)
     setPairingDeviceId(null)
+    setPairingCode(null)
   }, [])
 
   return {
@@ -243,6 +248,7 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
     isConnecting,
     isPairing,
     pairingDeviceId,
+    pairingCode,
     lastSyncedAt,
     handleRemoveDevice,
     handleConnectToDevice,

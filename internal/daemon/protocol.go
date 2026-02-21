@@ -26,7 +26,8 @@ type SyncRemoveDeviceRequest struct {
 
 type SyncJoinPrimaryRequest struct {
 	Code        string `json:"code"`
-	PairingAddr string `json:"pairingAddr"`
+	PairingAddr string `json:"pairingAddr,omitempty"`
+	DeviceID    string `json:"deviceId,omitempty"`
 }
 
 type SyncEnableRequest struct {
@@ -277,6 +278,7 @@ type SyncRemoveDeviceResponse struct {
 
 type SyncStartPairingResponse struct {
 	DeviceID string `json:"deviceId"`
+	Code     string `json:"code,omitempty"`
 }
 
 type SyncPairingCompleteResponse struct {
@@ -294,6 +296,7 @@ type SyncJoinPrimaryResponse struct {
 type SyncPairingProgressEvent struct {
 	Message  string `json:"message"`
 	DeviceID string `json:"deviceId,omitempty"`
+	Code     string `json:"code,omitempty"`
 }
 
 type SyncEnableProgressEvent struct {
