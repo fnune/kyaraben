@@ -36,7 +36,7 @@ export function RadioCard({
           >
             {title}
           </span>
-          <span className="block text-sm text-on-surface-muted">{description}</span>
+          <span className="block text-sm text-on-surface-muted truncate">{description}</span>
         </div>
       </div>
     </button>
