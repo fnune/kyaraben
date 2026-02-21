@@ -1154,6 +1154,47 @@ This is only useful for Eden and Azahar (Group C emulators). All other emulators
 
 Five emulators support external profile files: Eden, DuckStation, PCSX2, Dolphin, and Flycast. Kyaraben should write a `kyaraben-steamdeck.ini` profile file to each emulator's profile directory rather than inlining bindings into the main config. This cleanly separates kyaraben-managed profiles from user-created profiles. See the "Strategy 1: separate profile files" section above for the full design and per-emulator examples.
 
+## Implementation guidelines
+
+Controller bindings should work out of the box without requiring user interaction.
+
+### Principle: auto-apply with managed bindings
+
+1. Write bindings directly to the emulator's main config (e.g., `settings.ini`, `[Pad1]` sections). Do not rely on users loading a profile manually.
+
+2. Bindings are fully managed by kyaraben (overwritten on each apply). This ensures users get updated bindings when kyaraben improves its defaults.
+
+3. Apply bindings to all player slots by default (Pad1 through Pad4 for multiplayer emulators).
+
+4. For emulators with profile systems (DuckStation, PCSX2, Dolphin):
+   - Create a profile file as a reusable preset (fully managed)
+   - Write bindings to the main config for immediate functionality (fully managed)
+   - The profile selector (which profile is active) should be `DefaultOnly` so users can switch to their own profiles
+
+### Example pattern
+
+```go
+if cc := ctx.ControllerConfig; cc != nil {
+    // Profile selector: DefaultOnly so users can switch away
+    entries = append(entries, model.ConfigEntry{
+        Path:        []string{"ControllerPorts", "InputProfileName"},
+        Value:       "kyaraben-steamdeck",
+        DefaultOnly: true,
+    })
+
+    // Bindings: fully managed (no DefaultOnly)
+    entries = append(entries, padEntries(cc)...)
+    entries = append(entries, hotkeyEntries(cc)...)
+}
+```
+
+### Rationale
+
+- Users expect controllers to work immediately after setup
+- Managed bindings ensure users benefit from improved defaults in future versions
+- Profile selectors are `DefaultOnly` so users who create custom profiles can switch away
+- Profile files serve as reusable presets that kyaraben keeps updated
+
 ## Sources
 
 - [SDL GameControllerDB](https://github.com/mdqinc/SDL_GameControllerDB)
