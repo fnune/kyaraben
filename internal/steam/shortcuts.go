@@ -179,10 +179,10 @@ func (m *Manager) writeGridAssets(userID string, appID uint32, assets *GridAsset
 		suffix string
 	}
 	assetList := []asset{
-		{assets.Grid, ".png"},
-		{assets.Hero, "_hero.png"},
+		{assets.Grid, ".jpg"},
+		{assets.Hero, "_hero.jpg"},
 		{assets.Logo, "_logo.png"},
-		{assets.Capsule, "p.png"},
+		{assets.Capsule, "p.jpg"},
 	}
 
 	for _, a := range assetList {
@@ -247,7 +247,7 @@ func (m *Manager) RemoveShortcuts(appIDs []uint32) error {
 }
 
 func (m *Manager) removeGridAssets(gridDir string, appID uint32) {
-	suffixes := []string{".png", "_hero.png", "_logo.png", "p.png"}
+	suffixes := []string{".jpg", ".png", "_hero.jpg", "_hero.png", "_logo.png", "p.jpg", "p.png"}
 	for _, suffix := range suffixes {
 		path := filepath.Join(gridDir, fmt.Sprintf("%d%s", appID, suffix))
 		_ = m.fs.Remove(path)
