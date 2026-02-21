@@ -32,7 +32,7 @@ func (h *tomlHandler) Read(path string) (map[string]map[string]string, error) {
 	return result, nil
 }
 
-func (h *tomlHandler) Apply(path string, entries []model.ConfigEntry) (ApplyResult, error) {
+func (h *tomlHandler) Apply(path string, entries []model.ConfigEntry, _ []model.OwnedRegion) (ApplyResult, error) {
 	if err := vfs.MkdirAll(h.fs, filepath.Dir(path), 0755); err != nil {
 		return ApplyResult{}, fmt.Errorf("creating config directory: %w", err)
 	}
