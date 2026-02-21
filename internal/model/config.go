@@ -13,11 +13,91 @@ import (
 
 // KyarabenConfig represents the user's kyaraben configuration.
 type KyarabenConfig struct {
-	Global    GlobalConfig                  `toml:"global"`
-	Sync      SyncConfig                    `toml:"sync"`
-	Systems   map[SystemID][]EmulatorID     `toml:"systems"`
-	Emulators map[EmulatorID]EmulatorConf   `toml:"emulators,omitempty"`
-	Frontends map[FrontendID]FrontendConfig `toml:"frontends,omitempty"`
+	Global     GlobalConfig                  `toml:"global"`
+	Sync       SyncConfig                    `toml:"sync"`
+	Controller ControllerTomlConfig          `toml:"controller"`
+	Systems    map[SystemID][]EmulatorID     `toml:"systems"`
+	Emulators  map[EmulatorID]EmulatorConf   `toml:"emulators,omitempty"`
+	Frontends  map[FrontendID]FrontendConfig `toml:"frontends,omitempty"`
+}
+
+// ControllerTomlConfig is the TOML representation of controller settings.
+type ControllerTomlConfig struct {
+	Layout  string            `toml:"layout"`
+	Hotkeys HotkeyTomlConfig  `toml:"hotkeys"`
+	GUIDs   map[string]string `toml:"guids,omitempty"`
+}
+
+// HotkeyTomlConfig is the TOML representation of hotkey bindings (raw strings).
+type HotkeyTomlConfig struct {
+	SaveState        string `toml:"save_state"`
+	LoadState        string `toml:"load_state"`
+	NextSlot         string `toml:"next_slot"`
+	PrevSlot         string `toml:"prev_slot"`
+	FastForward      string `toml:"fast_forward"`
+	Rewind           string `toml:"rewind"`
+	Pause            string `toml:"pause"`
+	Screenshot       string `toml:"screenshot"`
+	Quit             string `toml:"quit"`
+	ToggleFullscreen string `toml:"toggle_fullscreen"`
+	OpenMenu         string `toml:"open_menu"`
+}
+
+// ResolveControllerConfig validates and resolves the TOML controller config into
+// the typed ControllerConfig used by generators.
+func (c *KyarabenConfig) ResolveControllerConfig() (*ControllerConfig, error) {
+	cc := &ControllerConfig{
+		Layout:  LayoutStandard,
+		Hotkeys: DefaultHotkeys(),
+	}
+
+	if c.Controller.Layout != "" {
+		layout, err := ValidateLayoutID(c.Controller.Layout)
+		if err != nil {
+			return nil, err
+		}
+		cc.Layout = layout
+	}
+
+	guids := make(map[string]ProfileID, len(c.Controller.GUIDs))
+	for guid, profile := range c.Controller.GUIDs {
+		p, err := ValidateProfileID(profile)
+		if err != nil {
+			return nil, fmt.Errorf("controller.guids.%s: %w", guid, err)
+		}
+		guids[guid] = p
+	}
+	cc.GUIDs = MergeGUIDs(guids)
+
+	hk := c.Controller.Hotkeys
+	resolvers := []struct {
+		src  string
+		dest *HotkeyBinding
+	}{
+		{hk.SaveState, &cc.Hotkeys.SaveState},
+		{hk.LoadState, &cc.Hotkeys.LoadState},
+		{hk.NextSlot, &cc.Hotkeys.NextSlot},
+		{hk.PrevSlot, &cc.Hotkeys.PrevSlot},
+		{hk.FastForward, &cc.Hotkeys.FastForward},
+		{hk.Rewind, &cc.Hotkeys.Rewind},
+		{hk.Pause, &cc.Hotkeys.Pause},
+		{hk.Screenshot, &cc.Hotkeys.Screenshot},
+		{hk.Quit, &cc.Hotkeys.Quit},
+		{hk.ToggleFullscreen, &cc.Hotkeys.ToggleFullscreen},
+		{hk.OpenMenu, &cc.Hotkeys.OpenMenu},
+	}
+	for _, r := range resolvers {
+		if r.src == "" {
+			continue
+		}
+		b, err := ParseHotkeyBinding(r.src)
+		if err != nil {
+			return nil, fmt.Errorf("controller.hotkeys: %w", err)
+		}
+		*r.dest = b
+	}
+
+	return cc, nil
 }
 
 // FrontendConfig holds per-frontend configuration.
@@ -173,11 +253,28 @@ func (c *KyarabenConfig) SystemsForEmulator(emu EmulatorID) []SystemID {
 
 // NewDefaultConfig creates a new config with default values.
 func NewDefaultConfig() *KyarabenConfig {
+	defaults := DefaultHotkeys()
 	return &KyarabenConfig{
 		Global: GlobalConfig{
 			UserStore: DefaultUserStore(),
 		},
 		Sync: DefaultSyncConfig(),
+		Controller: ControllerTomlConfig{
+			Layout: string(LayoutStandard),
+			Hotkeys: HotkeyTomlConfig{
+				SaveState:        defaults.SaveState.String(),
+				LoadState:        defaults.LoadState.String(),
+				NextSlot:         defaults.NextSlot.String(),
+				PrevSlot:         defaults.PrevSlot.String(),
+				FastForward:      defaults.FastForward.String(),
+				Rewind:           defaults.Rewind.String(),
+				Pause:            defaults.Pause.String(),
+				Screenshot:       defaults.Screenshot.String(),
+				Quit:             defaults.Quit.String(),
+				ToggleFullscreen: defaults.ToggleFullscreen.String(),
+				OpenMenu:         defaults.OpenMenu.String(),
+			},
+		},
 		Systems: map[SystemID][]EmulatorID{
 			SystemIDNES:      {EmulatorIDRetroArchMesen},
 			SystemIDSNES:     {EmulatorIDRetroArchBsnes},

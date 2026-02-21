@@ -56,28 +56,31 @@ var configTarget = model.ConfigTarget{
 
 type Config struct{}
 
-func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
+func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
+	store := ctx.Store
 	biosPaths := mgbaBiosPaths(store)
-	return []model.ConfigPatch{{
-		Target: configTarget,
-		Entries: []model.ConfigEntry{
-			{Path: []string{"bios"}, Value: biosPaths["bios"]},
-			{Path: []string{"gb.bios"}, Value: biosPaths["gb.bios"]},
-			{Path: []string{"gbc.bios"}, Value: biosPaths["gbc.bios"]},
-			{Path: []string{"sgb.bios"}, Value: biosPaths["sgb.bios"]},
-			{Path: []string{"gba.bios"}, Value: biosPaths["gba.bios"]},
-			{Path: []string{"ports.qt", "bios"}, Value: biosPaths["bios"]},
-			{Path: []string{"ports.qt", "gb.bios"}, Value: biosPaths["gb.bios"]},
-			{Path: []string{"ports.qt", "gbc.bios"}, Value: biosPaths["gbc.bios"]},
-			{Path: []string{"ports.qt", "sgb.bios"}, Value: biosPaths["sgb.bios"]},
-			{Path: []string{"ports.qt", "gba.bios"}, Value: biosPaths["gba.bios"]},
-			{Path: []string{"ports.qt", "useBios"}, Value: "1"},
-			{Path: []string{"ports.qt", "savegamePath"}, Value: store.SystemSavesDir(model.SystemIDGBA)},
-			{Path: []string{"ports.qt", "savestatePath"}, Value: store.EmulatorStatesDir(model.EmulatorIDMGBA)},
-			{Path: []string{"ports.qt", "screenshotPath"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDMGBA)},
-			{Path: []string{"ports.qt", "showLibrary"}, Value: "1"},
-		},
-	}}, nil
+	return model.GenerateResult{
+		Patches: []model.ConfigPatch{{
+			Target: configTarget,
+			Entries: []model.ConfigEntry{
+				{Path: []string{"bios"}, Value: biosPaths["bios"]},
+				{Path: []string{"gb.bios"}, Value: biosPaths["gb.bios"]},
+				{Path: []string{"gbc.bios"}, Value: biosPaths["gbc.bios"]},
+				{Path: []string{"sgb.bios"}, Value: biosPaths["sgb.bios"]},
+				{Path: []string{"gba.bios"}, Value: biosPaths["gba.bios"]},
+				{Path: []string{"ports.qt", "bios"}, Value: biosPaths["bios"]},
+				{Path: []string{"ports.qt", "gb.bios"}, Value: biosPaths["gb.bios"]},
+				{Path: []string{"ports.qt", "gbc.bios"}, Value: biosPaths["gbc.bios"]},
+				{Path: []string{"ports.qt", "sgb.bios"}, Value: biosPaths["sgb.bios"]},
+				{Path: []string{"ports.qt", "gba.bios"}, Value: biosPaths["gba.bios"]},
+				{Path: []string{"ports.qt", "useBios"}, Value: "1"},
+				{Path: []string{"ports.qt", "savegamePath"}, Value: store.SystemSavesDir(model.SystemIDGBA)},
+				{Path: []string{"ports.qt", "savestatePath"}, Value: store.EmulatorStatesDir(model.EmulatorIDMGBA)},
+				{Path: []string{"ports.qt", "screenshotPath"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDMGBA)},
+				{Path: []string{"ports.qt", "showLibrary"}, Value: "1"},
+			},
+		}},
+	}, nil
 }
 
 func mgbaBiosPaths(store model.StoreReader) map[string]string {

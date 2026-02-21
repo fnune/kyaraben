@@ -35,14 +35,15 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 
 type Config struct{}
 
-func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	return []model.ConfigPatch{
-		retroarch.SharedConfig(store),
+func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
+	symlinks, err := retroarch.CoreSymlinks(model.EmulatorIDRetroArchBsnes, ctx.Store, ctx.BaseDirResolver)
+	if err != nil {
+		return model.GenerateResult{}, err
+	}
+	return model.GenerateResult{
+		Patches:  []model.ConfigPatch{retroarch.SharedConfig(ctx.Store)},
+		Symlinks: symlinks,
 	}, nil
-}
-
-func (c *Config) Symlinks(store model.StoreReader, resolver model.BaseDirResolver) ([]model.SymlinkSpec, error) {
-	return retroarch.CoreSymlinks(model.EmulatorIDRetroArchBsnes, store, resolver)
 }
 
 const libretroCoreName = "bsnes_libretro"

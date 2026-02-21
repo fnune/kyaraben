@@ -82,8 +82,10 @@ var configTarget = model.ConfigTarget{
 	BaseDir: model.ConfigBaseDirUserConfig,
 }
 
-func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	return []model.ConfigPatch{{
+func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
+	store := ctx.Store
+
+	patches := []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
 			{Path: []string{"UI", "Screenshots\\screenshot_path"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDEden)},
@@ -92,27 +94,24 @@ func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) 
 			{Path: []string{"UI", "Paths\\gamedirs\\1\\expanded"}, Value: "true"},
 			{Path: []string{"UI", "Paths\\gamedirs\\1\\path"}, Value: store.SystemRomsDir(model.SystemIDSwitch)},
 		},
-	}}, nil
-}
+	}}
 
-// Symlinks implements model.SymlinkProvider.
-// Eden uses XDG directories by default. We symlink:
-// - keys/ -> bios/switch/ (keys are .keys files)
-// - nand/system/Contents/registered/ -> bios/switch/ (firmware *.nca files coexist with keys)
-// - screenshots/ -> screenshots/eden/
-// - nand/user/save/ -> saves/switch/ (game saves are in user NAND)
-func (c *Config) Symlinks(store model.StoreReader, resolver model.BaseDirResolver) ([]model.SymlinkSpec, error) {
-	dataDir, err := resolver.UserDataDir()
+	dataDir, err := ctx.BaseDirResolver.UserDataDir()
 	if err != nil {
-		return nil, err
+		return model.GenerateResult{}, err
 	}
 	edenDir := filepath.Join(dataDir, "eden")
 	biosDir := store.SystemBiosDir(model.SystemIDSwitch)
 
-	return []model.SymlinkSpec{
+	symlinks := []model.SymlinkSpec{
 		{Source: filepath.Join(edenDir, "keys"), Target: biosDir},
 		{Source: filepath.Join(edenDir, "nand", "system", "Contents", "registered"), Target: biosDir},
 		{Source: filepath.Join(edenDir, "screenshots"), Target: store.EmulatorScreenshotsDir(model.EmulatorIDEden)},
 		{Source: filepath.Join(edenDir, "nand", "user", "save"), Target: store.SystemSavesDir(model.SystemIDSwitch)},
+	}
+
+	return model.GenerateResult{
+		Patches:  patches,
+		Symlinks: symlinks,
 	}, nil
 }

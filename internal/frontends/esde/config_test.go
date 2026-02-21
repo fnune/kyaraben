@@ -77,7 +77,7 @@ func TestBuildCommandPassesSavesDir(t *testing.T) {
 		GetEmulator: func(id model.EmulatorID) (model.Emulator, error) {
 			return emulators[id], nil
 		},
-		GetConfigGenerator: func(id model.EmulatorID) model.ConfigGenerator {
+		GetLaunchArgs: func(id model.EmulatorID) []string {
 			return nil
 		},
 	}
@@ -104,18 +104,6 @@ func TestBuildCommandPassesSavesDir(t *testing.T) {
 	}
 }
 
-type fakeConfigGenerator struct {
-	launchArgs []string
-}
-
-func (f *fakeConfigGenerator) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
-	return nil, nil
-}
-
-func (f *fakeConfigGenerator) LaunchArgs(store model.StoreReader) []string {
-	return f.launchArgs
-}
-
 func TestBuildCommandIncludesLaunchArgs(t *testing.T) {
 	store := &fakeStoreReader{root: "/emulation"}
 
@@ -139,10 +127,8 @@ func TestBuildCommandIncludesLaunchArgs(t *testing.T) {
 		},
 	}
 
-	configGenerators := map[model.EmulatorID]model.ConfigGenerator{
-		model.EmulatorIDCemu: &fakeConfigGenerator{
-			launchArgs: []string{"-c", "/some/config/path"},
-		},
+	launchArgs := map[model.EmulatorID][]string{
+		model.EmulatorIDCemu: {"-c", "/some/config/path"},
 	}
 
 	ctx := model.FrontendContext{
@@ -151,8 +137,8 @@ func TestBuildCommandIncludesLaunchArgs(t *testing.T) {
 		GetEmulator: func(id model.EmulatorID) (model.Emulator, error) {
 			return emulators[id], nil
 		},
-		GetConfigGenerator: func(id model.EmulatorID) model.ConfigGenerator {
-			return configGenerators[id]
+		GetLaunchArgs: func(id model.EmulatorID) []string {
+			return launchArgs[id]
 		},
 	}
 

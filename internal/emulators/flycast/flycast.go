@@ -53,21 +53,24 @@ var configTarget = model.ConfigTarget{
 
 type Config struct{}
 
-func (c *Config) Generate(store model.StoreReader) ([]model.ConfigPatch, error) {
+func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
+	store := ctx.Store
 	biosDir := store.SystemBiosDir(model.SystemIDDreamcast)
 	savesDir := store.SystemSavesDir(model.SystemIDDreamcast)
 
-	return []model.ConfigPatch{{
-		Target: configTarget,
-		Entries: []model.ConfigEntry{
-			{Path: []string{"config", "Flycast.DataPath"}, Value: biosDir},
-			{Path: []string{"config", "Dreamcast.BiosPath"}, Value: biosDir},
-			{Path: []string{"config", "Dreamcast.ContentPath"}, Value: store.SystemRomsDir(model.SystemIDDreamcast)},
-			{Path: []string{"config", "Dreamcast.SavePath"}, Value: savesDir},
-			{Path: []string{"config", "Dreamcast.VMUPath"}, Value: savesDir},
-			{Path: []string{"config", "Dreamcast.SavestatePath"}, Value: store.EmulatorStatesDir(model.EmulatorIDFlycast)},
-		},
-	}}, nil
+	return model.GenerateResult{
+		Patches: []model.ConfigPatch{{
+			Target: configTarget,
+			Entries: []model.ConfigEntry{
+				{Path: []string{"config", "Flycast.DataPath"}, Value: biosDir},
+				{Path: []string{"config", "Dreamcast.BiosPath"}, Value: biosDir},
+				{Path: []string{"config", "Dreamcast.ContentPath"}, Value: store.SystemRomsDir(model.SystemIDDreamcast)},
+				{Path: []string{"config", "Dreamcast.SavePath"}, Value: savesDir},
+				{Path: []string{"config", "Dreamcast.VMUPath"}, Value: savesDir},
+				{Path: []string{"config", "Dreamcast.SavestatePath"}, Value: store.EmulatorStatesDir(model.EmulatorIDFlycast)},
+			},
+		}},
+	}, nil
 }
 
 var dreamcastBIOSProvisions = []model.Provision{
