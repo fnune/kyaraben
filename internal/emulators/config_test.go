@@ -895,10 +895,10 @@ func TestUnmanagedEntriesPreserveExisting(t *testing.T) {
 		}
 
 		content, _ := fs.ReadFile("/config/test.ini")
-		if !strings.Contains(string(content), "key = existing") {
+		if !strings.Contains(string(content), "key=existing") {
 			t.Errorf("unmanaged entry was overwritten: %s", content)
 		}
-		if !strings.Contains(string(content), "other = value") {
+		if !strings.Contains(string(content), "other=value") {
 			t.Errorf("managed entry was not written: %s", content)
 		}
 	})
@@ -1109,13 +1109,32 @@ func TestPCSX2ControllerConfig(t *testing.T) {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	patch := result.Patches[0]
-	keys := collectKeys(patch.Entries)
+	if len(result.Patches) != 2 {
+		t.Fatalf("expected 2 patches (main config + profile), got %d", len(result.Patches))
+	}
+
+	mainConfig := result.Patches[0]
+	keys := collectKeys(mainConfig.Entries)
 	if !keys["SaveStateToSlot"] {
-		t.Error("missing PCSX2 hotkey SaveStateToSlot")
+		t.Error("missing PCSX2 hotkey SaveStateToSlot in main config")
 	}
 	if !keys["ToggleTurbo"] {
-		t.Error("missing PCSX2 hotkey ToggleTurbo")
+		t.Error("missing PCSX2 hotkey ToggleTurbo in main config")
+	}
+
+	profile := result.Patches[1]
+	if !strings.Contains(profile.Target.RelPath, "inputprofiles/Kyaraben") {
+		t.Errorf("profile path should contain inputprofiles/Kyaraben, got %s", profile.Target.RelPath)
+	}
+	if !profile.ManagesWholeFile() {
+		t.Error("profile should be fully managed (FileRegion)")
+	}
+	profileKeys := collectKeys(profile.Entries)
+	if !profileKeys["UseProfileHotkeyBindings"] {
+		t.Error("profile missing UseProfileHotkeyBindings")
+	}
+	if !profileKeys["Type"] {
+		t.Error("profile missing pad Type")
 	}
 }
 
@@ -1135,8 +1154,8 @@ func TestDolphinControllerConfig(t *testing.T) {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	if len(result.Patches) != 3 {
-		t.Fatalf("expected 3 patches (Dolphin.ini, GCPadNew.ini, Hotkeys.ini), got %d", len(result.Patches))
+	if len(result.Patches) != 4 {
+		t.Fatalf("expected 4 patches (Dolphin.ini, GCPadNew.ini, Hotkeys.ini, profile), got %d", len(result.Patches))
 	}
 
 	gcPad := result.Patches[1]
@@ -1179,7 +1198,7 @@ func TestMGBAControllerConfig(t *testing.T) {
 	}
 }
 
-func TestMelonDSControllerConfig(t *testing.T) {
+func TestMelonDSControllerConfigDisabled(t *testing.T) {
 	t.Parallel()
 
 	store := &fakeStoreReader{root: "/emulation"}
@@ -1198,8 +1217,8 @@ func TestMelonDSControllerConfig(t *testing.T) {
 	patch := result.Patches[0]
 	keys := collectKeys(patch.Entries)
 	for _, key := range []string{"Joy_A", "Joy_B", "Joy_X", "Joy_Y", "Joy_L", "Joy_R"} {
-		if !keys[key] {
-			t.Errorf("missing melonDS pad key %q", key)
+		if keys[key] {
+			t.Errorf("melonDS controller config is disabled, but found %q", key)
 		}
 	}
 }
@@ -1275,6 +1294,53 @@ func TestFlycastControllerConfig(t *testing.T) {
 	}
 }
 
+func TestFlycastHotkeyEntries(t *testing.T) {
+	t.Parallel()
+
+	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+	gen := flycast.Definition{}.ConfigGenerator()
+
+	result, err := gen.Generate(model.GenerateContext{
+		Store:            store,
+		BaseDirResolver:  resolver,
+		ControllerConfig: defaultControllerConfig(),
+	})
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	if len(result.Patches) != 2 {
+		t.Fatalf("expected 2 patches (emu.cfg, mapping), got %d", len(result.Patches))
+	}
+
+	mapping := result.Patches[1]
+	entryMap := make(map[string]string)
+	for _, e := range mapping.Entries {
+		entryMap[e.FullPath()] = e.Value
+	}
+
+	// Default hotkeys use ButtonBack(6) as modifier.
+	// Format: button1,button2:action:sequential (0=simultaneous, 1=sequential)
+	wantHotkeys := map[string]string{
+		"combo.bind0": "6,5:btn_quick_save:0", // Back + RightShoulder
+		"combo.bind1": "6,4:btn_jump_state:0", // Back + LeftShoulder
+		"combo.bind2": "6,7:btn_escape:0",     // Back + Start
+		"combo.bind3": "6,1:btn_screenshot:0", // Back + B
+	}
+
+	for key, want := range wantHotkeys {
+		got, ok := entryMap[key]
+		if !ok {
+			t.Errorf("missing hotkey entry %q", key)
+			continue
+		}
+		if got != want {
+			t.Errorf("hotkey entry %q:\n  got  %s\n  want %s", key, got, want)
+		}
+	}
+}
+
 func TestEdenControllerConfig(t *testing.T) {
 	t.Parallel()
 
@@ -1312,7 +1378,7 @@ func TestEdenControllerBindingValues(t *testing.T) {
 
 	guid := model.SteamDeckGUID
 
-	t.Run("standard layout", func(t *testing.T) {
+	t.Run("profile bindings", func(t *testing.T) {
 		t.Parallel()
 
 		store := &fakeStoreReader{root: "/emulation"}
@@ -1328,46 +1394,72 @@ func TestEdenControllerBindingValues(t *testing.T) {
 			t.Fatalf("Generate() error = %v", err)
 		}
 
-		entries := result.Patches[0].Entries
+		// Patch 0 is the profile (Kyaraben.ini), fully managed.
+		profilePatch := result.Patches[0]
+		if !profilePatch.ManagesWholeFile() {
+			t.Error("profile should be fully managed (FileRegion)")
+		}
+
 		entryMap := make(map[string]string)
-		for _, e := range entries {
+		for _, e := range profilePatch.Entries {
 			entryMap[e.Key()] = e.Value
 		}
 
+		// Profile uses keys without player prefix, port 0.
 		// Standard layout: a=east=B(1), b=south=A(0), x=north=Y(3), y=west=X(2)
-		// Player 0 bindings. Format matches Eden's native key ordering.
-		wantP0 := map[string]string{
-			"player_0_connected":     "true",
-			"player_0_type":          "0",
-			"player_0_button_a":      `"button:1,guid:` + guid + `,port:0,engine:sdl"`,
-			"player_0_button_b":      `"button:0,guid:` + guid + `,port:0,engine:sdl"`,
-			"player_0_button_x":      `"button:3,guid:` + guid + `,port:0,engine:sdl"`,
-			"player_0_button_y":      `"button:2,guid:` + guid + `,port:0,engine:sdl"`,
-			"player_0_button_lstick": `"button:7,guid:` + guid + `,port:0,engine:sdl"`,
-			"player_0_button_rstick": `"button:8,guid:` + guid + `,port:0,engine:sdl"`,
-			"player_0_button_l":      `"button:9,guid:` + guid + `,port:0,engine:sdl"`,
-			"player_0_button_r":      `"button:10,guid:` + guid + `,port:0,engine:sdl"`,
-			"player_0_button_zl":     `"threshold:0.500000,axis:2,guid:` + guid + `,port:0,engine:sdl"`,
-			"player_0_button_zr":     `"threshold:0.500000,axis:5,guid:` + guid + `,port:0,engine:sdl"`,
-			"player_0_button_plus":   `"button:6,guid:` + guid + `,port:0,engine:sdl"`,
-			"player_0_button_minus":  `"button:4,guid:` + guid + `,port:0,engine:sdl"`,
-			"player_0_button_dleft":  `"hat:0,direction:left,guid:` + guid + `,port:0,engine:sdl"`,
-			"player_0_button_dright": `"hat:0,direction:right,guid:` + guid + `,port:0,engine:sdl"`,
-			"player_0_button_dup":    `"hat:0,direction:up,guid:` + guid + `,port:0,engine:sdl"`,
-			"player_0_button_ddown":  `"hat:0,direction:down,guid:` + guid + `,port:0,engine:sdl"`,
-			"player_0_lstick":        `"deadzone:0.100000,axis_y:1,axis_x:0,guid:` + guid + `,port:0,engine:sdl"`,
-			"player_0_rstick":        `"deadzone:0.100000,axis_y:4,axis_x:3,guid:` + guid + `,port:0,engine:sdl"`,
+		wantProfile := map[string]string{
+			"type":          "0",
+			"button_a":      `"engine:sdl,port:0,guid:` + guid + `,button:1"`,
+			"button_b":      `"engine:sdl,port:0,guid:` + guid + `,button:0"`,
+			"button_x":      `"engine:sdl,port:0,guid:` + guid + `,button:3"`,
+			"button_y":      `"engine:sdl,port:0,guid:` + guid + `,button:2"`,
+			"button_lstick": `"engine:sdl,port:0,guid:` + guid + `,button:7"`,
+			"button_rstick": `"engine:sdl,port:0,guid:` + guid + `,button:8"`,
+			"lstick":        `"engine:sdl,port:0,guid:` + guid + `,axis_x:0,axis_y:1,deadzone:0.100000"`,
+			"rstick":        `"engine:sdl,port:0,guid:` + guid + `,axis_x:3,axis_y:4,deadzone:0.100000"`,
 		}
 
-		for key, want := range wantP0 {
+		for key, want := range wantProfile {
 			got, ok := entryMap[key]
 			if !ok {
-				t.Errorf("missing entry %q", key)
+				t.Errorf("profile missing entry %q", key)
 				continue
 			}
 			if got != want {
-				t.Errorf("entry %q:\n  got  %s\n  want %s", key, got, want)
+				t.Errorf("profile entry %q:\n  got  %s\n  want %s", key, got, want)
 			}
+		}
+	})
+
+	t.Run("qt-config bindings", func(t *testing.T) {
+		t.Parallel()
+
+		store := &fakeStoreReader{root: "/emulation"}
+		resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+		gen := eden.Definition{}.ConfigGenerator()
+
+		result, err := gen.Generate(model.GenerateContext{
+			Store:            store,
+			BaseDirResolver:  resolver,
+			ControllerConfig: defaultControllerConfig(),
+		})
+		if err != nil {
+			t.Fatalf("Generate() error = %v", err)
+		}
+
+		// Patch 1 is qt-config.ini.
+		qtPatch := result.Patches[1]
+		entryMap := make(map[string]string)
+		for _, e := range qtPatch.Entries {
+			entryMap[e.Key()] = e.Value
+		}
+
+		// qt-config uses player-prefixed keys. Bindings are DefaultOnly.
+		if got := entryMap["player_0_connected"]; got != "true" {
+			t.Errorf("player_0_connected = %q, want %q", got, "true")
+		}
+		if got := entryMap["player_0_profile_name"]; got != "Kyaraben" {
+			t.Errorf("player_0_profile_name = %q, want %q", got, "Kyaraben")
 		}
 
 		// Player 1 should use port:1.
@@ -1379,7 +1471,7 @@ func TestEdenControllerBindingValues(t *testing.T) {
 		}
 	})
 
-	t.Run("nintendo layout", func(t *testing.T) {
+	t.Run("nintendo layout profile", func(t *testing.T) {
 		t.Parallel()
 
 		store := &fakeStoreReader{root: "/emulation"}
@@ -1400,18 +1492,18 @@ func TestEdenControllerBindingValues(t *testing.T) {
 			t.Fatalf("Generate() error = %v", err)
 		}
 
-		entries := result.Patches[0].Entries
+		profilePatch := result.Patches[0]
 		entryMap := make(map[string]string)
-		for _, e := range entries {
+		for _, e := range profilePatch.Entries {
 			entryMap[e.Key()] = e.Value
 		}
 
 		// Nintendo layout: a=east=A(0), b=south=B(1), x=north=X(2), y=west=Y(3)
 		wantFace := map[string]string{
-			"player_0_button_a": `"button:0,guid:` + guid + `,port:0,engine:sdl"`,
-			"player_0_button_b": `"button:1,guid:` + guid + `,port:0,engine:sdl"`,
-			"player_0_button_x": `"button:2,guid:` + guid + `,port:0,engine:sdl"`,
-			"player_0_button_y": `"button:3,guid:` + guid + `,port:0,engine:sdl"`,
+			"button_a": `"engine:sdl,port:0,guid:` + guid + `,button:0"`,
+			"button_b": `"engine:sdl,port:0,guid:` + guid + `,button:1"`,
+			"button_x": `"engine:sdl,port:0,guid:` + guid + `,button:2"`,
+			"button_y": `"engine:sdl,port:0,guid:` + guid + `,button:3"`,
 		}
 
 		for key, want := range wantFace {

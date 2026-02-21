@@ -46,10 +46,10 @@ func TestFileRegionWritesFromScratch(t *testing.T) {
 	content, _ := fs.ReadFile("/config/duckstation/inputprofiles/kyaraben-steamdeck.ini")
 	s := string(content)
 
-	if !strings.Contains(s, "Cross = new-value") {
+	if !strings.Contains(s, "Cross=new-value") {
 		t.Errorf("should contain new Cross value, got:\n%s", s)
 	}
-	if !strings.Contains(s, "Circle = SDL-0/East") {
+	if !strings.Contains(s, "Circle=SDL-0/East") {
 		t.Errorf("should contain Circle, got:\n%s", s)
 	}
 	if strings.Contains(s, "old-value") {
@@ -92,7 +92,7 @@ func TestFileRegionCreatesDirectories(t *testing.T) {
 		t.Fatalf("reading file: %v", err)
 	}
 
-	if !strings.Contains(string(content), "Cross = SDL-0/South") {
+	if !strings.Contains(string(content), "Cross=SDL-0/South") {
 		t.Errorf("should contain Cross entry, got:\n%s", content)
 	}
 }
@@ -141,18 +141,18 @@ profiles\2\button_a = user-a
 	s := string(content)
 
 	// DefaultOnly entries preserve user's values.
-	if !strings.Contains(s, "profile = 2") {
+	if !strings.Contains(s, "profile=2") {
 		t.Errorf("default-only 'profile' should keep user value 2, got:\n%s", s)
 	}
-	if !strings.Contains(s, `profiles\size = 2`) {
+	if !strings.Contains(s, `profiles\size=2`) {
 		t.Errorf("default-only 'profiles\\size' should keep user value 2, got:\n%s", s)
 	}
 
 	// Managed region is deleted and rewritten.
-	if !strings.Contains(s, `profiles\1\name = kyaraben-steamdeck`) {
+	if !strings.Contains(s, `profiles\1\name=kyaraben-steamdeck`) {
 		t.Errorf("managed region should have new name, got:\n%s", s)
 	}
-	if !strings.Contains(s, `profiles\1\button_a = new-a`) {
+	if !strings.Contains(s, `profiles\1\button_a=new-a`) {
 		t.Errorf("managed region should have new button_a, got:\n%s", s)
 	}
 	if strings.Contains(s, `profiles\1\button_b`) {
@@ -160,10 +160,10 @@ profiles\2\button_a = user-a
 	}
 
 	// User profile is untouched.
-	if !strings.Contains(s, `profiles\2\name = user-custom`) {
+	if !strings.Contains(s, `profiles\2\name=user-custom`) {
 		t.Errorf("user profile 2 should be preserved, got:\n%s", s)
 	}
-	if !strings.Contains(s, `profiles\2\button_a = user-a`) {
+	if !strings.Contains(s, `profiles\2\button_a=user-a`) {
 		t.Errorf("user profile 2 button_a should be preserved, got:\n%s", s)
 	}
 }

@@ -111,7 +111,11 @@ func (h *cfgHandler) Apply(path string, entries []model.ConfigEntry, managedRegi
 	defer func() { _ = f.Close() }()
 
 	_, _ = fmt.Fprintln(f, "# Configuration managed by kyaraben")
-	_, _ = fmt.Fprintln(f, "# Manual changes will be preserved on next apply")
+	if isFullyManaged(managedRegions) {
+		_, _ = fmt.Fprintln(f, "# Manual changes will be overwritten on next apply")
+	} else {
+		_, _ = fmt.Fprintln(f, "# Manual changes will be preserved on next apply")
+	}
 	_, _ = fmt.Fprintln(f)
 
 	keys := make([]string, 0, len(existing))
