@@ -100,7 +100,7 @@ func (f *SecondaryPairingFlow) Run(ctx context.Context, primaryDeviceID string) 
 
 	f.emit("Connecting to %s...", truncateDeviceID(primaryDeviceID))
 
-	if err := f.cfg.Client.AddDevice(ctx, primaryDeviceID, "primary"); err != nil {
+	if err := f.cfg.Client.AddDeviceAutoName(ctx, primaryDeviceID); err != nil {
 		return nil, fmt.Errorf("adding primary device: %w", err)
 	}
 

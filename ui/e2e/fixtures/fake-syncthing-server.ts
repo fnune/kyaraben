@@ -50,7 +50,6 @@ interface ConnectionState {
   connected: boolean
   address: string
   paused: boolean
-  deviceName: string
 }
 
 interface ServerState {
@@ -116,13 +115,11 @@ export class FakeSyncthingController {
   }
 
   setConnected(deviceID: string, connected: boolean): void {
-    const device = this.state.devices.get(deviceID)
     const existing = this.state.connections.get(deviceID)
     this.state.connections.set(deviceID, {
       connected,
       address: existing?.address ?? '192.168.1.100:22100',
       paused: existing?.paused ?? false,
-      deviceName: device?.name ?? '',
     })
   }
 
