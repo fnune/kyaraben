@@ -110,15 +110,15 @@ This works across any network via Syncthing's relay servers.
 ROMs and BIOS flow one direction only, preventing accidental deletion of your
 primary collection from a secondary device.
 
-### ES-DE gamelists and media
+### EmulationStation DE gamelists and media
 
-When using ES-DE, scraped metadata (game descriptions, ratings, etc.) and media
+When using EmulationStation DE, scraped metadata (game descriptions, ratings, etc.) and media
 (screenshots, videos, box art) sync between devices. Kyaraben strips play
 statistics (playcount, playtime, last played) before syncing to avoid conflicts,
 then merges local stats back when importing. This means each device tracks its
 own play history while sharing metadata and artwork.
 
-Scraped videos can be large. See [ignore patterns](#example-skip-es-de-videos)
+Scraped videos can be large. See [ignore patterns](#example-skip-emulationstation-de-videos)
 to exclude them from sync.
 
 ## Managing sync
@@ -219,7 +219,7 @@ patterns = [
 ]
 ```
 
-#### Example: skip ES-DE videos
+#### Example: skip EmulationStation DE videos
 
 Scraped videos can be several gigabytes per system. To sync box art and
 screenshots but skip videos:

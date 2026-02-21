@@ -40,8 +40,8 @@ What we won't do: full performance tuning, per-game settings, target-specific op
 - DuckStation and PCSX2 both show the emulator before launching the game
     - Can this be prevented?
 - ES-DE loads pcengine games (R-Type Complete CD (Japan)) even though Kyaraben has not enabled that system
-    - Is this expected?
     - Same for Xbox360 (Mushihimesama)
+    - DOCUMENTED: ES-DE has built-in system definitions and shows any system with ROMs present. Enabling a system in kyaraben configures an emulator for it; ES-DE discovery is independent. Added note to using-the-app.mdx.
 - Nintendo DS doesn't work (we moved it to RetroArch recently from melonDS)
     - Games don't even launch from ES-DE
     - Root cause: the old `melonds_libretro` core has an executable stack requirement that modern kernels block
