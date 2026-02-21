@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { formatBytes } from '@/lib/changeUtils'
-import { getSyncLocalChanges, openPath, revertSyncFolder } from '@/lib/daemon'
+import { getSyncLocalChanges, revertSyncFolder } from '@/lib/daemon'
 import { useOnWindowFocus } from '@/lib/hooks/useOnWindowFocus'
+import { useOpenPath } from '@/lib/hooks/useOpenPath'
 import { FolderIcon } from '@/lib/icons'
 import type { SyncFolder, SyncLocalChange } from '@/types/daemon'
 import { LocalFilesActions } from './LocalFilesActions'
@@ -33,6 +34,7 @@ function FolderRow({ folder, onRefresh, hasPairedDevices }: FolderRowProps) {
   const [changes, setChanges] = useState<SyncLocalChange[] | null>(null)
   const [loadingChanges, setLoadingChanges] = useState(false)
   const [changesError, setChangesError] = useState<string | null>(null)
+  const openPath = useOpenPath()
 
   const isSyncing = hasPairedDevices && (folder.state === 'syncing' || folder.needSize > 0)
   const hasLocalChanges = hasPairedDevices && folder.receiveOnlyChanges > 0

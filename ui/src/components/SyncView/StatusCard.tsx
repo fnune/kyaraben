@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import syncthingLogo from '@/assets/syncthing.svg'
 import { Button } from '@/lib/Button'
 import { Input } from '@/lib/Input'
-import { openUrl } from '@/lib/daemon'
+import { useOpenUrl } from '@/lib/hooks/useOpenUrl'
 import { CopyIcon, TrashIcon } from '@/lib/icons'
 import { Modal } from '@/lib/Modal'
 import { Spinner } from '@/lib/Spinner'
@@ -479,6 +479,7 @@ export function StatusCard({
   const [deviceToRemove, setDeviceToRemove] = useState<SyncDevice | null>(null)
   const connectedDevice = status.devices?.find((d) => d.connected)
   const hasDevices = (status.devices?.length ?? 0) > 0
+  const openUrl = useOpenUrl()
 
   const handleConfirmRemove = useCallback(async () => {
     if (deviceToRemove) {

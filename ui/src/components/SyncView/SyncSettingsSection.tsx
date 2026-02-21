@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { Button } from '@/lib/Button'
-import { openUrl } from '@/lib/daemon'
+import { useOpenUrl } from '@/lib/hooks/useOpenUrl'
 
 export interface SyncSettingsSectionProps {
   readonly guiURL: string | undefined
@@ -11,6 +11,7 @@ export function SyncSettingsSection({ guiURL, onReset }: SyncSettingsSectionProp
   const [isCollapsed, setIsCollapsed] = useState(true)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
+  const openUrl = useOpenUrl()
 
   const handleReset = useCallback(async () => {
     setIsResetting(true)
