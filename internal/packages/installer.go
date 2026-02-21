@@ -187,7 +187,7 @@ func (i *PackageInstaller) InstallEmulator(ctx context.Context, name string, onP
 		return nil, fmt.Errorf("creating downloads dir: %w", err)
 	}
 
-	log.Info("Downloading %s %s", name, entry.Version)
+	log.InfoCtx(ctx, "Downloading %s %s", name, entry.Version)
 
 	downloadDest := filepath.Join(i.downloadsDir, name+"-"+entry.Version+".download")
 	defer func() { _ = i.fs.Remove(downloadDest) }()
@@ -218,7 +218,7 @@ func (i *PackageInstaller) InstallEmulator(ctx context.Context, name string, onP
 
 	if archiveType != "" && onProgress != nil {
 		onProgress(InstallProgress{PackageName: name, Phase: "extracting"})
-		log.Info("Extracting %s %s", name, entry.Version)
+		log.InfoCtx(ctx, "Extracting %s %s", name, entry.Version)
 	}
 
 	tmpDir := pkgDir + ".tmp"
@@ -275,7 +275,7 @@ func (i *PackageInstaller) InstallEmulator(ctx context.Context, name string, onP
 		onProgress(InstallProgress{PackageName: name, Phase: "installed"})
 	}
 
-	log.Info("Installed %s %s to %s", name, entry.Version, pkgDir)
+	log.InfoCtx(ctx, "Installed %s %s to %s", name, entry.Version, pkgDir)
 	return &InstalledBinary{Name: name, Path: installedPath}, nil
 }
 
@@ -315,7 +315,7 @@ func (i *PackageInstaller) InstallCores(ctx context.Context, coreNames []string,
 		onProgress(InstallProgress{PackageName: "retroarch-cores", Phase: "installed"})
 	}
 
-	log.Info("Installed %d RetroArch cores to %s", len(coreNames), pkgDir)
+	log.InfoCtx(ctx, "Installed %d RetroArch cores to %s", len(coreNames), pkgDir)
 	return i.buildCoresList(coreNames, coresDir, v), nil
 }
 
@@ -330,12 +330,12 @@ func (i *PackageInstaller) installStandaloneCores(ctx context.Context, coreNames
 
 		if _, err := i.fs.Stat(destPath); err == nil {
 			if standalone.SHA256 == "" || i.verifyFileHash(destPath, standalone.SHA256) {
-				log.Info("Standalone core %s already installed", coreName)
+				log.InfoCtx(ctx, "Standalone core %s already installed", coreName)
 				continue
 			}
 		}
 
-		log.Info("Downloading standalone core %s", coreName)
+		log.InfoCtx(ctx, "Downloading standalone core %s", coreName)
 
 		if onProgress != nil {
 			onProgress(InstallProgress{PackageName: "retroarch-cores", Phase: "downloading"})
@@ -378,7 +378,7 @@ func (i *PackageInstaller) installStandaloneCores(ctx context.Context, coreNames
 			}
 		}
 
-		log.Info("Installed standalone core %s", coreName)
+		log.InfoCtx(ctx, "Installed standalone core %s", coreName)
 	}
 
 	return nil
@@ -422,9 +422,9 @@ func (i *PackageInstaller) installBundleCores(ctx context.Context, coreNames []s
 	downloadDest := filepath.Join(i.downloadsDir, "retroarch-cores-"+version+".download")
 
 	if _, err := i.fs.Stat(downloadDest); err == nil {
-		log.Info("Using cached RetroArch cores bundle %s", version)
+		log.InfoCtx(ctx, "Using cached RetroArch cores bundle %s", version)
 	} else {
-		log.Info("Downloading RetroArch cores bundle %s", version)
+		log.InfoCtx(ctx, "Downloading RetroArch cores bundle %s", version)
 
 		if onProgress != nil {
 			onProgress(InstallProgress{PackageName: "retroarch-cores", Phase: "downloading"})
@@ -455,7 +455,7 @@ func (i *PackageInstaller) installBundleCores(ctx context.Context, coreNames []s
 		onProgress(InstallProgress{PackageName: "retroarch-cores", Phase: "extracting"})
 	}
 
-	log.Info("Extracting RetroArch cores bundle %s", version)
+	log.InfoCtx(ctx, "Extracting RetroArch cores bundle %s", version)
 
 	extractDir := filepath.Join(i.downloadsDir, "retroarch-cores-extract")
 	_ = i.fs.RemoveAll(extractDir)
@@ -469,7 +469,7 @@ func (i *PackageInstaller) installBundleCores(ctx context.Context, coreNames []s
 	for _, coreName := range coreNames {
 		filename, ok := v.RetroArchCores.Files[coreName]
 		if !ok {
-			log.Info("Unknown core: %s, skipping", coreName)
+			log.InfoCtx(ctx, "Unknown core: %s, skipping", coreName)
 			continue
 		}
 
