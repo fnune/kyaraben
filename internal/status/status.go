@@ -19,14 +19,15 @@ type SystemInfo struct {
 	Name string
 }
 
-type ManagedConfigInfo struct {
-	Path string
-	Keys []ManagedKeyInfo
+type ManagedRegionInfo struct {
+	Type      string // "file" or "section"
+	Section   string
+	KeyPrefix string
 }
 
-type ManagedKeyInfo struct {
-	Key   string
-	Value string
+type ManagedConfigInfo struct {
+	Path           string
+	ManagedRegions []ManagedRegionInfo
 }
 
 type SymlinkInfo struct {
@@ -123,17 +124,23 @@ func (g *Getter) Get(ctx context.Context, cfg *model.KyarabenConfig, configPath 
 			}
 		}
 
-		for _, cfg := range manifest.GetManagedConfigsForEmulator(emu.ID) {
-			path, err := cfg.Target.Resolve()
+		for _, mc := range manifest.GetManagedConfigsForEmulator(emu.ID) {
+			path, err := mc.Target.Resolve()
 			if err != nil {
 				continue
 			}
 			configInfo := ManagedConfigInfo{Path: path}
-			for _, key := range cfg.ManagedKeys {
-				configInfo.Keys = append(configInfo.Keys, ManagedKeyInfo{
-					Key:   key.Path[len(key.Path)-1],
-					Value: key.Value,
-				})
+			for _, r := range mc.ManagedRegions {
+				switch v := r.(type) {
+				case model.FileRegion:
+					configInfo.ManagedRegions = append(configInfo.ManagedRegions, ManagedRegionInfo{Type: "file"})
+				case model.SectionRegion:
+					configInfo.ManagedRegions = append(configInfo.ManagedRegions, ManagedRegionInfo{
+						Type:      "section",
+						Section:   v.Section,
+						KeyPrefix: v.KeyPrefix,
+					})
+				}
 			}
 			info.ManagedConfigs = append(info.ManagedConfigs, configInfo)
 		}

@@ -50,13 +50,14 @@ export interface InstalledEmulator {
   iconPath?: string;
   paths?: { [key: string]: EmulatorPaths};
 }
+export interface ManagedRegionInfo {
+  type: string;
+  section?: string;
+  keyPrefix?: string;
+}
 export interface ManagedConfigInfo {
   path: string;
-  keys: ManagedKeyInfo[];
-}
-export interface ManagedKeyInfo {
-  key: string;
-  value: string;
+  managedRegions?: ManagedRegionInfo[];
 }
 export interface SymlinkInfo {
   source: string;
@@ -322,6 +323,7 @@ export interface ConfigFileDiff {
   userModified: boolean;
   userChanges?: UserChangeDetail[];
   changes?: ConfigChangeDetail[];
+  managedRegions?: ManagedRegionInfo[];
 }
 export interface UserChangeDetail {
   key: string;

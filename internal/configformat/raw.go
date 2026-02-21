@@ -19,14 +19,14 @@ func (h *rawHandler) Read(path string) (map[string]map[string]string, error) {
 	return result, nil
 }
 
-func (h *rawHandler) Apply(path string, entries []model.ConfigEntry, _ []model.OwnedRegion) (ApplyResult, error) {
+func (h *rawHandler) Apply(path string, entries []model.ConfigEntry, _ []model.ManagedRegion) (ApplyResult, error) {
 	if len(entries) != 1 {
 		return ApplyResult{}, fmt.Errorf("raw format requires exactly one entry with full content")
 	}
 
 	entry := entries[0]
 
-	if entry.Unmanaged {
+	if entry.DefaultOnly {
 		if _, err := h.fs.Stat(path); err == nil {
 			hash, err := hashFileWithFS(h.fs, path)
 			if err != nil {

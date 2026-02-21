@@ -178,17 +178,32 @@ func (ct ConfigTarget) rejectDangerousPaths(resolver BaseDirResolver, path strin
 }
 
 type ConfigEntry struct {
-	Path      []string
-	Value     string
-	Unmanaged bool // Only set if key doesn't exist; user changes are preserved
+	Path        []string
+	Value       string
+	DefaultOnly bool // Only set if key doesn't exist; user changes are preserved
 }
 
-// OwnedRegion declares a region of a config file that kyaraben manages exclusively.
-// On apply, all existing keys matching the region are deleted before writing entries.
-// This allows kyaraben to update its managed keys without touching keys outside the region.
-type OwnedRegion struct {
+// ManagedRegion describes a portion of a config file that kyaraben manages.
+// On apply, existing content within the region is cleared before writing entries.
+//
+// Implementations:
+//   - FileRegion: the entire file is managed
+//   - SectionRegion: a section (with optional key prefix) is managed
+type ManagedRegion interface {
+	managedRegion()
+}
+
+// FileRegion indicates that kyaraben manages the entire config file.
+// The file is deleted and rewritten from scratch on each apply.
+type FileRegion struct{}
+
+func (FileRegion) managedRegion() {}
+
+// SectionRegion indicates that kyaraben manages a section of a config file.
+// On apply, keys matching the prefix within the section are cleared before writing.
+type SectionRegion struct {
 	Section   string // INI section name. Empty for flat formats (CFG, TOML root keys).
-	KeyPrefix string // Keys starting with this prefix are owned. Empty means the entire section.
+	KeyPrefix string // Keys starting with this prefix are managed. Empty means the entire section.
 }
 
 func (e ConfigEntry) Key() string {
@@ -209,8 +224,20 @@ func (e ConfigEntry) FullPath() string {
 	return strings.Join(e.Path, ".")
 }
 
+func (SectionRegion) managedRegion() {}
+
 type ConfigPatch struct {
-	Target       ConfigTarget
-	Entries      []ConfigEntry
-	OwnedRegions []OwnedRegion
+	Target         ConfigTarget
+	Entries        []ConfigEntry
+	ManagedRegions []ManagedRegion
+}
+
+// ManagesWholeFile reports whether any managed region covers the entire file.
+func (p ConfigPatch) ManagesWholeFile() bool {
+	for _, r := range p.ManagedRegions {
+		if _, ok := r.(FileRegion); ok {
+			return true
+		}
+	}
+	return false
 }

@@ -232,7 +232,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	}
 
 	if hasOverwrittenUserChanges {
-		fmt.Println("Your changes to managed keys will be overwritten:")
+		fmt.Println("Your changes to managed settings will be overwritten:")
 		fmt.Println()
 		for _, diff := range diffs {
 			if diff.UserModified && len(diff.UserChanges) > 0 {
