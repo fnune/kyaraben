@@ -129,6 +129,14 @@ func (p *Paths) CLIBinaryName() string {
 	return p.DirName()
 }
 
+func (p *Paths) CLIInstallPath() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".local", "bin", p.CLIBinaryName()), nil
+}
+
 func (p *Paths) CoresDir() (string, error) {
 	state, err := p.StateDir()
 	if err != nil {

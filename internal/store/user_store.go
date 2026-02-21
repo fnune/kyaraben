@@ -91,6 +91,18 @@ func (s *UserStore) CoresDir() string {
 	return dir
 }
 
+func (s *UserStore) FrontendGamelistDir(fe model.FrontendID, sys model.SystemID) string {
+	return filepath.Join(s.resolved, "frontends", string(fe), "gamelists", string(sys))
+}
+
+func (s *UserStore) FrontendMediaDir(fe model.FrontendID, sys model.SystemID) string {
+	return filepath.Join(s.resolved, "frontends", string(fe), "media", string(sys))
+}
+
+func (s *UserStore) FrontendMediaBaseDir(fe model.FrontendID) string {
+	return filepath.Join(s.resolved, "frontends", string(fe), "media")
+}
+
 func (s *UserStore) Initialize() error {
 	for _, dir := range s.Directories() {
 		path := filepath.Join(s.resolved, dir)

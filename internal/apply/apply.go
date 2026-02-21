@@ -324,7 +324,6 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	opts.OnProgress(Progress{Step: "finalize", Message: "Creating desktop entries and emulator configs"})
 
 	if a.LauncherManager != nil {
-
 		launcherBinaries := toLauncherBinaries(installedBinaries)
 		if err := a.LauncherManager.GenerateWrappers(launcherBinaries); err != nil {
 			return nil, fmt.Errorf("generating launcher wrappers: %w", err)
