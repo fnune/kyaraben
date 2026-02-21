@@ -7,7 +7,7 @@ Kyaraben is a declarative emulation manager for Linux. It handles the installati
 This project is in development.
 
 <p align="center">
-  <img src="assets/kyaraben.png" alt="Kyaraben screenshot" width="800">
+  <img src="assets/screenshots/catalog-idle.png" alt="Kyaraben screenshot" width="800">
 </p>
 
 ## How it works
