@@ -1,8 +1,8 @@
 import { useCallback, useState } from 'react'
 import { Button } from '@/lib/Button'
 import { Input } from '@/lib/Input'
-import { Modal } from '@/lib/Modal'
 import { CopyIcon, TrashIcon } from '@/lib/icons'
+import { Modal } from '@/lib/Modal'
 import { Spinner } from '@/lib/Spinner'
 import type { SyncDevice, SyncDiscoveredDevice, SyncStatusResponse } from '@/types/daemon'
 
