@@ -225,36 +225,46 @@ func qtConfigControllerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 			model.ConfigEntry{Path: []string{"Controls", prefix + "connected"}, Value: "true", DefaultOnly: i > 0},
 			model.ConfigEntry{Path: []string{"Controls", prefix + "profile_name"}, Value: "Kyaraben", DefaultOnly: true},
 			model.ConfigEntry{Path: []string{"Controls", prefix + "type"}, Value: "0", DefaultOnly: true},
-			defaultBindingEntry([]string{"Controls", prefix + "button_a"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["a"]]))),
-			defaultBindingEntry([]string{"Controls", prefix + "button_b"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["b"]]))),
-			defaultBindingEntry([]string{"Controls", prefix + "button_x"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["x"]]))),
-			defaultBindingEntry([]string{"Controls", prefix + "button_y"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["y"]]))),
-			defaultBindingEntry([]string{"Controls", prefix + "button_lstick"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonLeftStick]))),
-			defaultBindingEntry([]string{"Controls", prefix + "button_rstick"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonRightStick]))),
-			defaultBindingEntry([]string{"Controls", prefix + "button_l"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonLeftShoulder]))),
-			defaultBindingEntry([]string{"Controls", prefix + "button_r"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonRightShoulder]))),
-			defaultBindingEntry([]string{"Controls", prefix + "button_zl"}, fmt.Sprintf(`"%s"`, edenAxisRef(guid, i, model.AxisLeftTrigger))),
-			defaultBindingEntry([]string{"Controls", prefix + "button_zr"}, fmt.Sprintf(`"%s"`, edenAxisRef(guid, i, model.AxisRightTrigger))),
-			defaultBindingEntry([]string{"Controls", prefix + "button_plus"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonStart]))),
-			defaultBindingEntry([]string{"Controls", prefix + "button_minus"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonBack]))),
-			defaultBindingEntry([]string{"Controls", prefix + "button_dleft"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "left"))),
-			defaultBindingEntry([]string{"Controls", prefix + "button_dright"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "right"))),
-			defaultBindingEntry([]string{"Controls", prefix + "button_dup"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "up"))),
-			defaultBindingEntry([]string{"Controls", prefix + "button_ddown"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "down"))),
-			defaultBindingEntry([]string{"Controls", prefix + "lstick"}, fmt.Sprintf(`"%s"`, edenStickRef(guid, i, model.AxisLeftX, model.AxisLeftY))),
-			defaultBindingEntry([]string{"Controls", prefix + "rstick"}, fmt.Sprintf(`"%s"`, edenStickRef(guid, i, model.AxisRightX, model.AxisRightY))),
 		)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_a"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["a"]])))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_b"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["b"]])))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_x"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["x"]])))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_y"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[faceMap["y"]])))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_lstick"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonLeftStick])))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_rstick"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonRightStick])))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_l"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonLeftShoulder])))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_r"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonRightShoulder])))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_zl"}, fmt.Sprintf(`"%s"`, edenAxisRef(guid, i, model.AxisLeftTrigger)))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_zr"}, fmt.Sprintf(`"%s"`, edenAxisRef(guid, i, model.AxisRightTrigger)))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_plus"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonStart])))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_minus"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, model.SDLButtonIndex[model.ButtonBack])))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_dleft"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "left")))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_dright"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "right")))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_dup"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "up")))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_ddown"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "down")))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "lstick"}, fmt.Sprintf(`"%s"`, edenStickRef(guid, i, model.AxisLeftX, model.AxisLeftY)))...)
+		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "rstick"}, fmt.Sprintf(`"%s"`, edenStickRef(guid, i, model.AxisRightX, model.AxisRightY)))...)
 	}
 
 	return entries
 }
 
-func defaultBindingEntry(path []string, value string) model.ConfigEntry {
-	return model.ConfigEntry{
-		Path:         path,
-		Value:        value,
-		DefaultOnly:  true,
-		EqualityFunc: configformat.BindingValuesEqual,
+func defaultBindingEntries(path []string, value string) []model.ConfigEntry {
+	defaultFlagPath := make([]string, len(path))
+	copy(defaultFlagPath, path)
+	defaultFlagPath[len(defaultFlagPath)-1] = defaultFlagPath[len(defaultFlagPath)-1] + `\default`
+
+	return []model.ConfigEntry{
+		{
+			Path:         path,
+			Value:        value,
+			DefaultOnly:  true,
+			EqualityFunc: configformat.BindingValuesEqual,
+		},
+		{
+			Path:  defaultFlagPath,
+			Value: "false",
+		},
 	}
 }
 
