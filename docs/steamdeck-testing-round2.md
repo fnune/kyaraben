@@ -8,7 +8,7 @@ Testing after emulator config fixes.
 
 ## Dolphin (GameCube/Wii)
 
-- [ ] Speed hotkey is hold, not toggle (EmuDeck also uses hold, this is Dolphin's design)
+- [x] Fixed: Speed hotkey now uses toggle() wrapper for toggle behavior
 - [x] Fixed: Load state key was wrong section (Save State/ -> Load State/)
 - [x] Fixed: ConfirmStop was in wrong section (General -> Interface)
 
