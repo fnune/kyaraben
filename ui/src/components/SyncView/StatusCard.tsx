@@ -182,7 +182,29 @@ function PrimaryPairingContent({
   onStopPairing,
 }: PrimaryPairingContentProps) {
   const [showDeviceId, setShowDeviceId] = useState(false)
+  const [isStartingPairing, setIsStartingPairing] = useState(false)
   const hasDevices = (status.devices?.length ?? 0) > 0
+
+  const handleStartPairing = useCallback(async () => {
+    setIsStartingPairing(true)
+    try {
+      await onStartPairing()
+    } finally {
+      setIsStartingPairing(false)
+    }
+  }, [onStartPairing])
+
+  if (isStartingPairing || (isPairing && !(pairingCode || pairingDeviceId))) {
+    return (
+      <div className="mt-4 pt-4 border-t border-outline">
+        <h4 className="text-sm font-medium text-on-surface mb-2">Starting pairing</h4>
+        <div className="flex items-center gap-3">
+          <Spinner />
+          <span className="text-sm text-on-surface-muted">Connecting to relay server...</span>
+        </div>
+      </div>
+    )
+  }
 
   if (isPairing && (pairingCode || pairingDeviceId)) {
     return (
@@ -240,7 +262,9 @@ function PrimaryPairingContent({
       <p className="text-sm text-on-surface-muted mb-3">
         Start pairing to allow secondary devices to connect.
       </p>
-      <Button onClick={onStartPairing}>Start pairing</Button>
+      <Button onClick={handleStartPairing} disabled={isStartingPairing}>
+        Start pairing
+      </Button>
     </div>
   )
 }
