@@ -29,11 +29,11 @@ func NewRelayClient(urls []string) (*RelayClient, error) {
 	client := &http.Client{Timeout: 30 * time.Second}
 
 	for _, url := range urls {
-		for attempt := 0; attempt < 3; attempt++ {
+		for attempt := 0; attempt < 30; attempt++ {
 			resp, err := client.Get(url + "/health")
 			if err != nil {
 				log.Debug("Relay health check attempt %d failed for %s: %v", attempt+1, url, err)
-				time.Sleep(time.Duration(attempt+1) * time.Second)
+				time.Sleep(2 * time.Second)
 				continue
 			}
 			_ = resp.Body.Close()
@@ -44,7 +44,7 @@ func NewRelayClient(urls []string) (*RelayClient, error) {
 				}, nil
 			}
 			log.Debug("Relay health check attempt %d got status %d for %s", attempt+1, resp.StatusCode, url)
-			time.Sleep(time.Duration(attempt+1) * time.Second)
+			time.Sleep(2 * time.Second)
 		}
 	}
 

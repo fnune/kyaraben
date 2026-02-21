@@ -449,7 +449,7 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 		if emit != nil {
 			emit(Event{
 				Type: EventTypeProgress,
-				Data: ProgressEvent{Step: "sync-pause", Message: "Pausing sync"},
+				Data: ProgressEvent{Step: "sync-pause", Message: "Pausing synchronization"},
 			})
 		}
 		syncWasStopped = d.stopSyncthing(cfg)
@@ -514,7 +514,7 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 		if syncWasStopped && emit != nil {
 			emit(Event{
 				Type: EventTypeProgress,
-				Data: ProgressEvent{Step: "sync-resume", Message: "Resuming sync"},
+				Data: ProgressEvent{Step: "sync-resume", Message: "Resuming synchronization"},
 			})
 		}
 		if err := d.updateSyncConfig(cfg, userStore.Root()); err != nil {

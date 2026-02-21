@@ -29,7 +29,7 @@ test.beforeAll(async () => {
   })
 
   page = await electronApp.firstWindow()
-  await page.getByRole('heading', { level: 1 }).waitFor()
+  await page.getByRole('img', { name: 'Kyaraben' }).waitFor()
 })
 
 test.afterAll(async () => {
@@ -41,12 +41,12 @@ test.afterAll(async () => {
 
 test.describe('Kyaraben App', () => {
   test('displays the app title', async () => {
-    await expect(page.getByRole('heading', { level: 1, name: 'Kyaraben' })).toBeVisible()
+    await expect(page.getByRole('img', { name: 'Kyaraben' })).toBeVisible()
   })
 
   test('shows navigation tabs', async () => {
     await expect(page.getByRole('button', { name: 'Catalog', exact: true })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Sync' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Synchronization' })).toBeVisible()
   })
 
   test('displays manufacturer groupings', async () => {

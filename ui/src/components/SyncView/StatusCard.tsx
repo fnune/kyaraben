@@ -154,14 +154,14 @@ function PairingCodeDisplay({ code }: { readonly code: string }) {
   }, [code])
 
   return (
-    <div className="flex flex-col items-center justify-center py-8">
-      <code className="bg-surface-raised px-8 py-6 rounded-card font-mono text-5xl tracking-[0.4em] text-accent select-all slashed-zero">
+    <div className="flex flex-col items-center justify-center py-4">
+      <code className="bg-surface-raised px-4 py-3 rounded-card font-mono text-3xl sm:text-5xl lg:text-7xl tracking-[0.2em] sm:tracking-[0.4em] text-accent select-all slashed-zero max-w-full overflow-x-auto">
         {code}
       </code>
       <button
         type="button"
         onClick={handleCopy}
-        className="mt-4 flex items-center gap-2 px-3 py-2 text-sm text-on-surface-muted hover:text-on-surface rounded"
+        className="mt-2 flex items-center gap-2 px-3 py-2 text-sm text-on-surface-muted hover:text-on-surface rounded"
         title={copied ? 'Copied!' : 'Copy code'}
       >
         <CopyIcon className="w-4 h-4" />
@@ -205,9 +205,32 @@ function PrimaryPairingContent({
     return (
       <div className="mt-4 pt-4 border-t border-outline">
         <h4 className="text-sm font-medium text-on-surface mb-2">Starting pairing</h4>
-        <div className="flex items-center gap-3">
-          <Spinner />
-          <span className="text-sm text-on-surface-muted">Connecting to relay server...</span>
+        {showDeviceId && status.deviceId ? (
+          <>
+            <p className="text-sm text-on-surface-muted mb-3">
+              Share this device ID with your secondary device.
+            </p>
+            <DeviceIdDisplay deviceId={status.deviceId} />
+          </>
+        ) : (
+          <div className="flex items-center gap-3">
+            <Spinner />
+            <span className="text-sm text-on-surface-muted">Connecting to relay server...</span>
+          </div>
+        )}
+        <div className="mt-4 flex items-center gap-3">
+          <Button variant="secondary" onClick={onStopPairing}>
+            Stop pairing
+          </Button>
+          {status.deviceId && (
+            <button
+              type="button"
+              onClick={() => setShowDeviceId(!showDeviceId)}
+              className="text-sm text-accent hover:underline"
+            >
+              {showDeviceId ? 'Wait for pairing code' : 'Use device ID instead'}
+            </button>
+          )}
         </div>
       </div>
     )
@@ -217,7 +240,7 @@ function PrimaryPairingContent({
     return (
       <div className="mt-4 pt-4 border-t border-outline">
         <h4 className="text-sm font-medium text-on-surface mb-2">Pairing mode</h4>
-        {pairingCode ? (
+        {pairingCode && !showDeviceId ? (
           <>
             <p className="text-sm text-on-surface-muted mb-3">
               Enter this code on your secondary device to pair.
@@ -240,21 +263,19 @@ function PrimaryPairingContent({
           <Button variant="secondary" onClick={onStopPairing}>
             Stop pairing
           </Button>
-          {pairingCode && pairingDeviceId && (
-            <button
-              type="button"
-              onClick={() => setShowDeviceId(!showDeviceId)}
-              className="text-sm text-accent hover:underline"
-            >
-              {showDeviceId ? 'Hide device ID' : 'Show device ID'}
-            </button>
-          )}
+          {pairingDeviceId &&
+            (pairingCode ? (
+              <button
+                type="button"
+                onClick={() => setShowDeviceId(!showDeviceId)}
+                className="text-sm text-accent hover:underline"
+              >
+                {showDeviceId ? 'Use pairing code' : 'Use device ID instead'}
+              </button>
+            ) : (
+              <span className="text-sm text-on-surface-dim">Relay unavailable</span>
+            ))}
         </div>
-        {showDeviceId && pairingDeviceId && (
-          <div className="mt-3">
-            <DeviceIdDisplay deviceId={pairingDeviceId} />
-          </div>
-        )}
       </div>
     )
   }
@@ -515,7 +536,7 @@ export function StatusCard({
         </div>
       </Modal>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
         <div className="flex items-center gap-2">
           <StatusBadge label={status.mode ?? 'unknown'} ok={true} />
           <StatusBadge label="running" ok={true} />
