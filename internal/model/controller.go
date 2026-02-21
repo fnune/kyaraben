@@ -9,6 +9,7 @@ package model
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -207,6 +208,35 @@ func ValidateLayoutID(s string) (LayoutID, error) {
 	default:
 		return "", fmt.Errorf("unknown controller layout %q (valid: standard, nintendo)", s)
 	}
+}
+
+// SteamDeckGUID is the virtual gamepad GUID that Steam Input presents for all
+// controllers connected through Steam. On Steam Deck in game mode, every
+// controller (Xbox, PlayStation, etc.) appears with this GUID.
+const SteamDeckGUID = "03000000de280000ff11000001000000"
+
+// PreferredGUID returns the GUID to use for emulators that only support a
+// single GUID per player slot (Eden). It returns the Steam Deck GUID if
+// present in the map, otherwise the first GUID in sorted order.
+func (cc *ControllerConfig) PreferredGUID() string {
+	if _, ok := cc.GUIDs[SteamDeckGUID]; ok {
+		return SteamDeckGUID
+	}
+	guids := cc.SortedGUIDs()
+	if len(guids) > 0 {
+		return guids[0]
+	}
+	return SteamDeckGUID
+}
+
+// SortedGUIDs returns all GUIDs in the map in sorted order.
+func (cc *ControllerConfig) SortedGUIDs() []string {
+	guids := make([]string, 0, len(cc.GUIDs))
+	for g := range cc.GUIDs {
+		guids = append(guids, g)
+	}
+	sort.Strings(guids)
+	return guids
 }
 
 // FaceButtons returns the four face buttons (south, east, west, north) adjusted

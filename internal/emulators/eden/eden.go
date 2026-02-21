@@ -142,13 +142,7 @@ func playerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	var entries []model.ConfigEntry
 	south, east, west, north := cc.FaceButtons()
 
-	// Use the first GUID from the GUIDs map; fall back to the Steam Deck virtual
-	// gamepad GUID which covers all controllers through Steam Input.
-	guid := "03000000de280000ff11000001000000"
-	for g := range cc.GUIDs {
-		guid = g
-		break
-	}
+	guid := cc.PreferredGUID()
 
 	// Switch maps: A=east, B=south, X=north, Y=west in Nintendo layout.
 	// Eden is a Switch emulator, so Switch A/B/X/Y are the console buttons.
