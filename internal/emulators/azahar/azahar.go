@@ -70,11 +70,16 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		{Path: []string{"UI", "Paths\\screenshotPath\\default"}, Value: "false"},
 	}
 
+	var ownedRegions []model.OwnedRegion
 	if cc := ctx.ControllerConfig; cc != nil {
 		entries = append(entries, profileEntries(cc)...)
+		ownedRegions = append(ownedRegions, model.OwnedRegion{
+			Section:   "Controls",
+			KeyPrefix: `profiles\1\`,
+		})
 	}
 
-	patches := []model.ConfigPatch{{Target: configTarget, Entries: entries}}
+	patches := []model.ConfigPatch{{Target: configTarget, Entries: entries, OwnedRegions: ownedRegions}}
 
 	dataDir, err := ctx.BaseDirResolver.UserDataDir()
 	if err != nil {
@@ -123,9 +128,9 @@ func profileEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 
 	prefix := "profiles\\1\\"
 	return []model.ConfigEntry{
-		{Path: []string{section, "profile"}, Value: "1"},
-		{Path: []string{section, "profiles\\size"}, Value: "1"},
-		{Path: []string{section, prefix + "name"}, Value: "default"},
+		{Path: []string{section, "profile"}, Value: "1", Unmanaged: true},
+		{Path: []string{section, "profiles\\size"}, Value: "1", Unmanaged: true},
+		{Path: []string{section, prefix + "name"}, Value: "kyaraben-steamdeck"},
 		{Path: []string{section, prefix + "button_a"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[faceMap["a"]]))},
 		{Path: []string{section, prefix + "button_b"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[faceMap["b"]]))},
 		{Path: []string{section, prefix + "button_x"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[faceMap["x"]]))},
