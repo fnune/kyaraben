@@ -86,7 +86,6 @@ func TestArchiveType(t *testing.T) {
 		{"eden is direct AppImage", "eden", "x64", ""},
 		{"duckstation is direct AppImage", "duckstation", "x64", ""},
 		{"retroarch is 7z", "retroarch", "x64", "7z"},
-		{"melonds is zip", "melonds", "x64", "zip"},
 	}
 
 	for _, tt := range tests {
@@ -241,8 +240,8 @@ func TestGetPackage(t *testing.T) {
 
 	// Test known packages
 	knownPackages := []string{
-		"eden", "duckstation", "pcsx2", "ppsspp", "mgba",
-		"cemu", "azahar", "dolphin", "melonds", "vita3k",
+		"eden", "duckstation", "pcsx2", "ppsspp",
+		"cemu", "azahar", "dolphin", "vita3k",
 		"rpcs3", "flycast", "retroarch", "syncthing",
 	}
 

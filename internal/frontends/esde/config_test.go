@@ -52,8 +52,8 @@ func TestBuildCommandPassesSavesDir(t *testing.T) {
 	store := &fakeStoreReader{root: "/emulation"}
 
 	emulators := map[model.EmulatorID]model.Emulator{
-		model.EmulatorIDMGBA: {
-			ID: model.EmulatorIDMGBA,
+		model.EmulatorIDRetroArchMGBA: {
+			ID: model.EmulatorIDRetroArchMGBA,
 			Launcher: model.LauncherInfo{
 				Binary: "mgba",
 				RomCommand: func(opts model.RomLaunchOptions) string {
@@ -95,7 +95,7 @@ func TestBuildCommandPassesSavesDir(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(string(tt.sysID), func(t *testing.T) {
-			cmd := c.buildCommand(ctx, model.EmulatorIDMGBA, tt.sysID)
+			cmd := c.buildCommand(ctx, model.EmulatorIDRetroArchMGBA, tt.sysID)
 
 			if !strings.Contains(cmd, "-C savegamePath="+tt.wantSavesIn) {
 				t.Errorf("buildCommand() = %q, want savegamePath=%s", cmd, tt.wantSavesIn)

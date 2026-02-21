@@ -7,14 +7,14 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/duckstation"
 	"github.com/fnune/kyaraben/internal/emulators/eden"
 	"github.com/fnune/kyaraben/internal/emulators/flycast"
-	"github.com/fnune/kyaraben/internal/emulators/melonds"
-	"github.com/fnune/kyaraben/internal/emulators/mgba"
 	"github.com/fnune/kyaraben/internal/emulators/pcsx2"
 	"github.com/fnune/kyaraben/internal/emulators/ppsspp"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbeetlesaturn"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbsnes"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchgenesisplusgx"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchmelonds"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmesen"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchmgba"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmupen64plus"
 	"github.com/fnune/kyaraben/internal/emulators/rpcs3"
 	"github.com/fnune/kyaraben/internal/emulators/vita3k"
@@ -75,13 +75,13 @@ func NewDefault() *Registry {
 			retroarchgenesisplusgx.Definition{},
 			retroarchmupen64plus.Definition{},
 			retroarchbeetlesaturn.Definition{},
+			retroarchmgba.Definition{},
+			retroarchmelonds.Definition{},
 			duckstation.Definition{},
 			pcsx2.Definition{},
 			rpcs3.Definition{},
 			vita3k.Definition{},
 			ppsspp.Definition{},
-			mgba.Definition{},
-			melonds.Definition{},
 			flycast.Definition{},
 			cemu.Definition{},
 			azahar.Definition{},

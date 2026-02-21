@@ -37,7 +37,7 @@ func TestRun(t *testing.T) {
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDPSX: {model.EmulatorIDDuckStation},
-			model.SystemIDGBA: {model.EmulatorIDMGBA},
+			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
 		},
 	}
 
@@ -75,7 +75,7 @@ func TestRunNoRequiredProvisions(t *testing.T) {
 			UserStore: userStorePath,
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
-			model.SystemIDGBA: {model.EmulatorIDMGBA},
+			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
 		},
 	}
 
@@ -95,8 +95,8 @@ func TestRunNoRequiredProvisions(t *testing.T) {
 	if sys.SystemID != model.SystemIDGBA {
 		t.Errorf("SystemID: got %s, want %s", sys.SystemID, model.SystemIDGBA)
 	}
-	if sys.EmulatorName != "mGBA" {
-		t.Errorf("EmulatorName: got %s, want mGBA", sys.EmulatorName)
+	if sys.EmulatorName != "mGBA (RetroArch)" {
+		t.Errorf("EmulatorName: got %s, want mGBA (RetroArch)", sys.EmulatorName)
 	}
 
 	if result.UnsatisfiedGroups != 0 {

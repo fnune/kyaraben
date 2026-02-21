@@ -27,14 +27,14 @@ export const SystemIDSNES = 'snes' as const
 export const SystemIDGBA = 'gba' as const
 export const SystemIDPSX = 'psx' as const
 export const EmulatorIDRetroArchBsnes = 'retroarch:bsnes' as const
-export const EmulatorIDMGBA = 'mgba' as const
+export const EmulatorIDRetroArchMGBA = 'retroarch:mgba' as const
 export const EmulatorIDDuckStation = 'duckstation' as const
 export const FrontendIDESDE = 'es-de' as const
 
 export type SystemID = typeof SystemIDSNES | typeof SystemIDGBA | typeof SystemIDPSX | string
 export type EmulatorID =
   | typeof EmulatorIDRetroArchBsnes
-  | typeof EmulatorIDMGBA
+  | typeof EmulatorIDRetroArchMGBA
   | typeof EmulatorIDDuckStation
   | string
 export type FrontendID = typeof FrontendIDESDE | string
@@ -279,7 +279,7 @@ export const presets = {
     config: {
       systems: {
         [SystemIDSNES]: [EmulatorIDRetroArchBsnes],
-        [SystemIDGBA]: [EmulatorIDMGBA],
+        [SystemIDGBA]: [EmulatorIDRetroArchMGBA],
       },
     },
     manifest: {
@@ -291,8 +291,8 @@ export const presets = {
           storePath: '/tmp/kyaraben-packages/bsnes',
           installed: new Date().toISOString(),
         },
-        [EmulatorIDMGBA]: {
-          id: EmulatorIDMGBA,
+        [EmulatorIDRetroArchMGBA]: {
+          id: EmulatorIDRetroArchMGBA,
           version: '0.10.3',
           storePath: '/tmp/kyaraben-packages/mgba',
           installed: new Date().toISOString(),

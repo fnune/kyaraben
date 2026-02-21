@@ -7,7 +7,13 @@ import {
   type Page,
   test,
 } from '@playwright/test'
-import { buildEnv, createFixture, EmulatorIDMGBA, SystemIDGBA, type TestFixture } from './fixtures'
+import {
+  buildEnv,
+  createFixture,
+  EmulatorIDRetroArchMGBA,
+  SystemIDGBA,
+  type TestFixture,
+} from './fixtures'
 
 function getAppImagePath(): string {
   const appImagePath = process.env.KYARABEN_APPIMAGE
@@ -26,7 +32,7 @@ test.describe('Config conflict review', () => {
     fixture = createFixture(
       {
         systems: {
-          [SystemIDGBA]: [EmulatorIDMGBA],
+          [SystemIDGBA]: [EmulatorIDRetroArchMGBA],
         },
       },
       undefined,
@@ -54,8 +60,8 @@ test.describe('Config conflict review', () => {
       version: 1,
       last_applied: new Date().toISOString(),
       installed_emulators: {
-        [EmulatorIDMGBA]: {
-          id: EmulatorIDMGBA,
+        [EmulatorIDRetroArchMGBA]: {
+          id: EmulatorIDRetroArchMGBA,
           version: '0.10.3',
           store_path: path.join(fixture.stateDir, 'kyaraben', 'packages', 'mgba'),
           installed: new Date().toISOString(),
@@ -63,7 +69,7 @@ test.describe('Config conflict review', () => {
       },
       managed_configs: [
         {
-          emulator_id: EmulatorIDMGBA,
+          emulator_id: EmulatorIDRetroArchMGBA,
           target: {
             RelPath: 'mgba/config.ini',
             Format: 'ini',

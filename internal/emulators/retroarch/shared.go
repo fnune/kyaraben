@@ -54,7 +54,7 @@ func SharedConfig(store model.StoreReader, cc *model.ControllerConfig) model.Con
 		{Path: []string{"sort_savefiles_by_content_enable"}, Value: "false"},
 		{Path: []string{"sort_savestates_by_content_enable"}, Value: "false"},
 		{Path: []string{"rgui_browser_directory"}, Value: store.RomsDir()},
-		{Path: []string{"menu_driver"}, Value: "rgui"},
+		{Path: []string{"menu_driver"}, Value: "ozone", DefaultOnly: true},
 		{Path: []string{"menu_show_load_content_animation"}, Value: "false"},
 		{Path: []string{"notification_show_config_override_load"}, Value: "false"},
 		{Path: []string{"notification_show_remap_load"}, Value: "false"},
@@ -131,6 +131,8 @@ var coreShortNames = map[model.EmulatorID]string{
 	model.EmulatorIDRetroArchGenesisPlusGX: "genesis_plus_gx",
 	model.EmulatorIDRetroArchMupen64Plus:   "mupen64plus_next",
 	model.EmulatorIDRetroArchBeetleSaturn:  "mednafen_saturn",
+	model.EmulatorIDRetroArchMGBA:          "mgba",
+	model.EmulatorIDRetroArchMelonDS:       "melonds",
 }
 
 var coreToSystem = map[model.EmulatorID]model.SystemID{
@@ -139,6 +141,8 @@ var coreToSystem = map[model.EmulatorID]model.SystemID{
 	model.EmulatorIDRetroArchGenesisPlusGX: model.SystemIDGenesis,
 	model.EmulatorIDRetroArchMupen64Plus:   model.SystemIDN64,
 	model.EmulatorIDRetroArchBeetleSaturn:  model.SystemIDSaturn,
+	model.EmulatorIDRetroArchMGBA:          model.SystemIDGBA,
+	model.EmulatorIDRetroArchMelonDS:       model.SystemIDNDS,
 }
 
 func CoreShortName(emuID model.EmulatorID) string {

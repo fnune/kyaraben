@@ -211,13 +211,13 @@ func TestApplyUserModifiedConfig(t *testing.T) {
 	c.init()
 	c.apply()
 
-	mgbaConfig := filepath.Join(c.tmpDir, "xdg-config", "mgba", "config.ini")
-	content := c.readFile("xdg-config/mgba/config.ini")
+	retroarchConfig := filepath.Join(c.tmpDir, "xdg-config", "retroarch", "retroarch.cfg")
+	content := c.readFile("xdg-config/retroarch/retroarch.cfg")
 	modified := strings.Replace(content, c.userStore, "/user/modified/path", 1)
 	if modified == content {
 		t.Fatal("failed to modify config - no substitution made")
 	}
-	if err := os.WriteFile(mgbaConfig, []byte(modified), 0644); err != nil {
+	if err := os.WriteFile(retroarchConfig, []byte(modified), 0644); err != nil {
 		t.Fatalf("writing modified config: %v", err)
 	}
 
