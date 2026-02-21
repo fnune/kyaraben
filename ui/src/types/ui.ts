@@ -10,7 +10,7 @@ export type View = typeof VIEW_CATALOG | typeof VIEW_INSTALLATION | typeof VIEW_
 export const VIEW_LABELS: Record<View, string> = {
   [VIEW_CATALOG]: 'Catalog',
   [VIEW_INSTALLATION]: 'Installation',
-  [VIEW_SYNC]: 'Sync',
+  [VIEW_SYNC]: 'Synchronization',
 }
 
 export const MANUFACTURER_ORDER: readonly Manufacturer[] = ['Nintendo', 'Sony', 'Sega', 'Other']

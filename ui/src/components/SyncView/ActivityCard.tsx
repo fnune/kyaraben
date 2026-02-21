@@ -126,7 +126,7 @@ export function ActivityCard({ folders, lastSyncedAt, hasPairedDevices }: Activi
       <div className="p-4 bg-status-error/10 rounded-card">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-status-error">✕</span>
-          <span className="text-sm font-medium text-status-error">Sync error</span>
+          <span className="text-sm font-medium text-status-error">Synchronization error</span>
         </div>
         <div className="ml-5 space-y-1">
           {errorFolders.map((folder) => (
@@ -146,11 +146,11 @@ export function ActivityCard({ folders, lastSyncedAt, hasPairedDevices }: Activi
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-status-ok">✓</span>
-            <span className="text-sm font-medium text-on-surface">All synced</span>
+            <span className="text-sm font-medium text-on-surface">All synchronized</span>
           </div>
           {lastSyncedAt && (
             <span className="text-xs text-on-surface-muted">
-              Last sync: {formatTimeAgo(lastSyncedAt)}
+              Last synchronized: {formatTimeAgo(lastSyncedAt)}
             </span>
           )}
         </div>

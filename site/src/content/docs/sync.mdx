@@ -1,32 +1,32 @@
 ---
-title: Sync
+title: Synchronization
 description: Synchronize saves, states, and scraped metadata across devices
 ---
 
 ## Overview
 
 Kyaraben uses Syncthing to synchronize emulation data across devices. Syncthing
-is installed automatically when you enable sync. No accounts, cloud services,
+is installed automatically when you enable synchronization. No accounts, cloud services,
 or port forwarding required.
 
 Pairing is simplified: enter a 6-digit code on your secondary device to connect
 to your primary. Kyaraben runs its own relay server so devices can find each
 other from any network.
 
-Sync requires systemd. Service management uses `systemctl --user`.
+Synchronization requires systemd. Service management uses `systemctl --user`.
 
-## Enabling sync
+## Enabling synchronization
 
 ### Using the app
 
-1. Go to Settings > Sync
+1. Go to Settings > Synchronization
 2. Choose Primary or Secondary mode
-3. Click "Enable sync"
+3. Click "Enable synchronization"
 
 **Primary**: the device where your ROM collection lives (typically a desktop or
 server). Sends ROMs and BIOS to secondaries.
 
-**Secondary**: receives ROMs from the primary and syncs saves bidirectionally
+**Secondary**: receives ROMs from the primary and synchronizes saves bidirectionally
 (typically a Steam Deck or laptop).
 
 ### Using the CLI
@@ -43,21 +43,21 @@ Then run `kyaraben apply` to install Syncthing.
 
 ## Pairing devices
 
-Pairing connects two devices so they can sync. One device becomes the primary
-(source of ROMs) and the other becomes the secondary (receives ROMs, syncs
+Pairing connects two devices so they can synchronize. One device becomes the primary
+(source of ROMs) and the other becomes the secondary (receives ROMs, synchronizes
 saves bidirectionally).
 
 ### Using the app
 
 On the primary:
 
-1. Go to Settings > Sync
+1. Go to Settings > Synchronization
 2. Click "Start pairing"
 3. A 6-character code appears (e.g. K7X9M2)
 
 On the secondary:
 
-1. Go to Settings > Sync
+1. Go to Settings > Synchronization
 2. Enter the code from the primary
 3. Click "Join primary"
 
@@ -117,15 +117,15 @@ primary collection from a secondary device.
 ### EmulationStation DE gamelists and media
 
 When using EmulationStation DE, scraped metadata (game descriptions, ratings, etc.) and media
-(screenshots, videos, box art) sync between devices. Kyaraben strips play
+(screenshots, videos, box art) synchronize between devices. Kyaraben strips play
 statistics (playcount, playtime, last played) before syncing to avoid conflicts,
 then merges local stats back when importing. This means each device tracks its
 own play history while sharing metadata and artwork.
 
 Scraped videos can be large. See [ignore patterns](#example-skip-emulationstation-de-videos)
-to exclude them from sync.
+to exclude them from synchronization.
 
-## Managing sync
+## Managing synchronization
 
 To add a new device, see [Pairing devices](#pairing-devices).
 
@@ -134,7 +134,7 @@ To add a new device, see [Pairing devices](#pairing-devices).
 ```
 $ kyaraben sync status
 
-Sync: enabled (primary)
+Synchronization: enabled (primary)
 Device ID: LGFPDIT7-SKNNJVJZ-A4FC7QNC-...
 
 Paired devices:
@@ -201,14 +201,14 @@ Ignore patterns are local to each device:
 
 - **Ignored on primary**: files won't be sent to any secondary
 - **Ignored on secondary**: files won't be received on that device, but other
-  devices still sync them
+  devices still synchronize them
 
 This lets you skip large files on a device with limited storage (like a Steam
 Deck) while keeping them on others.
 
 #### Example: exclude large ROM formats
 
-If you only want to sync smaller ROMs and skip disc-based games:
+If you only want to synchronize smaller ROMs and skip disc-based games:
 
 ```toml
 [sync.ignore]
@@ -227,7 +227,7 @@ patterns = [
 
 #### Example: skip EmulationStation DE videos
 
-Scraped videos can be several gigabytes per system. To sync box art and
+Scraped videos can be several gigabytes per system. To synchronize box art and
 screenshots but skip videos:
 
 ```toml
@@ -237,7 +237,7 @@ patterns = [
 ]
 ```
 
-Or skip all media and only sync gamelists (metadata):
+Or skip all media and only synchronize gamelists (metadata):
 
 ```toml
 [sync.ignore]
@@ -258,7 +258,7 @@ folders do not use versioning.
 Codes expire after 5 minutes. Cancel pairing on the primary and start a new
 session.
 
-### Devices paired but not syncing
+### Devices paired but not synchronizing
 
 1. Check `kyaraben sync status` shows "connected"
 2. If a firewall is blocking connections, see

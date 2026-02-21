@@ -371,13 +371,13 @@ export function CatalogView({
     return (
       <div className="p-6">
         <div className="max-w-lg mx-auto bg-surface-alt rounded-card p-6">
-          <h2 className="text-lg font-medium text-on-surface mb-4">Sync in progress</h2>
+          <h2 className="text-lg font-medium text-on-surface mb-4">Synchronization in progress</h2>
           <p className="text-sm text-on-surface-muted mb-4">
-            There are {syncPendingData.totalFiles} files ({totalMB} MB) still syncing. Applying now
-            will temporarily pause sync while emulators are configured.
+            There are {syncPendingData.totalFiles} files ({totalMB} MB) still synchronizing.
+            Applying now will temporarily pause synchronization while emulators are configured.
           </p>
           <p className="text-sm text-on-surface-muted mb-6">
-            Sync will resume automatically after apply completes.
+            Synchronization will resume automatically after apply completes.
           </p>
           <div className="flex gap-3">
             <button
@@ -385,7 +385,7 @@ export function CatalogView({
               onClick={reset}
               className="flex-1 px-4 py-2 text-sm font-medium text-on-surface bg-surface rounded-card hover:bg-outline"
             >
-              Wait for sync
+              Wait for synchronization
             </button>
             <button
               type="button"

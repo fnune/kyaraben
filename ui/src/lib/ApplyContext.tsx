@@ -15,13 +15,13 @@ import type { LogEntry } from '@/types/logging.gen'
 import type { ApplyStatus, ProgressStep } from '@/types/ui'
 
 const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
-  'sync-pause': 'Pausing sync',
+  'sync-pause': 'Pausing synchronization',
   summary: 'Applying configuration',
   store: 'Setting up emulation folder',
   build: 'Installing emulators',
   cleanup: 'Cleaning up',
   finalize: 'Finalizing',
-  'sync-resume': 'Resuming sync',
+  'sync-resume': 'Resuming synchronization',
 }
 
 interface ApplyConfig {

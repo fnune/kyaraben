@@ -49,7 +49,7 @@ export function SyncSettingsSection({ guiURL, onReset }: SyncSettingsSectionProp
             </button>
           )}
           <div>
-            <h4 className="text-sm font-medium text-on-surface mb-2">Reset sync</h4>
+            <h4 className="text-sm font-medium text-on-surface mb-2">Reset synchronization</h4>
             {showResetConfirm ? (
               <div className="space-y-3">
                 <div className="p-3 bg-status-warning/10 border border-status-warning/30 rounded text-sm">
@@ -58,11 +58,11 @@ export function SyncSettingsSection({ guiURL, onReset }: SyncSettingsSectionProp
                     <li>Stop and remove the syncthing service</li>
                     <li>Delete syncthing configuration and database</li>
                     <li>Remove all device pairings</li>
-                    <li>Disable sync in your Kyaraben config</li>
+                    <li>Disable synchronization in your Kyaraben config</li>
                   </ul>
                   <p className="mt-2 text-on-surface-muted">
                     Your ROMs, saves, and other emulation data will not be affected. You can
-                    re-enable sync afterwards.
+                    re-enable synchronization afterwards.
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -80,7 +80,7 @@ export function SyncSettingsSection({ guiURL, onReset }: SyncSettingsSectionProp
                   Remove all syncthing state and start fresh.
                 </p>
                 <Button variant="secondary" onClick={() => setShowResetConfirm(true)}>
-                  Reset sync
+                  Reset synchronization
                 </Button>
               </div>
             )}

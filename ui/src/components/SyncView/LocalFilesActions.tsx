@@ -91,7 +91,7 @@ export function LocalFilesActions({
           <ol className="list-decimal list-inside text-sm text-on-surface-muted space-y-2">
             <li>Open the folder on your primary device</li>
             <li>Copy the files you want to keep into the same location</li>
-            <li>The files will sync back to this device automatically</li>
+            <li>The files will synchronize back to this device automatically</li>
           </ol>
           <p className="text-sm text-on-surface-muted">
             Files added on secondary devices are not synced to avoid accidental data loss.
