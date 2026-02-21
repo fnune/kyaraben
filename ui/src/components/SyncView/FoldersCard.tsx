@@ -39,7 +39,9 @@ function FolderRow({ folder, onRefresh, hasPairedDevices }: FolderRowProps) {
   const isReceiveOnly = folder.type === 'receiveonly'
   const sizeDiffers = hasPairedDevices && isReceiveOnly && folder.localSize !== folder.globalSize
   const percent =
-    folder.globalSize > 0 ? Math.round((folder.localSize / folder.globalSize) * 100) : 100
+    folder.globalSize > 0
+      ? Math.round(((folder.globalSize - folder.needSize) / folder.globalSize) * 100)
+      : 100
 
   const fetchChanges = useCallback(async () => {
     setLoadingChanges(true)
