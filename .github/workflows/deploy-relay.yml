@@ -18,7 +18,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Koyeb CLI
-        run: curl -fsSL https://raw.githubusercontent.com/koyeb/koyeb-cli/main/install.sh | bash
+        run: |
+          VERSION=$(curl -s https://api.github.com/repos/koyeb/koyeb-cli/releases/latest | jq -r .tag_name | sed 's/^v//')
+          curl -fsSL "https://github.com/koyeb/koyeb-cli/releases/download/v${VERSION}/koyeb-cli_${VERSION}_linux_amd64.tar.gz" | tar xz
+          sudo mv koyeb /usr/local/bin/
 
       - name: Deploy to Koyeb
         env:
