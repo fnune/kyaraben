@@ -92,7 +92,7 @@ test.describe('Config conflict review', () => {
     })
 
     page = await app.firstWindow()
-    await page.getByRole('heading', { level: 1 }).waitFor({ timeout: 30000 })
+    await page.getByRole('img', { name: 'Kyaraben' }).waitFor({ timeout: 30000 })
   })
 
   test.afterAll(async () => {
