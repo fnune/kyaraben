@@ -338,7 +338,9 @@ func (i *PackageInstaller) installStandaloneCores(ctx context.Context, coreNames
 		destPath := filepath.Join(coresDir, standalone.Filename)
 
 		if _, err := i.fs.Stat(destPath); err == nil {
-			if standalone.SHA256 == "" || i.verifyFileHash(destPath, standalone.SHA256) {
+			// For archives, SHA256 is for the archive not the extracted file, so skip file hash check.
+			isArchive := detectArchiveType(standalone.URL) != ""
+			if isArchive || standalone.SHA256 == "" || i.verifyFileHash(destPath, standalone.SHA256) {
 				continue
 			}
 		}
