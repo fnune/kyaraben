@@ -1,7 +1,4 @@
 // Controller configuration types and hotkey binding parser.
-// GUID mapping data compiled from:
-// - SDL GameControllerDB (https://github.com/mdqinc/SDL_GameControllerDB)
-// - Linux xpad driver (https://github.com/torvalds/linux/blob/master/drivers/input/joystick/xpad.c)
 // Hotkey defaults inspired by:
 // - EmuDeck (https://github.com/dragoonDorise/EmuDeck) - GPL-3
 // - RetroDECK (https://github.com/XargonWan/RetroDECK) - GPL-3
@@ -9,7 +6,6 @@ package model
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 )
 
@@ -18,15 +14,6 @@ type LayoutID string
 const (
 	LayoutStandard LayoutID = "standard"
 	LayoutNintendo LayoutID = "nintendo"
-)
-
-type ProfileID string
-
-const (
-	ProfileSteamDeck   ProfileID = "steam-deck"
-	ProfileXbox        ProfileID = "xbox"
-	ProfilePlayStation ProfileID = "playstation"
-	ProfileNintendo    ProfileID = "nintendo"
 )
 
 // SDLButton represents a standard SDL GameController button name.
@@ -117,62 +104,6 @@ type HotkeyConfig struct {
 type ControllerConfig struct {
 	Layout  LayoutID
 	Hotkeys HotkeyConfig
-	GUIDs   map[string]ProfileID
-}
-
-// BuiltinGUIDs maps common controller GUIDs to profiles.
-// Users can override these via [controller.guids] in config.toml.
-var BuiltinGUIDs = map[string]ProfileID{
-	// Steam Deck
-	"03000000de280000ff11000001000000": ProfileSteamDeck,
-
-	// Xbox 360
-	"030000005e0400008e02000010010000": ProfileXbox,
-	"030000005e0400009102000007010000": ProfileXbox,
-	// Xbox One
-	"030000005e040000ea02000001030000": ProfileXbox,
-	// Xbox One S
-	"030000005e040000d102000001010000": ProfileXbox,
-	// Xbox Series X/S
-	"030000005e040000130b000011050000": ProfileXbox,
-
-	// DualShock 3
-	"030000004c0500006802000011010000": ProfilePlayStation,
-	// DualShock 4 v1
-	"030000004c050000c405000011010000": ProfilePlayStation,
-	// DualShock 4 v2
-	"030000004c050000cc09000011010000": ProfilePlayStation,
-	// DualSense
-	"030000004c050000e60c000011010000": ProfilePlayStation,
-
-	// Switch Pro Controller
-	"030000007e0500000920000011010000": ProfileNintendo,
-	// 8BitDo SN30 Pro
-	"03000000c82d00000161000000010000": ProfileNintendo,
-
-	// Handheld devices that use their own VID/PID but behave as Xbox controllers
-	// ROG Ally X
-	"0300000005b000004c1b000000000000": ProfileXbox,
-	// Lenovo Legion Go
-	"030000007eef00008261000000000000": ProfileXbox,
-	// Lenovo Legion Go S
-	"03000000861a000010e3000000000000": ProfileXbox,
-	// MSI Claw A1M
-	"03000000b00d00000119000000000000": ProfileXbox,
-	// OneXPlayer
-	"030000006325000058d0000000000000": ProfileXbox,
-}
-
-// MergeGUIDs returns a new map with user overrides applied on top of built-in GUIDs.
-func MergeGUIDs(user map[string]ProfileID) map[string]ProfileID {
-	merged := make(map[string]ProfileID, len(BuiltinGUIDs)+len(user))
-	for k, v := range BuiltinGUIDs {
-		merged[k] = v
-	}
-	for k, v := range user {
-		merged[k] = v
-	}
-	return merged
 }
 
 // DefaultHotkeys returns the default hotkey configuration.
@@ -192,15 +123,6 @@ func DefaultHotkeys() HotkeyConfig {
 	}
 }
 
-func ValidateProfileID(s string) (ProfileID, error) {
-	switch ProfileID(s) {
-	case ProfileSteamDeck, ProfileXbox, ProfilePlayStation, ProfileNintendo:
-		return ProfileID(s), nil
-	default:
-		return "", fmt.Errorf("unknown controller profile %q (valid: steam-deck, xbox, playstation, nintendo)", s)
-	}
-}
-
 func ValidateLayoutID(s string) (LayoutID, error) {
 	switch LayoutID(s) {
 	case LayoutStandard, LayoutNintendo:
@@ -214,30 +136,6 @@ func ValidateLayoutID(s string) (LayoutID, error) {
 // controllers connected through Steam. On Steam Deck in game mode, every
 // controller (Xbox, PlayStation, etc.) appears with this GUID.
 const SteamDeckGUID = "03000000de280000ff11000001000000"
-
-// PreferredGUID returns the GUID to use for emulators that only support a
-// single GUID per player slot (Eden). It returns the Steam Deck GUID if
-// present in the map, otherwise the first GUID in sorted order.
-func (cc *ControllerConfig) PreferredGUID() string {
-	if _, ok := cc.GUIDs[SteamDeckGUID]; ok {
-		return SteamDeckGUID
-	}
-	guids := cc.SortedGUIDs()
-	if len(guids) > 0 {
-		return guids[0]
-	}
-	return SteamDeckGUID
-}
-
-// SortedGUIDs returns all GUIDs in the map in sorted order.
-func (cc *ControllerConfig) SortedGUIDs() []string {
-	guids := make([]string, 0, len(cc.GUIDs))
-	for g := range cc.GUIDs {
-		guids = append(guids, g)
-	}
-	sort.Strings(guids)
-	return guids
-}
 
 // FaceButtons returns the four face buttons (south, east, west, north) adjusted
 // for the configured layout. Standard layout: A=south, B=east, X=west, Y=north.

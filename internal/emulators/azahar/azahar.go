@@ -111,6 +111,7 @@ func azaharStickRef(guid string, port, axisX, axisY int) string {
 func profileEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	south, east, west, north := cc.FaceButtons()
 	section := "Controls"
+	guid := model.SteamDeckGUID
 
 	// 3DS maps: A=east, B=south, X=north, Y=west (Nintendo layout).
 	faceMap := map[string]model.SDLButton{
@@ -120,50 +121,26 @@ func profileEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 		"y": west,
 	}
 
-	guids := cc.SortedGUIDs()
-	if len(guids) == 0 {
-		guids = []string{model.SteamDeckGUID}
+	prefix := "profiles\\1\\"
+	return []model.ConfigEntry{
+		{Path: []string{section, "profile"}, Value: "1"},
+		{Path: []string{section, "profiles\\size"}, Value: "1"},
+		{Path: []string{section, prefix + "name"}, Value: "default"},
+		{Path: []string{section, prefix + "button_a"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[faceMap["a"]]))},
+		{Path: []string{section, prefix + "button_b"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[faceMap["b"]]))},
+		{Path: []string{section, prefix + "button_x"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[faceMap["x"]]))},
+		{Path: []string{section, prefix + "button_y"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[faceMap["y"]]))},
+		{Path: []string{section, prefix + "button_l"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonLeftShoulder]))},
+		{Path: []string{section, prefix + "button_r"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonRightShoulder]))},
+		{Path: []string{section, prefix + "button_zl"}, Value: fmt.Sprintf(`"%s"`, azaharAxisRef(guid, 0, model.AxisLeftTrigger, "+"))},
+		{Path: []string{section, prefix + "button_zr"}, Value: fmt.Sprintf(`"%s"`, azaharAxisRef(guid, 0, model.AxisRightTrigger, "+"))},
+		{Path: []string{section, prefix + "button_start"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonStart]))},
+		{Path: []string{section, prefix + "button_select"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonBack]))},
+		{Path: []string{section, prefix + "button_up"}, Value: fmt.Sprintf(`"%s"`, azaharHatRef(guid, 0, 0, "up"))},
+		{Path: []string{section, prefix + "button_down"}, Value: fmt.Sprintf(`"%s"`, azaharHatRef(guid, 0, 0, "down"))},
+		{Path: []string{section, prefix + "button_left"}, Value: fmt.Sprintf(`"%s"`, azaharHatRef(guid, 0, 0, "left"))},
+		{Path: []string{section, prefix + "button_right"}, Value: fmt.Sprintf(`"%s"`, azaharHatRef(guid, 0, 0, "right"))},
+		{Path: []string{section, prefix + "circle_pad"}, Value: fmt.Sprintf(`"%s"`, azaharStickRef(guid, 0, model.AxisLeftX, model.AxisLeftY))},
+		{Path: []string{section, prefix + "c_stick"}, Value: fmt.Sprintf(`"%s"`, azaharStickRef(guid, 0, model.AxisRightX, model.AxisRightY))},
 	}
-
-	// Find the active profile index (1-based). Prefer the Steam Deck GUID
-	// so it is selected by default; Azahar will use whichever profile is
-	// set as active when the emulator starts.
-	activeProfile := 1
-	for i, g := range guids {
-		if g == model.SteamDeckGUID {
-			activeProfile = i + 1
-			break
-		}
-	}
-
-	entries := []model.ConfigEntry{
-		{Path: []string{section, "profile"}, Value: fmt.Sprintf("%d", activeProfile)},
-		{Path: []string{section, "profiles\\size"}, Value: fmt.Sprintf("%d", len(guids))},
-	}
-
-	for i, guid := range guids {
-		profileNum := i + 1
-		prefix := fmt.Sprintf("profiles\\%d\\", profileNum)
-		entries = append(entries,
-			model.ConfigEntry{Path: []string{section, prefix + "name"}, Value: guid},
-			model.ConfigEntry{Path: []string{section, prefix + "button_a"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[faceMap["a"]]))},
-			model.ConfigEntry{Path: []string{section, prefix + "button_b"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[faceMap["b"]]))},
-			model.ConfigEntry{Path: []string{section, prefix + "button_x"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[faceMap["x"]]))},
-			model.ConfigEntry{Path: []string{section, prefix + "button_y"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[faceMap["y"]]))},
-			model.ConfigEntry{Path: []string{section, prefix + "button_l"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonLeftShoulder]))},
-			model.ConfigEntry{Path: []string{section, prefix + "button_r"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonRightShoulder]))},
-			model.ConfigEntry{Path: []string{section, prefix + "button_zl"}, Value: fmt.Sprintf(`"%s"`, azaharAxisRef(guid, 0, model.AxisLeftTrigger, "+"))},
-			model.ConfigEntry{Path: []string{section, prefix + "button_zr"}, Value: fmt.Sprintf(`"%s"`, azaharAxisRef(guid, 0, model.AxisRightTrigger, "+"))},
-			model.ConfigEntry{Path: []string{section, prefix + "button_start"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonStart]))},
-			model.ConfigEntry{Path: []string{section, prefix + "button_select"}, Value: fmt.Sprintf(`"%s"`, azaharButtonRef(guid, 0, model.SDLButtonIndex[model.ButtonBack]))},
-			model.ConfigEntry{Path: []string{section, prefix + "button_up"}, Value: fmt.Sprintf(`"%s"`, azaharHatRef(guid, 0, 0, "up"))},
-			model.ConfigEntry{Path: []string{section, prefix + "button_down"}, Value: fmt.Sprintf(`"%s"`, azaharHatRef(guid, 0, 0, "down"))},
-			model.ConfigEntry{Path: []string{section, prefix + "button_left"}, Value: fmt.Sprintf(`"%s"`, azaharHatRef(guid, 0, 0, "left"))},
-			model.ConfigEntry{Path: []string{section, prefix + "button_right"}, Value: fmt.Sprintf(`"%s"`, azaharHatRef(guid, 0, 0, "right"))},
-			model.ConfigEntry{Path: []string{section, prefix + "circle_pad"}, Value: fmt.Sprintf(`"%s"`, azaharStickRef(guid, 0, model.AxisLeftX, model.AxisLeftY))},
-			model.ConfigEntry{Path: []string{section, prefix + "c_stick"}, Value: fmt.Sprintf(`"%s"`, azaharStickRef(guid, 0, model.AxisRightX, model.AxisRightY))},
-		)
-	}
-
-	return entries
 }

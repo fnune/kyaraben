@@ -226,37 +226,19 @@ Steam Deck GUID: 03000000de280000ff11000001000000
 
 This means any controller connected to a Steam Deck (Xbox, PlayStation, 8BitDo, etc.) appears to emulators as the Steam Deck controller. EmuDeck exploits this: they ship configs with the Steam Deck GUID and it works for all controllers.
 
+Neither Eden nor Azahar auto-detects controller GUIDs at runtime. Eden loads profiles by name from `~/.config/eden/input/`, not by GUID matching. Azahar stores profiles inline in `qt-config.ini` and uses a static index to select the active one. Neither emulator switches profiles when a new controller is connected. EmuDeck and RetroDECK both rely entirely on Steam Input to virtualize all controllers to the Steam Deck GUID. Kyaraben follows the same approach.
+
 #### Multiplayer behavior
 
-**Eden** (yuzu-based) supports per-player controller profiles. The config uses `player_0_*`, `player_1_*`, etc. keys, each with its own GUID and port. Two players can use different physical controllers simultaneously. Kyaraben generates bindings for each known GUID per player slot.
+**Eden** (yuzu-based) supports per-player controller profiles. The config uses `player_0_*`, `player_1_*`, etc. keys, each with its own GUID and port. Two players can use different physical controllers simultaneously. Kyaraben generates bindings for two player slots using the Steam Deck GUID.
 
 **Azahar** (Citra-based) is single-player only (the 3DS is a handheld). There is one active profile at a time. Multiplayer requires separate emulator instances. Kyaraben generates a single profile.
 
-#### GUID mapping design
+#### GUID approach
 
-Kyaraben ships a built-in GUID-to-profile mapping in Go code. Users extend or override it in `config.toml`. At runtime, user mappings are merged over built-in mappings (user wins on conflicts).
+Kyaraben hardcodes the Steam Deck virtual gamepad GUID for Eden and Azahar configs. This covers all controllers on Steam Deck (where Steam Input virtualizes every physical controller to this GUID) and all controllers on desktop Linux when launched through Steam.
 
-Built-in mapping covers:
-
-| Profile | GUIDs |
-|---------|-------|
-| Steam Deck | `03000000de280000ff11000001000000` (Neptune) |
-| Xbox | `030000005e0400008e02000010010000` (360 wired), `030000005e0400009102000007010000` (360 wireless), `030000005e040000ea02000001030000` (One), `030000005e040000d102000001010000` (One S), `030000005e040000130b000011050000` (Series X/S) |
-| PlayStation | `030000004c0500006802000011010000` (DS3), `030000004c050000c405000011010000` (DS4 v1), `030000004c050000cc09000011010000` (DS4 v2), `030000004c050000e60c000011010000` (DualSense) |
-| Nintendo | `030000007e0500000920000011010000` (Switch Pro), `03000000c82d00000161000000010000` (8BitDo SN30 Pro) |
-| Handheld (Xbox-compatible) | `0300000005b000004c1b000000000000` (ROG Ally X), `030000007eef00008261000000000000` (Legion Go), `03000000861a000010e3000000000000` (Legion Go S), `03000000b00d000001190000000000000` (MSI Claw), `030000006325000058d0000000000000` (OneXPlayer) |
-
-Many handheld devices (ROG Ally original, AYANEO, GPD Win 4/Max 2) use the generic Microsoft Xbox 360 VID/PID (`045e:028e`), so they already match the Xbox profile. Devices like the ROG Ally X, Legion Go, and MSI Claw use their own VID/PID but behave as Xbox 360 controllers, so they map to the Xbox profile.
-
-The user extends this via `config.toml`:
-
-```toml
-[controller.guids]
-# Map an unsupported controller GUID to a known profile
-"030000001234567890abcdef01000000" = "xbox"
-```
-
-This means users with uncommon controllers can self-serve without waiting for a Kyaraben update.
+Desktop Linux users running emulators without Steam Input must configure their controller through the emulator UI.
 
 #### Eden format
 
@@ -369,7 +351,6 @@ Migration is mechanical: each emulator replaces `store StoreReader` with `ctx Ge
 type ControllerConfig struct {
     Layout  LayoutID
     Hotkeys HotkeyConfig
-    GUIDs   map[string]ProfileID  // merged: built-in + user overrides
 }
 
 type LayoutID string
@@ -379,14 +360,7 @@ const (
     LayoutNintendo LayoutID = "nintendo"  // A=right, B=bottom
 )
 
-type ProfileID string
-
-const (
-    ProfileSteamDeck ProfileID = "steam-deck"
-    ProfileXbox      ProfileID = "xbox"
-    ProfilePS        ProfileID = "playstation"
-    ProfileNintendo  ProfileID = "nintendo"
-)
+const SteamDeckGUID = "03000000de280000ff11000001000000"
 
 type HotkeyConfig struct {
     SaveState        HotkeyBinding
@@ -440,21 +414,9 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 }
 ```
 
-### GUID-to-profile mapping
+### GUID handling for Group C emulators
 
-Built-in mapping lives in Go code:
-
-```go
-var BuiltinGUIDs = map[string]ProfileID{
-    "03000000de280000ff11000001000000": ProfileSteamDeck,
-    "030000005e0400008e02000010010000": ProfileXbox,
-    // ... all GUIDs from the table above
-}
-```
-
-At apply time, the apply flow builds `ControllerConfig.GUIDs` by starting with `BuiltinGUIDs` and overlaying the user's `[controller.guids]` from config.toml. User entries win on conflicts.
-
-This means Group C emulators (Eden, Azahar) iterate over the merged GUID map and generate bindings for each GUID that maps to the relevant profile.
+Eden and Azahar use the `SteamDeckGUID` constant directly. No GUID-to-profile mapping is needed because Steam Input virtualizes all controllers to a single GUID. The `SteamDeckGUID` is embedded in every binding string for these emulators.
 
 ### Multi-player
 
@@ -499,16 +461,9 @@ screenshot = "Back+B"
 quit = "Back+Start"
 toggle_fullscreen = "Start+LeftStick"
 open_menu = "Back+RightStick"
-
-[controller.guids]
-# Users add custom GUID-to-profile mappings here.
-# These override built-in mappings for the same GUID.
-# Supported profiles: "steam-deck", "xbox", "playstation", "nintendo"
-# Example:
-# "030000001234567890abcdef01000000" = "xbox"
 ```
 
-When `[controller]` is absent from an existing config.toml, Kyaraben uses the defaults (standard layout, default hotkeys, no user GUID overrides).
+When `[controller]` is absent from an existing config.toml, Kyaraben uses the defaults (standard layout, default hotkeys).
 
 ### Layout naming
 
@@ -590,20 +545,15 @@ This is an optional enhancement, not required for controllers to work.
 - Turbo/rapid-fire
 - Macro recording
 - Advanced deadzone curves
-- Controllers not in built-in GUID list and not added via `[controller.guids]` (configure through emulator UI)
+- Controllers on desktop Linux without Steam (configure through emulator UI)
 
 ## Decisions
 
-### GUID mapping: built-in defaults with user overrides
+### GUID approach: Steam Deck GUID only
 
-The built-in GUID-to-profile mapping lives in Go code. Users extend or override it via `[controller.guids]` in config.toml. At runtime, user entries merge over built-in entries (user wins on conflicts).
+Eden and Azahar configs use the Steam Deck virtual gamepad GUID (`03000000de280000ff11000001000000`). Steam Input virtualizes all physical controllers to this GUID on Steam Deck and when launched through Steam on desktop Linux. This matches what EmuDeck and RetroDECK do.
 
-This means:
-- Common controllers work out of the box
-- Users with uncommon controllers can self-serve by adding their GUID
-- No need to wait for a Kyaraben update
-
-Config file size for GUID-based emulators (Eden, Azahar): we generate bindings for each GUID in the merged map. With ~15 built-in GUIDs x ~20 bindings = ~300 config lines per emulator. Acceptable tradeoff.
+Neither Eden nor Azahar auto-selects profiles based on connected controller GUIDs, so shipping per-controller-model profiles would not improve the out-of-the-box experience. Desktop Linux users running emulators outside Steam configure their controller through the emulator UI.
 
 ### Multi-player: context-dependent
 
@@ -706,6 +656,22 @@ func TestHotkeyBindingParsing(t *testing.T) {
     assert.Contains(t, err.Error(), "Bck")
 }
 ```
+
+## Future plans
+
+### Keyboard bindings
+
+Generate keyboard bindings for emulators alongside gamepad bindings. A fixed, sensible default keyboard layout would allow users without a controller to play immediately. This is lower priority than gamepad support but straightforward to implement since keyboard bindings do not depend on GUIDs or device detection.
+
+### User-selectable controller model
+
+Allow users to select their controller model in kyaraben's config or UI. Kyaraben would then generate emulator configs with the matching GUID for Eden and Azahar. This would improve the desktop-without-Steam experience by eliminating manual emulator configuration. The implementation would involve:
+
+1. A `[controller.device]` setting in config.toml (e.g., `device = "xbox-series-x"`)
+2. A mapping from device names to SDL GUIDs
+3. Eden and Azahar generators reading the selected device's GUID instead of hardcoding the Steam Deck GUID
+
+This is only useful for Eden and Azahar (Group C emulators). All other emulators use SDL standard names or auto-detection and work with any controller regardless of GUID.
 
 ## Sources
 
