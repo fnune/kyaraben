@@ -137,10 +137,6 @@ func ValidateLayoutID(s string) (LayoutID, error) {
 // controller (Xbox, PlayStation, etc.) appears with this GUID.
 const SteamDeckGUID = "03000000de280000ff11000001000000"
 
-// AzaharGUID is the GUID that Azahar (Citra fork) expects for Steam Deck.
-// This differs from the standard SteamDeckGUID due to how Azahar's SDL
-// integration identifies controllers.
-const AzaharGUID = "030079f6de280000ff11000001000000"
 
 // FaceButtons returns the four face buttons (south, east, west, north) adjusted
 // for the configured layout. Standard layout: A=south, B=east, X=west, Y=north.

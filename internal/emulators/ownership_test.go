@@ -101,7 +101,7 @@ func TestSectionRegionWithConfigWriter(t *testing.T) {
 	t.Parallel()
 
 	fs := testutil.NewTestFS(t, map[string]any{
-		"/config/azahar-emu/qt-config.ini": `[Controls]
+		"/config/test-emu/qt-config.ini": `[Controls]
 profile = 2
 profiles\size = 2
 profiles\1\name = old
@@ -117,7 +117,7 @@ profiles\2\button_a = user-a
 
 	patch := model.ConfigPatch{
 		Target: model.ConfigTarget{
-			RelPath: "azahar-emu/qt-config.ini",
+			RelPath: "test-emu/qt-config.ini",
 			Format:  model.ConfigFormatINI,
 			BaseDir: model.ConfigBaseDirUserConfig,
 		},
@@ -137,7 +137,7 @@ profiles\2\button_a = user-a
 		t.Fatalf("Apply: %v", err)
 	}
 
-	content, _ := fs.ReadFile("/config/azahar-emu/qt-config.ini")
+	content, _ := fs.ReadFile("/config/test-emu/qt-config.ini")
 	s := string(content)
 
 	// DefaultOnly entries preserve user's values.

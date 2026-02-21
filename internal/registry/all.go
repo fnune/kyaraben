@@ -1,7 +1,7 @@
 package registry
 
 import (
-	"github.com/fnune/kyaraben/internal/emulators/azahar"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchcitra"
 	"github.com/fnune/kyaraben/internal/emulators/cemu"
 	"github.com/fnune/kyaraben/internal/emulators/dolphin"
 	"github.com/fnune/kyaraben/internal/emulators/duckstation"
@@ -84,7 +84,7 @@ func NewDefault() *Registry {
 			ppsspp.Definition{},
 			flycast.Definition{},
 			cemu.Definition{},
-			azahar.Definition{},
+			retroarchcitra.Definition{},
 			dolphin.Definition{},
 			eden.Definition{},
 		},

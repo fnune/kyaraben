@@ -277,7 +277,7 @@ func TestGetPackage(t *testing.T) {
 	// Test known packages
 	knownPackages := []string{
 		"eden", "duckstation", "pcsx2", "ppsspp",
-		"cemu", "azahar", "dolphin", "vita3k",
+		"cemu", "dolphin", "vita3k",
 		"rpcs3", "flycast", "retroarch", "syncthing",
 	}
 
