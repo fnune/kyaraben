@@ -24,7 +24,8 @@ describe('SystemCard', () => {
     renderWithProviders(
       <SystemCard
         system={mockSystem}
-        enabledEmulators={new Set<EmulatorID>()}
+        systemEnabledEmulators={new Set<EmulatorID>()}
+        globalEnabledEmulators={new Set<EmulatorID>()}
         emulatorVersions={new Map()}
         installedVersions={new Map()}
         installedExecLines={new Map()}
@@ -45,7 +46,8 @@ describe('SystemCard', () => {
     renderWithProviders(
       <SystemCard
         system={mockSystem}
-        enabledEmulators={new Set<EmulatorID>(['retroarch:bsnes'])}
+        systemEnabledEmulators={new Set<EmulatorID>(['retroarch:bsnes'])}
+        globalEnabledEmulators={new Set<EmulatorID>(['retroarch:bsnes'])}
         emulatorVersions={new Map()}
         installedVersions={new Map()}
         installedExecLines={new Map()}
@@ -69,7 +71,8 @@ describe('SystemCard', () => {
     renderWithProviders(
       <SystemCard
         system={mockSystem}
-        enabledEmulators={new Set<EmulatorID>()}
+        systemEnabledEmulators={new Set<EmulatorID>()}
+        globalEnabledEmulators={new Set<EmulatorID>()}
         emulatorVersions={new Map()}
         installedVersions={new Map()}
         installedExecLines={new Map()}
@@ -83,7 +86,7 @@ describe('SystemCard', () => {
     )
 
     await user.click(screen.getByRole('switch'))
-    expect(onEmulatorToggle).toHaveBeenCalledWith('retroarch:bsnes', true)
+    expect(onEmulatorToggle).toHaveBeenCalledWith('snes', 'retroarch:bsnes', true)
   })
 
   it('renders provision status when provisions exist', () => {
@@ -106,7 +109,8 @@ describe('SystemCard', () => {
     renderWithProviders(
       <SystemCard
         system={mockSystem}
-        enabledEmulators={new Set<EmulatorID>()}
+        systemEnabledEmulators={new Set<EmulatorID>()}
+        globalEnabledEmulators={new Set<EmulatorID>()}
         emulatorVersions={new Map()}
         installedVersions={new Map()}
         installedExecLines={new Map()}
@@ -126,7 +130,8 @@ describe('SystemCard', () => {
     renderWithProviders(
       <SystemCard
         system={mockSystem}
-        enabledEmulators={new Set<EmulatorID>()}
+        systemEnabledEmulators={new Set<EmulatorID>()}
+        globalEnabledEmulators={new Set<EmulatorID>()}
         emulatorVersions={new Map()}
         installedVersions={new Map()}
         installedExecLines={new Map()}

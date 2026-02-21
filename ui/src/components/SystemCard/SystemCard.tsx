@@ -49,7 +49,8 @@ export const LOGO_OPACITIES: Partial<Record<SystemID, number>> = {
 
 export interface SystemCardProps {
   readonly system: System
-  readonly enabledEmulators: ReadonlySet<EmulatorID>
+  readonly systemEnabledEmulators: ReadonlySet<EmulatorID>
+  readonly globalEnabledEmulators: ReadonlySet<EmulatorID>
   readonly emulatorVersions: ReadonlyMap<EmulatorID, string | null>
   readonly installedVersions: ReadonlyMap<EmulatorID, string>
   readonly installedExecLines: ReadonlyMap<EmulatorID, string>
@@ -57,14 +58,15 @@ export interface SystemCardProps {
   readonly installedPaths: ReadonlyMap<EmulatorID, Record<string, EmulatorPaths>>
   readonly provisions: DoctorResponse
   readonly sharedPackages: ReadonlySet<string>
-  readonly onEmulatorToggle: (emulatorId: EmulatorID, enabled: boolean) => void
+  readonly onEmulatorToggle: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
   readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
 }
 
 export const SystemCard = forwardRef<HTMLElement, SystemCardProps>(function SystemCard(
   {
     system,
-    enabledEmulators,
+    systemEnabledEmulators,
+    globalEnabledEmulators,
     emulatorVersions,
     installedVersions,
     installedExecLines,
@@ -110,16 +112,19 @@ export const SystemCard = forwardRef<HTMLElement, SystemCardProps>(function Syst
           const emuPaths = installedPaths.get(emulator.id)?.[system.id]
           const packageName = emulator.packageName ?? emulator.id
           const isSharedPackage = sharedPackages.has(packageName)
+          const isEnabled = systemEnabledEmulators.has(emulator.id)
+          const isEnabledElsewhere = !isEnabled && globalEnabledEmulators.has(emulator.id)
           return (
             <EmulatorSubcard
               key={emulator.id}
               emulator={emulator}
-              enabled={enabledEmulators.has(emulator.id)}
+              enabled={isEnabled}
+              enabledElsewhere={isEnabledElsewhere}
               pinnedVersion={emulatorVersions.get(emulator.id) ?? null}
               installedVersion={installedVersions.get(emulator.id) ?? null}
               provisions={provisions[`${system.id}:${emulator.id}`] ?? []}
               sharedPackage={isSharedPackage}
-              onToggle={(enabled) => onEmulatorToggle(emulator.id, enabled)}
+              onToggle={(enabled) => onEmulatorToggle(system.id, emulator.id, enabled)}
               onVersionChange={(version) => onVersionChange(emulator.id, version)}
               {...(emuManagedConfigs && { managedConfigs: emuManagedConfigs })}
               {...(emuPaths && { paths: emuPaths })}
