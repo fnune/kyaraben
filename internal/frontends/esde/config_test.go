@@ -134,7 +134,7 @@ func TestGenerateSettingsIncludesDefaults(t *testing.T) {
 		defaultOnly bool
 	}{
 		"ROMDirectory":     {"/emulation/roms", false},
-		"MediaDirectory":   {"/emulation/frontends/es-de/media", false},
+		"MediaDirectory":   {"/emulation/frontends/esde/media", false},
 		"Theme":            {"linear-es-de", true},
 		"ThemeVariant":     {"simpleCarousel", true},
 		"SystemsSorting":   {"manufacturer_year", true},
