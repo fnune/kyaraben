@@ -718,17 +718,35 @@ func (i *PackageInstaller) installDefaultConfig(extractDir, binaryPath string) {
 	}
 
 	destDir := filepath.Join(configDir, "retroarch")
-	if _, err := i.fs.Stat(destDir); err == nil {
+	if err := vfs.MkdirAll(i.fs, destDir, 0755); err != nil {
 		return
 	}
 
-	if err := vfs.MkdirAll(i.fs, configDir, 0755); err != nil {
-		return
-	}
+	subdirs := []string{"assets", "autoconfig"}
+	for _, subdir := range subdirs {
+		srcSubdir := filepath.Join(srcDir, subdir)
+		destSubdir := filepath.Join(destDir, subdir)
 
-	if err := i.fs.Rename(srcDir, destDir); err != nil {
-		log.Info("Failed to install default RetroArch config: %v", err)
+		if _, err := i.fs.Stat(srcSubdir); err != nil {
+			continue
+		}
+		if !i.isDirEmpty(destSubdir) {
+			continue
+		}
+
+		_ = i.fs.RemoveAll(destSubdir)
+		if err := i.fs.Rename(srcSubdir, destSubdir); err != nil {
+			log.Info("Failed to install RetroArch %s: %v", subdir, err)
+		}
 	}
+}
+
+func (i *PackageInstaller) isDirEmpty(path string) bool {
+	entries, err := i.fs.ReadDir(path)
+	if err != nil {
+		return true
+	}
+	return len(entries) == 0
 }
 
 type ConcurrentInstaller struct {

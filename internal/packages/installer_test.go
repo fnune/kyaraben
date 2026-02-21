@@ -184,7 +184,7 @@ func TestPackageInstallerInstallArchive(t *testing.T) {
 	}
 }
 
-func TestPackageInstallerInstallArchiveExtractsDefaultConfig(t *testing.T) {
+func TestPackageInstallerInstallArchiveExtractsAssets(t *testing.T) {
 	t.Parallel()
 
 	fs := testutil.NewTestFS(t, map[string]any{
@@ -195,8 +195,42 @@ func TestPackageInstallerInstallArchiveExtractsDefaultConfig(t *testing.T) {
 	stateDir := "/state"
 	dl := NewFakeDownloader(fs, []byte("fake-7z-content"))
 	ext := NewFakeExtractor(fs, map[string]string{
+		"RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage":                                              "fake-retroarch-binary",
+		"RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage.home/.config/retroarch/assets/ozone/icon":     "ozone-icon",
+		"RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage.home/.config/retroarch/autoconfig/profile.cfg": "controller-profile",
+	})
+
+	installer := NewPackageInstaller(fs, stateDir, dl, ext, fakeBaseDirResolver{root: "/userhome"})
+
+	_, err := installer.InstallEmulator(context.Background(), "retroarch", nil)
+	if err != nil {
+		t.Fatalf("InstallEmulator: %v", err)
+	}
+
+	assetPath := "/userhome/.config/retroarch/assets/ozone/icon"
+	if _, err := fs.Stat(assetPath); err != nil {
+		t.Errorf("asset not found at %s", assetPath)
+	}
+
+	autoconfigPath := "/userhome/.config/retroarch/autoconfig/profile.cfg"
+	if _, err := fs.Stat(autoconfigPath); err != nil {
+		t.Errorf("autoconfig not found at %s", autoconfigPath)
+	}
+}
+
+func TestPackageInstallerExtractsAssetsEvenIfConfigDirExists(t *testing.T) {
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/state":    &vfst.Dir{Perm: 0755},
+		"/userhome": &vfst.Dir{Perm: 0755},
+		"/userhome/.config/retroarch/retroarch.cfg": "user-config",
+	})
+
+	stateDir := "/state"
+	dl := NewFakeDownloader(fs, []byte("fake-7z-content"))
+	ext := NewFakeExtractor(fs, map[string]string{
 		"RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage":                                          "fake-retroarch-binary",
-		"RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage.home/.config/retroarch/retroarch.cfg":     "default-config",
 		"RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage.home/.config/retroarch/assets/ozone/icon": "ozone-icon",
 	})
 
@@ -207,14 +241,47 @@ func TestPackageInstallerInstallArchiveExtractsDefaultConfig(t *testing.T) {
 		t.Fatalf("InstallEmulator: %v", err)
 	}
 
-	configPath := "/userhome/.config/retroarch/retroarch.cfg"
-	if _, err := fs.Stat(configPath); err != nil {
-		t.Errorf("config not found at %s", configPath)
+	assetPath := "/userhome/.config/retroarch/assets/ozone/icon"
+	if _, err := fs.Stat(assetPath); err != nil {
+		t.Errorf("asset not found at %s (should be extracted even when config dir exists)", assetPath)
+	}
+
+	configData, err := fs.ReadFile("/userhome/.config/retroarch/retroarch.cfg")
+	if err != nil {
+		t.Fatalf("reading config: %v", err)
+	}
+	if string(configData) != "user-config" {
+		t.Errorf("user config was overwritten, got %q", string(configData))
+	}
+}
+
+func TestPackageInstallerExtractsAssetsWhenDirExistsButEmpty(t *testing.T) {
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/state":                                &vfst.Dir{Perm: 0755},
+		"/userhome":                             &vfst.Dir{Perm: 0755},
+		"/userhome/.config/retroarch/assets":    &vfst.Dir{Perm: 0755},
+		"/userhome/.config/retroarch/retroarch.cfg": "user-config",
+	})
+
+	stateDir := "/state"
+	dl := NewFakeDownloader(fs, []byte("fake-7z-content"))
+	ext := NewFakeExtractor(fs, map[string]string{
+		"RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage":                                          "fake-retroarch-binary",
+		"RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage.home/.config/retroarch/assets/ozone/icon": "ozone-icon",
+	})
+
+	installer := NewPackageInstaller(fs, stateDir, dl, ext, fakeBaseDirResolver{root: "/userhome"})
+
+	_, err := installer.InstallEmulator(context.Background(), "retroarch", nil)
+	if err != nil {
+		t.Fatalf("InstallEmulator: %v", err)
 	}
 
 	assetPath := "/userhome/.config/retroarch/assets/ozone/icon"
 	if _, err := fs.Stat(assetPath); err != nil {
-		t.Errorf("asset not found at %s", assetPath)
+		t.Errorf("asset not found at %s (should be extracted even when assets dir exists but is empty)", assetPath)
 	}
 }
 
