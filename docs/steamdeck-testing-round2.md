@@ -4,7 +4,7 @@ Testing after emulator config fixes.
 
 ## Cemu (Wii U)
 
-- [ ] Hotkeys don't work
+- [ ] Hotkeys don't work (Cemu limitation - https://github.com/cemu-project/Cemu/issues/721)
 
 ## Dolphin (GameCube/Wii)
 
@@ -28,7 +28,8 @@ Testing after emulator config fixes.
 
 ## Eden (Switch)
 
-- [ ] Hotkeys not working
+- [x] Fixed: use_fast_gpu_time -> fast_gpu_time with proper enum value
+- [ ] Hotkeys not working (needs further investigation)
 
 ## PPSSPP (PSP)
 
