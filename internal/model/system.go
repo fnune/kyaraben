@@ -31,20 +31,23 @@ const (
 	SystemIDDreamcast    SystemID = "dreamcast"
 	SystemIDPCEngine     SystemID = "pcengine"
 	SystemIDNGP          SystemID = "ngp"
+	SystemIDXbox         SystemID = "xbox"
+	SystemIDXbox360      SystemID = "xbox360"
 )
 
 // Manufacturer represents the company that made a gaming system.
 type Manufacturer string
 
 const (
-	ManufacturerNintendo Manufacturer = "Nintendo"
-	ManufacturerSony     Manufacturer = "Sony"
-	ManufacturerSega     Manufacturer = "Sega"
-	ManufacturerNEC      Manufacturer = "NEC"
-	ManufacturerAtari    Manufacturer = "Atari"
-	ManufacturerSNK      Manufacturer = "SNK"
-	ManufacturerBandai   Manufacturer = "Bandai"
-	ManufacturerOther    Manufacturer = "Other"
+	ManufacturerNintendo  Manufacturer = "Nintendo"
+	ManufacturerSony      Manufacturer = "Sony"
+	ManufacturerSega      Manufacturer = "Sega"
+	ManufacturerNEC       Manufacturer = "NEC"
+	ManufacturerAtari     Manufacturer = "Atari"
+	ManufacturerSNK       Manufacturer = "SNK"
+	ManufacturerBandai    Manufacturer = "Bandai"
+	ManufacturerOther     Manufacturer = "Other"
+	ManufacturerMicrosoft Manufacturer = "Microsoft"
 )
 
 // System represents a gaming platform that can be emulated.

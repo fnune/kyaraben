@@ -62,6 +62,7 @@ func (m *Manager) BinDir() string {
 type InstalledBinary struct {
 	Name string
 	Path string
+	Env  map[string]string
 }
 
 type InstalledCore struct {
@@ -76,7 +77,8 @@ type InstalledIcon struct {
 }
 
 const wrapperTemplate = `#!/bin/sh
-exec "{{.RealBinaryPath}}" "$@"
+{{range $key, $value := .Env}}export {{$key}}="{{$value}}"
+{{end}}exec "{{.RealBinaryPath}}" "$@"
 `
 
 const esdeWrapperTemplate = `#!/bin/sh
@@ -90,6 +92,7 @@ exit $_exit_code
 type wrapperData struct {
 	RealBinaryPath string
 	KyarabenPath   string
+	Env            map[string]string
 }
 
 func (m *Manager) GenerateWrappers(binaries []InstalledBinary) error {
@@ -133,7 +136,7 @@ func (m *Manager) GenerateWrappers(binaries []InstalledBinary) error {
 			return fmt.Errorf("creating wrapper %s: %w", binary.Name, err)
 		}
 
-		data := wrapperData{RealBinaryPath: binary.Path, KyarabenPath: kyarabenPath}
+		data := wrapperData{RealBinaryPath: binary.Path, KyarabenPath: kyarabenPath, Env: binary.Env}
 
 		useTmpl := tmpl
 		if binary.Name == "esde" {

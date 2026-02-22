@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"hash/crc32"
+	"io"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -187,9 +188,15 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	patchEmulators := make([]model.EmulatorID, 0)
 	allSymlinks := make(map[model.EmulatorID][]model.SymlinkSpec)
 	allLaunchArgs := make(map[model.EmulatorID][]string)
+	allInitialDownloads := make([]model.InitialDownload, 0)
+	binaryEnvs := make(map[string]map[string]string)
 
 	for emuID := range enabledEmulators {
 		emulatorsToInstall = append(emulatorsToInstall, emuID)
+
+		if emu, err := a.Registry.GetEmulator(emuID); err == nil && len(emu.Launcher.Env) > 0 {
+			binaryEnvs[emu.Launcher.Binary] = emu.Launcher.Env
+		}
 
 		gen := a.Registry.GetConfigGenerator(emuID)
 		if gen == nil {
@@ -210,6 +217,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		if len(result.LaunchArgs) > 0 {
 			allLaunchArgs[emuID] = result.LaunchArgs
 		}
+		allInitialDownloads = append(allInitialDownloads, result.InitialDownloads...)
 	}
 
 	enabledFrontends := cfg.EnabledFrontends()
@@ -301,7 +309,14 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 			if err := a.ensureProvisionDirs(userStore, sys, emu); err != nil {
 				return nil, fmt.Errorf("preparing provision directories for %s/%s: %w", sys, emuID, err)
 			}
+			if err := a.downloadMissingProvisions(ctx, userStore, sys, emu, opts.OnProgress); err != nil {
+				return nil, fmt.Errorf("downloading provisions for %s/%s: %w", sys, emuID, err)
+			}
 		}
+	}
+
+	if err := a.downloadInitialFiles(ctx, allInitialDownloads); err != nil {
+		return nil, fmt.Errorf("downloading initial files: %w", err)
 	}
 
 	installCtx, cancel := context.WithTimeout(ctx, installTimeout)
@@ -327,7 +342,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	opts.OnProgress(Progress{Step: "finalize", Message: "Creating desktop entries and emulator configs"})
 
 	if a.LauncherManager != nil {
-		launcherBinaries := toLauncherBinaries(installedBinaries)
+		launcherBinaries := toLauncherBinaries(installedBinaries, binaryEnvs)
 		if err := a.LauncherManager.GenerateWrappers(launcherBinaries); err != nil {
 			return nil, fmt.Errorf("generating launcher wrappers: %w", err)
 		}
@@ -637,6 +652,123 @@ func (a *Applier) ensureProvisionDirs(userStore *store.UserStore, sys model.Syst
 			return fmt.Errorf("creating %s: %w", baseDir, err)
 		}
 	}
+	return nil
+}
+
+func (a *Applier) downloadMissingProvisions(ctx context.Context, userStore *store.UserStore, sys model.SystemID, emu model.Emulator, onProgress func(Progress)) error {
+	downloader := packages.NewDownloader(a.fs)
+	extractor := packages.NewExtractor(a.fs)
+
+	for _, group := range emu.ProvisionGroups {
+		baseDir := group.BaseDirFor(userStore, sys)
+		if baseDir == "" {
+			continue
+		}
+
+		for _, prov := range group.Provisions {
+			if !prov.CanDownload() {
+				continue
+			}
+
+			result := prov.Check(a.fs, baseDir)
+			if result.Status == model.ProvisionFound {
+				continue
+			}
+
+			dl := prov.Download
+			hints := prov.Hints()
+
+			tmpDir := filepath.Join(baseDir, ".kyaraben-provision-tmp")
+			if err := vfs.MkdirAll(a.fs, tmpDir, 0o755); err != nil {
+				return fmt.Errorf("creating temp dir: %w", err)
+			}
+			defer func() { _ = a.fs.RemoveAll(tmpDir) }()
+
+			archivePath := filepath.Join(tmpDir, "download")
+			if err := downloader.Download(ctx, packages.DownloadRequest{
+				URLs:     []string{dl.URL},
+				SHA256:   dl.SHA256,
+				DestPath: archivePath,
+			}); err != nil {
+				return fmt.Errorf("downloading %s: %w", hints.DisplayName, err)
+			}
+
+			if dl.ArchiveType != "" {
+				extractDir := filepath.Join(tmpDir, "extracted")
+				if err := extractor.Extract(archivePath, extractDir, dl.ArchiveType); err != nil {
+					return fmt.Errorf("extracting %s: %w", hints.DisplayName, err)
+				}
+
+				srcFile := filepath.Join(extractDir, dl.FilenameInArchive)
+				if dl.FilenameInArchive == "" {
+					srcFile = filepath.Join(extractDir, hints.DisplayName)
+				}
+				destFile := filepath.Join(baseDir, hints.DisplayName)
+				if err := copyFile(a.fs, srcFile, destFile); err != nil {
+					return fmt.Errorf("copying %s: %w", hints.DisplayName, err)
+				}
+			} else {
+				destFile := filepath.Join(baseDir, hints.DisplayName)
+				if err := a.fs.Rename(archivePath, destFile); err != nil {
+					return fmt.Errorf("moving %s: %w", hints.DisplayName, err)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func copyFile(fs vfs.FS, src, dst string) error {
+	srcFile, err := fs.Open(src)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = srcFile.Close() }()
+
+	dstFile, err := fs.Create(dst)
+	if err != nil {
+		return err
+	}
+
+	_, copyErr := io.Copy(dstFile, srcFile)
+	closeErr := dstFile.Close()
+	if copyErr != nil {
+		return copyErr
+	}
+	return closeErr
+}
+
+func (a *Applier) downloadInitialFiles(ctx context.Context, downloads []model.InitialDownload) error {
+	if len(downloads) == 0 {
+		return nil
+	}
+
+	downloader := packages.NewDownloader(a.fs)
+
+	for _, dl := range downloads {
+		if _, err := a.fs.Stat(dl.DestPath); err == nil {
+			continue
+		}
+
+		destDir := filepath.Dir(dl.DestPath)
+		if err := vfs.MkdirAll(a.fs, destDir, 0o755); err != nil {
+			return fmt.Errorf("creating directory %s: %w", destDir, err)
+		}
+
+		tmpPath := dl.DestPath + ".download"
+		if err := downloader.Download(ctx, packages.DownloadRequest{
+			URLs:     []string{dl.URL},
+			SHA256:   dl.SHA256,
+			DestPath: tmpPath,
+		}); err != nil {
+			return fmt.Errorf("downloading %s: %w", filepath.Base(dl.DestPath), err)
+		}
+
+		if err := a.fs.Rename(tmpPath, dl.DestPath); err != nil {
+			return fmt.Errorf("moving %s: %w", filepath.Base(dl.DestPath), err)
+		}
+	}
+
 	return nil
 }
 
@@ -1269,10 +1401,10 @@ func (a *Applier) collectEnabledEmulators(cfg *model.KyarabenConfig) map[model.E
 	return enabled
 }
 
-func toLauncherBinaries(binaries []packages.InstalledBinary) []launcher.InstalledBinary {
+func toLauncherBinaries(binaries []packages.InstalledBinary, binaryEnvs map[string]map[string]string) []launcher.InstalledBinary {
 	result := make([]launcher.InstalledBinary, len(binaries))
 	for i, b := range binaries {
-		result[i] = launcher.InstalledBinary{Name: b.Name, Path: b.Path}
+		result[i] = launcher.InstalledBinary{Name: b.Name, Path: b.Path, Env: binaryEnvs[b.Name]}
 	}
 	return result
 }

@@ -22,6 +22,8 @@ import snes from '@/assets/systems/snes.svg'
 import nswitch from '@/assets/systems/switch.svg'
 import wii from '@/assets/systems/wii.svg'
 import wiiu from '@/assets/systems/wiiu.svg'
+import xbox from '@/assets/systems/xbox.svg'
+import xbox360 from '@/assets/systems/xbox360.svg'
 import type { SystemID } from '@/types/daemon'
 
 export const SYSTEM_LOGOS: Record<SystemID, string> = {
@@ -54,6 +56,9 @@ export const SYSTEM_LOGOS: Record<SystemID, string> = {
   pcengine,
   // SNK
   ngp,
+  // Microsoft
+  xbox,
+  xbox360,
 }
 
 export interface SystemLogoProps {

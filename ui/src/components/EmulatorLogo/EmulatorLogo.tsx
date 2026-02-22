@@ -16,6 +16,8 @@ import ppsspp from '@/assets/emulators/ppsspp.png'
 import retroarch from '@/assets/emulators/retroarch.svg'
 import rpcs3 from '@/assets/emulators/rpcs3.svg'
 import vita3k from '@/assets/emulators/vita3k.png'
+import xemu from '@/assets/emulators/xemu.png'
+import xeniaEdge from '@/assets/emulators/xenia-edge.png'
 import type { EmulatorID } from '@/types/daemon'
 
 const EMULATOR_LOGOS: Partial<Record<EmulatorID, string>> = {
@@ -39,6 +41,8 @@ const EMULATOR_LOGOS: Partial<Record<EmulatorID, string>> = {
   'retroarch:mgba': mgba,
   'retroarch:melonds': melonds,
   'retroarch:citra': citra,
+  xemu,
+  'xenia-edge': xeniaEdge,
 }
 
 export function getEmulatorLogo(emulatorId: EmulatorID): string | undefined {

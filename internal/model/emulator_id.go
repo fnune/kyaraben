@@ -30,4 +30,6 @@ const (
 	EmulatorIDCemu                   EmulatorID = "cemu"
 	EmulatorIDDolphin                EmulatorID = "dolphin"
 	EmulatorIDEden                   EmulatorID = "eden"
+	EmulatorIDXemu                   EmulatorID = "xemu"
+	EmulatorIDXeniaEdge              EmulatorID = "xenia-edge"
 )

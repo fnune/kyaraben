@@ -230,6 +230,8 @@ var packageNames = []string{
 	"vita3k",
 	"rpcs3",
 	"flycast",
+	"xemu",
+	"xenia-edge",
 	"retroarch",
 	"esde",
 	"syncthing",

@@ -42,6 +42,9 @@ type LauncherInfo struct {
 	Categories  []string
 	Keywords    []string
 
+	// Env specifies environment variables to set when launching the emulator.
+	Env map[string]string
+
 	// RomCommand builds the CLI command for launching a game file.
 	// The returned string uses %ROM% as the placeholder for the game path.
 	RomCommand func(opts RomLaunchOptions) string
