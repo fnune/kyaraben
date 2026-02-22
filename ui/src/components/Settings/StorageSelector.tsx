@@ -39,22 +39,23 @@ export function StorageSelector({
     getStorageDevices().then((result) => {
       if (result.ok) {
         setDevices(result.data.devices)
-
         const internal = result.data.devices.find((d) => d.id === 'internal')
-        const home = internal ? internal.path.replace(/\/Emulation$/, '') : ''
-        setHomeDir(home)
-
-        const expandedUserStore = expandTilde(userStore, home)
-        const matching = result.data.devices.find((d) => d.path === expandedUserStore)
-        if (matching) {
-          setSelectedId(matching.id)
-        } else if (userStore) {
-          setSelectedId('custom')
-        }
+        setHomeDir(internal ? internal.path.replace(/\/Emulation$/, '') : '')
       }
       setLoading(false)
     })
-  }, [userStore])
+  }, [])
+
+  useEffect(() => {
+    if (!homeDir || devices.length === 0) return
+    const expandedUserStore = expandTilde(userStore, homeDir)
+    const matching = devices.find((d) => d.path === expandedUserStore)
+    if (matching) {
+      setSelectedId(matching.id)
+    } else if (userStore) {
+      setSelectedId('custom')
+    }
+  }, [userStore, homeDir, devices])
 
   const handleSelect = useCallback(
     (device: StorageDevice) => {
