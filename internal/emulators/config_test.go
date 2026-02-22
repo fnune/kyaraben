@@ -90,8 +90,8 @@ func TestDuckStationGenerate(t *testing.T) {
 		t.Errorf("expected INI format, got %s", patch.Target.Format)
 	}
 
-	if patch.Target.BaseDir != model.ConfigBaseDirUserConfig {
-		t.Errorf("expected UserConfig base dir, got %s", patch.Target.BaseDir)
+	if patch.Target.BaseDir != model.ConfigBaseDirUserData {
+		t.Errorf("expected UserData base dir, got %s", patch.Target.BaseDir)
 	}
 
 	if !strings.Contains(patch.Target.RelPath, "duckstation") {
