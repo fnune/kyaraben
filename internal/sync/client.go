@@ -136,6 +136,7 @@ func (c *Client) GetConnections(ctx context.Context) (map[string]ConnectionInfo,
 
 type FolderStatus struct {
 	State                  string `json:"state"`
+	Error                  string `json:"error"`
 	GlobalFiles            int    `json:"globalFiles"`
 	GlobalBytes            int64  `json:"globalBytes"`
 	LocalFiles             int    `json:"localFiles"`

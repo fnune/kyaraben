@@ -82,7 +82,10 @@ function FolderRow({ folder, onRefresh, hasPairedDevices }: FolderRowProps) {
     onRefresh()
   }, [folder.id, onRefresh])
 
+  const isError = folder.state === 'error'
+
   const getStatusIndicator = () => {
+    if (isError) return 'bg-status-error'
     if (hasLocalChanges) return 'bg-on-surface-muted'
     if (isSyncing) return 'bg-accent animate-pulse'
     return 'bg-status-ok'
@@ -94,13 +97,15 @@ function FolderRow({ folder, onRefresh, hasPairedDevices }: FolderRowProps) {
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getStatusIndicator()}`} />
           <span
-            className={`font-medium truncate ${hasLocalChanges ? 'text-on-surface' : 'text-on-surface-muted'}`}
+            className={`font-medium truncate ${isError ? 'text-status-error' : hasLocalChanges ? 'text-on-surface' : 'text-on-surface-muted'}`}
           >
             {folder.label}
           </span>
         </div>
         <div className="flex items-center gap-2 text-xs text-on-surface-muted flex-shrink-0">
-          {isSyncing ? (
+          {isError ? (
+            <span className="text-status-error">Error</span>
+          ) : isSyncing ? (
             <span>
               {percent}% ({formatBytes(folder.needSize)} left)
             </span>
@@ -121,6 +126,9 @@ function FolderRow({ folder, onRefresh, hasPairedDevices }: FolderRowProps) {
           </button>
         </div>
       </div>
+      {isError && folder.error && (
+        <div className="mt-2 ml-4 text-xs text-status-error">{folder.error}</div>
+      )}
       {hasLocalChanges && (
         <div className="mt-2 ml-4">
           <LocalFilesActions
