@@ -20,6 +20,51 @@ verification. Kyaraben does not distribute these files.
 
 {/* Screenshot: v0.1-app-doctor-view.png - Provisions panel showing BIOS status */}
 
+## Emulator support
+
+Kyaraben configures each emulator with paths, controller bindings, and hotkeys.
+Not all emulators support all features. This table shows what kyaraben
+configures for each emulator.
+
+| Emulator        | System       | Syncs                      | Hotkeys | Controller | Players | BIOS     |
+| --------------- | ------------ | -------------------------- | ------- | ---------- | ------- | -------- |
+| bsnes           | SNES         | saves, states, screenshots | full    | configured | 4       | none     |
+| Mesen           | NES          | saves, states, screenshots | full    | configured | 4       | none     |
+| Genesis Plus GX | Genesis      | saves, states, screenshots | full    | configured | 4       | none     |
+| mGBA            | GB, GBC, GBA | saves, states, screenshots | full    | configured | 4       | none     |
+| melonDS         | DS           | saves, states, screenshots | full    | configured | 4       | none     |
+| Citra           | 3DS          | saves, states, screenshots | full    | configured | 4       | none     |
+| Mupen64Plus     | N64          | saves, states, screenshots | full    | configured | 4       | none     |
+| Beetle Saturn   | Saturn       | saves, states, screenshots | full    | configured | 4       | required |
+| DuckStation     | PSX          | saves, states, screenshots | full    | configured | 4       | required |
+| PCSX2           | PS2          | saves, states, screenshots | full    | configured | 4       | required |
+| PPSSPP          | PSP          | saves, states, screenshots | full    | configured | 1       | none     |
+| Dolphin         | GC, Wii      | saves, states, screenshots | full    | configured | 4       | optional |
+| Flycast         | Dreamcast    | saves, states, screenshots | partial | configured | 1       | optional |
+| Cemu            | Wii U        | saves                      | none    | configured | 1       | optional |
+| Eden            | Switch       | saves, screenshots         | partial | configured | 2       | required |
+| Vita3K          | PS Vita      | saves, screenshots         | none    | auto       | -       | required |
+| RPCS3           | PS3          | saves, states, screenshots | none    | auto       | -       | required |
+
+Definitions:
+
+- **Syncs**: data types stored in the emulation directory and available for
+  sync. `saves` = in-game saves, `states` = savestates, `screenshots` =
+  captured screenshots.
+- **Hotkeys**: `full` = save/load state, fast forward, pause, screenshot, quit.
+  `partial` = subset of these. `none` = no kyaraben hotkey configuration.
+- **Controller**: `configured` = kyaraben generates controller bindings.
+  `auto` = emulator handles controller detection.
+- **Players**: number of controller slots kyaraben configures. `-` = handled
+  by emulator.
+- **BIOS**: `required` = games will not run without BIOS/firmware files.
+  `optional` = enables extra features (boot animations, etc.). `none` = no
+  BIOS needed.
+
+RetroArch cores (bsnes through Beetle Saturn) share configuration. They use
+RetroArch's hotkey system where Back (Select) enables hotkeys and a second
+button triggers the action.
+
 ## Applying changes
 
 Click apply. If there are conflicts with your existing configuration, kyaraben
