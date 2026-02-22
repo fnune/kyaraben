@@ -1,6 +1,6 @@
 ---
 title: App reference
-description: How to use the kyaraben UI, what it does under the hood, and what it guarantees
+description: How to use the Kyaraben UI, what it does under the hood, and what it guarantees
 ---
 
 import UserStore from "../../components/UserStore.astro";
@@ -23,7 +23,7 @@ verification. Kyaraben does not distribute these files.
 ## Emulator support
 
 Kyaraben configures each emulator with paths, controller bindings, and hotkeys.
-Not all emulators support all features. This table shows what kyaraben
+Not all emulators support all features. This table shows what Kyaraben
 configures for each emulator.
 
 | Emulator        | System           | Syncs                      | Hotkeys | Controller | Players | Provisions                    |
@@ -54,10 +54,10 @@ Definitions:
   sync. `saves` = in-game saves, `states` = savestates, `screenshots` =
   captured screenshots.
 - **Hotkeys**: `full` = save/load state, fast forward, pause, screenshot, quit.
-  `partial` = subset of these. `none` = no kyaraben hotkey configuration.
-- **Controller**: `configured` = kyaraben generates controller bindings.
+  `partial` = subset of these. `none` = no Kyaraben hotkey configuration.
+- **Controller**: `configured` = Kyaraben generates controller bindings.
   `auto` = emulator handles controller detection.
-- **Players**: number of controller slots kyaraben configures. `-` = handled
+- **Players**: number of controller slots Kyaraben configures. `-` = handled
   by emulator.
 - **Provisions**: BIOS, firmware, or encryption keys needed. Items marked
   "(optional)" enable extra features but aren't required for games to run.
@@ -68,16 +68,16 @@ button triggers the action.
 
 ## Applying changes
 
-Click apply. If there are conflicts with your existing configuration, kyaraben
+Click apply. If there are conflicts with your existing configuration, Kyaraben
 shows a preflight check with the exact changes it will make: which config files
 are created, modified, or left unchanged, with line-by-line diffs.
 
 {/* Screenshot: v0.1-app-preflight.png - Preflight diff view */}
 
-When you confirm, kyaraben:
+When you confirm, Kyaraben:
 
 1. Fetches emulator packages (from a binary cache, so downloads are fast)
-2. Installs emulator binaries to kyaraben-managed directories
+2. Installs emulator binaries to Kyaraben-managed directories
 3. Generates or updates emulator configuration files
 4. Creates the folder structure in your <UserStore />
 5. Creates `.desktop` entries for each emulator
@@ -98,21 +98,21 @@ launcher with metadata scraping, media art, and controller-friendly navigation.
 :::note[EmulationStation DE shows all systems with ROMs]
 EmulationStation DE has built-in definitions for hundreds of systems. It will
 show any system where it finds ROMs in your emulation directory, regardless of
-which systems you have enabled in kyaraben. Enabling a system in kyaraben
+which systems you have enabled in Kyaraben. Enabling a system in Kyaraben
 configures an emulator to run that system's games. If you have ROMs for a
 system you haven't enabled, EmulationStation DE will show them but they won't
 launch correctly.
 :::
 
-## What kyaraben installs and where
+## What Kyaraben installs and where
 
-Kyaraben installs emulators and tools into kyaraben-managed directories:
+Kyaraben installs emulators and tools into Kyaraben-managed directories:
 
 - Emulator binaries: `~/.local/share/kyaraben/`
 - Desktop entries: `~/.local/share/applications/kyaraben/`
 - CLI tools: `~/.local/bin/kyaraben`, `~/.local/bin/kyaraben-ui`
 
-This means kyaraben does not overwrite emulators you installed from other
+This means Kyaraben does not overwrite emulators you installed from other
 sources. You can install the same emulators from other sources, but they share
 config files at default paths (e.g. `~/.config/retroarch/retroarch.cfg`).
 
@@ -125,9 +125,9 @@ Kyaraben manages specific keys in emulator config files: paths that point to
 your <UserStore /> (ROM directories, BIOS paths, save directories, etc.).
 All other settings (resolution, shaders, audio) are yours to configure.
 
-When you apply, kyaraben compares what it last wrote with what's currently on
-disk. If you changed something kyaraben doesn't manage, your change is
-preserved. If you changed a managed key, kyaraben warns you before overwriting.
+When you apply, Kyaraben compares what it last wrote with what's currently on
+disk. If you changed something Kyaraben doesn't manage, your change is
+preserved. If you changed a managed key, Kyaraben warns you before overwriting.
 
 Kyaraben expects to be the sole manager of these config files. Using another
 tool that writes to the same files will cause conflicts.
@@ -191,7 +191,7 @@ data to your managed location.
   state remains intact.
 - Apply is idempotent. Running it twice with the same config produces the same
   result.
-- Uninstall is clean. `kyaraben uninstall` removes only kyaraben-managed
+- Uninstall is clean. `kyaraben uninstall` removes only Kyaraben-managed
   files. Your emulation directory (ROMs, saves, BIOS) is never touched.
 
 ## Updating
@@ -200,7 +200,7 @@ Kyaraben checks for updates automatically shortly after startup. When a new
 version is available, a banner appears offering to download and install it.
 You can also check for updates manually via the settings icon in the sidebar.
 
-After updating, kyaraben prompts you to run Apply to get any new emulator
+After updating, Kyaraben prompts you to run Apply to get any new emulator
 configurations included in the update. This is optional but recommended.
 
 ## Non-goals

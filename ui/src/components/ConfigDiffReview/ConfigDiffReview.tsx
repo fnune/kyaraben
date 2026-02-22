@@ -1,6 +1,7 @@
 import { BottomBar } from '@/lib/BottomBar'
 import { Button } from '@/lib/Button'
 import { useOpenPath } from '@/lib/hooks/useOpenPath'
+import { PathText } from '@/lib/PathText'
 import { useScrollToTop } from '@/lib/useScrollToTop'
 import type {
   ConfigChangeDetail,
@@ -48,9 +49,9 @@ function isWholeFile(regions?: readonly ManagedRegionInfo[]): boolean {
 
 function conflictMessage(regions?: readonly ManagedRegionInfo[]): string {
   if (isWholeFile(regions)) {
-    return 'This entire file is managed by kyaraben and will be rewritten:'
+    return 'This entire file is managed by Kyaraben and will be rewritten:'
   }
-  return 'You modified settings managed by kyaraben (will be overwritten):'
+  return 'You modified settings managed by Kyaraben (will be overwritten):'
 }
 
 function ChangeRow({ change }: { readonly change: ConfigChangeDetail }) {
@@ -105,7 +106,9 @@ function FileDiff({ diff }: { readonly diff: ConfigFileDiff }) {
               UNCHANGED
             </span>
           )}
-          <span className="text-sm text-on-surface-secondary truncate font-mono">{diff.path}</span>
+          <span className="text-sm text-on-surface-secondary truncate">
+            <PathText>{diff.path}</PathText>
+          </span>
         </div>
         <button
           type="button"
@@ -174,7 +177,7 @@ export function ConfigDiffReview({ data, onConfirm, onCancel }: ConfigDiffReview
   const title = hasUserConflicts ? 'Config conflicts detected' : 'Kyaraben has updated its defaults'
 
   const description = hasUserConflicts
-    ? 'You manually changed config files managed by kyaraben. Applying will overwrite those changes.'
+    ? 'You manually changed config files managed by Kyaraben. Applying will overwrite those changes.'
     : 'Kyaraben has new default values for some settings. Review the changes below.'
 
   return (

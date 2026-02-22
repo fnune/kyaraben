@@ -58,7 +58,7 @@ export function SyncSettingsSection({ guiURL, onReset }: SyncSettingsSectionProp
                     <li>Stop and remove the syncthing service</li>
                     <li>Delete syncthing configuration and database</li>
                     <li>Remove all device pairings</li>
-                    <li>Disable sync in your kyaraben config</li>
+                    <li>Disable sync in your Kyaraben config</li>
                   </ul>
                   <p className="mt-2 text-on-surface-muted">
                     Your ROMs, saves, and other emulation data will not be affected. You can
