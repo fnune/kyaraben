@@ -10,7 +10,7 @@ type Definition struct{}
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
 		ID:              model.EmulatorIDRetroArchMelonDS,
-		Name:            "melonDS (RetroArch)",
+		Name:            "melonDS DS (RetroArch)",
 		Systems:         []model.SystemID{model.SystemIDNDS},
 		Package:         model.AppImageRef("retroarch"),
 		ProvisionGroups: nil,

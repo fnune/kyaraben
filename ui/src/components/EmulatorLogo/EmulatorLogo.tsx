@@ -1,10 +1,16 @@
+import bsnes from '@/assets/emulators/bsnes.png'
 import cemu from '@/assets/emulators/cemu.png'
+import citra from '@/assets/emulators/citra.png'
 import dolphin from '@/assets/emulators/dolphin.png'
 import duckstation from '@/assets/emulators/duckstation.png'
 import eden from '@/assets/emulators/eden.png'
 import flycast from '@/assets/emulators/flycast.png'
+import genesisPlusGx from '@/assets/emulators/genesis_plus_gx.png'
+import mednafen from '@/assets/emulators/mednafen.svg'
 import melonds from '@/assets/emulators/melonds.png'
+import mesen from '@/assets/emulators/mesen.png'
 import mgba from '@/assets/emulators/mgba.png'
+import mupen64plus from '@/assets/emulators/mupen64plus.png'
 import pcsx2 from '@/assets/emulators/pcsx2.png'
 import ppsspp from '@/assets/emulators/ppsspp.png'
 import retroarch from '@/assets/emulators/retroarch.svg'
@@ -23,16 +29,16 @@ const EMULATOR_LOGOS: Partial<Record<EmulatorID, string>> = {
   retroarch,
   rpcs3,
   vita3k,
-  'retroarch:bsnes': retroarch,
-  'retroarch:mesen': retroarch,
-  'retroarch:genesis_plus_gx': retroarch,
-  'retroarch:mupen64plus_next': retroarch,
-  'retroarch:mednafen_saturn': retroarch,
-  'retroarch:mednafen_pce_fast': retroarch,
-  'retroarch:mednafen_ngp': retroarch,
+  'retroarch:bsnes': bsnes,
+  'retroarch:mesen': mesen,
+  'retroarch:genesis_plus_gx': genesisPlusGx,
+  'retroarch:mupen64plus_next': mupen64plus,
+  'retroarch:mednafen_saturn': mednafen,
+  'retroarch:mednafen_pce_fast': mednafen,
+  'retroarch:mednafen_ngp': mednafen,
   'retroarch:mgba': mgba,
   'retroarch:melonds': melonds,
-  'retroarch:citra': retroarch,
+  'retroarch:citra': citra,
 }
 
 export function getEmulatorLogo(emulatorId: EmulatorID): string | undefined {
