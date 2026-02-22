@@ -16,12 +16,13 @@ func (f *FakeManager) IsAvailable() bool {
 	return f.Available
 }
 
-func (f *FakeManager) Sync(entries []ShortcutEntry) error {
+func (f *FakeManager) Sync(entries []ShortcutEntry) (bool, error) {
 	if f.SyncError != nil {
-		return f.SyncError
+		return false, f.SyncError
 	}
+	changed := len(entries) != len(f.SyncedEntries)
 	f.SyncedEntries = entries
-	return nil
+	return changed, nil
 }
 
 func (f *FakeManager) RemoveShortcuts(appIDs []uint32) error {
