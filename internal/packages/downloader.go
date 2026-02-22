@@ -132,15 +132,16 @@ func (d *HTTPDownloader) downloadFromURL(ctx context.Context, url string, req Do
 		return fmt.Errorf("closing download: %w", err)
 	}
 
-	if req.SHA256 != "" {
-		actual := hasher.Sum(nil)
-		expected, err := parseSHA256(req.SHA256)
-		if err != nil {
-			return err
-		}
-		if string(actual) != string(expected) {
-			return fmt.Errorf("sha256 mismatch for %s: expected %x, got %x", url, expected, actual)
-		}
+	if req.SHA256 == "" {
+		return fmt.Errorf("SHA256 hash required for download: %s", url)
+	}
+	actual := hasher.Sum(nil)
+	expected, err := parseSHA256(req.SHA256)
+	if err != nil {
+		return err
+	}
+	if string(actual) != string(expected) {
+		return fmt.Errorf("sha256 mismatch for %s: expected %x, got %x", url, expected, actual)
 	}
 
 	if err := d.fs.Rename(tmpPath, req.DestPath); err != nil {

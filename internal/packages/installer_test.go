@@ -287,6 +287,80 @@ func TestPackageInstallerInstallCores(t *testing.T) {
 	}
 }
 
+func TestPackageInstallerInstallStandaloneCores(t *testing.T) {
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/state": &vfst.Dir{Perm: 0755},
+	})
+
+	stateDir := "/state"
+	dl := NewFakeDownloader(fs, []byte("fake-standalone-zip"))
+	ext := NewFakeExtractor(fs, map[string]string{
+		"melondsds_libretro.so": "fake-melondsds-core",
+	})
+
+	installer := NewPackageInstaller(fs, stateDir, dl, ext, fakeBaseDirResolver{root: "/home"})
+
+	cores, err := installer.InstallCores(context.Background(), []string{"melonds"}, nil)
+	if err != nil {
+		t.Fatalf("InstallCores with standalone: %v", err)
+	}
+
+	if len(cores) != 1 {
+		t.Fatalf("expected 1 core, got %d", len(cores))
+	}
+
+	if cores[0].Filename != "melondsds_libretro.so" {
+		t.Errorf("core filename = %q, want melondsds_libretro.so", cores[0].Filename)
+	}
+
+	if _, err := fs.Stat(cores[0].Path); err != nil {
+		t.Errorf("standalone core not found at %s: %v", cores[0].Path, err)
+	}
+}
+
+func TestPackageInstallerInstallMixedCores(t *testing.T) {
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/state": &vfst.Dir{Perm: 0755},
+	})
+
+	stateDir := "/state"
+	dl := NewFakeDownloader(fs, []byte("fake-archive"))
+	ext := NewFakeExtractor(fs, map[string]string{
+		"cores/bsnes_libretro.so": "fake-bsnes-core",
+		"melondsds_libretro.so":   "fake-melondsds-core",
+	})
+
+	installer := NewPackageInstaller(fs, stateDir, dl, ext, fakeBaseDirResolver{root: "/home"})
+
+	cores, err := installer.InstallCores(context.Background(), []string{"bsnes", "melonds"}, nil)
+	if err != nil {
+		t.Fatalf("InstallCores with mixed: %v", err)
+	}
+
+	if len(cores) != 2 {
+		t.Fatalf("expected 2 cores, got %d", len(cores))
+	}
+
+	filenames := make(map[string]bool)
+	for _, core := range cores {
+		filenames[core.Filename] = true
+		if _, err := fs.Stat(core.Path); err != nil {
+			t.Errorf("core not found at %s: %v", core.Path, err)
+		}
+	}
+
+	if !filenames["bsnes_libretro.so"] {
+		t.Error("expected bsnes_libretro.so in results")
+	}
+	if !filenames["melondsds_libretro.so"] {
+		t.Error("expected melondsds_libretro.so in results")
+	}
+}
+
 func TestPackageInstallerInstallIcon(t *testing.T) {
 	t.Parallel()
 

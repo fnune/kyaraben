@@ -46,9 +46,7 @@ What we won't do: full performance tuning, per-game settings, target-specific op
     - Games don't even launch from ES-DE
     - Root cause: the old `melonds_libretro` core has an executable stack requirement that modern kernels block
     - Error: `cannot enable executable stack as shared object requires: Invalid argument`
-    - Fix: switch to `melondsds_libretro` (melonDS DS) which is the maintained version
-    - Problem: melonDS DS is only in nightly builds, not the stable RetroArch_cores.7z archive we use
-    - TODO: source melondsds from nightly builds separately, or find alternative distribution
+    - FIXED: switched to `melondsds_libretro` (melonDS DS) downloaded as standalone core from GitHub releases
 - Flycast hotkeys open the menu instead of immediately doing what the hotkey is supposed to do
     - At least for load and save state
 - RetroArch save state bindings works

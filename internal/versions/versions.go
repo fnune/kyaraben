@@ -21,8 +21,16 @@ type RetroArchCoresSpec struct {
 	URLTemplate string `toml:"url_template"`
 	Default     string `toml:"default"`
 	Versions    map[string]RetroArchCoresBuild
-	Files       map[string]string `toml:"files"` // core name -> filename in archive
-	Sizes       map[string]int64  `toml:"sizes"`
+	Files       map[string]string         `toml:"files"`      // core name -> filename in archive
+	Sizes       map[string]int64          `toml:"sizes"`      // core name -> size
+	Standalone  map[string]StandaloneCore `toml:"standalone"` // cores downloaded separately
+}
+
+type StandaloneCore struct {
+	Filename string `toml:"filename"`
+	URL      string `toml:"url"`
+	SHA256   string `toml:"sha256"`
+	Size     int64  `toml:"size"`
 }
 
 type RetroArchCoresBuild struct {
@@ -305,6 +313,27 @@ func parse(data string) (*Versions, error) {
 			for name, size := range sizesRaw {
 				if s, ok := size.(int64); ok {
 					v.RetroArchCores.Sizes[name] = s
+				}
+			}
+		}
+		if standaloneRaw, ok := racRaw["standalone"].(map[string]interface{}); ok {
+			v.RetroArchCores.Standalone = make(map[string]StandaloneCore)
+			for name, coreRaw := range standaloneRaw {
+				if coreData, ok := coreRaw.(map[string]interface{}); ok {
+					core := StandaloneCore{}
+					if f, ok := coreData["filename"].(string); ok {
+						core.Filename = f
+					}
+					if u, ok := coreData["url"].(string); ok {
+						core.URL = u
+					}
+					if s, ok := coreData["sha256"].(string); ok {
+						core.SHA256 = s
+					}
+					if sz, ok := coreData["size"].(int64); ok {
+						core.Size = sz
+					}
+					v.RetroArchCores.Standalone[name] = core
 				}
 			}
 		}
