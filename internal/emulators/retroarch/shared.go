@@ -53,7 +53,6 @@ func SharedConfig(store model.StoreReader, cc *model.ControllerConfig) model.Con
 		{Path: []string{"sort_savestates_enable"}, Value: "true"},
 		{Path: []string{"sort_savefiles_by_content_enable"}, Value: "false"},
 		{Path: []string{"sort_savestates_by_content_enable"}, Value: "false"},
-		{Path: []string{"savestate_auto_index"}, Value: "true"},
 		{Path: []string{"rgui_browser_directory"}, Value: store.RomsDir()},
 		{Path: []string{"menu_driver"}, Value: "ozone", DefaultOnly: true},
 		{Path: []string{"menu_show_load_content_animation"}, Value: "false"},
