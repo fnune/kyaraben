@@ -2,7 +2,7 @@ import esde from '@/assets/frontends/esde.svg'
 import type { FrontendID } from '@/types/model.gen'
 
 const FRONTEND_LOGOS: Record<FrontendID, string> = {
-  'es-de': esde,
+  esde: esde,
 }
 
 export function getFrontendLogo(frontendId: FrontendID): string | undefined {

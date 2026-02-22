@@ -37,7 +37,7 @@ export type EmulatorID = typeof EmulatorIDRetroArch | typeof EmulatorIDRetroArch
 // source: frontend_id.go
 
 export type FrontendID = string;
-export const FrontendIDESDE: FrontendID = "es-de";
+export const FrontendIDESDE: FrontendID = "esde";
 
 //////////
 // source: system.go

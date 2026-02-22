@@ -136,7 +136,7 @@ func (m *Manager) GenerateWrappers(binaries []InstalledBinary) error {
 		data := wrapperData{RealBinaryPath: binary.Path, KyarabenPath: kyarabenPath}
 
 		useTmpl := tmpl
-		if binary.Name == "es-de" {
+		if binary.Name == "esde" {
 			useTmpl = esdeTmpl
 		}
 

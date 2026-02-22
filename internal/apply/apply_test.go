@@ -535,7 +535,7 @@ func TestApplyInstallsFrontend(t *testing.T) {
 	}
 
 	env.installer.Versions["retroarch"] = "1.22.0"
-	env.installer.Versions["es-de"] = "3.0.0"
+	env.installer.Versions["esde"] = "3.0.0"
 
 	_, err := env.applier.Apply(context.Background(), cfg, env.userStore, Options{})
 	if err != nil {
@@ -559,7 +559,7 @@ func TestApplyInstallsFrontend(t *testing.T) {
 	}
 
 	packagesDir := filepath.Join(env.rootDir, "packages")
-	binaryPath := filepath.Join(packagesDir, "es-de", "bin", "es-de")
+	binaryPath := filepath.Join(packagesDir, "esde", "bin", "esde")
 	if _, err := env.fs.Stat(binaryPath); err != nil {
 		t.Errorf("ES-DE binary should be installed at %s", binaryPath)
 	}
@@ -593,7 +593,7 @@ func TestApplyInstallsFrontendIcon(t *testing.T) {
 	}
 
 	env.installer.Versions["retroarch"] = "1.22.0"
-	env.installer.Versions["es-de"] = "3.0.0"
+	env.installer.Versions["esde"] = "3.0.0"
 	installer := &iconTrackingInstaller{FakeInstaller: env.installer}
 	env.applier.Installer = installer
 
@@ -604,14 +604,14 @@ func TestApplyInstallsFrontendIcon(t *testing.T) {
 
 	hasESDE := false
 	for _, name := range installer.iconCalls {
-		if name == "es-de" {
+		if name == "esde" {
 			hasESDE = true
 			break
 		}
 	}
 
 	if !hasESDE {
-		t.Errorf("InstallIcon should be called for es-de, got calls for: %v", installer.iconCalls)
+		t.Errorf("InstallIcon should be called for esde, got calls for: %v", installer.iconCalls)
 	}
 }
 

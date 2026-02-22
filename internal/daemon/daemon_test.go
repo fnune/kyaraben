@@ -251,3 +251,25 @@ func TestEnsureSyncthingManagedSkipsWhenActive(t *testing.T) {
 		t.Errorf("expected State to be called once, got %d", service.stateCalls.Load())
 	}
 }
+
+func TestFolderLabel(t *testing.T) {
+	tests := []struct {
+		id   string
+		want string
+	}{
+		{"kyaraben-saves-dreamcast", "dreamcast (saves)"},
+		{"kyaraben-states-psx", "psx (states)"},
+		{"kyaraben-screenshots", "screenshots"},
+		{"kyaraben-frontends-esde-gamelists-dreamcast", "dreamcast (ES-DE gamelists)"},
+		{"kyaraben-frontends-esde-media-snes", "snes (ES-DE media)"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.id, func(t *testing.T) {
+			got := folderLabel(tt.id)
+			if got != tt.want {
+				t.Errorf("folderLabel(%q) = %q, want %q", tt.id, got, tt.want)
+			}
+		})
+	}
+}

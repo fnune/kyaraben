@@ -12,9 +12,9 @@ func (Definition) Frontend() model.Frontend {
 	return model.Frontend{
 		ID:      model.FrontendIDESDE,
 		Name:    "ES-DE",
-		Package: model.AppImageRef("es-de"),
+		Package: model.AppImageRef("esde"),
 		Launcher: model.LauncherInfo{
-			Binary:      "es-de",
+			Binary:      "esde",
 			DisplayName: "ES-DE",
 			GenericName: "Game Frontend",
 			Categories:  []string{"Game"},
@@ -40,5 +40,5 @@ func (Definition) SteamShortcut(binDir string) *model.SteamShortcutInfo {
 }
 
 func (d Definition) SteamShortcutExe(binDir string) string {
-	return filepath.Join(binDir, "es-de")
+	return filepath.Join(binDir, "esde")
 }
