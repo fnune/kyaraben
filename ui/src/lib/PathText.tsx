@@ -1,3 +1,13 @@
+import { useHomeDir } from '@/lib/HomeDirContext'
+import { collapseTilde } from '@/lib/paths'
+
 export function PathText({ children }: { readonly children: string }) {
-  return <span className="font-mono">{children}</span>
+  const homeDir = useHomeDir()
+  const displayPath = collapseTilde(children, homeDir)
+
+  return (
+    <span className="font-mono" title={children}>
+      {displayPath}
+    </span>
+  )
 }
