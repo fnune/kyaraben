@@ -9,14 +9,14 @@ import (
 	"github.com/fnune/kyaraben/internal/model"
 )
 
-func TestPrimaryPairingFlowAcceptsDevice(t *testing.T) {
+func TestInitiatorPairingFlowAcceptsDevice(t *testing.T) {
 	client := NewFakeClient(model.SyncConfig{
 		Enabled: true,
 	})
-	client.SetDeviceID("PRIMARY-ID")
+	client.SetDeviceID("INITIATOR-ID")
 
 	var messages []string
-	flow := NewPrimaryPairingFlow(PairingFlowConfig{
+	flow := NewInitiatorPairingFlow(PairingFlowConfig{
 		SyncConfig: client.config,
 		Client:     client,
 		OnProgress: func(msg string) {
@@ -43,7 +43,7 @@ func TestPrimaryPairingFlowAcceptsDevice(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	client.SetPendingDevices([]PendingDevice{
-		{DeviceID: "SECONDARY-ID", Name: "steamdeck", Address: "192.168.1.100:22000"},
+		{DeviceID: "JOINER-ID", Name: "steamdeck", Address: "192.168.1.100:22000"},
 	})
 
 	select {
@@ -51,8 +51,8 @@ func TestPrimaryPairingFlowAcceptsDevice(t *testing.T) {
 		if out.err != nil {
 			t.Fatalf("unexpected error: %v", out.err)
 		}
-		if out.result.PeerDeviceID != "SECONDARY-ID" {
-			t.Errorf("expected PeerDeviceID SECONDARY-ID, got %s", out.result.PeerDeviceID)
+		if out.result.PeerDeviceID != "JOINER-ID" {
+			t.Errorf("expected PeerDeviceID JOINER-ID, got %s", out.result.PeerDeviceID)
 		}
 		if out.result.PeerName != "steamdeck" {
 			t.Errorf("expected PeerName steamdeck, got %s", out.result.PeerName)
@@ -65,24 +65,24 @@ func TestPrimaryPairingFlowAcceptsDevice(t *testing.T) {
 	if len(addedPeers) != 1 {
 		t.Fatalf("expected 1 added peer, got %d", len(addedPeers))
 	}
-	if addedPeers[0].ID != "SECONDARY-ID" {
-		t.Errorf("expected added peer SECONDARY-ID, got %s", addedPeers[0].ID)
+	if addedPeers[0].ID != "JOINER-ID" {
+		t.Errorf("expected added peer JOINER-ID, got %s", addedPeers[0].ID)
 	}
 
 	sharedWith := client.SharedWith()
-	if len(sharedWith) != 1 || sharedWith[0] != "SECONDARY-ID" {
-		t.Errorf("expected folders shared with SECONDARY-ID, got %v", sharedWith)
+	if len(sharedWith) != 1 || sharedWith[0] != "JOINER-ID" {
+		t.Errorf("expected folders shared with JOINER-ID, got %v", sharedWith)
 	}
 }
 
-func TestSecondaryPairingFlowConnectsToPrimary(t *testing.T) {
+func TestJoinerPairingFlowConnectsToPeer(t *testing.T) {
 	client := NewFakeClient(model.SyncConfig{
 		Enabled: true,
 	})
-	client.SetDeviceID("SECONDARY-ID")
+	client.SetDeviceID("JOINER-ID")
 
 	var messages []string
-	flow := NewSecondaryPairingFlow(PairingFlowConfig{
+	flow := NewJoinerPairingFlow(PairingFlowConfig{
 		SyncConfig: client.config,
 		Client:     client,
 		OnProgress: func(msg string) {
@@ -99,7 +99,7 @@ func TestSecondaryPairingFlowConnectsToPrimary(t *testing.T) {
 	}, 1)
 
 	go func() {
-		result, err := flow.Run(ctx, "PRIMARY-ID")
+		result, err := flow.Run(ctx, "PEER-ID")
 		done <- struct {
 			result *PairResult
 			err    error
@@ -108,16 +108,16 @@ func TestSecondaryPairingFlowConnectsToPrimary(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	client.SetConfiguredDevice("PRIMARY-ID", "feanor")
-	client.SetConnection("PRIMARY-ID", ConnectionInfo{Connected: true})
+	client.SetConfiguredDevice("PEER-ID", "feanor")
+	client.SetConnection("PEER-ID", ConnectionInfo{Connected: true})
 
 	select {
 	case out := <-done:
 		if out.err != nil {
 			t.Fatalf("unexpected error: %v", out.err)
 		}
-		if out.result.PeerDeviceID != "PRIMARY-ID" {
-			t.Errorf("expected PeerDeviceID PRIMARY-ID, got %s", out.result.PeerDeviceID)
+		if out.result.PeerDeviceID != "PEER-ID" {
+			t.Errorf("expected PeerDeviceID PEER-ID, got %s", out.result.PeerDeviceID)
 		}
 		if out.result.PeerName != "feanor" {
 			t.Errorf("expected PeerName feanor, got %s", out.result.PeerName)
@@ -127,18 +127,18 @@ func TestSecondaryPairingFlowConnectsToPrimary(t *testing.T) {
 	}
 
 	sharedWith := client.SharedWith()
-	if len(sharedWith) != 1 || sharedWith[0] != "PRIMARY-ID" {
-		t.Errorf("expected folders shared with PRIMARY-ID, got %v", sharedWith)
+	if len(sharedWith) != 1 || sharedWith[0] != "PEER-ID" {
+		t.Errorf("expected folders shared with PEER-ID, got %v", sharedWith)
 	}
 }
 
-func TestSecondaryPairingFlowTimesOut(t *testing.T) {
+func TestJoinerPairingFlowTimesOut(t *testing.T) {
 	client := NewFakeClient(model.SyncConfig{
 		Enabled: true,
 	})
-	client.SetDeviceID("SECONDARY-ID")
+	client.SetDeviceID("JOINER-ID")
 
-	flow := NewSecondaryPairingFlow(PairingFlowConfig{
+	flow := NewJoinerPairingFlow(PairingFlowConfig{
 		SyncConfig: client.config,
 		Client:     client,
 		OnProgress: func(msg string) {},
@@ -147,19 +147,19 @@ func TestSecondaryPairingFlowTimesOut(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	_, err := flow.Run(ctx, "PRIMARY-ID")
+	_, err := flow.Run(ctx, "PEER-ID")
 	if err == nil || !strings.Contains(err.Error(), "timed out") {
 		t.Errorf("expected timeout error, got %v", err)
 	}
 }
 
-func TestSecondaryPairingFlowDetectsDeviceRemoval(t *testing.T) {
+func TestJoinerPairingFlowDetectsDeviceRemoval(t *testing.T) {
 	client := NewFakeClient(model.SyncConfig{
 		Enabled: true,
 	})
-	client.SetDeviceID("SECONDARY-ID")
+	client.SetDeviceID("JOINER-ID")
 
-	flow := NewSecondaryPairingFlow(PairingFlowConfig{
+	flow := NewJoinerPairingFlow(PairingFlowConfig{
 		SyncConfig: client.config,
 		Client:     client,
 		OnProgress: func(msg string) {},
@@ -171,17 +171,17 @@ func TestSecondaryPairingFlowDetectsDeviceRemoval(t *testing.T) {
 	done := make(chan error, 1)
 
 	go func() {
-		_, err := flow.Run(ctx, "PRIMARY-ID")
+		_, err := flow.Run(ctx, "PEER-ID")
 		done <- err
 	}()
 
 	time.Sleep(100 * time.Millisecond)
 
-	client.SetConfiguredDevice("PRIMARY-ID", "feanor")
+	client.SetConfiguredDevice("PEER-ID", "feanor")
 
 	time.Sleep(100 * time.Millisecond)
 
-	client.RemoveConfiguredDevice("PRIMARY-ID")
+	client.RemoveConfiguredDevice("PEER-ID")
 
 	select {
 	case err := <-done:

@@ -24,6 +24,7 @@ export interface UseSyncPairingResult {
   handleResetSync: () => Promise<void>
   handleStartPairing: () => Promise<void>
   handleStopPairing: () => Promise<void>
+  handleToggleGlobalDiscovery: (enabled: boolean) => Promise<void>
   clearConnectionError: () => void
   refreshSyncStatus: () => Promise<void>
   refreshDiscoveredDevices: () => Promise<void>
@@ -185,11 +186,11 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
       setConnectionError(null)
       setConnectionProgress('Connecting...')
       setIsConnecting(true)
-      const result = await daemon.joinSyncPrimary({ code: targetDeviceId, pairingAddr: '' })
+      const result = await daemon.joinSyncPeer({ code: targetDeviceId, pairingAddr: '' })
       setConnectionProgress(null)
       setIsConnecting(false)
       if (result.ok) {
-        const peerName = result.data.peerName || 'primary'
+        const peerName = result.data.peerName || 'peer'
         showToast(`Connected to ${peerName}.`, 'success')
         await refreshSyncStatus()
         return { ok: true }
@@ -256,6 +257,18 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
     setPairingCode(null)
   }, [])
 
+  const handleToggleGlobalDiscovery = useCallback(
+    async (enabled: boolean) => {
+      const result = await daemon.setSyncSettings({ globalDiscoveryEnabled: enabled })
+      if (result.ok) {
+        await refreshSyncStatus()
+      } else {
+        showToast('Failed to update global discovery setting.', 'error')
+      }
+    },
+    [refreshSyncStatus, showToast],
+  )
+
   const clearConnectionError = useCallback(() => {
     setConnectionError(null)
   }, [])
@@ -279,6 +292,7 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
     handleResetSync,
     handleStartPairing,
     handleStopPairing,
+    handleToggleGlobalDiscovery,
     clearConnectionError,
     refreshSyncStatus,
     refreshDiscoveredDevices,

@@ -18,8 +18,8 @@ const (
 
 type Session struct {
 	Code              string
-	PrimaryDeviceID   string
-	SecondaryDeviceID string
+	InitiatorDeviceID string
+	ResponderDeviceID string
 	CreatedAt         time.Time
 	ExpiresAt         time.Time
 	CreatorIP         string
@@ -30,7 +30,7 @@ func (s *Session) IsExpired() bool {
 }
 
 func (s *Session) HasResponse() bool {
-	return s.SecondaryDeviceID != ""
+	return s.ResponderDeviceID != ""
 }
 
 type Store struct {
@@ -58,7 +58,7 @@ func (s *Store) Close() {
 	close(s.stopCh)
 }
 
-func (s *Store) Create(primaryDeviceID, creatorIP string) (*Session, error) {
+func (s *Store) Create(initiatorDeviceID, creatorIP string) (*Session, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -83,11 +83,11 @@ func (s *Store) Create(primaryDeviceID, creatorIP string) (*Session, error) {
 
 	now := time.Now()
 	session := &Session{
-		Code:            code,
-		PrimaryDeviceID: primaryDeviceID,
-		CreatedAt:       now,
-		ExpiresAt:       now.Add(s.ttl),
-		CreatorIP:       creatorIP,
+		Code:              code,
+		InitiatorDeviceID: initiatorDeviceID,
+		CreatedAt:         now,
+		ExpiresAt:         now.Add(s.ttl),
+		CreatorIP:         creatorIP,
 	}
 	s.sessions[code] = session
 	return session, nil
@@ -107,7 +107,7 @@ func (s *Store) Get(code string) (*Session, error) {
 	return session, nil
 }
 
-func (s *Store) SetResponse(code, secondaryDeviceID string) error {
+func (s *Store) SetResponse(code, responderDeviceID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -118,10 +118,10 @@ func (s *Store) SetResponse(code, secondaryDeviceID string) error {
 	if session.IsExpired() {
 		return ErrSessionExpired
 	}
-	if session.SecondaryDeviceID != "" {
+	if session.ResponderDeviceID != "" {
 		return ErrResponseAlreadySet
 	}
-	session.SecondaryDeviceID = secondaryDeviceID
+	session.ResponderDeviceID = responderDeviceID
 	return nil
 }
 

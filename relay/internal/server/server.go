@@ -40,12 +40,13 @@ func New(cfg Config) *Server {
 
 	createLimiter := NewRateLimiter(10, time.Minute)
 	getLimiter := NewRateLimiter(30, time.Minute)
+	deleteLimiter := NewRateLimiter(10, time.Minute)
 	submitLimiter := NewRateLimiter(10, time.Minute)
 	pollLimiter := NewRateLimiter(60, time.Minute)
 
 	mux.Handle("POST /pair", createLimiter.Middleware(http.HandlerFunc(handlers.CreateSession)))
 	mux.Handle("GET /pair/{code}", getLimiter.Middleware(http.HandlerFunc(handlers.GetSession)))
-	mux.Handle("DELETE /pair/{code}", http.HandlerFunc(handlers.DeleteSession))
+	mux.Handle("DELETE /pair/{code}", deleteLimiter.Middleware(http.HandlerFunc(handlers.DeleteSession)))
 	mux.Handle("POST /pair/{code}/response", submitLimiter.Middleware(http.HandlerFunc(handlers.SubmitResponse)))
 	mux.Handle("GET /pair/{code}/response", pollLimiter.Middleware(http.HandlerFunc(handlers.GetResponse)))
 	mux.HandleFunc("GET /health", handlers.Health)
@@ -54,7 +55,7 @@ func New(cfg Config) *Server {
 		cfg:          cfg,
 		store:        store,
 		handlers:     handlers,
-		rateLimiters: []*RateLimiter{createLimiter, getLimiter, submitLimiter, pollLimiter},
+		rateLimiters: []*RateLimiter{createLimiter, getLimiter, deleteLimiter, submitLimiter, pollLimiter},
 		server: &http.Server{
 			Addr:           cfg.Addr,
 			Handler:        loggingMiddleware(corsMiddleware(mux)),

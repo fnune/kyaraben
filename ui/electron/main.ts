@@ -397,7 +397,7 @@ async function applyCommand(): Promise<{ messages: string[]; cancelled: boolean 
   })
 }
 
-async function joinPrimaryCommand(code: string): Promise<{
+async function joinPeerCommand(code: string): Promise<{
   success: boolean
   peerDeviceId?: string
   peerName?: string
@@ -411,14 +411,14 @@ async function joinPrimaryCommand(code: string): Promise<{
   const currentDaemon = daemon
   const stdin = daemon.process.stdin
   const requestId = randomUUID()
-  const json = `${JSON.stringify({ type: 'sync_join_primary', id: requestId, data: { code, pairingAddr: '' } })}\n`
+  const json = `${JSON.stringify({ type: 'sync_join_peer', id: requestId, data: { code, pairingAddr: '' } })}\n`
   stdin.write(json)
 
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(
       () => {
         currentDaemon.pending.delete(requestId)
-        reject(new Error('Join primary timeout'))
+        reject(new Error('Join peer timeout'))
       },
       6 * 60 * 1000,
     )
@@ -606,8 +606,8 @@ function setupIpcHandlers(): void {
     return event.data
   })
 
-  ipcMain.handle('sync_join_primary', async (_, data: { code: string; pairingAddr: string }) => {
-    return await joinPrimaryCommand(data.code)
+  ipcMain.handle('sync_join_peer', async (_, data: { code: string; pairingAddr: string }) => {
+    return await joinPeerCommand(data.code)
   })
 
   ipcMain.handle('sync_cancel_pairing', async () => {
@@ -671,6 +671,11 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle('sync_discovered_devices', async () => {
     const event = await sendCommand({ type: 'sync_discovered_devices' })
+    return event.data
+  })
+
+  ipcMain.handle('sync_set_settings', async (_, data: { globalDiscoveryEnabled?: boolean }) => {
+    const event = await sendCommand({ type: 'sync_set_settings', data })
     return event.data
   })
 
@@ -853,9 +858,10 @@ function setupIpcHandlers(): void {
     'sync_status',
     'sync_remove_device',
     'sync_start_pairing',
-    'sync_join_primary',
+    'sync_join_peer',
     'sync_cancel_pairing',
     'sync_discovered_devices',
+    'sync_set_settings',
     'sync_pending',
     'sync_enable',
     'sync_revert_folder',

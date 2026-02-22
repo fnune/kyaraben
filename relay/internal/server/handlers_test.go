@@ -101,8 +101,8 @@ func TestHandlers_SubmitResponse(t *testing.T) {
 
 	session, _ := store.Create("AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA", "127.0.0.1")
 
-	secondaryID := "BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB"
-	body := `{"deviceId": "` + secondaryID + `"}`
+	responderID := "BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB"
+	body := `{"deviceId": "` + responderID + `"}`
 	req := httptest.NewRequest(http.MethodPost, "/pair/"+session.Code+"/response", bytes.NewBufferString(body))
 	w := httptest.NewRecorder()
 
@@ -113,8 +113,8 @@ func TestHandlers_SubmitResponse(t *testing.T) {
 	}
 
 	updated, _ := store.Get(session.Code)
-	if updated.SecondaryDeviceID != secondaryID {
-		t.Errorf("expected secondary device ID %s, got %s", secondaryID, updated.SecondaryDeviceID)
+	if updated.ResponderDeviceID != responderID {
+		t.Errorf("expected responder device ID %s, got %s", responderID, updated.ResponderDeviceID)
 	}
 }
 
@@ -151,8 +151,8 @@ func TestHandlers_GetResponse_Ready(t *testing.T) {
 	h := NewHandlers(store)
 
 	session, _ := store.Create("AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA", "127.0.0.1")
-	secondaryID := "BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB"
-	_ = store.SetResponse(session.Code, secondaryID)
+	responderID := "BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB"
+	_ = store.SetResponse(session.Code, responderID)
 
 	req := httptest.NewRequest(http.MethodGet, "/pair/"+session.Code+"/response", nil)
 	w := httptest.NewRecorder()
@@ -169,8 +169,8 @@ func TestHandlers_GetResponse_Ready(t *testing.T) {
 	if !resp.Ready {
 		t.Error("expected ready to be true")
 	}
-	if resp.DeviceID != secondaryID {
-		t.Errorf("expected device ID %s, got %s", secondaryID, resp.DeviceID)
+	if resp.DeviceID != responderID {
+		t.Errorf("expected device ID %s, got %s", responderID, resp.DeviceID)
 	}
 }
 

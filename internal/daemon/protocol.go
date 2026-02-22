@@ -27,7 +27,7 @@ type SyncRemoveDeviceRequest struct {
 	DeviceID string `json:"deviceId"`
 }
 
-type SyncJoinPrimaryRequest struct {
+type SyncJoinPeerRequest struct {
 	Code        string `json:"code"`
 	PairingAddr string `json:"pairingAddr,omitempty"`
 	DeviceID    string `json:"deviceId,omitempty"`
@@ -202,18 +202,19 @@ const (
 )
 
 type SyncStatusResponse struct {
-	Enabled          bool          `json:"enabled"`
-	Running          bool          `json:"running,omitempty"`
-	Installed        bool          `json:"installed,omitempty"`
-	ServiceInstalled bool          `json:"serviceInstalled,omitempty"`
-	DeviceID         string        `json:"deviceId,omitempty"`
-	GUIURL           string        `json:"guiURL,omitempty"`
-	State            SyncState     `json:"state,omitempty"`
-	Devices          []SyncDevice  `json:"devices,omitempty"`
-	Folders          []SyncFolder  `json:"folders,omitempty"`
-	Pairing          bool          `json:"pairing,omitempty"`
-	Progress         *SyncProgress `json:"progress,omitempty"`
-	ServiceError     string        `json:"serviceError,omitempty"`
+	Enabled                bool          `json:"enabled"`
+	Running                bool          `json:"running,omitempty"`
+	Installed              bool          `json:"installed,omitempty"`
+	ServiceInstalled       bool          `json:"serviceInstalled,omitempty"`
+	DeviceID               string        `json:"deviceId,omitempty"`
+	GUIURL                 string        `json:"guiURL,omitempty"`
+	State                  SyncState     `json:"state,omitempty"`
+	Devices                []SyncDevice  `json:"devices,omitempty"`
+	Folders                []SyncFolder  `json:"folders,omitempty"`
+	Pairing                bool          `json:"pairing,omitempty"`
+	Progress               *SyncProgress `json:"progress,omitempty"`
+	ServiceError           string        `json:"serviceError,omitempty"`
+	GlobalDiscoveryEnabled bool          `json:"globalDiscoveryEnabled,omitempty"`
 }
 
 type SyncProgress struct {
@@ -291,7 +292,7 @@ type SyncPairingCompleteResponse struct {
 	PeerName     string `json:"peerName"`
 }
 
-type SyncJoinPrimaryResponse struct {
+type SyncJoinPeerResponse struct {
 	Success      bool   `json:"success"`
 	PeerDeviceID string `json:"peerDeviceId"`
 	PeerName     string `json:"peerName"`
@@ -316,6 +317,14 @@ type SyncEnableResponse struct {
 type SyncResetResponse struct {
 	Success      bool     `json:"success"`
 	RemovedFiles []string `json:"removedFiles,omitempty"`
+}
+
+type SyncSetSettingsRequest struct {
+	GlobalDiscoveryEnabled *bool `json:"globalDiscoveryEnabled,omitempty"`
+}
+
+type SyncSetSettingsResponse struct {
+	Success bool `json:"success"`
 }
 
 type SyncDiscoveredDevice struct {

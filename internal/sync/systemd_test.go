@@ -20,7 +20,6 @@ func TestSystemdUnit_Generate(t *testing.T) {
 		ConfigDir:  "/home/user/.local/state/kyaraben/syncthing/config",
 		DataDir:    "/home/user/.local/state/kyaraben/syncthing/data",
 		GUIPort:    8484,
-		APIKey:     "test-key",
 	}
 
 	content, err := unit.Generate(params)
@@ -36,7 +35,6 @@ func TestSystemdUnit_Generate(t *testing.T) {
 		"ExecStart=/usr/bin/syncthing serve",
 		"--config=/home/user/.local/state/kyaraben/syncthing/config",
 		"--gui-address=127.0.0.1:8484",
-		"--gui-apikey=test-key",
 	}
 	for _, s := range expected {
 		if !containsSubstr(content, s) {
