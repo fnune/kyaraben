@@ -162,38 +162,37 @@ Common steps: refer to the section above.
 
 ---
 
-### mGBA (Game Boy / Game Boy Advance)
+### RetroArch: mGBA (Game Boy / Game Boy Advance)
 
-Single player, raw SDL indices, no hotkey support.
-
-Common steps: refer to the section above.
-
-#### Additional: GBA-specific
-
-- [ ] A and B buttons mapped correctly (GBA only has A and B)
-- [ ] L and R shoulder buttons register correctly
-- [ ] D-pad uses hat values (confirm all four directions)
-
----
-
-### melonDS (Nintendo DS)
-
-Single player, raw SDL indices with special hat encoding, partial hotkey support.
+Now a RetroArch core. Full hotkey support via enable_hotkey + action pattern.
 
 Common steps: refer to the section above.
 
 #### Additional: hotkeys (Xbox controller)
 
-- [ ] Fast forward engages (last button in FastForward binding)
-- [ ] Pause engages (last button in Pause binding)
-- [ ] Fullscreen toggles (last button in ToggleFullscreen binding)
+Same as RetroArch: bsnes above.
 
-Note: melonDS hotkeys use only the last button of a chord, not the full chord.
+#### Additional: GBA-specific
+
+- [ ] A and B buttons mapped correctly (GBA only has A and B)
+- [ ] L and R shoulder buttons register correctly
+- [ ] D-pad works in all directions
+
+---
+
+### RetroArch: melonDS (Nintendo DS)
+
+Now a RetroArch core (melondsds_libretro). Full hotkey support via enable_hotkey + action pattern.
+
+Common steps: refer to the section above.
+
+#### Additional: hotkeys (Xbox controller)
+
+Same as RetroArch: bsnes above.
 
 #### Additional: DS-specific
 
 - [ ] Touch screen input works (mouse or touchpad)
-- [ ] D-pad uses melonDS hat encoding (confirm all four directions)
 
 ---
 
@@ -262,23 +261,22 @@ Common steps: refer to the section above.
 
 ---
 
-### Azahar (Nintendo 3DS)
+### RetroArch: Citra (Nintendo 3DS)
 
-Single player, GUID-embedded bindings, no hotkey support.
+Now a RetroArch core. Full hotkey support via enable_hotkey + action pattern.
 
 Common steps: refer to the section above.
+
+#### Additional: hotkeys (Xbox controller)
+
+Same as RetroArch: bsnes above.
 
 #### Additional: 3DS-specific
 
 - [ ] Circle pad (left analog) works in all directions
 - [ ] C-stick (right analog) works in all directions
 - [ ] L and R shoulder buttons register correctly
-- [ ] ZL and ZR (triggers) register with axis threshold
-- [ ] Controller GUID is recognized (check config output)
-
-#### Additional: SNES USB controller
-
-- [ ] Verify GUID matching works (the SNES controller may need a GUID entry)
+- [ ] Touch screen input works (mouse or touchpad)
 
 ---
 
@@ -423,10 +421,13 @@ Common steps: refer to the section above.
 
 ### Cemu (Wii U)
 
-No kyaraben controller config generation. Controller must be configured manually.
+Single player, controller configured by kyaraben. No hotkey support (upstream
+limitation, see https://github.com/cemu-project/Cemu/issues/721).
 
-- [ ] Open Cemu input settings and manually configure the controller
-- [ ] Confirm all buttons map correctly after manual setup
+Common steps: refer to the section above.
+
+#### Additional: Wii U-specific
+
 - [ ] Gamepad touch screen emulation works
 
 ---
@@ -435,9 +436,11 @@ No kyaraben controller config generation. Controller must be configured manually
 
 - For the SNES USB controller, many emulators will lack triggers, analog sticks,
   and extra buttons. Only test what the controller physically has.
-- GUID-based emulators (Eden, Azahar) may not recognize the SNES USB controller
+- GUID-based emulators (Eden) may not recognize the SNES USB controller
   unless its GUID is added to the `[controller.guids]` config section.
 - RetroArch and Group D emulators (Vita3K, RPCS3) use auto-detection and should
   work with any SDL-compatible controller without extra configuration.
 - On Steam Deck, Steam Input may remap the controller. If bindings seem wrong,
   check that Steam Input is set to pass through (no remapping).
+- mGBA, melonDS, and 3DS (Citra) are now RetroArch cores, not standalone
+  emulators. They use RetroArch's unified hotkey system.
