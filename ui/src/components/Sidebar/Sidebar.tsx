@@ -1,3 +1,4 @@
+import { Logo } from '@/components/Logo/Logo'
 import { SettingsIcon } from '@/lib/icons'
 import type { SyncState, SyncStatusResponse } from '@/types/daemon'
 import {
@@ -63,7 +64,7 @@ export function Sidebar({ currentView, onNavigate, syncStatus, version }: Sideba
   return (
     <aside className="bg-surface-alt border-b min-[720px]:border-b-0 min-[720px]:border-r border-outline flex flex-row min-[720px]:flex-col min-[720px]:w-56">
       <div className="p-4 border-r min-[720px]:border-r-0 min-[720px]:border-b border-outline">
-        <h1 className="font-heading text-lg font-semibold text-accent tracking-wide">Kyaraben</h1>
+        <Logo className="w-full" />
       </div>
 
       <nav className="flex-1 flex flex-row min-[720px]:flex-col min-[720px]:py-2">
