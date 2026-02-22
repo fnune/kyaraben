@@ -9,6 +9,10 @@ Kyaraben uses Syncthing to synchronize emulation data across devices. Syncthing
 is installed automatically when you enable sync. No accounts, cloud services,
 or port forwarding required.
 
+Pairing is simplified: enter a 6-digit code on your secondary device to connect
+to your primary. Kyaraben runs its own relay server so devices can find each
+other from any network.
+
 Sync requires systemd. Service management uses `systemctl --user`.
 
 ## Enabling sync
@@ -122,6 +126,8 @@ Scraped videos can be large. See [ignore patterns](#example-skip-emulationstatio
 to exclude them from sync.
 
 ## Managing sync
+
+To add a new device, see [Pairing devices](#pairing-devices).
 
 ### Checking status
 
@@ -255,15 +261,5 @@ session.
 ### Devices paired but not syncing
 
 1. Check `kyaraben sync status` shows "connected"
-2. Verify no firewall blocks ports 22100 (TCP) and 21127 (UDP)
-3. If on different networks, ensure relay servers are enabled
-
-### SteamOS firewall
-
-The Steam Deck may block Syncthing ports. Allow them:
-
-```
-$ sudo firewall-cmd --zone=public --add-port=22100/tcp --permanent
-$ sudo firewall-cmd --zone=public --add-port=21127/udp --permanent
-$ sudo firewall-cmd --reload
-```
+2. If a firewall is blocking connections, see
+   [Syncthing's firewall documentation](https://docs.syncthing.net/users/firewall.html)
