@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -298,17 +299,21 @@ type ProvisionGroupResult struct {
 	BaseDir     string
 }
 
-func globDir(fs vfs.FS, dir, pattern string) []string {
-	entries, err := fs.ReadDir(dir)
-	if err != nil {
-		return nil
-	}
+func globDir(fileSystem vfs.FS, dir, pattern string) []string {
 	var matches []string
-	for _, entry := range entries {
-		if matched, _ := filepath.Match(pattern, entry.Name()); matched {
-			matches = append(matches, filepath.Join(dir, entry.Name()))
+	_ = vfs.Walk(fileSystem, dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
 		}
-	}
+		relPath, err := filepath.Rel(dir, path)
+		if err != nil {
+			return nil
+		}
+		if matched, _ := filepath.Match(pattern, relPath); matched {
+			matches = append(matches, path)
+		}
+		return nil
+	})
 	return matches
 }
 

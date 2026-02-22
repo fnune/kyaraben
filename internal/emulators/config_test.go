@@ -526,8 +526,8 @@ func TestRPCS3Generate(t *testing.T) {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	if len(result.Patches) != 2 {
-		t.Fatalf("expected 2 patches, got %d", len(result.Patches))
+	if len(result.Patches) != 4 {
+		t.Fatalf("expected 4 patches, got %d", len(result.Patches))
 	}
 
 	vfsPatch := result.Patches[0]
