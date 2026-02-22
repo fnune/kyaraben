@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/fnune/kyaraben/internal/hardware"
 	"github.com/fnune/kyaraben/internal/versions"
 )
 
@@ -78,28 +77,4 @@ func RetroArchCoresInstalled(packagesDir string, coreNames []string, v *versions
 	}
 
 	return true
-}
-
-func selectCoresTarget(v *versions.Versions) string {
-	detected := hardware.DetectTarget().Name
-	version := v.RetroArchCores.Default
-	if version == "" {
-		return ""
-	}
-	build, ok := v.RetroArchCores.Versions[version]
-	if !ok {
-		return ""
-	}
-
-	if _, ok := build.Targets[detected]; ok {
-		return detected
-	}
-
-	if fallback, ok := versions.TargetFallback[detected]; ok {
-		if _, ok := build.Targets[fallback.String()]; ok {
-			return fallback.String()
-		}
-	}
-
-	return ""
 }
