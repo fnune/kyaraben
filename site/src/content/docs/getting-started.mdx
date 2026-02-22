@@ -3,6 +3,10 @@ title: Getting started
 description: Install Kyaraben and set up your first emulation environment
 ---
 
+import welcomeScreenshot from "../../assets/screenshots/v0.1-getting-started-welcome.png";
+import systemPickerScreenshot from "../../assets/screenshots/v0.1-getting-started-system-picker.png";
+import applyProgressScreenshot from "../../assets/screenshots/v0.1-getting-started-apply-progress.png";
+
 ## Download
 
 Download the latest AppImage from the
@@ -31,7 +35,10 @@ Kyaraben asks where to create your emulation folder. The default is
 `~/Emulation`. This is where all your ROMs, BIOS files, saves, and screenshots
 live.
 
-{/* Screenshot: v0.1-getting-started-welcome.png - Welcome screen with emulation directory picker */}
+<img
+  src={welcomeScreenshot.src}
+  alt="Welcome screen showing the emulation folder picker at the top"
+/>
 
 ## Selecting systems
 
@@ -41,7 +48,10 @@ the systems you want to emulate.
 Each system has a default emulator chosen for the best out-of-the-box
 experience. The UI shows which emulators are available for each system.
 
-{/* Screenshot: v0.1-getting-started-system-picker.png - System picker with some systems checked */}
+<img
+  src={systemPickerScreenshot.src}
+  alt="System picker with Nintendo systems enabled and pending changes at the bottom"
+/>
 
 ## Applying changes
 
@@ -52,7 +62,10 @@ and `kyaraben-ui` to your PATH and creating a desktop entry so you can launch
 it from your application menu. If you prefer a headless experience, the CLI has
 full feature parity with the UI.
 
-{/* Screenshot: v0.1-getting-started-apply-progress.png - Apply progress view */}
+<img
+  src={applyProgressScreenshot.src}
+  alt="Apply progress showing emulators being downloaded and installed"
+/>
 
 If there are conflicts with your existing configuration, Kyaraben shows exactly
 what will be modified. See [app reference](/using-the-app/) for details on the
