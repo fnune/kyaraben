@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/fnune/kyaraben/internal/model"
@@ -209,5 +210,48 @@ func TestConfigGenerator_WriteConfig_NoIgnoreFilesWhenNoPatterns(t *testing.T) {
 	ignorePath := "/emulation/roms/snes/.stignore"
 	if _, err := fs.ReadFile(ignorePath); err == nil {
 		t.Errorf("expected %s to not exist when no patterns configured", ignorePath)
+	}
+}
+
+func TestConfigGenerator_WriteConfig_PreservesExistingDevices(t *testing.T) {
+	existingConfig := `<?xml version="1.0" encoding="UTF-8"?>
+<configuration version="37">
+  <device id="LOCAL-DEVICE-ID" name="this-device" compression="metadata"></device>
+  <device id="PAIRED-DEVICE-ID" name="steamdeck" compression="metadata"></device>
+</configuration>`
+
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/config/config.xml": existingConfig,
+	})
+
+	cfg := model.SyncConfig{
+		Enabled: true,
+		Mode:    model.SyncModePrimary,
+		Syncthing: model.SyncthingConfig{
+			ListenPort:    22001,
+			DiscoveryPort: 21028,
+			GUIPort:       8385,
+		},
+	}
+
+	gen := NewConfigGenerator(fs, cfg, "/emulation", []model.SystemID{"snes"})
+	gen.SetDeviceID("LOCAL-DEVICE-ID")
+	gen.SetAPIKey("test-key")
+
+	if err := gen.WriteConfig("/config"); err != nil {
+		t.Fatalf("WriteConfig() error = %v", err)
+	}
+
+	content, err := fs.ReadFile("/config/config.xml")
+	if err != nil {
+		t.Fatalf("ReadFile() error = %v", err)
+	}
+
+	configStr := string(content)
+	if !strings.Contains(configStr, "PAIRED-DEVICE-ID") {
+		t.Errorf("config should preserve paired device ID")
+	}
+	if !strings.Contains(configStr, `name="steamdeck"`) {
+		t.Errorf("config should preserve paired device name")
 	}
 }

@@ -4,6 +4,7 @@ import "context"
 
 type SyncClient interface {
 	IsRunning(ctx context.Context) bool
+	GetSystemStatus(ctx context.Context) (*SystemStatus, error)
 	GetDeviceID(ctx context.Context) (string, error)
 	GetConnections(ctx context.Context) (map[string]ConnectionInfo, error)
 	GetConfiguredDevices(ctx context.Context) ([]ConfiguredDevice, error)
