@@ -46,27 +46,12 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		return model.GenerateResult{}, err
 	}
 	return model.GenerateResult{
-		Patches: []model.ConfigPatch{
-			retroarch.SharedConfig(ctx.Store, ctx.ControllerConfig),
-			coreOverrideConfig(ctx.Store),
-		},
+		Patches:  retroarch.CorePatches(model.EmulatorIDRetroArchGenesisPlusGX, ctx.Store, ctx.ControllerConfig),
 		Symlinks: symlinks,
 	}, nil
 }
 
-const (
-	libretroCoreName = "genesis_plus_gx_libretro"
-	shortCoreName    = "genesis_plus_gx"
-)
-
-func coreOverrideConfig(store model.StoreReader) model.ConfigPatch {
-	return model.ConfigPatch{
-		Target: retroarch.CoreOverrideTarget(shortCoreName),
-		Entries: []model.ConfigEntry{
-			{Path: []string{"system_directory"}, Value: store.SystemBiosDir(model.SystemIDGenesis)},
-		},
-	}
-}
+const libretroCoreName = "genesis_plus_gx_libretro"
 
 var bootROMProvisions = []model.Provision{
 	model.HashedProvision(model.ProvisionBIOS, "bios_E.sms", "Master System EU boot ROM", []string{"840481177270d5642a14ca71ee72844c"}).ForSystems(model.SystemIDMasterSystem),

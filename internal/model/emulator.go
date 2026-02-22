@@ -45,6 +45,10 @@ type LauncherInfo struct {
 	// Env specifies environment variables to set when launching the emulator.
 	Env map[string]string
 
+	// CoreName is the libretro core filename (without .so extension) for RetroArch cores.
+	// When set, the daemon builds the -L argument with the full path to the core.
+	CoreName string
+
 	// RomCommand builds the CLI command for launching a game file.
 	// The returned string uses %ROM% as the placeholder for the game path.
 	RomCommand func(opts RomLaunchOptions) string

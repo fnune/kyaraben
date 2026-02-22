@@ -293,7 +293,12 @@ func (d *Daemon) handleStatus() []Event {
 			ManagedConfigs: managedConfigs,
 		}
 		if e, err := d.reg.GetEmulator(emu.ID); err == nil && e.Launcher.Binary != "" {
-			installed.ExecLine = fmt.Sprintf("%s/%s", d.launcherManager.BinDir(), e.Launcher.Binary)
+			execLine := fmt.Sprintf("%s/%s", d.launcherManager.BinDir(), e.Launcher.Binary)
+			if e.Launcher.CoreName != "" {
+				corePath := fmt.Sprintf("%s/%s.so", d.launcherManager.CoresDir(), e.Launcher.CoreName)
+				execLine += " -L " + corePath + " --menu"
+			}
+			installed.ExecLine = execLine
 		}
 
 		installed.Paths = make(map[string]EmulatorPaths)

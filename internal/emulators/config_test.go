@@ -143,7 +143,7 @@ func TestRetroArchCoresGenerate(t *testing.T) {
 	}
 
 	if len(result.Patches) != 1 {
-		t.Fatalf("expected 1 patch (shared config), got %d", len(result.Patches))
+		t.Fatalf("expected 1 patch (shared config only, bsnes needs no BIOS), got %d", len(result.Patches))
 	}
 
 	shared := result.Patches[0]

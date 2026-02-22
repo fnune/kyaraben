@@ -19,10 +19,11 @@ var SharedLauncher = model.LauncherInfo{
 	Categories:  []string{"Game", "Emulator"},
 }
 
-// LauncherWithCore returns a copy of SharedLauncher with RomCommand set to load
-// the given libretro core via the -L flag when launching games.
+// LauncherWithCore returns a copy of SharedLauncher with CoreName and RomCommand
+// set to load the given libretro core via the -L flag.
 func LauncherWithCore(coreName string) model.LauncherInfo {
 	l := SharedLauncher
+	l.CoreName = coreName
 	l.RomCommand = func(opts model.RomLaunchOptions) string {
 		cmd := opts.BinaryPath
 		if opts.Fullscreen {
@@ -185,8 +186,41 @@ var coreToSystem = map[model.EmulatorID]model.SystemID{
 	model.EmulatorIDRetroArchCitra:         model.SystemIDN3DS,
 }
 
+var coreNeedsBiosDir = map[model.EmulatorID]bool{
+	model.EmulatorIDRetroArchBeetleSaturn:  true,
+	model.EmulatorIDRetroArchBeetlePCE:     true,
+	model.EmulatorIDRetroArchGenesisPlusGX: true,
+}
+
 func CoreShortName(emuID model.EmulatorID) string {
 	return coreShortNames[emuID]
+}
+
+// CorePatches returns the base RetroArch config plus a per-core override for
+// cores that need additional settings like system_directory for BIOS files.
+func CorePatches(emuID model.EmulatorID, store model.StoreReader, cc *model.ControllerConfig) []model.ConfigPatch {
+	patches := []model.ConfigPatch{SharedConfig(store, cc)}
+
+	shortName := CoreShortName(emuID)
+	if shortName == "" {
+		return patches
+	}
+
+	var entries []model.ConfigEntry
+	if coreNeedsBiosDir[emuID] {
+		systemID := coreToSystem[emuID]
+		entries = append(entries, model.ConfigEntry{
+			Path: []string{"system_directory"}, Value: store.SystemBiosDir(systemID),
+		})
+	}
+
+	if len(entries) > 0 {
+		patches = append(patches, model.ConfigPatch{
+			Target:  CoreOverrideTarget(shortName),
+			Entries: entries,
+		})
+	}
+	return patches
 }
 
 func CoreSymlinks(emuID model.EmulatorID, store model.StoreReader, resolver model.BaseDirResolver) ([]model.SymlinkSpec, error) {

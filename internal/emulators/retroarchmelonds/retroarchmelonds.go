@@ -41,7 +41,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		return model.GenerateResult{}, err
 	}
 	return model.GenerateResult{
-		Patches:  []model.ConfigPatch{retroarch.SharedConfig(ctx.Store, ctx.ControllerConfig)},
+		Patches:  retroarch.CorePatches(model.EmulatorIDRetroArchMelonDS, ctx.Store, ctx.ControllerConfig),
 		Symlinks: symlinks,
 	}, nil
 }
