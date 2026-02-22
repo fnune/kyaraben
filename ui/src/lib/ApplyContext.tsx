@@ -29,10 +29,18 @@ interface ApplyConfig {
   summaryMessage?: string
 }
 
-function hasConflicts(data: PreflightResponse): boolean {
+function hasUserConflicts(data: PreflightResponse): boolean {
   return (data.diffs ?? []).some(
     (d) => d.userModified && d.hasChanges && (d.userChanges?.length ?? 0) > 0,
   )
+}
+
+function hasKyarabenUpdates(data: PreflightResponse): boolean {
+  return (data.diffs ?? []).some((d) => d.kyarabenChanged && (d.kyarabenUpdates?.length ?? 0) > 0)
+}
+
+function needsReview(data: PreflightResponse): boolean {
+  return hasUserConflicts(data) || hasKyarabenUpdates(data)
 }
 
 interface ApplyContextValue {
@@ -213,7 +221,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
         return false
       }
 
-      if (hasConflicts(preflightResult.data)) {
+      if (needsReview(preflightResult.data)) {
         setPreflightData(preflightResult.data)
         setStatus('reviewing')
         return false

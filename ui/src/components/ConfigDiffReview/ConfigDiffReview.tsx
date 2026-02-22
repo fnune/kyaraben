@@ -5,6 +5,7 @@ import { useScrollToTop } from '@/lib/useScrollToTop'
 import type {
   ConfigChangeDetail,
   ConfigFileDiff,
+  KyarabenUpdateDetail,
   ManagedRegionInfo,
   PreflightResponse,
 } from '@/types/daemon'
@@ -71,9 +72,19 @@ function ChangeRow({ change }: { readonly change: ConfigChangeDetail }) {
   )
 }
 
+function KyarabenUpdateRow({ update }: { readonly update: KyarabenUpdateDetail }) {
+  return (
+    <div className="font-mono text-xs text-status-ok/80 pl-2">
+      {update.key}: {update.oldValue} &rarr; {update.newValue}
+    </div>
+  )
+}
+
 function FileDiff({ diff }: { readonly diff: ConfigFileDiff }) {
   const openPath = useOpenPath()
-  const hasConflict = diff.userModified && diff.hasChanges && (diff.userChanges?.length ?? 0) > 0
+  const hasUserConflict =
+    diff.userModified && diff.hasChanges && (diff.userChanges?.length ?? 0) > 0
+  const hasKyarabenUpdates = diff.kyarabenChanged && (diff.kyarabenUpdates?.length ?? 0) > 0
 
   return (
     <div className="border border-outline rounded-control p-3 space-y-2">
@@ -105,7 +116,18 @@ function FileDiff({ diff }: { readonly diff: ConfigFileDiff }) {
         </button>
       </div>
 
-      {hasConflict && diff.userChanges && (
+      {hasKyarabenUpdates && diff.kyarabenUpdates && (
+        <div className="bg-status-ok/10 border border-status-ok/30 rounded px-3 py-2">
+          <p className="text-xs text-status-ok font-medium mb-1">
+            Kyaraben has new defaults for these settings:
+          </p>
+          {diff.kyarabenUpdates.map((ku) => (
+            <KyarabenUpdateRow key={ku.key} update={ku} />
+          ))}
+        </div>
+      )}
+
+      {hasUserConflict && diff.userChanges && (
         <div className="bg-status-warning/10 border border-status-warning/30 rounded px-3 py-2">
           <p className="text-xs text-status-warning font-medium mb-1">
             {conflictMessage(diff.managedRegions)}
@@ -118,7 +140,7 @@ function FileDiff({ diff }: { readonly diff: ConfigFileDiff }) {
         </div>
       )}
 
-      {!hasConflict && diff.changes && diff.changes.length > 0 && (
+      {!hasUserConflict && !hasKyarabenUpdates && diff.changes && diff.changes.length > 0 && (
         <div className="space-y-0.5">
           {diff.changes.map((change, i) => (
             <ChangeRow key={`${change.key}-${i}`} change={change} />
@@ -132,27 +154,51 @@ function FileDiff({ diff }: { readonly diff: ConfigFileDiff }) {
 export function ConfigDiffReview({ data, onConfirm, onCancel }: ConfigDiffReviewProps) {
   useScrollToTop()
 
-  const conflictDiffs = data.diffs.filter(
+  const userConflictDiffs = data.diffs.filter(
     (d) => d.userModified && d.hasChanges && (d.userChanges?.length ?? 0) > 0,
   )
-  const otherDiffs = data.diffs.filter(
-    (d) => !(d.userModified && d.hasChanges && (d.userChanges?.length ?? 0) > 0),
+  const kyarabenUpdateDiffs = data.diffs.filter(
+    (d) =>
+      d.kyarabenChanged &&
+      (d.kyarabenUpdates?.length ?? 0) > 0 &&
+      !(d.userModified && d.hasChanges && (d.userChanges?.length ?? 0) > 0),
   )
+  const otherDiffs = data.diffs.filter(
+    (d) =>
+      !(d.userModified && d.hasChanges && (d.userChanges?.length ?? 0) > 0) &&
+      !(d.kyarabenChanged && (d.kyarabenUpdates?.length ?? 0) > 0),
+  )
+
+  const hasUserConflicts = userConflictDiffs.length > 0
+
+  const title = hasUserConflicts ? 'Config conflicts detected' : 'Kyaraben has updated its defaults'
+
+  const description = hasUserConflicts
+    ? 'You manually changed config files managed by kyaraben. Applying will overwrite those changes.'
+    : 'Kyaraben has new default values for some settings. Review the changes below.'
 
   return (
     <div className="p-6 pb-24">
-      <h2 className="text-lg font-semibold text-on-surface mb-1">Config conflicts detected</h2>
-      <p className="text-sm text-on-surface-muted mb-4">
-        You manually changed config files managed by kyaraben. Applying will overwrite those
-        changes.
-      </p>
+      <h2 className="text-lg font-semibold text-on-surface mb-1">{title}</h2>
+      <p className="text-sm text-on-surface-muted mb-4">{description}</p>
 
-      {conflictDiffs.length > 0 && (
+      {userConflictDiffs.length > 0 && (
         <div className="space-y-3 mb-6">
           <h3 className="text-sm font-medium text-status-warning">
-            Files with conflicts ({conflictDiffs.length})
+            Your changes (will be overwritten) ({userConflictDiffs.length})
           </h3>
-          {conflictDiffs.map((diff) => (
+          {userConflictDiffs.map((diff) => (
+            <FileDiff key={diff.path} diff={diff} />
+          ))}
+        </div>
+      )}
+
+      {kyarabenUpdateDiffs.length > 0 && (
+        <div className="space-y-3 mb-6">
+          <h3 className="text-sm font-medium text-status-ok">
+            Kyaraben updates ({kyarabenUpdateDiffs.length})
+          </h3>
+          {kyarabenUpdateDiffs.map((diff) => (
             <FileDiff key={diff.path} diff={diff} />
           ))}
         </div>
@@ -177,7 +223,9 @@ export function ConfigDiffReview({ data, onConfirm, onCancel }: ConfigDiffReview
         >
           Cancel
         </button>
-        <Button onClick={onConfirm}>Continue and override</Button>
+        <Button onClick={onConfirm}>
+          {hasUserConflicts ? 'Continue and override' : 'Continue'}
+        </Button>
       </BottomBar>
     </div>
   )

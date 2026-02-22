@@ -375,13 +375,21 @@ type PreflightResponse struct {
 }
 
 type ConfigFileDiff struct {
-	Path           string               `json:"path"`
-	IsNewFile      bool                 `json:"isNewFile"`
-	HasChanges     bool                 `json:"hasChanges"`
-	UserModified   bool                 `json:"userModified"`
-	UserChanges    []UserChangeDetail   `json:"userChanges,omitempty"`
-	Changes        []ConfigChangeDetail `json:"changes,omitempty"`
-	ManagedRegions []ManagedRegionInfo  `json:"managedRegions,omitempty"`
+	Path            string                 `json:"path"`
+	IsNewFile       bool                   `json:"isNewFile"`
+	HasChanges      bool                   `json:"hasChanges"`
+	UserModified    bool                   `json:"userModified"`
+	KyarabenChanged bool                   `json:"kyarabenChanged"`
+	UserChanges     []UserChangeDetail     `json:"userChanges,omitempty"`
+	KyarabenUpdates []KyarabenUpdateDetail `json:"kyarabenUpdates,omitempty"`
+	Changes         []ConfigChangeDetail   `json:"changes,omitempty"`
+	ManagedRegions  []ManagedRegionInfo    `json:"managedRegions,omitempty"`
+}
+
+type KyarabenUpdateDetail struct {
+	Key      string `json:"key"`
+	OldValue string `json:"oldValue"`
+	NewValue string `json:"newValue"`
 }
 
 type UserChangeDetail struct {
