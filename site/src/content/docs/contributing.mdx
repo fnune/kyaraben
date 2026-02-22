@@ -232,7 +232,7 @@ When integrating an emulator, follow this priority order for configuring paths:
    user store. This is the cleanest approach.
 2. Symlinks: if the emulator stores data in fixed locations that cannot be
    configured via text, learn the directory structure and create symlinks from
-   those locations to the user store. Implement the `SymlinkProvider` interface.
+   those locations to the user store. Return symlink specs in `GenerateResult`.
 
 Symlinks work by redirecting specific subdirectories from the emulator's data
 location to Kyaraben's standard locations:

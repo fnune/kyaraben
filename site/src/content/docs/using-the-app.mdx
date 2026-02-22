@@ -49,6 +49,8 @@ configures for each emulator.
 | Flycast         | Dreamcast        | saves, states, screenshots | partial | configured | 1       | DC BIOS (optional)            |
 | Cemu            | Wii U            | saves                      | none    | configured | 1       | Wii U keys (optional)         |
 | Eden            | Switch           | saves, screenshots         | partial | configured | 2       | Switch keys                   |
+| xemu            | Xbox             | states, screenshots        | none    | auto       | 4       | Xbox Boot ROM, Flash ROM      |
+| Xenia Edge      | Xbox 360         | saves, screenshots         | none    | auto       | -       | none                          |
 | Vita3K          | PS Vita          | saves, screenshots         | none    | auto       | -       | PS Vita firmware              |
 | RPCS3           | PS3              | saves, states, screenshots | none    | auto       | -       | PS3 firmware                  |
 
@@ -66,7 +68,7 @@ Definitions:
 - **Provisions**: BIOS, firmware, or encryption keys needed. Items marked
   "(optional)" enable extra features but aren't required for games to run.
 
-RetroArch cores (bsnes through Beetle Saturn) share configuration. They use
+RetroArch cores (bsnes through Beetle NGP) share configuration. They use
 RetroArch's hotkey system where Back (Select) enables hotkeys and a second
 button triggers the action.
 
