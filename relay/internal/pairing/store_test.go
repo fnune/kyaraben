@@ -17,11 +17,11 @@ func TestStore_Create(t *testing.T) {
 	if len(session.Code) != CodeLength {
 		t.Errorf("expected code length %d, got %d", CodeLength, len(session.Code))
 	}
-	if session.PrimaryDeviceID != "AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA" {
-		t.Errorf("unexpected device ID: %s", session.PrimaryDeviceID)
+	if session.InitiatorDeviceID != "AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA" {
+		t.Errorf("unexpected device ID: %s", session.InitiatorDeviceID)
 	}
-	if session.SecondaryDeviceID != "" {
-		t.Errorf("secondary device ID should be empty")
+	if session.ResponderDeviceID != "" {
+		t.Errorf("responder device ID should be empty")
 	}
 }
 
@@ -85,16 +85,16 @@ func TestStore_SetResponse(t *testing.T) {
 	defer store.Close()
 
 	session, _ := store.Create("AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA", "192.168.1.1")
-	secondaryID := "BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB"
+	responderID := "BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB"
 
-	err := store.SetResponse(session.Code, secondaryID)
+	err := store.SetResponse(session.Code, responderID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	retrieved, _ := store.Get(session.Code)
-	if retrieved.SecondaryDeviceID != secondaryID {
-		t.Errorf("expected secondary device ID %s, got %s", secondaryID, retrieved.SecondaryDeviceID)
+	if retrieved.ResponderDeviceID != responderID {
+		t.Errorf("expected responder device ID %s, got %s", responderID, retrieved.ResponderDeviceID)
 	}
 }
 
@@ -153,14 +153,14 @@ func TestStore_MaxSessionsPerIP(t *testing.T) {
 func TestSession_HasResponse(t *testing.T) {
 	session := &Session{
 		Code:            "ABC123",
-		PrimaryDeviceID: "AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA",
+		InitiatorDeviceID: "AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA",
 	}
 
 	if session.HasResponse() {
 		t.Error("expected HasResponse to be false")
 	}
 
-	session.SecondaryDeviceID = "BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB"
+	session.ResponderDeviceID = "BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB-BBBBBBB"
 
 	if !session.HasResponse() {
 		t.Error("expected HasResponse to be true")
