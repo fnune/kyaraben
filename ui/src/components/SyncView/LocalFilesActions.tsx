@@ -37,11 +37,8 @@ export function LocalFilesActions({
   changesError,
   onRevert,
 }: LocalFilesActionsProps) {
-  const [showCopyModal, setShowCopyModal] = useState(false)
   const [showRevertModal, setShowRevertModal] = useState(false)
   const [isReverting, setIsReverting] = useState(false)
-
-  const hasNonDeletedChanges = changes?.some((c) => c.action === 'changed') ?? true
 
   const handleConfirmRevert = useCallback(async () => {
     setIsReverting(true)
@@ -60,15 +57,6 @@ export function LocalFilesActions({
           {count} local change{count === 1 ? '' : 's'}
         </span>
         <div className="flex gap-2">
-          {hasNonDeletedChanges && (
-            <button
-              type="button"
-              onClick={() => setShowCopyModal(true)}
-              className="text-accent hover:underline"
-            >
-              Copy to primary...
-            </button>
-          )}
           <button
             type="button"
             onClick={() => setShowRevertModal(true)}
@@ -78,31 +66,6 @@ export function LocalFilesActions({
           </button>
         </div>
       </div>
-
-      <Modal
-        open={showCopyModal}
-        onClose={() => setShowCopyModal(false)}
-        title="Copy files to primary"
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-on-surface-muted">
-            To keep these files synced across devices, add them on your primary device:
-          </p>
-          <ol className="list-decimal list-inside text-sm text-on-surface-muted space-y-2">
-            <li>Open the folder on your primary device</li>
-            <li>Copy the files you want to keep into the same location</li>
-            <li>The files will synchronize back to this device automatically</li>
-          </ol>
-          <p className="text-sm text-on-surface-muted">
-            Files added on secondary devices are not synced to avoid accidental data loss.
-          </p>
-          <div className="flex justify-end">
-            <Button variant="secondary" onClick={() => setShowCopyModal(false)}>
-              Close
-            </Button>
-          </div>
-        </div>
-      </Modal>
 
       <Modal
         open={showRevertModal}

@@ -15,8 +15,6 @@ type FolderType string
 
 const (
 	FolderTypeSendReceive FolderType = "sendreceive"
-	FolderTypeSendOnly    FolderType = "sendonly"
-	FolderTypeReceiveOnly FolderType = "receiveonly"
 )
 
 const (
@@ -41,6 +39,7 @@ type XMLFolder struct {
 	Devices          []XMLFolderDevice `xml:"device"`
 	FSWatcherEnabled bool              `xml:"fsWatcherEnabled"`
 	IgnorePerms      bool              `xml:"ignorePerms"`
+	IgnoreDelete     bool              `xml:"ignoreDelete"`
 	Versioning       XMLVersioning     `xml:"versioning"`
 }
 
@@ -192,21 +191,18 @@ func (g *ConfigGenerator) Generate() (*SyncthingXMLConfig, error) {
 func (g *ConfigGenerator) generateFolders() ([]XMLFolder, error) {
 	var folders []XMLFolder
 
-	isPrimary := g.syncConfig.Mode == model.SyncModePrimary
-
 	deviceRefs := g.folderDeviceRefs()
 
 	folderTypes := map[string]struct {
-		subdirs       []string
-		primaryType   FolderType
-		secondaryType FolderType
-		versioning    bool
+		subdirs      []string
+		ignoreDelete bool
+		versioning   bool
 	}{
-		"roms":        {subdirs: g.systemSubdirs(), primaryType: FolderTypeSendOnly, secondaryType: FolderTypeReceiveOnly, versioning: false},
-		"bios":        {subdirs: g.systemSubdirs(), primaryType: FolderTypeSendOnly, secondaryType: FolderTypeReceiveOnly, versioning: false},
-		"saves":       {subdirs: g.systemSubdirs(), primaryType: FolderTypeSendReceive, secondaryType: FolderTypeSendReceive, versioning: true},
-		"states":      {subdirs: g.systemSubdirs(), primaryType: FolderTypeSendReceive, secondaryType: FolderTypeSendReceive, versioning: true},
-		"screenshots": {subdirs: nil, primaryType: FolderTypeSendReceive, secondaryType: FolderTypeSendReceive, versioning: false},
+		"roms":        {subdirs: g.systemSubdirs(), ignoreDelete: true, versioning: false},
+		"bios":        {subdirs: g.systemSubdirs(), ignoreDelete: true, versioning: false},
+		"saves":       {subdirs: g.systemSubdirs(), ignoreDelete: false, versioning: true},
+		"states":      {subdirs: g.systemSubdirs(), ignoreDelete: false, versioning: true},
+		"screenshots": {subdirs: nil, ignoreDelete: false, versioning: false},
 	}
 
 	frontendFolders, err := g.generateFrontendFolders(deviceRefs)
@@ -215,11 +211,6 @@ func (g *ConfigGenerator) generateFolders() ([]XMLFolder, error) {
 	}
 
 	for category, spec := range folderTypes {
-		folderType := spec.primaryType
-		if !isPrimary {
-			folderType = spec.secondaryType
-		}
-
 		if spec.subdirs != nil {
 			for _, subdir := range spec.subdirs {
 				folderID := fmt.Sprintf("kyaraben-%s-%s", category, subdir)
@@ -229,10 +220,11 @@ func (g *ConfigGenerator) generateFolders() ([]XMLFolder, error) {
 					ID:               folderID,
 					Label:            folderID,
 					Path:             path,
-					Type:             folderType,
+					Type:             FolderTypeSendReceive,
 					Devices:          deviceRefs,
 					FSWatcherEnabled: true,
 					IgnorePerms:      true,
+					IgnoreDelete:     spec.ignoreDelete,
 				}
 
 				if spec.versioning {
@@ -249,10 +241,11 @@ func (g *ConfigGenerator) generateFolders() ([]XMLFolder, error) {
 				ID:               folderID,
 				Label:            folderID,
 				Path:             path,
-				Type:             folderType,
+				Type:             FolderTypeSendReceive,
 				Devices:          deviceRefs,
 				FSWatcherEnabled: true,
 				IgnorePerms:      true,
+				IgnoreDelete:     spec.ignoreDelete,
 			}
 
 			if spec.versioning {

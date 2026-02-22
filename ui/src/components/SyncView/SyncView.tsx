@@ -1,8 +1,7 @@
 import { useCallback, useState } from 'react'
 import { Button } from '@/lib/Button'
-import { RadioCard } from '@/lib/RadioCard'
 import { Spinner } from '@/lib/Spinner'
-import type { SyncDiscoveredDevice, SyncMode, SyncStatusResponse } from '@/types/daemon'
+import type { SyncStatusResponse } from '@/types/daemon'
 import { ActivityCard } from './ActivityCard'
 import { FoldersCard } from './FoldersCard'
 import { StatusCard } from './StatusCard'
@@ -10,10 +9,8 @@ import { SyncSettingsSection } from './SyncSettingsSection'
 
 export interface SyncViewProps {
   readonly status: SyncStatusResponse | null
-  readonly discoveredDevices: SyncDiscoveredDevice[]
   readonly connectionProgress: string | null
   readonly connectionError: string | null
-  readonly isDiscovering: boolean
   readonly isConnecting: boolean
   readonly isPairing: boolean
   readonly pairingDeviceId: string | null
@@ -21,7 +18,7 @@ export interface SyncViewProps {
   readonly lastSyncedAt: Date | null
   readonly onRemoveDevice: (deviceId: string) => Promise<void>
   readonly onConnectToDevice: (deviceId: string) => Promise<{ ok: boolean; error?: string }>
-  readonly onEnableSync: (mode: SyncMode) => Promise<void>
+  readonly onEnableSync: () => Promise<void>
   readonly onResetSync: () => Promise<void>
   readonly onStartPairing: () => Promise<void>
   readonly onStopPairing: () => Promise<void>
@@ -39,18 +36,13 @@ function DisabledState({
   enableError,
 }: {
   readonly status: SyncStatusResponse | null
-  readonly onEnable: (mode: SyncMode) => Promise<void>
+  readonly onEnable: () => Promise<void>
   readonly onReset: () => Promise<void>
   readonly isEnabling: boolean
   readonly enableError: string | null
 }) {
-  const [selectedMode, setSelectedMode] = useState<SyncMode>('primary')
   const [isResetting, setIsResetting] = useState(false)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
-
-  const handleEnable = useCallback(async () => {
-    await onEnable(selectedMode)
-  }, [onEnable, selectedMode])
 
   const handleReset = useCallback(async () => {
     setIsResetting(true)
@@ -80,23 +72,7 @@ function DisabledState({
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="space-y-3">
-              <RadioCard
-                title="Primary"
-                description="Your main device with the ROM collection. Sends ROMs and BIOS to secondaries, syncs saves both ways."
-                selected={selectedMode === 'primary'}
-                onSelect={() => setSelectedMode('primary')}
-                className="w-full p-4"
-              />
-              <RadioCard
-                title="Secondary"
-                description="Receives ROMs from primary (read-only). Play anywhere and saves synchronize back automatically."
-                selected={selectedMode === 'secondary'}
-                onSelect={() => setSelectedMode('secondary')}
-                className="w-full p-4"
-              />
-            </div>
-            <Button onClick={handleEnable}>Enable synchronization</Button>
+            <Button onClick={onEnable}>Enable synchronization</Button>
             {enableError && (
               <div className="p-4 bg-status-error/10 border border-status-error/30 rounded-card">
                 <p className="text-sm text-status-error">{enableError}</p>
@@ -174,10 +150,8 @@ function NotRunningState({ serviceError }: { readonly serviceError: string | und
 
 export function SyncView({
   status,
-  discoveredDevices,
   connectionProgress,
   connectionError,
-  isDiscovering,
   isConnecting,
   isPairing,
   pairingDeviceId,
@@ -216,10 +190,8 @@ export function SyncView({
     <div className="p-6 space-y-4">
       <StatusCard
         status={status}
-        discoveredDevices={discoveredDevices}
         connectionProgress={connectionProgress}
         connectionError={connectionError}
-        isDiscovering={isDiscovering}
         isConnecting={isConnecting}
         isPairing={isPairing}
         pairingDeviceId={pairingDeviceId}

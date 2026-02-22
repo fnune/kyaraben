@@ -1,15 +1,7 @@
 package model
 
-type SyncMode string
-
-const (
-	SyncModePrimary   SyncMode = "primary"
-	SyncModeSecondary SyncMode = "secondary"
-)
-
 type SyncConfig struct {
 	Enabled   bool             `toml:"enabled"`
-	Mode      SyncMode         `toml:"mode"`
 	RelayURL  string           `toml:"relay_url,omitempty"`
 	Syncthing SyncthingConfig  `toml:"syncthing"`
 	Ignore    SyncIgnoreConfig `toml:"ignore"`
@@ -30,7 +22,6 @@ type SyncIgnoreConfig struct {
 func DefaultSyncConfig() SyncConfig {
 	return SyncConfig{
 		Enabled: false,
-		Mode:    SyncModeSecondary,
 		Syncthing: SyncthingConfig{
 			ListenPort:    22100,
 			DiscoveryPort: 21127,
