@@ -58,7 +58,7 @@ var configTarget = model.ConfigTarget{
 type Config struct{}
 
 var mappingTarget = model.ConfigTarget{
-	RelPath: "flycast/mappings/SDL_Xbox 360 Controller.cfg",
+	RelPath: "flycast/mappings/SDL_controller_neptune.cfg",
 	Format:  model.ConfigFormatINI,
 	BaseDir: model.ConfigBaseDirUserConfig,
 }
@@ -136,7 +136,7 @@ func mappingEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 		{Path: []string{"analog", "bind4"}, Value: "2+:btn_trigger_left"},
 		{Path: []string{"analog", "bind5"}, Value: "5+:btn_trigger_right"},
 		{Path: []string{"emulator", "dead_zone"}, Value: "10"},
-		{Path: []string{"emulator", "mapping_name"}, Value: "X360 Controller"},
+		{Path: []string{"emulator", "mapping_name"}, Value: "controller_neptune"},
 		{Path: []string{"emulator", "rumble_power"}, Value: "100"},
 		{Path: []string{"emulator", "saturation"}, Value: "100"},
 		{Path: []string{"emulator", "triggers"}, Value: "2,5"},
