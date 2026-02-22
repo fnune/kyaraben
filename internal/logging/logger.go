@@ -3,7 +3,7 @@ package logging
 import (
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sync"
@@ -12,32 +12,54 @@ import (
 )
 
 var (
-	logger     *log.Logger
+	slogger    *slog.Logger
 	logFile    *os.File
-	outputHook func(string)
-	hookMu     sync.RWMutex
+	uiCallback func(LogEntry)
+	uiMu       sync.RWMutex
+	fileWriter io.Writer
 )
 
-// SetOutputHook sets a callback that receives formatted log lines.
-// This is used to forward logs to the UI during operations.
-// Pass nil to disable the hook.
-func SetOutputHook(fn func(string)) {
-	hookMu.Lock()
-	outputHook = fn
-	hookMu.Unlock()
+func SetUICallback(fn func(LogEntry)) {
+	uiMu.Lock()
+	uiCallback = fn
+	uiMu.Unlock()
+	rebuildLogger()
 }
 
-func callHook(content string) {
-	hookMu.RLock()
-	hook := outputHook
-	hookMu.RUnlock()
-	if hook != nil {
-		hook(content)
+func getUICallback() func(LogEntry) {
+	uiMu.RLock()
+	defer uiMu.RUnlock()
+	return uiCallback
+}
+
+func rebuildLogger() {
+	var handlers []slog.Handler
+
+	if fileWriter != nil {
+		fileHandler := slog.NewTextHandler(fileWriter, &slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		})
+		handlers = append(handlers, fileHandler)
 	}
+
+	if cb := getUICallback(); cb != nil {
+		uiHandler := NewUIHandler(cb, slog.LevelDebug)
+		handlers = append(handlers, uiHandler)
+	}
+
+	if len(handlers) == 0 {
+		slogger = slog.New(slog.NewTextHandler(io.Discard, nil))
+		return
+	}
+
+	if len(handlers) == 1 {
+		slogger = slog.New(handlers[0])
+		return
+	}
+
+	slogger = slog.New(NewMultiHandler(handlers...))
 }
 
-// Init initializes logging to the kyaraben log file.
-// Call Close() when done to flush and close the file.
 func Init() error {
 	return InitWithPaths(paths.DefaultPaths())
 }
@@ -58,15 +80,16 @@ func InitWithPaths(p *paths.Paths) error {
 		return fmt.Errorf("opening log file: %w", err)
 	}
 
-	logger = log.New(logFile, "", log.LstdFlags)
+	fileWriter = logFile
+	rebuildLogger()
 	return nil
 }
 
-// Close closes the log file.
 func Close() {
 	if logFile != nil {
 		_ = logFile.Close()
 		logFile = nil
+		fileWriter = nil
 	}
 }
 
@@ -82,21 +105,15 @@ func LogPathWithPaths(p *paths.Paths) (string, error) {
 	return filepath.Join(stateDir, "kyaraben.log"), nil
 }
 
-// Logger provides component-scoped logging.
-// Create one per package or component using New().
 type Logger struct {
 	component string
 	prefix    string
 }
 
-// New creates a logger for a specific component.
-// The component name appears in log entries to identify the source.
 func New(component string) *Logger {
 	return &Logger{component: component}
 }
 
-// WithPrefix returns a new logger that prepends a prefix to all messages.
-// Useful for adding context like "[pairing]" to a subset of logs.
 func (l *Logger) WithPrefix(prefix string) *Logger {
 	return &Logger{
 		component: l.component,
@@ -112,76 +129,50 @@ func (l *Logger) formatMessage(format string, args ...interface{}) string {
 	return content
 }
 
-func (l *Logger) Info(format string, args ...interface{}) {
-	content := l.formatMessage(format, args...)
-	if logger != nil {
-		logger.Printf("[INFO] [%s] %s", l.component, content)
+func (l *Logger) slog() *slog.Logger {
+	if slogger == nil {
+		return slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
-	callHook(content)
+	return slogger.WithGroup(l.component)
+}
+
+func (l *Logger) Info(format string, args ...interface{}) {
+	l.slog().Info(l.formatMessage(format, args...))
 }
 
 func (l *Logger) Error(format string, args ...interface{}) {
-	content := l.formatMessage(format, args...)
-	if logger != nil {
-		logger.Printf("[ERROR] [%s] %s", l.component, content)
-	}
-	callHook(content)
+	l.slog().Error(l.formatMessage(format, args...))
 }
 
 func (l *Logger) Warn(format string, args ...interface{}) {
-	content := l.formatMessage(format, args...)
-	if logger != nil {
-		logger.Printf("[WARN] [%s] %s", l.component, content)
-	}
-	callHook(content)
+	l.slog().Warn(l.formatMessage(format, args...))
 }
 
 func (l *Logger) Debug(format string, args ...interface{}) {
-	content := l.formatMessage(format, args...)
-	if logger != nil {
-		logger.Printf("[DEBUG] [%s] %s", l.component, content)
-	}
-	callHook(content)
+	l.slog().Debug(l.formatMessage(format, args...))
 }
 
-// Info logs an informational message without component context.
-// Prefer using a Logger instance from New() for better traceability.
+func getDefaultLogger() *slog.Logger {
+	if slogger == nil {
+		return slog.New(slog.NewTextHandler(io.Discard, nil))
+	}
+	return slogger
+}
+
 func Info(format string, args ...interface{}) {
-	content := fmt.Sprintf(format, args...)
-	if logger != nil {
-		logger.Printf("[INFO] %s", content)
-	}
-	callHook(content)
+	getDefaultLogger().Info(fmt.Sprintf(format, args...))
 }
 
-// Error logs an error message without component context.
-// Prefer using a Logger instance from New() for better traceability.
 func Error(format string, args ...interface{}) {
-	content := fmt.Sprintf(format, args...)
-	if logger != nil {
-		logger.Printf("[ERROR] %s", content)
-	}
-	callHook(content)
+	getDefaultLogger().Error(fmt.Sprintf(format, args...))
 }
 
-// Warn logs a warning message without component context.
-// Prefer using a Logger instance from New() for better traceability.
 func Warn(format string, args ...interface{}) {
-	content := fmt.Sprintf(format, args...)
-	if logger != nil {
-		logger.Printf("[WARN] %s", content)
-	}
-	callHook(content)
+	getDefaultLogger().Warn(fmt.Sprintf(format, args...))
 }
 
-// Debug logs a debug message without component context.
-// Prefer using a Logger instance from New() for better traceability.
 func Debug(format string, args ...interface{}) {
-	content := fmt.Sprintf(format, args...)
-	if logger != nil {
-		logger.Printf("[DEBUG] %s", content)
-	}
-	callHook(content)
+	getDefaultLogger().Debug(fmt.Sprintf(format, args...))
 }
 
 func Writer() io.Writer {
@@ -191,8 +182,6 @@ func Writer() io.Writer {
 	return io.Discard
 }
 
-// CurrentPosition returns the current byte position in the log file.
-// This can be used to tail from a specific point.
 func CurrentPosition() int64 {
 	if logFile == nil {
 		return 0
@@ -203,4 +192,15 @@ func CurrentPosition() int64 {
 		return 0
 	}
 	return info.Size()
+}
+
+// SetOutputHook is deprecated. Use SetUICallback instead.
+func SetOutputHook(fn func(string)) {
+	if fn == nil {
+		SetUICallback(nil)
+		return
+	}
+	SetUICallback(func(entry LogEntry) {
+		fn(entry.Message)
+	})
 }

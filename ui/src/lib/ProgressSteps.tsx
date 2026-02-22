@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { SpeedBadge } from '@/components/SpeedBadge/SpeedBadge'
 import { getDownloadSpeedBytes, getStepSubtitle } from '@/lib/progressUtils'
 import { ProgressBar, ProgressRail, Shimmer } from '@/lib/progressWidgets'
+import type { LogEntry, LogLevel } from '@/types/logging.gen'
 import type { ProgressStep } from '@/types/ui'
 
 export interface ProgressStepsProps {
@@ -27,6 +28,64 @@ function StepIcon({ status }: { readonly status: ProgressStep['status'] }) {
 
 function StepSubtitle({ children }: { readonly children: React.ReactNode }) {
   return <span className="text-sm ml-1">{children}</span>
+}
+
+function getLogLevelClass(level: LogLevel): string {
+  switch (level) {
+    case 'error':
+      return 'text-status-error'
+    case 'warn':
+      return 'text-status-warning'
+    case 'debug':
+      return 'text-on-surface-dim'
+    default:
+      return 'text-on-surface-secondary'
+  }
+}
+
+function LogEntriesPre({
+  logEntries,
+  isInProgress,
+  progressPercent,
+}: {
+  readonly logEntries: readonly LogEntry[]
+  readonly isInProgress: boolean
+  readonly progressPercent?: number
+}) {
+  const preRef = useRef<HTMLPreElement>(null)
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll when logEntries changes
+  useEffect(() => {
+    if (preRef.current) {
+      preRef.current.scrollTop = preRef.current.scrollHeight
+    }
+  }, [logEntries])
+
+  const hasProgress = progressPercent !== undefined && progressPercent > 0
+
+  return (
+    <div className="relative">
+      <pre
+        ref={preRef}
+        className="p-2 text-xs font-mono bg-surface rounded-sm max-h-32 overflow-y-auto whitespace-pre overflow-x-hidden"
+      >
+        {logEntries.map((entry) => (
+          <span
+            key={`${entry.timestamp}-${entry.message}`}
+            className={getLogLevelClass(entry.level)}
+          >
+            {entry.message}
+            {'\n'}
+          </span>
+        ))}
+      </pre>
+      {isInProgress && (
+        <ProgressRail className="absolute bottom-0 left-0 right-0 h-1 bg-surface rounded-b pointer-events-none">
+          {hasProgress ? <ProgressBar percent={progressPercent} /> : <Shimmer />}
+        </ProgressRail>
+      )}
+    </div>
+  )
 }
 
 function OutputPre({
@@ -102,10 +161,10 @@ export function ProgressSteps({ steps, error, cancelled }: ProgressStepsProps) {
                     <SpeedBadge speedBytes={downloadSpeedBytes} show={showSpeed} />
                   </div>
                 </div>
-                {step.output && step.output.length > 0 && (
+                {step.logEntries && step.logEntries.length > 0 && (
                   <div className="mt-1 ml-6">
-                    <OutputPre
-                      output={step.output}
+                    <LogEntriesPre
+                      logEntries={step.logEntries}
                       isInProgress={step.status === 'in_progress'}
                       {...(step.id === 'build' && progressPercent !== undefined
                         ? { progressPercent }
@@ -113,6 +172,19 @@ export function ProgressSteps({ steps, error, cancelled }: ProgressStepsProps) {
                     />
                   </div>
                 )}
+                {!(step.logEntries && step.logEntries.length > 0) &&
+                  step.output &&
+                  step.output.length > 0 && (
+                    <div className="mt-1 ml-6">
+                      <OutputPre
+                        output={step.output}
+                        isInProgress={step.status === 'in_progress'}
+                        {...(step.id === 'build' && progressPercent !== undefined
+                          ? { progressPercent }
+                          : {})}
+                      />
+                    </div>
+                  )}
               </li>
             )
           })}

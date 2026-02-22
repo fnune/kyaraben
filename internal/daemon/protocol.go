@@ -1,6 +1,9 @@
 package daemon
 
-import "github.com/fnune/kyaraben/internal/model"
+import (
+	"github.com/fnune/kyaraben/internal/logging"
+	"github.com/fnune/kyaraben/internal/model"
+)
 
 // Request types
 
@@ -113,16 +116,17 @@ type ProvisionResult struct {
 }
 
 type ProgressEvent struct {
-	Step            string `json:"step"`
-	Message         string `json:"message"`
-	Output          string `json:"output,omitempty"`
-	BuildPhase      string `json:"buildPhase,omitempty"`
-	PackageName     string `json:"packageName,omitempty"`
-	ProgressPercent int    `json:"progressPercent,omitempty"`
-	BytesDownloaded int64  `json:"bytesDownloaded,omitempty"`
-	BytesTotal      int64  `json:"bytesTotal,omitempty"`
-	BytesPerSecond  int64  `json:"bytesPerSecond,omitempty"`
-	LogPosition     int64  `json:"logPosition"`
+	Step            string            `json:"step"`
+	Message         string            `json:"message"`
+	Output          string            `json:"output,omitempty"`
+	BuildPhase      string            `json:"buildPhase,omitempty"`
+	PackageName     string            `json:"packageName,omitempty"`
+	ProgressPercent int               `json:"progressPercent,omitempty"`
+	BytesDownloaded int64             `json:"bytesDownloaded,omitempty"`
+	BytesTotal      int64             `json:"bytesTotal,omitempty"`
+	BytesPerSecond  int64             `json:"bytesPerSecond,omitempty"`
+	LogPosition     int64             `json:"logPosition"`
+	LogEntry        *logging.LogEntry `json:"logEntry,omitempty"`
 }
 
 type ApplyResult struct {
