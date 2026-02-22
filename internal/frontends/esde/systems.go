@@ -129,6 +129,16 @@ var systemMappings = map[model.SystemID]SystemMapping{
 		FullName: "SNK Neo Geo Pocket",
 		Platform: "ngp",
 	},
+	model.SystemIDXbox: {
+		Name:     "xbox",
+		FullName: "Microsoft Xbox",
+		Platform: "xbox",
+	},
+	model.SystemIDXbox360: {
+		Name:     "xbox360",
+		FullName: "Microsoft Xbox 360",
+		Platform: "xbox360",
+	},
 }
 
 func GetSystemMapping(id model.SystemID) (SystemMapping, bool) {

@@ -26,9 +26,19 @@ type GenerateContext struct {
 // GenerateResult consolidates all outputs from a config generator:
 // config patches, symlinks, and launch args.
 type GenerateResult struct {
-	Patches    []ConfigPatch
-	Symlinks   []SymlinkSpec
-	LaunchArgs []string
+	Patches          []ConfigPatch
+	Symlinks         []SymlinkSpec
+	LaunchArgs       []string
+	InitialDownloads []InitialDownload
+}
+
+// InitialDownload describes a file that should be downloaded once if missing.
+// Unlike provisions, these are user data files (e.g., HDD images) that get
+// modified during use and should never be re-downloaded or validated.
+type InitialDownload struct {
+	URL      string
+	SHA256   string
+	DestPath string
 }
 
 type ConfigGenerator interface {

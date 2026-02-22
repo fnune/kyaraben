@@ -546,6 +546,28 @@ func TestSetNestedValue(t *testing.T) {
 	}
 }
 
+func TestParseValue(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		input string
+		want  interface{}
+	}{
+		{"true", true},
+		{"false", false},
+		{"hello", "hello"},
+		{"123", "123"},
+		{"", ""},
+	}
+
+	for _, tt := range tests {
+		got := parseValue(tt.input)
+		if got != tt.want {
+			t.Errorf("parseValue(%q) = %v (%T), want %v (%T)", tt.input, got, got, tt.want, tt.want)
+		}
+	}
+}
+
 func TestHasNestedValue(t *testing.T) {
 	t.Parallel()
 

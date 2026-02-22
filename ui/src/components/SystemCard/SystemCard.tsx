@@ -36,6 +36,8 @@ export const SYSTEM_YEARS: Record<SystemID, number> = {
   dreamcast: 1998,
   pcengine: 1987,
   ngp: 1998,
+  xbox: 2001,
+  xbox360: 2005,
 }
 
 export const LOGO_OPACITIES: Partial<Record<SystemID, number>> = {

@@ -23,6 +23,8 @@ import snesLogo from './logos/snes.svg'
 import switchLogo from './logos/switch.svg'
 import wiiLogo from './logos/wii.svg'
 import wiiuLogo from './logos/wiiu.svg'
+import xboxLogo from './logos/xbox.svg'
+import xbox360Logo from './logos/xbox360.svg'
 
 export const ESDE_LOGOS: Record<SystemID, string> = {
   nes: nesLogo,
@@ -49,4 +51,6 @@ export const ESDE_LOGOS: Record<SystemID, string> = {
   dreamcast: dreamcastLogo,
   pcengine: pcengineLogo,
   ngp: ngpLogo,
+  xbox: xboxLogo,
+  xbox360: xbox360Logo,
 }

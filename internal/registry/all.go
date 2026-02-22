@@ -20,6 +20,8 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmupen64plus"
 	"github.com/fnune/kyaraben/internal/emulators/rpcs3"
 	"github.com/fnune/kyaraben/internal/emulators/vita3k"
+	"github.com/fnune/kyaraben/internal/emulators/xemu"
+	"github.com/fnune/kyaraben/internal/emulators/xeniaedge"
 	"github.com/fnune/kyaraben/internal/frontends/esde"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/systems/dreamcast"
@@ -46,6 +48,8 @@ import (
 	switchsys "github.com/fnune/kyaraben/internal/systems/switch"
 	"github.com/fnune/kyaraben/internal/systems/wii"
 	"github.com/fnune/kyaraben/internal/systems/wiiu"
+	"github.com/fnune/kyaraben/internal/systems/xbox"
+	"github.com/fnune/kyaraben/internal/systems/xbox360"
 )
 
 func NewDefault() *Registry {
@@ -80,6 +84,9 @@ func NewDefault() *Registry {
 			pcengine.Definition{},
 			// SNK
 			ngp.Definition{},
+			// Microsoft
+			xbox.Definition{},
+			xbox360.Definition{},
 		},
 		[]model.EmulatorDefinition{
 			retroarchbsnes.Definition{},
@@ -101,6 +108,8 @@ func NewDefault() *Registry {
 			retroarchcitra.Definition{},
 			dolphin.Definition{},
 			eden.Definition{},
+			xemu.Definition{},
+			xeniaedge.Definition{},
 		},
 		[]model.FrontendDefinition{
 			esde.Definition{},
