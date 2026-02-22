@@ -71,7 +71,7 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 
 	if manifest.KyarabenInstall != nil {
 		ki := manifest.KyarabenInstall
-		if fileExists(ki.AppPath) || fileExists(ki.CLIPath) || fileExists(ki.DesktopPath) {
+		if fileExists(ki.AppPath) || fileExists(ki.CLIPath) || fileExists(ki.DesktopPath) || isSymlink(ki.DesktopShortcutPath) {
 			fmt.Println()
 			fmt.Println("  Kyaraben installation:")
 			if fileExists(ki.AppPath) {
@@ -82,6 +82,9 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 			}
 			if fileExists(ki.DesktopPath) {
 				fmt.Printf("    %s\n", ki.DesktopPath)
+			}
+			if isSymlink(ki.DesktopShortcutPath) {
+				fmt.Printf("    %s (desktop shortcut)\n", ki.DesktopShortcutPath)
 			}
 		}
 	}
@@ -165,6 +168,13 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 				} else {
 					fmt.Printf("  Removed: %s\n", path)
 				}
+			}
+		}
+		if ki.DesktopShortcutPath != "" && isSymlink(ki.DesktopShortcutPath) {
+			if err := os.Remove(ki.DesktopShortcutPath); err != nil {
+				fmt.Printf("  Warning: could not remove %s: %v\n", ki.DesktopShortcutPath, err)
+			} else {
+				fmt.Printf("  Removed: %s\n", ki.DesktopShortcutPath)
 			}
 		}
 	}
