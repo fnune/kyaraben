@@ -60,12 +60,11 @@ Config exists but something isn't working, or requires more complex setup.
 
 ### N64 (RetroArch)
 
-- A and B button placement inconsistent with SNES. On SNES, Steam Deck B = Nintendo A. On N64, Steam Deck A = Nintendo A.
-  - EmuDeck: Has `.rmp.disabled` remap files toggled via `RetroArch_setABXYstyle()` / `RetroArch_setBAYXstyle()`.
+- [x] A and B button placement inconsistent with SNES. On SNES, Steam Deck B = Nintendo A. On N64, Steam Deck A = Nintendo A.
+  - Fix: Added explicit RetroPad face button mapping to SharedConfig using FaceButtons(). All RetroArch cores now use consistent button mappings based on the layout setting.
 
-- Hotkeys appear to be in wrong position.
-
-- Virtual gamepad notification shows up twice.
+- [x] Hotkeys appear to be in wrong position.
+  - Fix: Made hotkey button indices layout-aware via SDLIndex() method. Face button hotkeys now transform through the layout setting.
 
 ### Duckstation (PS1)
 

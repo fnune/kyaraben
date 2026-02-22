@@ -78,8 +78,17 @@ func controllerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 		{Path: []string{"input_autodetect_enable"}, Value: "true"},
 	}
 
-	// RetroArch hotkeys use input_enable_hotkey_btn as a modifier.
-	// Pressing enable_hotkey + action_btn triggers the hotkey.
+	south, east, west, north := cc.FaceButtons()
+	for i := 1; i <= 4; i++ {
+		prefix := fmt.Sprintf("input_player%d_", i)
+		entries = append(entries,
+			model.ConfigEntry{Path: []string{prefix + "a_btn"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[east])},
+			model.ConfigEntry{Path: []string{prefix + "b_btn"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[south])},
+			model.ConfigEntry{Path: []string{prefix + "x_btn"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[north])},
+			model.ConfigEntry{Path: []string{prefix + "y_btn"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[west])},
+		)
+	}
+
 	hk := cc.Hotkeys
 	type mapping struct {
 		key     string
@@ -110,14 +119,14 @@ func controllerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 			enableBtn := m.binding.Buttons[0]
 			entries = append(entries, model.ConfigEntry{
 				Path:  []string{"input_enable_hotkey_btn"},
-				Value: fmt.Sprintf("%d", model.SDLButtonIndex[enableBtn]),
+				Value: fmt.Sprintf("%d", cc.SDLIndex(enableBtn)),
 			})
 			enableBtnSet = true
 		}
 		actionBtn := m.binding.Buttons[len(m.binding.Buttons)-1]
 		entries = append(entries, model.ConfigEntry{
 			Path:  []string{m.key},
-			Value: fmt.Sprintf("%d", model.SDLButtonIndex[actionBtn]),
+			Value: fmt.Sprintf("%d", cc.SDLIndex(actionBtn)),
 		})
 	}
 

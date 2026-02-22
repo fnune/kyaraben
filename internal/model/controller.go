@@ -168,6 +168,25 @@ var SDLButtonIndex = map[SDLButton]int{
 	ButtonDPadRight:     14,
 }
 
+// SDLIndex returns the SDL button index for the given logical button, adjusted
+// for the configured layout. Face buttons (A, B, X, Y) are transformed so that
+// the logical button name corresponds to the game action, not the physical button.
+func (cc *ControllerConfig) SDLIndex(btn SDLButton) int {
+	south, east, west, north := cc.FaceButtons()
+	switch btn {
+	case ButtonA:
+		return SDLButtonIndex[east]
+	case ButtonB:
+		return SDLButtonIndex[south]
+	case ButtonX:
+		return SDLButtonIndex[north]
+	case ButtonY:
+		return SDLButtonIndex[west]
+	default:
+		return SDLButtonIndex[btn]
+	}
+}
+
 // SDLAxisIndex maps SDL axis names to their standard indices.
 const (
 	AxisLeftX        = 0
