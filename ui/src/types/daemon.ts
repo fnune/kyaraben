@@ -18,8 +18,6 @@ export interface InstallStatus {
   readonly cliPath?: string
 }
 
-export type SyncMode = 'primary' | 'secondary'
-
 export interface StateDirInfo {
   readonly exists: boolean
   readonly manifestExists: boolean

@@ -27,7 +27,6 @@ export interface SyncJoinPrimaryRequest {
   deviceId?: string;
 }
 export interface SyncEnableRequest {
-  mode: string;
 }
 export interface ErrorResponse {
   error: string;
@@ -173,7 +172,6 @@ export const SyncStateError = "error";
 export type SyncState = typeof SyncStateDisabled | typeof SyncStateSynced | typeof SyncStateSyncing | typeof SyncStateDisconnected | typeof SyncStateConflict | typeof SyncStateError;
 export interface SyncStatusResponse {
   enabled: boolean;
-  mode?: string;
   running?: boolean;
   installed?: boolean;
   serviceInstalled?: boolean;

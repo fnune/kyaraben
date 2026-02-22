@@ -12,7 +12,6 @@ import (
 func TestPrimaryPairingFlowAcceptsDevice(t *testing.T) {
 	client := NewFakeClient(model.SyncConfig{
 		Enabled: true,
-		Mode:    model.SyncModePrimary,
 	})
 	client.SetDeviceID("PRIMARY-ID")
 
@@ -79,7 +78,6 @@ func TestPrimaryPairingFlowAcceptsDevice(t *testing.T) {
 func TestSecondaryPairingFlowConnectsToPrimary(t *testing.T) {
 	client := NewFakeClient(model.SyncConfig{
 		Enabled: true,
-		Mode:    model.SyncModeSecondary,
 	})
 	client.SetDeviceID("SECONDARY-ID")
 
@@ -137,7 +135,6 @@ func TestSecondaryPairingFlowConnectsToPrimary(t *testing.T) {
 func TestSecondaryPairingFlowTimesOut(t *testing.T) {
 	client := NewFakeClient(model.SyncConfig{
 		Enabled: true,
-		Mode:    model.SyncModeSecondary,
 	})
 	client.SetDeviceID("SECONDARY-ID")
 
@@ -159,7 +156,6 @@ func TestSecondaryPairingFlowTimesOut(t *testing.T) {
 func TestSecondaryPairingFlowDetectsDeviceRemoval(t *testing.T) {
 	client := NewFakeClient(model.SyncConfig{
 		Enabled: true,
-		Mode:    model.SyncModeSecondary,
 	})
 	client.SetDeviceID("SECONDARY-ID")
 

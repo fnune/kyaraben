@@ -200,12 +200,10 @@ function AppContent() {
 
   const {
     syncStatus,
-    discoveredDevices,
     connectionProgress,
     connectionError,
     enableError,
     isEnabling,
-    isDiscovering,
     isConnecting,
     isPairing,
     pairingDeviceId,
@@ -569,10 +567,8 @@ function AppContent() {
         return (
           <SyncView
             status={syncStatus}
-            discoveredDevices={discoveredDevices}
             connectionProgress={connectionProgress}
             connectionError={connectionError}
-            isDiscovering={isDiscovering}
             isConnecting={isConnecting}
             isPairing={isPairing}
             pairingDeviceId={pairingDeviceId}

@@ -56,7 +56,6 @@ export interface ConfigFixture {
   frontends?: Partial<Record<FrontendID, { enabled: boolean; version?: string }>>
   sync?: {
     enabled?: boolean
-    mode?: 'primary' | 'secondary'
     relayUrl?: string
     devices?: Array<{ id: string; name: string }>
   }
@@ -190,9 +189,6 @@ function generateConfigToml(config: ConfigFixture, defaultUserStore: string): st
   if (config.sync) {
     lines.push('[sync]')
     lines.push(`enabled = ${config.sync.enabled ?? false}`)
-    if (config.sync.mode) {
-      lines.push(`mode = "${config.sync.mode}"`)
-    }
     if (config.sync.relayUrl) {
       lines.push(`relay_url = "${config.sync.relayUrl}"`)
     }
@@ -317,7 +313,6 @@ export const presets = {
       },
       sync: {
         enabled: true,
-        mode: 'primary',
         devices: [{ id: 'DEVICE-ID-123', name: 'My Steam Deck' }],
       },
     },

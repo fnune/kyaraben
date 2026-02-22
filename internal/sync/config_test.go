@@ -8,10 +8,9 @@ import (
 	"github.com/fnune/kyaraben/internal/testutil"
 )
 
-func TestConfigGenerator_GenerateFolders_Primary(t *testing.T) {
+func TestConfigGenerator_GenerateFolders(t *testing.T) {
 	cfg := model.SyncConfig{
 		Enabled: true,
-		Mode:    model.SyncModePrimary,
 		Syncthing: model.SyncthingConfig{
 			ListenPort:    22001,
 			DiscoveryPort: 21028,
@@ -38,15 +37,18 @@ func TestConfigGenerator_GenerateFolders_Primary(t *testing.T) {
 	}
 
 	tests := []struct {
-		folderID string
-		wantType FolderType
-		wantPath string
+		folderID         string
+		wantType         FolderType
+		wantPath         string
+		wantIgnoreDelete bool
 	}{
-		{"kyaraben-roms-snes", FolderTypeSendOnly, "/home/user/Emulation/roms/snes"},
-		{"kyaraben-roms-psx", FolderTypeSendOnly, "/home/user/Emulation/roms/psx"},
-		{"kyaraben-saves-snes", FolderTypeSendReceive, "/home/user/Emulation/saves/snes"},
-		{"kyaraben-saves-psx", FolderTypeSendReceive, "/home/user/Emulation/saves/psx"},
-		{"kyaraben-screenshots", FolderTypeSendReceive, "/home/user/Emulation/screenshots"},
+		{"kyaraben-roms-snes", FolderTypeSendReceive, "/home/user/Emulation/roms/snes", true},
+		{"kyaraben-roms-psx", FolderTypeSendReceive, "/home/user/Emulation/roms/psx", true},
+		{"kyaraben-bios-snes", FolderTypeSendReceive, "/home/user/Emulation/bios/snes", true},
+		{"kyaraben-bios-psx", FolderTypeSendReceive, "/home/user/Emulation/bios/psx", true},
+		{"kyaraben-saves-snes", FolderTypeSendReceive, "/home/user/Emulation/saves/snes", false},
+		{"kyaraben-saves-psx", FolderTypeSendReceive, "/home/user/Emulation/saves/psx", false},
+		{"kyaraben-screenshots", FolderTypeSendReceive, "/home/user/Emulation/screenshots", false},
 	}
 
 	for _, tt := range tests {
@@ -61,52 +63,16 @@ func TestConfigGenerator_GenerateFolders_Primary(t *testing.T) {
 			if folder.Path != tt.wantPath {
 				t.Errorf("folder %s path = %v, want %v", tt.folderID, folder.Path, tt.wantPath)
 			}
+			if folder.IgnoreDelete != tt.wantIgnoreDelete {
+				t.Errorf("folder %s ignoreDelete = %v, want %v", tt.folderID, folder.IgnoreDelete, tt.wantIgnoreDelete)
+			}
 		})
-	}
-}
-
-func TestConfigGenerator_GenerateFolders_Secondary(t *testing.T) {
-	cfg := model.SyncConfig{
-		Enabled: true,
-		Mode:    model.SyncModeSecondary,
-		Syncthing: model.SyncthingConfig{
-			ListenPort:    22001,
-			DiscoveryPort: 21028,
-			GUIPort:       8385,
-		},
-	}
-
-	fs := testutil.NewTestFS(t, nil)
-
-	systems := []model.SystemID{"snes"}
-	gen := NewConfigGenerator(fs, cfg, "/home/user/Emulation", systems)
-	gen.SetDeviceID("TEST-DEVICE-ID")
-
-	xmlCfg, err := gen.Generate()
-	if err != nil {
-		t.Fatalf("Generate() error = %v", err)
-	}
-
-	foldersByID := make(map[string]XMLFolder)
-	for _, f := range xmlCfg.Folders {
-		foldersByID[f.ID] = f
-	}
-
-	romsFolder := foldersByID["kyaraben-roms-snes"]
-	if romsFolder.Type != FolderTypeReceiveOnly {
-		t.Errorf("secondary roms folder type = %v, want %v", romsFolder.Type, FolderTypeReceiveOnly)
-	}
-
-	savesFolder := foldersByID["kyaraben-saves-snes"]
-	if savesFolder.Type != FolderTypeSendReceive {
-		t.Errorf("secondary saves folder type = %v, want %v", savesFolder.Type, FolderTypeSendReceive)
 	}
 }
 
 func TestConfigGenerator_Versioning(t *testing.T) {
 	cfg := model.SyncConfig{
 		Enabled:   true,
-		Mode:      model.SyncModePrimary,
 		Syncthing: model.SyncthingConfig{GUIPort: 8385},
 	}
 
@@ -141,7 +107,6 @@ func TestConfigGenerator_Versioning(t *testing.T) {
 func TestConfigGenerator_WriteConfig_WritesIgnoreFiles(t *testing.T) {
 	cfg := model.SyncConfig{
 		Enabled: true,
-		Mode:    model.SyncModePrimary,
 		Syncthing: model.SyncthingConfig{
 			ListenPort:    22001,
 			DiscoveryPort: 21028,
@@ -190,7 +155,6 @@ func TestConfigGenerator_WriteConfig_WritesIgnoreFiles(t *testing.T) {
 func TestConfigGenerator_WriteConfig_NoIgnoreFilesWhenNoPatterns(t *testing.T) {
 	cfg := model.SyncConfig{
 		Enabled: true,
-		Mode:    model.SyncModePrimary,
 		Syncthing: model.SyncthingConfig{
 			ListenPort:    22001,
 			DiscoveryPort: 21028,
@@ -226,7 +190,6 @@ func TestConfigGenerator_WriteConfig_PreservesExistingDevices(t *testing.T) {
 
 	cfg := model.SyncConfig{
 		Enabled: true,
-		Mode:    model.SyncModePrimary,
 		Syncthing: model.SyncthingConfig{
 			ListenPort:    22001,
 			DiscoveryPort: 21028,

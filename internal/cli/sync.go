@@ -34,7 +34,6 @@ func (cmd *SyncStatusCmd) Run(cliCtx *Context) error {
 		fmt.Println()
 		fmt.Println("  [sync]")
 		fmt.Println("  enabled = true")
-		fmt.Println("  mode = \"primary\"  # or \"secondary\"")
 		return nil
 	}
 
@@ -48,7 +47,7 @@ func (cmd *SyncStatusCmd) Run(cliCtx *Context) error {
 	defer cancel()
 
 	if !client.IsRunning(ctx) {
-		fmt.Printf("Sync: enabled (%s mode)\n", cfg.Sync.Mode)
+		fmt.Println("Sync: enabled")
 		fmt.Println("Status: not running")
 		fmt.Println()
 		fmt.Println("Syncthing is not running. It will start when the kyaraben daemon runs.")
@@ -60,7 +59,7 @@ func (cmd *SyncStatusCmd) Run(cliCtx *Context) error {
 		return fmt.Errorf("getting sync status: %w", err)
 	}
 
-	fmt.Printf("Sync: enabled (%s mode)\n", status.Mode)
+	fmt.Println("Sync: enabled")
 	fmt.Printf("Status: %s\n", status.OverallState())
 	fmt.Printf("Device ID: %s\n", status.DeviceID)
 	fmt.Printf("UI: %s\n", status.GUIURL)
@@ -319,7 +318,7 @@ func (cmd *SyncPairCmd) runPrimary(ctx context.Context, cfg *model.KyarabenConfi
 		return nil
 	}
 
-	persistSyncEnabled(cfg, configPath, model.SyncModePrimary, saveConfig)
+	persistSyncEnabled(cfg, configPath, saveConfig)
 	fmt.Printf("Paired with %s (%s)\n", result.PeerName, truncateDeviceID(result.PeerDeviceID))
 	return nil
 }
@@ -342,7 +341,7 @@ func (cmd *SyncPairCmd) runSecondaryWithRelay(ctx context.Context, cfg *model.Ky
 		return fmt.Errorf("pairing: %w", err)
 	}
 
-	persistSyncEnabled(cfg, configPath, model.SyncModeSecondary, saveConfig)
+	persistSyncEnabled(cfg, configPath, saveConfig)
 	fmt.Printf("Paired with %s (%s)\n", result.PeerName, truncateDeviceID(result.PeerDeviceID))
 	return nil
 }
@@ -359,14 +358,13 @@ func (cmd *SyncPairCmd) runSecondary(ctx context.Context, cfg *model.KyarabenCon
 		return fmt.Errorf("pairing: %w", err)
 	}
 
-	persistSyncEnabled(cfg, configPath, model.SyncModeSecondary, saveConfig)
+	persistSyncEnabled(cfg, configPath, saveConfig)
 	fmt.Printf("Paired with %s (%s)\n", result.PeerName, truncateDeviceID(result.PeerDeviceID))
 	return nil
 }
 
-func persistSyncEnabled(cfg *model.KyarabenConfig, configPath string, mode model.SyncMode, saveConfig func(*model.KyarabenConfig, string) error) {
+func persistSyncEnabled(cfg *model.KyarabenConfig, configPath string, saveConfig func(*model.KyarabenConfig, string) error) {
 	cfg.Sync.Enabled = true
-	cfg.Sync.Mode = mode
 
 	if err := saveConfig(cfg, configPath); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: could not save config: %v\n", err)

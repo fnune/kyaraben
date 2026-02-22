@@ -10,7 +10,9 @@ import (
 	"time"
 )
 
-const relayTimeout = 10 * time.Second
+const relayRequestTimeout = 10 * time.Second
+const relayRetryDelay = 2 * time.Second
+const relayMaxRetries = 3
 
 var ProductionRelayURLs = []string{
 	"https://kyaraben-relay-kyaraben-28e14310.koyeb.app",
@@ -40,7 +42,7 @@ func NewRelayClient(urls []string) (*RelayClient, error) {
 			if resp.StatusCode == http.StatusOK {
 				return &RelayClient{
 					baseURL:    url,
-					httpClient: &http.Client{Timeout: relayTimeout},
+					httpClient: &http.Client{Timeout: relayRequestTimeout},
 				}, nil
 			}
 			log.Debug("Relay health check attempt %d got status %d for %s", attempt+1, resp.StatusCode, url)
@@ -77,27 +79,46 @@ func (c *RelayClient) CreateSession(ctx context.Context, deviceID string) (*Crea
 	body := map[string]string{"deviceId": deviceID}
 	jsonBody, _ := json.Marshal(body)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/pair", bytes.NewReader(jsonBody))
-	if err != nil {
-		return nil, fmt.Errorf("creating request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
+	var lastErr error
+	for attempt := 0; attempt < relayMaxRetries; attempt++ {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(relayRetryDelay):
+			}
+		}
 
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("sending request: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/pair", bytes.NewReader(jsonBody))
+		if err != nil {
+			return nil, fmt.Errorf("creating request: %w", err)
+		}
+		req.Header.Set("Content-Type", "application/json")
 
-	if resp.StatusCode != http.StatusCreated {
-		return nil, c.parseError(resp)
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			lastErr = fmt.Errorf("sending request: %w", err)
+			log.Debug("CreateSession attempt %d failed: %v", attempt+1, lastErr)
+			continue
+		}
+
+		if resp.StatusCode != http.StatusCreated {
+			lastErr = c.parseError(resp)
+			_ = resp.Body.Close()
+			log.Debug("CreateSession attempt %d got status %d", attempt+1, resp.StatusCode)
+			continue
+		}
+
+		var result CreateSessionResponse
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			_ = resp.Body.Close()
+			return nil, fmt.Errorf("decoding response: %w", err)
+		}
+		_ = resp.Body.Close()
+		return &result, nil
 	}
 
-	var result CreateSessionResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("decoding response: %w", err)
-	}
-	return &result, nil
+	return nil, lastErr
 }
 
 func (c *RelayClient) GetSession(ctx context.Context, code string) (*GetSessionResponse, error) {

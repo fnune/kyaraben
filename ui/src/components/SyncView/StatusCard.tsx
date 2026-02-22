@@ -6,7 +6,7 @@ import { Input } from '@/lib/Input'
 import { CopyIcon, TrashIcon } from '@/lib/icons'
 import { Modal } from '@/lib/Modal'
 import { Spinner } from '@/lib/Spinner'
-import type { SyncDevice, SyncDiscoveredDevice, SyncStatusResponse } from '@/types/daemon'
+import type { SyncDevice, SyncStatusResponse } from '@/types/daemon'
 
 function StatusBadge({ label, ok }: { label: string; ok: boolean }) {
   const capitalizedLabel = label.charAt(0).toUpperCase() + label.slice(1)
@@ -118,32 +118,6 @@ function DeviceIdDisplay({
   )
 }
 
-function DiscoveredDeviceRow({
-  device,
-  onConnect,
-  isConnecting,
-}: {
-  readonly device: SyncDiscoveredDevice
-  readonly onConnect: () => void
-  readonly isConnecting: boolean
-}) {
-  const groups = device.deviceId.split('-')
-
-  return (
-    <div className="flex items-center justify-between py-3 border-b border-outline last:border-0">
-      <code className="font-mono text-sm">
-        <span className="text-accent font-semibold">{groups[0]}</span>
-        <span className="text-outline mx-0.5">-</span>
-        <span className="text-on-surface-muted">{groups[1]}</span>
-        <span className="text-on-surface-muted">...</span>
-      </code>
-      <Button size="sm" onClick={onConnect} disabled={isConnecting}>
-        {isConnecting ? 'Connecting...' : 'Connect'}
-      </Button>
-    </div>
-  )
-}
-
 function PairingCodeDisplay({ code }: { readonly code: string }) {
   const [copied, setCopied] = useState(false)
 
@@ -171,25 +145,70 @@ function PairingCodeDisplay({ code }: { readonly code: string }) {
   )
 }
 
-interface PrimaryPairingContentProps {
+function PairingSection({
+  title,
+  children,
+}: {
+  readonly title: string
+  readonly children: React.ReactNode
+}) {
+  return (
+    <div className="mt-4 pt-4 border-t border-outline">
+      <h4 className="text-sm font-medium text-on-surface mb-2">{title}</h4>
+      {children}
+    </div>
+  )
+}
+
+function ConnectionError({ message }: { readonly message: string | null }) {
+  if (!message) return null
+  return (
+    <div className="p-3 bg-status-error/10 border border-status-error/30 rounded text-sm text-status-error">
+      {message}
+    </div>
+  )
+}
+
+function WaitingForPeer({ className }: { readonly className?: string }) {
+  return (
+    <div className={`flex items-center gap-3 ${className ?? ''}`}>
+      <Spinner />
+      <span className="text-sm text-on-surface-muted">Waiting for device to connect...</span>
+    </div>
+  )
+}
+
+interface PairingContentProps {
   readonly status: SyncStatusResponse
+  readonly connectionProgress: string | null
+  readonly connectionError: string | null
+  readonly isConnecting: boolean
   readonly isPairing: boolean
   readonly pairingDeviceId: string | null
   readonly pairingCode: string | null
+  readonly onConnectToDevice: (deviceId: string) => Promise<{ ok: boolean; error?: string }>
   readonly onStartPairing: () => Promise<void>
   readonly onStopPairing: () => Promise<void>
+  readonly onClearConnectionError: () => void
 }
 
-function PrimaryPairingContent({
+function PairingContent({
   status,
+  connectionProgress,
+  connectionError,
+  isConnecting,
   isPairing,
   pairingDeviceId,
   pairingCode,
+  onConnectToDevice,
   onStartPairing,
   onStopPairing,
-}: PrimaryPairingContentProps) {
-  const [showDeviceId, setShowDeviceId] = useState(false)
+  onClearConnectionError,
+}: PairingContentProps) {
+  const [deviceIdMode, setDeviceIdMode] = useState(false)
   const [isStartingPairing, setIsStartingPairing] = useState(false)
+  const [joinCode, setJoinCode] = useState('')
+  const [otherDeviceId, setOtherDeviceId] = useState('')
   const hasDevices = (status.devices?.length ?? 0) > 0
 
   const handleStartPairing = useCallback(async () => {
@@ -201,131 +220,33 @@ function PrimaryPairingContent({
     }
   }, [onStartPairing])
 
-  if (isStartingPairing || (isPairing && !(pairingCode || pairingDeviceId))) {
-    return (
-      <div className="mt-4 pt-4 border-t border-outline">
-        <h4 className="text-sm font-medium text-on-surface mb-2">Starting pairing</h4>
-        {showDeviceId && status.deviceId ? (
-          <>
-            <p className="text-sm text-on-surface-muted mb-3">
-              Share this device ID with your secondary device.
-            </p>
-            <DeviceIdDisplay deviceId={status.deviceId} />
-          </>
-        ) : (
-          <div className="flex items-center gap-3">
-            <Spinner />
-            <span className="text-sm text-on-surface-muted">Connecting to relay server...</span>
-          </div>
-        )}
-        <div className="mt-4 flex items-center gap-3">
-          <Button variant="secondary" onClick={onStopPairing}>
-            Stop pairing
-          </Button>
-          {status.deviceId && (
-            <button
-              type="button"
-              onClick={() => setShowDeviceId(!showDeviceId)}
-              className="text-sm text-accent hover:underline"
-            >
-              {showDeviceId ? 'Wait for pairing code' : 'Use device ID instead'}
-            </button>
-          )}
-        </div>
-      </div>
-    )
-  }
+  const handleCancel = useCallback(async () => {
+    setIsStartingPairing(false)
+    setDeviceIdMode(false)
+    await onStopPairing()
+  }, [onStopPairing])
 
-  if (isPairing && (pairingCode || pairingDeviceId)) {
-    return (
-      <div className="mt-4 pt-4 border-t border-outline">
-        <h4 className="text-sm font-medium text-on-surface mb-2">Pairing mode</h4>
-        {pairingCode && !showDeviceId ? (
-          <>
-            <p className="text-sm text-on-surface-muted mb-3">
-              Enter this code on your secondary device to pair.
-            </p>
-            <PairingCodeDisplay code={pairingCode} />
-          </>
-        ) : (
-          <>
-            <p className="text-sm text-on-surface-muted mb-3">
-              Share this device ID with your secondary device.
-            </p>
-            {pairingDeviceId && <DeviceIdDisplay deviceId={pairingDeviceId} />}
-          </>
-        )}
-        <div className="flex items-center gap-3 mt-4">
-          <Spinner />
-          <span className="text-sm text-on-surface-muted">Waiting for devices to connect...</span>
-        </div>
-        <div className="mt-4 flex items-center gap-3">
-          <Button variant="secondary" onClick={onStopPairing}>
-            Stop pairing
-          </Button>
-          {pairingDeviceId &&
-            (pairingCode ? (
-              <button
-                type="button"
-                onClick={() => setShowDeviceId(!showDeviceId)}
-                className="text-sm text-accent hover:underline"
-              >
-                {showDeviceId ? 'Use pairing code' : 'Use device ID instead'}
-              </button>
-            ) : (
-              <span className="text-sm text-on-surface-dim">Relay unavailable</span>
-            ))}
-        </div>
-      </div>
-    )
-  }
+  const handleSwitchToDeviceIdMode = useCallback(() => {
+    setDeviceIdMode(true)
+  }, [])
 
-  if (hasDevices) {
-    return null
-  }
-
-  return (
-    <div className="mt-4 pt-4 border-t border-outline">
-      <h4 className="text-sm font-medium text-on-surface mb-2">Pair a device</h4>
-      <p className="text-sm text-on-surface-muted mb-3">
-        Start pairing to allow secondary devices to connect.
-      </p>
-      <Button onClick={handleStartPairing} disabled={isStartingPairing}>
-        Start pairing
-      </Button>
-    </div>
-  )
-}
-
-interface SecondaryDiscoveryContentProps {
-  readonly status: SyncStatusResponse
-  readonly discoveredDevices: SyncDiscoveredDevice[]
-  readonly connectionProgress: string | null
-  readonly connectionError: string | null
-  readonly isDiscovering: boolean
-  readonly isConnecting: boolean
-  readonly onConnectToDevice: (deviceId: string) => Promise<{ ok: boolean; error?: string }>
-  readonly onClearConnectionError: () => void
-}
-
-function SecondaryDiscoveryContent({
-  status,
-  discoveredDevices,
-  connectionProgress,
-  connectionError,
-  isDiscovering,
-  isConnecting,
-  onConnectToDevice,
-  onClearConnectionError,
-}: SecondaryDiscoveryContentProps) {
-  const [pairingCode, setPairingCode] = useState('')
-  const [showAdvanced, setShowAdvanced] = useState(false)
-  const [manualDeviceId, setManualDeviceId] = useState('')
-  const hasDevices = (status.devices?.length ?? 0) > 0
+  const handleSwitchToPairingCodeMode = useCallback(() => {
+    setDeviceIdMode(false)
+  }, [])
 
   const handleCodeChange = useCallback(
     (value: string) => {
-      setPairingCode(value)
+      setJoinCode(value)
+      if (connectionError) {
+        onClearConnectionError()
+      }
+    },
+    [connectionError, onClearConnectionError],
+  )
+
+  const handleOtherDeviceIdChange = useCallback(
+    (value: string) => {
+      setOtherDeviceId(value)
       if (connectionError) {
         onClearConnectionError()
       }
@@ -334,25 +255,29 @@ function SecondaryDiscoveryContent({
   )
 
   const handleConnectWithCode = useCallback(async () => {
-    const trimmed = pairingCode.trim().toUpperCase()
+    const trimmed = joinCode.trim().toUpperCase()
     if (trimmed) {
       const result = await onConnectToDevice(trimmed)
       if (result.ok) {
-        setPairingCode('')
+        setJoinCode('')
       }
     }
-  }, [pairingCode, onConnectToDevice])
+  }, [joinCode, onConnectToDevice])
 
-  const handleConnectManual = useCallback(async () => {
-    const trimmed = manualDeviceId.trim().toUpperCase()
+  const handleConnectWithDeviceId = useCallback(async () => {
+    const trimmed = otherDeviceId.trim().toUpperCase()
     if (trimmed) {
       const result = await onConnectToDevice(trimmed)
       if (result.ok) {
-        setManualDeviceId('')
-        setShowAdvanced(false)
+        setOtherDeviceId('')
       }
     }
-  }, [manualDeviceId, onConnectToDevice])
+  }, [otherDeviceId, onConnectToDevice])
+
+  const isGeneratingCode = isStartingPairing || (isPairing && !pairingCode)
+  const hasCode = isPairing && pairingCode
+  const deviceId = pairingDeviceId || status.deviceId
+  const isWaitingForPeer = isPairing || isStartingPairing
 
   if (hasDevices) {
     return null
@@ -360,19 +285,117 @@ function SecondaryDiscoveryContent({
 
   if (isConnecting) {
     return (
-      <div className="mt-4 pt-4 border-t border-outline">
-        <h4 className="text-sm font-medium text-on-surface mb-2">Connecting to primary</h4>
+      <PairingSection title="Connecting">
         <div className="flex items-center gap-3">
           <Spinner />
           <span className="text-sm text-on-surface-muted">
             {connectionProgress || 'Connecting...'}
           </span>
         </div>
-      </div>
+      </PairingSection>
     )
   }
 
-  const canSubmit = pairingCode.trim().length > 0 && !isConnecting
+  if (deviceIdMode) {
+    return (
+      <PairingSection title="Pair with device ID">
+        <div className="space-y-4">
+          {deviceId && (
+            <div>
+              <p className="text-sm text-on-surface-muted mb-2">Your device ID:</p>
+              <DeviceIdDisplay deviceId={deviceId} />
+            </div>
+          )}
+
+          <div>
+            <p className="text-sm text-on-surface-muted mb-2">Other device's ID:</p>
+            <div className="flex gap-2">
+              <Input
+                value={otherDeviceId}
+                onChange={handleOtherDeviceIdChange}
+                placeholder="ABC1234-DEF5678-GHI9012-JKL3456-MNO7890-PQR1234-STU5678-VWX9012"
+                className="flex-1 font-mono"
+              />
+              <Button
+                onClick={handleConnectWithDeviceId}
+                disabled={!otherDeviceId.trim() || isConnecting}
+              >
+                Connect
+              </Button>
+            </div>
+          </div>
+
+          <ConnectionError message={connectionError} />
+
+          {isWaitingForPeer && <WaitingForPeer />}
+
+          <div className="flex items-center gap-3">
+            {isWaitingForPeer && (
+              <Button variant="secondary" onClick={handleCancel}>
+                Cancel
+              </Button>
+            )}
+            <button
+              type="button"
+              onClick={handleSwitchToPairingCodeMode}
+              className="text-sm text-accent hover:underline"
+            >
+              Use pairing code instead
+            </button>
+          </div>
+        </div>
+      </PairingSection>
+    )
+  }
+
+  if (isGeneratingCode) {
+    return (
+      <PairingSection title="Generating pairing code">
+        <div className="flex items-center gap-3">
+          <Spinner />
+          <span className="text-sm text-on-surface-muted">Please wait...</span>
+        </div>
+        <div className="mt-4 flex items-center gap-3">
+          <Button variant="secondary" onClick={handleCancel}>
+            Cancel
+          </Button>
+          <button
+            type="button"
+            onClick={handleSwitchToDeviceIdMode}
+            className="text-sm text-accent hover:underline"
+          >
+            Use device ID instead
+          </button>
+        </div>
+      </PairingSection>
+    )
+  }
+
+  if (hasCode) {
+    return (
+      <PairingSection title="Pairing code">
+        <p className="text-sm text-on-surface-muted mb-3">
+          Enter this code on the other device to pair.
+        </p>
+        <PairingCodeDisplay code={pairingCode} />
+        <WaitingForPeer className="mt-4" />
+        <div className="mt-4 flex items-center gap-3">
+          <Button variant="secondary" onClick={handleCancel}>
+            Cancel
+          </Button>
+          <button
+            type="button"
+            onClick={handleSwitchToDeviceIdMode}
+            className="text-sm text-accent hover:underline"
+          >
+            Use device ID instead
+          </button>
+        </div>
+      </PairingSection>
+    )
+  }
+
+  const canSubmit = joinCode.trim().length > 0 && !isConnecting
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -382,94 +405,51 @@ function SecondaryDiscoveryContent({
   }
 
   return (
-    <div className="mt-4 pt-4 border-t border-outline">
-      <h4 className="text-sm font-medium text-on-surface mb-2">Connect to primary</h4>
-      <p className="text-sm text-on-surface-muted mb-3">
-        Enter the pairing code from your primary device.
-      </p>
-
-      <form onSubmit={handleSubmit} className="flex gap-3 mb-4">
-        <Input
-          value={pairingCode}
-          onChange={handleCodeChange}
-          placeholder="ABC123"
-          className="flex-1 font-mono text-xl tracking-[0.2em] uppercase text-center slashed-zero py-3"
-          enterKeyHint="go"
-        />
-        <Button type="submit" disabled={!canSubmit} className="px-6">
-          Connect
-        </Button>
-      </form>
-
-      {connectionError && (
-        <div className="p-3 bg-status-error/10 border border-status-error/30 rounded text-sm text-status-error mb-4">
-          {connectionError}
+    <PairingSection title="Pair a device">
+      <div className="space-y-4">
+        <div>
+          <p className="text-sm text-on-surface-muted mb-2">
+            Generate a code for the other device:
+          </p>
+          <Button onClick={handleStartPairing} disabled={isStartingPairing}>
+            Generate pairing code
+          </Button>
         </div>
-      )}
 
-      <button
-        type="button"
-        onClick={() => setShowAdvanced(!showAdvanced)}
-        className="text-sm text-accent hover:underline"
-      >
-        {showAdvanced ? 'Hide advanced options' : 'Advanced options'}
-      </button>
-
-      {showAdvanced && (
-        <div className="mt-4 space-y-4">
-          {isDiscovering && discoveredDevices.length === 0 && (
-            <div className="flex items-center gap-3">
-              <Spinner />
-              <span className="text-sm text-on-surface-muted">
-                Searching for devices on local network...
-              </span>
-            </div>
-          )}
-
-          {discoveredDevices.length > 0 && (
-            <div>
-              <p className="text-sm text-on-surface-muted mb-2">Devices found on local network:</p>
-              <div className="border border-outline rounded-card px-3 bg-surface">
-                {discoveredDevices.map((device) => (
-                  <DiscoveredDeviceRow
-                    key={device.deviceId}
-                    device={device}
-                    onConnect={() => onConnectToDevice(device.deviceId)}
-                    isConnecting={isConnecting}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div>
-            <p className="text-sm text-on-surface-muted mb-2">Or enter a device ID manually:</p>
-            <div className="space-y-3">
-              <Input
-                value={manualDeviceId}
-                onChange={setManualDeviceId}
-                placeholder="XXXXXXX-XXXXXXX-XXXXXXX-..."
-              />
-              <Button
-                onClick={handleConnectManual}
-                disabled={!manualDeviceId.trim() || isConnecting}
-              >
-                Connect with device ID
-              </Button>
-            </div>
-          </div>
+        <div>
+          <p className="text-sm text-on-surface-muted mb-2">Or enter a code from another device:</p>
+          <form onSubmit={handleSubmit} className="flex gap-2">
+            <Input
+              value={joinCode}
+              onChange={handleCodeChange}
+              placeholder="ABC123"
+              className="flex-1 font-mono uppercase slashed-zero"
+              enterKeyHint="go"
+            />
+            <Button type="submit" disabled={!canSubmit}>
+              Connect
+            </Button>
+          </form>
         </div>
-      )}
-    </div>
+
+        <ConnectionError message={connectionError} />
+
+        <button
+          type="button"
+          onClick={handleSwitchToDeviceIdMode}
+          className="text-sm text-accent hover:underline"
+        >
+          Use device ID instead
+        </button>
+      </div>
+    </PairingSection>
   )
 }
 
 export interface StatusCardProps {
   readonly status: SyncStatusResponse
-  readonly discoveredDevices: SyncDiscoveredDevice[]
   readonly connectionProgress: string | null
   readonly connectionError: string | null
-  readonly isDiscovering: boolean
   readonly isConnecting: boolean
   readonly isPairing: boolean
   readonly pairingDeviceId: string | null
@@ -483,10 +463,8 @@ export interface StatusCardProps {
 
 export function StatusCard({
   status,
-  discoveredDevices,
   connectionProgress,
   connectionError,
-  isDiscovering,
   isConnecting,
   isPairing,
   pairingDeviceId,
@@ -538,7 +516,6 @@ export function StatusCard({
 
       <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
         <div className="flex items-center gap-2">
-          <StatusBadge label={status.mode ?? 'unknown'} ok={true} />
           <StatusBadge label="running" ok={true} />
           {connectedDevice && <StatusBadge label="connected" ok={true} />}
         </div>
@@ -560,29 +537,19 @@ export function StatusCard({
         </div>
       )}
 
-      {status.mode === 'primary' && (
-        <PrimaryPairingContent
-          status={status}
-          isPairing={isPairing}
-          pairingDeviceId={pairingDeviceId}
-          pairingCode={pairingCode}
-          onStartPairing={onStartPairing}
-          onStopPairing={onStopPairing}
-        />
-      )}
-
-      {status.mode === 'secondary' && (
-        <SecondaryDiscoveryContent
-          status={status}
-          discoveredDevices={discoveredDevices}
-          connectionProgress={connectionProgress}
-          connectionError={connectionError}
-          isDiscovering={isDiscovering}
-          isConnecting={isConnecting}
-          onConnectToDevice={onConnectToDevice}
-          onClearConnectionError={onClearConnectionError}
-        />
-      )}
+      <PairingContent
+        status={status}
+        connectionProgress={connectionProgress}
+        connectionError={connectionError}
+        isConnecting={isConnecting}
+        isPairing={isPairing}
+        pairingDeviceId={pairingDeviceId}
+        pairingCode={pairingCode}
+        onConnectToDevice={onConnectToDevice}
+        onStartPairing={onStartPairing}
+        onStopPairing={onStopPairing}
+        onClearConnectionError={onClearConnectionError}
+      />
     </div>
   )
 }

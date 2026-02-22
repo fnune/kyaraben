@@ -22,14 +22,7 @@ Synchronization requires systemd. Service management uses `systemctl --user`.
 ### Using the app
 
 1. Go to Settings > Synchronization
-2. Choose Primary or Secondary mode
-3. Click "Enable synchronization"
-
-**Primary**: the device where your ROM collection lives (typically a desktop or
-server). Sends ROMs and BIOS to secondaries.
-
-**Secondary**: receives ROMs from the primary and synchronizes saves bidirectionally
-(typically a Steam Deck or laptop).
+2. Click "Enable synchronization"
 
 ### Using the CLI
 
@@ -38,23 +31,20 @@ Edit `~/.config/kyaraben/config.toml`:
 ```toml
 [sync]
 enabled = true
-mode = "primary"  # or "secondary"
 ```
 
 Then run `kyaraben apply` to install Syncthing.
 
 ## Pairing devices
 
-Pairing connects two devices so they can synchronize. One device becomes the primary
-(source of ROMs) and the other becomes the secondary (receives ROMs, synchronizes
-saves bidirectionally).
+Pairing connects two devices so they can synchronize.
 
 ### Using the app
 
-On the primary:
+On the first device:
 
 1. Go to Settings > Synchronization
-2. Click "Start pairing"
+2. Click "Generate pairing code"
 3. A 6-character code appears (e.g. K7X9M2)
 
 <img
@@ -62,18 +52,18 @@ On the primary:
   alt="Pairing mode showing a 6-character code and the list of folders to sync"
 />
 
-On the secondary:
+On the second device:
 
 1. Go to Settings > Synchronization
-2. Enter the code from the primary
-3. Click "Join primary"
+2. Enter the code from the first device
+3. Click "Connect"
 
 The code works from any network. Devices do not need to be on the same local
 network.
 
 ### Using the CLI
 
-On the primary:
+On the first device:
 
 ```
 $ kyaraben sync pair
@@ -83,11 +73,11 @@ Waiting for devices... (expires in 5 minutes)
 Paired with steamdeck-kyaraben
 ```
 
-On the secondary:
+On the second device:
 
 ```
 $ kyaraben sync pair K7X9M2
-Connecting to primary...
+Connecting...
 Paired with desktop-kyaraben
 ```
 
@@ -96,11 +86,10 @@ Paired with desktop-kyaraben
 If the relay server is unavailable, exchange full device IDs manually:
 
 ```
-# On the primary, get the device ID
 $ kyaraben sync pair --device-id
 Device ID: LGFPDIT7-SKNNJVJZ-A4FC7QNC-...
 
-# On the secondary, join using the full device ID
+# On the other device, join using the full device ID
 $ kyaraben sync pair LGFPDIT7-SKNNJVJZ-A4FC7QNC-...
 ```
 
@@ -108,18 +97,18 @@ This works across any network via Syncthing's relay servers.
 
 ## What syncs
 
-| Content                     | Primary       | Secondary     |
-| --------------------------- | ------------- | ------------- |
-| `roms/`                     | Send only     | Receive only  |
-| `bios/`                     | Send only     | Receive only  |
-| `saves/`                    | Bidirectional | Bidirectional |
-| `states/`                   | Bidirectional | Bidirectional |
-| `screenshots/`              | Bidirectional | Bidirectional |
-| `frontends/esde/gamelists/` | Bidirectional | Bidirectional |
-| `frontends/esde/media/`     | Bidirectional | Bidirectional |
+| Content                     | Sync behavior                        |
+| --------------------------- | ------------------------------------ |
+| `roms/`                     | Bidirectional (deletions don't sync) |
+| `bios/`                     | Bidirectional (deletions don't sync) |
+| `saves/`                    | Bidirectional                        |
+| `states/`                   | Bidirectional                        |
+| `screenshots/`              | Bidirectional                        |
+| `frontends/esde/gamelists/` | Bidirectional                        |
+| `frontends/esde/media/`     | Bidirectional                        |
 
-ROMs and BIOS flow one direction only, preventing accidental deletion of your
-primary collection from a secondary device.
+ROMs and BIOS use `ignoreDelete` mode: you can add files from any device, but
+deletions stay local. This prevents accidental deletion of your collection.
 
 ### EmulationStation DE gamelists and media
 
@@ -141,7 +130,7 @@ To add a new device, see [Pairing devices](#pairing-devices).
 ```
 $ kyaraben sync status
 
-Synchronization: enabled (primary)
+Synchronization: enabled
 Device ID: LGFPDIT7-SKNNJVJZ-A4FC7QNC-...
 
 Paired devices:

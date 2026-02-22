@@ -2,8 +2,6 @@ package sync
 
 import (
 	"testing"
-
-	"github.com/fnune/kyaraben/internal/model"
 )
 
 func TestStatus_OverallState(t *testing.T) {
@@ -21,7 +19,6 @@ func TestStatus_OverallState(t *testing.T) {
 			name: "synced with connected devices",
 			status: Status{
 				Enabled: true,
-				Mode:    model.SyncModePrimary,
 				Devices: []DeviceStatus{
 					{ID: "A", Connected: true},
 					{ID: "B", Connected: true},
