@@ -54,7 +54,7 @@ export interface CatalogViewProps {
   readonly userStore: string
   readonly hasConfigChanges: boolean
   readonly onUserStoreChange: (value: string) => void
-  readonly onEmulatorToggle: (emulatorId: EmulatorID, enabled: boolean) => void
+  readonly onEmulatorToggle: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
   readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
   readonly onFrontendToggle: (frontendId: FrontendID, enabled: boolean) => void
   readonly onFrontendVersionChange: (frontendId: FrontendID, version: string | null) => void
@@ -509,27 +509,31 @@ export function CatalogView({
                   {manufacturer}
                 </h2>
                 <div className="space-y-4">
-                  {manufacturerSystems.map((system) => (
-                    <SystemCard
-                      key={system.id}
-                      ref={(el) => {
-                        for (const emu of system.emulators) {
-                          setSystemRef(emu.id, el)
-                        }
-                      }}
-                      system={system}
-                      enabledEmulators={enabledEmulators}
-                      emulatorVersions={emulatorVersions}
-                      installedVersions={installedVersions}
-                      installedExecLines={installedExecLines}
-                      managedConfigs={managedConfigs}
-                      installedPaths={installedPaths}
-                      provisions={provisions}
-                      sharedPackages={sharedPackages}
-                      onEmulatorToggle={onEmulatorToggle}
-                      onVersionChange={onVersionChange}
-                    />
-                  ))}
+                  {manufacturerSystems.map((system) => {
+                    const systemEmuIds = systemEmulators.get(system.id) ?? []
+                    return (
+                      <SystemCard
+                        key={system.id}
+                        ref={(el) => {
+                          for (const emu of system.emulators) {
+                            setSystemRef(emu.id, el)
+                          }
+                        }}
+                        system={system}
+                        systemEnabledEmulators={new Set(systemEmuIds)}
+                        globalEnabledEmulators={enabledEmulators}
+                        emulatorVersions={emulatorVersions}
+                        installedVersions={installedVersions}
+                        installedExecLines={installedExecLines}
+                        managedConfigs={managedConfigs}
+                        installedPaths={installedPaths}
+                        provisions={provisions}
+                        sharedPackages={sharedPackages}
+                        onEmulatorToggle={onEmulatorToggle}
+                        onVersionChange={onVersionChange}
+                      />
+                    )
+                  })}
                 </div>
               </section>
             ))}
