@@ -73,11 +73,11 @@ Config exists but something isn't working, or requires more complex setup.
 
 ### Eden (Switch)
 
-- Button mappings wrong. In Link's Awakening: left trigger opens map, select opens inventory, start does nothing.
-  - EmuDeck: Plus=button:7, Minus=button:6, L=button:4, R=button:5, ZL=axis:2, ZR=axis:5. Uses GUID `03000000de280000ff11000001000000`.
+- [x] Button mappings wrong. In Link's Awakening: left trigger opens map, select opens inventory, start does nothing.
+  - Fix: Eden uses raw SDL joystick indices (not GameController). Added Steam Deck-specific button indices matching EmuDeck's configuration.
 
-- Most hotkeys not working.
-  - EmuDeck hotkeys: `Minus+A`=pause, `L+Plus+Minus`=stop, `R+Plus+Minus`=restart, `Minus+Plus`=exit.
+- [x] Most hotkeys not working.
+  - Fix: Updated hotkey button names to match Eden's expected format (e.g., Right_Stick instead of Rstick).
 
 ### PCSX2 (PS2)
 

@@ -1253,15 +1253,16 @@ func TestEdenControllerBindingValues(t *testing.T) {
 		}
 
 		// Profile uses keys without player prefix, port 0.
-		// Standard layout: a=east=B(1), b=south=A(0), x=north=Y(3), y=west=X(2)
+		// Uses Steam Deck raw joystick indices (not SDL GameController).
+		// Standard layout: a=east(1), b=south(0), x=north(3), y=west(2)
 		wantProfile := map[string]string{
 			"type":          "0",
 			"button_a":      `"engine:sdl,port:0,guid:` + guid + `,button:1"`,
 			"button_b":      `"engine:sdl,port:0,guid:` + guid + `,button:0"`,
 			"button_x":      `"engine:sdl,port:0,guid:` + guid + `,button:3"`,
 			"button_y":      `"engine:sdl,port:0,guid:` + guid + `,button:2"`,
-			"button_lstick": `"engine:sdl,port:0,guid:` + guid + `,button:7"`,
-			"button_rstick": `"engine:sdl,port:0,guid:` + guid + `,button:8"`,
+			"button_lstick": `"engine:sdl,port:0,guid:` + guid + `,button:9"`,
+			"button_rstick": `"engine:sdl,port:0,guid:` + guid + `,button:10"`,
 			"lstick":        `"engine:sdl,port:0,guid:` + guid + `,axis_x:0,axis_y:1,deadzone:0.100000"`,
 			"rstick":        `"engine:sdl,port:0,guid:` + guid + `,axis_x:3,axis_y:4,deadzone:0.100000"`,
 		}
