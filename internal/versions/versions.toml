@@ -3,6 +3,7 @@
 # RetroArch cores bundle from buildbot (same source as RetroArch itself)
 # Contains all cores in one archive, we extract only what we need
 [retroarch-cores]
+releases_url = "github:libretro/RetroArch"
 url_template = "https://buildbot.libretro.com/stable/{version}/linux/{variant}/RetroArch_cores.7z"
 default = "1.22.2"
 
@@ -24,6 +25,7 @@ citra = "citra_libretro.so"
 
 # Standalone cores downloaded separately (not in the buildbot bundle)
 [retroarch-cores.standalone.melonds]
+releases_url = "github:JesseTG/melonds-ds"
 filename = "melondsds_libretro.so"
 url = "https://github.com/JesseTG/melonds-ds/releases/download/v1.2.0/melondsds_libretro-linux-x86_64-Release.zip"
 sha256 = "9b7c1ef08a9ed3d1a61be3981cf40332c88ce3f59ca76336262701b27dabdb2b"
@@ -46,6 +48,7 @@ citra = 32347128
 # ============================================================================
 
 [eden]
+releases_url = "github:eden-emulator/Releases"
 url_template = "https://github.com/eden-emulator/Releases/releases/download/{version}/Eden-Linux-{version}-{variant}-clang-pgo.AppImage"
 default = "v0.1.1"
 icon_url = "https://raw.githubusercontent.com/eden-emulator/eden-emulator.github.io/655bb7bc8dd49db97b39c2d6be93d12be17dab92/src/assets/eden_logo.png"
@@ -97,6 +100,7 @@ size = 61443821
 # ============================================================================
 
 [duckstation]
+releases_url = "github:stenzek/duckstation"
 url_template = "https://github.com/stenzek/duckstation/releases/download/{version}/DuckStation-{variant}.AppImage"
 default = "v0.1-10655"
 icon_url = "https://github.com/stenzek/duckstation/raw/016c08b9c35a0ccf4196b21bc10c7d057af689d8/data/resources/images/duck.png"
@@ -118,6 +122,7 @@ size = 81788928
 # ============================================================================
 
 [pcsx2]
+releases_url = "github:PCSX2/pcsx2"
 url_template = "https://github.com/PCSX2/pcsx2/releases/download/{version}/pcsx2-{version}-linux-appimage-x64-Qt.AppImage"
 default = "v2.6.3"
 icon_url = "https://github.com/PCSX2/pcsx2/raw/fe7935ce0e9c2457eb2586897c3cbc5eef10324a/pcsx2-qt/resources/icons/AppIcon64.png"
@@ -134,6 +139,7 @@ size = 71725056
 # ============================================================================
 
 [ppsspp]
+releases_url = "github:hrydgard/ppsspp"
 url_template = "https://github.com/hrydgard/ppsspp/releases/download/{version}/PPSSPP-{version}-anylinux-{variant}.AppImage"
 default = "v1.19.3"
 icon_url = "https://github.com/hrydgard/ppsspp/raw/7c2632cd551fdc50856d304ae22fc5ecf41111b2/icons/hicolor/256x256/apps/ppsspp.png"
@@ -155,6 +161,7 @@ size = 64486809
 # ============================================================================
 
 [cemu]
+releases_url = "github:cemu-project/Cemu"
 url_template = "https://github.com/cemu-project/Cemu/releases/download/v{version}/Cemu-{version}-x86_64.AppImage"
 default = "2.6"
 icon_url = "https://github.com/cemu-project/Cemu/raw/ba82dc57d64fe8fc1b268e24fa583b350404b9a6/src/resource/logo_icon.png"
@@ -176,6 +183,7 @@ size = 61235610
 # ============================================================================
 
 [dolphin]
+releases_url = "github:pkgforge-dev/Dolphin-emu-AppImage"
 url_template = "https://github.com/pkgforge-dev/Dolphin-emu-AppImage/releases/download/{release_tag}/Dolphin_Emulator-{version}-anylinux-{variant}.AppImage"
 default = "2512"
 icon_url = "https://github.com/dolphin-emu/dolphin/raw/6711d77b9901ed0a4418203db49ed4d8576e6fe0/Data/Sys/Resources/dolphin_logo.png"
@@ -200,6 +208,7 @@ size = 71198720
 # ============================================================================
 
 [vita3k]
+releases_url = "github:Vita3K/Vita3K-builds"
 url_template = "https://github.com/Vita3K/Vita3K-builds/releases/download/{release_tag}/Vita3K-{variant}.AppImage"
 default = "3912"
 icon_url = "https://github.com/Vita3K/Vita3K/raw/750a516d8fb8ffaaa063db3d226d8f382db58063/data/image/icon.png"
@@ -219,6 +228,7 @@ size = 22964019
 # ============================================================================
 
 [rpcs3]
+releases_url = "github:RPCS3/rpcs3-binaries-linux"
 url_template = "https://github.com/RPCS3/rpcs3-binaries-linux/releases/download/{release_tag}/rpcs3-v{version}_linux64.AppImage"
 default = "0.0.39-18718-fbd5bbcf"
 icon_url = "https://raw.githubusercontent.com/RPCS3/rpcs3/588cf69dad726a4485af945ba0507193c526ccf7/rpcs3/rpcs3.svg"
@@ -238,6 +248,7 @@ size = 95703826
 # ============================================================================
 
 [flycast]
+releases_url = "github:flyinghead/flycast"
 url_template = "https://github.com/flyinghead/flycast/releases/download/v{version}/flycast-{variant}.AppImage"
 default = "2.6"
 icon_url = "https://github.com/flyinghead/flycast/raw/21eb24f86d785b1c631161f03057b22c160182c0/shell/linux/flycast.png"
@@ -256,6 +267,7 @@ size = 19818086
 # ============================================================================
 
 [es-de]
+releases_url = "gitlab:es-de/emulationstation-de"
 default = "3.4.0"
 icon_url = "https://gitlab.com/es-de/emulationstation-de/-/raw/9a2deb803700c3f9c2d4a98d57e14d56eb4d01ff/es-app/assets/org.es_de.frontend.svg"
 icon_sha256 = "sha256-hsZGRNcl/wAzSTMtt3Z2rtbBTKKU5zjA1baYSC4EMWA="
@@ -278,6 +290,7 @@ size = 129931768
 # ============================================================================
 
 [retroarch]
+releases_url = "github:libretro/RetroArch"
 url_template = "https://buildbot.libretro.com/stable/{version}/linux/{variant}/RetroArch.7z"
 default = "1.22.2"
 icon_url = "https://raw.githubusercontent.com/libretro/RetroArch/bed2dc3b6cb35173f79e19bbb91a5f9436803f13/media/ico_src/icon.svg"
@@ -295,6 +308,7 @@ size = 179415654
 # ============================================================================
 
 [syncthing]
+releases_url = "github:syncthing/syncthing"
 url_template = "https://github.com/syncthing/syncthing/releases/download/{version}/syncthing-linux-{variant}-{version}.tar.gz"
 default = "v2.0.14"
 
