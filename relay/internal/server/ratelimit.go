@@ -102,7 +102,7 @@ func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 func getClientIP(r *http.Request) string {
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 		ips := strings.Split(xff, ",")
-		return strings.TrimSpace(ips[len(ips)-1])
+		return strings.TrimSpace(ips[0])
 	}
 	if xri := r.Header.Get("X-Real-IP"); xri != "" {
 		return xri
