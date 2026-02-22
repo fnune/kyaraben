@@ -254,22 +254,20 @@ Shows synchronization state, connected devices, and per-folder progress.
 ```
 $ kyaraben sync status
 
-Synchronization: active
+Sync: enabled
+Status: idle
 Device ID: LGFPDIT7-SKNNJVJZ-A4FC7QNC-...
+UI: http://127.0.0.1:8484
 
-Devices:
-  steamdeck-kyaraben    connected    last seen: just now
+Paired devices:
+  steamdeck-kyaraben                 connected
 
-Folders:
-  ROMs (6 systems)      synced       12.3 GB
-  Saves (6 systems)     synced       156 MB
-  States (4 systems)    synced       1.2 GB
-  Screenshots           synced       89 MB
+Synced folders:
+  ROMs                 idle
+  Saves                idle
+  States               idle
+  Screenshots          idle
 ```
-
-#### `kyaraben sync pause` / `kyaraben sync resume`
-
-Pause or resume synchronization. Useful on metered connections or to save battery.
 
 #### `kyaraben sync pair --device-id`
 

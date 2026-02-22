@@ -363,6 +363,7 @@ func TestSync(t *testing.T) {
 		}
 
 		c.assertContains(output, "status")
+		c.assertContains(output, "pair")
 		c.assertContains(output, "add-device")
 		c.assertContains(output, "remove-device")
 	})
