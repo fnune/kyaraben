@@ -218,8 +218,8 @@ func TestDolphinGenerate(t *testing.T) {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	if len(result.Patches) != 1 {
-		t.Fatalf("expected 1 patch, got %d", len(result.Patches))
+	if len(result.Patches) != 2 {
+		t.Fatalf("expected 2 patches, got %d", len(result.Patches))
 	}
 
 	patch := result.Patches[0]
@@ -1051,22 +1051,22 @@ func TestDolphinControllerConfig(t *testing.T) {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	if len(result.Patches) != 4 {
-		t.Fatalf("expected 4 patches (Dolphin.ini, GCPadNew.ini, Hotkeys.ini, profile), got %d", len(result.Patches))
+	if len(result.Patches) != 5 {
+		t.Fatalf("expected 5 patches (Dolphin.ini, GFX.ini, GCPadNew.ini, Hotkeys.ini, profile), got %d", len(result.Patches))
 	}
 
-	gcPad := result.Patches[1]
+	gcPad := result.Patches[2]
 	if !strings.Contains(gcPad.Target.RelPath, "GCPadNew") {
-		t.Errorf("second patch should be GCPadNew.ini, got %s", gcPad.Target.RelPath)
+		t.Errorf("third patch should be GCPadNew.ini, got %s", gcPad.Target.RelPath)
 	}
 	keys := collectKeys(gcPad.Entries)
 	if !keys["Buttons/A"] {
 		t.Error("missing GCPad Buttons/A")
 	}
 
-	hotkeys := result.Patches[2]
+	hotkeys := result.Patches[3]
 	if !strings.Contains(hotkeys.Target.RelPath, "Hotkeys") {
-		t.Errorf("third patch should be Hotkeys.ini, got %s", hotkeys.Target.RelPath)
+		t.Errorf("fourth patch should be Hotkeys.ini, got %s", hotkeys.Target.RelPath)
 	}
 }
 

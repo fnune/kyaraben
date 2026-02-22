@@ -33,6 +33,12 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 	return &Config{}
 }
 
+var coreOptionsTarget = model.ConfigTarget{
+	RelPath: "retroarch/config/Mupen64Plus-Next/Mupen64Plus-Next.opt",
+	Format:  model.ConfigFormatCFG,
+	BaseDir: model.ConfigBaseDirUserConfig,
+}
+
 type Config struct{}
 
 func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
@@ -40,8 +46,20 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	if err != nil {
 		return model.GenerateResult{}, err
 	}
+
+	patches := []model.ConfigPatch{
+		retroarch.SharedConfig(ctx.Store, ctx.ControllerConfig),
+		{
+			Target: coreOptionsTarget,
+			Entries: []model.ConfigEntry{
+				{Path: []string{"mupen64plus-43screensize"}, Value: "1280x960", DefaultOnly: true},
+				{Path: []string{"mupen64plus-169screensize"}, Value: "1920x1080", DefaultOnly: true},
+			},
+		},
+	}
+
 	return model.GenerateResult{
-		Patches:  []model.ConfigPatch{retroarch.SharedConfig(ctx.Store, ctx.ControllerConfig)},
+		Patches:  patches,
 		Symlinks: symlinks,
 	}, nil
 }
