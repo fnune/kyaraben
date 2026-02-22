@@ -204,6 +204,7 @@ export interface SyncFolder {
   path: string;
   label: string;
   state: string;
+  error?: string;
   type: string;
   globalSize: number /* int64 */;
   localSize: number /* int64 */;

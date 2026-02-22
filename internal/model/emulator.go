@@ -40,6 +40,7 @@ type LauncherInfo struct {
 	DisplayName string
 	GenericName string
 	Categories  []string
+	Keywords    []string
 
 	// RomCommand builds the CLI command for launching a game file.
 	// The returned string uses %ROM% as the placeholder for the game path.

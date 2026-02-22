@@ -28,6 +28,8 @@ const EMULATOR_LOGOS: Partial<Record<EmulatorID, string>> = {
   'retroarch:genesis_plus_gx': retroarch,
   'retroarch:mupen64plus_next': retroarch,
   'retroarch:mednafen_saturn': retroarch,
+  'retroarch:mednafen_pce_fast': retroarch,
+  'retroarch:mednafen_ngp': retroarch,
   'retroarch:mgba': mgba,
   'retroarch:melonds': melonds,
   'retroarch:citra': retroarch,

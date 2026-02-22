@@ -145,6 +145,14 @@ Events: `ready`, `result`, `progress`, `error`, `cancelled`.
 2. Create `internal/systems/<name>/<name>.go` implementing
    `model.SystemDefinition`
 3. Add the system to `internal/registry/all.go`
+4. Add the ES-DE mapping to `internal/frontends/esde/systems.go` (use ES-DE's
+   naming conventions for `Name` and `Platform`)
+5. Add system logo SVG to `ui/src/assets/systems/<name>.svg`
+6. Add ES-DE logo SVG to `ui/src/assets/esde/logos/<name>.svg`
+7. Add entries to UI components:
+   - `ui/src/assets/esde/index.ts`: add to `ESDE_LOGOS`
+   - `ui/src/components/SystemLogo/SystemLogo.tsx`: add to `SYSTEM_LOGOS`
+   - `ui/src/components/SystemCard/SystemCard.tsx`: add to `SYSTEM_YEARS`
 
 ## Adding emulators
 
@@ -163,7 +171,17 @@ Events: `ready`, `result`, `progress`, `error`, `cancelled`.
    nix-prefetch-url <url>
    nix hash convert --to sri --hash-algo sha256 <hash>
    ```
-9. Test installation and configuration
+9. Add emulator logo mapping to `ui/src/components/EmulatorLogo/EmulatorLogo.tsx`
+10. Test installation and configuration
+
+For RetroArch cores, also add the core size to `[retroarch-cores.sizes]` in
+`internal/versions/versions.toml`. This enables download progress indication.
+Get the size by extracting the core from the buildbot archive:
+
+```bash
+nix-shell -p p7zip
+7z l RetroArch_cores.7z | grep <core_name>
+```
 
 The `TestAllDefinitions` test in `internal/registry/registry_test.go` validates
 that all definitions have required fields and that cross-references are valid.

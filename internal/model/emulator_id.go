@@ -16,6 +16,8 @@ const (
 	EmulatorIDRetroArchGenesisPlusGX EmulatorID = "retroarch:genesis_plus_gx"
 	EmulatorIDRetroArchMupen64Plus   EmulatorID = "retroarch:mupen64plus_next"
 	EmulatorIDRetroArchBeetleSaturn  EmulatorID = "retroarch:mednafen_saturn"
+	EmulatorIDRetroArchBeetlePCE     EmulatorID = "retroarch:mednafen_pce_fast"
+	EmulatorIDRetroArchBeetleNGP     EmulatorID = "retroarch:mednafen_ngp"
 	EmulatorIDRetroArchMGBA          EmulatorID = "retroarch:mgba"
 	EmulatorIDRetroArchMelonDS       EmulatorID = "retroarch:melonds"
 	EmulatorIDRetroArchCitra         EmulatorID = "retroarch:citra"

@@ -33,6 +33,7 @@ export interface PendingDevice {
 
 interface FolderState {
   state: 'idle' | 'scanning' | 'syncing' | 'error'
+  error: string
   globalBytes: number
   needBytes: number
   globalFiles: number
@@ -108,6 +109,7 @@ export class FakeSyncthingController {
     })
     this.state.folderStates.set(folder.id, {
       state: 'idle',
+      error: '',
       globalBytes: 0,
       needBytes: 0,
       globalFiles: 0,
@@ -131,10 +133,15 @@ export class FakeSyncthingController {
     })
   }
 
-  setFolderState(folderID: string, state: 'idle' | 'scanning' | 'syncing' | 'error'): void {
+  setFolderState(
+    folderID: string,
+    state: 'idle' | 'scanning' | 'syncing' | 'error',
+    error = '',
+  ): void {
     const existing = this.state.folderStates.get(folderID)
     if (existing) {
       existing.state = state
+      existing.error = error
     }
   }
 
@@ -241,6 +248,7 @@ export function startFakeSyncthingServer(
       res.end(
         JSON.stringify({
           state: folderState.state,
+          error: folderState.error,
           globalFiles: folderState.globalFiles,
           globalBytes: folderState.globalBytes,
           localFiles: folderState.localFiles,

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	"github.com/twpayne/go-vfs/v5"
@@ -16,6 +17,7 @@ type GeneratedDesktop struct {
 	GenericName   string
 	CategoriesStr string
 	LaunchArgs    string
+	Keywords      []string
 }
 
 const desktopTemplate = `[Desktop Entry]
@@ -27,6 +29,9 @@ GenericName={{.GenericName}}
 Exec={{.BinDir}}/{{.BinaryName}}{{if .LaunchArgs}} {{.LaunchArgs}}{{end}} %f
 Icon={{.IconPath}}
 Categories={{.CategoriesStr}};
+{{- if .Keywords}}
+Keywords={{.Keywords}};
+{{- end}}
 `
 
 func (m *Manager) ApplicationsDir() string {
@@ -188,6 +193,7 @@ type desktopTemplateData struct {
 	BinDir        string
 	LaunchArgs    string
 	IconPath      string
+	Keywords      string
 }
 
 func (m *Manager) generateDesktopFile(tmpl *template.Template, entry GeneratedDesktop, iconPath string) (string, error) {
@@ -198,6 +204,11 @@ func (m *Manager) generateDesktopFile(tmpl *template.Template, entry GeneratedDe
 		return "", fmt.Errorf("creating desktop file: %w", err)
 	}
 
+	var keywords string
+	if len(entry.Keywords) > 0 {
+		keywords = strings.Join(entry.Keywords, ";")
+	}
+
 	data := desktopTemplateData{
 		BinaryName:    entry.BinaryName,
 		Name:          entry.Name,
@@ -206,6 +217,7 @@ func (m *Manager) generateDesktopFile(tmpl *template.Template, entry GeneratedDe
 		BinDir:        m.BinDir(),
 		LaunchArgs:    entry.LaunchArgs,
 		IconPath:      iconPath,
+		Keywords:      keywords,
 	}
 
 	execErr := tmpl.Execute(f, data)

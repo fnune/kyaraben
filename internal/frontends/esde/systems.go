@@ -109,6 +109,26 @@ var systemMappings = map[model.SystemID]SystemMapping{
 		FullName: "Sega Dreamcast",
 		Platform: "dreamcast",
 	},
+	model.SystemIDMasterSystem: {
+		Name:     "mastersystem",
+		FullName: "Sega Master System",
+		Platform: "mastersystem",
+	},
+	model.SystemIDGameGear: {
+		Name:     "gamegear",
+		FullName: "Sega Game Gear",
+		Platform: "gamegear",
+	},
+	model.SystemIDPCEngine: {
+		Name:     "pcengine",
+		FullName: "NEC PC Engine",
+		Platform: "pcengine",
+	},
+	model.SystemIDNGP: {
+		Name:     "ngp",
+		FullName: "SNK Neo Geo Pocket",
+		Platform: "ngp",
+	},
 }
 
 func GetSystemMapping(id model.SystemID) (SystemMapping, bool) {

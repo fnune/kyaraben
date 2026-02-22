@@ -56,8 +56,9 @@ func SharedConfig(store model.StoreReader, cc *model.ControllerConfig) model.Con
 		{Path: []string{"rgui_browser_directory"}, Value: store.RomsDir()},
 		{Path: []string{"menu_driver"}, Value: "ozone", DefaultOnly: true},
 		{Path: []string{"menu_show_load_content_animation"}, Value: "false"},
-		{Path: []string{"notification_show_config_override_load"}, Value: "false"},
-		{Path: []string{"notification_show_remap_load"}, Value: "false"},
+		{Path: []string{"notification_show_config_override_load"}, Value: "false", DefaultOnly: true},
+		{Path: []string{"notification_show_remap_load"}, Value: "false", DefaultOnly: true},
+		{Path: []string{"notification_show_autoconfig"}, Value: "false", DefaultOnly: true},
 		{Path: []string{"quit_press_twice"}, Value: "false"},
 		{Path: []string{"input_player1_analog_dpad_mode"}, Value: "1", DefaultOnly: true},
 		{Path: []string{"input_player2_analog_dpad_mode"}, Value: "1", DefaultOnly: true},
@@ -133,9 +134,26 @@ func controllerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	return entries
 }
 
+var coreConfigDirNames = map[string]string{
+	"bsnes":             "bsnes",
+	"mesen":             "Mesen",
+	"genesis_plus_gx":   "Genesis Plus GX",
+	"mupen64plus_next":  "Mupen64Plus-Next",
+	"mednafen_saturn":   "Beetle Saturn",
+	"mednafen_pce_fast": "Beetle PCE Fast",
+	"mednafen_ngp":      "Beetle NeoPop",
+	"mgba":              "mGBA",
+	"melondsds":         "melonDS DS",
+	"citra":             "Citra",
+}
+
 func CoreOverrideTarget(shortName string) model.ConfigTarget {
+	configDirName := shortName
+	if displayName, ok := coreConfigDirNames[shortName]; ok {
+		configDirName = displayName
+	}
 	return model.ConfigTarget{
-		RelPath: "retroarch/config/" + shortName + "/" + shortName + ".cfg",
+		RelPath: "retroarch/config/" + configDirName + "/" + configDirName + ".cfg",
 		Format:  model.ConfigFormatCFG,
 		BaseDir: model.ConfigBaseDirUserConfig,
 	}
@@ -147,6 +165,8 @@ var coreShortNames = map[model.EmulatorID]string{
 	model.EmulatorIDRetroArchGenesisPlusGX: "genesis_plus_gx",
 	model.EmulatorIDRetroArchMupen64Plus:   "mupen64plus_next",
 	model.EmulatorIDRetroArchBeetleSaturn:  "mednafen_saturn",
+	model.EmulatorIDRetroArchBeetlePCE:     "mednafen_pce_fast",
+	model.EmulatorIDRetroArchBeetleNGP:     "mednafen_ngp",
 	model.EmulatorIDRetroArchMGBA:          "mgba",
 	model.EmulatorIDRetroArchMelonDS:       "melondsds",
 	model.EmulatorIDRetroArchCitra:         "citra",
@@ -158,6 +178,8 @@ var coreToSystem = map[model.EmulatorID]model.SystemID{
 	model.EmulatorIDRetroArchGenesisPlusGX: model.SystemIDGenesis,
 	model.EmulatorIDRetroArchMupen64Plus:   model.SystemIDN64,
 	model.EmulatorIDRetroArchBeetleSaturn:  model.SystemIDSaturn,
+	model.EmulatorIDRetroArchBeetlePCE:     model.SystemIDPCEngine,
+	model.EmulatorIDRetroArchBeetleNGP:     model.SystemIDNGP,
 	model.EmulatorIDRetroArchMGBA:          model.SystemIDGBA,
 	model.EmulatorIDRetroArchMelonDS:       model.SystemIDNDS,
 	model.EmulatorIDRetroArchCitra:         model.SystemIDN3DS,

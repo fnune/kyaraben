@@ -3,6 +3,7 @@ package sync
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/fnune/kyaraben/internal/model"
 )
@@ -26,9 +27,11 @@ type DeviceStatus struct {
 
 type FolderStatusSummary struct {
 	ID                 string
+	Label              string
 	Path               string
 	Type               string
 	State              string
+	Error              string
 	Completion         float64
 	GlobalSize         int64
 	LocalSize          int64
@@ -40,6 +43,24 @@ type Conflict struct {
 	Path         string
 	LocalModTime string
 	Size         int64
+}
+
+func FolderLabel(id string) string {
+	id = strings.TrimPrefix(id, "kyaraben-")
+
+	if strings.HasPrefix(id, "frontends-esde-") {
+		rest := strings.TrimPrefix(id, "frontends-esde-")
+		parts := strings.SplitN(rest, "-", 2)
+		if len(parts) == 2 {
+			return fmt.Sprintf("%s (ES-DE %s)", parts[1], parts[0])
+		}
+	}
+
+	parts := strings.SplitN(id, "-", 2)
+	if len(parts) == 2 {
+		return fmt.Sprintf("%s (%s)", parts[1], parts[0])
+	}
+	return id
 }
 
 func (c *Client) GetStatus(ctx context.Context) (*Status, error) {
@@ -82,9 +103,11 @@ func (c *Client) GetStatus(ctx context.Context) (*Status, error) {
 			}
 			folders = append(folders, FolderStatusSummary{
 				ID:                 fc.ID,
+				Label:              FolderLabel(fc.ID),
 				Path:               fc.Path,
 				Type:               fc.Type,
 				State:              fs.State,
+				Error:              fs.Error,
 				GlobalSize:         fs.GlobalBytes,
 				LocalSize:          fs.LocalBytes,
 				NeedSize:           fs.NeedBytes,

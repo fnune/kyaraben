@@ -19,6 +19,8 @@ export const EmulatorIDRetroArchMesen = "retroarch:mesen";
 export const EmulatorIDRetroArchGenesisPlusGX = "retroarch:genesis_plus_gx";
 export const EmulatorIDRetroArchMupen64Plus = "retroarch:mupen64plus_next";
 export const EmulatorIDRetroArchBeetleSaturn = "retroarch:mednafen_saturn";
+export const EmulatorIDRetroArchBeetlePCE = "retroarch:mednafen_pce_fast";
+export const EmulatorIDRetroArchBeetleNGP = "retroarch:mednafen_ngp";
 export const EmulatorIDRetroArchMGBA = "retroarch:mgba";
 export const EmulatorIDRetroArchMelonDS = "retroarch:melonds";
 export const EmulatorIDRetroArchCitra = "retroarch:citra";
@@ -31,7 +33,7 @@ export const EmulatorIDFlycast = "flycast";
 export const EmulatorIDCemu = "cemu";
 export const EmulatorIDDolphin = "dolphin";
 export const EmulatorIDEden = "eden";
-export type EmulatorID = typeof EmulatorIDRetroArch | typeof EmulatorIDRetroArchBsnes | typeof EmulatorIDRetroArchMesen | typeof EmulatorIDRetroArchGenesisPlusGX | typeof EmulatorIDRetroArchMupen64Plus | typeof EmulatorIDRetroArchBeetleSaturn | typeof EmulatorIDRetroArchMGBA | typeof EmulatorIDRetroArchMelonDS | typeof EmulatorIDRetroArchCitra | typeof EmulatorIDDuckStation | typeof EmulatorIDPCSX2 | typeof EmulatorIDRPCS3 | typeof EmulatorIDVita3K | typeof EmulatorIDPPSSPP | typeof EmulatorIDFlycast | typeof EmulatorIDCemu | typeof EmulatorIDDolphin | typeof EmulatorIDEden;
+export type EmulatorID = typeof EmulatorIDRetroArch | typeof EmulatorIDRetroArchBsnes | typeof EmulatorIDRetroArchMesen | typeof EmulatorIDRetroArchGenesisPlusGX | typeof EmulatorIDRetroArchMupen64Plus | typeof EmulatorIDRetroArchBeetleSaturn | typeof EmulatorIDRetroArchBeetlePCE | typeof EmulatorIDRetroArchBeetleNGP | typeof EmulatorIDRetroArchMGBA | typeof EmulatorIDRetroArchMelonDS | typeof EmulatorIDRetroArchCitra | typeof EmulatorIDDuckStation | typeof EmulatorIDPCSX2 | typeof EmulatorIDRPCS3 | typeof EmulatorIDVita3K | typeof EmulatorIDPPSSPP | typeof EmulatorIDFlycast | typeof EmulatorIDCemu | typeof EmulatorIDDolphin | typeof EmulatorIDEden;
 
 //////////
 // source: frontend_id.go
@@ -65,17 +67,25 @@ export const SystemIDPS3 = "ps3";
 export const SystemIDPSP = "psp";
 export const SystemIDPSVita = "psvita";
 export const SystemIDGenesis = "genesis";
+export const SystemIDMasterSystem = "mastersystem";
+export const SystemIDGameGear = "gamegear";
 export const SystemIDSaturn = "saturn";
 export const SystemIDDreamcast = "dreamcast";
-export type SystemID = typeof SystemIDNES | typeof SystemIDSNES | typeof SystemIDN64 | typeof SystemIDGB | typeof SystemIDGBC | typeof SystemIDGBA | typeof SystemIDNDS | typeof SystemIDN3DS | typeof SystemIDGameCube | typeof SystemIDWii | typeof SystemIDWiiU | typeof SystemIDSwitch | typeof SystemIDPSX | typeof SystemIDPS2 | typeof SystemIDPS3 | typeof SystemIDPSP | typeof SystemIDPSVita | typeof SystemIDGenesis | typeof SystemIDSaturn | typeof SystemIDDreamcast;
+export const SystemIDPCEngine = "pcengine";
+export const SystemIDNGP = "ngp";
+export type SystemID = typeof SystemIDNES | typeof SystemIDSNES | typeof SystemIDN64 | typeof SystemIDGB | typeof SystemIDGBC | typeof SystemIDGBA | typeof SystemIDNDS | typeof SystemIDN3DS | typeof SystemIDGameCube | typeof SystemIDWii | typeof SystemIDWiiU | typeof SystemIDSwitch | typeof SystemIDPSX | typeof SystemIDPS2 | typeof SystemIDPS3 | typeof SystemIDPSP | typeof SystemIDPSVita | typeof SystemIDGenesis | typeof SystemIDMasterSystem | typeof SystemIDGameGear | typeof SystemIDSaturn | typeof SystemIDDreamcast | typeof SystemIDPCEngine | typeof SystemIDNGP;
 /**
  * Manufacturer represents the company that made a gaming system.
  */
 export const ManufacturerNintendo = "Nintendo";
 export const ManufacturerSony = "Sony";
 export const ManufacturerSega = "Sega";
+export const ManufacturerNEC = "NEC";
+export const ManufacturerAtari = "Atari";
+export const ManufacturerSNK = "SNK";
+export const ManufacturerBandai = "Bandai";
 export const ManufacturerOther = "Other";
-export type Manufacturer = typeof ManufacturerNintendo | typeof ManufacturerSony | typeof ManufacturerSega | typeof ManufacturerOther;
+export type Manufacturer = typeof ManufacturerNintendo | typeof ManufacturerSony | typeof ManufacturerSega | typeof ManufacturerNEC | typeof ManufacturerAtari | typeof ManufacturerSNK | typeof ManufacturerBandai | typeof ManufacturerOther;
 /**
  * System represents a gaming platform that can be emulated.
  */
