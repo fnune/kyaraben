@@ -147,7 +147,13 @@ func NewConfigStore(fs vfs.FS) *ConfigStore {
 	return &ConfigStore{fs: fs}
 }
 
-func (s *ConfigStore) Load(path string) (*KyarabenConfig, error) {
+type ConfigValidators struct {
+	GetEmulator func(EmulatorID) (Emulator, error)
+	GetSystem   func(SystemID) (System, error)
+	GetFrontend func(FrontendID) (Frontend, error)
+}
+
+func (s *ConfigStore) Load(path string, validators *ConfigValidators) (*KyarabenConfig, error) {
 	data, err := s.fs.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("reading config: %w", err)
@@ -156,7 +162,31 @@ func (s *ConfigStore) Load(path string) (*KyarabenConfig, error) {
 	if _, err := toml.Decode(string(data), &cfg); err != nil {
 		return nil, fmt.Errorf("decoding config: %w", err)
 	}
+	if validators != nil {
+		if err := cfg.validate(validators); err != nil {
+			return nil, err
+		}
+	}
 	return &cfg, nil
+}
+
+func (c *KyarabenConfig) validate(v *ConfigValidators) error {
+	for sysID, emulatorIDs := range c.Systems {
+		if _, err := v.GetSystem(sysID); err != nil {
+			return fmt.Errorf("unknown system %q", sysID)
+		}
+		for _, emuID := range emulatorIDs {
+			if _, err := v.GetEmulator(emuID); err != nil {
+				return fmt.Errorf("system %s: unknown emulator %q", sysID, emuID)
+			}
+		}
+	}
+	for feID := range c.Frontends {
+		if _, err := v.GetFrontend(feID); err != nil {
+			return fmt.Errorf("unknown frontend %q", feID)
+		}
+	}
+	return nil
 }
 
 func (s *ConfigStore) Save(cfg *KyarabenConfig, path string) error {
@@ -183,8 +213,8 @@ func (s *ConfigStore) Save(cfg *KyarabenConfig, path string) error {
 	return nil
 }
 
-func LoadConfig(path string) (*KyarabenConfig, error) {
-	return NewConfigStore(vfs.OSFS).Load(path)
+func LoadConfig(path string, validators *ConfigValidators) (*KyarabenConfig, error) {
+	return NewConfigStore(vfs.OSFS).Load(path, validators)
 }
 
 func SaveConfig(cfg *KyarabenConfig, path string) error {

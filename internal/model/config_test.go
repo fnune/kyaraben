@@ -46,7 +46,7 @@ func TestLoadSaveConfig(t *testing.T) {
 		t.Fatalf("Config file not created: %v", err)
 	}
 
-	loaded, err := store.Load(configPath)
+	loaded, err := store.Load(configPath, nil)
 	if err != nil {
 		t.Fatalf("Load failed: %v", err)
 	}
