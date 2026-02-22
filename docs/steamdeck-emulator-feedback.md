@@ -116,7 +116,7 @@ Low priority or unclear if fixable.
 
 - (RetroArch) No autosave on exit. EmuDeck has `RetroArch_autoSaveOn()` but off by default. Unclear if supportable across all emulators.
 
-- (PPSSPP) Fast forward binding is hold, but most other emulators use toggle. EmuDeck has both `Fast-forward` (hold) and `SpeedToggle` (toggle).
+- (PPSSPP) ~~Fast forward binding is hold, but most other emulators use toggle.~~ Fixed: Now uses `Speed toggle` instead of `Fast-forward`.
 
 - (PPSSPP) ~~Exit shows confirmation "you haven't saved".~~ Fixed: Set `AskForExitConfirmationAfterSeconds = 0`.
 
