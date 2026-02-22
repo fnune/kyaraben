@@ -16,7 +16,7 @@ Issues are ordered by importance (highest first).
 Pairing codes are 6 characters from base32 (32 symbols), giving approximately
 31 bits of entropy (`32^6 = ~10^9`). The relay server has no authentication on
 any endpoint. Anyone who guesses or brute-forces a valid code can retrieve the
-primary device's Syncthing device ID via `GET /pair/{code}`, then submit their
+initiator device's Syncthing device ID via `GET /pair/{code}`, then submit their
 own device ID via `POST /pair/{code}/response` to complete the pairing.
 
 The rate limiter helps (10 creates/min, 30 gets/min per IP), but an attacker

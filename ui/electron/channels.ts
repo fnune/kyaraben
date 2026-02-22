@@ -14,7 +14,7 @@ const DAEMON_CHANNELS = [
   'sync_status',
   'sync_remove_device',
   'sync_start_pairing',
-  'sync_join_primary',
+  'sync_join_peer',
   'sync_cancel_pairing',
   'sync_pending',
   'sync_enable',

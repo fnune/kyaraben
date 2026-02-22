@@ -64,15 +64,15 @@ type XMLGUI struct {
 }
 
 type XMLOptions struct {
-	ListenAddresses        []string `xml:"listenAddress"`
-	GlobalAnnounceEnabled  bool     `xml:"globalAnnounceEnabled"`
-	LocalAnnounceEnabled   bool     `xml:"localAnnounceEnabled"`
-	LocalAnnouncePort      int      `xml:"localAnnouncePort"`
-	NATEnabled             bool     `xml:"natEnabled"`
-	RelaysEnabled          bool     `xml:"relaysEnabled"`
-	CrashReportingEnabled  bool     `xml:"crashReportingEnabled"`
-	URAccepted             int      `xml:"urAccepted"`
-	AutoUpgradeIntervalH   int      `xml:"autoUpgradeIntervalH"`
+	ListenAddresses       []string `xml:"listenAddress"`
+	GlobalAnnounceEnabled bool     `xml:"globalAnnounceEnabled"`
+	LocalAnnounceEnabled  bool     `xml:"localAnnounceEnabled"`
+	LocalAnnouncePort     int      `xml:"localAnnouncePort"`
+	NATEnabled            bool     `xml:"natEnabled"`
+	RelaysEnabled         bool     `xml:"relaysEnabled"`
+	CrashReportingEnabled bool     `xml:"crashReportingEnabled"`
+	URAccepted            int      `xml:"urAccepted"`
+	AutoUpgradeIntervalH  int      `xml:"autoUpgradeIntervalH"`
 }
 
 type XMLDefaults struct {
