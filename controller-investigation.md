@@ -273,4 +273,84 @@ Kyaraben already has hardware detection for Steam Deck. Extension needed:
 
 ## Current status
 
-Pending investigation.
+Kyaraben does NOT generate any controller config for Cemu. Only game paths and update settings are configured.
+
+## Cemu controller system
+
+### Configuration format
+
+Controllers are stored as XML files in `~/.config/Cemu/controllerProfiles/`:
+- `controller0.xml`, `controller1.xml`, etc. for default configs
+- Custom profile names supported
+
+### UUID format
+
+Cemu uses GUID-based identification like Eden:
+- Format: `<index>_<guid_string>`
+- Example: `0_030079f6de280000ff11000001000000`
+- Same `ff11` GUID = Steam Virtual Gamepad
+
+### EmuDeck's approach
+
+EmuDeck ships controller profiles with:
+
+1. **DSUController** for motion/gyro:
+   - API: `DSUController`
+   - IP: `127.0.0.1`, Port: `26760`
+   - `motion: true`
+
+2. **SDLController** for buttons:
+   - API: `SDLController`
+   - UUID: `0_030079f6de280000ff11000001000000` (Steam Virtual Gamepad)
+   - Numeric button mappings (mapping ID → button ID)
+
+Example from EmuDeck's `controller0.xml`:
+```xml
+<emulated_controller>
+    <type>Wii U GamePad</type>
+    <controller>
+        <api>DSUController</api>
+        <uuid>0</uuid>
+        <motion>true</motion>
+        <ip>127.0.0.1</ip>
+        <port>26760</port>
+    </controller>
+    <controller>
+        <api>SDLController</api>
+        <uuid>0_030079f6de280000ff11000001000000</uuid>
+        <display_name>Steam Virtual Gamepad</display_name>
+        <mappings>
+            <entry><mapping>1</mapping><button>1</button></entry>
+            <!-- ... more mappings ... -->
+        </mappings>
+    </controller>
+</emulated_controller>
+```
+
+## Inconsistencies with kyaraben
+
+1. **No controller config generated** - Cemu won't have working controls out of the box
+2. **Same GUID issue as Eden** - `ff11` is Steam Virtual Gamepad, won't work in desktop mode
+3. **Complex XML format** - need to implement XML generation for controller profiles
+
+## Fixes applied
+
+1. Generate `controllerProfiles/controller0.xml` with Steam Deck bindings
+2. Use Cemu-specific GUID `030079f6de280000ff11000001000000` (with CRC, unlike Eden)
+3. Map all VPAD buttons to SDL buttons
+4. Support face button layout (Nintendo vs Xbox) via `cc.FaceButtons()`
+
+## Decision: Cemu
+
+Same approach as Eden and Dolphin: Ship Steam Deck Game Mode support only.
+
+### Key difference from Eden
+
+Cemu does NOT normalize the GUID CRC bytes. Must use the exact GUID that SDL reports:
+- Eden: `03000000de280000ff11000001000000` (zeroed CRC)
+- Cemu: `030079f6de280000ff11000001000000` (with CRC `79f6`)
+
+### Future work
+
+- Hardware detection to ship controller-specific GUIDs
+- Consider whether to support DSUController for motion
