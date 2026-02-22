@@ -436,6 +436,10 @@ export function setupFakeSyncthingApi(
   fs.writeFileSync(fakeBinaryPath, '#!/bin/sh\necho "fake syncthing"')
   fs.chmodSync(fakeBinaryPath, 0o755)
 
+  const syncthingConfigDir = path.join(fixture.stateDir, 'kyaraben', 'syncthing', 'config')
+  fs.mkdirSync(syncthingConfigDir, { recursive: true })
+  fs.writeFileSync(path.join(syncthingConfigDir, '.apikey'), 'fake-api-key-for-e2e-tests')
+
   const manifestPath = path.join(fixture.stateDir, 'kyaraben', 'build', 'manifest.json')
   if (fs.existsSync(manifestPath)) {
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'))
