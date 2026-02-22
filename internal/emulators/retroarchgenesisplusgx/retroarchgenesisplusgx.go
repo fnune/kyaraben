@@ -20,6 +20,9 @@ func (Definition) Emulator() model.Emulator {
 			MinRequired: 0,
 			Message:     "Optional boot ROM for startup animation",
 			Provisions:  bootROMProvisions,
+			BaseDir: func(store model.StoreReader, _ model.SystemID) string {
+				return store.SystemBiosDir(model.SystemIDGenesis)
+			},
 		}},
 		StateKinds: []model.StateKind{
 			model.StateSaves,
