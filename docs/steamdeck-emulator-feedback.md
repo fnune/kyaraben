@@ -68,8 +68,8 @@ Config exists but something isn't working, or requires more complex setup.
 
 ### Duckstation (PS1)
 
-- Exit hotkey not working (does nothing).
-  - EmuDeck: Uses `PowerOff = SDL-0/Back & SDL-0/Start` chord.
+- [x] Exit hotkey not working (does nothing).
+  - Fix: Added `PowerOff` hotkey mapping (was only setting `Exit` which opens menu instead of exiting).
 
 ### Eden (Switch)
 
@@ -81,28 +81,28 @@ Config exists but something isn't working, or requires more complex setup.
 
 ### PCSX2 (PS2)
 
-- Exit hotkey goes to emulator UI instead of exiting to ESDE.
-  - EmuDeck: Sets `StartFullscreen = true` but `HideMainWindowWhenRunning = false`. Needs investigation.
+- [ ] Exit hotkey goes to emulator UI instead of exiting to ESDE.
+  - Emulator limitation: PCSX2's `ShutdownVM` exits the game but returns to PCSX2's UI. There's no "power off entire emulator" hotkey. EmuDeck has the same behavior.
 
 ### PPSSPP (PSP)
 
-- Back + A opens save state menu. Actual save/load state hotkeys don't work.
-  - EmuDeck: `Save State = 10-196:10-192,1-132`, `Load State = 10-196:10-193,1-133`.
+- [x] Back + A opens save state menu. Actual save/load state hotkeys don't work.
+  - Fix: Corrected L/R keycodes (L=193, R=192). Keycodes were swapped.
 
 ### Dolphin (GameCube/Wii)
 
-- Hotkeys other than exit don't work.
-  - EmuDeck: Sets `Device = SDL/0/Steam Deck Controller` in Hotkeys.ini. Bindings: `Back+Button S`=pause, `Back+Button W`=stop, `Back+Start`=exit, `Back+Shoulder L/R`=load/save state.
+- [x] Hotkeys other than exit don't work.
+  - Fix: Added Hotkeys.ini config with Dolphin-specific button naming (backticks and compass directions).
 
 ### Azahar (3DS)
 
-- Inputs not working at all.
-  - EmuDeck: Uses GUID `030079f6de280000ff11000001000000` with SDL engine. Full mapping in qt-config.ini.
+- [x] Inputs not working at all.
+  - Fix: Changed to Azahar-specific GUID `030079f6de280000ff11000001000000` and swapped L/R (now triggers) with ZL/ZR (now shoulder buttons).
 
 ### Flycast (Dreamcast)
 
-- Pressing modifier key alone opens Flycast menu. Expected: modifier + key triggers action.
-  - EmuDeck: Maps `btn_menu` directly to button 6. Flycast has no "hotkey enable" mechanism. May be emulator limitation.
+- [ ] Pressing modifier key alone opens Flycast menu. Expected: modifier + key triggers action.
+  - Emulator limitation: Flycast has no "hotkey enable" mechanism. EmuDeck has the same behavior.
 
 ---
 
