@@ -101,6 +101,8 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		{Path: []string{"UI", "Paths\\gamedirs\\1\\path"}, Value: store.SystemRomsDir(model.SystemIDSwitch)},
 	}
 
+	entries = append(entries, performanceEntries()...)
+
 	var patches []model.ConfigPatch
 
 	if cc := ctx.ControllerConfig; cc != nil {
@@ -135,6 +137,41 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		Patches:  patches,
 		Symlinks: symlinks,
 	}, nil
+}
+
+func performanceEntries() []model.ConfigEntry {
+	return []model.ConfigEntry{
+		{Path: []string{"Core", "use_multi_core"}, Value: "true", DefaultOnly: true},
+		{Path: []string{"Core", "use_multi_core\\default"}, Value: "true"},
+		{Path: []string{"Cpu", "cpu_accuracy"}, Value: "0", DefaultOnly: true},
+		{Path: []string{"Cpu", "cpu_accuracy\\default"}, Value: "false"},
+		{Path: []string{"Renderer", "backend"}, Value: "1", DefaultOnly: true},
+		{Path: []string{"Renderer", "backend\\default"}, Value: "false"},
+		{Path: []string{"Renderer", "gpu_accuracy"}, Value: "0", DefaultOnly: true},
+		{Path: []string{"Renderer", "gpu_accuracy\\default"}, Value: "false"},
+		{Path: []string{"Renderer", "use_asynchronous_gpu_emulation"}, Value: "true", DefaultOnly: true},
+		{Path: []string{"Renderer", "use_asynchronous_gpu_emulation\\default"}, Value: "true"},
+		{Path: []string{"Renderer", "use_asynchronous_shaders"}, Value: "true", DefaultOnly: true},
+		{Path: []string{"Renderer", "use_asynchronous_shaders\\default"}, Value: "false"},
+		{Path: []string{"Renderer", "use_disk_shader_cache"}, Value: "true", DefaultOnly: true},
+		{Path: []string{"Renderer", "use_disk_shader_cache\\default"}, Value: "true"},
+		{Path: []string{"Renderer", "use_fast_gpu_time"}, Value: "true", DefaultOnly: true},
+		{Path: []string{"Renderer", "use_fast_gpu_time\\default"}, Value: "true"},
+		{Path: []string{"Renderer", "resolution_setup"}, Value: "2", DefaultOnly: true},
+		{Path: []string{"Renderer", "resolution_setup\\default"}, Value: "false"},
+		{Path: []string{"Renderer", "scaling_filter"}, Value: "5", DefaultOnly: true},
+		{Path: []string{"Renderer", "scaling_filter\\default"}, Value: "false"},
+		{Path: []string{"Renderer", "fsr_sharpening_slider"}, Value: "25", DefaultOnly: true},
+		{Path: []string{"Renderer", "fsr_sharpening_slider\\default"}, Value: "false"},
+		{Path: []string{"Renderer", "use_vsync"}, Value: "2", DefaultOnly: true},
+		{Path: []string{"Renderer", "use_vsync\\default"}, Value: "false"},
+		{Path: []string{"Renderer", "fullscreen_mode"}, Value: "1", DefaultOnly: true},
+		{Path: []string{"Renderer", "fullscreen_mode\\default"}, Value: "false"},
+		{Path: []string{"Renderer", "fps_cap"}, Value: "1000", DefaultOnly: true},
+		{Path: []string{"Renderer", "fps_cap\\default"}, Value: "false"},
+		{Path: []string{"System", "use_docked_mode"}, Value: "1", DefaultOnly: true},
+		{Path: []string{"System", "use_docked_mode\\default"}, Value: "false"},
+	}
 }
 
 // Steam Deck raw joystick button indices. Eden uses raw SDL joystick API
