@@ -42,7 +42,8 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
           <button
             type="button"
             onClick={onClose}
-            className="text-on-surface-dim hover:text-on-surface-secondary"
+            className="p-2 -m-2 text-2xl leading-none text-on-surface-dim hover:text-on-surface-secondary"
+            aria-label="Close"
           >
             &times;
           </button>
