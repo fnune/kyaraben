@@ -282,7 +282,7 @@ function AppContent() {
         savedConfigState.current = cloneConfigState(parsed)
         setConfigReady(true)
       } else {
-        showToast('Failed to load configuration.', 'error')
+        showToast(`Failed to load configuration: ${configResult.error.message}`, 'error')
       }
 
       if (statusResult.ok) {
