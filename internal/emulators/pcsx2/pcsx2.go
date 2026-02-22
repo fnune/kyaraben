@@ -34,11 +34,11 @@ func (Definition) Emulator() model.Emulator {
 			GenericName: "PlayStation 2 Emulator",
 			Categories:  []string{"Game", "Emulator"},
 			RomCommand: func(opts model.RomLaunchOptions) string {
-				cmd := opts.BinaryPath
+				cmd := opts.BinaryPath + " -batch"
 				if opts.Fullscreen {
 					cmd += " -fullscreen"
 				}
-				cmd += " %ROM%"
+				cmd += " -- %ROM%"
 				return cmd
 			},
 		},
