@@ -45,10 +45,10 @@ describe('ActivityCard', () => {
         />,
       )
 
-      expect(screen.getByText('All synced')).toBeInTheDocument()
+      expect(screen.getByText('All synchronized')).toBeInTheDocument()
     })
 
-    it('shows last sync time when available', () => {
+    it('shows last synchronized time when available', () => {
       const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000)
       render(
         <ActivityCard
@@ -59,7 +59,7 @@ describe('ActivityCard', () => {
         />,
       )
 
-      expect(screen.getByText('Last sync: 10m ago')).toBeInTheDocument()
+      expect(screen.getByText('Last synchronized: 10m ago')).toBeInTheDocument()
     })
   })
 

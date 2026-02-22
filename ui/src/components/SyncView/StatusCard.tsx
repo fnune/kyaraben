@@ -503,7 +503,7 @@ export function StatusCard({
           ?
         </p>
         <p className="text-sm text-on-surface-muted mb-6">
-          This device will no longer sync with you. You can pair again later if needed.
+          This device will no longer synchronize with you. You can pair again later if needed.
         </p>
         <div className="flex gap-3 justify-end">
           <Button variant="secondary" onClick={() => setDeviceToRemove(null)}>
