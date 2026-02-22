@@ -8,9 +8,9 @@ Testing after emulator config fixes.
 
 ## Dolphin (GameCube/Wii)
 
-- [ ] Speed hotkey is hold, not toggle
-- [ ] Load state hotkey not working (save state works)
-- [ ] Still asks for confirmation before shutting down
+- [ ] Speed hotkey is hold, not toggle (EmuDeck also uses hold, this is Dolphin's design)
+- [x] Fixed: Load state key was wrong section (Save State/ -> Load State/)
+- [x] Fixed: ConfirmStop was in wrong section (General -> Interface)
 
 ## PCSX2 (PS2)
 
@@ -22,9 +22,9 @@ Testing after emulator config fixes.
 
 ## DuckStation (PS1)
 
-- [ ] Exit hotkey works but asks for confirmation
-- [ ] "Save state" enabled by default in exit dialog (should not autosave)
-- [ ] Exits to emulator GUI, not ESDE
+- [x] Fixed: ConfirmPowerOff = false disables confirmation dialog
+- [x] Fixed: SaveStateOnExit = false disables auto-save
+- [x] Fixed: Added -batch flag to exit completely instead of returning to GUI
 
 ## Eden (Switch)
 
@@ -32,8 +32,8 @@ Testing after emulator config fixes.
 
 ## PPSSPP (PSP)
 
-- [ ] Shows "press esc to open the pause menu" message
-- [ ] Save state hotkeys do not work
+- [x] Fixed: Added FirstRun = False to suppress startup messages
+- [x] Fixed: L/R keycodes updated to match EmuDeck (L=193, R=192)
 
 ## Azahar (3DS)
 
@@ -42,7 +42,7 @@ Testing after emulator config fixes.
 
 ## Flycast (Dreamcast)
 
-- [ ] Still broken, need to intentionally unmap btn_menu hotkey
+- [x] Fixed: switched to controller_neptune mapping, no btn_menu binding
 
 ## ES-DE
 
