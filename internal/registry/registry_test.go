@@ -3,7 +3,7 @@ package registry
 import (
 	"testing"
 
-	"github.com/fnune/kyaraben/internal/emulators/azahar"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchcitra"
 	"github.com/fnune/kyaraben/internal/emulators/cemu"
 	"github.com/fnune/kyaraben/internal/emulators/dolphin"
 	"github.com/fnune/kyaraben/internal/emulators/duckstation"
@@ -82,7 +82,7 @@ func TestAllDefinitions(t *testing.T) {
 		ppsspp.Definition{},
 		flycast.Definition{},
 		cemu.Definition{},
-		azahar.Definition{},
+		retroarchcitra.Definition{},
 		dolphin.Definition{},
 		eden.Definition{},
 	}
@@ -192,7 +192,7 @@ func TestRegistryGetEmulator(t *testing.T) {
 		{model.EmulatorIDRetroArchMelonDS, false},
 		{model.EmulatorIDFlycast, false},
 		{model.EmulatorIDCemu, false},
-		{model.EmulatorIDAzahar, false},
+		{model.EmulatorIDRetroArchCitra, false},
 		{model.EmulatorIDDolphin, false},
 		{model.EmulatorIDEden, false},
 		{model.EmulatorID("unknown"), true},
@@ -227,7 +227,7 @@ func TestRegistryGetEmulatorsForSystem(t *testing.T) {
 		{model.SystemIDGBC, 1, []model.EmulatorID{model.EmulatorIDRetroArchMGBA}},
 		{model.SystemIDGBA, 1, []model.EmulatorID{model.EmulatorIDRetroArchMGBA}},
 		{model.SystemIDNDS, 1, []model.EmulatorID{model.EmulatorIDRetroArchMelonDS}},
-		{model.SystemIDN3DS, 1, []model.EmulatorID{model.EmulatorIDAzahar}},
+		{model.SystemIDN3DS, 1, []model.EmulatorID{model.EmulatorIDRetroArchCitra}},
 		{model.SystemIDGameCube, 1, []model.EmulatorID{model.EmulatorIDDolphin}},
 		{model.SystemIDWii, 1, []model.EmulatorID{model.EmulatorIDDolphin}},
 		{model.SystemIDWiiU, 1, []model.EmulatorID{model.EmulatorIDCemu}},
@@ -279,7 +279,7 @@ func TestRegistryGetDefaultEmulator(t *testing.T) {
 		{model.SystemIDGBC, model.EmulatorIDRetroArchMGBA, false},
 		{model.SystemIDGBA, model.EmulatorIDRetroArchMGBA, false},
 		{model.SystemIDNDS, model.EmulatorIDRetroArchMelonDS, false},
-		{model.SystemIDN3DS, model.EmulatorIDAzahar, false},
+		{model.SystemIDN3DS, model.EmulatorIDRetroArchCitra, false},
 		{model.SystemIDGameCube, model.EmulatorIDDolphin, false},
 		{model.SystemIDWii, model.EmulatorIDDolphin, false},
 		{model.SystemIDWiiU, model.EmulatorIDCemu, false},
@@ -387,7 +387,7 @@ func TestGetConfigGenerator(t *testing.T) {
 		{model.EmulatorIDRetroArchMelonDS, true},
 		{model.EmulatorIDFlycast, true},
 		{model.EmulatorIDCemu, true},
-		{model.EmulatorIDAzahar, true},
+		{model.EmulatorIDRetroArchCitra, true},
 		{model.EmulatorIDDolphin, true},
 		{model.EmulatorIDEden, true},
 		{model.EmulatorID("unknown"), false},

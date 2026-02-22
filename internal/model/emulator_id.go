@@ -18,6 +18,7 @@ const (
 	EmulatorIDRetroArchBeetleSaturn  EmulatorID = "retroarch:mednafen_saturn"
 	EmulatorIDRetroArchMGBA          EmulatorID = "retroarch:mgba"
 	EmulatorIDRetroArchMelonDS       EmulatorID = "retroarch:melonds"
+	EmulatorIDRetroArchCitra         EmulatorID = "retroarch:citra"
 	EmulatorIDDuckStation            EmulatorID = "duckstation"
 	EmulatorIDPCSX2                  EmulatorID = "pcsx2"
 	EmulatorIDRPCS3                  EmulatorID = "rpcs3"
@@ -25,7 +26,6 @@ const (
 	EmulatorIDPPSSPP                 EmulatorID = "ppsspp"
 	EmulatorIDFlycast                EmulatorID = "flycast"
 	EmulatorIDCemu                   EmulatorID = "cemu"
-	EmulatorIDAzahar                 EmulatorID = "azahar"
 	EmulatorIDDolphin                EmulatorID = "dolphin"
 	EmulatorIDEden                   EmulatorID = "eden"
 )

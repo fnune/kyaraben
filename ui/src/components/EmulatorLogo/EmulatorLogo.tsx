@@ -1,4 +1,3 @@
-import azahar from '@/assets/emulators/azahar.png'
 import cemu from '@/assets/emulators/cemu.png'
 import dolphin from '@/assets/emulators/dolphin.png'
 import duckstation from '@/assets/emulators/duckstation.png'
@@ -14,7 +13,6 @@ import vita3k from '@/assets/emulators/vita3k.png'
 import type { EmulatorID } from '@/types/daemon'
 
 const EMULATOR_LOGOS: Partial<Record<EmulatorID, string>> = {
-  azahar,
   cemu,
   dolphin,
   duckstation,
@@ -32,6 +30,7 @@ const EMULATOR_LOGOS: Partial<Record<EmulatorID, string>> = {
   'retroarch:mednafen_saturn': retroarch,
   'retroarch:mgba': mgba,
   'retroarch:melonds': melonds,
+  'retroarch:citra': retroarch,
 }
 
 export function getEmulatorLogo(emulatorId: EmulatorID): string | undefined {

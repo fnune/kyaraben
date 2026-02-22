@@ -20,6 +20,7 @@ genesis_plus_gx = "genesis_plus_gx_libretro.so"
 mupen64plus_next = "mupen64plus_next_libretro.so"
 mednafen_saturn = "mednafen_saturn_libretro.so"
 mgba = "mgba_libretro.so"
+citra = "citra_libretro.so"
 
 # Standalone cores downloaded separately (not in the buildbot bundle)
 [retroarch-cores.standalone.melonds]
@@ -37,6 +38,7 @@ mupen64plus_next = 8725856
 mednafen_saturn = 8316472
 mgba = 1466704
 melonds = 4070336
+citra = 32347128
 
 # ============================================================================
 # EDEN - Nintendo Switch emulator (pilot for multi-version support)
@@ -167,22 +169,6 @@ size = 61423960
 variant = "x86_64"
 sha256 = "sha256-kqHwgSMICb0Kwwsij3LG2Meqfqo+Vt9M+K1U1MmScJc="
 size = 61235610
-
-# ============================================================================
-# AZAHAR - Nintendo 3DS emulator
-# https://github.com/azahar-emu/azahar/releases
-# ============================================================================
-
-[azahar]
-url_template = "https://github.com/azahar-emu/azahar/releases/download/{version}/azahar.AppImage"
-default = "2124.3"
-icon_url = "https://github.com/azahar-emu/azahar/raw/dd65ef47491ff659b02ed1257411317ab4975f29/dist/apple/launch_logo.png"
-icon_sha256 = "sha256-faLnIedyniDyjzgYf9ct6I9PEKVcQH3bkcMhktGqmV8="
-
-[azahar."2124.3".targets.x64]
-variant = "x86_64"
-sha256 = "sha256-HkmgFkvxmZC/REe8KF8jmXuSMYnzbt18/r/TGO9e2vM="
-size = 101396070
 
 # ============================================================================
 # DOLPHIN - GameCube/Wii emulator (unofficial AppImage)

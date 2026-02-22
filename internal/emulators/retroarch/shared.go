@@ -149,6 +149,7 @@ var coreShortNames = map[model.EmulatorID]string{
 	model.EmulatorIDRetroArchBeetleSaturn:  "mednafen_saturn",
 	model.EmulatorIDRetroArchMGBA:          "mgba",
 	model.EmulatorIDRetroArchMelonDS:       "melondsds",
+	model.EmulatorIDRetroArchCitra:         "citra",
 }
 
 var coreToSystem = map[model.EmulatorID]model.SystemID{
@@ -159,6 +160,7 @@ var coreToSystem = map[model.EmulatorID]model.SystemID{
 	model.EmulatorIDRetroArchBeetleSaturn:  model.SystemIDSaturn,
 	model.EmulatorIDRetroArchMGBA:          model.SystemIDGBA,
 	model.EmulatorIDRetroArchMelonDS:       model.SystemIDNDS,
+	model.EmulatorIDRetroArchCitra:         model.SystemIDN3DS,
 }
 
 func CoreShortName(emuID model.EmulatorID) string {
