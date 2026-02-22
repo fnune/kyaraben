@@ -39,34 +39,13 @@ relay bypasses this by trading security for UX convenience.
 - Consider requiring confirmation of the paired device before completing
   pairing (the current flow auto-accepts any device that submits a response).
 
-## 2. Global discovery and local announce are enabled
+## 2. ~~Global discovery enabled by default~~ (fixed)
 
 **Severity: medium**
 
-`internal/sync/config.go:174-175`:
-```go
-GlobalAnnounceEnabled: true,
-LocalAnnounceEnabled:  true,
-```
-
-These match Syncthing defaults but expose the device to the global discovery
-network and local network broadcast discovery. In kyaraben's context, this means:
-
-- The device's Syncthing ID, IP address, and listen port are announced to
-  Syncthing's global discovery servers, making it discoverable by anyone who
-  knows the device ID.
-- Local announce broadcasts on the LAN can reveal the Syncthing instance to
-  other devices on the same network.
-
-This is the expected behavior for Syncthing's peer-to-peer model, but it means
-kyaraben devices are visible on the public discovery network.
-
-**Suggestions:**
-- Consider whether global announce is needed given that the relay server already
-  handles device discovery for pairing. Disabling it would reduce the device's
-  public footprint.
-- At minimum, document this behavior so users understand their device is
-  announced publicly.
+Fixed: global discovery is now disabled by default. A toggle has been added to
+the sync settings UI so users can enable it when they need cross-network sync.
+Local discovery remains enabled for LAN pairing.
 
 ## 3. Syncthing listen port binds to 0.0.0.0
 

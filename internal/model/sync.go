@@ -8,11 +8,12 @@ type SyncConfig struct {
 }
 
 type SyncthingConfig struct {
-	ListenPort    int    `toml:"listen_port"`
-	DiscoveryPort int    `toml:"discovery_port"`
-	GUIPort       int    `toml:"gui_port"`
-	RelayEnabled  bool   `toml:"relay_enabled"`
-	BaseURL       string `toml:"base_url,omitempty"`
+	ListenPort             int    `toml:"listen_port"`
+	DiscoveryPort          int    `toml:"discovery_port"`
+	GUIPort                int    `toml:"gui_port"`
+	RelayEnabled           bool   `toml:"relay_enabled"`
+	GlobalDiscoveryEnabled bool   `toml:"global_discovery_enabled"`
+	BaseURL                string `toml:"base_url,omitempty"`
 }
 
 type SyncIgnoreConfig struct {

@@ -22,6 +22,7 @@ const DAEMON_CHANNELS = [
   'sync_local_changes',
   'sync_reset',
   'sync_discovered_devices',
+  'sync_set_settings',
   'uninstall_preview',
   'refresh_icon_caches',
   'get_storage_devices',

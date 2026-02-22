@@ -202,18 +202,19 @@ const (
 )
 
 type SyncStatusResponse struct {
-	Enabled          bool          `json:"enabled"`
-	Running          bool          `json:"running,omitempty"`
-	Installed        bool          `json:"installed,omitempty"`
-	ServiceInstalled bool          `json:"serviceInstalled,omitempty"`
-	DeviceID         string        `json:"deviceId,omitempty"`
-	GUIURL           string        `json:"guiURL,omitempty"`
-	State            SyncState     `json:"state,omitempty"`
-	Devices          []SyncDevice  `json:"devices,omitempty"`
-	Folders          []SyncFolder  `json:"folders,omitempty"`
-	Pairing          bool          `json:"pairing,omitempty"`
-	Progress         *SyncProgress `json:"progress,omitempty"`
-	ServiceError     string        `json:"serviceError,omitempty"`
+	Enabled                bool          `json:"enabled"`
+	Running                bool          `json:"running,omitempty"`
+	Installed              bool          `json:"installed,omitempty"`
+	ServiceInstalled       bool          `json:"serviceInstalled,omitempty"`
+	DeviceID               string        `json:"deviceId,omitempty"`
+	GUIURL                 string        `json:"guiURL,omitempty"`
+	State                  SyncState     `json:"state,omitempty"`
+	Devices                []SyncDevice  `json:"devices,omitempty"`
+	Folders                []SyncFolder  `json:"folders,omitempty"`
+	Pairing                bool          `json:"pairing,omitempty"`
+	Progress               *SyncProgress `json:"progress,omitempty"`
+	ServiceError           string        `json:"serviceError,omitempty"`
+	GlobalDiscoveryEnabled bool          `json:"globalDiscoveryEnabled,omitempty"`
 }
 
 type SyncProgress struct {
@@ -316,6 +317,14 @@ type SyncEnableResponse struct {
 type SyncResetResponse struct {
 	Success      bool     `json:"success"`
 	RemovedFiles []string `json:"removedFiles,omitempty"`
+}
+
+type SyncSetSettingsRequest struct {
+	GlobalDiscoveryEnabled *bool `json:"globalDiscoveryEnabled,omitempty"`
+}
+
+type SyncSetSettingsResponse struct {
+	Success bool `json:"success"`
 }
 
 type SyncDiscoveredDevice struct {

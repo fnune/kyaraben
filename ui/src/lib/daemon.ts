@@ -22,6 +22,8 @@ import type {
   SyncResetResponse,
   SyncRevertFolderRequest,
   SyncRevertFolderResponse,
+  SyncSetSettingsRequest,
+  SyncSetSettingsResponse,
   SyncStartPairingResponse,
   SyncStatusResponse,
   System,
@@ -95,6 +97,9 @@ export const resetSync = () => invoke<SyncResetResponse>('sync_reset')
 
 export const getDiscoveredDevices = () =>
   invoke<SyncDiscoveredDevicesResponse>('sync_discovered_devices')
+
+export const setSyncSettings = (req: SyncSetSettingsRequest) =>
+  invoke<SyncSetSettingsResponse>('sync_set_settings', req)
 
 export const getUninstallPreview = () => invoke<UninstallPreviewResponse>('uninstall_preview')
 
