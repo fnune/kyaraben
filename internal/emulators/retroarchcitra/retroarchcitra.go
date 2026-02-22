@@ -51,7 +51,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	patches = append(patches, model.ConfigPatch{
 		Target: coreOptionsTarget,
 		Entries: []model.ConfigEntry{
-			{Path: []string{"citra_resolution_factor"}, Value: "2", DefaultOnly: true},
+			{Path: []string{"citra_resolution_factor"}, Value: "2x", DefaultOnly: true},
 		},
 	})
 
