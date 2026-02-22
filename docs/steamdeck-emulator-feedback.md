@@ -49,14 +49,14 @@ Config exists but something isn't working, or requires more complex setup.
 
 ### RetroArch (general)
 
-- Quit keybind needs to be pressed twice to exit.
-  - EmuDeck: Uses `input_exit_emulator_btn = "6"` with `input_enable_hotkey_btn = "4"`.
+- [x] Quit keybind needs to be pressed twice to exit.
+  - Fix: Set `quit_press_twice = "false"`.
 
-- Fonts not loading. Possibly broken by recent asset extraction work (PR #31).
-  - EmuDeck: Sets `bundle_assets_extract_enable = "false"` and downloads assets from `https://buildbot.libretro.com/assets/`.
+- [x] Fonts not loading. Possibly broken by recent asset extraction work (PR #31).
+  - Fix: Extract assets/autoconfig subdirs even when config dir already exists.
 
-- Notification: "Valve streaming [controller] not configured, using fallback".
-  - EmuDeck: Downloads autoconfig profiles from `https://buildbot.libretro.com/assets/frontend/autoconfig.zip`.
+- [x] Notification: "Valve streaming [controller] not configured, using fallback".
+  - Fix: Same as above - autoconfig now extracted from AppImage.
 
 ### N64 (RetroArch)
 
