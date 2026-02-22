@@ -195,7 +195,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
       setProgressSteps((prev) =>
         prev.map((s) => ({ ...s, status: s.status === 'in_progress' ? 'error' : s.status })),
       )
-      showToast('Installation failed.', 'error')
+      showToast(`Installation failed: ${message}`, 'error')
       return false
     } finally {
       window.electron.off('apply:progress')
