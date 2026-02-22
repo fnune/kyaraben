@@ -259,7 +259,7 @@ test.describe('Sync view with folder in error state', () => {
 
   test('shows error state in activity card with folder name and error message', async () => {
     await navigateToSync(ctx.page)
-    await expect(ctx.page.getByText('Sync error')).toBeVisible()
+    await expect(ctx.page.getByText('Synchronization error')).toBeVisible()
     await expect(ctx.page.getByText('saves')).toBeVisible()
     await expect(ctx.page.getByText('folder path missing')).toBeVisible()
   })
@@ -486,7 +486,7 @@ test.describe('Sync view remove device flow', () => {
     await expect(dialog).toBeVisible()
     await expect(dialog.getByText('Are you sure you want to remove')).toBeVisible()
     await expect(dialog.getByText('Old Device')).toBeVisible()
-    await expect(dialog.getByText('This device will no longer sync with you')).toBeVisible()
+    await expect(dialog.getByText('This device will no longer synchronize with you')).toBeVisible()
     await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeVisible()
     await expect(dialog.getByRole('button', { name: 'Remove device' })).toBeVisible()
 
@@ -536,7 +536,7 @@ test.describe('Relay pairing - primary shows pairing code', () => {
   })
 
   test('can reveal device ID in pairing mode', async () => {
-    await ctx.page.getByText('Show device ID').click()
+    await ctx.page.getByText('Use device ID instead').click()
     await expect(ctx.page.locator('code').filter({ hasText: /-/ })).toBeVisible()
   })
 

@@ -24,8 +24,12 @@ func (h *UIHandler) Enabled(_ context.Context, level slog.Level) bool {
 	return level >= h.level.Level()
 }
 
-func (h *UIHandler) Handle(_ context.Context, r slog.Record) error {
+func (h *UIHandler) Handle(ctx context.Context, r slog.Record) error {
 	if h.callback == nil {
+		return nil
+	}
+
+	if !hasUISession(ctx) {
 		return nil
 	}
 

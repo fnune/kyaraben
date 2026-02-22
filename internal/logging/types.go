@@ -1,5 +1,7 @@
 package logging
 
+import "context"
+
 type LogLevel string
 
 const (
@@ -15,4 +17,15 @@ type LogEntry struct {
 	Message   string         `json:"message"`
 	Timestamp string         `json:"timestamp"`
 	Attrs     map[string]any `json:"attrs,omitempty"`
+}
+
+type uiSessionKey struct{}
+
+func WithUISession(ctx context.Context) context.Context {
+	return context.WithValue(ctx, uiSessionKey{}, true)
+}
+
+func hasUISession(ctx context.Context) bool {
+	_, ok := ctx.Value(uiSessionKey{}).(bool)
+	return ok
 }

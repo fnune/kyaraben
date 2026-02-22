@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -142,16 +143,32 @@ func (l *Logger) Info(format string, args ...interface{}) {
 	l.slog().Info(l.formatMessage(format, args...))
 }
 
+func (l *Logger) InfoCtx(ctx context.Context, format string, args ...interface{}) {
+	l.slog().InfoContext(ctx, l.formatMessage(format, args...))
+}
+
 func (l *Logger) Error(format string, args ...interface{}) {
 	l.slog().Error(l.formatMessage(format, args...))
+}
+
+func (l *Logger) ErrorCtx(ctx context.Context, format string, args ...interface{}) {
+	l.slog().ErrorContext(ctx, l.formatMessage(format, args...))
 }
 
 func (l *Logger) Warn(format string, args ...interface{}) {
 	l.slog().Warn(l.formatMessage(format, args...))
 }
 
+func (l *Logger) WarnCtx(ctx context.Context, format string, args ...interface{}) {
+	l.slog().WarnContext(ctx, l.formatMessage(format, args...))
+}
+
 func (l *Logger) Debug(format string, args ...interface{}) {
 	l.slog().Debug(l.formatMessage(format, args...))
+}
+
+func (l *Logger) DebugCtx(ctx context.Context, format string, args ...interface{}) {
+	l.slog().DebugContext(ctx, l.formatMessage(format, args...))
 }
 
 func getDefaultLogger() *slog.Logger {
