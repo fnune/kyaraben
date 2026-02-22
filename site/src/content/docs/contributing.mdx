@@ -61,8 +61,8 @@ that can spin up isolated environments, run commands, and assert on outcomes
 makes writing new tests trivial.
 
 - Unit tests cover pure logic
-- Integration tests use fakes for external dependencies (e.g., the Nix client)
-- E2E tests invoke the real system, including actual Nix builds
+- Integration tests use fakes for external dependencies
+- E2E tests invoke the real system
 
 For UI E2E tests, follow the
 [Playwright best practices](https://playwright.dev/docs/best-practices). Prefer
@@ -91,8 +91,7 @@ Two distinct storage areas:
 ```
 KyarabenState (XDG)
 ├── ~/.config/kyaraben/          # KyarabenConfig
-├── ~/.local/share/kyaraben/     # Nix store, emulator binaries
-└── ~/.local/state/kyaraben/     # Manifest, runtime state
+└── ~/.local/state/kyaraben/     # Emulator binaries, manifest, runtime state
 
 UserStore (e.g., ~/Emulation)
 ├── roms/
@@ -111,7 +110,6 @@ internal/
 ├── registry/        # System and emulator registry
 ├── emulators/       # Per-emulator config generators
 ├── systems/         # Per-system definitions
-├── nix/             # Nix flake generation and execution
 ├── apply/           # Apply orchestration
 ├── daemon/          # Daemon protocol and handlers
 ├── cli/             # CLI commands
@@ -164,22 +162,15 @@ Events: `ready`, `result`, `progress`, `error`, `cancelled`.
 4. Add an entry to `internal/versions/versions.toml` with the download URL
    and SHA256 hash
 5. Add a field to `internal/versions/versions.go`
-6. Add a case to `internal/nix/flake.go`
-7. Implement `ConfigGenerator` for the emulator
-8. Compute the SHA256 hash:
-   ```bash
-   nix-prefetch-url <url>
-   nix hash convert --to sri --hash-algo sha256 <hash>
-   ```
-9. Add emulator logo mapping to `ui/src/components/EmulatorLogo/EmulatorLogo.tsx`
-10. Test installation and configuration
+6. Implement `ConfigGenerator` for the emulator
+7. Add emulator logo mapping to `ui/src/components/EmulatorLogo/EmulatorLogo.tsx`
+8. Test installation and configuration
 
 For RetroArch cores, also add the core size to `[retroarch-cores.sizes]` in
 `internal/versions/versions.toml`. This enables download progress indication.
 Get the size by extracting the core from the buildbot archive:
 
 ```bash
-nix-shell -p p7zip
 7z l RetroArch_cores.7z | grep <core_name>
 ```
 
@@ -435,7 +426,7 @@ The Go daemon writes to `~/.local/state/kyaraben/kyaraben.log`. Use the
 logging package for all Go log output:
 
 ```go
-var log = logging.New("nix")
+var log = logging.New("apply")
 
 func DoSomething() {
     log.Info("starting operation")
