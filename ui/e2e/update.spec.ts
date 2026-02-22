@@ -28,7 +28,7 @@ test.describe('Update checking', () => {
     })
 
     page = await electronApp.firstWindow()
-    await page.getByRole('heading', { level: 1 }).waitFor()
+    await page.getByRole('img', { name: 'Kyaraben' }).waitFor()
   })
 
   test.afterAll(async () => {
@@ -83,7 +83,7 @@ test.describe('No update available', () => {
     })
 
     page = await electronApp.firstWindow()
-    await page.getByRole('heading', { level: 1 }).waitFor()
+    await page.getByRole('img', { name: 'Kyaraben' }).waitFor()
   })
 
   test.afterAll(async () => {
@@ -130,7 +130,7 @@ test.describe('Version mismatch detection', () => {
     })
 
     page = await electronApp.firstWindow()
-    await page.getByRole('heading', { level: 1 }).waitFor()
+    await page.getByRole('img', { name: 'Kyaraben' }).waitFor()
   })
 
   test.afterAll(async () => {
