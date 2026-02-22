@@ -96,23 +96,25 @@ func controllerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	}
 
 	// RetroArch's hotkey system: the first button in the chord is the enable_hotkey,
-	// the last button is the action.
+	// the last button is the action. All hotkeys must use the same enable_hotkey.
+	var enableBtnSet bool
 	for _, m := range mappings {
 		if len(m.binding.Buttons) < 2 {
 			continue
 		}
-		enableBtn := m.binding.Buttons[0]
-		actionBtn := m.binding.Buttons[len(m.binding.Buttons)-1]
-		entries = append(entries,
-			model.ConfigEntry{
+		if !enableBtnSet {
+			enableBtn := m.binding.Buttons[0]
+			entries = append(entries, model.ConfigEntry{
 				Path:  []string{"input_enable_hotkey_btn"},
 				Value: fmt.Sprintf("%d", model.SDLButtonIndex[enableBtn]),
-			},
-			model.ConfigEntry{
-				Path:  []string{m.key},
-				Value: fmt.Sprintf("%d", model.SDLButtonIndex[actionBtn]),
-			},
-		)
+			})
+			enableBtnSet = true
+		}
+		actionBtn := m.binding.Buttons[len(m.binding.Buttons)-1]
+		entries = append(entries, model.ConfigEntry{
+			Path:  []string{m.key},
+			Value: fmt.Sprintf("%d", model.SDLButtonIndex[actionBtn]),
+		})
 	}
 
 	return entries
