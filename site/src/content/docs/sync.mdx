@@ -1,6 +1,6 @@
 ---
-title: Save sync
-description: Synchronize saves and state across devices
+title: Sync
+description: Synchronize saves, states, and scraped metadata across devices
 ---
 
 ## Overview
@@ -97,16 +97,29 @@ This works across any network via Syncthing's relay servers.
 
 ## What syncs
 
-| Content        | Primary       | Secondary     |
-| -------------- | ------------- | ------------- |
-| `roms/`        | Send only     | Receive only  |
-| `bios/`        | Send only     | Receive only  |
-| `saves/`       | Bidirectional | Bidirectional |
-| `states/`      | Bidirectional | Bidirectional |
-| `screenshots/` | Bidirectional | Bidirectional |
+| Content                     | Primary       | Secondary     |
+| --------------------------- | ------------- | ------------- |
+| `roms/`                     | Send only     | Receive only  |
+| `bios/`                     | Send only     | Receive only  |
+| `saves/`                    | Bidirectional | Bidirectional |
+| `states/`                   | Bidirectional | Bidirectional |
+| `screenshots/`              | Bidirectional | Bidirectional |
+| `frontends/esde/gamelists/` | Bidirectional | Bidirectional |
+| `frontends/esde/media/`     | Bidirectional | Bidirectional |
 
 ROMs and BIOS flow one direction only, preventing accidental deletion of your
 primary collection from a secondary device.
+
+### ES-DE gamelists and media
+
+When using ES-DE, scraped metadata (game descriptions, ratings, etc.) and media
+(screenshots, videos, box art) sync between devices. Kyaraben strips play
+statistics (playcount, playtime, last played) before syncing to avoid conflicts,
+then merges local stats back when importing. This means each device tracks its
+own play history while sharing metadata and artwork.
+
+Scraped videos can be large. See [ignore patterns](#example-skip-es-de-videos)
+to exclude them from sync.
 
 ## Managing sync
 
@@ -166,13 +179,64 @@ Kyaraben ignores regenerable data by default:
 Thumbs.db
 ```
 
-Add custom patterns:
+Add custom patterns in `~/.config/kyaraben/config.toml`:
 
 ```toml
 [sync.ignore]
 patterns = [
   "**/shader_cache/**",
   "**/logs/**",
+]
+```
+
+Patterns use Syncthing's ignore syntax. Prefix with `!` to un-ignore.
+
+Ignore patterns are local to each device:
+
+- **Ignored on primary**: files won't be sent to any secondary
+- **Ignored on secondary**: files won't be received on that device, but other
+  devices still sync them
+
+This lets you skip large files on a device with limited storage (like a Steam
+Deck) while keeping them on others.
+
+#### Example: exclude large ROM formats
+
+If you only want to sync smaller ROMs and skip disc-based games:
+
+```toml
+[sync.ignore]
+patterns = [
+  # Skip disc images (PS1, PS2, GameCube, Wii, etc.)
+  "roms/**/*.iso",
+  "roms/**/*.chd",
+  "roms/**/*.cso",
+  "roms/**/*.rvz",
+  "roms/**/*.wbfs",
+  # Skip optical formats
+  "roms/**/*.bin",
+  "roms/**/*.cue",
+]
+```
+
+#### Example: skip ES-DE videos
+
+Scraped videos can be several gigabytes per system. To sync box art and
+screenshots but skip videos:
+
+```toml
+[sync.ignore]
+patterns = [
+  "frontends/esde/media/**/videos/**",
+]
+```
+
+Or skip all media and only sync gamelists (metadata):
+
+```toml
+[sync.ignore]
+patterns = [
+  "frontends/esde/media/**",
 ]
 ```
 

@@ -67,6 +67,18 @@ func (f *fakeStoreReader) CoresDir() string {
 	return "/state/cores"
 }
 
+func (f *fakeStoreReader) FrontendGamelistDir(fe model.FrontendID, sys model.SystemID) string {
+	return filepath.Join(f.root, "frontends", string(fe), "gamelists", string(sys))
+}
+
+func (f *fakeStoreReader) FrontendMediaDir(fe model.FrontendID, sys model.SystemID) string {
+	return filepath.Join(f.root, "frontends", string(fe), "media", string(sys))
+}
+
+func (f *fakeStoreReader) FrontendMediaBaseDir(fe model.FrontendID) string {
+	return filepath.Join(f.root, "frontends", string(fe), "media")
+}
+
 func TestDuckStationGenerate(t *testing.T) {
 	t.Parallel()
 

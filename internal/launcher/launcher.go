@@ -79,8 +79,17 @@ const wrapperTemplate = `#!/bin/sh
 exec "{{.RealBinaryPath}}" "$@"
 `
 
+const esdeWrapperTemplate = `#!/bin/sh
+"{{.KyarabenPath}}" system esde-import 2>/dev/null || true
+"{{.RealBinaryPath}}" "$@"
+_exit_code=$?
+"{{.KyarabenPath}}" system esde-export 2>/dev/null || true
+exit $_exit_code
+`
+
 type wrapperData struct {
 	RealBinaryPath string
+	KyarabenPath   string
 }
 
 func (m *Manager) GenerateWrappers(binaries []InstalledBinary) error {
@@ -103,6 +112,16 @@ func (m *Manager) GenerateWrappers(binaries []InstalledBinary) error {
 		return fmt.Errorf("parsing wrapper template: %w", err)
 	}
 
+	esdeTmpl, err := template.New("esde-wrapper").Parse(esdeWrapperTemplate)
+	if err != nil {
+		return fmt.Errorf("parsing esde wrapper template: %w", err)
+	}
+
+	var kyarabenPath string
+	if m.paths != nil {
+		kyarabenPath, _ = m.paths.CLIInstallPath()
+	}
+
 	for _, binary := range binaries {
 		if strings.HasPrefix(binary.Name, ".") {
 			continue
@@ -114,8 +133,14 @@ func (m *Manager) GenerateWrappers(binaries []InstalledBinary) error {
 			return fmt.Errorf("creating wrapper %s: %w", binary.Name, err)
 		}
 
-		data := wrapperData{RealBinaryPath: binary.Path}
-		if err := tmpl.Execute(f, data); err != nil {
+		data := wrapperData{RealBinaryPath: binary.Path, KyarabenPath: kyarabenPath}
+
+		useTmpl := tmpl
+		if binary.Name == "es-de" {
+			useTmpl = esdeTmpl
+		}
+
+		if err := useTmpl.Execute(f, data); err != nil {
 			_ = f.Close()
 			return fmt.Errorf("writing wrapper %s: %w", binary.Name, err)
 		}
