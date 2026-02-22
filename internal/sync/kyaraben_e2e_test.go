@@ -89,7 +89,7 @@ func TestKyarabenSync(t *testing.T) {
 		}
 	})
 
-	t.Run("rom deletions do not sync", func(t *testing.T) {
+	t.Run("rom deletions sync", func(t *testing.T) {
 		romData := []byte("rom to delete")
 		romPath := filepath.Join(device1.userStore, "roms", "snes", "deleteme.sfc")
 
@@ -106,8 +106,8 @@ func TestKyarabenSync(t *testing.T) {
 			t.Fatalf("Remove: %v", err)
 		}
 
-		if err := assertFileNeverDisappears(ctx, syncedPath, 5*time.Second); err != nil {
-			t.Fatalf("ROM deletion incorrectly synced: %v", err)
+		if err := waitForFileDeletion(ctx, syncedPath); err != nil {
+			t.Fatalf("ROM deletion did not sync: %v", err)
 		}
 	})
 
@@ -204,11 +204,11 @@ func newKyarabenInstance(t *testing.T, name string, guiPort, listenPort int) *ky
 	}
 }
 
-func assertFileNeverDisappears(ctx context.Context, path string, duration time.Duration) error {
-	deadline := time.Now().Add(duration)
+func waitForFileDeletion(ctx context.Context, path string) error {
+	deadline := time.Now().Add(30 * time.Second)
 	for time.Now().Before(deadline) {
-		if _, err := os.Stat(path); err != nil {
-			return fmt.Errorf("file disappeared: %s", path)
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			return nil
 		}
 		select {
 		case <-ctx.Done():
@@ -216,7 +216,7 @@ func assertFileNeverDisappears(ctx context.Context, path string, duration time.D
 		case <-time.After(500 * time.Millisecond):
 		}
 	}
-	return nil
+	return fmt.Errorf("file still exists: %s", path)
 }
 
 func (k *kyarabenInstance) writeKyarabenConfig(peer *kyarabenInstance) error {

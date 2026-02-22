@@ -37,18 +37,17 @@ func TestConfigGenerator_GenerateFolders(t *testing.T) {
 	}
 
 	tests := []struct {
-		folderID         string
-		wantType         FolderType
-		wantPath         string
-		wantIgnoreDelete bool
+		folderID string
+		wantType FolderType
+		wantPath string
 	}{
-		{"kyaraben-roms-snes", FolderTypeSendReceive, "/home/user/Emulation/roms/snes", true},
-		{"kyaraben-roms-psx", FolderTypeSendReceive, "/home/user/Emulation/roms/psx", true},
-		{"kyaraben-bios-snes", FolderTypeSendReceive, "/home/user/Emulation/bios/snes", true},
-		{"kyaraben-bios-psx", FolderTypeSendReceive, "/home/user/Emulation/bios/psx", true},
-		{"kyaraben-saves-snes", FolderTypeSendReceive, "/home/user/Emulation/saves/snes", false},
-		{"kyaraben-saves-psx", FolderTypeSendReceive, "/home/user/Emulation/saves/psx", false},
-		{"kyaraben-screenshots", FolderTypeSendReceive, "/home/user/Emulation/screenshots", false},
+		{"kyaraben-roms-snes", FolderTypeSendReceive, "/home/user/Emulation/roms/snes"},
+		{"kyaraben-roms-psx", FolderTypeSendReceive, "/home/user/Emulation/roms/psx"},
+		{"kyaraben-bios-snes", FolderTypeSendReceive, "/home/user/Emulation/bios/snes"},
+		{"kyaraben-bios-psx", FolderTypeSendReceive, "/home/user/Emulation/bios/psx"},
+		{"kyaraben-saves-snes", FolderTypeSendReceive, "/home/user/Emulation/saves/snes"},
+		{"kyaraben-saves-psx", FolderTypeSendReceive, "/home/user/Emulation/saves/psx"},
+		{"kyaraben-screenshots", FolderTypeSendReceive, "/home/user/Emulation/screenshots"},
 	}
 
 	for _, tt := range tests {
@@ -62,9 +61,6 @@ func TestConfigGenerator_GenerateFolders(t *testing.T) {
 			}
 			if folder.Path != tt.wantPath {
 				t.Errorf("folder %s path = %v, want %v", tt.folderID, folder.Path, tt.wantPath)
-			}
-			if folder.IgnoreDelete != tt.wantIgnoreDelete {
-				t.Errorf("folder %s ignoreDelete = %v, want %v", tt.folderID, folder.IgnoreDelete, tt.wantIgnoreDelete)
 			}
 		})
 	}

@@ -39,7 +39,6 @@ type XMLFolder struct {
 	Devices          []XMLFolderDevice `xml:"device"`
 	FSWatcherEnabled bool              `xml:"fsWatcherEnabled"`
 	IgnorePerms      bool              `xml:"ignorePerms"`
-	IgnoreDelete     bool              `xml:"ignoreDelete"`
 	Versioning       XMLVersioning     `xml:"versioning"`
 }
 
@@ -196,15 +195,14 @@ func (g *ConfigGenerator) generateFolders() ([]XMLFolder, error) {
 	deviceRefs := g.folderDeviceRefs()
 
 	folderTypes := map[string]struct {
-		subdirs      []string
-		ignoreDelete bool
-		versioning   bool
+		subdirs    []string
+		versioning bool
 	}{
-		"roms":        {subdirs: g.systemSubdirs(), ignoreDelete: true, versioning: false},
-		"bios":        {subdirs: g.systemSubdirs(), ignoreDelete: true, versioning: false},
-		"saves":       {subdirs: g.systemSubdirs(), ignoreDelete: false, versioning: true},
-		"states":      {subdirs: g.systemSubdirs(), ignoreDelete: false, versioning: true},
-		"screenshots": {subdirs: nil, ignoreDelete: false, versioning: false},
+		"roms":        {subdirs: g.systemSubdirs(), versioning: false},
+		"bios":        {subdirs: g.systemSubdirs(), versioning: false},
+		"saves":       {subdirs: g.systemSubdirs(), versioning: true},
+		"states":      {subdirs: g.systemSubdirs(), versioning: true},
+		"screenshots": {subdirs: nil, versioning: false},
 	}
 
 	frontendFolders, err := g.generateFrontendFolders(deviceRefs)
@@ -226,7 +224,6 @@ func (g *ConfigGenerator) generateFolders() ([]XMLFolder, error) {
 					Devices:          deviceRefs,
 					FSWatcherEnabled: true,
 					IgnorePerms:      true,
-					IgnoreDelete:     spec.ignoreDelete,
 				}
 
 				if spec.versioning {
@@ -247,7 +244,6 @@ func (g *ConfigGenerator) generateFolders() ([]XMLFolder, error) {
 				Devices:          deviceRefs,
 				FSWatcherEnabled: true,
 				IgnorePerms:      true,
-				IgnoreDelete:     spec.ignoreDelete,
 			}
 
 			if spec.versioning {

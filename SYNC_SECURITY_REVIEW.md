@@ -158,14 +158,11 @@ FolderTypeSendReceive FolderType = "sendreceive"
 
 All synced folders use bidirectional `sendreceive` mode. This means a
 compromised paired device can push arbitrary files into the user's emulation
-directories.
+directories, including deletions.
 
 **Syncthing default comparison:** same default. Syncthing's `sendonly` or
 `receiveonly` modes could limit damage from a compromised peer, but they would
 break kyaraben's bidirectional sync model.
-
-**Mitigation already in place:** `ignoreDelete` is set for ROM and BIOS folders,
-preventing a malicious peer from deleting those files.
 
 ## 10. ~~NAT traversal enabled by default~~ (fixed)
 
