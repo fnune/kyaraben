@@ -16,6 +16,37 @@ What we won't do: full performance tuning, per-game settings, target-specific op
 
 ## Low-hanging fruit
 
+- Controller config gets written as this:
+    [controller]
+    ```
+      layout = ""
+      [controller.hotkeys]
+        save_state = ""
+        load_state = ""
+        next_slot = ""
+        prev_slot = ""
+        fast_forward = ""
+        rewind = ""
+        pause = ""
+        screenshot = ""
+        quit = ""
+        toggle_fullscreen = ""
+        open_menu = ""
+    ```
+    - That's not good! It should be showing the default keybindings
+- DuckStation and PCSX2 both show the emulator before launching the game
+    - Can this be prevented?
+- ES-DE loads pcengine games (R-Type Complete CD (Japan)) even though Kyaraben has not enabled that system
+    - Is this expected?
+    - Same for Xbox360 (Mushihimesama)
+- Nintendo DS doesn't work (we moved it to RetroArch recently from melonDS)
+    - Games don't even launch from ES-DE
+- Flycast hotkeys open the menu instead of immediately doing what the hotkey is supposed to do
+    - At least for load and save state
+- RetroArch save state bindings works
+    - Load state binding works, but it fails to load state (at least for GBC) -> Are we configuring the paths correctly?
+    - It also fails for SNES which was always using RetroArch, so probably unrelated to the RetroArch change for mGBA
+    - Saves to state 0, but tries to load from state auto
 - For most retroarch cores we show the retroarch logo
     - But they also have their own logos, I think?
     - We could show the default logo with the Retroarch logo in tiny in the bottom right, overlayed?
