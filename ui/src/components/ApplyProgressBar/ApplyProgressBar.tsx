@@ -3,6 +3,8 @@ import { SpeedBadge } from '@/components/SpeedBadge/SpeedBadge'
 import { useApply } from '@/lib/ApplyContext'
 import { BOTTOM_BAR_HEIGHT } from '@/lib/BottomBar'
 import { BottomBarPortal } from '@/lib/BottomBarSlot'
+import { useHomeDir } from '@/lib/HomeDirContext'
+import { collapsePathsInText } from '@/lib/paths'
 import { getDownloadSpeedBytes, getStepSubtitle } from '@/lib/progressUtils'
 import { ProgressBar, ProgressRail, Shimmer } from '@/lib/progressWidgets'
 import { useOpenLog } from '@/lib/useOpenLog'
@@ -15,6 +17,7 @@ export interface ApplyProgressBarProps {
 
 export function ApplyProgressBar({ currentView, onNavigateToCatalog }: ApplyProgressBarProps) {
   const { status, progressSteps, cancel, logPosition } = useApply()
+  const homeDir = useHomeDir()
   const openLog = useOpenLog()
   const [confirmingCancel, setConfirmingCancel] = useState(false)
   const [cancelling, setCancelling] = useState(false)
@@ -47,7 +50,8 @@ export function ApplyProgressBar({ currentView, onNavigateToCatalog }: ApplyProg
 
   const currentStep = [...progressSteps].reverse().find((s) => s.status === 'in_progress')
   const label = currentStep?.label ?? 'Installing...'
-  const subtitle = currentStep ? getStepSubtitle(currentStep) : null
+  const rawSubtitle = currentStep ? getStepSubtitle(currentStep) : null
+  const subtitle = rawSubtitle ? collapsePathsInText(rawSubtitle, homeDir) : null
   const showSpeed = currentStep?.id === 'build' && currentStep.status === 'in_progress'
   const downloadSpeedBytes = currentStep ? getDownloadSpeedBytes(currentStep) : 0
   const computedPercent =

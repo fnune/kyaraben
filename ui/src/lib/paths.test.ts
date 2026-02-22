@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { collapseTilde, expandTilde } from './paths'
+import { collapsePathsInText, collapseTilde, expandTilde } from './paths'
 
 describe('expandTilde', () => {
   const homeDir = '/home/user'
@@ -72,5 +72,33 @@ describe('expandTilde and collapseTilde roundtrip', () => {
     const collapsed = collapseTilde(original, homeDir)
     const expanded = expandTilde(collapsed, homeDir)
     expect(expanded).toBe(original)
+  })
+})
+
+describe('collapsePathsInText', () => {
+  const homeDir = '/home/user'
+
+  it('collapses home directory in message text', () => {
+    expect(
+      collapsePathsInText('Using /home/user/Emulation (existing data preserved)', homeDir),
+    ).toBe('Using ~/Emulation (existing data preserved)')
+  })
+
+  it('collapses multiple occurrences', () => {
+    expect(collapsePathsInText('Copying /home/user/src to /home/user/dest', homeDir)).toBe(
+      'Copying ~/src to ~/dest',
+    )
+  })
+
+  it('returns text unchanged if no home directory present', () => {
+    expect(collapsePathsInText('Installing package...', homeDir)).toBe('Installing package...')
+  })
+
+  it('returns text unchanged if homeDir is empty', () => {
+    expect(collapsePathsInText('Using /home/user/Emulation', '')).toBe('Using /home/user/Emulation')
+  })
+
+  it('returns empty string unchanged', () => {
+    expect(collapsePathsInText('', homeDir)).toBe('')
   })
 })
