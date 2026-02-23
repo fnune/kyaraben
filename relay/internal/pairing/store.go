@@ -18,7 +18,7 @@ const (
 
 type Session struct {
 	Code              string
-	InitiatorDeviceID   string
+	InitiatorDeviceID string
 	ResponderDeviceID string
 	CreatedAt         time.Time
 	ExpiresAt         time.Time
@@ -83,11 +83,11 @@ func (s *Store) Create(initiatorDeviceID, creatorIP string) (*Session, error) {
 
 	now := time.Now()
 	session := &Session{
-		Code:            code,
+		Code:              code,
 		InitiatorDeviceID: initiatorDeviceID,
-		CreatedAt:       now,
-		ExpiresAt:       now.Add(s.ttl),
-		CreatorIP:       creatorIP,
+		CreatedAt:         now,
+		ExpiresAt:         now.Add(s.ttl),
+		CreatorIP:         creatorIP,
 	}
 	s.sessions[code] = session
 	return session, nil
