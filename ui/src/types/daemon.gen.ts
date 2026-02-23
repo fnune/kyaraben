@@ -21,7 +21,7 @@ export interface EmulatorConfRequest {
 export interface SyncRemoveDeviceRequest {
   deviceId: string;
 }
-export interface SyncJoinPrimaryRequest {
+export interface SyncJoinPeerRequest {
   code: string;
   pairingAddr?: string;
   deviceId?: string;
@@ -183,6 +183,7 @@ export interface SyncStatusResponse {
   pairing?: boolean;
   progress?: SyncProgress;
   serviceError?: string;
+  globalDiscoveryEnabled?: boolean;
 }
 export interface SyncProgress {
   needFiles: number /* int64 */;
@@ -247,7 +248,7 @@ export interface SyncPairingCompleteResponse {
   peerDeviceId: string;
   peerName: string;
 }
-export interface SyncJoinPrimaryResponse {
+export interface SyncJoinPeerResponse {
   success: boolean;
   peerDeviceId: string;
   peerName: string;
@@ -268,6 +269,12 @@ export interface SyncEnableResponse {
 export interface SyncResetResponse {
   success: boolean;
   removedFiles?: string[];
+}
+export interface SyncSetSettingsRequest {
+  globalDiscoveryEnabled?: boolean;
+}
+export interface SyncSetSettingsResponse {
+  success: boolean;
 }
 export interface SyncDiscoveredDevice {
   deviceId: string;
@@ -375,7 +382,7 @@ export const CommandTypeSetConfig = "set_config";
 export const CommandTypeSyncStatus = "sync_status";
 export const CommandTypeSyncRemoveDevice = "sync_remove_device";
 export const CommandTypeSyncStartPairing = "sync_start_pairing";
-export const CommandTypeSyncJoinPrimary = "sync_join_primary";
+export const CommandTypeSyncJoinPeer = "sync_join_peer";
 export const CommandTypeSyncCancelPairing = "sync_cancel_pairing";
 export const CommandTypeSyncPending = "sync_pending";
 export const CommandTypeUninstallPreview = "uninstall_preview";
@@ -389,8 +396,9 @@ export const CommandTypeSyncRevertFolder = "sync_revert_folder";
 export const CommandTypeSyncLocalChanges = "sync_local_changes";
 export const CommandTypeSyncReset = "sync_reset";
 export const CommandTypeSyncDiscoveredDevices = "sync_discovered_devices";
+export const CommandTypeSyncSetSettings = "sync_set_settings";
 export const CommandTypeGetStorageDevices = "get_storage_devices";
-export type CommandType = typeof CommandTypeStatus | typeof CommandTypeDoctor | typeof CommandTypeApply | typeof CommandTypeCancelApply | typeof CommandTypeGetSystems | typeof CommandTypeGetFrontends | typeof CommandTypeGetConfig | typeof CommandTypeSetConfig | typeof CommandTypeSyncStatus | typeof CommandTypeSyncRemoveDevice | typeof CommandTypeSyncStartPairing | typeof CommandTypeSyncJoinPrimary | typeof CommandTypeSyncCancelPairing | typeof CommandTypeSyncPending | typeof CommandTypeUninstallPreview | typeof CommandTypeUninstall | typeof CommandTypeInstallKyaraben | typeof CommandTypeInstallStatus | typeof CommandTypeRefreshIconCaches | typeof CommandTypePreflight | typeof CommandTypeSyncEnable | typeof CommandTypeSyncRevertFolder | typeof CommandTypeSyncLocalChanges | typeof CommandTypeSyncReset | typeof CommandTypeSyncDiscoveredDevices | typeof CommandTypeGetStorageDevices;
+export type CommandType = typeof CommandTypeStatus | typeof CommandTypeDoctor | typeof CommandTypeApply | typeof CommandTypeCancelApply | typeof CommandTypeGetSystems | typeof CommandTypeGetFrontends | typeof CommandTypeGetConfig | typeof CommandTypeSetConfig | typeof CommandTypeSyncStatus | typeof CommandTypeSyncRemoveDevice | typeof CommandTypeSyncStartPairing | typeof CommandTypeSyncJoinPeer | typeof CommandTypeSyncCancelPairing | typeof CommandTypeSyncPending | typeof CommandTypeUninstallPreview | typeof CommandTypeUninstall | typeof CommandTypeInstallKyaraben | typeof CommandTypeInstallStatus | typeof CommandTypeRefreshIconCaches | typeof CommandTypePreflight | typeof CommandTypeSyncEnable | typeof CommandTypeSyncRevertFolder | typeof CommandTypeSyncLocalChanges | typeof CommandTypeSyncReset | typeof CommandTypeSyncDiscoveredDevices | typeof CommandTypeSyncSetSettings | typeof CommandTypeGetStorageDevices;
 /**
  * Command represents a command from the UI.
  */
@@ -415,12 +423,12 @@ export interface SyncRemoveDeviceCommand {
   data: SyncRemoveDeviceRequest;
 }
 /**
- * SyncJoinPrimaryCommand includes the pairing code and selected primary.
+ * SyncJoinPeerCommand includes the pairing code and peer device.
  */
-export interface SyncJoinPrimaryCommand {
+export interface SyncJoinPeerCommand {
   type: CommandType;
   id?: string;
-  data: SyncJoinPrimaryRequest;
+  data: SyncJoinPeerRequest;
 }
 /**
  * InstallKyarabenCommand includes the install options.
@@ -453,6 +461,14 @@ export interface SyncLocalChangesCommand {
   type: CommandType;
   id?: string;
   data: SyncLocalChangesRequest;
+}
+/**
+ * SyncSetSettingsCommand includes the sync settings to update.
+ */
+export interface SyncSetSettingsCommand {
+  type: CommandType;
+  id?: string;
+  data: SyncSetSettingsRequest;
 }
 /**
  * EventType identifies the type of event.

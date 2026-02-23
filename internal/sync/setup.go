@@ -86,7 +86,6 @@ func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, userStorePath
 		ConfigDir:  configDir,
 		DataDir:    dataDir,
 		GUIPort:    cfg.Syncthing.GUIPort,
-		APIKey:     apiKey,
 	}
 
 	if err := unitGen.Write(params); err != nil {

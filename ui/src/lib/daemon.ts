@@ -12,8 +12,8 @@ import type {
   SyncDiscoveredDevicesResponse,
   SyncEnableRequest,
   SyncEnableResponse,
-  SyncJoinPrimaryRequest,
-  SyncJoinPrimaryResponse,
+  SyncJoinPeerRequest,
+  SyncJoinPeerResponse,
   SyncLocalChangesRequest,
   SyncLocalChangesResponse,
   SyncPendingResponse,
@@ -22,6 +22,8 @@ import type {
   SyncResetResponse,
   SyncRevertFolderRequest,
   SyncRevertFolderResponse,
+  SyncSetSettingsRequest,
+  SyncSetSettingsResponse,
   SyncStartPairingResponse,
   SyncStatusResponse,
   System,
@@ -76,8 +78,8 @@ export const removeSyncDevice = (req: SyncRemoveDeviceRequest) =>
 
 export const startSyncPairing = () => invoke<SyncStartPairingResponse>('sync_start_pairing')
 
-export const joinSyncPrimary = (req: SyncJoinPrimaryRequest) =>
-  invoke<SyncJoinPrimaryResponse>('sync_join_primary', req)
+export const joinSyncPeer = (req: SyncJoinPeerRequest) =>
+  invoke<SyncJoinPeerResponse>('sync_join_peer', req)
 
 export const cancelSyncPairing = () => invoke<{ cancelled: boolean }>('sync_cancel_pairing')
 
@@ -95,6 +97,9 @@ export const resetSync = () => invoke<SyncResetResponse>('sync_reset')
 
 export const getDiscoveredDevices = () =>
   invoke<SyncDiscoveredDevicesResponse>('sync_discovered_devices')
+
+export const setSyncSettings = (req: SyncSetSettingsRequest) =>
+  invoke<SyncSetSettingsResponse>('sync_set_settings', req)
 
 export const getUninstallPreview = () => invoke<UninstallPreviewResponse>('uninstall_preview')
 

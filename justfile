@@ -34,11 +34,14 @@ check-versions:
 # Run Go linter
 lint: ensure
     golangci-lint run
+    cd relay && golangci-lint run
 
 # Format all code
 fmt: ensure
     gofmt -w cmd internal test
     goimports -w -local github.com/fnune/kyaraben cmd internal test
+    cd relay && gofmt -w .
+    cd relay && goimports -w -local github.com/fnune/kyaraben/relay .
     cd ui && npm run lint:fix
     cd site && npm run fmt
 

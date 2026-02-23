@@ -68,7 +68,9 @@ type XMLOptions struct {
 	GlobalAnnounceEnabled bool     `xml:"globalAnnounceEnabled"`
 	LocalAnnounceEnabled  bool     `xml:"localAnnounceEnabled"`
 	LocalAnnouncePort     int      `xml:"localAnnouncePort"`
+	NATEnabled            bool     `xml:"natEnabled"`
 	RelaysEnabled         bool     `xml:"relaysEnabled"`
+	CrashReportingEnabled bool     `xml:"crashReportingEnabled"`
 	URAccepted            int      `xml:"urAccepted"`
 	AutoUpgradeIntervalH  int      `xml:"autoUpgradeIntervalH"`
 }
@@ -171,7 +173,7 @@ func (g *ConfigGenerator) Generate() (*SyncthingXMLConfig, error) {
 				fmt.Sprintf("tcp://0.0.0.0:%d", g.syncConfig.Syncthing.ListenPort),
 				fmt.Sprintf("quic://0.0.0.0:%d", g.syncConfig.Syncthing.ListenPort),
 			},
-			GlobalAnnounceEnabled: true,
+			GlobalAnnounceEnabled: g.syncConfig.Syncthing.GlobalDiscoveryEnabled,
 			LocalAnnounceEnabled:  true,
 			LocalAnnouncePort:     g.syncConfig.Syncthing.DiscoveryPort,
 			RelaysEnabled:         g.syncConfig.Syncthing.RelayEnabled,
