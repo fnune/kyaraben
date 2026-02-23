@@ -13,17 +13,23 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbeetlesaturn"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbsnes"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchcitra"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchfbneo"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchgenesisplusgx"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmelonds"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmesen"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmgba"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmupen64plus"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchstella"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchvice"
 	"github.com/fnune/kyaraben/internal/emulators/rpcs3"
 	"github.com/fnune/kyaraben/internal/emulators/vita3k"
 	"github.com/fnune/kyaraben/internal/emulators/xemu"
 	"github.com/fnune/kyaraben/internal/emulators/xeniaedge"
 	"github.com/fnune/kyaraben/internal/frontends/esde"
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/systems/arcade"
+	"github.com/fnune/kyaraben/internal/systems/atari2600"
+	"github.com/fnune/kyaraben/internal/systems/c64"
 	"github.com/fnune/kyaraben/internal/systems/dreamcast"
 	"github.com/fnune/kyaraben/internal/systems/gamecube"
 	"github.com/fnune/kyaraben/internal/systems/gamegear"
@@ -34,6 +40,7 @@ import (
 	"github.com/fnune/kyaraben/internal/systems/mastersystem"
 	"github.com/fnune/kyaraben/internal/systems/n64"
 	"github.com/fnune/kyaraben/internal/systems/nds"
+	"github.com/fnune/kyaraben/internal/systems/neogeo"
 	"github.com/fnune/kyaraben/internal/systems/nes"
 	"github.com/fnune/kyaraben/internal/systems/ngp"
 	n3ds "github.com/fnune/kyaraben/internal/systems/nintendo3ds"
@@ -84,9 +91,16 @@ func NewDefault() *Registry {
 			pcengine.Definition{},
 			// SNK
 			ngp.Definition{},
+			neogeo.Definition{},
 			// Microsoft
 			xbox.Definition{},
 			xbox360.Definition{},
+			// Atari
+			atari2600.Definition{},
+			// Commodore
+			c64.Definition{},
+			// Arcade
+			arcade.Definition{},
 		},
 		[]model.EmulatorDefinition{
 			retroarchbsnes.Definition{},
@@ -98,6 +112,9 @@ func NewDefault() *Registry {
 			retroarchbeetlengp.Definition{},
 			retroarchmgba.Definition{},
 			retroarchmelonds.Definition{},
+			retroarchfbneo.Definition{},
+			retroarchstella.Definition{},
+			retroarchvice.Definition{},
 			duckstation.Definition{},
 			pcsx2.Definition{},
 			rpcs3.Definition{},

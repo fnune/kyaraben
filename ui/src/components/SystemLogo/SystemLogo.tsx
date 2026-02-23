@@ -1,3 +1,6 @@
+import arcade from '@/assets/systems/arcade.svg'
+import atari2600 from '@/assets/systems/atari2600.svg'
+import c64 from '@/assets/systems/c64.svg'
 import dreamcast from '@/assets/systems/dreamcast.svg'
 import gamegear from '@/assets/systems/gamegear.svg'
 import gb from '@/assets/systems/gb.svg'
@@ -9,6 +12,7 @@ import mastersystem from '@/assets/systems/mastersystem.svg'
 import n3ds from '@/assets/systems/n3ds.svg'
 import n64 from '@/assets/systems/n64.svg'
 import nds from '@/assets/systems/nds.svg'
+import neogeo from '@/assets/systems/neogeo.svg'
 import nes from '@/assets/systems/nes.svg'
 import ngp from '@/assets/systems/ngp.svg'
 import pcengine from '@/assets/systems/pcengine.svg'
@@ -56,9 +60,16 @@ export const SYSTEM_LOGOS: Record<SystemID, string> = {
   pcengine,
   // SNK
   ngp,
+  neogeo,
   // Microsoft
   xbox,
   xbox360,
+  // Atari
+  atari2600,
+  // Commodore
+  c64,
+  // Arcade
+  arcade,
 }
 
 export interface SystemLogoProps {

@@ -15,14 +15,20 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbeetlesaturn"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbsnes"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchcitra"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchfbneo"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchgenesisplusgx"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmelonds"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmesen"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmgba"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmupen64plus"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchstella"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchvice"
 	"github.com/fnune/kyaraben/internal/emulators/rpcs3"
 	"github.com/fnune/kyaraben/internal/emulators/vita3k"
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/systems/arcade"
+	"github.com/fnune/kyaraben/internal/systems/atari2600"
+	"github.com/fnune/kyaraben/internal/systems/c64"
 	"github.com/fnune/kyaraben/internal/systems/dreamcast"
 	"github.com/fnune/kyaraben/internal/systems/gamecube"
 	"github.com/fnune/kyaraben/internal/systems/gamegear"
@@ -33,6 +39,7 @@ import (
 	"github.com/fnune/kyaraben/internal/systems/mastersystem"
 	"github.com/fnune/kyaraben/internal/systems/n64"
 	"github.com/fnune/kyaraben/internal/systems/nds"
+	"github.com/fnune/kyaraben/internal/systems/neogeo"
 	"github.com/fnune/kyaraben/internal/systems/nes"
 	"github.com/fnune/kyaraben/internal/systems/ngp"
 	n3ds "github.com/fnune/kyaraben/internal/systems/nintendo3ds"
@@ -75,6 +82,10 @@ func TestAllDefinitions(t *testing.T) {
 		dreamcast.Definition{},
 		pcengine.Definition{},
 		ngp.Definition{},
+		neogeo.Definition{},
+		arcade.Definition{},
+		atari2600.Definition{},
+		c64.Definition{},
 	}
 
 	emulatorDefs := []model.EmulatorDefinition{
@@ -87,6 +98,9 @@ func TestAllDefinitions(t *testing.T) {
 		retroarchbeetlengp.Definition{},
 		retroarchmgba.Definition{},
 		retroarchmelonds.Definition{},
+		retroarchfbneo.Definition{},
+		retroarchstella.Definition{},
+		retroarchvice.Definition{},
 		duckstation.Definition{},
 		pcsx2.Definition{},
 		rpcs3.Definition{},
@@ -195,6 +209,9 @@ func TestRegistryGetEmulator(t *testing.T) {
 		{model.EmulatorIDRetroArchGenesisPlusGX, false},
 		{model.EmulatorIDRetroArchMupen64Plus, false},
 		{model.EmulatorIDRetroArchBeetleSaturn, false},
+		{model.EmulatorIDRetroArchFBNeo, false},
+		{model.EmulatorIDRetroArchStella, false},
+		{model.EmulatorIDRetroArchVICE, false},
 		{model.EmulatorIDDuckStation, false},
 		{model.EmulatorIDPCSX2, false},
 		{model.EmulatorIDRPCS3, false},
@@ -252,6 +269,10 @@ func TestRegistryGetEmulatorsForSystem(t *testing.T) {
 		{model.SystemIDGenesis, 1, []model.EmulatorID{model.EmulatorIDRetroArchGenesisPlusGX}},
 		{model.SystemIDSaturn, 1, []model.EmulatorID{model.EmulatorIDRetroArchBeetleSaturn}},
 		{model.SystemIDDreamcast, 1, []model.EmulatorID{model.EmulatorIDFlycast}},
+		{model.SystemIDArcade, 1, []model.EmulatorID{model.EmulatorIDRetroArchFBNeo}},
+		{model.SystemIDNeoGeo, 1, []model.EmulatorID{model.EmulatorIDRetroArchFBNeo}},
+		{model.SystemIDAtari2600, 1, []model.EmulatorID{model.EmulatorIDRetroArchStella}},
+		{model.SystemIDC64, 1, []model.EmulatorID{model.EmulatorIDRetroArchVICE}},
 	}
 
 	for _, tt := range tests {
@@ -304,6 +325,10 @@ func TestRegistryGetDefaultEmulator(t *testing.T) {
 		{model.SystemIDGenesis, model.EmulatorIDRetroArchGenesisPlusGX, false},
 		{model.SystemIDSaturn, model.EmulatorIDRetroArchBeetleSaturn, false},
 		{model.SystemIDDreamcast, model.EmulatorIDFlycast, false},
+		{model.SystemIDArcade, model.EmulatorIDRetroArchFBNeo, false},
+		{model.SystemIDNeoGeo, model.EmulatorIDRetroArchFBNeo, false},
+		{model.SystemIDAtari2600, model.EmulatorIDRetroArchStella, false},
+		{model.SystemIDC64, model.EmulatorIDRetroArchVICE, false},
 		{model.SystemID("unknown"), "", true},
 	}
 
@@ -402,6 +427,9 @@ func TestGetConfigGenerator(t *testing.T) {
 		{model.EmulatorIDRetroArchCitra, true},
 		{model.EmulatorIDDolphin, true},
 		{model.EmulatorIDEden, true},
+		{model.EmulatorIDRetroArchFBNeo, true},
+		{model.EmulatorIDRetroArchStella, true},
+		{model.EmulatorIDRetroArchVICE, true},
 		{model.EmulatorID("unknown"), false},
 	}
 
