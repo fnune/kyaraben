@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/twpayne/go-vfs/v5"
 	"github.com/twpayne/go-vfs/v5/vfst"
 
 	"github.com/fnune/kyaraben/internal/model"
@@ -292,5 +293,63 @@ func TestProvisionCheckerFilePattern(t *testing.T) {
 	}
 	if results[0].Results[0].FoundPath != biosDir {
 		t.Errorf("Expected FoundPath %s, got %s", biosDir, results[0].Results[0].FoundPath)
+	}
+}
+
+func TestProvisionCheckerNestedPattern(t *testing.T) {
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/config": &vfst.Dir{Perm: 0755},
+	})
+
+	store := mustNewUserStore(t, fs, "/emulation")
+
+	if err := store.Initialize(); err != nil {
+		t.Fatalf("Failed to initialize store: %v", err)
+	}
+
+	checker := NewProvisionChecker(store)
+
+	configDir := "/config/rpcs3"
+	emu := model.Emulator{
+		ID:      model.EmulatorIDRPCS3,
+		Systems: []model.SystemID{model.SystemIDPS3},
+		ProvisionGroups: []model.ProvisionGroup{{
+			MinRequired: 1,
+			Message:     "Firmware required",
+			BaseDir: func(store model.StoreReader, sys model.SystemID) string {
+				return configDir
+			},
+			Provisions: []model.Provision{{
+				Kind:        model.ProvisionFirmware,
+				Description: "Official firmware",
+				Strategy: model.ImportStrategy{
+					Pattern:             "dev_flash/sys/*",
+					Filename:            "PS3UPDAT.PUP",
+					VerifiedDescription: "firmware installed",
+					Instructions:        "Import via File > Install Firmware",
+				},
+				ImportViaUI: true,
+			}},
+		}},
+	}
+
+	results := checker.Check(emu, model.SystemIDPS3)
+	if results[0].Results[0].Status != model.ProvisionMissing {
+		t.Error("Should be missing when nested directories don't exist")
+	}
+
+	nestedDir := filepath.Join(configDir, "dev_flash", "sys")
+	if err := vfs.MkdirAll(fs, nestedDir, 0755); err != nil {
+		t.Fatalf("Failed to create nested directories: %v", err)
+	}
+	if err := fs.WriteFile(filepath.Join(nestedDir, "internal"), []byte("system file"), 0644); err != nil {
+		t.Fatalf("Failed to create nested file: %v", err)
+	}
+
+	results = checker.Check(emu, model.SystemIDPS3)
+	if results[0].Results[0].Status != model.ProvisionFound {
+		t.Errorf("Should find firmware with nested pattern, got %s", results[0].Results[0].Status)
 	}
 }
