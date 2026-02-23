@@ -173,7 +173,7 @@ func (g *ConfigGenerator) Generate() (*SyncthingXMLConfig, error) {
 				fmt.Sprintf("tcp://0.0.0.0:%d", g.syncConfig.Syncthing.ListenPort),
 				fmt.Sprintf("quic://0.0.0.0:%d", g.syncConfig.Syncthing.ListenPort),
 			},
-			GlobalAnnounceEnabled: true,
+			GlobalAnnounceEnabled: g.syncConfig.Syncthing.GlobalDiscoveryEnabled,
 			LocalAnnounceEnabled:  true,
 			LocalAnnouncePort:     g.syncConfig.Syncthing.DiscoveryPort,
 			RelaysEnabled:         g.syncConfig.Syncthing.RelayEnabled,
