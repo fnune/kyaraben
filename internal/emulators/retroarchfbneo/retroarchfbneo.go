@@ -120,6 +120,12 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 	return &Config{}
 }
 
+var coreOptionsTarget = model.ConfigTarget{
+	RelPath: "retroarch/config/FinalBurn Neo/FinalBurn Neo.opt",
+	Format:  model.ConfigFormatCFG,
+	BaseDir: model.ConfigBaseDirUserConfig,
+}
+
 type Config struct{}
 
 func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
@@ -127,8 +133,18 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	if err != nil {
 		return model.GenerateResult{}, err
 	}
+
+	patches := retroarch.CorePatches(model.EmulatorIDRetroArchFBNeo, ctx.Store, ctx.ControllerConfig)
+	patches = append(patches, model.ConfigPatch{
+		Target: coreOptionsTarget,
+		Entries: []model.ConfigEntry{
+			{Path: []string{"fbneo-allow-patched-romsets"}, Value: "enabled", DefaultOnly: true},
+			{Path: []string{"fbneo-allow-depth-32"}, Value: "enabled", DefaultOnly: true},
+		},
+	})
+
 	return model.GenerateResult{
-		Patches:  retroarch.CorePatches(model.EmulatorIDRetroArchFBNeo, ctx.Store, ctx.ControllerConfig),
+		Patches:  patches,
 		Symlinks: symlinks,
 	}, nil
 }
