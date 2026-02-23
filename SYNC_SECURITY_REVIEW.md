@@ -225,7 +225,34 @@ break kyaraben's bidirectional sync model.
 **Mitigation already in place:** `ignoreDelete` is set for ROM and BIOS folders,
 preventing a malicious peer from deleting those files.
 
-## 10. GUI URL exposed to the frontend UI
+## 10. NAT traversal enabled by default
+
+**Severity: low**
+
+`natEnabled` is not explicitly set in the generated config, so Syncthing falls
+back to its default of `true`. This enables UPnP and NAT-PMP port mapping,
+which can automatically open ports on the user's router without their knowledge.
+
+**Syncthing default comparison:** same default (`natEnabled: true`). This is
+intentional for peer-to-peer connectivity but may surprise users who expect
+kyaraben not to modify their router configuration.
+
+**Suggestion:** Either explicitly set `natEnabled: false` (since the relay
+handles connectivity) or document that UPnP port mapping is enabled.
+
+## 11. Crash reporting not explicitly disabled
+
+**Severity: low**
+
+`crashReportingEnabled` is not set in the generated config, defaulting to
+`true`. This sends crash data (including public IP, Syncthing version, and
+build hostname) to Syncthing's crash reporting server. This is inconsistent
+with the explicit opt-out of usage reporting (`urAccepted: -1`).
+
+**Suggestion:** Add `crashReportingEnabled: false` to the options for
+consistency with the usage reporting opt-out.
+
+## 12. GUI URL exposed to the frontend UI
 
 **Severity: low**
 
