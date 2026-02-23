@@ -11,11 +11,11 @@ type Definition struct{}
 func (Definition) Frontend() model.Frontend {
 	return model.Frontend{
 		ID:      model.FrontendIDESDE,
-		Name:    "ES-DE",
+		Name:    "EmulationStation DE",
 		Package: model.AppImageRef("esde"),
 		Launcher: model.LauncherInfo{
 			Binary:      "esde",
-			DisplayName: "ES-DE",
+			DisplayName: "EmulationStation DE",
 			GenericName: "Game Frontend",
 			Categories:  []string{"Game"},
 		},
