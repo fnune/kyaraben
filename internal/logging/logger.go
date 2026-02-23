@@ -15,24 +15,18 @@ var (
 	slogger    *slog.Logger
 	logFile    *os.File
 	uiCallback func(LogEntry)
-	uiMu       sync.RWMutex
+	logMu      sync.RWMutex
 	fileWriter io.Writer
 )
 
 func SetUICallback(fn func(LogEntry)) {
-	uiMu.Lock()
+	logMu.Lock()
+	defer logMu.Unlock()
 	uiCallback = fn
-	uiMu.Unlock()
-	rebuildLogger()
+	rebuildLoggerLocked()
 }
 
-func getUICallback() func(LogEntry) {
-	uiMu.RLock()
-	defer uiMu.RUnlock()
-	return uiCallback
-}
-
-func rebuildLogger() {
+func rebuildLoggerLocked() {
 	var handlers []slog.Handler
 
 	if fileWriter != nil {
@@ -42,8 +36,8 @@ func rebuildLogger() {
 		handlers = append(handlers, fileHandler)
 	}
 
-	if cb := getUICallback(); cb != nil {
-		uiHandler := NewUIHandler(cb, slog.LevelDebug)
+	if uiCallback != nil {
+		uiHandler := NewUIHandler(uiCallback, slog.LevelDebug)
 		handlers = append(handlers, uiHandler)
 	}
 
@@ -75,17 +69,22 @@ func InitWithPaths(p *paths.Paths) error {
 	}
 
 	logPath := filepath.Join(stateDir, "kyaraben.log")
-	logFile, err = os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return fmt.Errorf("opening log file: %w", err)
 	}
 
+	logMu.Lock()
+	logFile = f
 	fileWriter = logFile
-	rebuildLogger()
+	rebuildLoggerLocked()
+	logMu.Unlock()
 	return nil
 }
 
 func Close() {
+	logMu.Lock()
+	defer logMu.Unlock()
 	if logFile != nil {
 		_ = logFile.Close()
 		logFile = nil
@@ -130,10 +129,13 @@ func (l *Logger) formatMessage(format string, args ...interface{}) string {
 }
 
 func (l *Logger) slog() *slog.Logger {
-	if slogger == nil {
+	logMu.RLock()
+	s := slogger
+	logMu.RUnlock()
+	if s == nil {
 		return slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
-	return slogger.WithGroup(l.component)
+	return s.WithGroup(l.component)
 }
 
 func (l *Logger) Info(format string, args ...interface{}) {
@@ -153,10 +155,13 @@ func (l *Logger) Debug(format string, args ...interface{}) {
 }
 
 func getDefaultLogger() *slog.Logger {
-	if slogger == nil {
+	logMu.RLock()
+	s := slogger
+	logMu.RUnlock()
+	if s == nil {
 		return slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
-	return slogger
+	return s
 }
 
 func Info(format string, args ...interface{}) {
@@ -176,18 +181,24 @@ func Debug(format string, args ...interface{}) {
 }
 
 func Writer() io.Writer {
-	if logFile != nil {
-		return logFile
+	logMu.RLock()
+	f := logFile
+	logMu.RUnlock()
+	if f != nil {
+		return f
 	}
 	return io.Discard
 }
 
 func CurrentPosition() int64 {
-	if logFile == nil {
+	logMu.RLock()
+	f := logFile
+	logMu.RUnlock()
+	if f == nil {
 		return 0
 	}
-	_ = logFile.Sync()
-	info, err := logFile.Stat()
+	_ = f.Sync()
+	info, err := f.Stat()
 	if err != nil {
 		return 0
 	}

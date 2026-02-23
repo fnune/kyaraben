@@ -122,11 +122,10 @@ func TestGenerateDesktopFiles(t *testing.T) {
 	}
 }
 
-func TestInstallKyarabenWithAppImage(t *testing.T) {
+func TestInstallCLI(t *testing.T) {
 	fs, cleanup, err := vfst.NewTestFS(map[string]any{
 		"/kyaraben":             &vfst.Dir{Perm: 0755},
 		"/home":                 &vfst.Dir{Perm: 0755},
-		"/Kyaraben.AppImage":    "fake appimage content",
 		"/bin/kyaraben-current": "fake current executable",
 	})
 	if err != nil {
@@ -136,33 +135,21 @@ func TestInstallKyarabenWithAppImage(t *testing.T) {
 
 	homeDir := "/home"
 	binDir := filepath.Join(homeDir, ".local", "bin")
-	appsDir := filepath.Join(homeDir, ".local", "share", "applications")
 
 	resolver := fakeBaseDirResolver{homeDir: homeDir}
 	m := &Manager{fs: fs, paths: paths.DefaultPaths(), profileDir: "/kyaraben", resolver: resolver, executablePath: "/bin/kyaraben-current"}
 
-	appImagePath := "/Kyaraben.AppImage"
-
-	result, err := m.InstallKyaraben(appImagePath, "")
+	cliPath, err := m.InstallCLI()
 	if err != nil {
-		t.Fatalf("InstallKyaraben() error = %v", err)
+		t.Fatalf("InstallCLI() error = %v", err)
 	}
 
-	if result.AppPath != filepath.Join(binDir, "kyaraben-ui") {
-		t.Errorf("AppPath = %s, want %s", result.AppPath, filepath.Join(binDir, "kyaraben-ui"))
-	}
-	if result.CLIPath != filepath.Join(binDir, "kyaraben") {
-		t.Errorf("CLIPath = %s, want %s", result.CLIPath, filepath.Join(binDir, "kyaraben"))
-	}
-	if result.DesktopPath != filepath.Join(appsDir, "kyaraben.desktop") {
-		t.Errorf("DesktopPath = %s, want %s", result.DesktopPath, filepath.Join(appsDir, "kyaraben.desktop"))
+	expectedCLIPath := filepath.Join(binDir, "kyaraben")
+	if cliPath != expectedCLIPath {
+		t.Errorf("CLIPath = %s, want %s", cliPath, expectedCLIPath)
 	}
 
-	if _, err := fs.Stat(result.AppPath); err != nil {
-		t.Errorf("AppImage not copied: %v", err)
-	}
-
-	cliContent, err := fs.ReadFile(result.CLIPath)
+	cliContent, err := fs.ReadFile(cliPath)
 	if err != nil {
 		t.Fatalf("reading CLI: %v", err)
 	}
@@ -170,16 +157,14 @@ func TestInstallKyarabenWithAppImage(t *testing.T) {
 		t.Errorf("CLI should be copied from executablePath, got: %s", cliContent)
 	}
 
-	content, err := fs.ReadFile(result.DesktopPath)
-	if err != nil {
-		t.Fatalf("reading desktop file: %v", err)
-	}
-	if !strings.Contains(string(content), "Exec="+result.AppPath) {
-		t.Errorf("desktop file should exec AppImage, got:\n%s", content)
+	appsDir := filepath.Join(homeDir, ".local", "share", "applications")
+	desktopPath := filepath.Join(appsDir, "kyaraben.desktop")
+	if _, err := fs.Stat(desktopPath); err == nil {
+		t.Error("InstallCLI should not create desktop file")
 	}
 }
 
-func TestInstallKyarabenWithSidecar(t *testing.T) {
+func TestInstallApp(t *testing.T) {
 	fs, cleanup, err := vfst.NewTestFS(map[string]any{
 		"/kyaraben":          &vfst.Dir{Perm: 0755},
 		"/home":              &vfst.Dir{Perm: 0755},
@@ -193,16 +178,32 @@ func TestInstallKyarabenWithSidecar(t *testing.T) {
 
 	homeDir := "/home"
 	binDir := filepath.Join(homeDir, ".local", "bin")
+	appsDir := filepath.Join(homeDir, ".local", "share", "applications")
 
 	resolver := fakeBaseDirResolver{homeDir: homeDir}
 	m := &Manager{fs: fs, paths: paths.DefaultPaths(), profileDir: "/kyaraben", resolver: resolver}
 
-	appImagePath := "/Kyaraben.AppImage"
-	sidecarPath := "/kyaraben-sidecar"
-
-	result, err := m.InstallKyaraben(appImagePath, sidecarPath)
+	result, err := m.InstallApp("/Kyaraben.AppImage", "/kyaraben-sidecar")
 	if err != nil {
-		t.Fatalf("InstallKyaraben() error = %v", err)
+		t.Fatalf("InstallApp() error = %v", err)
+	}
+
+	if result.AppPath != filepath.Join(binDir, "kyaraben-ui") {
+		t.Errorf("AppPath = %s, want %s", result.AppPath, filepath.Join(binDir, "kyaraben-ui"))
+	}
+	if result.CLIPath != filepath.Join(binDir, "kyaraben") {
+		t.Errorf("CLIPath = %s, want %s", result.CLIPath, filepath.Join(binDir, "kyaraben"))
+	}
+	if result.DesktopPath != filepath.Join(appsDir, "kyaraben.desktop") {
+		t.Errorf("DesktopPath = %s, want %s", result.DesktopPath, filepath.Join(appsDir, "kyaraben.desktop"))
+	}
+
+	appContent, err := fs.ReadFile(result.AppPath)
+	if err != nil {
+		t.Fatalf("reading AppImage: %v", err)
+	}
+	if string(appContent) != "fake appimage" {
+		t.Errorf("AppImage content wrong, got: %s", appContent)
 	}
 
 	cliContent, err := fs.ReadFile(result.CLIPath)
@@ -210,19 +211,15 @@ func TestInstallKyarabenWithSidecar(t *testing.T) {
 		t.Fatalf("reading CLI: %v", err)
 	}
 	if string(cliContent) != "fake sidecar binary" {
-		t.Errorf("CLI should be a copy of sidecar, got: %s", cliContent)
+		t.Errorf("CLI should be copied from sidecar, got: %s", cliContent)
 	}
 
-	info, err := fs.Lstat(result.CLIPath)
+	content, err := fs.ReadFile(result.DesktopPath)
 	if err != nil {
-		t.Fatalf("stat CLI: %v", err)
+		t.Fatalf("reading desktop file: %v", err)
 	}
-	if info.Mode()&os.ModeSymlink != 0 {
-		t.Error("CLI should be a file, not a symlink, when sidecarPath provided")
-	}
-
-	if result.AppPath != filepath.Join(binDir, "kyaraben-ui") {
-		t.Errorf("AppPath = %s, want %s", result.AppPath, filepath.Join(binDir, "kyaraben-ui"))
+	if !strings.Contains(string(content), "Exec="+result.AppPath) {
+		t.Errorf("desktop file should exec AppImage, got:\n%s", content)
 	}
 }
 

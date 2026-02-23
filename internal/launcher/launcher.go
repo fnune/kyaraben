@@ -203,41 +203,77 @@ type InstallResult struct {
 	CLIPath     string
 }
 
-func (m *Manager) InstallKyaraben(appImagePath, sidecarPath string) (*InstallResult, error) {
+// InstallCLI copies the current process to ~/.local/bin/kyaraben.
+// Used by `kyaraben apply` to make the CLI available in PATH.
+func (m *Manager) InstallCLI() (cliPath string, err error) {
+	homeDir, err := m.resolver.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("getting home directory: %w", err)
+	}
+
+	binDir := filepath.Join(homeDir, ".local", "bin")
+	if err := vfs.MkdirAll(m.fs, binDir, 0755); err != nil {
+		return "", fmt.Errorf("creating bin directory: %w", err)
+	}
+
+	cliPath = filepath.Join(binDir, m.paths.CLIBinaryName())
+
+	if _, err := m.fs.Lstat(cliPath); err == nil {
+		if err := m.fs.Remove(cliPath); err != nil {
+			return "", fmt.Errorf("removing old CLI: %w", err)
+		}
+	}
+
+	currentExe := m.executablePath
+	if currentExe == "" {
+		currentExe, err = os.Executable()
+		if err != nil {
+			return "", fmt.Errorf("getting current executable: %w", err)
+		}
+		currentExe, err = filepath.EvalSymlinks(currentExe)
+		if err != nil {
+			return "", fmt.Errorf("resolving executable symlinks: %w", err)
+		}
+	}
+
+	if err := m.copyFile(currentExe, cliPath); err != nil {
+		return "", fmt.Errorf("copying CLI: %w", err)
+	}
+	if err := m.fs.Chmod(cliPath, 0755); err != nil {
+		return "", fmt.Errorf("making CLI executable: %w", err)
+	}
+
+	log.Info("Installed CLI: %s", cliPath)
+	return cliPath, nil
+}
+
+// InstallApp installs the full Kyaraben application from Electron:
+//   - AppImage UI to ~/.local/bin/kyaraben-ui
+//   - CLI sidecar to ~/.local/bin/kyaraben
+//   - Desktop file to ~/.local/share/applications/kyaraben.desktop
+func (m *Manager) InstallApp(appImagePath, sidecarPath string) (*InstallResult, error) {
 	homeDir, err := m.resolver.UserHomeDir()
 	if err != nil {
 		return nil, fmt.Errorf("getting home directory: %w", err)
 	}
-	dataDir, err := m.resolver.UserDataDir()
-	if err != nil {
-		return nil, fmt.Errorf("getting data directory: %w", err)
-	}
 
 	binDir := filepath.Join(homeDir, ".local", "bin")
-	appsDir := filepath.Join(dataDir, "applications")
-
 	if err := vfs.MkdirAll(m.fs, binDir, 0755); err != nil {
 		return nil, fmt.Errorf("creating bin directory: %w", err)
 	}
-	if err := vfs.MkdirAll(m.fs, appsDir, 0755); err != nil {
-		return nil, fmt.Errorf("creating applications directory: %w", err)
-	}
 
 	result := &InstallResult{
-		CLIPath:     filepath.Join(binDir, m.paths.CLIBinaryName()),
-		DesktopPath: filepath.Join(appsDir, m.paths.DesktopFileName()),
+		AppPath: filepath.Join(binDir, m.paths.AppBinaryName()),
+		CLIPath: filepath.Join(binDir, m.paths.CLIBinaryName()),
 	}
 
-	if appImagePath != "" {
-		result.AppPath = filepath.Join(binDir, m.paths.AppBinaryName())
-		if err := m.copyFile(appImagePath, result.AppPath); err != nil {
-			return nil, fmt.Errorf("copying AppImage: %w", err)
-		}
-		if err := m.fs.Chmod(result.AppPath, 0755); err != nil {
-			return nil, fmt.Errorf("making AppImage executable: %w", err)
-		}
-		log.Info("Installed UI: %s", result.AppPath)
+	if err := m.copyFile(appImagePath, result.AppPath); err != nil {
+		return nil, fmt.Errorf("copying AppImage: %w", err)
 	}
+	if err := m.fs.Chmod(result.AppPath, 0755); err != nil {
+		return nil, fmt.Errorf("making AppImage executable: %w", err)
+	}
+	log.Info("Installed UI: %s", result.AppPath)
 
 	if _, err := m.fs.Lstat(result.CLIPath); err == nil {
 		if err := m.fs.Remove(result.CLIPath); err != nil {
@@ -245,50 +281,47 @@ func (m *Manager) InstallKyaraben(appImagePath, sidecarPath string) (*InstallRes
 		}
 	}
 
-	if sidecarPath != "" {
-		if err := m.copyFile(sidecarPath, result.CLIPath); err != nil {
-			return nil, fmt.Errorf("copying CLI: %w", err)
-		}
-		if err := m.fs.Chmod(result.CLIPath, 0755); err != nil {
-			return nil, fmt.Errorf("making CLI executable: %w", err)
-		}
-		log.Info("Installed CLI: %s (copied from %s)", result.CLIPath, sidecarPath)
-	} else {
-		currentExe := m.executablePath
-		if currentExe == "" {
-			var err error
-			currentExe, err = os.Executable()
-			if err != nil {
-				return nil, fmt.Errorf("getting current executable: %w", err)
-			}
-			currentExe, err = filepath.EvalSymlinks(currentExe)
-			if err != nil {
-				return nil, fmt.Errorf("resolving executable symlinks: %w", err)
-			}
-		}
-
-		if err := m.copyFile(currentExe, result.CLIPath); err != nil {
-			return nil, fmt.Errorf("copying CLI: %w", err)
-		}
-		if err := m.fs.Chmod(result.CLIPath, 0755); err != nil {
-			return nil, fmt.Errorf("making CLI executable: %w", err)
-		}
-		log.Info("Installed CLI: %s (copied from %s)", result.CLIPath, currentExe)
+	if err := m.copyFile(sidecarPath, result.CLIPath); err != nil {
+		return nil, fmt.Errorf("copying CLI: %w", err)
 	}
+	if err := m.fs.Chmod(result.CLIPath, 0755); err != nil {
+		return nil, fmt.Errorf("making CLI executable: %w", err)
+	}
+	log.Info("Installed CLI: %s", result.CLIPath)
+
+	if err := m.installDesktopFile(result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (m *Manager) installDesktopFile(result *InstallResult) error {
+	dataDir, err := m.resolver.UserDataDir()
+	if err != nil {
+		return fmt.Errorf("getting data directory: %w", err)
+	}
+
+	appsDir := filepath.Join(dataDir, "applications")
+	if err := vfs.MkdirAll(m.fs, appsDir, 0755); err != nil {
+		return fmt.Errorf("creating applications directory: %w", err)
+	}
+
+	result.DesktopPath = filepath.Join(appsDir, m.paths.DesktopFileName())
 
 	tmpl, err := template.New("desktop").Parse(kyarabenDesktopTemplate)
 	if err != nil {
-		return nil, fmt.Errorf("parsing desktop template: %w", err)
+		return fmt.Errorf("parsing desktop template: %w", err)
 	}
 
-	execPath := result.CLIPath
-	if result.AppPath != "" {
-		execPath = result.AppPath
+	execPath := result.AppPath
+	if execPath == "" {
+		execPath = result.CLIPath
 	}
 
 	f, err := m.fs.Create(result.DesktopPath)
 	if err != nil {
-		return nil, fmt.Errorf("creating desktop file: %w", err)
+		return fmt.Errorf("creating desktop file: %w", err)
 	}
 	defer func() { _ = f.Close() }()
 
@@ -300,11 +333,11 @@ func (m *Manager) InstallKyaraben(appImagePath, sidecarPath string) (*InstallRes
 		Instance: m.paths.Instance,
 	}
 	if err := tmpl.Execute(f, templateData); err != nil {
-		return nil, fmt.Errorf("writing desktop file: %w", err)
+		return fmt.Errorf("writing desktop file: %w", err)
 	}
 	log.Info("Installed desktop file: %s", result.DesktopPath)
 
-	return result, nil
+	return nil
 }
 
 func (m *Manager) GetInstallStatus() *InstallResult {
