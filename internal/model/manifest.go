@@ -85,9 +85,10 @@ type SteamShortcutRecord struct {
 
 // KyarabenInstall tracks the kyaraben app installation paths.
 type KyarabenInstall struct {
-	AppPath     string `json:"app_path,omitempty"`
-	CLIPath     string `json:"cli_path,omitempty"`
-	DesktopPath string `json:"desktop_path,omitempty"`
+	AppPath              string `json:"app_path,omitempty"`
+	CLIPath              string `json:"cli_path,omitempty"`
+	DesktopPath          string `json:"desktop_path,omitempty"`
+	DesktopShortcutGiven bool   `json:"desktop_shortcut_given,omitempty"`
 }
 
 // SyncthingInstall tracks Syncthing installation paths for clean uninstall.

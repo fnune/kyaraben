@@ -280,3 +280,98 @@ func TestGetInstallStatus(t *testing.T) {
 		t.Errorf("DesktopPath = %s, want %s", status.DesktopPath, desktopPath)
 	}
 }
+
+func TestCreateDesktopShortcut(t *testing.T) {
+	homeDir := "/home"
+	dataDir := filepath.Join(homeDir, ".local", "share")
+	appsDir := filepath.Join(dataDir, "applications")
+	desktopDir := filepath.Join(homeDir, "Desktop")
+	appDesktopPath := filepath.Join(appsDir, "kyaraben.desktop")
+
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/kyaraben":    &vfst.Dir{Perm: 0755},
+		homeDir:        &vfst.Dir{Perm: 0755},
+		desktopDir:     &vfst.Dir{Perm: 0755},
+		appDesktopPath: "[Desktop Entry]\nName=Kyaraben\n",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	resolver := fakeBaseDirResolver{homeDir: homeDir, dataDir: dataDir}
+	m := &Manager{fs: fs, paths: paths.DefaultPaths(), profileDir: "/kyaraben", resolver: resolver}
+
+	shortcutPath, err := m.CreateDesktopShortcut()
+	if err != nil {
+		t.Fatalf("CreateDesktopShortcut() error = %v", err)
+	}
+
+	expectedShortcutPath := filepath.Join(desktopDir, "kyaraben.desktop")
+	if shortcutPath != expectedShortcutPath {
+		t.Errorf("shortcutPath = %s, want %s", shortcutPath, expectedShortcutPath)
+	}
+
+	info, err := fs.Lstat(shortcutPath)
+	if err != nil {
+		t.Fatalf("shortcut not created: %v", err)
+	}
+	if info.Mode()&os.ModeSymlink == 0 {
+		t.Error("desktop shortcut should be a symlink")
+	}
+}
+
+func TestCreateDesktopShortcut_NoDesktopDir(t *testing.T) {
+	homeDir := "/home"
+	dataDir := filepath.Join(homeDir, ".local", "share")
+	appsDir := filepath.Join(dataDir, "applications")
+	appDesktopPath := filepath.Join(appsDir, "kyaraben.desktop")
+
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/kyaraben":    &vfst.Dir{Perm: 0755},
+		homeDir:        &vfst.Dir{Perm: 0755},
+		appDesktopPath: "[Desktop Entry]\nName=Kyaraben\n",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	resolver := fakeBaseDirResolver{homeDir: homeDir, dataDir: dataDir}
+	m := &Manager{fs: fs, paths: paths.DefaultPaths(), profileDir: "/kyaraben", resolver: resolver}
+
+	_, err = m.CreateDesktopShortcut()
+	if err == nil {
+		t.Error("CreateDesktopShortcut() should fail when desktop dir does not exist")
+	}
+	if !strings.Contains(err.Error(), "desktop directory does not exist") {
+		t.Errorf("error should mention desktop directory, got: %v", err)
+	}
+}
+
+func TestCreateDesktopShortcut_NoAppDesktopFile(t *testing.T) {
+	homeDir := "/home"
+	dataDir := filepath.Join(homeDir, ".local", "share")
+	desktopDir := filepath.Join(homeDir, "Desktop")
+
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/kyaraben": &vfst.Dir{Perm: 0755},
+		homeDir:     &vfst.Dir{Perm: 0755},
+		desktopDir:  &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	resolver := fakeBaseDirResolver{homeDir: homeDir, dataDir: dataDir}
+	m := &Manager{fs: fs, paths: paths.DefaultPaths(), profileDir: "/kyaraben", resolver: resolver}
+
+	_, err = m.CreateDesktopShortcut()
+	if err == nil {
+		t.Error("CreateDesktopShortcut() should fail when app desktop file does not exist")
+	}
+	if !strings.Contains(err.Error(), "app menu desktop file not found") {
+		t.Errorf("error should mention app menu desktop file, got: %v", err)
+	}
+}
