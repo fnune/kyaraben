@@ -186,11 +186,11 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
       setConnectionError(null)
       setConnectionProgress('Connecting...')
       setIsConnecting(true)
-      const result = await daemon.joinSyncPrimary({ code: targetDeviceId, pairingAddr: '' })
+      const result = await daemon.joinSyncPeer({ code: targetDeviceId, pairingAddr: '' })
       setConnectionProgress(null)
       setIsConnecting(false)
       if (result.ok) {
-        const peerName = result.data.peerName || 'primary'
+        const peerName = result.data.peerName || 'peer'
         showToast(`Connected to ${peerName}.`, 'success')
         await refreshSyncStatus()
         return { ok: true }

@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 import { Button } from '@/lib/Button'
-import { ToggleSwitch } from '@/lib/ToggleSwitch'
 import { useOpenUrl } from '@/lib/hooks/useOpenUrl'
+import { ToggleSwitch } from '@/lib/ToggleSwitch'
 
 export interface SyncSettingsSectionProps {
   readonly guiURL: string | undefined

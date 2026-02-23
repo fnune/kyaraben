@@ -74,7 +74,7 @@ export function LocalFilesActions({
       >
         <div className="space-y-4">
           <p className="text-sm text-on-surface-muted">
-            This will undo all local changes to match the primary device:
+            This will undo all local changes to match the remote device:
           </p>
           <ul className="list-disc list-inside text-sm text-on-surface-muted space-y-1">
             <li>Added or changed files will be restored to their original version</li>
