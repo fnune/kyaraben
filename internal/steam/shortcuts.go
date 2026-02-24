@@ -179,10 +179,10 @@ func (m *Manager) writeGridAssets(userID string, appID uint32, assets *GridAsset
 		suffix string
 	}
 	assetList := []asset{
-		{assets.Grid, ".jpg"},
+		{assets.Grid, "p.jpg"},
 		{assets.Hero, "_hero.jpg"},
 		{assets.Logo, "_logo.png"},
-		{assets.Capsule, "p.jpg"},
+		{assets.Capsule, ".jpg"},
 	}
 
 	for _, a := range assetList {

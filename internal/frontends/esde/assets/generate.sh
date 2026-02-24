@@ -46,9 +46,18 @@ magick -size 460x215 xc:"$BG_COLOR" \
   /tmp/splash_capsule.png -gravity center -compose src-over -composite \
   -quality 92 capsule.jpg
 
-echo "Generating logo.png (transparent)..."
-rsvg-convert -w 400 -a /tmp/esde_splash.svg -o /tmp/logo_full.png
-magick /tmp/logo_full.png -trim +repage logo.png
+echo "Generating logo.png (transparent, shifted left for Steam alignment)..."
+rsvg-convert -w 300 -a /tmp/esde_splash.svg -o /tmp/logo_full.png
+magick /tmp/logo_full.png -trim +repage /tmp/logo_trimmed.png
+read width height < <(identify -format "%w %h" /tmp/logo_trimmed.png)
+pad_v=$((height * 15 / 100))
+pad_r=$((width * 30 / 100))  # 30% right, 0% left to shift logo left on screen
+magick /tmp/logo_trimmed.png \
+  -background transparent \
+  -splice 0x${pad_v} \
+  -gravity southwest -splice 0x${pad_v} \
+  -gravity northeast -splice ${pad_r}x0 \
+  logo.png
 
 echo "Done!"
 ls -lh *.jpg *.png
