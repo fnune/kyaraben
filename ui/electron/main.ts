@@ -29,6 +29,11 @@ const stateDir = process.env.XDG_STATE_HOME || path.join(os.homedir(), '.local',
 const kyarabenStateDir = path.join(stateDir, kyarabenDirName)
 app.setPath('userData', path.join(kyarabenStateDir, 'ui'))
 
+const gotSingleInstanceLock = app.requestSingleInstanceLock()
+if (!gotSingleInstanceLock) {
+  app.quit()
+}
+
 // Protocol types for daemon communication.
 // Source of truth: internal/daemon/protocol.go (ProgressEvent)
 // Generated types: src/types/daemon.gen.ts
@@ -323,6 +328,8 @@ async function applyCommand(): Promise<{ messages: string[]; cancelled: boolean 
     throw new Error('Daemon not running')
   }
 
+  isApplying = true
+
   const currentDaemon = daemon
   const stdin = daemon.process.stdin
   const messages: string[] = []
@@ -334,6 +341,7 @@ async function applyCommand(): Promise<{ messages: string[]; cancelled: boolean 
     const timeout = setTimeout(
       () => {
         currentDaemon.pending.delete(requestId)
+        isApplying = false
         reject(new Error('Apply timeout'))
       },
       15 * 60 * 1000,
@@ -369,15 +377,18 @@ async function applyCommand(): Promise<{ messages: string[]; cancelled: boolean 
       } else if (event.type === 'result') {
         clearTimeout(timeout)
         currentDaemon.pending.delete(requestId)
+        isApplying = false
         messages.push('Apply completed successfully')
         resolve({ messages, cancelled: false })
       } else if (event.type === 'cancelled') {
         clearTimeout(timeout)
         currentDaemon.pending.delete(requestId)
+        isApplying = false
         resolve({ messages, cancelled: true })
       } else if (event.type === 'error') {
         clearTimeout(timeout)
         currentDaemon.pending.delete(requestId)
+        isApplying = false
         reject(new Error((event.data as { error?: string })?.error || 'Unknown error'))
       }
     }
@@ -872,6 +883,7 @@ function setupIpcHandlers(): void {
 
 // Window creation
 let mainWindow: BrowserWindow | null = null
+let isApplying = false
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -896,6 +908,29 @@ function createWindow(): void {
     console.error('[kyaraben] Renderer process gone:', details)
   })
 
+  mainWindow.on('close', (event) => {
+    if (isApplying && mainWindow) {
+      event.preventDefault()
+      const window = mainWindow
+      dialog
+        .showMessageBox(window, {
+          type: 'warning',
+          buttons: ['Wait', 'Close anyway'],
+          defaultId: 0,
+          cancelId: 0,
+          title: 'Installation in progress',
+          message: 'Kyaraben is still installing emulators.',
+          detail: 'Closing now may leave your system in an incomplete state.',
+        })
+        .then((result) => {
+          if (result.response === 1) {
+            isApplying = false
+            window.destroy()
+          }
+        })
+    }
+  })
+
   mainWindow.on('closed', () => {
     mainWindow = null
   })
@@ -911,6 +946,37 @@ process.on('unhandledRejection', (reason) => {
 })
 
 // App lifecycle
+app.on('second-instance', () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore()
+    }
+    mainWindow.focus()
+  }
+})
+
+app.on('before-quit', (event) => {
+  if (isApplying && mainWindow && !mainWindow.isDestroyed()) {
+    event.preventDefault()
+    dialog
+      .showMessageBox(mainWindow, {
+        type: 'warning',
+        buttons: ['Wait', 'Quit anyway'],
+        defaultId: 0,
+        cancelId: 0,
+        title: 'Installation in progress',
+        message: 'Kyaraben is still installing emulators.',
+        detail: 'Quitting now may leave your system in an incomplete state.',
+      })
+      .then((result) => {
+        if (result.response === 1) {
+          isApplying = false
+          app.quit()
+        }
+      })
+  }
+})
+
 app.whenReady().then(() => {
   setupIpcHandlers()
   createWindow()
