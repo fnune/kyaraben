@@ -50,6 +50,7 @@
             jq
             just
             podman
+            pre-commit
             prek
           ];
 
