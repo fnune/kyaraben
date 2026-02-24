@@ -16,14 +16,16 @@ Emulators that support programmatic shader configuration:
 
 | Emulator | Systems | Display type | Config mechanism |
 |---|---|---|---|
-| RetroArch (all cores) | NES, SNES, Genesis, N64, GB/GBC/GBA, NDS, 3DS, Saturn, PCE, NGP, Arcade, NeoGeo, Atari2600, C64 | mixed | Per-core `.glslp` preset files under `config/<CoreName>/` |
+| RetroArch (all cores) | NES, SNES, Genesis, N64, GB/GBC/GBA, NDS, 3DS, Saturn, PCE, NGP, Arcade, NeoGeo, Atari2600, C64 | mixed | Per-core `.slangp` preset files under `config/<CoreName>/` |
 | DuckStation | PSX | CRT | `settings.ini` `[PostProcessing]` section |
 | PCSX2 | PS2 | CRT | `PCSX2.ini` `[EmuCore/GS]` `TVShader` |
-| Dolphin | GameCube, Wii | CRT | `GFX.ini` `[Settings]` `PostProcessingShader` |
 | PPSSPP | PSP | LCD | `ppsspp.ini` `[Graphics]` `PostShaderNames` |
 
-Emulators without programmatic shader support (out of scope): Flycast, Eden,
-Cemu, xemu, Xenia Edge, RPCS3, Vita3K.
+Emulators without programmatic shader support (out of scope): Dolphin,
+Flycast, Eden, Cemu, xemu, Xenia Edge, RPCS3, Vita3K.
+
+Dolphin has a `PostProcessingShader` setting in `GFX.ini` but does not ship
+CRT shaders in its current release. Only color/novelty filters are included.
 
 ## System display type classification
 
@@ -82,26 +84,26 @@ File: `internal/emulators/retroarch/shared.go`
 
 When shaders are enabled, `CorePatches` writes an additional per-core shader
 preset file. RetroArch loads automatic shader presets from
-`config/<CoreName>/<CoreName>.slangp` (or `.glslp`).
+`config/<CoreName>/<CoreName>.slangp`.
 
-The preset file references the shader from RetroArch's bundled shader
+The preset file references the shader from RetroArch's bundled Slang shader
 directory. RetroArch ships with both `crt-mattias` and `zfast-lcd` in its
-shader packs.
+Slang shader packs.
 
 For each RetroArch core, look up the system's display type and write the
 appropriate preset:
 
-CRT preset (`<CoreName>.glslp`):
+CRT preset (`<CoreName>.slangp`):
 ```
 shaders = 1
-shader0 = shaders/crt-mattias.glsl
+shader0 = shaders/crt-mattias.slang
 filter_linear0 = false
 ```
 
-LCD preset (`<CoreName>.glslp`):
+LCD preset (`<CoreName>.slangp`):
 ```
 shaders = 1
-shader0 = shaders/zfast_lcd.glsl
+shader0 = shaders/zfast_lcd.slang
 scale_type0 = viewport
 filter_linear0 = true
 ```
@@ -117,7 +119,7 @@ func CoreShaderTarget(shortName string) model.ConfigTarget {
         configDirName = displayName
     }
     return model.ConfigTarget{
-        RelPath: "retroarch/config/" + configDirName + "/" + configDirName + ".glslp",
+        RelPath: "retroarch/config/" + configDirName + "/" + configDirName + ".slangp",
         Format:  model.ConfigFormatRaw,
         BaseDir: model.ConfigBaseDirUserConfig,
     }
@@ -173,41 +175,20 @@ means no TV shader).
 TVShader values for reference: 0 = none, 1 = scanline filter, 2 = diagonal
 filter, 3 = triangular filter, 4 = wave filter, 5 = Lottes CRT.
 
-### 7. Dolphin shader implementation
-
-File: `internal/emulators/dolphin/dolphin.go`
-
-Dolphin includes CRT shaders from the Clownacy PR (crt-pi, crt-lottes-fast).
-When shaders are enabled, add this entry to the existing `gfxTarget` patch:
-
-```go
-{Path: []string{"Settings", "PostProcessingShader"}, Value: "crt-pi", DefaultOnly: true},
-```
-
-When shaders are disabled, do not add the entry (existing user config
-preserved). If a user manually set a shader, `DefaultOnly` ensures Kyaraben
-does not overwrite it.
-
-### 8. PPSSPP shader implementation
+### 7. PPSSPP shader implementation
 
 File: `internal/emulators/ppsspp/ppsspp.go`
 
-PPSSPP does not ship with an LCD shader by default. The `zfast_lcd` shader
-exists as a community port for PPSSPP (jdgleaver/ppsspp_shaders). Two options:
+PPSSPP ships with a built-in `LCDPersistence` shader. When shaders are
+enabled, add:
 
-Option A: Use the built-in `LCDPersistence` shader that PPSSPP ships with:
 ```go
 {Path: []string{"Graphics", "PostShaderNames"}, Value: "LCDPersistence", DefaultOnly: true},
 ```
 
-Option B: Skip PPSSPP shader support until a proper LCD shader can be bundled.
-
-Recommend option A since `LCDPersistence` is built-in and requires no
-additional files.
-
 When shaders are disabled, do not add the entry.
 
-### 9. Update the daemon and CLI
+### 8. Update the daemon and CLI
 
 The daemon's `apply` handler already reads `KyarabenConfig` and passes
 `GenerateContext` to each emulator. Add the `ShaderConfig` field to the
@@ -216,13 +197,13 @@ context construction. No new daemon commands needed.
 The CLI `init` command that generates the default `config.toml` should include
 the `[shaders]` section with `enabled = false`.
 
-### 10. Update documentation
+### 9. Update documentation
 
 Update `site/src/content/docs/using-the-app.mdx` and
 `site/src/content/docs/using-the-cli.mdx` to document the `[shaders]` config
 option. Mention which emulators support it and which do not.
 
-### 11. Tests
+### 10. Tests
 
 - Unit tests for display type classification (all systems have a display type)
 - Unit tests for each emulator's config generator: verify shader entries are
@@ -230,22 +211,14 @@ option. Mention which emulators support it and which do not.
 - Unit tests for RetroArch preset file content
 - Registry test: verify all system definitions set a display type
 
-## Open questions
+## Resolved decisions
 
-- Should we use `.glslp` (OpenGL) or `.slangp` (Vulkan) for RetroArch shader
-  presets? The AppImage RetroArch likely uses OpenGL by default, so `.glslp`
-  is safer. But if the user switches to Vulkan, `.glslp` presets would not
-  work. We could write both, or detect the video driver from `retroarch.cfg`.
-  Recommend: write `.glslp` for now since the AppImage defaults to OpenGL.
-  Document the limitation.
-
-- Dolphin's CRT shaders (crt-pi) were merged in PR #12014. We should verify
-  they ship in the version Kyaraben installs. If not, the shader file would
-  need to be bundled or the feature skipped for Dolphin.
-
-- For PPSSPP, `LCDPersistence` is not a true LCD grid shader but a frame
-  persistence effect. It is the only built-in option. A proper zfast-lcd port
-  would need to be installed separately.
+- RetroArch presets use `.slangp` (Slang/Vulkan). Slang is the recommended
+  shader format and works with Vulkan, OpenGL Core, and Direct3D renderers.
+- Dolphin is out of scope. The version Kyaraben ships does not include CRT
+  shaders (only color/novelty filters like grayscale, sepia, etc.).
+- PPSSPP uses the built-in `LCDPersistence` shader. It is a frame persistence
+  effect rather than an LCD grid shader, but it is the only built-in option.
 
 ## Config example
 
