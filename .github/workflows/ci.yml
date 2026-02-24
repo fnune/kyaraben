@@ -127,8 +127,8 @@ jobs:
 
       - name: Build relay binary
         run: |
-          mkdir -p .sandbox/relay
-          cd relay && go build -o ../.sandbox/relay/relay ./cmd/relay
+          mkdir -p .test/relay
+          cd relay && go build -o ../.test/relay/relay ./cmd/relay
 
       - name: Install UI dependencies
         run: cd ui && npm ci
@@ -156,5 +156,5 @@ jobs:
           cd ui
           KYARABEN_APPIMAGE="$(pwd)/release/app/kyaraben-ui" \
           APPDIR="$(pwd)/release/app" \
-          KYARABEN_RELAY_BINARY="$(pwd)/../.sandbox/relay/relay" \
+          KYARABEN_RELAY_BINARY="$(pwd)/../.test/relay/relay" \
           xvfb-run --auto-servernum ../scripts/run-ui-e2e.sh npx playwright test

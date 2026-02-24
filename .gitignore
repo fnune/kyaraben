@@ -21,8 +21,8 @@ result
 result-*
 .direnv/
 
-# Sandbox persistent state
-.sandbox/
+# Test artifacts (e2e)
+.test/
 ui/binaries/
 
 # Site build output
