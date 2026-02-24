@@ -2,10 +2,16 @@
 
 ## Summary
 
-Add shader support to Kyaraben with per-emulator granularity. A global toggle
-enables shaders for all systems, and per-emulator toggles allow users to
-override the default. The UI exposes both a global "Enable shaders" toggle and
-per-emulator shader toggles in a new modal on each emulator subcard.
+Add shader support to Kyaraben with per-emulator granularity. Each emulator
+that supports shaders gets a three-state control:
+
+- `shaders = true`: Kyaraben writes curated shader config for the emulator
+- `shaders = false`: Kyaraben explicitly disables shaders for the emulator
+- key absent: Kyaraben does not touch the emulator's shader config
+
+The setting lives on `EmulatorConf` (the existing per-emulator config struct).
+There is no global toggle. The default is unmanaged (absent), so existing users
+are unaffected.
 
 CRT shader: `crt-mattias` (from libretro/glsl-shaders)
 LCD shader: `zfast-lcd` (from libretro/glsl-shaders, EmuDeck default)
@@ -40,112 +46,109 @@ Add a `DisplayType` field to the `System` model.
 
 ### config.toml
 
-Per-emulator shader state, with a convenience field for the global toggle:
+Shader state is per-emulator, stored on the existing `EmulatorConf`. The key
+uses a `*bool` in Go so three states are representable in TOML:
 
 ```toml
-[shaders]
-enabled = false
+[emulators.retroarch-bsnes]
+version = "0.240"
+shaders = true
 
-[shaders.emulators]
-# Per-emulator overrides. When absent, inherits from [shaders].enabled.
-# When present, overrides the global toggle for this emulator.
-# retroarch_mgba = true
-# duckstation = false
+[emulators.ppsspp]
+shaders = false
+
+# duckstation has no shaders key: Kyaraben leaves its shader config alone
 ```
 
 The Go struct:
 
 ```go
-type ShaderConfig struct {
-    Enabled   bool            `toml:"enabled"`
-    Emulators map[EmulatorID]bool `toml:"emulators,omitempty"`
+type EmulatorConf struct {
+    Version string `toml:"version,omitempty"`
+    Shaders *bool  `toml:"shaders,omitempty"`
 }
 ```
 
-Resolution logic: for a given emulator, if `ShaderConfig.Emulators[emuID]`
-exists, use that value. Otherwise fall back to `ShaderConfig.Enabled`.
+Resolution logic: if `Shaders` is `nil`, the emulator's shader config is
+unmanaged. If `*Shaders` is `true`, Kyaraben writes the curated shader. If
+`*Shaders` is `false`, Kyaraben explicitly disables shaders.
 
 ### Daemon protocol
 
-Extend `SetConfigRequest` and `ConfigResponse` with a `shaders` field:
+Extend `EmulatorConfRequest` and `EmulatorConfResponse` with a `shaders`
+field:
 
 ```go
-// In SetConfigRequest
-Shaders *ShaderConfigRequest `json:"shaders,omitempty"`
-
-type ShaderConfigRequest struct {
-    Enabled   bool                `json:"enabled"`
-    Emulators map[string]bool     `json:"emulators,omitempty"`
+type EmulatorConfRequest struct {
+    Version string `json:"version,omitempty"`
+    Shaders *bool  `json:"shaders,omitempty"`
 }
 
-// In ConfigResponse
-Shaders ShaderConfigResponse `json:"shaders"`
-
-type ShaderConfigResponse struct {
-    Enabled   bool            `json:"enabled"`
-    Emulators map[string]bool `json:"emulators,omitempty"`
+type EmulatorConfResponse struct {
+    Version string `json:"version,omitempty"`
+    Shaders *bool  `json:"shaders,omitempty"`
 }
 ```
 
-The `handleSetConfig` method updates `cfg.Shaders` when the field is present.
-The `handleGetConfig` method returns the current shader state.
+The `handleSetConfig` method writes `cfg.Emulators[emuID].Shaders` from the
+request. When the request omits an emulator entirely, its shader state is
+unchanged. When the request includes an emulator with `shaders: null` (JSON
+null), the key is removed from the TOML (unmanaged).
+
+The `handleGetConfig` method returns the current shader state per emulator.
 
 ### UI state
 
-Add to `ConfigState` in `App.tsx`:
+Add to the emulator state in `App.tsx`:
 
 ```ts
-shadersEnabled: boolean
-shaderEmulatorOverrides: Map<EmulatorID, boolean>
+// null = unmanaged (absent in TOML), true = managed on, false = managed off
+emulatorShaders: Map<EmulatorID, boolean | null>
 ```
 
-The `hasConfigChanges` check compares these against `savedConfigState`.
+The `hasConfigChanges` check compares this against `savedConfigState`.
 
-The `handleApply` callback passes the shader state in `setConfig`:
-
-```ts
-shaders: {
-  enabled: configState.shadersEnabled,
-  emulators: Object.fromEntries(configState.shaderEmulatorOverrides),
-}
-```
+The `handleApply` callback includes shader state in each emulator's conf when
+calling `setConfig`.
 
 ## UI design
 
-### Global toggle
+### Per-emulator shader control
 
-In the `Settings` component (above the systems list), add a "Shaders" row
-with a toggle switch. Toggling it sets `configState.shadersEnabled` and
-triggers the Apply bar, just like changing the store path does today.
+On each `EmulatorSubcard`, add a "Shaders" button in the action row alongside
+"Launch", "Paths", and "Provisions". Only shown when the emulator's
+`supportsShaders` is true.
 
-### Per-emulator toggle
+Clicking the button opens a `ShadersModal` that shows:
 
-On each `EmulatorSubcard`, add a "Shaders" link in the action row alongside
-"Launch", "Paths", and "Provisions". Clicking it opens a `ShadersModal`.
+- The shader that would be applied (e.g. "CRT: crt-mattias" or "LCD:
+  zfast-lcd") based on the system's display type, for informational context
+- A three-state selector with these options:
+  - "On": Kyaraben applies the curated shader (`shaders = true`)
+  - "Off": Kyaraben disables shaders (`shaders = false`)
+  - "Manual": Kyaraben does not touch shader config (key absent)
+- "Manual" is the default for all emulators
 
-The `ShadersModal` shows:
+The three-state selector is a segmented control (three side-by-side buttons
+with the active one highlighted), not a dropdown or toggle. All options are
+visible at a glance.
 
-- The emulator name
-- The shader that will be applied (e.g. "CRT: crt-mattias" or "LCD:
-  zfast-lcd") based on the system's display type
-- A toggle: "Enable shader for this emulator"
-- The toggle's state: resolved from the per-emulator override if set,
-  otherwise from the global toggle
-- When the user toggles it, it creates a per-emulator override in
-  `shaderEmulatorOverrides`
+Changing the shader state sets `hasConfigChanges = true` and shows the Apply
+bar.
 
-Changing the per-emulator shader toggle sets `hasConfigChanges = true` and
-shows the Apply bar, just like toggling an emulator on/off does today.
+### Visual indicator on the subcard
 
-For emulators that do not support shaders (Dolphin, Flycast, etc.), the
-"Shaders" link is not shown.
+When an emulator's shader state is "On", show a subtle indicator on the
+`EmulatorSubcard` so users can see shader status without opening the modal.
+This could be a small label or icon next to the emulator name. The exact
+treatment is left to implementation.
 
-### Which emulators show the shader link
+### Which emulators show the shader button
 
-The daemon needs to communicate which emulators support shaders. Add a
+The daemon communicates which emulators support shaders. Add a
 `supportsShaders` boolean to `EmulatorRef` in the protocol. Set it based on
-whether the emulator's config generator supports shader entries. The UI uses
-this to conditionally render the "Shaders" link.
+whether the emulator has a config generator that supports shader entries. The
+UI uses this to conditionally render the "Shaders" button.
 
 ## Not using DefaultOnly
 
@@ -155,24 +158,25 @@ Shader config entries do not use `DefaultOnly`. The reasoning:
 in the emulator's config file." This is designed for settings that Kyaraben
 sets once as a default but the user might customize directly in the emulator.
 
-Shaders are different: users change them frequently through the Kyaraben UI.
+Shaders are different: when the user sets shaders to "On" or "Off" in
+Kyaraben, the intent is for Kyaraben to control that setting on every Apply.
 If we used `DefaultOnly`, the first Apply would write the shader setting, but
-subsequent toggles via the UI would not take effect because the key already
+subsequent changes via the UI would not take effect because the key already
 exists in the config file.
 
-Instead, shader config entries are always written when shaders are enabled for
-that emulator, and explicitly disabled (or removed) when shaders are turned
-off. This means:
+When shaders are "On":
+- Kyaraben always writes the curated shader config
 
-- Turning shaders on in Kyaraben always writes the shader config
-- Turning shaders off in Kyaraben always clears the shader config
-- If a user changes shaders directly in the emulator, the next Kyaraben Apply
-  will overwrite their change (this is acceptable since shader control is
-  meant to go through Kyaraben)
+When shaders are "Off":
+- Kyaraben always writes config that disables shaders
 
-For RetroArch, this means the `.slangp` preset file is written when enabled
-and deleted when disabled. For standalone emulators, the config entries are
-always written with the current state.
+When shaders are "Manual" (absent):
+- Kyaraben does not claim the shader config region at all
+- The user's own emulator settings are preserved across applies
+- This is the default, so existing users are unaffected
+
+For RetroArch, "On" means the `.slangp` preset file is written, "Off" means
+it is deleted, and "Manual" means it is not touched.
 
 ## Implementation steps
 
@@ -192,34 +196,42 @@ const (
 Add `DisplayType DisplayType` field to `System` struct. Update all system
 definitions to set the appropriate display type.
 
-### 2. Add `ShaderConfig` to `KyarabenConfig`
+### 2. Add `Shaders *bool` to `EmulatorConf`
 
 File: `internal/model/config.go`
 
 ```go
-type ShaderConfig struct {
-    Enabled   bool                    `toml:"enabled"`
-    Emulators map[EmulatorID]bool     `toml:"emulators,omitempty"`
+type EmulatorConf struct {
+    Version string `toml:"version,omitempty"`
+    Shaders *bool  `toml:"shaders,omitempty"`
 }
 ```
 
-Add `Shaders ShaderConfig` field to `KyarabenConfig` with TOML key `shaders`.
-Default is `Enabled: false` with no per-emulator overrides.
+Add a helper method:
 
-### 3. Thread shader config through `GenerateContext`
+```go
+func (c *KyarabenConfig) EmulatorShaders(id EmulatorID) *bool {
+    if conf, ok := c.Emulators[id]; ok {
+        return conf.Shaders
+    }
+    return nil
+}
+```
+
+### 3. Thread shader state through `GenerateContext`
 
 File: `internal/model/definitions.go`
 
-Add `ShaderConfig *ShaderConfig` to `GenerateContext`. The daemon passes the
-parsed shader config when calling each emulator's `Generate()` method.
+Add `Shaders *bool` to `GenerateContext`. The applier sets this per emulator
+before calling `Generate()`, reading from `cfg.EmulatorShaders(emuID)`.
 
-Also add a `SystemDisplayTypes map[SystemID]DisplayType` field to
-`GenerateContext` so config generators can look up the display type for the
-systems they serve.
+Also add `SystemDisplayTypes map[SystemID]DisplayType` to `GenerateContext`
+so config generators can look up the display type for the systems they serve.
 
-Each config generator resolves whether shaders are enabled for its emulator:
-check `ShaderConfig.Emulators[emuID]` first, fall back to
-`ShaderConfig.Enabled`.
+Each config generator checks `genCtx.Shaders`:
+- `nil`: do not emit any shader patches
+- `true`: emit patches that enable the curated shader
+- `false`: emit patches that disable shaders
 
 ### 4. RetroArch shader implementation
 
@@ -257,16 +269,19 @@ preset files, not key-value config entries.
 Also set `video_shader_enable = "true"` in the shared RetroArch config when
 shaders are enabled for any core.
 
-When shaders are disabled for a core, delete its `.slangp` file (emit a
-delete patch or a cleanup action). Set `video_shader_enable = "false"` in the
-shared config if no cores have shaders enabled.
+When shaders are explicitly disabled (`false`), delete the `.slangp` file
+(emit a delete patch or a cleanup action). Set `video_shader_enable = "false"`
+in the shared config if no cores have shaders enabled.
+
+When shaders are unmanaged (`nil`), do not touch the `.slangp` file or the
+`video_shader_enable` setting.
 
 ### 5. DuckStation shader implementation
 
 File: `internal/emulators/duckstation/duckstation.go`
 
 DuckStation ships with `crt-lottes` as a built-in shader. When shaders are
-enabled for DuckStation:
+enabled (`true`):
 
 ```go
 {Path: []string{"PostProcessing", "Enabled"}, Value: "true"},
@@ -274,30 +289,32 @@ enabled for DuckStation:
 {Path: []string{"PostProcessing/Stage1", "ShaderName"}, Value: "crt-lottes"},
 ```
 
-When shaders are disabled:
+When shaders are disabled (`false`):
 
 ```go
 {Path: []string{"PostProcessing", "Enabled"}, Value: "false"},
 ```
 
-No `DefaultOnly` -- always written.
+When shaders are unmanaged (`nil`): no patches emitted.
 
 ### 6. PCSX2 shader implementation
 
 File: `internal/emulators/pcsx2/pcsx2.go`
 
 PCSX2 has a built-in `TVShader` setting under `[EmuCore/GS]` in `PCSX2.ini`.
-Value `5` selects the Lottes CRT shader. When shaders are enabled:
+Value `5` selects the Lottes CRT shader. When shaders are enabled (`true`):
 
 ```go
 {Path: []string{"EmuCore/GS", "TVShader"}, Value: "5"},
 ```
 
-When shaders are disabled:
+When shaders are disabled (`false`):
 
 ```go
 {Path: []string{"EmuCore/GS", "TVShader"}, Value: "0"},
 ```
+
+When shaders are unmanaged (`nil`): no patches emitted.
 
 TVShader values for reference: 0 = none, 1 = scanline filter, 2 = diagonal
 filter, 3 = triangular filter, 4 = wave filter, 5 = Lottes CRT.
@@ -307,106 +324,111 @@ filter, 3 = triangular filter, 4 = wave filter, 5 = Lottes CRT.
 File: `internal/emulators/ppsspp/ppsspp.go`
 
 PPSSPP ships with a built-in `LCDPersistence` shader. When shaders are
-enabled:
+enabled (`true`):
 
 ```go
 {Path: []string{"Graphics", "PostShaderNames"}, Value: "LCDPersistence"},
 ```
 
-When shaders are disabled:
+When shaders are disabled (`false`):
 
 ```go
 {Path: []string{"Graphics", "PostShaderNames"}, Value: "Off"},
 ```
 
+When shaders are unmanaged (`nil`): no patches emitted.
+
 ### 8. Extend the daemon protocol
 
 File: `internal/daemon/protocol.go`
 
-Add `Shaders` to `SetConfigRequest`, `ConfigResponse`, and their handler
-methods. Add `SupportsShaders bool` to `EmulatorRef` and `SystemRef`.
+Add `Shaders *bool` to `EmulatorConfRequest` and `EmulatorConfResponse`. Add
+`SupportsShaders bool` to `EmulatorRef`.
 
 File: `internal/daemon/daemon.go`
 
-In `handleSetConfig`: when `data.Shaders` is non-nil, update
-`cfg.Shaders.Enabled` and `cfg.Shaders.Emulators`.
+In `handleSetConfig`: when an emulator conf is present in the request, write
+its `Shaders` value to `cfg.Emulators[emuID].Shaders`.
 
-In `handleGetConfig`: return `cfg.Shaders.Enabled` and
-`cfg.Shaders.Emulators`.
+In `handleGetConfig`: return each emulator's `Shaders` value.
 
 In `handleGetSystems`: set `SupportsShaders` on each `EmulatorRef` based on
 whether the emulator's definition supports shader config.
 
-### 9. UI: global shader toggle
-
-File: `ui/src/components/Settings/Settings.tsx`
-
-Add a "Shaders" row with a `ToggleSwitch`. Wire it to
-`configState.shadersEnabled` via a new `onShadersToggle` prop threaded from
-`App.tsx`.
+### 9. UI: state management
 
 File: `ui/src/App.tsx`
 
-Add `shadersEnabled` and `shaderEmulatorOverrides` to `ConfigState`. Update
-`parseConfigResponse`, `cloneConfigState`, `hasConfigChanges`, and
+Add `emulatorShaders: Map<EmulatorID, boolean | null>` to `ConfigState`.
+Update `parseConfigResponse`, `cloneConfigState`, `hasConfigChanges`, and
 `handleApply` to include shader state.
+
+The `handleShaderChange(emulatorId, value)` callback accepts
+`boolean | null` and updates the map.
 
 ### 10. UI: per-emulator shader modal
 
 File: `ui/src/components/ShadersModal/ShadersModal.tsx` (new)
 
 A modal showing:
-- Shader type (CRT or LCD) and name
-- Toggle switch for this emulator
-- Note about the global default
+- The shader name and type (CRT or LCD) that Kyaraben would apply
+- A segmented control with three options: "On", "Off", "Manual"
+- Current selection highlighted
 
 File: `ui/src/components/EmulatorSubcard/EmulatorSubcard.tsx`
 
-Add a "Shaders" link in the action row (alongside Launch, Paths, Provisions).
-Only shown when the emulator's `supportsShaders` is true. Clicking opens
-`ShadersModal`.
+Add a "Shaders" button in the action row (alongside Launch, Paths,
+Provisions). Only shown when the emulator's `supportsShaders` is true.
+Clicking opens `ShadersModal`.
 
-Add `shadersEnabled`, `shaderOverride`, and `onShaderToggle` props.
+Add `shaders: boolean | null`, `onShaderChange`, and `supportsShaders` props.
 
-### 11. Update the daemon and CLI
-
-The CLI `init` command that generates the default `config.toml` should include
-the `[shaders]` section with `enabled = false`.
-
-### 12. Update documentation
+### 11. Update documentation
 
 Update `site/src/content/docs/using-the-app.mdx` and
 `site/src/content/docs/using-the-cli.mdx` to document the shader config
-options.
+options and the three states.
 
-### 13. Tests
+### 12. Tests
 
 - Unit tests for display type classification (all systems have a display type)
 - Unit tests for each emulator's config generator: verify shader entries are
-  present when enabled, absent when disabled
+  present when `true`, disable entries when `false`, nothing when `nil`
 - Unit tests for RetroArch preset file content
 - Registry test: verify all system definitions set a display type
-- Unit test for shader resolution logic (per-emulator override vs global)
-- UI component tests for ShadersModal
+- UI component tests for ShadersModal segmented control
 
 ## Resolved decisions
 
+- No global toggle. Shader config is purely per-emulator. This avoids the
+  complexity of a two-level override system and keeps the mental model simple:
+  each emulator has exactly one shader setting.
+- Per-emulator shader state is a `*bool` on `EmulatorConf`, not a separate
+  config section. This keeps the config flat and follows the pattern of the
+  existing `version` field.
+- Default is unmanaged (absent). Existing users are unaffected. New users
+  start with Kyaraben not touching shader config for any emulator.
 - RetroArch presets use `.slangp` (Slang/Vulkan). Slang is the recommended
   shader format and works with Vulkan, OpenGL Core, and Direct3D renderers.
 - Dolphin is out of scope. The version Kyaraben ships does not include CRT
   shaders (only color/novelty filters like grayscale, sepia, etc.).
 - PPSSPP uses the built-in `LCDPersistence` shader. It is a frame persistence
   effect rather than an LCD grid shader, but it is the only built-in option.
-- No `DefaultOnly` for shader entries. Shaders are always written on Apply so
-  the UI toggle works reliably across repeated applies.
+- No `DefaultOnly` for shader entries. When managed (`true` or `false`),
+  shaders are always written on Apply so the UI control works reliably.
+- The UI uses a segmented control ("On" / "Off" / "Manual") rather than a
+  toggle or dropdown. All three states are visible at a glance.
 
 ## Config example
 
 ```toml
-[shaders]
-enabled = true
+[emulators.retroarch-bsnes]
+version = "0.240"
+shaders = true
 
-[shaders.emulators]
-# User disabled shaders for PPSSPP specifically
-ppsspp = false
+[emulators.ppsspp]
+shaders = false
+
+# retroarch-mgba, duckstation, pcsx2, etc. have no shaders key.
+# Kyaraben does not touch their shader config.
 ```
