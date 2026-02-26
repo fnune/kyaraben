@@ -131,35 +131,40 @@ Your <UserStore /> (default `~/Emulation`) has a consistent structure:
 
 ```
 ~/Emulation/
-├── roms/              # Your ROM files, organized by system
+├── roms/                 # ROM files, organized by system
 │   ├── snes/
 │   ├── psx/
 │   └── ...
-├── bios/              # BIOS and firmware files, organized by system
+├── bios/                 # BIOS and firmware files, organized by system
 │   ├── psx/
 │   └── ...
-├── saves/             # Save files (memory cards, battery saves)
-│   └── (per-system)
-├── states/            # Emulator save states
-│   └── (per-emulator)
-├── screenshots/       # Captured screenshots
-│   └── (per-emulator)
-└── opaque/            # Emulators with complex internal structures
-    ├── rpcs3/
-    └── ...
+├── saves/                # Save files (memory cards, battery saves), by system
+│   ├── psx/
+│   ├── gba/
+│   └── ...
+├── states/               # Emulator save states, by emulator
+│   ├── duckstation/
+│   ├── dolphin/
+│   └── ...
+├── screenshots/          # Captured screenshots, by emulator
+│   ├── retroarch/
+│   ├── duckstation/
+│   └── ...
+└── frontends/            # Frontend metadata and media
+    └── esde/
+        ├── gamelists/    # Game lists per system
+        └── media/        # Scraped artwork per system
 ```
 
-Kyaraben uses symlinks to redirect emulator data directories to your
+Saves are organized by system so that different emulators for the same system
+can share save files. States and screenshots are organized by emulator because
+their formats are emulator-specific.
 
-<UserStore />. For example, Dolphin normally stores GameCube saves in
-`~/.local/share/dolphin-emu/GC/`. Kyaraben creates a symlink from that location to
-`~/Emulation/saves/gamecube/`. The emulator runs with its default settings; the symlink
-transparently redirects data to your managed location.
-
-A few emulators have complex internal directory structures that resist symlinks
-(virtual filesystems, interlinked databases). These use an `opaque/` directory
-where the emulator manages its own layout. Kyaraben points the emulator at this
-directory and syncs it as a unit.
+Kyaraben uses symlinks to redirect emulator data directories to your <UserStore />.
+For example, Dolphin normally stores GameCube saves in `~/.local/share/dolphin-emu/GC/`.
+Kyaraben creates a symlink from that location to `~/Emulation/saves/gamecube/`.
+The emulator runs with its default settings; the symlink transparently redirects
+data to your managed location.
 
 ## Under the hood
 
