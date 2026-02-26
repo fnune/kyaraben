@@ -13,58 +13,53 @@ hero:
       variant: minimal
 ---
 
-import { Aside, Card, CardGrid } from "@astrojs/starlight/components";
+import { Aside, LinkCard, CardGrid } from "@astrojs/starlight/components";
 
 <Aside type="caution">
-  Kyaraben is pre-alpha software. It has not been battle-tested. If you are interested in trying it
-  out as a pilot user, feedback and bug reports are welcome on
+  Kyaraben is pre-alpha software. Feedback and bug reports are welcome on
   [GitHub](https://github.com/fnune/kyaraben/issues).
 </Aside>
 
 Kyaraben sets up emulators on Linux so you can play retro games. It works on
 any Linux distribution, including the Steam Deck.
 
-## What it does
-
-<CardGrid>
-  <Card title="Select and apply">
-    Choose which gaming systems you want to emulate. Kyaraben installs the emulators and generates
-    their configuration. One click.
-  </Card>
-  <Card title="Unified folder structure">
-    ROMs, BIOS files, saves, and screenshots organized in a single `~/Emulation` directory. Every
-    emulator points to the same place.
-  </Card>
-  <Card title="Observability">
-    Kyaraben tracks what it installs, shows diffs before changing config files, and avoids littering
-    your system. You always know what changed and why.
-  </Card>
-  <Card title="Clean by design">
-    No system packages modified, no root access needed. Everything lives in user directories.
-    Uninstall removes only what kyaraben put there.
-  </Card>
-</CardGrid>
-
 ## How it works
 
 1. Download the AppImage and run it
 2. Select the systems you want to emulate
 3. Click apply
-4. The UI shows which BIOS or firmware files are needed
-5. Drop your ROMs into the created folders and play
+4. Drop your ROMs into the created folders and play
 
 {/* Screenshot: v0.1-index-system-picker.png - The system picker UI */}
 
-## What kyaraben promises
+## Why kyaraben
 
-- Installations are reproducible: same config, same result, every time
-- Your system is never polluted: no root access, no system packages modified
-- Kyaraben installs itself, its emulators, and frontends to `~/.local/bin/`
-  and `~/.local/share/kyaraben/`, with `.desktop` entries for everything
-- Uninstall is clean: your ROMs, saves, and BIOS files are never touched
-- Your emulator settings are preserved: kyaraben manages specific keys and
-  leaves the rest alone
-- You see what changes before it happens: config diffs are shown before apply
+<CardGrid>
+  <LinkCard
+    title="Cross-device sync"
+    href="/sync/"
+    description="Syncs saves peer-to-peer with no cloud accounts. Pair devices with a 6-digit code from any network. Includes EmulationStation DE artwork and metadata."
+  />
+  <LinkCard
+    title="You stay in control"
+    href="/using-the-app/#configuration-management"
+    description="See diffs before anything is written. Three-way merge detects your manual changes and warns before overwriting. Kyaraben manages paths; your performance tuning and shaders stay untouched."
+  />
+  <LinkCard
+    title="Portable"
+    href="/using-the-app/#what-kyaraben-installs-and-where"
+    description="Works on any Linux distribution. Emulators run as AppImages with no Flatpak, no containers, no sandbox restrictions."
+  />
+  <LinkCard
+    title="Predictable"
+    href="/using-the-app/#guarantees"
+    description="Same config, same result, on any machine. No root access needed. Uninstall cleans up emulator configs and binaries, leaving your ROMs and saves."
+  />
+</CardGrid>
 
-See [app reference](/using-the-app/) for the full list of guarantees, non-goals,
-and future plans.
+:::note[Controller support]
+Controller configuration currently relies on launching games via EmulationStation
+DE from Steam (for Steam Input) or emulator defaults.
+:::
+
+See [app reference](/using-the-app/) for guarantees and non-goals.
