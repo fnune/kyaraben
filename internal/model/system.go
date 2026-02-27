@@ -24,9 +24,17 @@ const (
 	SystemIDPS3       SystemID = "ps3"
 	SystemIDPSP       SystemID = "psp"
 	SystemIDPSVita    SystemID = "psvita"
-	SystemIDGenesis   SystemID = "genesis"
-	SystemIDSaturn    SystemID = "saturn"
-	SystemIDDreamcast SystemID = "dreamcast"
+	SystemIDGenesis      SystemID = "genesis"
+	SystemIDMasterSystem SystemID = "mastersystem"
+	SystemIDGameGear     SystemID = "gamegear"
+	SystemIDSaturn       SystemID = "saturn"
+	SystemIDDreamcast    SystemID = "dreamcast"
+	SystemIDPCEngine     SystemID = "pcengine"
+	SystemIDPCFX         SystemID = "pcfx"
+	SystemIDLynx         SystemID = "lynx"
+	SystemIDNGP          SystemID = "ngp"
+	SystemIDVirtualBoy   SystemID = "virtualboy"
+	SystemIDWonderSwan   SystemID = "wonderswan"
 )
 
 // Manufacturer represents the company that made a gaming system.
@@ -36,6 +44,10 @@ const (
 	ManufacturerNintendo Manufacturer = "Nintendo"
 	ManufacturerSony     Manufacturer = "Sony"
 	ManufacturerSega     Manufacturer = "Sega"
+	ManufacturerNEC      Manufacturer = "NEC"
+	ManufacturerAtari    Manufacturer = "Atari"
+	ManufacturerSNK      Manufacturer = "SNK"
+	ManufacturerBandai   Manufacturer = "Bandai"
 	ManufacturerOther    Manufacturer = "Other"
 )
 
