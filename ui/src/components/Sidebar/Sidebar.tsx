@@ -1,5 +1,6 @@
 import { Logo } from '@/components/Logo/Logo'
-import { SettingsIcon } from '@/lib/icons'
+import { useOpenUrl } from '@/lib/hooks/useOpenUrl'
+import { ExternalLinkIcon, SettingsIcon } from '@/lib/icons'
 import type { SyncState, SyncStatusResponse } from '@/types/daemon'
 import {
   SyncStateConflict,
@@ -60,6 +61,7 @@ function NavItem({ label, active, onClick, indicator }: NavItemProps) {
 export function Sidebar({ currentView, onNavigate, syncStatus, version }: SidebarProps) {
   const syncState = getSyncState(syncStatus)
   const syncDotColor = syncDotColors[syncState]
+  const openUrl = useOpenUrl()
 
   return (
     <aside className="bg-surface-alt border-b min-[720px]:border-b-0 min-[720px]:border-r border-outline flex flex-row min-[720px]:flex-col min-[720px]:w-56">
@@ -78,6 +80,12 @@ export function Sidebar({ currentView, onNavigate, syncStatus, version }: Sideba
           active={currentView === VIEW_SYNC}
           onClick={() => onNavigate(VIEW_SYNC)}
           indicator={<span className={`w-2 h-2 rounded-full ${syncDotColor}`} />}
+        />
+        <NavItem
+          label="Documentation"
+          active={false}
+          onClick={() => openUrl('http://localhost:4321')}
+          indicator={<ExternalLinkIcon className="w-3 h-3" />}
         />
       </nav>
 
