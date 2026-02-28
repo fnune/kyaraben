@@ -192,7 +192,7 @@ Type=Application
 Name=Kyaraben{{if .Instance}} ({{.Instance}}){{end}}
 Comment=Declarative emulation manager
 Exec={{.ExecPath}}{{if .Instance}} --instance {{.Instance}}{{end}}
-Icon=applications-games
+Icon={{.IconPath}}
 Terminal=false
 Categories=Game;Emulator;
 `
@@ -307,6 +307,11 @@ func (m *Manager) installDesktopFile(result *InstallResult) error {
 		return fmt.Errorf("creating applications directory: %w", err)
 	}
 
+	iconPath, err := m.installKyarabenIcon()
+	if err != nil {
+		return fmt.Errorf("installing icon: %w", err)
+	}
+
 	result.DesktopPath = filepath.Join(appsDir, m.paths.DesktopFileName())
 
 	tmpl, err := template.New("desktop").Parse(kyarabenDesktopTemplate)
@@ -328,9 +333,11 @@ func (m *Manager) installDesktopFile(result *InstallResult) error {
 	templateData := struct {
 		ExecPath string
 		Instance string
+		IconPath string
 	}{
 		ExecPath: execPath,
 		Instance: m.paths.Instance,
+		IconPath: iconPath,
 	}
 	if err := tmpl.Execute(f, templateData); err != nil {
 		return fmt.Errorf("writing desktop file: %w", err)
@@ -338,6 +345,26 @@ func (m *Manager) installDesktopFile(result *InstallResult) error {
 	log.Info("Installed desktop file: %s", result.DesktopPath)
 
 	return nil
+}
+
+func (m *Manager) installKyarabenIcon() (string, error) {
+	dataDir, err := m.resolver.UserDataDir()
+	if err != nil {
+		return "", fmt.Errorf("getting data directory: %w", err)
+	}
+
+	iconsDir := filepath.Join(dataDir, "icons", "hicolor", "scalable", "apps")
+	if err := vfs.MkdirAll(m.fs, iconsDir, 0755); err != nil {
+		return "", fmt.Errorf("creating icons directory: %w", err)
+	}
+
+	iconPath := filepath.Join(iconsDir, "kyaraben.svg")
+	if err := m.fs.WriteFile(iconPath, kyarabenIconSVG, 0644); err != nil {
+		return "", fmt.Errorf("writing icon: %w", err)
+	}
+
+	log.Debug("Installed kyaraben icon: %s", iconPath)
+	return iconPath, nil
 }
 
 func (m *Manager) GetInstallStatus() *InstallResult {
