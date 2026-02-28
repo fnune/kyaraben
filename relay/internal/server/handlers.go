@@ -111,7 +111,7 @@ func (h *Handlers) GetSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, GetSessionResponse{
-		DeviceID: session.PrimaryDeviceID,
+		DeviceID: session.InitiatorDeviceID,
 	}, http.StatusOK)
 }
 
@@ -188,7 +188,7 @@ func (h *Handlers) GetResponse(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, GetResponseResponse{
-		DeviceID: session.SecondaryDeviceID,
+		DeviceID: session.ResponderDeviceID,
 		Ready:    session.HasResponse(),
 	}, http.StatusOK)
 }
