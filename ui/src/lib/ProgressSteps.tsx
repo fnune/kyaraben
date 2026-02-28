@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { SpeedBadge } from '@/components/SpeedBadge/SpeedBadge'
+import { useHomeDir } from '@/lib/HomeDirContext'
+import { collapsePathsInText } from '@/lib/paths'
 import { getDownloadSpeedBytes, getStepSubtitle } from '@/lib/progressUtils'
 import { ProgressBar, ProgressRail, Shimmer } from '@/lib/progressWidgets'
 import type { LogEntry, LogLevel } from '@/types/logging.gen'
@@ -47,10 +49,12 @@ function LogEntriesPre({
   logEntries,
   isInProgress,
   progressPercent,
+  homeDir,
 }: {
   readonly logEntries: readonly LogEntry[]
   readonly isInProgress: boolean
   readonly progressPercent?: number
+  readonly homeDir: string
 }) {
   const preRef = useRef<HTMLPreElement>(null)
 
@@ -74,7 +78,7 @@ function LogEntriesPre({
             key={`${entry.timestamp}-${entry.message}`}
             className={getLogLevelClass(entry.level)}
           >
-            {entry.message}
+            {collapsePathsInText(entry.message, homeDir)}
             {'\n'}
           </span>
         ))}
@@ -92,10 +96,12 @@ function OutputPre({
   output,
   isInProgress,
   progressPercent,
+  homeDir,
 }: {
   readonly output: readonly string[]
   readonly isInProgress: boolean
   readonly progressPercent?: number
+  readonly homeDir: string
 }) {
   const preRef = useRef<HTMLPreElement>(null)
 
@@ -114,7 +120,7 @@ function OutputPre({
         ref={preRef}
         className="p-2 text-xs font-mono bg-surface text-on-surface-secondary rounded-sm max-h-32 overflow-y-auto whitespace-pre overflow-x-hidden"
       >
-        {output.join('\n')}
+        {output.map((line) => collapsePathsInText(line, homeDir)).join('\n')}
       </pre>
       {isInProgress && (
         <ProgressRail className="absolute bottom-0 left-0 right-0 h-1 bg-surface rounded-b pointer-events-none">
@@ -126,6 +132,8 @@ function OutputPre({
 }
 
 export function ProgressSteps({ steps, error, cancelled }: ProgressStepsProps) {
+  const homeDir = useHomeDir()
+
   if (steps.length === 0 && !error && !cancelled) {
     return null
   }
@@ -136,6 +144,7 @@ export function ProgressSteps({ steps, error, cancelled }: ProgressStepsProps) {
         <ol className="space-y-2">
           {steps.map((step) => {
             const subtitle = getStepSubtitle(step)
+            const displaySubtitle = subtitle ? collapsePathsInText(subtitle, homeDir) : null
             const computedPercent =
               step.bytesTotal && step.bytesTotal > 0
                 ? Math.min(100, Math.floor(((step.bytesDownloaded ?? 0) * 100) / step.bytesTotal))
@@ -156,7 +165,7 @@ export function ProgressSteps({ steps, error, cancelled }: ProgressStepsProps) {
                   <div className="flex items-center justify-between gap-3 min-w-0 flex-1">
                     <span className="text-on-surface-secondary truncate">
                       <span className="font-medium">{step.label}</span>
-                      {subtitle && <StepSubtitle>{subtitle}</StepSubtitle>}
+                      {displaySubtitle && <StepSubtitle>{displaySubtitle}</StepSubtitle>}
                     </span>
                     <SpeedBadge speedBytes={downloadSpeedBytes} show={showSpeed} />
                   </div>
@@ -166,6 +175,7 @@ export function ProgressSteps({ steps, error, cancelled }: ProgressStepsProps) {
                     <LogEntriesPre
                       logEntries={step.logEntries}
                       isInProgress={step.status === 'in_progress'}
+                      homeDir={homeDir}
                       {...(step.id === 'build' && progressPercent !== undefined
                         ? { progressPercent }
                         : {})}
@@ -179,6 +189,7 @@ export function ProgressSteps({ steps, error, cancelled }: ProgressStepsProps) {
                       <OutputPre
                         output={step.output}
                         isInProgress={step.status === 'in_progress'}
+                        homeDir={homeDir}
                         {...(step.id === 'build' && progressPercent !== undefined
                           ? { progressPercent }
                           : {})}
