@@ -89,6 +89,7 @@ type KyarabenInstall struct {
 	CLIPath              string `json:"cli_path,omitempty"`
 	DesktopPath          string `json:"desktop_path,omitempty"`
 	DesktopShortcutGiven bool   `json:"desktop_shortcut_given,omitempty"`
+	DesktopShortcutPath  string `json:"desktop_shortcut_path,omitempty"`
 }
 
 // SyncthingInstall tracks Syncthing installation paths for clean uninstall.

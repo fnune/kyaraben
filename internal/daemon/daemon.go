@@ -2317,22 +2317,29 @@ func (d *Daemon) handleInstallKyaraben(data *InstallKyarabenRequest) []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	shortcutGiven := manifest.KyarabenInstall != nil && manifest.KyarabenInstall.DesktopShortcutGiven
+	var shortcutGiven bool
+	var shortcutPath string
+	if manifest.KyarabenInstall != nil {
+		shortcutGiven = manifest.KyarabenInstall.DesktopShortcutGiven
+		shortcutPath = manifest.KyarabenInstall.DesktopShortcutPath
+	}
 
 	manifest.KyarabenInstall = &model.KyarabenInstall{
 		AppPath:              result.AppPath,
 		CLIPath:              result.CLIPath,
 		DesktopPath:          result.DesktopPath,
 		DesktopShortcutGiven: shortcutGiven,
+		DesktopShortcutPath:  shortcutPath,
 	}
 
 	if !shortcutGiven {
-		shortcutPath, err := d.launcherManager.CreateDesktopShortcut()
+		newShortcutPath, err := d.launcherManager.CreateDesktopShortcut()
 		if err != nil {
 			log.Debug("Failed to create desktop shortcut: %v", err)
 		} else {
 			manifest.KyarabenInstall.DesktopShortcutGiven = true
-			log.Info("Created one-shot desktop shortcut: %s", shortcutPath)
+			manifest.KyarabenInstall.DesktopShortcutPath = newShortcutPath
+			log.Info("Created one-shot desktop shortcut: %s", newShortcutPath)
 		}
 	}
 
@@ -2428,6 +2435,7 @@ func (d *Daemon) maybeCreateDesktopShortcut() {
 	}
 
 	manifest.KyarabenInstall.DesktopShortcutGiven = true
+	manifest.KyarabenInstall.DesktopShortcutPath = shortcutPath
 	if err := d.manifestStore.Save(manifest, d.manifestPath); err != nil {
 		log.Debug("Failed to save manifest after desktop shortcut: %v", err)
 		return
