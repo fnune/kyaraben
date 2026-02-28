@@ -738,11 +738,18 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle('launch_emulator', (_, execLine: string) => {
     const { spawn } = require('node:child_process')
-    spawn(execLine, [], {
+    console.log('[launch_emulator]', execLine)
+    const child = spawn(execLine, [], {
       detached: true,
       stdio: 'ignore',
       shell: true,
-    }).unref()
+    })
+    child.on('exit', (code: number | null) => {
+      if (code !== 0) {
+        console.log('[launch_emulator] exit code:', code)
+      }
+    })
+    child.unref()
     return { success: true }
   })
 

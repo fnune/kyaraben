@@ -33,6 +33,12 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 	return &Config{}
 }
 
+var coreOptionsTarget = model.ConfigTarget{
+	RelPath: "retroarch/config/Citra/Citra.opt",
+	Format:  model.ConfigFormatCFG,
+	BaseDir: model.ConfigBaseDirUserConfig,
+}
+
 type Config struct{}
 
 func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
@@ -40,8 +46,17 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	if err != nil {
 		return model.GenerateResult{}, err
 	}
+
+	patches := retroarch.CorePatches(model.EmulatorIDRetroArchCitra, ctx.Store, ctx.ControllerConfig)
+	patches = append(patches, model.ConfigPatch{
+		Target: coreOptionsTarget,
+		Entries: []model.ConfigEntry{
+			{Path: []string{"citra_resolution_factor"}, Value: "2", DefaultOnly: true},
+		},
+	})
+
 	return model.GenerateResult{
-		Patches:  []model.ConfigPatch{retroarch.SharedConfig(ctx.Store, ctx.ControllerConfig)},
+		Patches:  patches,
 		Symlinks: symlinks,
 	}, nil
 }

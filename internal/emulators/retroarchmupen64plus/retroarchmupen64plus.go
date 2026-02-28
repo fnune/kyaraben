@@ -47,16 +47,14 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		return model.GenerateResult{}, err
 	}
 
-	patches := []model.ConfigPatch{
-		retroarch.SharedConfig(ctx.Store, ctx.ControllerConfig),
-		{
-			Target: coreOptionsTarget,
-			Entries: []model.ConfigEntry{
-				{Path: []string{"mupen64plus-43screensize"}, Value: "1280x960", DefaultOnly: true},
-				{Path: []string{"mupen64plus-169screensize"}, Value: "1920x1080", DefaultOnly: true},
-			},
+	patches := retroarch.CorePatches(model.EmulatorIDRetroArchMupen64Plus, ctx.Store, ctx.ControllerConfig)
+	patches = append(patches, model.ConfigPatch{
+		Target: coreOptionsTarget,
+		Entries: []model.ConfigEntry{
+			{Path: []string{"mupen64plus-43screensize"}, Value: "1280x960", DefaultOnly: true},
+			{Path: []string{"mupen64plus-169screensize"}, Value: "1920x1080", DefaultOnly: true},
 		},
-	}
+	})
 
 	return model.GenerateResult{
 		Patches:  patches,

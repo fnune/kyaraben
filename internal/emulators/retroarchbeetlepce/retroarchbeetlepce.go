@@ -44,27 +44,12 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		return model.GenerateResult{}, err
 	}
 	return model.GenerateResult{
-		Patches: []model.ConfigPatch{
-			retroarch.SharedConfig(ctx.Store, ctx.ControllerConfig),
-			coreOverrideConfig(ctx.Store),
-		},
+		Patches:  retroarch.CorePatches(model.EmulatorIDRetroArchBeetlePCE, ctx.Store, ctx.ControllerConfig),
 		Symlinks: symlinks,
 	}, nil
 }
 
-const (
-	libretroCoreName = "mednafen_pce_fast_libretro"
-	shortCoreName    = "mednafen_pce_fast"
-)
-
-func coreOverrideConfig(store model.StoreReader) model.ConfigPatch {
-	return model.ConfigPatch{
-		Target: retroarch.CoreOverrideTarget(shortCoreName),
-		Entries: []model.ConfigEntry{
-			{Path: []string{"system_directory"}, Value: store.SystemBiosDir(model.SystemIDPCEngine)},
-		},
-	}
-}
+const libretroCoreName = "mednafen_pce_fast_libretro"
 
 var pceBIOSProvisions = []model.Provision{
 	model.HashedProvision(model.ProvisionBIOS, "syscard3.pce", "Super System Card 3.0 JP (required for CD games)", []string{"38179df8f4ac870017db21ebcbf53114"}),

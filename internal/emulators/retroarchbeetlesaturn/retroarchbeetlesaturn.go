@@ -44,27 +44,12 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		return model.GenerateResult{}, err
 	}
 	return model.GenerateResult{
-		Patches: []model.ConfigPatch{
-			retroarch.SharedConfig(ctx.Store, ctx.ControllerConfig),
-			coreOverrideConfig(ctx.Store),
-		},
+		Patches:  retroarch.CorePatches(model.EmulatorIDRetroArchBeetleSaturn, ctx.Store, ctx.ControllerConfig),
 		Symlinks: symlinks,
 	}, nil
 }
 
-const (
-	libretroCoreName = "mednafen_saturn_libretro"
-	shortCoreName    = "mednafen_saturn"
-)
-
-func coreOverrideConfig(store model.StoreReader) model.ConfigPatch {
-	return model.ConfigPatch{
-		Target: retroarch.CoreOverrideTarget(shortCoreName),
-		Entries: []model.ConfigEntry{
-			{Path: []string{"system_directory"}, Value: store.SystemBiosDir(model.SystemIDSaturn)},
-		},
-	}
-}
+const libretroCoreName = "mednafen_saturn_libretro"
 
 var saturnBIOSProvisions = []model.Provision{
 	model.HashedProvision(model.ProvisionBIOS, "sega_101.bin", "Japan", []string{"85ec9ca47d8f6807718151cbcca8b964"}),
