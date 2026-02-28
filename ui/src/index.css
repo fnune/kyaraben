@@ -69,12 +69,6 @@
   --logo-filter: brightness(0) saturate(100%) invert(10%) sepia(0%) saturate(0%) hue-rotate(0deg);
 }
 
-@media (min-resolution: 192dpi) {
-  html {
-    zoom: 1.25;
-  }
-}
-
 body {
   background-color: var(--color-surface);
   color: var(--color-on-surface);
