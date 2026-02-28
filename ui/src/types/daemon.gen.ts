@@ -183,6 +183,7 @@ export interface SyncStatusResponse {
   pairing?: boolean;
   progress?: SyncProgress;
   serviceError?: string;
+  globalDiscoveryEnabled?: boolean;
 }
 export interface SyncProgress {
   needFiles: number /* int64 */;
@@ -268,6 +269,12 @@ export interface SyncEnableResponse {
 export interface SyncResetResponse {
   success: boolean;
   removedFiles?: string[];
+}
+export interface SyncSetSettingsRequest {
+  globalDiscoveryEnabled?: boolean;
+}
+export interface SyncSetSettingsResponse {
+  success: boolean;
 }
 export interface SyncDiscoveredDevice {
   deviceId: string;
@@ -389,8 +396,9 @@ export const CommandTypeSyncRevertFolder = "sync_revert_folder";
 export const CommandTypeSyncLocalChanges = "sync_local_changes";
 export const CommandTypeSyncReset = "sync_reset";
 export const CommandTypeSyncDiscoveredDevices = "sync_discovered_devices";
+export const CommandTypeSyncSetSettings = "sync_set_settings";
 export const CommandTypeGetStorageDevices = "get_storage_devices";
-export type CommandType = typeof CommandTypeStatus | typeof CommandTypeDoctor | typeof CommandTypeApply | typeof CommandTypeCancelApply | typeof CommandTypeGetSystems | typeof CommandTypeGetFrontends | typeof CommandTypeGetConfig | typeof CommandTypeSetConfig | typeof CommandTypeSyncStatus | typeof CommandTypeSyncRemoveDevice | typeof CommandTypeSyncStartPairing | typeof CommandTypeSyncJoinPrimary | typeof CommandTypeSyncCancelPairing | typeof CommandTypeSyncPending | typeof CommandTypeUninstallPreview | typeof CommandTypeUninstall | typeof CommandTypeInstallKyaraben | typeof CommandTypeInstallStatus | typeof CommandTypeRefreshIconCaches | typeof CommandTypePreflight | typeof CommandTypeSyncEnable | typeof CommandTypeSyncRevertFolder | typeof CommandTypeSyncLocalChanges | typeof CommandTypeSyncReset | typeof CommandTypeSyncDiscoveredDevices | typeof CommandTypeGetStorageDevices;
+export type CommandType = typeof CommandTypeStatus | typeof CommandTypeDoctor | typeof CommandTypeApply | typeof CommandTypeCancelApply | typeof CommandTypeGetSystems | typeof CommandTypeGetFrontends | typeof CommandTypeGetConfig | typeof CommandTypeSetConfig | typeof CommandTypeSyncStatus | typeof CommandTypeSyncRemoveDevice | typeof CommandTypeSyncStartPairing | typeof CommandTypeSyncJoinPrimary | typeof CommandTypeSyncCancelPairing | typeof CommandTypeSyncPending | typeof CommandTypeUninstallPreview | typeof CommandTypeUninstall | typeof CommandTypeInstallKyaraben | typeof CommandTypeInstallStatus | typeof CommandTypeRefreshIconCaches | typeof CommandTypePreflight | typeof CommandTypeSyncEnable | typeof CommandTypeSyncRevertFolder | typeof CommandTypeSyncLocalChanges | typeof CommandTypeSyncReset | typeof CommandTypeSyncDiscoveredDevices | typeof CommandTypeSyncSetSettings | typeof CommandTypeGetStorageDevices;
 /**
  * Command represents a command from the UI.
  */

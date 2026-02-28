@@ -674,6 +674,14 @@ function setupIpcHandlers(): void {
     return event.data
   })
 
+  ipcMain.handle(
+    'sync_set_settings',
+    async (_, data: { globalDiscoveryEnabled?: boolean }) => {
+      const event = await sendCommand({ type: 'sync_set_settings', data })
+      return event.data
+    },
+  )
+
   ipcMain.handle('uninstall_preview', async () => {
     const event = await sendCommand({ type: 'uninstall_preview' })
     return event.data
@@ -856,6 +864,7 @@ function setupIpcHandlers(): void {
     'sync_join_primary',
     'sync_cancel_pairing',
     'sync_discovered_devices',
+    'sync_set_settings',
     'sync_pending',
     'sync_enable',
     'sync_revert_folder',

@@ -160,6 +160,8 @@ func (d *Daemon) HandleWithEmit(cmd Command, emit func(Event)) []Event {
 		return d.handleSyncReset()
 	case CommandTypeSyncDiscoveredDevices:
 		return d.handleSyncDiscoveredDevices()
+	case CommandTypeSyncSetSettings:
+		return d.handleSyncSetSettings(nil)
 	case CommandTypeGetStorageDevices:
 		return d.handleGetStorageDevices()
 	default:
@@ -189,6 +191,10 @@ func (d *Daemon) HandleSyncRevertFolder(cmd SyncRevertFolderCommand, emit func(E
 
 func (d *Daemon) HandleSyncLocalChanges(cmd SyncLocalChangesCommand, emit func(Event)) []Event {
 	return d.handleSyncLocalChanges(&cmd.Data)
+}
+
+func (d *Daemon) HandleSyncSetSettings(cmd SyncSetSettingsCommand, emit func(Event)) []Event {
+	return d.handleSyncSetSettings(&cmd.Data)
 }
 
 func (d *Daemon) errorResponse(msg string) []Event {
@@ -929,9 +935,10 @@ func (d *Daemon) handleSyncStatus() []Event {
 		return []Event{{
 			Type: EventTypeResult,
 			Data: SyncStatusResponse{
-				Enabled:          false,
-				Installed:        installed,
-				ServiceInstalled: serviceInstalled,
+				Enabled:                false,
+				Installed:              installed,
+				ServiceInstalled:       serviceInstalled,
+				GlobalDiscoveryEnabled: cfg.Sync.Syncthing.GlobalDiscoveryEnabled,
 			},
 		}}
 	}
@@ -965,12 +972,13 @@ func (d *Daemon) handleSyncStatus() []Event {
 		return []Event{{
 			Type: EventTypeResult,
 			Data: SyncStatusResponse{
-				Enabled:          true,
-				Running:          false,
-				Installed:        installed,
-				ServiceInstalled: serviceInstalled,
-				GUIURL:           fmt.Sprintf("http://127.0.0.1:%d", cfg.Sync.Syncthing.GUIPort),
-				ServiceError:     serviceError,
+				Enabled:                true,
+				Running:                false,
+				Installed:              installed,
+				ServiceInstalled:       serviceInstalled,
+				GUIURL:                 fmt.Sprintf("http://127.0.0.1:%d", cfg.Sync.Syncthing.GUIPort),
+				ServiceError:           serviceError,
+				GlobalDiscoveryEnabled: cfg.Sync.Syncthing.GlobalDiscoveryEnabled,
 			},
 		}}
 	}
@@ -1034,16 +1042,17 @@ func (d *Daemon) handleSyncStatus() []Event {
 	return []Event{{
 		Type: EventTypeResult,
 		Data: SyncStatusResponse{
-			Enabled:          true,
-			Running:          true,
-			Installed:        installed,
-			ServiceInstalled: serviceInstalled,
-			DeviceID:         syncStatus.DeviceID,
-			GUIURL:           syncStatus.GUIURL,
-			State:            SyncState(syncStatus.OverallState()),
-			Devices:          devices,
-			Folders:          folders,
-			Progress:         progress,
+			Enabled:                true,
+			Running:                true,
+			Installed:              installed,
+			ServiceInstalled:       serviceInstalled,
+			DeviceID:               syncStatus.DeviceID,
+			GUIURL:                 syncStatus.GUIURL,
+			State:                  SyncState(syncStatus.OverallState()),
+			Devices:                devices,
+			Folders:                folders,
+			Progress:               progress,
+			GlobalDiscoveryEnabled: cfg.Sync.Syncthing.GlobalDiscoveryEnabled,
 		},
 	}}
 }
@@ -1511,6 +1520,63 @@ func (d *Daemon) handleSyncReset() []Event {
 			Success:      true,
 			RemovedFiles: removedFiles,
 		},
+	}}
+}
+
+func (d *Daemon) handleSyncSetSettings(data *SyncSetSettingsRequest) []Event {
+	cfg, err := d.loadConfig()
+	if err != nil {
+		return d.errorResponse(err.Error())
+	}
+
+	if data == nil {
+		return d.errorResponse("missing settings data")
+	}
+
+	changed := false
+	if data.GlobalDiscoveryEnabled != nil {
+		cfg.Sync.Syncthing.GlobalDiscoveryEnabled = *data.GlobalDiscoveryEnabled
+		changed = true
+	}
+
+	if !changed {
+		return []Event{{
+			Type: EventTypeResult,
+			Data: SyncSetSettingsResponse{Success: true},
+		}}
+	}
+
+	path := d.configPath
+	if path == "" {
+		path, _ = d.paths.ConfigPath()
+	}
+	if err := d.configStore.Save(cfg, path); err != nil {
+		return d.errorResponse(err.Error())
+	}
+
+	if cfg.Sync.Enabled {
+		userStore, err := store.NewUserStore(d.fs, d.paths, cfg.Global.UserStore)
+		if err != nil {
+			return d.errorResponse(err.Error())
+		}
+
+		allSystems := d.syncSystems(cfg)
+		setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir, d.service)
+		if err := setup.UpdateConfig(cfg.Sync, userStore.Root(), allSystems); err != nil {
+			return d.errorResponse(fmt.Sprintf("updating syncthing config: %v", err))
+		}
+
+		unit := syncpkg.NewSystemdUnit(d.fs, d.paths, d.service)
+		if unit.IsEnabled() {
+			if err := d.service.Restart(unit.UnitName()); err != nil {
+				log.Error("Failed to restart syncthing after settings change: %v", err)
+			}
+		}
+	}
+
+	return []Event{{
+		Type: EventTypeResult,
+		Data: SyncSetSettingsResponse{Success: true},
 	}}
 }
 
