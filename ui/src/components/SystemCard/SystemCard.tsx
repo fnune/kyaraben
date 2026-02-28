@@ -30,8 +30,12 @@ export const SYSTEM_YEARS: Record<SystemID, number> = {
   psp: 2004,
   psvita: 2011,
   genesis: 1988,
+  mastersystem: 1985,
+  gamegear: 1990,
   saturn: 1994,
   dreamcast: 1998,
+  pcengine: 1987,
+  ngp: 1998,
 }
 
 export const LOGO_OPACITIES: Partial<Record<SystemID, number>> = {

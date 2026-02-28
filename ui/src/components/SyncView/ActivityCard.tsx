@@ -104,9 +104,11 @@ export function ActivityCard({ folders, lastSyncedAt, hasPairedDevices }: Activi
   const scanningFolders = folders?.filter((f) => f.state === 'scanning') ?? []
   const syncingFolders =
     folders?.filter((f) => f.state === 'syncing' || (f.state === 'idle' && f.needSize > 0)) ?? []
+  const errorFolders = folders?.filter((f) => f.state === 'error') ?? []
 
   const isScanning = scanningFolders.length > 0
   const isSyncing = syncingFolders.length > 0
+  const isError = errorFolders.length > 0
 
   if (!hasPairedDevices) {
     return (
@@ -114,6 +116,25 @@ export function ActivityCard({ folders, lastSyncedAt, hasPairedDevices }: Activi
         <div className="flex items-center gap-2">
           <span className="text-on-surface-muted">○</span>
           <span className="text-sm text-on-surface-muted">Waiting for device connection</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="p-4 bg-status-error/10 rounded-card">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-status-error">✕</span>
+          <span className="text-sm font-medium text-status-error">Sync error</span>
+        </div>
+        <div className="ml-5 space-y-1">
+          {errorFolders.map((folder) => (
+            <div key={folder.id} className="text-sm">
+              <span className="text-status-error">{folder.label}</span>
+              {folder.error && <span className="text-on-surface-muted">: {folder.error}</span>}
+            </div>
+          ))}
         </div>
       </div>
     )

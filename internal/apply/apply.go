@@ -1225,6 +1225,7 @@ func (a *Applier) buildDesktopEntries(emulatorIDs []model.EmulatorID, frontendID
 			GenericName:   emu.Launcher.GenericName,
 			CategoriesStr: strings.Join(emu.Launcher.Categories, ";"),
 			LaunchArgs:    launchArgs,
+			Keywords:      emu.Launcher.Keywords,
 		})
 	}
 
@@ -1249,6 +1250,7 @@ func (a *Applier) buildDesktopEntries(emulatorIDs []model.EmulatorID, frontendID
 			Name:          displayName,
 			GenericName:   fe.Launcher.GenericName,
 			CategoriesStr: strings.Join(fe.Launcher.Categories, ";"),
+			Keywords:      fe.Launcher.Keywords,
 		})
 	}
 

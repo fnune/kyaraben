@@ -239,6 +239,7 @@ type SyncFolder struct {
 	Path               string `json:"path"`
 	Label              string `json:"label"`
 	State              string `json:"state"`
+	Error              string `json:"error,omitempty"`
 	Type               string `json:"type"`
 	GlobalSize         int64  `json:"globalSize"`
 	LocalSize          int64  `json:"localSize"`
