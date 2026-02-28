@@ -29,7 +29,6 @@ Remaining items from the sync feature review. Completed fixes (device removal ra
 | Feature | Status |
 |---------|--------|
 | Conflict resolution | Not implemented |
-| Sync CLI rebuild for relay system | Not started |
 
 ## Remaining recommendations
 

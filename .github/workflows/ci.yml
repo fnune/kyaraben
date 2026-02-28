@@ -22,8 +22,11 @@ jobs:
       - name: Build CLI binary for E2E tests
         run: go build -o ./kyaraben ./cmd/kyaraben
 
+      - name: Build relay binary for E2E tests
+        run: cd relay && go build -o ../relay-bin ./cmd/relay
+
       - name: Test
-        run: go test -race ./...
+        run: KYARABEN_RELAY_BINARY=${{ github.workspace }}/relay-bin go test -race ./...
 
   relay-build:
     runs-on: ubuntu-latest
