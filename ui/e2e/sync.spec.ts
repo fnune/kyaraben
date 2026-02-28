@@ -266,7 +266,7 @@ test.describe('Sync view with folder in error state', () => {
 
   test('shows error indicator in folders list', async () => {
     await ctx.page.getByRole('button', { name: /Folders/ }).click()
-    await expect(ctx.page.getByText('Error')).toBeVisible()
+    await expect(ctx.page.getByText('Error', { exact: true })).toBeVisible()
   })
 })
 
