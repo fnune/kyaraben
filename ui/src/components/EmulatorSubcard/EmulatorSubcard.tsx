@@ -157,9 +157,9 @@ export function EmulatorSubcard({
           </div>
         )}
         <div className="flex-1 space-y-0.5">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-2 min-[400px]:flex-row min-[400px]:items-center">
             <span className="text-on-surface font-medium text-sm">{emulator.name}</span>
-            <div className="ml-auto flex items-center gap-3">
+            <div className="flex items-center gap-3 min-[400px]:ml-auto">
               <VersionSelector
                 defaultVersion={emulator.defaultVersion}
                 availableVersions={emulator.availableVersions}

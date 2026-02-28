@@ -1,3 +1,4 @@
+import { AppIcon } from '@/components/Logo/AppIcon'
 import { Logo } from '@/components/Logo/Logo'
 import { useOpenUrl } from '@/lib/hooks/useOpenUrl'
 import { ExternalLinkIcon, SettingsIcon } from '@/lib/icons'
@@ -46,14 +47,14 @@ function NavItem({ label, active, onClick, indicator }: NavItemProps) {
     <button
       type="button"
       onClick={onClick}
-      className={`px-4 py-2 text-sm tracking-wide flex items-center gap-2 ${
+      className={`px-4 py-2 text-sm tracking-wide flex items-center gap-2 min-w-0 ${
         active
           ? 'bg-accent-muted text-accent min-[720px]:border-l-2 min-[720px]:border-accent max-[719px]:border-b-2 max-[719px]:border-accent'
           : 'text-on-surface-secondary hover:bg-surface-raised min-[720px]:border-l-2 max-[719px]:border-b-2 border-transparent'
       }`}
     >
-      <span>{label}</span>
-      {indicator}
+      <span className="truncate">{label}</span>
+      {indicator && <span className="shrink-0">{indicator}</span>}
     </button>
   )
 }
@@ -65,11 +66,12 @@ export function Sidebar({ currentView, onNavigate, syncStatus, version }: Sideba
 
   return (
     <aside className="bg-surface-alt border-b min-[720px]:border-b-0 min-[720px]:border-r border-outline flex flex-row min-[720px]:flex-col min-[720px]:w-56">
-      <div className="p-4 border-r min-[720px]:border-r-0 min-[720px]:border-b border-outline">
-        <Logo className="w-full" />
+      <div className="p-4 border-r min-[720px]:border-r-0 min-[720px]:border-b border-outline flex items-center">
+        <AppIcon className="w-8 h-8 min-[720px]:hidden" />
+        <Logo className="hidden min-[720px]:block w-full" />
       </div>
 
-      <nav className="flex-1 flex flex-row min-[720px]:flex-col min-[720px]:py-2">
+      <nav className="flex-1 min-w-0 flex flex-row min-[720px]:flex-col min-[720px]:py-2 overflow-hidden">
         <NavItem
           label={VIEW_LABELS[VIEW_CATALOG]}
           active={currentView === VIEW_CATALOG}
@@ -87,15 +89,17 @@ export function Sidebar({ currentView, onNavigate, syncStatus, version }: Sideba
         <button
           type="button"
           onClick={() => openUrl('http://localhost:4321')}
-          className="px-4 py-2 text-sm tracking-wide flex items-center gap-2 text-on-surface-secondary hover:bg-surface-raised min-[720px]:border-l-2 border-transparent"
+          className="w-full px-4 py-2 text-sm tracking-wide flex items-center gap-2 text-on-surface-secondary hover:bg-surface-raised min-[720px]:border-l-2 border-transparent"
         >
           <span>Documentation</span>
           <ExternalLinkIcon className="w-3 h-3" />
         </button>
       </div>
 
-      <div className="flex items-center justify-between p-4 min-[720px]:border-t border-l min-[720px]:border-l-0 border-outline">
-        <span className="text-xs text-on-surface-dim font-mono truncate">{version ?? ''}</span>
+      <div className="flex items-center justify-end min-[720px]:justify-between p-4 min-[720px]:border-t border-l min-[720px]:border-l-0 border-outline">
+        <span className="hidden min-[720px]:block text-xs text-on-surface-dim font-mono truncate">
+          {version ?? ''}
+        </span>
         <button
           type="button"
           onClick={() => onNavigate(VIEW_INSTALLATION)}

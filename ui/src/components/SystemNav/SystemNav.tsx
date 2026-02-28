@@ -69,14 +69,14 @@ export function SystemNav({ emulators, onEmulatorClick }: SystemNavProps) {
   }
 
   return (
-    <div className="grid grid-cols-[repeat(auto-fill,minmax(2.5rem,1fr))] gap-0.5">
+    <div className="flex gap-0.5 overflow-x-auto min-[400px]:grid min-[400px]:grid-cols-[repeat(auto-fill,minmax(2.5rem,3.5rem))] min-[400px]:overflow-x-visible">
       {emulators.map((emulator) => (
         <button
           key={emulator.id}
           type="button"
           onClick={() => onEmulatorClick(emulator.id)}
           title={`${emulator.name} (${emulator.systemName})`}
-          className="flex flex-col items-center gap-0.5 p-1 rounded-sm transition-all hover:bg-surface-raised"
+          className="flex flex-col items-center gap-0.5 p-1 rounded-sm transition-all hover:bg-surface-raised shrink-0 min-[400px]:shrink max-w-14"
         >
           <div className="relative">
             <EmulatorLogo
