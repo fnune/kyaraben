@@ -5,6 +5,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "Kyaraben",
+      favicon: "/kyaraben-app-logo.svg",
       components: {
         SiteTitle: "./src/components/SiteTitle.astro",
       },

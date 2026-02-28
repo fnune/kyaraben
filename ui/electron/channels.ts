@@ -29,6 +29,7 @@ const DAEMON_CHANNELS = [
 
 // Electron-only commands handled by main.ts, not the daemon.
 const ELECTRON_CHANNELS = [
+  'get_home_dir',
   'get_install_status',
   'install_app',
   'open_path',
