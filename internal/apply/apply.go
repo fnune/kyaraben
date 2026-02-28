@@ -168,6 +168,8 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	})
 	defer logging.SetUICallback(nil)
 
+	ctx = logging.WithUISession(ctx)
+
 	controllerConfig, err := cfg.ResolveControllerConfig()
 	if err != nil {
 		return nil, fmt.Errorf("resolving controller config: %w", err)
