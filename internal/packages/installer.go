@@ -175,6 +175,7 @@ func (i *PackageInstaller) InstallEmulator(ctx context.Context, name string, onP
 	installedPath := filepath.Join(pkgDir, "bin", name)
 	cache := &packageCache{fs: i.fs, pkgDir: pkgDir, expectedHash: build.SHA256}
 	if cache.isValid(installedPath) {
+		i.ensureRetroArchAssets(pkgDir)
 		if onProgress != nil {
 			onProgress(InstallProgress{PackageName: name, Phase: "skipped"})
 		}
@@ -252,7 +253,7 @@ func (i *PackageInstaller) InstallEmulator(ctx context.Context, name string, onP
 			return nil, fmt.Errorf("installing extracted binary: %w", err)
 		}
 
-		i.installDefaultConfig(extractDir, binaryPath)
+		i.installDefaultConfig(extractDir, binaryPath, tmpDir)
 
 		_ = i.fs.RemoveAll(extractDir)
 	}
@@ -706,9 +707,63 @@ func (i *PackageInstaller) copyFileMode(src, dst string, mode os.FileMode) error
 	return i.fs.WriteFile(dst, data, mode)
 }
 
-func (i *PackageInstaller) installDefaultConfig(extractDir, binaryPath string) {
+func (i *PackageInstaller) copyDir(src, dst string) error {
+	if err := vfs.MkdirAll(i.fs, dst, 0755); err != nil {
+		return err
+	}
+
+	entries, err := i.fs.ReadDir(src)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		srcPath := filepath.Join(src, entry.Name())
+		dstPath := filepath.Join(dst, entry.Name())
+
+		if entry.IsDir() {
+			if err := i.copyDir(srcPath, dstPath); err != nil {
+				return err
+			}
+		} else {
+			if err := i.copyFileMode(srcPath, dstPath, 0644); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (i *PackageInstaller) installDefaultConfig(extractDir, binaryPath, pkgDir string) {
 	srcDir := filepath.Join(extractDir, binaryPath+".home", ".config", "retroarch")
 	if _, err := i.fs.Stat(srcDir); err != nil {
+		return
+	}
+
+	dataDir := filepath.Join(pkgDir, "data", "retroarch")
+	if err := vfs.MkdirAll(i.fs, dataDir, 0755); err != nil {
+		return
+	}
+	subdirs := []string{"assets", "autoconfig"}
+	for _, subdir := range subdirs {
+		srcSubdir := filepath.Join(srcDir, subdir)
+		if _, err := i.fs.Stat(srcSubdir); err != nil {
+			continue
+		}
+		destSubdir := filepath.Join(dataDir, subdir)
+		_ = i.fs.RemoveAll(destSubdir)
+		if err := i.fs.Rename(srcSubdir, destSubdir); err != nil {
+			log.Info("Failed to store RetroArch %s: %v", subdir, err)
+		}
+	}
+
+	i.ensureRetroArchAssets(pkgDir)
+}
+
+func (i *PackageInstaller) ensureRetroArchAssets(pkgDir string) {
+	dataDir := filepath.Join(pkgDir, "data", "retroarch")
+	if _, err := i.fs.Stat(dataDir); err != nil {
 		return
 	}
 
@@ -724,7 +779,7 @@ func (i *PackageInstaller) installDefaultConfig(extractDir, binaryPath string) {
 
 	subdirs := []string{"assets", "autoconfig"}
 	for _, subdir := range subdirs {
-		srcSubdir := filepath.Join(srcDir, subdir)
+		srcSubdir := filepath.Join(dataDir, subdir)
 		destSubdir := filepath.Join(destDir, subdir)
 
 		if _, err := i.fs.Stat(srcSubdir); err != nil {
@@ -734,9 +789,9 @@ func (i *PackageInstaller) installDefaultConfig(extractDir, binaryPath string) {
 			continue
 		}
 
-		_ = i.fs.RemoveAll(destSubdir)
-		if err := i.fs.Rename(srcSubdir, destSubdir); err != nil {
-			log.Info("Failed to install RetroArch %s: %v", subdir, err)
+		log.Info("Restoring RetroArch %s", subdir)
+		if err := i.copyDir(srcSubdir, destSubdir); err != nil {
+			log.Info("Failed to restore RetroArch %s: %v", subdir, err)
 		}
 	}
 }

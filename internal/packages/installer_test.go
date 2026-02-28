@@ -285,6 +285,50 @@ func TestPackageInstallerExtractsAssetsWhenDirExistsButEmpty(t *testing.T) {
 	}
 }
 
+func TestPackageInstallerRestoresAssetsOnSkip(t *testing.T) {
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/state":    &vfst.Dir{Perm: 0755},
+		"/userhome": &vfst.Dir{Perm: 0755},
+	})
+
+	stateDir := "/state"
+	dl := NewFakeDownloader(fs, []byte("fake-7z-content"))
+	ext := NewFakeExtractor(fs, map[string]string{
+		"RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage":                                          "fake-retroarch-binary",
+		"RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage.home/.config/retroarch/assets/ozone/icon": "ozone-icon",
+	})
+
+	installer := NewPackageInstaller(fs, stateDir, dl, ext, fakeBaseDirResolver{root: "/userhome"})
+
+	_, err := installer.InstallEmulator(context.Background(), "retroarch", nil)
+	if err != nil {
+		t.Fatalf("first install: %v", err)
+	}
+
+	assetPath := "/userhome/.config/retroarch/assets/ozone/icon"
+	if _, err := fs.Stat(assetPath); err != nil {
+		t.Fatalf("asset should exist after first install: %v", err)
+	}
+
+	if err := fs.RemoveAll("/userhome/.config/retroarch/assets"); err != nil {
+		t.Fatalf("removing assets: %v", err)
+	}
+	if _, err := fs.Stat(assetPath); err == nil {
+		t.Fatal("asset should be gone after removal")
+	}
+
+	_, err = installer.InstallEmulator(context.Background(), "retroarch", nil)
+	if err != nil {
+		t.Fatalf("second install (should skip): %v", err)
+	}
+
+	if _, err := fs.Stat(assetPath); err != nil {
+		t.Errorf("asset not found at %s (should be restored on skip when missing)", assetPath)
+	}
+}
+
 func TestPackageInstallerCoresCacheDownload(t *testing.T) {
 	t.Parallel()
 
