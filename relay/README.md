@@ -6,26 +6,26 @@ A lightweight relay server that enables kyaraben devices to pair using short 6-c
 
 ```mermaid
 sequenceDiagram
-    participant P as Primary device
+    participant I as Initiator device
     participant R as Relay server
-    participant S as Secondary device
+    participant J as Joiner device
 
-    Note over P: User clicks "Start pairing"
-    P->>R: POST /pair {deviceId: "ABC..."}
-    R-->>P: {code: "X4K9M2"}
-    Note over P: Display code to user
+    Note over I: User clicks "Start pairing"
+    I->>R: POST /pair {deviceId: "ABC..."}
+    R-->>I: {code: "X4K9M2"}
+    Note over I: Display code to user
 
-    Note over S: User enters code "X4K9M2"
-    S->>R: GET /pair/X4K9M2
-    R-->>S: {deviceId: "ABC..."}
-    S->>R: POST /pair/X4K9M2/response {deviceId: "DEF..."}
+    Note over J: User enters code "X4K9M2"
+    J->>R: GET /pair/X4K9M2
+    R-->>J: {deviceId: "ABC..."}
+    J->>R: POST /pair/X4K9M2/response {deviceId: "DEF..."}
 
     loop Poll for response
-        P->>R: GET /pair/X4K9M2/response
-        R-->>P: {ready: true, deviceId: "DEF..."}
+        I->>R: GET /pair/X4K9M2/response
+        R-->>I: {ready: true, deviceId: "DEF..."}
     end
 
-    Note over P,S: Both devices now have each other's<br/>device ID and can connect via Syncthing
+    Note over I,J: Both devices now have each other's<br/>device ID and can connect via Syncthing
 ```
 
 ## Running locally
@@ -41,9 +41,9 @@ The server listens on `:8080` by default. Override with `-addr` flag or `PORT` e
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | /pair | Create pairing session, returns 6-char code |
-| GET | /pair/:code | Get primary's device ID |
-| POST | /pair/:code/response | Submit secondary's device ID |
-| GET | /pair/:code/response | Poll for secondary's response |
+| GET | /pair/:code | Get initiator's device ID |
+| POST | /pair/:code/response | Submit responder's device ID |
+| GET | /pair/:code/response | Poll for responder's response |
 | DELETE | /pair/:code | Cancel session |
 | GET | /health | Health check |
 

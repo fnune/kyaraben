@@ -1,16 +1,25 @@
 import { useCallback, useState } from 'react'
 import { Button } from '@/lib/Button'
 import { useOpenUrl } from '@/lib/hooks/useOpenUrl'
+import { ToggleSwitch } from '@/lib/ToggleSwitch'
 
 export interface SyncSettingsSectionProps {
   readonly guiURL: string | undefined
+  readonly globalDiscoveryEnabled: boolean
+  readonly onToggleGlobalDiscovery: (enabled: boolean) => Promise<void>
   readonly onReset: () => Promise<void>
 }
 
-export function SyncSettingsSection({ guiURL, onReset }: SyncSettingsSectionProps) {
+export function SyncSettingsSection({
+  guiURL,
+  globalDiscoveryEnabled,
+  onToggleGlobalDiscovery,
+  onReset,
+}: SyncSettingsSectionProps) {
   const [isCollapsed, setIsCollapsed] = useState(true)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
+  const [isTogglingDiscovery, setIsTogglingDiscovery] = useState(false)
   const openUrl = useOpenUrl()
 
   const handleReset = useCallback(async () => {
@@ -22,6 +31,18 @@ export function SyncSettingsSection({ guiURL, onReset }: SyncSettingsSectionProp
       setShowResetConfirm(false)
     }
   }, [onReset])
+
+  const handleToggleGlobalDiscovery = useCallback(
+    async (enabled: boolean) => {
+      setIsTogglingDiscovery(true)
+      try {
+        await onToggleGlobalDiscovery(enabled)
+      } finally {
+        setIsTogglingDiscovery(false)
+      }
+    },
+    [onToggleGlobalDiscovery],
+  )
 
   return (
     <div className="p-4 bg-surface-alt rounded-card">
@@ -48,6 +69,24 @@ export function SyncSettingsSection({ guiURL, onReset }: SyncSettingsSectionProp
               Open Syncthing web interface
             </button>
           )}
+          <div className="flex items-center justify-between">
+            <div>
+              <label
+                htmlFor="global-discovery-toggle"
+                className="text-sm font-medium text-on-surface"
+              >
+                Global discovery
+              </label>
+              <p className="text-xs text-on-surface-muted mt-0.5">
+                Announce this device to remote peers. Only needed for syncing across networks.
+              </p>
+            </div>
+            <ToggleSwitch
+              enabled={globalDiscoveryEnabled}
+              onChange={handleToggleGlobalDiscovery}
+              disabled={isTogglingDiscovery}
+            />
+          </div>
           <div>
             <h4 className="text-sm font-medium text-on-surface mb-2">Reset synchronization</h4>
             {showResetConfirm ? (

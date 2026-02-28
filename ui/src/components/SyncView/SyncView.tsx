@@ -24,6 +24,7 @@ export interface SyncViewProps {
   readonly onStopPairing: () => Promise<void>
   readonly onClearConnectionError: () => void
   readonly onRefresh: () => void
+  readonly onToggleGlobalDiscovery: (enabled: boolean) => Promise<void>
   readonly isEnabling: boolean
   readonly enableError: string | null
 }
@@ -165,6 +166,7 @@ export function SyncView({
   onStopPairing,
   onClearConnectionError,
   onRefresh,
+  onToggleGlobalDiscovery,
   isEnabling,
   enableError,
 }: SyncViewProps) {
@@ -216,7 +218,12 @@ export function SyncView({
         hasPairedDevices={hasPairedDevices}
       />
 
-      <SyncSettingsSection guiURL={status.guiURL} onReset={onResetSync} />
+      <SyncSettingsSection
+        guiURL={status.guiURL}
+        globalDiscoveryEnabled={status.globalDiscoveryEnabled ?? false}
+        onToggleGlobalDiscovery={onToggleGlobalDiscovery}
+        onReset={onResetSync}
+      />
     </div>
   )
 }

@@ -23,7 +23,7 @@ const (
 	CommandTypeSyncStatus            CommandType = "sync_status"
 	CommandTypeSyncRemoveDevice      CommandType = "sync_remove_device"
 	CommandTypeSyncStartPairing      CommandType = "sync_start_pairing"
-	CommandTypeSyncJoinPrimary       CommandType = "sync_join_primary"
+	CommandTypeSyncJoinPeer          CommandType = "sync_join_peer"
 	CommandTypeSyncCancelPairing     CommandType = "sync_cancel_pairing"
 	CommandTypeSyncPending           CommandType = "sync_pending"
 	CommandTypeUninstallPreview      CommandType = "uninstall_preview"
@@ -37,6 +37,7 @@ const (
 	CommandTypeSyncLocalChanges      CommandType = "sync_local_changes"
 	CommandTypeSyncReset             CommandType = "sync_reset"
 	CommandTypeSyncDiscoveredDevices CommandType = "sync_discovered_devices"
+	CommandTypeSyncSetSettings       CommandType = "sync_set_settings"
 	CommandTypeGetStorageDevices     CommandType = "get_storage_devices"
 )
 
@@ -60,11 +61,11 @@ type SyncRemoveDeviceCommand struct {
 	Data SyncRemoveDeviceRequest `json:"data"`
 }
 
-// SyncJoinPrimaryCommand includes the pairing code and selected primary.
-type SyncJoinPrimaryCommand struct {
-	Type CommandType            `json:"type"`
-	ID   string                 `json:"id,omitempty"`
-	Data SyncJoinPrimaryRequest `json:"data"`
+// SyncJoinPeerCommand includes the pairing code and peer device.
+type SyncJoinPeerCommand struct {
+	Type CommandType         `json:"type"`
+	ID   string              `json:"id,omitempty"`
+	Data SyncJoinPeerRequest `json:"data"`
 }
 
 // InstallKyarabenCommand includes the install options.
@@ -93,6 +94,13 @@ type SyncLocalChangesCommand struct {
 	Type CommandType             `json:"type"`
 	ID   string                  `json:"id,omitempty"`
 	Data SyncLocalChangesRequest `json:"data"`
+}
+
+// SyncSetSettingsCommand includes the sync settings to update.
+type SyncSetSettingsCommand struct {
+	Type CommandType            `json:"type"`
+	ID   string                 `json:"id,omitempty"`
+	Data SyncSetSettingsRequest `json:"data"`
 }
 
 // EventType identifies the type of event.

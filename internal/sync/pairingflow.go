@@ -22,16 +22,16 @@ type PairingFlowConfig struct {
 	OnProgress func(msg string)
 }
 
-type PrimaryPairingFlow struct {
+type InitiatorPairingFlow struct {
 	cfg PairingFlowConfig
 }
 
-func NewPrimaryPairingFlow(cfg PairingFlowConfig) *PrimaryPairingFlow {
-	return &PrimaryPairingFlow{cfg: cfg}
+func NewInitiatorPairingFlow(cfg PairingFlowConfig) *InitiatorPairingFlow {
+	return &InitiatorPairingFlow{cfg: cfg}
 }
 
-func (f *PrimaryPairingFlow) Run(ctx context.Context) (*PairResult, error) {
-	pairingLog.Info("Starting primary pairing flow")
+func (f *InitiatorPairingFlow) Run(ctx context.Context) (*PairResult, error) {
+	pairingLog.Info("Starting initiator pairing flow")
 
 	ctx, cancel := context.WithTimeout(ctx, pairingTimeout)
 	defer cancel()
@@ -44,8 +44,8 @@ func (f *PrimaryPairingFlow) Run(ctx context.Context) (*PairResult, error) {
 	pairingLog.Info("Local device ID: %s", truncateDeviceID(localID))
 
 	f.emit("DEVICE_ID:%s", localID)
-	f.emit("On your secondary device, open the Sync tab and select this device from the list.")
-	f.emit("Waiting for secondary to connect...")
+	f.emit("On the other device, open the Sync tab and select this device from the list.")
+	f.emit("Waiting for joiner to connect...")
 
 	seenPending := make(map[string]bool)
 
@@ -85,7 +85,7 @@ func (f *PrimaryPairingFlow) Run(ctx context.Context) (*PairResult, error) {
 					return nil, fmt.Errorf("sharing folders: %w", err)
 				}
 
-				pairingLog.Info("Primary pairing completed successfully with %s", dev.Name)
+				pairingLog.Info("Initiator pairing completed successfully with %s", dev.Name)
 				f.emit("Paired with %s", dev.Name)
 				return &PairResult{PeerDeviceID: dev.DeviceID, PeerName: dev.Name}, nil
 			}
@@ -94,45 +94,45 @@ func (f *PrimaryPairingFlow) Run(ctx context.Context) (*PairResult, error) {
 
 		case <-ctx.Done():
 			if ctx.Err() == context.DeadlineExceeded {
-				pairingLog.Error("Primary pairing timed out after %d polls", pollCount)
+				pairingLog.Error("Initiator pairing timed out after %d polls", pollCount)
 			} else {
-				pairingLog.Info("Primary pairing cancelled after %d polls", pollCount)
+				pairingLog.Info("Initiator pairing cancelled after %d polls", pollCount)
 			}
 			return nil, ctx.Err()
 		}
 	}
 }
 
-func (f *PrimaryPairingFlow) emit(format string, args ...any) {
+func (f *InitiatorPairingFlow) emit(format string, args ...any) {
 	if f.cfg.OnProgress != nil {
 		f.cfg.OnProgress(fmt.Sprintf(format, args...))
 	}
 }
 
-type SecondaryPairingFlow struct {
+type JoinerPairingFlow struct {
 	cfg PairingFlowConfig
 }
 
-func NewSecondaryPairingFlow(cfg PairingFlowConfig) *SecondaryPairingFlow {
-	return &SecondaryPairingFlow{cfg: cfg}
+func NewJoinerPairingFlow(cfg PairingFlowConfig) *JoinerPairingFlow {
+	return &JoinerPairingFlow{cfg: cfg}
 }
 
-func (f *SecondaryPairingFlow) Run(ctx context.Context, primaryDeviceID string) (*PairResult, error) {
-	pairingLog.Info("Starting secondary pairing flow for primary device %s", truncateDeviceID(primaryDeviceID))
+func (f *JoinerPairingFlow) Run(ctx context.Context, peerDeviceID string) (*PairResult, error) {
+	pairingLog.Info("Starting joiner pairing flow for peer device %s", truncateDeviceID(peerDeviceID))
 
 	ctx, cancel := context.WithTimeout(ctx, pairingTimeout)
 	defer cancel()
 
-	f.emit("Connecting to %s...", truncateDeviceID(primaryDeviceID))
+	f.emit("Connecting to %s...", truncateDeviceID(peerDeviceID))
 
-	pairingLog.Info("Adding primary device to syncthing config")
-	if err := f.cfg.Client.AddDeviceAutoName(ctx, primaryDeviceID); err != nil {
-		pairingLog.Error("Failed to add primary device: %v", err)
-		return nil, fmt.Errorf("adding primary device: %w", err)
+	pairingLog.Info("Adding peer device to syncthing config")
+	if err := f.cfg.Client.AddDeviceAutoName(ctx, peerDeviceID); err != nil {
+		pairingLog.Error("Failed to add peer device: %v", err)
+		return nil, fmt.Errorf("adding peer device: %w", err)
 	}
-	pairingLog.Info("Primary device added successfully")
+	pairingLog.Info("Peer device added successfully")
 
-	f.emit("Waiting for primary to accept connection...")
+	f.emit("Waiting for peer to accept connection...")
 
 	ticker := time.NewTicker(pollInterval)
 	defer ticker.Stop()
@@ -151,7 +151,7 @@ func (f *SecondaryPairingFlow) Run(ctx context.Context, primaryDeviceID string) 
 			deviceStillConfigured := false
 			peerName := ""
 			for _, dev := range devices {
-				if dev.ID == primaryDeviceID {
+				if dev.ID == peerDeviceID {
 					deviceStillConfigured = true
 					peerName = dev.Name
 					break
@@ -159,7 +159,7 @@ func (f *SecondaryPairingFlow) Run(ctx context.Context, primaryDeviceID string) 
 			}
 
 			if !deviceStillConfigured {
-				pairingLog.Error("Poll %d: primary device was removed from configuration", pollCount)
+				pairingLog.Error("Poll %d: peer device was removed from configuration", pollCount)
 				f.emit("Device was removed from configuration")
 				return nil, fmt.Errorf("pairing cancelled: device was removed")
 			}
@@ -170,34 +170,34 @@ func (f *SecondaryPairingFlow) Run(ctx context.Context, primaryDeviceID string) 
 				continue
 			}
 
-			conn, ok := connections[primaryDeviceID]
+			conn, ok := connections[peerDeviceID]
 			if ok && conn.Connected {
-				pairingLog.Info("Poll %d: connection established with primary, sharing folders", pollCount)
-				if err := f.cfg.Client.ShareFoldersWithDevice(ctx, primaryDeviceID); err != nil {
+				pairingLog.Info("Poll %d: connection established with peer, sharing folders", pollCount)
+				if err := f.cfg.Client.ShareFoldersWithDevice(ctx, peerDeviceID); err != nil {
 					pairingLog.Error("Failed to share folders: %v", err)
 					return nil, fmt.Errorf("sharing folders: %w", err)
 				}
 
-				pairingLog.Info("Secondary pairing completed successfully with %s", peerName)
+				pairingLog.Info("Joiner pairing completed successfully with %s", peerName)
 				f.emit("Paired with %s", peerName)
-				return &PairResult{PeerDeviceID: primaryDeviceID, PeerName: peerName}, nil
+				return &PairResult{PeerDeviceID: peerDeviceID, PeerName: peerName}, nil
 			}
 
 			pairingLog.Debug("Poll %d: waiting for connection (configured=%t, connected=%t)", pollCount, deviceStillConfigured, ok && conn.Connected)
-			f.emit("Waiting for primary to accept... (device ID: %s)", truncateDeviceID(primaryDeviceID))
+			f.emit("Waiting for peer to accept... (device ID: %s)", truncateDeviceID(peerDeviceID))
 
 		case <-ctx.Done():
 			if ctx.Err() == context.DeadlineExceeded {
-				pairingLog.Error("Secondary pairing timed out after %d polls", pollCount)
-				return nil, fmt.Errorf("pairing timed out: primary device did not accept connection")
+				pairingLog.Error("Joiner pairing timed out after %d polls", pollCount)
+				return nil, fmt.Errorf("pairing timed out: peer device did not accept connection")
 			}
-			pairingLog.Info("Secondary pairing cancelled after %d polls", pollCount)
+			pairingLog.Info("Joiner pairing cancelled after %d polls", pollCount)
 			return nil, fmt.Errorf("pairing cancelled")
 		}
 	}
 }
 
-func (f *SecondaryPairingFlow) emit(format string, args ...any) {
+func (f *JoinerPairingFlow) emit(format string, args ...any) {
 	if f.cfg.OnProgress != nil {
 		f.cfg.OnProgress(fmt.Sprintf(format, args...))
 	}
@@ -240,23 +240,23 @@ type RelayPairingFlowConfig struct {
 	OnCode     func(code string, expiresIn int)
 }
 
-type RelayPrimaryResult struct {
+type RelayInitiatorResult struct {
 	Code         string
 	DeviceID     string
 	PeerDeviceID string
 	PeerName     string
 }
 
-type RelayPrimaryPairingFlow struct {
+type RelayInitiatorPairingFlow struct {
 	cfg RelayPairingFlowConfig
 }
 
-func NewRelayPrimaryPairingFlow(cfg RelayPairingFlowConfig) *RelayPrimaryPairingFlow {
-	return &RelayPrimaryPairingFlow{cfg: cfg}
+func NewRelayInitiatorPairingFlow(cfg RelayPairingFlowConfig) *RelayInitiatorPairingFlow {
+	return &RelayInitiatorPairingFlow{cfg: cfg}
 }
 
-func (f *RelayPrimaryPairingFlow) Run(ctx context.Context) (*RelayPrimaryResult, error) {
-	pairingLog.Info("Starting relay primary pairing flow")
+func (f *RelayInitiatorPairingFlow) Run(ctx context.Context) (*RelayInitiatorResult, error) {
+	pairingLog.Info("Starting relay initiator pairing flow")
 
 	localID, err := f.cfg.Client.GetDeviceID(ctx)
 	if err != nil {
@@ -273,13 +273,13 @@ func (f *RelayPrimaryPairingFlow) Run(ctx context.Context) (*RelayPrimaryResult,
 	relayClient, err := NewRelayClient(relayURLs)
 	if err != nil {
 		pairingLog.Info("Relay unavailable: %v", err)
-		return &RelayPrimaryResult{DeviceID: localID}, nil
+		return &RelayInitiatorResult{DeviceID: localID}, nil
 	}
 
 	session, err := relayClient.CreateSession(ctx, localID)
 	if err != nil {
 		pairingLog.Info("Failed to create relay session: %v", err)
-		return &RelayPrimaryResult{DeviceID: localID}, nil
+		return &RelayInitiatorResult{DeviceID: localID}, nil
 	}
 
 	pairingLog.Info("Created relay session with code %s", session.Code)
@@ -315,7 +315,7 @@ func (f *RelayPrimaryPairingFlow) Run(ctx context.Context) (*RelayPrimaryResult,
 				continue
 			}
 
-			pairingLog.Info("Poll %d: secondary device ID received: %s", pollCount, truncateDeviceID(resp.DeviceID))
+			pairingLog.Info("Poll %d: joiner device ID received: %s", pollCount, truncateDeviceID(resp.DeviceID))
 
 			if err := f.cfg.Client.AddDeviceAutoName(ctx, resp.DeviceID); err != nil {
 				_ = relayClient.DeleteSession(ctx, session.Code)
@@ -337,9 +337,9 @@ func (f *RelayPrimaryPairingFlow) Run(ctx context.Context) (*RelayPrimaryResult,
 				}
 			}
 
-			pairingLog.Info("Primary pairing via relay completed with %s", peerName)
+			pairingLog.Info("Initiator pairing via relay completed with %s", peerName)
 			f.emit("Paired with %s", peerName)
-			return &RelayPrimaryResult{
+			return &RelayInitiatorResult{
 				Code:         session.Code,
 				DeviceID:     localID,
 				PeerDeviceID: resp.DeviceID,
@@ -349,22 +349,22 @@ func (f *RelayPrimaryPairingFlow) Run(ctx context.Context) (*RelayPrimaryResult,
 	}
 }
 
-func (f *RelayPrimaryPairingFlow) emit(format string, args ...any) {
+func (f *RelayInitiatorPairingFlow) emit(format string, args ...any) {
 	if f.cfg.OnProgress != nil {
 		f.cfg.OnProgress(fmt.Sprintf(format, args...))
 	}
 }
 
-type RelaySecondaryPairingFlow struct {
+type RelayJoinerPairingFlow struct {
 	cfg RelayPairingFlowConfig
 }
 
-func NewRelaySecondaryPairingFlow(cfg RelayPairingFlowConfig) *RelaySecondaryPairingFlow {
-	return &RelaySecondaryPairingFlow{cfg: cfg}
+func NewRelayJoinerPairingFlow(cfg RelayPairingFlowConfig) *RelayJoinerPairingFlow {
+	return &RelayJoinerPairingFlow{cfg: cfg}
 }
 
-func (f *RelaySecondaryPairingFlow) Run(ctx context.Context, code string) (*PairResult, error) {
-	pairingLog.Info("Starting relay secondary pairing flow with code %s", code)
+func (f *RelayJoinerPairingFlow) Run(ctx context.Context, code string) (*PairResult, error) {
+	pairingLog.Info("Starting relay joiner pairing flow with code %s", code)
 
 	relayURLs := f.cfg.RelayURLs
 	if len(relayURLs) == 0 {
@@ -381,10 +381,10 @@ func (f *RelaySecondaryPairingFlow) Run(ctx context.Context, code string) (*Pair
 		return nil, fmt.Errorf("invalid pairing code: %w", err)
 	}
 
-	primaryDeviceID := session.DeviceID
-	pairingLog.Info("Resolved code %s to device ID %s", code, truncateDeviceID(primaryDeviceID))
+	peerDeviceID := session.DeviceID
+	pairingLog.Info("Resolved code %s to device ID %s", code, truncateDeviceID(peerDeviceID))
 
-	f.emit("Connecting to %s...", truncateDeviceID(primaryDeviceID))
+	f.emit("Connecting to %s...", truncateDeviceID(peerDeviceID))
 
 	localID, err := f.cfg.Client.GetDeviceID(ctx)
 	if err != nil {
@@ -397,17 +397,17 @@ func (f *RelaySecondaryPairingFlow) Run(ctx context.Context, code string) (*Pair
 		pairingLog.Info("Submitted device ID to relay")
 	}
 
-	flow := NewSecondaryPairingFlow(PairingFlowConfig{
+	flow := NewJoinerPairingFlow(PairingFlowConfig{
 		SyncConfig: f.cfg.SyncConfig,
 		Instance:   f.cfg.Instance,
 		Client:     f.cfg.Client,
 		OnProgress: f.cfg.OnProgress,
 	})
 
-	return flow.Run(ctx, primaryDeviceID)
+	return flow.Run(ctx, peerDeviceID)
 }
 
-func (f *RelaySecondaryPairingFlow) emit(format string, args ...any) {
+func (f *RelayJoinerPairingFlow) emit(format string, args ...any) {
 	if f.cfg.OnProgress != nil {
 		f.cfg.OnProgress(fmt.Sprintf(format, args...))
 	}
