@@ -268,7 +268,7 @@ func setNestedValue(m map[string]interface{}, path []string, value string) {
 	}
 
 	if len(path) == 1 {
-		m[path[0]] = value
+		m[path[0]] = parseValue(value)
 		return
 	}
 
@@ -284,6 +284,16 @@ func setNestedValue(m map[string]interface{}, path []string, value string) {
 		m[key] = nested
 		setNestedValue(nested, path[1:], value)
 	}
+}
+
+func parseValue(s string) interface{} {
+	if s == "true" {
+		return true
+	}
+	if s == "false" {
+		return false
+	}
+	return s
 }
 
 func hasNestedValue(m map[string]interface{}, path []string) bool {

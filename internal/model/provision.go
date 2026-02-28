@@ -49,6 +49,14 @@ type ProvisionStrategy interface {
 	Hints() UIHints
 }
 
+// DownloadSource describes how to auto-download a provision.
+type DownloadSource struct {
+	URL               string // Download URL
+	SHA256            string // SRI format "sha256-..." or hex
+	ArchiveType       string // "zip", "tar.gz", etc. Empty if not archived
+	FilenameInArchive string // Path inside archive; empty to use all files
+}
+
 // FileStrategy checks that a file exists by name (no hash verification).
 type FileStrategy struct {
 	Filename string
@@ -175,7 +183,8 @@ type Provision struct {
 	Description string
 	Strategy    ProvisionStrategy
 	ImportViaUI bool
-	Systems     []SystemID // If non-empty, provision only applies to these systems
+	Systems     []SystemID      // If non-empty, provision only applies to these systems
+	Download    *DownloadSource // If set, provision can be auto-downloaded
 }
 
 func (p Provision) Check(fs vfs.FS, biosDir string) CheckResult {
@@ -223,6 +232,17 @@ func (p Provision) WithImportViaUI() Provision {
 func (p Provision) ForSystems(systems ...SystemID) Provision {
 	p.Systems = systems
 	return p
+}
+
+// WithDownload returns a copy with an auto-download source configured.
+func (p Provision) WithDownload(src DownloadSource) Provision {
+	p.Download = &src
+	return p
+}
+
+// CanDownload reports whether this provision has an auto-download source.
+func (p Provision) CanDownload() bool {
+	return p.Download != nil && p.Download.URL != ""
 }
 
 // AppliesToSystem returns true if the provision applies to the given system.

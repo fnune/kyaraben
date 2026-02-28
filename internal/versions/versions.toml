@@ -307,6 +307,45 @@ binary_path = "RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage"
 size = 179415654
 
 # ============================================================================
+# XEMU - Xbox emulator
+# https://github.com/xemu-project/xemu/releases
+# ============================================================================
+
+[xemu]
+releases_url = "github:xemu-project/xemu"
+url_template = "https://github.com/xemu-project/xemu/releases/download/{release_tag}/xemu-{version}-{variant}.AppImage"
+default = "0.8.133"
+icon_url = "https://raw.githubusercontent.com/xemu-project/xemu/e8d7171fdd4520b83251b923b3954ef48d854974/ui/icons/xemu_256x256.png"
+icon_sha256 = "sha256-i5EcCG9kqB24y9DSqUY2rTWp3xDLnVoebG9q6lMuLBs="
+
+[xemu."0.8.133"]
+release_tag = "v0.8.133"
+
+[xemu."0.8.133".targets.x64]
+variant = "x86_64"
+sha256 = "sha256-RRXGxswdefJfAOKttZYfI2GDAnQ+Ig0lb/9sBtTZLpY="
+size = 23452152
+
+# ============================================================================
+# XENIA EDGE - Xbox 360 emulator (AppImage)
+# https://github.com/has207/xenia-edge/releases
+# ============================================================================
+
+[xenia-edge]
+releases_url = "github:has207/xenia-edge"
+url_template = "https://github.com/has207/xenia-edge/releases/download/{release_tag}/xenia_edge_linux.AppImage"
+default = "cf0d65e"
+icon_url = "https://raw.githubusercontent.com/xenia-canary/xenia-canary/33743a435acdb4ad3efbfb35a0a655315588bcb2/assets/icon/256.png"
+icon_sha256 = "sha256-ja97kt5PTlTIEuvwE7mThgnUux2/qh6f9HDmrZiVm0Y="
+
+[xenia-edge."cf0d65e"]
+release_tag = "cf0d65e"
+
+[xenia-edge."cf0d65e".targets.x64]
+sha256 = "sha256-jZ2Yt+x/QvJbKR7aZggQU2h+49YuHq7M67eRIHf1RfI="
+size = 40901112
+
+# ============================================================================
 # SYNCTHING - File synchronization
 # https://github.com/syncthing/syncthing/releases
 # ============================================================================
