@@ -108,7 +108,7 @@ launch correctly.
 
 Kyaraben installs emulators and tools into Kyaraben-managed directories:
 
-- Emulator binaries: `~/.local/share/kyaraben/`
+- Emulator binaries: `~/.local/state/kyaraben/`
 - Desktop entries: `~/.local/share/applications/kyaraben/`
 - CLI tools: `~/.local/bin/kyaraben`, `~/.local/bin/kyaraben-ui`
 
@@ -181,9 +181,9 @@ data to your managed location.
 - Installations are reproducible. Same config, same result, on any Linux
   machine.
 - No root access needed, no system packages modified. Kyaraben's binaries and
-  state live under `~/.local/share/kyaraben/`, `~/.config/kyaraben/`, and
-  `~/.local/state/kyaraben/`. Emulator configs are written to their default
-  paths (e.g. `~/.config/retroarch/`).
+  state live under `~/.local/state/kyaraben/` and `~/.config/kyaraben/`.
+  Emulator configs are written to their default paths (e.g.
+  `~/.config/retroarch/`).
 - `kyaraben` and `kyaraben-ui` are added to your `PATH` via `~/.local/bin/`.
   `.desktop` entries are created for kyaraben and each installed emulator.
   These entries are configured to use kyaraben's managed paths.
