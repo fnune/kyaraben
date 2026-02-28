@@ -69,6 +69,14 @@ What we won't do: full performance tuning, per-game settings, target-specific op
   - Maybe consider keeping it around instead of cleaning it up
 - Add a "Disable all systems" button for convenience
 - Add a way to apply even if no changes have happened (maybe even via keyboard shortcut for development)
+- RetroArch has default hotkeys that can disrupt gameplay unexpectedly. Example: while playing R-Type on PC Engine, pressing an unknown combo triggered "Switching to 6 button layout" and made the game unplayable. Need to investigate which core-specific hotkeys are enabled by default and consider disabling them
+- ES-DE has no logo for Atari Lynx - need to check theme or add custom asset
+- WonderSwan (Beetle WonderSwan) has major controller issues on desktop with Xbox 360 controller:
+  - Triggers and shoulders act as dpad somehow
+  - Dpad right is confirm
+  - Screen displays sideways (WonderSwan games can be vertical, but core rotation setting may need attention)
+  - RetroArch defaults seem bad for this core, may need custom controller config
+- Analog to dpad translation (`input_playerN_analog_dpad_mode`) may not be applying to existing configs due to DefaultOnly flag - users with pre-existing retroarch.cfg won't get this setting
 - Cheats directory layout: decide between per-emulator (`~/Emulation/cheats/{emulator}/`) or per-system (`~/Emulation/cheats/{system}/`). Some emulators support configurable cheat paths (melonDS, Flycast, PCSX2)
 - DLC, patches and updates directory layout: similar to cheats, figure out folder structure for user-provided DLC and game updates. This could help solve the provision problem where some files must be imported via emulator UI (e.g., Cemu keys.txt, 3DS system files). If kyaraben manages these directories, we could check for installed content. Wii U title structure: 00050000 (games), 0005000c (DLC), 0005000e (patches) per WiiUBrew
 ## Important

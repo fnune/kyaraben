@@ -20,11 +20,7 @@ export const EmulatorIDRetroArchGenesisPlusGX = "retroarch:genesis_plus_gx";
 export const EmulatorIDRetroArchMupen64Plus = "retroarch:mupen64plus_next";
 export const EmulatorIDRetroArchBeetleSaturn = "retroarch:mednafen_saturn";
 export const EmulatorIDRetroArchBeetlePCE = "retroarch:mednafen_pce_fast";
-export const EmulatorIDRetroArchBeetleLynx = "retroarch:mednafen_lynx";
 export const EmulatorIDRetroArchBeetleNGP = "retroarch:mednafen_ngp";
-export const EmulatorIDRetroArchBeetlePCFX = "retroarch:mednafen_pcfx";
-export const EmulatorIDRetroArchBeetleVB = "retroarch:mednafen_vb";
-export const EmulatorIDRetroArchBeetleWSwan = "retroarch:mednafen_wswan";
 export const EmulatorIDRetroArchMGBA = "retroarch:mgba";
 export const EmulatorIDRetroArchMelonDS = "retroarch:melonds";
 export const EmulatorIDRetroArchCitra = "retroarch:citra";
@@ -37,7 +33,7 @@ export const EmulatorIDFlycast = "flycast";
 export const EmulatorIDCemu = "cemu";
 export const EmulatorIDDolphin = "dolphin";
 export const EmulatorIDEden = "eden";
-export type EmulatorID = typeof EmulatorIDRetroArch | typeof EmulatorIDRetroArchBsnes | typeof EmulatorIDRetroArchMesen | typeof EmulatorIDRetroArchGenesisPlusGX | typeof EmulatorIDRetroArchMupen64Plus | typeof EmulatorIDRetroArchBeetleSaturn | typeof EmulatorIDRetroArchBeetlePCE | typeof EmulatorIDRetroArchBeetleLynx | typeof EmulatorIDRetroArchBeetleNGP | typeof EmulatorIDRetroArchBeetlePCFX | typeof EmulatorIDRetroArchBeetleVB | typeof EmulatorIDRetroArchBeetleWSwan | typeof EmulatorIDRetroArchMGBA | typeof EmulatorIDRetroArchMelonDS | typeof EmulatorIDRetroArchCitra | typeof EmulatorIDDuckStation | typeof EmulatorIDPCSX2 | typeof EmulatorIDRPCS3 | typeof EmulatorIDVita3K | typeof EmulatorIDPPSSPP | typeof EmulatorIDFlycast | typeof EmulatorIDCemu | typeof EmulatorIDDolphin | typeof EmulatorIDEden;
+export type EmulatorID = typeof EmulatorIDRetroArch | typeof EmulatorIDRetroArchBsnes | typeof EmulatorIDRetroArchMesen | typeof EmulatorIDRetroArchGenesisPlusGX | typeof EmulatorIDRetroArchMupen64Plus | typeof EmulatorIDRetroArchBeetleSaturn | typeof EmulatorIDRetroArchBeetlePCE | typeof EmulatorIDRetroArchBeetleNGP | typeof EmulatorIDRetroArchMGBA | typeof EmulatorIDRetroArchMelonDS | typeof EmulatorIDRetroArchCitra | typeof EmulatorIDDuckStation | typeof EmulatorIDPCSX2 | typeof EmulatorIDRPCS3 | typeof EmulatorIDVita3K | typeof EmulatorIDPPSSPP | typeof EmulatorIDFlycast | typeof EmulatorIDCemu | typeof EmulatorIDDolphin | typeof EmulatorIDEden;
 
 //////////
 // source: frontend_id.go
@@ -76,12 +72,8 @@ export const SystemIDGameGear = "gamegear";
 export const SystemIDSaturn = "saturn";
 export const SystemIDDreamcast = "dreamcast";
 export const SystemIDPCEngine = "pcengine";
-export const SystemIDPCFX = "pcfx";
-export const SystemIDLynx = "lynx";
 export const SystemIDNGP = "ngp";
-export const SystemIDVirtualBoy = "virtualboy";
-export const SystemIDWonderSwan = "wonderswan";
-export type SystemID = typeof SystemIDNES | typeof SystemIDSNES | typeof SystemIDN64 | typeof SystemIDGB | typeof SystemIDGBC | typeof SystemIDGBA | typeof SystemIDNDS | typeof SystemIDN3DS | typeof SystemIDGameCube | typeof SystemIDWii | typeof SystemIDWiiU | typeof SystemIDSwitch | typeof SystemIDPSX | typeof SystemIDPS2 | typeof SystemIDPS3 | typeof SystemIDPSP | typeof SystemIDPSVita | typeof SystemIDGenesis | typeof SystemIDMasterSystem | typeof SystemIDGameGear | typeof SystemIDSaturn | typeof SystemIDDreamcast | typeof SystemIDPCEngine | typeof SystemIDPCFX | typeof SystemIDLynx | typeof SystemIDNGP | typeof SystemIDVirtualBoy | typeof SystemIDWonderSwan;
+export type SystemID = typeof SystemIDNES | typeof SystemIDSNES | typeof SystemIDN64 | typeof SystemIDGB | typeof SystemIDGBC | typeof SystemIDGBA | typeof SystemIDNDS | typeof SystemIDN3DS | typeof SystemIDGameCube | typeof SystemIDWii | typeof SystemIDWiiU | typeof SystemIDSwitch | typeof SystemIDPSX | typeof SystemIDPS2 | typeof SystemIDPS3 | typeof SystemIDPSP | typeof SystemIDPSVita | typeof SystemIDGenesis | typeof SystemIDMasterSystem | typeof SystemIDGameGear | typeof SystemIDSaturn | typeof SystemIDDreamcast | typeof SystemIDPCEngine | typeof SystemIDNGP;
 /**
  * Manufacturer represents the company that made a gaming system.
  */

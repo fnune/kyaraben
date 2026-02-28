@@ -30,11 +30,7 @@ const (
 	SystemIDSaturn       SystemID = "saturn"
 	SystemIDDreamcast    SystemID = "dreamcast"
 	SystemIDPCEngine     SystemID = "pcengine"
-	SystemIDPCFX         SystemID = "pcfx"
-	SystemIDLynx         SystemID = "lynx"
 	SystemIDNGP          SystemID = "ngp"
-	SystemIDVirtualBoy   SystemID = "virtualboy"
-	SystemIDWonderSwan   SystemID = "wonderswan"
 )
 
 // Manufacturer represents the company that made a gaming system.
