@@ -2,6 +2,7 @@ import { ProvisionSummary } from '@/components/ProvisionSummary/ProvisionSummary
 import { FolderIcon, PlayIcon } from '@/lib/icons'
 import { Modal } from '@/lib/Modal'
 import { PathText } from '@/lib/PathText'
+import { collapseTilde } from '@/lib/paths'
 import {
   OPTIONAL_PROVISION_COLOR,
   OPTIONAL_PROVISION_ICON,
@@ -160,7 +161,8 @@ export function ProvisionsModal({
 
   const handleOpenFolder = (path: string) => {
     window.electron.invoke('open_path', path)
-    showToast(`Opening ${path}.`)
+    const displayPath = collapseTilde(path, window.electron.homeDir)
+    showToast(`Opening ${displayPath}.`)
   }
 
   const found = provisions.filter((p) => p.status === 'found')
