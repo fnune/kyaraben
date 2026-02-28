@@ -97,18 +97,17 @@ This works across any network via Syncthing's relay servers.
 
 ## What syncs
 
-| Content                     | Sync behavior                        |
-| --------------------------- | ------------------------------------ |
-| `roms/`                     | Bidirectional (deletions don't sync) |
-| `bios/`                     | Bidirectional (deletions don't sync) |
-| `saves/`                    | Bidirectional                        |
-| `states/`                   | Bidirectional                        |
-| `screenshots/`              | Bidirectional                        |
-| `frontends/esde/gamelists/` | Bidirectional                        |
-| `frontends/esde/media/`     | Bidirectional                        |
+| Content                     | Sync behavior |
+| --------------------------- | ------------- |
+| `roms/`                     | Bidirectional |
+| `bios/`                     | Bidirectional |
+| `saves/`                    | Bidirectional |
+| `states/`                   | Bidirectional |
+| `screenshots/`              | Bidirectional |
+| `frontends/esde/gamelists/` | Bidirectional |
+| `frontends/esde/media/`     | Bidirectional |
 
-ROMs and BIOS use `ignoreDelete` mode: you can add files from any device, but
-deletions stay local. This prevents accidental deletion of your collection.
+All folders use standard bidirectional sync. Deletions propagate to all devices.
 
 ### EmulationStation DE gamelists and media
 
