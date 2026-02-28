@@ -68,9 +68,9 @@ function DisabledState({
   return (
     <div className="p-6 space-y-6">
       <div className="p-4 bg-surface-alt rounded-card">
-        <h3 className="text-sm font-medium text-on-surface mb-3">Enable sync</h3>
+        <h3 className="text-sm font-medium text-on-surface mb-3">Enable synchronization</h3>
         <p className="text-sm text-on-surface-muted mb-4">
-          Sync your saves, states, and screenshots across devices using Syncthing.
+          Synchronize your saves, states, and screenshots across devices using Syncthing.
         </p>
 
         {isEnabling ? (
@@ -90,13 +90,13 @@ function DisabledState({
               />
               <RadioCard
                 title="Secondary"
-                description="Receives ROMs from primary (read-only). Play anywhere and saves sync back automatically."
+                description="Receives ROMs from primary (read-only). Play anywhere and saves synchronize back automatically."
                 selected={selectedMode === 'secondary'}
                 onSelect={() => setSelectedMode('secondary')}
                 className="w-full p-4"
               />
             </div>
-            <Button onClick={handleEnable}>Enable sync</Button>
+            <Button onClick={handleEnable}>Enable synchronization</Button>
             {enableError && (
               <div className="p-4 bg-status-error/10 border border-status-error/30 rounded-card">
                 <p className="text-sm text-status-error">{enableError}</p>
@@ -111,7 +111,7 @@ function DisabledState({
           <h3 className="text-sm font-medium text-on-surface mb-3">Orphaned syncthing state</h3>
           <p className="text-sm text-on-surface-muted mb-3">
             Syncthing files from a previous installation were detected. This can happen after an
-            incomplete uninstall or if sync was disabled manually.
+            incomplete uninstall or if synchronization was disabled manually.
           </p>
           {showResetConfirm ? (
             <div className="space-y-3">

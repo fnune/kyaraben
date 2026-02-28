@@ -96,7 +96,7 @@ test.describe('Sync view with connected device showing synced status', () => {
     await navigateToSync(ctx.page)
     await expect(ctx.page.getByText('synced', { exact: true })).toBeVisible()
     await expect(ctx.page.getByText(/Steam Deck/)).toBeVisible()
-    await expect(ctx.page.getByText('All synced')).toBeVisible()
+    await expect(ctx.page.getByText('All synchronized')).toBeVisible()
   })
 })
 

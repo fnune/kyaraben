@@ -8,7 +8,7 @@ import UserStore from "../../components/UserStore.astro";
 ## The config file
 
 Kyaraben stores its configuration at `~/.config/kyaraben/config.toml`. The
-config file and the UI are kept in sync: changes made in the UI are written to
+config file and the UI are kept synchronized: changes made in the UI are written to
 the file, and changes made to the file are reflected in the UI.
 
 Most users do not need to edit the config file directly. It is there for users
@@ -76,7 +76,7 @@ enabled = true
 
 ### `[sync]`
 
-See [save sync](/sync/) for sync configuration.
+See [save synchronization](/sync/) for synchronization configuration.
 
 ## Commands
 
@@ -229,7 +229,7 @@ Proceed? [y/N]
 
 ### `kyaraben sync`
 
-Manage save synchronization. See [save sync](/sync/).
+Manage save synchronization. See [save synchronization](/sync/).
 
 #### `kyaraben sync pair [CODE]`
 
@@ -237,12 +237,12 @@ Pair two devices. Without a code, this device becomes the primary and
 displays a pairing code. With a code, this device becomes the secondary and
 joins the primary that generated the code.
 
-Installs and starts the sync service automatically if it is not already
+Installs and starts the synchronization service automatically if it is not already
 running.
 
 ```
 $ kyaraben sync pair
-Installing sync service...
+Installing synchronization service...
 Pairing code: K7X9M2
 Waiting for devices... (expires in 5 minutes)
 
@@ -251,12 +251,12 @@ Paired with steamdeck-kyaraben
 
 #### `kyaraben sync status`
 
-Shows sync state, connected devices, and per-folder progress.
+Shows synchronization state, connected devices, and per-folder progress.
 
 ```
 $ kyaraben sync status
 
-Sync: active (primary)
+Synchronization: active (primary)
 Device ID: LGFPDIT7-SKNNJVJZ-A4FC7QNC-...
 
 Devices:
@@ -271,7 +271,7 @@ Folders:
 
 #### `kyaraben sync pause` / `kyaraben sync resume`
 
-Pause or resume sync. Useful on metered connections or to save battery.
+Pause or resume synchronization. Useful on metered connections or to save battery.
 
 #### `kyaraben sync pair --device-id`
 
@@ -289,4 +289,4 @@ Remove a paired device by its device ID or friendly name.
 
 #### `kyaraben sync resolve`
 
-List and resolve sync conflicts interactively.
+List and resolve synchronization conflicts interactively.
