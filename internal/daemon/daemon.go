@@ -215,7 +215,12 @@ func (d *Daemon) loadConfig() (*model.KyarabenConfig, error) {
 			return nil, err
 		}
 	}
-	cfg, err := d.configStore.Load(path)
+	validators := &model.ConfigValidators{
+		GetEmulator: d.reg.GetEmulator,
+		GetSystem:   d.reg.GetSystem,
+		GetFrontend: d.reg.GetFrontend,
+	}
+	cfg, err := d.configStore.Load(path, validators)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			cfg := model.NewDefaultConfig()

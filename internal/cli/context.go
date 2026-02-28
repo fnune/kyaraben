@@ -46,7 +46,14 @@ func (c *Context) LoadConfig() (*model.KyarabenConfig, error) {
 		return nil, err
 	}
 
-	cfg, err := c.ConfigStore.Load(path)
+	reg := c.NewRegistry()
+	validators := &model.ConfigValidators{
+		GetEmulator: reg.GetEmulator,
+		GetSystem:   reg.GetSystem,
+		GetFrontend: reg.GetFrontend,
+	}
+
+	cfg, err := c.ConfigStore.Load(path, validators)
 	if err != nil {
 		return nil, fmt.Errorf("loading config from %s: %w", path, err)
 	}
