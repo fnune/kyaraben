@@ -25,22 +25,19 @@ minutes, which limits the window, but the combination of short codes, no
 authentication, and publicly accessible endpoints makes this the most
 significant risk.
 
-Additionally, `DELETE /pair/{code}` has no rate limiting at all
+~~Additionally, `DELETE /pair/{code}` has no rate limiting at all
 (`relay/internal/server/server.go:48`), allowing an attacker to delete
-legitimate sessions by guessing codes.
+legitimate sessions by guessing codes.~~ (fixed: DELETE is now rate-limited)
 
 **Syncthing default comparison:** Syncthing itself uses 56-character device IDs
 (224 bits of entropy) and requires mutual acceptance for pairing. Kyaraben's
 relay bypasses this by trading security for UX convenience.
 
 **Suggestions:**
-- Increase code length (8-10 characters) or add a secondary verification step.
 - Add authentication or a shared secret to the relay (e.g., HMAC-signed
   sessions).
-- Add rate limiting to `DELETE /pair/{code}`.
-- Consider requiring the primary to confirm the secondary's device ID before
-  completing pairing (the current flow auto-accepts any device that submits a
-  response).
+- Consider requiring confirmation of the paired device before completing
+  pairing (the current flow auto-accepts any device that submits a response).
 
 ## 2. Global discovery and local announce are enabled
 
@@ -122,27 +119,13 @@ auto-generated TLS certificates. Kyaraben does not enable GUI TLS.
 **Suggestion:** Consider enabling GUI TLS, though the risk is low since it's
 localhost-only and the threat model is limited to malicious local processes.
 
-## 5. API key passed on the systemd command line
+## 5. ~~API key passed on the systemd command line~~ (fixed)
 
 **Severity: medium**
 
-`internal/sync/systemd.go:22`:
-```
-ExecStart={{.BinaryPath}} serve --no-browser --config={{.ConfigDir}} --data={{.DataDir}} --gui-address=127.0.0.1:{{.GUIPort}} --gui-apikey={{.APIKey}}
-```
-
-The API key appears in the systemd unit file and in the process command line.
-This means any user who can read `/proc/<pid>/cmdline` or the systemd unit file
-can obtain the API key. On a single-user system (the typical kyaraben use case)
-this is low risk, but on shared systems it leaks the API key to other users.
-
-**Syncthing default comparison:** Syncthing stores the API key only in
-`config.xml` (which kyaraben does set with 0600 permissions). Passing it on the
-command line is an additional exposure vector.
-
-**Suggestion:** Remove `--gui-apikey` from the command line. Syncthing reads
-the API key from `config.xml` at startup; the command-line flag is redundant
-since kyaraben already writes it to `config.xml`.
+Fixed: removed `--gui-apikey` from the systemd unit template. Syncthing reads
+the API key from `config.xml` at startup. The `APIKey` field was also removed
+from `UnitParams`.
 
 ## 6. Relay server CORS allows all origins
 
@@ -160,32 +143,12 @@ responses, and delete sessions on behalf of the user.
 **Suggestion:** Restrict CORS to known kyaraben origins, or add
 authentication/CSRF protection.
 
-## 7. X-Forwarded-For uses last entry instead of first
+## 7. ~~X-Forwarded-For uses last entry instead of first~~ (fixed)
 
 **Severity: low-medium**
 
-`relay/internal/server/ratelimit.go:103-106`:
-```go
-if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-    ips := strings.Split(xff, ",")
-    return strings.TrimSpace(ips[len(ips)-1])
-}
-```
-
-The rate limiter uses the *last* IP in `X-Forwarded-For`. The standard
-convention is that the first IP is the client's real IP and subsequent entries
-are added by each proxy. Using the last entry means behind a reverse proxy
-(like Koyeb's), the rate limiter may use the proxy's IP rather than the
-client's IP, potentially rate-limiting all clients together or not at all,
-depending on the proxy chain.
-
-More critically, if the relay is directly exposed (no proxy), an attacker can
-forge `X-Forwarded-For` headers to bypass rate limiting entirely by appending a
-different IP.
-
-**Suggestion:** If deployed behind a trusted proxy, use the first IP (or better,
-`X-Real-IP` set by the trusted proxy). If not behind a proxy, ignore
-`X-Forwarded-For` entirely and use `RemoteAddr`.
+Fixed: `getClientIP` now uses the first entry in `X-Forwarded-For` (the
+client's real IP) instead of the last (which was the proxy's IP).
 
 ## 8. Relay server runs plain HTTP
 
@@ -225,32 +188,19 @@ break kyaraben's bidirectional sync model.
 **Mitigation already in place:** `ignoreDelete` is set for ROM and BIOS folders,
 preventing a malicious peer from deleting those files.
 
-## 10. NAT traversal enabled by default
+## 10. ~~NAT traversal enabled by default~~ (fixed)
 
 **Severity: low**
 
-`natEnabled` is not explicitly set in the generated config, so Syncthing falls
-back to its default of `true`. This enables UPnP and NAT-PMP port mapping,
-which can automatically open ports on the user's router without their knowledge.
+Fixed: `NATEnabled` is now explicitly set to `false` in the generated config,
+preventing Syncthing from opening ports on the user's router via UPnP/NAT-PMP.
 
-**Syncthing default comparison:** same default (`natEnabled: true`). This is
-intentional for peer-to-peer connectivity but may surprise users who expect
-kyaraben not to modify their router configuration.
-
-**Suggestion:** Either explicitly set `natEnabled: false` (since the relay
-handles connectivity) or document that UPnP port mapping is enabled.
-
-## 11. Crash reporting not explicitly disabled
+## 11. ~~Crash reporting not explicitly disabled~~ (fixed)
 
 **Severity: low**
 
-`crashReportingEnabled` is not set in the generated config, defaulting to
-`true`. This sends crash data (including public IP, Syncthing version, and
-build hostname) to Syncthing's crash reporting server. This is inconsistent
-with the explicit opt-out of usage reporting (`urAccepted: -1`).
-
-**Suggestion:** Add `crashReportingEnabled: false` to the options for
-consistency with the usage reporting opt-out.
+Fixed: `CrashReportingEnabled` is now explicitly set to `false` in the
+generated config, consistent with the usage reporting opt-out.
 
 ## 12. GUI URL exposed to the frontend UI
 
@@ -291,7 +241,7 @@ Several things are done well:
 - **`autoAcceptFolders` is explicitly false** for all devices, preventing a
   paired device from creating arbitrary shared folders.
 - **Config.xml is written with 0600 permissions** (`config.go:363`).
-- **Rate limiting** is applied to relay endpoints (except DELETE).
+- **Rate limiting** is applied to all relay endpoints.
 - **Relay sessions expire after 5 minutes** and are capped at 5 per IP and
   10,000 total.
 - **`--no-browser`** flag prevents Syncthing from opening a browser window.
