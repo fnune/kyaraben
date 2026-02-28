@@ -27,7 +27,7 @@ type SyncRemoveDeviceRequest struct {
 	DeviceID string `json:"deviceId"`
 }
 
-type SyncJoinPrimaryRequest struct {
+type SyncJoinPeerRequest struct {
 	Code        string `json:"code"`
 	PairingAddr string `json:"pairingAddr,omitempty"`
 	DeviceID    string `json:"deviceId,omitempty"`
@@ -292,7 +292,7 @@ type SyncPairingCompleteResponse struct {
 	PeerName     string `json:"peerName"`
 }
 
-type SyncJoinPrimaryResponse struct {
+type SyncJoinPeerResponse struct {
 	Success      bool   `json:"success"`
 	PeerDeviceID string `json:"peerDeviceId"`
 	PeerName     string `json:"peerName"`

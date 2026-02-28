@@ -233,7 +233,7 @@ func isValidDeviceID(id string) bool {
 }
 
 type SyncPairCmd struct {
-	CodeOrDeviceID string `arg:"" optional:"" help:"6-character pairing code or full device ID. Omit to start as primary."`
+	CodeOrDeviceID string `arg:"" optional:"" help:"6-character pairing code or full device ID. Omit to start as initiator."`
 	DeviceID       bool   `help:"Show full device ID instead of pairing code (for manual pairing)."`
 }
 
@@ -265,17 +265,17 @@ func (cmd *SyncPairCmd) Run(cliCtx *Context) error {
 	}
 
 	if cmd.CodeOrDeviceID == "" {
-		return cmd.runPrimary(ctx, cfg, configPath, client, progress, cliCtx.SaveConfig)
+		return cmd.runInitiator(ctx, cfg, configPath, client, progress, cliCtx.SaveConfig)
 	}
 
 	input := strings.ToUpper(strings.TrimSpace(cmd.CodeOrDeviceID))
 	if sync.IsRelayCode(input) {
-		return cmd.runSecondaryWithRelay(ctx, cfg, configPath, client, input, progress, cliCtx.SaveConfig)
+		return cmd.runJoinerWithRelay(ctx, cfg, configPath, client, input, progress, cliCtx.SaveConfig)
 	}
-	return cmd.runSecondary(ctx, cfg, configPath, client, input, progress, cliCtx.SaveConfig)
+	return cmd.runJoiner(ctx, cfg, configPath, client, input, progress, cliCtx.SaveConfig)
 }
 
-func (cmd *SyncPairCmd) runPrimary(ctx context.Context, cfg *model.KyarabenConfig, configPath string, client *sync.Client, progress func(string), saveConfig func(*model.KyarabenConfig, string) error) error {
+func (cmd *SyncPairCmd) runInitiator(ctx context.Context, cfg *model.KyarabenConfig, configPath string, client *sync.Client, progress func(string), saveConfig func(*model.KyarabenConfig, string) error) error {
 	if cmd.DeviceID {
 		localID, err := client.GetDeviceID(ctx)
 		if err != nil {
@@ -283,7 +283,7 @@ func (cmd *SyncPairCmd) runPrimary(ctx context.Context, cfg *model.KyarabenConfi
 		}
 		fmt.Printf("Device ID: %s\n", localID)
 		fmt.Println()
-		fmt.Println("On the secondary device, run:")
+		fmt.Println("On the other device, run:")
 		fmt.Printf("  kyaraben sync pair %s\n", localID)
 		return nil
 	}
@@ -293,7 +293,7 @@ func (cmd *SyncPairCmd) runPrimary(ctx context.Context, cfg *model.KyarabenConfi
 		relayURLs = []string{cfg.Sync.RelayURL}
 	}
 
-	flow := sync.NewRelayPrimaryPairingFlow(sync.RelayPairingFlowConfig{
+	flow := sync.NewRelayInitiatorPairingFlow(sync.RelayPairingFlowConfig{
 		SyncConfig: cfg.Sync,
 		Client:     client,
 		RelayURLs:  relayURLs,
@@ -313,7 +313,7 @@ func (cmd *SyncPairCmd) runPrimary(ctx context.Context, cfg *model.KyarabenConfi
 	if result.Code == "" {
 		fmt.Printf("Device ID: %s\n", result.DeviceID)
 		fmt.Println()
-		fmt.Println("Relay unavailable. On the secondary device, run:")
+		fmt.Println("Relay unavailable. On the other device, run:")
 		fmt.Printf("  kyaraben sync pair %s\n", result.DeviceID)
 		return nil
 	}
@@ -323,13 +323,13 @@ func (cmd *SyncPairCmd) runPrimary(ctx context.Context, cfg *model.KyarabenConfi
 	return nil
 }
 
-func (cmd *SyncPairCmd) runSecondaryWithRelay(ctx context.Context, cfg *model.KyarabenConfig, configPath string, client *sync.Client, code string, progress func(string), saveConfig func(*model.KyarabenConfig, string) error) error {
+func (cmd *SyncPairCmd) runJoinerWithRelay(ctx context.Context, cfg *model.KyarabenConfig, configPath string, client *sync.Client, code string, progress func(string), saveConfig func(*model.KyarabenConfig, string) error) error {
 	var relayURLs []string
 	if cfg.Sync.RelayURL != "" {
 		relayURLs = []string{cfg.Sync.RelayURL}
 	}
 
-	flow := sync.NewRelaySecondaryPairingFlow(sync.RelayPairingFlowConfig{
+	flow := sync.NewRelayJoinerPairingFlow(sync.RelayPairingFlowConfig{
 		SyncConfig: cfg.Sync,
 		Client:     client,
 		RelayURLs:  relayURLs,
@@ -346,14 +346,14 @@ func (cmd *SyncPairCmd) runSecondaryWithRelay(ctx context.Context, cfg *model.Ky
 	return nil
 }
 
-func (cmd *SyncPairCmd) runSecondary(ctx context.Context, cfg *model.KyarabenConfig, configPath string, client *sync.Client, primaryDeviceID string, progress func(string), saveConfig func(*model.KyarabenConfig, string) error) error {
-	flow := sync.NewSecondaryPairingFlow(sync.PairingFlowConfig{
+func (cmd *SyncPairCmd) runJoiner(ctx context.Context, cfg *model.KyarabenConfig, configPath string, client *sync.Client, peerDeviceID string, progress func(string), saveConfig func(*model.KyarabenConfig, string) error) error {
+	flow := sync.NewJoinerPairingFlow(sync.PairingFlowConfig{
 		SyncConfig: cfg.Sync,
 		Client:     client,
 		OnProgress: progress,
 	})
 
-	result, err := flow.Run(ctx, primaryDeviceID)
+	result, err := flow.Run(ctx, peerDeviceID)
 	if err != nil {
 		return fmt.Errorf("pairing: %w", err)
 	}

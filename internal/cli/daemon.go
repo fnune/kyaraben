@@ -169,20 +169,20 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 				}
 			}(cmdID, enableCmd)
 			continue
-		case daemon.CommandTypeSyncJoinPrimary:
-			var joinCmd daemon.SyncJoinPrimaryCommand
+		case daemon.CommandTypeSyncJoinPeer:
+			var joinCmd daemon.SyncJoinPeerCommand
 			if err := json.Unmarshal(line, &joinCmd); err != nil {
 				sendEventWithID(daemon.Event{
 					Type: daemon.EventTypeError,
-					Data: map[string]string{"error": fmt.Sprintf("invalid sync_join_primary command: %v", err)},
+					Data: map[string]string{"error": fmt.Sprintf("invalid sync_join_peer command: %v", err)},
 				}, cmdID)
 				continue
 			}
-			go func(id string, cmd daemon.SyncJoinPrimaryCommand) {
+			go func(id string, cmd daemon.SyncJoinPeerCommand) {
 				emitForPairing := func(event daemon.Event) {
 					sendEventWithID(event, id)
 				}
-				events := d.HandleSyncJoinPrimary(cmd, emitForPairing)
+				events := d.HandleSyncJoinPeer(cmd, emitForPairing)
 				for _, event := range events {
 					sendEventWithID(event, id)
 				}

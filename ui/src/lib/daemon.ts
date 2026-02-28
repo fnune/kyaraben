@@ -12,8 +12,8 @@ import type {
   SyncDiscoveredDevicesResponse,
   SyncEnableRequest,
   SyncEnableResponse,
-  SyncJoinPrimaryRequest,
-  SyncJoinPrimaryResponse,
+  SyncJoinPeerRequest,
+  SyncJoinPeerResponse,
   SyncLocalChangesRequest,
   SyncLocalChangesResponse,
   SyncPendingResponse,
@@ -78,8 +78,8 @@ export const removeSyncDevice = (req: SyncRemoveDeviceRequest) =>
 
 export const startSyncPairing = () => invoke<SyncStartPairingResponse>('sync_start_pairing')
 
-export const joinSyncPrimary = (req: SyncJoinPrimaryRequest) =>
-  invoke<SyncJoinPrimaryResponse>('sync_join_primary', req)
+export const joinSyncPeer = (req: SyncJoinPeerRequest) =>
+  invoke<SyncJoinPeerResponse>('sync_join_peer', req)
 
 export const cancelSyncPairing = () => invoke<{ cancelled: boolean }>('sync_cancel_pairing')
 

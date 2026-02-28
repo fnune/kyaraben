@@ -270,7 +270,7 @@ test.describe('Sync view with folder in error state', () => {
   })
 })
 
-test.describe('Sync view with local changes on secondary', () => {
+test.describe('Sync view with local changes on joiner', () => {
   let ctx: SyncTestContext
 
   test.beforeAll(async () => {
