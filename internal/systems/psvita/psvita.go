@@ -11,7 +11,7 @@ func (Definition) System() model.System {
 		Description:  "Handheld console by Sony (2011)",
 		Manufacturer: model.ManufacturerSony,
 		Label:        "Vita",
-		Extensions:   []string{".vpk"},
+		Extensions:   []string{".vpk", ".psvita"},
 	}
 }
 

@@ -1,6 +1,7 @@
 package vita3k
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -31,15 +32,17 @@ func (Definition) Emulator() model.Emulator {
 			GenericName: "PlayStation Vita Emulator",
 			Categories:  []string{"Game", "Emulator"},
 			RomCommand: func(opts model.RomLaunchOptions) string {
-				cmd := opts.BinaryPath
+				args := ""
 				if len(opts.LaunchArgs) > 0 {
-					cmd += " " + strings.Join(opts.LaunchArgs, " ")
+					args += " " + strings.Join(opts.LaunchArgs, " ")
 				}
 				if opts.Fullscreen {
-					cmd += " -F"
+					args += " -F"
 				}
-				cmd += " -r %ROM%"
-				return cmd
+				return fmt.Sprintf(
+					`sh -c 'case %%ROM%% in *.psvita|*.PSVITA) %s%s -r "$(cat %%ROM%%)" ;; *) %s%s %%ROM%% ;; esac'`,
+					opts.BinaryPath, args, opts.BinaryPath, args,
+				)
 			},
 		},
 		PathUsage: model.PathUsage{
