@@ -83,6 +83,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	hddPath := filepath.Join(statesDir, hddFilename)
 
 	entries := []model.ConfigEntry{
+		{Path: []string{"sys", "mem_limit"}, Value: "128"},
 		{Path: []string{"sys", "files", "bootrom_path"}, Value: biosDir + "/mcpx_1.0.bin"},
 		{Path: []string{"sys", "files", "flashrom_path"}, Value: biosDir + "/Complex_4627v1.03.bin"},
 		{Path: []string{"sys", "files", "hdd_path"}, Value: hddPath},
@@ -91,13 +92,13 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		{Path: []string{"general", "check_for_update"}, Value: "false"},
 		{Path: []string{"general", "screenshot_dir"}, Value: screenshotsDir},
 		{Path: []string{"general", "games_dir"}, Value: romsDir},
-		{Path: []string{"general", "misc", "skip_boot_anim"}, Value: "true"},
+		{Path: []string{"general", "misc", "skip_boot_anim"}, Value: "true", DefaultOnly: true},
 		{Path: []string{"display", "renderer"}, Value: "VULKAN", DefaultOnly: true},
 		{Path: []string{"display", "quality", "surface_scale"}, Value: "2", DefaultOnly: true},
-		{Path: []string{"input", "bindings", "port1"}, Value: model.SteamDeckGUID},
-		{Path: []string{"input", "bindings", "port2"}, Value: model.SteamDeckGUID},
-		{Path: []string{"input", "bindings", "port3"}, Value: model.SteamDeckGUID},
-		{Path: []string{"input", "bindings", "port4"}, Value: model.SteamDeckGUID},
+		{Path: []string{"input", "bindings", "port1"}, Value: model.SteamDeckGUID, DefaultOnly: true},
+		{Path: []string{"input", "bindings", "port2"}, Value: model.SteamDeckGUID, DefaultOnly: true},
+		{Path: []string{"input", "bindings", "port3"}, Value: model.SteamDeckGUID, DefaultOnly: true},
+		{Path: []string{"input", "bindings", "port4"}, Value: model.SteamDeckGUID, DefaultOnly: true},
 	}
 
 	patches := []model.ConfigPatch{{
