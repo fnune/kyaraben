@@ -4,13 +4,10 @@ import (
 	"context"
 	"fmt"
 	"strings"
-
-	"github.com/fnune/kyaraben/internal/model"
 )
 
 type Status struct {
 	Enabled   bool
-	Mode      model.SyncMode
 	DeviceID  string
 	GUIURL    string
 	Devices   []DeviceStatus
@@ -118,7 +115,6 @@ func (c *Client) GetStatus(ctx context.Context) (*Status, error) {
 
 	status := &Status{
 		Enabled:  true,
-		Mode:     c.config.Mode,
 		DeviceID: deviceID,
 		GUIURL:   fmt.Sprintf("http://127.0.0.1:%d", c.config.Syncthing.GUIPort),
 		Devices:  devices,

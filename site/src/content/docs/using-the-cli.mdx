@@ -34,7 +34,6 @@ enabled = true
 
 [sync]
 enabled = true
-mode = "primary"
 ```
 
 ### `[global]`
@@ -233,9 +232,8 @@ Manage save synchronization. See [save synchronization](/sync/).
 
 #### `kyaraben sync pair [CODE]`
 
-Pair two devices. Without a code, this device becomes the primary and
-displays a pairing code. With a code, this device becomes the secondary and
-joins the primary that generated the code.
+Pair two devices. Without a code, this device generates a pairing code. With a
+code, this device joins the device that generated it.
 
 Installs and starts the synchronization service automatically if it is not already
 running.
@@ -256,7 +254,7 @@ Shows synchronization state, connected devices, and per-folder progress.
 ```
 $ kyaraben sync status
 
-Synchronization: active (primary)
+Synchronization: active
 Device ID: LGFPDIT7-SKNNJVJZ-A4FC7QNC-...
 
 Devices:

@@ -243,7 +243,6 @@ func (c *FakeClient) GetStatus(_ context.Context) (*Status, error) {
 
 	return &Status{
 		Enabled:  c.config.Enabled,
-		Mode:     c.config.Mode,
 		DeviceID: c.deviceID,
 		Devices:  devices,
 		Folders:  folders,

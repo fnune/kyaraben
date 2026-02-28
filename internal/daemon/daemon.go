@@ -151,7 +151,7 @@ func (d *Daemon) HandleWithEmit(cmd Command, emit func(Event)) []Event {
 	case CommandTypePreflight:
 		return d.handlePreflight()
 	case CommandTypeSyncEnable:
-		return d.handleSyncEnable(nil, emit)
+		return d.handleSyncEnable(emit)
 	case CommandTypeSyncRevertFolder:
 		return d.handleSyncRevertFolder(nil)
 	case CommandTypeSyncLocalChanges:
@@ -179,8 +179,8 @@ func (d *Daemon) HandleInstallKyaraben(cmd InstallKyarabenCommand, emit func(Eve
 	return d.handleInstallKyaraben(&cmd.Data)
 }
 
-func (d *Daemon) HandleSyncEnable(cmd SyncEnableCommand, emit func(Event)) []Event {
-	return d.handleSyncEnable(&cmd.Data, emit)
+func (d *Daemon) HandleSyncEnable(_ SyncEnableCommand, emit func(Event)) []Event {
+	return d.handleSyncEnable(emit)
 }
 
 func (d *Daemon) HandleSyncRevertFolder(cmd SyncRevertFolderCommand, emit func(Event)) []Event {
@@ -961,7 +961,6 @@ func (d *Daemon) handleSyncStatus() []Event {
 			Type: EventTypeResult,
 			Data: SyncStatusResponse{
 				Enabled:          true,
-				Mode:             string(cfg.Sync.Mode),
 				Running:          false,
 				Installed:        installed,
 				ServiceInstalled: serviceInstalled,
@@ -989,7 +988,7 @@ func (d *Daemon) handleSyncStatus() []Event {
 			Connected: dev.Connected,
 			Paused:    dev.Paused,
 		}
-		if syncStatus.Mode == model.SyncModePrimary && dev.Connected {
+		if dev.Connected {
 			if completion, err := client.GetDeviceCompletion(ctx, dev.ID); err == nil {
 				percent := int(completion.Completion)
 				devices[i].Completion = &percent
@@ -1031,7 +1030,6 @@ func (d *Daemon) handleSyncStatus() []Event {
 		Type: EventTypeResult,
 		Data: SyncStatusResponse{
 			Enabled:          true,
-			Mode:             string(syncStatus.Mode),
 			Running:          true,
 			Installed:        installed,
 			ServiceInstalled: serviceInstalled,
@@ -1185,11 +1183,6 @@ func (d *Daemon) handleSyncStartPairing(emit func(Event)) []Event {
 	if err != nil {
 		log.Error("Failed to load config: %v", err)
 		return d.errorResponse(err.Error())
-	}
-
-	if cfg.Sync.Mode != model.SyncModePrimary {
-		log.Error("Pairing rejected: not primary mode")
-		return d.errorResponse("pairing can only be started on primary device")
 	}
 
 	client := syncpkg.NewClient(cfg.Sync)
@@ -1348,7 +1341,7 @@ func (d *Daemon) handleSyncJoinPrimary(data *SyncJoinPrimaryRequest, emit func(E
 		}
 
 		pairingLog.Info("Secondary pairing flow succeeded, persisting config")
-		d.persistSyncEnabled(cfg, model.SyncModeSecondary)
+		d.persistSyncEnabled(cfg)
 
 		d.dismissUnwantedPendingFolders(client)
 
@@ -1386,16 +1379,7 @@ func (d *Daemon) stopSecondaryPairing() {
 	d.pairingActive = false
 }
 
-func (d *Daemon) handleSyncEnable(data *SyncEnableRequest, emit func(Event)) []Event {
-	if data == nil || data.Mode == "" {
-		return d.errorResponse("mode is required")
-	}
-
-	mode := model.SyncMode(data.Mode)
-	if mode != model.SyncModePrimary && mode != model.SyncModeSecondary {
-		return d.errorResponse("mode must be 'primary' or 'secondary'")
-	}
-
+func (d *Daemon) handleSyncEnable(emit func(Event)) []Event {
 	cfg, err := d.loadConfig()
 	if err != nil {
 		return d.errorResponse(err.Error())
@@ -1406,7 +1390,6 @@ func (d *Daemon) handleSyncEnable(data *SyncEnableRequest, emit func(Event)) []E
 	}
 
 	cfg.Sync.Enabled = true
-	cfg.Sync.Mode = mode
 
 	userStore, err := store.NewUserStore(d.fs, d.paths, cfg.Global.UserStore)
 	if err != nil {
@@ -1647,17 +1630,10 @@ func (d *Daemon) stopSyncthing(cfg *model.KyarabenConfig) bool {
 	return true
 }
 
-func (d *Daemon) syncSystems(cfg *model.KyarabenConfig) []model.SystemID {
-	if cfg.Sync.Mode == model.SyncModePrimary {
-		var systems []model.SystemID
-		for _, sys := range d.reg.AllSystems() {
-			systems = append(systems, sys.ID)
-		}
-		return systems
-	}
+func (d *Daemon) syncSystems(_ *model.KyarabenConfig) []model.SystemID {
 	var systems []model.SystemID
-	for sysID := range cfg.Systems {
-		systems = append(systems, sysID)
+	for _, sys := range d.reg.AllSystems() {
+		systems = append(systems, sys.ID)
 	}
 	return systems
 }
@@ -1764,9 +1740,6 @@ func (d *Daemon) ensureSyncthingManaged(cfg *model.KyarabenConfig) {
 		client.SetAPIKey(loadedKey)
 	}
 
-	if cfg.Sync.Mode == model.SyncModeSecondary {
-		d.dismissUnwantedPendingFolders(client)
-	}
 }
 
 func (d *Daemon) shouldRetrySyncSetup() bool {
@@ -1837,10 +1810,6 @@ func (d *Daemon) updateSyncConfig(cfg *model.KyarabenConfig, userStorePath strin
 		if err := client.Restart(ctx); err != nil {
 			log.Info("Syncthing restart requested (may take a moment)")
 		}
-
-		if cfg.Sync.Mode == model.SyncModeSecondary {
-			d.dismissUnwantedPendingFolders(client)
-		}
 	}
 
 	return nil
@@ -1875,9 +1844,8 @@ func (d *Daemon) waitForSyncthingReady(ctx context.Context, client syncpkg.SyncC
 	return fmt.Errorf("syncthing not ready after %v", maxDuration)
 }
 
-func (d *Daemon) persistSyncEnabled(cfg *model.KyarabenConfig, mode model.SyncMode) {
+func (d *Daemon) persistSyncEnabled(cfg *model.KyarabenConfig) {
 	cfg.Sync.Enabled = true
-	cfg.Sync.Mode = mode
 
 	path := d.configPath
 	if path == "" {

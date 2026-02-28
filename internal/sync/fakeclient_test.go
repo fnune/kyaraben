@@ -10,7 +10,6 @@ import (
 func TestFakeClient_GetStatus_IncludesFolders(t *testing.T) {
 	client := NewFakeClient(model.SyncConfig{
 		Enabled: true,
-		Mode:    model.SyncModePrimary,
 	})
 	client.SetDeviceID("TEST-DEVICE")
 

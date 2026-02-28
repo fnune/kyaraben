@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import * as daemon from '@/lib/daemon'
-import type { SyncDiscoveredDevice, SyncMode, SyncStatusResponse } from '@/types/daemon'
+import type { SyncDiscoveredDevice, SyncStatusResponse } from '@/types/daemon'
 import { SyncStateSyncing } from '@/types/daemon'
 
 type ShowToast = (message: string, type?: 'error' | 'success' | 'info') => void
@@ -20,7 +20,7 @@ export interface UseSyncPairingResult {
   lastSyncedAt: Date | null
   handleRemoveDevice: (deviceId: string) => Promise<void>
   handleConnectToDevice: (deviceId: string) => Promise<{ ok: boolean; error?: string }>
-  handleEnableSync: (mode: SyncMode) => Promise<void>
+  handleEnableSync: () => Promise<void>
   handleResetSync: () => Promise<void>
   handleStartPairing: () => Promise<void>
   handleStopPairing: () => Promise<void>
@@ -113,9 +113,8 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
   ])
 
   useEffect(() => {
-    const isSecondary = syncStatus?.mode === 'secondary'
     const hasNoDevices = (syncStatus?.devices?.length ?? 0) === 0
-    const shouldDiscover = syncStatus?.enabled && syncStatus?.running && isSecondary && hasNoDevices
+    const shouldDiscover = syncStatus?.enabled && syncStatus?.running && hasNoDevices
 
     if (discoveryIntervalRef.current) {
       clearInterval(discoveryIntervalRef.current)
@@ -139,7 +138,6 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
   }, [
     syncStatus?.enabled,
     syncStatus?.running,
-    syncStatus?.mode,
     syncStatus?.devices?.length,
     refreshDiscoveredDevices,
   ])
@@ -204,26 +202,23 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
     [refreshSyncStatus, showToast],
   )
 
-  const handleEnableSync = useCallback(
-    async (mode: SyncMode) => {
-      setIsEnabling(true)
-      setEnableError(null)
-      try {
-        const result = await daemon.enableSync({ mode })
-        if (result.ok) {
-          showToast('Sync enabled.', 'success')
-          await refreshSyncStatus()
-        } else {
-          const errorMsg = result.error?.message ?? 'Failed to enable sync'
-          setEnableError(errorMsg)
-          showToast(errorMsg, 'error')
-        }
-      } finally {
-        setIsEnabling(false)
+  const handleEnableSync = useCallback(async () => {
+    setIsEnabling(true)
+    setEnableError(null)
+    try {
+      const result = await daemon.enableSync({})
+      if (result.ok) {
+        showToast('Sync enabled.', 'success')
+        await refreshSyncStatus()
+      } else {
+        const errorMsg = result.error?.message ?? 'Failed to enable sync'
+        setEnableError(errorMsg)
+        showToast(errorMsg, 'error')
       }
-    },
-    [refreshSyncStatus, showToast],
-  )
+    } finally {
+      setIsEnabling(false)
+    }
+  }, [refreshSyncStatus, showToast])
 
   const handleResetSync = useCallback(async () => {
     setEnableError(null)

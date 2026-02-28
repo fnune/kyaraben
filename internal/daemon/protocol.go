@@ -33,9 +33,7 @@ type SyncJoinPrimaryRequest struct {
 	DeviceID    string `json:"deviceId,omitempty"`
 }
 
-type SyncEnableRequest struct {
-	Mode string `json:"mode"`
-}
+type SyncEnableRequest struct{}
 
 // Response types
 
@@ -205,7 +203,6 @@ const (
 
 type SyncStatusResponse struct {
 	Enabled          bool          `json:"enabled"`
-	Mode             string        `json:"mode,omitempty"`
 	Running          bool          `json:"running,omitempty"`
 	Installed        bool          `json:"installed,omitempty"`
 	ServiceInstalled bool          `json:"serviceInstalled,omitempty"`

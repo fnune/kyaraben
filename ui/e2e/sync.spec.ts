@@ -74,7 +74,7 @@ test.describe('Sync view with connected device showing synced status', () => {
     ctx = await setupSyncTest({
       config: {
         systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
-        sync: { enabled: true, mode: 'primary' },
+        sync: { enabled: true },
       },
       manifest: { installedEmulators: {} },
       syncthing: {
@@ -100,14 +100,14 @@ test.describe('Sync view with connected device showing synced status', () => {
   })
 })
 
-test.describe('Sync view primary showing remote device completion', () => {
+test.describe('Sync view showing remote device completion', () => {
   let ctx: SyncTestContext
 
   test.beforeAll(async () => {
     ctx = await setupSyncTest({
       config: {
         systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
-        sync: { enabled: true, mode: 'primary' },
+        sync: { enabled: true },
       },
       manifest: { installedEmulators: {} },
       syncthing: {
@@ -139,7 +139,7 @@ test.describe('Sync view showing sync in progress', () => {
     ctx = await setupSyncTest({
       config: {
         systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
-        sync: { enabled: true, mode: 'secondary' },
+        sync: { enabled: true },
       },
       manifest: { installedEmulators: {} },
       syncthing: {
@@ -170,7 +170,7 @@ test.describe('Sync view showing scanning progress', () => {
     ctx = await setupSyncTest({
       config: {
         systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
-        sync: { enabled: true, mode: 'primary' },
+        sync: { enabled: true },
       },
       manifest: { installedEmulators: {} },
       syncthing: {
@@ -207,7 +207,7 @@ test.describe('Sync view with device disconnected', () => {
     ctx = await setupSyncTest({
       config: {
         systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
-        sync: { enabled: true, mode: 'primary' },
+        sync: { enabled: true },
       },
       manifest: { installedEmulators: {} },
       syncthing: {
@@ -236,7 +236,7 @@ test.describe('Sync view with folder in error state', () => {
     ctx = await setupSyncTest({
       config: {
         systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
-        sync: { enabled: true, mode: 'primary' },
+        sync: { enabled: true },
       },
       manifest: { installedEmulators: {} },
       syncthing: {
@@ -277,7 +277,7 @@ test.describe('Sync view with local changes on secondary', () => {
     ctx = await setupSyncTest({
       config: {
         systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
-        sync: { enabled: true, mode: 'secondary' },
+        sync: { enabled: true },
       },
       manifest: { installedEmulators: {} },
       syncthing: {
@@ -326,14 +326,14 @@ test.describe('Sync view with local changes on secondary', () => {
   })
 })
 
-test.describe('Sync view pairing UI when no devices paired (primary)', () => {
+test.describe('Sync view pairing UI when no devices paired', () => {
   let ctx: SyncTestContext
 
   test.beforeAll(async () => {
     ctx = await setupSyncTest({
       config: {
         systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
-        sync: { enabled: true, mode: 'primary' },
+        sync: { enabled: true },
       },
       manifest: { installedEmulators: {} },
       syncthing: {
@@ -347,45 +347,19 @@ test.describe('Sync view pairing UI when no devices paired (primary)', () => {
     await cleanupSyncTest(ctx)
   })
 
-  test('shows pairing UI for primary with no devices', async () => {
+  test('shows unified pairing UI with generate code and enter code options', async () => {
     await navigateToSync(ctx.page)
     await expect(ctx.page.getByText('Pair a device')).toBeVisible()
-    await expect(ctx.page.getByRole('button', { name: 'Start pairing' })).toBeVisible()
-    await expect(ctx.page.getByText('Waiting for device connection')).toBeVisible()
-  })
-})
-
-test.describe('Sync view discovery UI when no devices paired (secondary)', () => {
-  let ctx: SyncTestContext
-
-  test.beforeAll(async () => {
-    ctx = await setupSyncTest({
-      config: {
-        systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
-        sync: { enabled: true, mode: 'secondary' },
-      },
-      manifest: { installedEmulators: {} },
-      syncthing: {
-        devices: [],
-        folders: [{ id: 'saves', path: '/home/test/Emulation/saves' }],
-      },
-    })
-  })
-
-  test.afterAll(async () => {
-    await cleanupSyncTest(ctx)
-  })
-
-  test('shows pairing code input for secondary with no devices', async () => {
-    await navigateToSync(ctx.page)
-    await expect(ctx.page.getByText('Connect to primary')).toBeVisible()
+    await expect(ctx.page.getByRole('button', { name: 'Generate pairing code' })).toBeVisible()
     await expect(ctx.page.getByPlaceholder('ABC123')).toBeVisible()
-    await expect(ctx.page.getByText('Advanced options')).toBeVisible()
+    await expect(ctx.page.getByText('Use device ID instead')).toBeVisible()
   })
 
-  test('can expand advanced options to see device ID input', async () => {
-    await ctx.page.getByText('Advanced options').click()
-    await expect(ctx.page.getByPlaceholder('XXXXXXX-XXXXXXX-XXXXXXX-...')).toBeVisible()
+  test('can switch to device ID mode', async () => {
+    await ctx.page.getByText('Use device ID instead').click()
+    await expect(
+      ctx.page.getByPlaceholder('ABC1234-DEF5678-GHI9012-JKL3456-MNO7890-PQR1234-STU5678-VWX9012'),
+    ).toBeVisible()
   })
 })
 
@@ -396,7 +370,7 @@ test.describe('Sync view settings section', () => {
     ctx = await setupSyncTest({
       config: {
         systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
-        sync: { enabled: true, mode: 'primary' },
+        sync: { enabled: true },
       },
       manifest: { installedEmulators: {} },
       syncthing: {
@@ -426,7 +400,7 @@ test.describe('Sync view with multiple folders', () => {
     ctx = await setupSyncTest({
       config: {
         systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
-        sync: { enabled: true, mode: 'primary' },
+        sync: { enabled: true },
       },
       manifest: { installedEmulators: {} },
       syncthing: {
@@ -462,7 +436,7 @@ test.describe('Sync view remove device flow', () => {
     ctx = await setupSyncTest({
       config: {
         systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
-        sync: { enabled: true, mode: 'primary' },
+        sync: { enabled: true },
       },
       manifest: { installedEmulators: {} },
       syncthing: {
@@ -503,7 +477,7 @@ test.describe('Sync view remove device flow', () => {
   })
 })
 
-test.describe('Relay pairing - primary shows pairing code', () => {
+test.describe('Relay pairing - generate pairing code', () => {
   let ctx: SyncTestContext
   let relay: RelayServer
 
@@ -512,7 +486,7 @@ test.describe('Relay pairing - primary shows pairing code', () => {
     ctx = await setupSyncTest({
       config: {
         systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
-        sync: { enabled: true, mode: 'primary', relayUrl: relay.url },
+        sync: { enabled: true, relayUrl: relay.url },
       },
       manifest: { installedEmulators: {} },
       syncthing: {
@@ -527,12 +501,12 @@ test.describe('Relay pairing - primary shows pairing code', () => {
     relay.close()
   })
 
-  test('shows 6-character pairing code when starting pairing', async () => {
+  test('shows 6-character pairing code when generating', async () => {
     await navigateToSync(ctx.page)
-    await ctx.page.getByRole('button', { name: 'Start pairing' }).click()
+    await ctx.page.getByRole('button', { name: 'Generate pairing code' }).click()
     const codeElement = ctx.page.locator('code').filter({ hasText: /^[A-Z0-9]{6}$/ })
     await expect(codeElement).toBeVisible({ timeout: 5000 })
-    await expect(ctx.page.getByText('Enter this code on your secondary device')).toBeVisible()
+    await expect(ctx.page.getByText('Enter this code on the other device')).toBeVisible()
   })
 
   test('can reveal device ID in pairing mode', async () => {
@@ -540,13 +514,13 @@ test.describe('Relay pairing - primary shows pairing code', () => {
     await expect(ctx.page.locator('code').filter({ hasText: /-/ })).toBeVisible()
   })
 
-  test('can stop pairing', async () => {
-    await ctx.page.getByRole('button', { name: 'Stop pairing' }).click()
-    await expect(ctx.page.getByRole('button', { name: 'Start pairing' })).toBeVisible()
+  test('can cancel pairing', async () => {
+    await ctx.page.getByRole('button', { name: 'Cancel' }).click()
+    await expect(ctx.page.getByRole('button', { name: 'Generate pairing code' })).toBeVisible()
   })
 })
 
-test.describe('Relay pairing - secondary enters invalid code', () => {
+test.describe('Relay pairing - enter invalid code', () => {
   let ctx: SyncTestContext
   let relay: RelayServer
 
@@ -555,7 +529,7 @@ test.describe('Relay pairing - secondary enters invalid code', () => {
     ctx = await setupSyncTest({
       config: {
         systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
-        sync: { enabled: true, mode: 'secondary', relayUrl: relay.url },
+        sync: { enabled: true, relayUrl: relay.url },
       },
       manifest: { installedEmulators: {} },
       syncthing: {

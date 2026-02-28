@@ -221,7 +221,7 @@ func TestEnsureSyncthingManagedSkipsWhenActivating(t *testing.T) {
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{UserStore: "/tmp/test"},
-		Sync:   model.SyncConfig{Enabled: true, Mode: model.SyncModePrimary},
+		Sync:   model.SyncConfig{Enabled: true},
 	}
 
 	d.ensureSyncthingManaged(cfg)
@@ -242,7 +242,7 @@ func TestEnsureSyncthingManagedSkipsWhenActive(t *testing.T) {
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{UserStore: "/tmp/test"},
-		Sync:   model.SyncConfig{Enabled: true, Mode: model.SyncModePrimary},
+		Sync:   model.SyncConfig{Enabled: true},
 	}
 
 	d.ensureSyncthingManaged(cfg)

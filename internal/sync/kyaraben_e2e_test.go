@@ -24,42 +24,42 @@ func TestKyarabenSync(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
-	primary := newKyarabenInstance(t, "primary", model.SyncModePrimary, 18384, 22000)
-	secondary := newKyarabenInstance(t, "secondary", model.SyncModeSecondary, 18385, 22001)
+	device1 := newKyarabenInstance(t, "device1", 18384, 22000)
+	device2 := newKyarabenInstance(t, "device2", 18385, 22001)
 
 	t.Cleanup(func() {
-		primary.stop()
-		secondary.stop()
+		device1.stop()
+		device2.stop()
 	})
 
-	if err := primary.generate(); err != nil {
-		t.Fatalf("primary.generate: %v", err)
+	if err := device1.generate(); err != nil {
+		t.Fatalf("device1.generate: %v", err)
 	}
-	if err := secondary.generate(); err != nil {
-		t.Fatalf("secondary.generate: %v", err)
-	}
-
-	if err := primary.writeKyarabenConfig(secondary); err != nil {
-		t.Fatalf("primary.writeKyarabenConfig: %v", err)
-	}
-	if err := secondary.writeKyarabenConfig(primary); err != nil {
-		t.Fatalf("secondary.writeKyarabenConfig: %v", err)
+	if err := device2.generate(); err != nil {
+		t.Fatalf("device2.generate: %v", err)
 	}
 
-	if err := primary.start(ctx); err != nil {
-		t.Fatalf("primary.start: %v", err)
+	if err := device1.writeKyarabenConfig(device2); err != nil {
+		t.Fatalf("device1.writeKyarabenConfig: %v", err)
 	}
-	if err := secondary.start(ctx); err != nil {
-		t.Fatalf("secondary.start: %v", err)
+	if err := device2.writeKyarabenConfig(device1); err != nil {
+		t.Fatalf("device2.writeKyarabenConfig: %v", err)
 	}
 
-	if err := waitConnected(ctx, primary.testInstance, secondary.deviceID); err != nil {
+	if err := device1.start(ctx); err != nil {
+		t.Fatalf("device1.start: %v", err)
+	}
+	if err := device2.start(ctx); err != nil {
+		t.Fatalf("device2.start: %v", err)
+	}
+
+	if err := waitConnected(ctx, device1.testInstance, device2.deviceID); err != nil {
 		t.Fatalf("waitConnected: %v", err)
 	}
 
-	t.Run("roms sync primary to secondary", func(t *testing.T) {
+	t.Run("roms sync bidirectionally", func(t *testing.T) {
 		romData := []byte("fake rom data")
-		romPath := filepath.Join(primary.userStore, "roms", "snes", "game.sfc")
+		romPath := filepath.Join(device1.userStore, "roms", "snes", "game.sfc")
 
 		if err := os.MkdirAll(filepath.Dir(romPath), 0755); err != nil {
 			t.Fatalf("MkdirAll: %v", err)
@@ -68,32 +68,52 @@ func TestKyarabenSync(t *testing.T) {
 			t.Fatalf("WriteFile: %v", err)
 		}
 
-		syncedPath := filepath.Join(secondary.userStore, "roms", "snes", "game.sfc")
+		syncedPath := filepath.Join(device2.userStore, "roms", "snes", "game.sfc")
 		if err := waitForFile(ctx, syncedPath, romData); err != nil {
-			t.Fatalf("ROM did not sync to secondary: %v", err)
+			t.Fatalf("ROM did not sync device1 → device2: %v", err)
+		}
+
+		romData2 := []byte("rom from device2")
+		romPath2 := filepath.Join(device2.userStore, "roms", "psx", "game.bin")
+
+		if err := os.MkdirAll(filepath.Dir(romPath2), 0755); err != nil {
+			t.Fatalf("MkdirAll: %v", err)
+		}
+		if err := os.WriteFile(romPath2, romData2, 0644); err != nil {
+			t.Fatalf("WriteFile: %v", err)
+		}
+
+		syncedPath2 := filepath.Join(device1.userStore, "roms", "psx", "game.bin")
+		if err := waitForFile(ctx, syncedPath2, romData2); err != nil {
+			t.Fatalf("ROM did not sync device2 → device1: %v", err)
 		}
 	})
 
-	t.Run("roms do not sync secondary to primary", func(t *testing.T) {
-		romData := []byte("rom from secondary")
-		romPath := filepath.Join(secondary.userStore, "roms", "psx", "game.bin")
+	t.Run("rom deletions do not sync", func(t *testing.T) {
+		romData := []byte("rom to delete")
+		romPath := filepath.Join(device1.userStore, "roms", "snes", "deleteme.sfc")
 
-		if err := os.MkdirAll(filepath.Dir(romPath), 0755); err != nil {
-			t.Fatalf("MkdirAll: %v", err)
-		}
 		if err := os.WriteFile(romPath, romData, 0644); err != nil {
 			t.Fatalf("WriteFile: %v", err)
 		}
 
-		primaryPath := filepath.Join(primary.userStore, "roms", "psx", "game.bin")
-		if err := assertFileNeverAppears(ctx, primaryPath, 5*time.Second); err != nil {
-			t.Fatalf("ROM incorrectly synced to primary: %v", err)
+		syncedPath := filepath.Join(device2.userStore, "roms", "snes", "deleteme.sfc")
+		if err := waitForFile(ctx, syncedPath, romData); err != nil {
+			t.Fatalf("ROM did not sync before deletion test: %v", err)
+		}
+
+		if err := os.Remove(romPath); err != nil {
+			t.Fatalf("Remove: %v", err)
+		}
+
+		if err := assertFileNeverDisappears(ctx, syncedPath, 5*time.Second); err != nil {
+			t.Fatalf("ROM deletion incorrectly synced: %v", err)
 		}
 	})
 
 	t.Run("saves sync bidirectionally", func(t *testing.T) {
-		saveData := []byte("save from primary")
-		savePath := filepath.Join(primary.userStore, "saves", "snes", "game.srm")
+		saveData := []byte("save from device1")
+		savePath := filepath.Join(device1.userStore, "saves", "snes", "game.srm")
 
 		if err := os.MkdirAll(filepath.Dir(savePath), 0755); err != nil {
 			t.Fatalf("MkdirAll: %v", err)
@@ -102,18 +122,18 @@ func TestKyarabenSync(t *testing.T) {
 			t.Fatalf("WriteFile: %v", err)
 		}
 
-		syncedPath := filepath.Join(secondary.userStore, "saves", "snes", "game.srm")
+		syncedPath := filepath.Join(device2.userStore, "saves", "snes", "game.srm")
 		if err := waitForFile(ctx, syncedPath, saveData); err != nil {
-			t.Fatalf("save did not sync primary → secondary: %v", err)
+			t.Fatalf("save did not sync device1 → device2: %v", err)
 		}
 
-		updatedSave := []byte("save from secondary")
+		updatedSave := []byte("save from device2")
 		if err := os.WriteFile(syncedPath, updatedSave, 0644); err != nil {
 			t.Fatalf("WriteFile: %v", err)
 		}
 
 		if err := waitForFile(ctx, savePath, updatedSave); err != nil {
-			t.Fatalf("save did not sync secondary → primary: %v", err)
+			t.Fatalf("save did not sync device2 → device1: %v", err)
 		}
 	})
 }
@@ -154,12 +174,11 @@ func waitForFile(ctx context.Context, path string, expectedContent []byte) error
 
 type kyarabenInstance struct {
 	*testInstance
-	mode      model.SyncMode
 	userStore string
 	systems   []model.SystemID
 }
 
-func newKyarabenInstance(t *testing.T, name string, mode model.SyncMode, guiPort, listenPort int) *kyarabenInstance {
+func newKyarabenInstance(t *testing.T, name string, guiPort, listenPort int) *kyarabenInstance {
 	t.Helper()
 
 	inst := newTestInstance(t, name, guiPort, listenPort)
@@ -180,17 +199,16 @@ func newKyarabenInstance(t *testing.T, name string, mode model.SyncMode, guiPort
 
 	return &kyarabenInstance{
 		testInstance: inst,
-		mode:         mode,
 		userStore:    userStore,
 		systems:      systems,
 	}
 }
 
-func assertFileNeverAppears(ctx context.Context, path string, duration time.Duration) error {
+func assertFileNeverDisappears(ctx context.Context, path string, duration time.Duration) error {
 	deadline := time.Now().Add(duration)
 	for time.Now().Before(deadline) {
-		if _, err := os.Stat(path); err == nil {
-			return fmt.Errorf("file appeared: %s", path)
+		if _, err := os.Stat(path); err != nil {
+			return fmt.Errorf("file disappeared: %s", path)
 		}
 		select {
 		case <-ctx.Done():
@@ -204,7 +222,6 @@ func assertFileNeverAppears(ctx context.Context, path string, duration time.Dura
 func (k *kyarabenInstance) writeKyarabenConfig(peer *kyarabenInstance) error {
 	cfg := model.SyncConfig{
 		Enabled: true,
-		Mode:    k.mode,
 		Syncthing: model.SyncthingConfig{
 			ListenPort:    k.listenPort,
 			DiscoveryPort: 21027,
