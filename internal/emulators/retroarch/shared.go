@@ -133,9 +133,26 @@ func controllerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	return entries
 }
 
+var coreConfigDirNames = map[string]string{
+	"bsnes":             "bsnes",
+	"mesen":             "Mesen",
+	"genesis_plus_gx":   "Genesis Plus GX",
+	"mupen64plus_next":  "Mupen64Plus-Next",
+	"mednafen_saturn":   "Beetle Saturn",
+	"mednafen_pce_fast": "Beetle PCE Fast",
+	"mednafen_ngp":      "Beetle NeoPop",
+	"mgba":              "mGBA",
+	"melondsds":         "melonDS DS",
+	"citra":             "Citra",
+}
+
 func CoreOverrideTarget(shortName string) model.ConfigTarget {
+	configDirName := shortName
+	if displayName, ok := coreConfigDirNames[shortName]; ok {
+		configDirName = displayName
+	}
 	return model.ConfigTarget{
-		RelPath: "retroarch/config/" + shortName + "/" + shortName + ".cfg",
+		RelPath: "retroarch/config/" + configDirName + "/" + configDirName + ".cfg",
 		Format:  model.ConfigFormatCFG,
 		BaseDir: model.ConfigBaseDirUserConfig,
 	}
@@ -148,11 +165,7 @@ var coreShortNames = map[model.EmulatorID]string{
 	model.EmulatorIDRetroArchMupen64Plus:   "mupen64plus_next",
 	model.EmulatorIDRetroArchBeetleSaturn:  "mednafen_saturn",
 	model.EmulatorIDRetroArchBeetlePCE:     "mednafen_pce_fast",
-	model.EmulatorIDRetroArchBeetleLynx:    "mednafen_lynx",
 	model.EmulatorIDRetroArchBeetleNGP:     "mednafen_ngp",
-	model.EmulatorIDRetroArchBeetlePCFX:    "mednafen_pcfx",
-	model.EmulatorIDRetroArchBeetleVB:      "mednafen_vb",
-	model.EmulatorIDRetroArchBeetleWSwan:   "mednafen_wswan",
 	model.EmulatorIDRetroArchMGBA:          "mgba",
 	model.EmulatorIDRetroArchMelonDS:       "melondsds",
 	model.EmulatorIDRetroArchCitra:         "citra",
@@ -165,11 +178,7 @@ var coreToSystem = map[model.EmulatorID]model.SystemID{
 	model.EmulatorIDRetroArchMupen64Plus:   model.SystemIDN64,
 	model.EmulatorIDRetroArchBeetleSaturn:  model.SystemIDSaturn,
 	model.EmulatorIDRetroArchBeetlePCE:     model.SystemIDPCEngine,
-	model.EmulatorIDRetroArchBeetleLynx:    model.SystemIDLynx,
 	model.EmulatorIDRetroArchBeetleNGP:     model.SystemIDNGP,
-	model.EmulatorIDRetroArchBeetlePCFX:    model.SystemIDPCFX,
-	model.EmulatorIDRetroArchBeetleVB:      model.SystemIDVirtualBoy,
-	model.EmulatorIDRetroArchBeetleWSwan:   model.SystemIDWonderSwan,
 	model.EmulatorIDRetroArchMGBA:          model.SystemIDGBA,
 	model.EmulatorIDRetroArchMelonDS:       model.SystemIDNDS,
 	model.EmulatorIDRetroArchCitra:         model.SystemIDN3DS,
