@@ -152,7 +152,7 @@ func TestStore_MaxSessionsPerIP(t *testing.T) {
 
 func TestSession_HasResponse(t *testing.T) {
 	session := &Session{
-		Code:            "ABC123",
+		Code:              "ABC123",
 		InitiatorDeviceID: "AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA-AAAAAAA",
 	}
 
