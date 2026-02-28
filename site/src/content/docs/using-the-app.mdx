@@ -4,13 +4,17 @@ description: How to use the Kyaraben UI, what it does under the hood, and what i
 ---
 
 import UserStore from "../../components/UserStore.astro";
+import systemPickerScreenshot from "../../assets/screenshots/v0.1-app-system-picker.png";
 
 ## Selecting systems and emulators
 
 The main screen shows all available systems. Check a system to enable it,
 uncheck to disable. Each system shows its available emulators.
 
-{/* Screenshot: v0.1-app-system-picker.png - System picker with emulator details */}
+<img
+  src={systemPickerScreenshot.src}
+  alt="System picker showing available systems with emulator versions and install status"
+/>
 
 ## Checking BIOS and firmware status
 

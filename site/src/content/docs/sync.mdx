@@ -3,6 +3,8 @@ title: Synchronization
 description: Synchronize saves, states, and scraped metadata across devices
 ---
 
+import pairingScreenshot from "../../assets/screenshots/v0.1-sync-pairing.png";
+
 ## Overview
 
 Kyaraben uses Syncthing to synchronize emulation data across devices. Syncthing
@@ -54,6 +56,11 @@ On the primary:
 1. Go to Settings > Synchronization
 2. Click "Start pairing"
 3. A 6-character code appears (e.g. K7X9M2)
+
+<img
+  src={pairingScreenshot.src}
+  alt="Pairing mode showing a 6-character code and the list of folders to sync"
+/>
 
 On the secondary:
 
