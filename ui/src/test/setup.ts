@@ -9,6 +9,8 @@ afterEach(() => {
 Object.defineProperty(window, 'electron', {
   value: {
     invoke: vi.fn(),
+    on: vi.fn(() => vi.fn()),
+    off: vi.fn(),
   },
   writable: true,
 })

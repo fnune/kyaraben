@@ -1,9 +1,6 @@
-import * as os from 'node:os'
 import { contextBridge, ipcRenderer } from 'electron'
 
 contextBridge.exposeInMainWorld('electron', {
-  homeDir: os.homedir(),
-
   invoke: (channel: string, ...args: unknown[]) => ipcRenderer.invoke(channel, ...args),
 
   on: (channel: string, callback: (data: unknown) => void) => {
