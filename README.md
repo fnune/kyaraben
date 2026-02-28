@@ -1,4 +1,6 @@
-# Kyaraben
+<p align="center">
+  <img src="assets/kyaraben-logo-with-bg.svg" alt="Kyaraben" width="400">
+</p>
 
 Kyaraben is a declarative emulation manager for Linux. It handles the installation and configuration of emulators for various gaming systems.
 
