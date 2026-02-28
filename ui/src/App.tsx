@@ -387,33 +387,27 @@ function AppContent() {
   })
 
   const handleEmulatorToggle = useCallback(
-    (emulatorId: EmulatorID, enabled: boolean) => {
+    (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => {
       setConfigState((prev) => {
         const next = new Map(prev.systemEmulators)
+        const current = next.get(systemId) ?? []
 
-        for (const system of systems) {
-          const hasEmulator = system.emulators.some((e) => e.id === emulatorId)
-          if (!hasEmulator) continue
-
-          const current = next.get(system.id) ?? []
-
-          if (enabled) {
-            if (!current.includes(emulatorId)) {
-              next.set(system.id, [...current, emulatorId])
-            }
+        if (enabled) {
+          if (!current.includes(emulatorId)) {
+            next.set(systemId, [...current, emulatorId])
+          }
+        } else {
+          const filtered = current.filter((id) => id !== emulatorId)
+          if (filtered.length === 0) {
+            next.delete(systemId)
           } else {
-            const filtered = current.filter((id) => id !== emulatorId)
-            if (filtered.length === 0) {
-              next.delete(system.id)
-            } else {
-              next.set(system.id, filtered)
-            }
+            next.set(systemId, filtered)
           }
         }
         return { ...prev, systemEmulators: next }
       })
     },
-    [systems],
+    [],
   )
 
   const enabledEmulators = new Set(Array.from(configState.systemEmulators.values()).flat())

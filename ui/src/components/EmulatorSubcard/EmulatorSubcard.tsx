@@ -9,6 +9,7 @@ import {
   ProvisionsModal,
 } from '@/components/ProvisionsModal/ProvisionsModal'
 import { CHANGE_CONFIG, formatBytes, getChangeType } from '@/lib/changeUtils'
+import { PathText } from '@/lib/PathText'
 import { Select } from '@/lib/Select'
 import { useToast } from '@/lib/ToastContext'
 import { ToggleSwitch } from '@/lib/ToggleSwitch'
@@ -21,6 +22,7 @@ function isNonEmpty<T>(arr: readonly T[]): arr is readonly [T, ...T[]] {
 export interface EmulatorSubcardProps {
   readonly emulator: EmulatorRef
   readonly enabled: boolean
+  readonly enabledElsewhere?: boolean
   readonly pinnedVersion: string | null
   readonly installedVersion: string | null
   readonly provisions: readonly ProvisionResult[]
@@ -101,6 +103,7 @@ function ProvisionsSummary({
 export function EmulatorSubcard({
   emulator,
   enabled,
+  enabledElsewhere,
   pinnedVersion,
   installedVersion,
   provisions,
@@ -141,7 +144,11 @@ export function EmulatorSubcard({
 
   const handleOpenFolder = (path: string) => {
     window.electron.invoke('open_path', path)
-    showToast(`Opening ${path}.`)
+    showToast(
+      <span>
+        Opening <PathText>{path}</PathText>.
+      </span>,
+    )
   }
 
   const logo = getEmulatorLogo(emulator.id)
@@ -208,6 +215,12 @@ export function EmulatorSubcard({
                   >
                     Provisions
                   </button>
+                )}
+                {!enabled && enabledElsewhere && (
+                  <>
+                    <span className="text-on-surface-faint">·</span>
+                    <span className="text-on-surface-dim">used by other systems</span>
+                  </>
                 )}
               </>
             ) : (
