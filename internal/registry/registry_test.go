@@ -300,6 +300,24 @@ func TestRegistryGetEmulatorsForSystem(t *testing.T) {
 	}
 }
 
+func TestRegistryGetEmulatorsForSystemOrdering(t *testing.T) {
+	reg := NewDefault()
+
+	emulators := reg.GetEmulatorsForSystem(model.SystemIDSNES)
+	if len(emulators) < 2 {
+		t.Fatalf("Expected at least 2 emulators for SNES, got %d", len(emulators))
+	}
+
+	defaultEmu, err := reg.GetDefaultEmulator(model.SystemIDSNES)
+	if err != nil {
+		t.Fatalf("Failed to get default emulator: %v", err)
+	}
+
+	if emulators[0].ID != defaultEmu.ID {
+		t.Errorf("Default emulator should be first; got %s, want %s", emulators[0].ID, defaultEmu.ID)
+	}
+}
+
 func TestRegistryGetDefaultEmulator(t *testing.T) {
 	reg := NewDefault()
 

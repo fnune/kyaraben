@@ -2,6 +2,7 @@ package registry
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/fnune/kyaraben/internal/model"
 )
@@ -81,6 +82,24 @@ func (r *Registry) GetEmulatorsForSystem(sys model.SystemID) []model.Emulator {
 			result = append(result, entry.Emulator)
 		}
 	}
+	defaultEmuID := r.defaultEmulators[sys]
+	slices.SortFunc(result, func(a, b model.Emulator) int {
+		aIsDefault := a.ID == defaultEmuID
+		bIsDefault := b.ID == defaultEmuID
+		if aIsDefault && !bIsDefault {
+			return -1
+		}
+		if bIsDefault && !aIsDefault {
+			return 1
+		}
+		if a.ID < b.ID {
+			return -1
+		}
+		if a.ID > b.ID {
+			return 1
+		}
+		return 0
+	})
 	return result
 }
 
