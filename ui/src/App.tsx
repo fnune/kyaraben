@@ -29,6 +29,7 @@ import type {
 } from '@/types/daemon'
 import {
   type ApplyStatus,
+  VERSION_DEFAULT,
   VIEW_CATALOG,
   VIEW_IMPORT,
   VIEW_INSTALLATION,
@@ -72,10 +73,10 @@ interface ConfigState {
   graphicsShaders: string
   controllerNintendoConfirm: string
   systemEmulators: Map<SystemID, EmulatorID[]>
-  emulatorVersions: Map<EmulatorID, string | null>
+  emulatorVersions: Map<EmulatorID, string>
   emulatorShaders: Map<EmulatorID, string | null>
   enabledFrontends: Map<FrontendID, boolean>
-  frontendVersions: Map<FrontendID, string | null>
+  frontendVersions: Map<FrontendID, string>
 }
 
 function emptyConfigState(): ConfigState {
@@ -110,10 +111,10 @@ function cloneConfigState(state: ConfigState): ConfigState {
 
 function parseConfigResponse(data: ConfigResponse): ConfigState {
   const systemEmulators = new Map<SystemID, EmulatorID[]>()
-  const emulatorVersions = new Map<EmulatorID, string | null>()
+  const emulatorVersions = new Map<EmulatorID, string>()
   const emulatorShaders = new Map<EmulatorID, string | null>()
   const enabledFrontends = new Map<FrontendID, boolean>()
-  const frontendVersions = new Map<FrontendID, string | null>()
+  const frontendVersions = new Map<FrontendID, string>()
 
   for (const [sysId, emulatorIds] of Object.entries(data.systems)) {
     if (emulatorIds && emulatorIds.length > 0) {
@@ -455,14 +456,10 @@ function AppContent() {
 
   const enabledEmulators = new Set(Array.from(configState.systemEmulators.values()).flat())
 
-  const handleVersionChange = useCallback((emulatorId: EmulatorID, version: string | null) => {
+  const handleVersionChange = useCallback((emulatorId: EmulatorID, version: string) => {
     setConfigState((prev) => {
       const next = new Map(prev.emulatorVersions)
-      if (version === null) {
-        next.delete(emulatorId)
-      } else {
-        next.set(emulatorId, version)
-      }
+      next.set(emulatorId, version)
       return { ...prev, emulatorVersions: next }
     })
   }, [])
@@ -487,20 +484,13 @@ function AppContent() {
     })
   }, [])
 
-  const handleFrontendVersionChange = useCallback(
-    (frontendId: FrontendID, version: string | null) => {
-      setConfigState((prev) => {
-        const next = new Map(prev.frontendVersions)
-        if (version === null) {
-          next.delete(frontendId)
-        } else {
-          next.set(frontendId, version)
-        }
-        return { ...prev, frontendVersions: next }
-      })
-    },
-    [],
-  )
+  const handleFrontendVersionChange = useCallback((frontendId: FrontendID, version: string) => {
+    setConfigState((prev) => {
+      const next = new Map(prev.frontendVersions)
+      next.set(frontendId, version)
+      return { ...prev, frontendVersions: next }
+    })
+  }, [])
 
   const handleGraphicsShadersChange = useCallback((value: string) => {
     setConfigState((prev) => ({ ...prev, graphicsShaders: value }))
@@ -577,13 +567,13 @@ function AppContent() {
     }
 
     const emulatorVersionsChanged = (() => {
-      if (configState.emulatorVersions.size !== savedConfigState.current.emulatorVersions.size)
-        return true
       for (const [emuId, version] of configState.emulatorVersions) {
-        if (savedConfigState.current.emulatorVersions.get(emuId) !== version) return true
+        const saved = savedConfigState.current.emulatorVersions.get(emuId) ?? VERSION_DEFAULT
+        if (saved !== version) return true
       }
-      for (const emuId of savedConfigState.current.emulatorVersions.keys()) {
-        if (!configState.emulatorVersions.has(emuId)) return true
+      for (const [emuId, saved] of savedConfigState.current.emulatorVersions) {
+        const current = configState.emulatorVersions.get(emuId) ?? VERSION_DEFAULT
+        if (current !== saved) return true
       }
       return false
     })()
@@ -592,13 +582,13 @@ function AppContent() {
     }
 
     const emulatorShadersChanged = (() => {
-      if (configState.emulatorShaders.size !== savedConfigState.current.emulatorShaders.size)
-        return true
       for (const [emuId, shaders] of configState.emulatorShaders) {
-        if (savedConfigState.current.emulatorShaders.get(emuId) !== shaders) return true
+        const saved = savedConfigState.current.emulatorShaders.get(emuId) ?? null
+        if (saved !== shaders) return true
       }
-      for (const emuId of savedConfigState.current.emulatorShaders.keys()) {
-        if (!configState.emulatorShaders.has(emuId)) return true
+      for (const [emuId, saved] of savedConfigState.current.emulatorShaders) {
+        const current = configState.emulatorShaders.get(emuId) ?? null
+        if (current !== saved) return true
       }
       return false
     })()
@@ -622,13 +612,13 @@ function AppContent() {
     }
 
     const frontendVersionsChanged = (() => {
-      if (configState.frontendVersions.size !== savedConfigState.current.frontendVersions.size)
-        return true
       for (const [feId, version] of configState.frontendVersions) {
-        if (savedConfigState.current.frontendVersions.get(feId) !== version) return true
+        const saved = savedConfigState.current.frontendVersions.get(feId) ?? VERSION_DEFAULT
+        if (saved !== version) return true
       }
-      for (const feId of savedConfigState.current.frontendVersions.keys()) {
-        if (!configState.frontendVersions.has(feId)) return true
+      for (const [feId, saved] of savedConfigState.current.frontendVersions) {
+        const current = configState.frontendVersions.get(feId) ?? VERSION_DEFAULT
+        if (current !== saved) return true
       }
       return false
     })()

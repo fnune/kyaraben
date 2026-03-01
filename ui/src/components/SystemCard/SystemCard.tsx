@@ -10,6 +10,7 @@ import type {
   System,
   SystemID,
 } from '@/types/daemon'
+import { VERSION_DEFAULT } from '@/types/ui'
 
 export const SYSTEM_YEARS: Record<SystemID, number | null> = {
   nes: 1983,
@@ -57,7 +58,7 @@ export interface SystemCardProps {
   readonly system: System
   readonly systemEnabledEmulators: ReadonlySet<EmulatorID>
   readonly globalEnabledEmulators: ReadonlySet<EmulatorID>
-  readonly emulatorVersions: ReadonlyMap<EmulatorID, string | null>
+  readonly emulatorVersions: ReadonlyMap<EmulatorID, string>
   readonly emulatorShaders: ReadonlyMap<EmulatorID, string | null>
   readonly graphics: { shaders: string }
   readonly installedVersions: ReadonlyMap<EmulatorID, string>
@@ -67,7 +68,7 @@ export interface SystemCardProps {
   readonly provisions: DoctorResponse
   readonly sharedPackages: ReadonlySet<string>
   readonly onEmulatorToggle: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
-  readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
+  readonly onVersionChange: (emulatorId: EmulatorID, version: string) => void
   readonly onShaderChange: (emulatorId: EmulatorID, shaders: string | null) => void
 }
 
@@ -134,7 +135,7 @@ export const SystemCard = forwardRef<HTMLElement, SystemCardProps>(function Syst
               systemId={system.id}
               enabled={isEnabled}
               enabledElsewhere={isEnabledElsewhere}
-              pinnedVersion={emulatorVersions.get(emulator.id) ?? null}
+              selectedVersion={emulatorVersions.get(emulator.id) ?? VERSION_DEFAULT}
               installedVersion={installedVersions.get(emulator.id) ?? null}
               provisions={provisions[`${system.id}:${emulator.id}`] ?? []}
               sharedPackage={isSharedPackage}

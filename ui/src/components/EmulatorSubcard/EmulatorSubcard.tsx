@@ -11,9 +11,9 @@ import {
 } from '@/components/ProvisionsModal/ProvisionsModal'
 import { CHANGE_CONFIG, formatBytes, getChangeType } from '@/lib/changeUtils'
 import { PathText } from '@/lib/PathText'
-import { Select } from '@/lib/Select'
 import { useToast } from '@/lib/ToastContext'
 import { ToggleSwitch } from '@/lib/ToggleSwitch'
+import { VersionSelect } from '@/lib/VersionSelect'
 import type {
   EmulatorPaths,
   EmulatorRef,
@@ -21,6 +21,7 @@ import type {
   ProvisionResult,
   SystemID,
 } from '@/types/daemon'
+import { VERSION_DEFAULT } from '@/types/ui'
 
 function isNonEmpty<T>(arr: readonly T[]): arr is readonly [T, ...T[]] {
   return arr.length > 0
@@ -31,7 +32,7 @@ export interface EmulatorSubcardProps {
   readonly systemId: SystemID
   readonly enabled: boolean
   readonly enabledElsewhere?: boolean
-  readonly pinnedVersion: string | null
+  readonly selectedVersion: string
   readonly installedVersion: string | null
   readonly provisions: readonly ProvisionResult[]
   readonly managedConfigs?: readonly ManagedConfigInfo[]
@@ -41,7 +42,7 @@ export interface EmulatorSubcardProps {
   readonly shaders?: string | null
   readonly graphics: { shaders: string }
   readonly onToggle: (enabled: boolean) => void
-  readonly onVersionChange: (version: string | null) => void
+  readonly onVersionChange: (version: string) => void
   readonly onShaderChange?: (value: string | null) => void
   readonly onLaunch?: () => void
 }
@@ -116,7 +117,7 @@ export function EmulatorSubcard({
   systemId,
   enabled,
   enabledElsewhere,
-  pinnedVersion,
+  selectedVersion,
   installedVersion,
   provisions,
   managedConfigs,
@@ -138,7 +139,8 @@ export function EmulatorSubcard({
   const hasSettings = (emulator.supportedSettings?.length ?? 0) > 0
   const supportsShaders = emulator.supportedSettings?.includes('shaders') ?? false
 
-  const effectiveVersion = pinnedVersion ?? emulator.defaultVersion ?? null
+  const effectiveVersion =
+    selectedVersion === VERSION_DEFAULT ? (emulator.defaultVersion ?? null) : selectedVersion
   const changeType = getChangeType(
     enabled,
     installedVersion,
@@ -188,12 +190,13 @@ export function EmulatorSubcard({
           <div className="flex flex-col gap-2 min-[400px]:flex-row min-[400px]:items-center">
             <span className="text-on-surface font-medium text-sm">{emulator.name}</span>
             <div className="flex items-center gap-3 min-[400px]:ml-auto">
-              <VersionSelector
+              <VersionSelect
                 defaultVersion={emulator.defaultVersion}
                 availableVersions={emulator.availableVersions}
-                pinnedVersion={pinnedVersion}
+                selectedVersion={selectedVersion}
                 onChange={onVersionChange}
                 disabled={!enabled}
+                size="sm"
               />
               <ToggleSwitch enabled={enabled} onChange={onToggle} />
             </div>
@@ -326,42 +329,5 @@ export function EmulatorSubcard({
         />
       )}
     </div>
-  )
-}
-
-function VersionSelector({
-  defaultVersion,
-  availableVersions,
-  pinnedVersion,
-  onChange,
-  disabled,
-}: {
-  readonly defaultVersion: string | undefined
-  readonly availableVersions: string[] | undefined
-  readonly pinnedVersion: string | null
-  readonly onChange: (version: string | null) => void
-  readonly disabled: boolean
-}) {
-  if (!availableVersions || availableVersions.length === 0) {
-    return (
-      <span className="text-xs text-on-surface-muted tabular-nums font-mono">{defaultVersion}</span>
-    )
-  }
-
-  const isPinned = pinnedVersion !== null
-  const options = [
-    { value: '', label: `${defaultVersion} (auto)` },
-    ...availableVersions.map((v) => ({ value: v, label: `${v} (pin)` })),
-  ]
-
-  return (
-    <Select
-      value={pinnedVersion ?? ''}
-      options={options}
-      onChange={(v) => onChange(v === '' ? null : v)}
-      disabled={disabled}
-      size="sm"
-      className={isPinned ? '[&>button]:ring-2 [&>button]:ring-status-warning' : ''}
-    />
   )
 }

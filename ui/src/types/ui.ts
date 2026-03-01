@@ -4,6 +4,8 @@ import type { Manufacturer } from './model.gen'
 
 export type { Manufacturer }
 
+export const VERSION_DEFAULT = '__default__' as const
+
 export const VIEW_CATALOG = 'catalog' as const
 export const VIEW_INSTALLATION = 'installation' as const
 export const VIEW_SYNC = 'sync' as const

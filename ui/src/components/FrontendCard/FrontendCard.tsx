@@ -2,32 +2,34 @@ import { ChangeNotch } from '@/components/ChangeNotch/ChangeNotch'
 import { getFrontendLogo } from '@/components/FrontendLogo/FrontendLogo'
 import { CHANGE_CONFIG, formatBytes, getChangeType } from '@/lib/changeUtils'
 import { launchEmulator } from '@/lib/daemon'
-import { Select } from '@/lib/Select'
 import { useToast } from '@/lib/ToastContext'
 import { ToggleSwitch } from '@/lib/ToggleSwitch'
+import { VersionSelect } from '@/lib/VersionSelect'
 import type { FrontendRef } from '@/types/daemon.gen'
+import { VERSION_DEFAULT } from '@/types/ui'
 
 export interface FrontendCardProps {
   readonly frontend: FrontendRef
   readonly enabled: boolean
-  readonly pinnedVersion: string | null
+  readonly selectedVersion: string
   readonly installedVersion: string | null
   readonly execLine?: string | undefined
   readonly onToggle: (enabled: boolean) => void
-  readonly onVersionChange: (version: string | null) => void
+  readonly onVersionChange: (version: string) => void
 }
 
 export function FrontendCard({
   frontend,
   enabled,
-  pinnedVersion,
+  selectedVersion,
   installedVersion,
   execLine,
   onToggle,
   onVersionChange,
 }: FrontendCardProps) {
   const { showToast } = useToast()
-  const effectiveVersion = pinnedVersion ?? frontend.defaultVersion ?? null
+  const effectiveVersion =
+    selectedVersion === VERSION_DEFAULT ? (frontend.defaultVersion ?? null) : selectedVersion
 
   const handleLaunch = () => {
     if (execLine) {
@@ -67,10 +69,10 @@ export function FrontendCard({
           <div className="flex items-center gap-2">
             <span className="text-on-surface font-medium text-sm">{frontend.name}</span>
             <div className="ml-auto flex items-center gap-3">
-              <VersionSelector
+              <VersionSelect
                 defaultVersion={frontend.defaultVersion}
                 availableVersions={frontend.availableVersions}
-                pinnedVersion={pinnedVersion}
+                selectedVersion={selectedVersion}
                 onChange={onVersionChange}
                 disabled={!enabled}
               />
@@ -96,41 +98,5 @@ export function FrontendCard({
         </div>
       </div>
     </div>
-  )
-}
-
-function VersionSelector({
-  defaultVersion,
-  availableVersions,
-  pinnedVersion,
-  onChange,
-  disabled,
-}: {
-  readonly defaultVersion: string | undefined
-  readonly availableVersions: string[] | undefined
-  readonly pinnedVersion: string | null
-  readonly onChange: (version: string | null) => void
-  readonly disabled: boolean
-}) {
-  if (!availableVersions || availableVersions.length === 0) {
-    return (
-      <span className="text-xs text-on-surface-muted tabular-nums font-mono">{defaultVersion}</span>
-    )
-  }
-
-  const isPinned = pinnedVersion !== null
-  const options = [
-    { value: '', label: `${defaultVersion} (auto)` },
-    ...availableVersions.map((v) => ({ value: v, label: `${v} (pin)` })),
-  ]
-
-  return (
-    <Select
-      value={pinnedVersion ?? ''}
-      options={options}
-      onChange={(v) => onChange(v === '' ? null : v)}
-      disabled={disabled}
-      className={isPinned ? '[&>button]:ring-2 [&>button]:ring-status-warning' : ''}
-    />
   )
 }

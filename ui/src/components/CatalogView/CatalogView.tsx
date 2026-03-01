@@ -32,7 +32,7 @@ import type {
   System,
   SystemID,
 } from '@/types/daemon'
-import { MANUFACTURER_ORDER, type Manufacturer } from '@/types/ui'
+import { MANUFACTURER_ORDER, type Manufacturer, VERSION_DEFAULT } from '@/types/ui'
 
 export interface CatalogViewProps {
   readonly systems: readonly System[]
@@ -40,11 +40,11 @@ export interface CatalogViewProps {
   readonly systemEmulators: Map<SystemID, EmulatorID[]>
   readonly enabledEmulators: ReadonlySet<EmulatorID>
   readonly enabledFrontends: Map<FrontendID, boolean>
-  readonly emulatorVersions: Map<EmulatorID, string | null>
+  readonly emulatorVersions: Map<EmulatorID, string>
   readonly emulatorShaders: Map<EmulatorID, string | null>
   readonly graphics: { shaders: string }
   readonly controller: { nintendoConfirm: string }
-  readonly frontendVersions: Map<FrontendID, string | null>
+  readonly frontendVersions: Map<FrontendID, string>
   readonly installedVersions: Map<EmulatorID, string>
   readonly installedFrontendVersions: Map<FrontendID, string>
   readonly installedFrontendExecLines: Map<FrontendID, string>
@@ -56,10 +56,10 @@ export interface CatalogViewProps {
   readonly configChanges: readonly string[]
   readonly onCollectionChange: (value: string) => void
   readonly onEmulatorToggle: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
-  readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
+  readonly onVersionChange: (emulatorId: EmulatorID, version: string) => void
   readonly onShaderChange: (emulatorId: EmulatorID, shaders: string | null) => void
   readonly onFrontendToggle: (frontendId: FrontendID, enabled: boolean) => void
-  readonly onFrontendVersionChange: (frontendId: FrontendID, version: string | null) => void
+  readonly onFrontendVersionChange: (frontendId: FrontendID, version: string) => void
   readonly onGraphicsShadersChange: (value: string) => void
   readonly onControllerNintendoConfirmChange: (value: string) => void
   readonly onDiscard: () => void
@@ -201,7 +201,9 @@ export function CatalogView({
 
       const emulatorsConfig: Record<string, { version?: string; shaders?: string | null }> = {}
       for (const [emuId, version] of emulatorVersions) {
-        if (version) {
+        if (version === VERSION_DEFAULT) {
+          emulatorsConfig[emuId] = { version: '' }
+        } else {
           emulatorsConfig[emuId] = { version }
         }
       }
@@ -212,7 +214,13 @@ export function CatalogView({
       const frontendsConfig: Record<string, { enabled: boolean; version?: string }> = {}
       for (const [feId, enabled] of enabledFrontends) {
         const version = frontendVersions.get(feId)
-        frontendsConfig[feId] = { enabled, ...(version && { version }) }
+        if (version === VERSION_DEFAULT) {
+          frontendsConfig[feId] = { enabled, version: '' }
+        } else if (version) {
+          frontendsConfig[feId] = { enabled, version }
+        } else {
+          frontendsConfig[feId] = { enabled }
+        }
       }
 
       const summaryMessage = formatChangeSummary(changeSummary)
@@ -256,8 +264,9 @@ export function CatalogView({
 
         const enabled = enabledEmulators.has(emulator.id)
         const installedVersion = installedVersions.get(emulator.id) ?? null
-        const pinnedVersion = emulatorVersions.get(emulator.id) ?? null
-        const effectiveVersion = pinnedVersion ?? emulator.defaultVersion ?? null
+        const selectedVersion = emulatorVersions.get(emulator.id) ?? VERSION_DEFAULT
+        const effectiveVersion =
+          selectedVersion === VERSION_DEFAULT ? (emulator.defaultVersion ?? null) : selectedVersion
 
         const changeType = getChangeType(
           enabled,
@@ -289,8 +298,9 @@ export function CatalogView({
     for (const frontend of frontends) {
       const enabled = enabledFrontends.get(frontend.id) ?? false
       const installedVersion = installedFrontendVersions.get(frontend.id) ?? null
-      const pinnedVersion = frontendVersions.get(frontend.id) ?? null
-      const effectiveVersion = pinnedVersion ?? frontend.defaultVersion ?? null
+      const selectedVersion = frontendVersions.get(frontend.id) ?? VERSION_DEFAULT
+      const effectiveVersion =
+        selectedVersion === VERSION_DEFAULT ? (frontend.defaultVersion ?? null) : selectedVersion
 
       const changeType = getChangeType(
         enabled,
@@ -476,7 +486,7 @@ export function CatalogView({
                   key={frontend.id}
                   frontend={frontend}
                   enabled={enabledFrontends.get(frontend.id) ?? false}
-                  pinnedVersion={frontendVersions.get(frontend.id) ?? null}
+                  selectedVersion={frontendVersions.get(frontend.id) ?? VERSION_DEFAULT}
                   installedVersion={installedFrontendVersions.get(frontend.id) ?? null}
                   execLine={installedFrontendExecLines.get(frontend.id)}
                   onToggle={(enabled) => onFrontendToggle(frontend.id, enabled)}
