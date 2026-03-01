@@ -157,14 +157,6 @@ function DataComparisonCard({
         </div>
       </div>
 
-      {comparison.notes && comparison.notes.length > 0 && (
-        <div className="mt-2 p-2 bg-status-warning/10 border border-status-warning/30 rounded text-xs text-on-surface">
-          {comparison.notes.map((note) => (
-            <p key={note}>{note}</p>
-          ))}
-        </div>
-      )}
-
       {comparison.diff.onlyInSource && comparison.diff.onlyInSource.length > 0 && (
         <div className="mt-2">
           <span className="text-xs text-on-surface-dim">
