@@ -21,6 +21,7 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmesen"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmgba"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmupen64plus"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchsnes9x"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchstella"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchvice"
 	"github.com/fnune/kyaraben/internal/emulators/rpcs3"
@@ -89,6 +90,7 @@ func TestAllDefinitions(t *testing.T) {
 	}
 
 	emulatorDefs := []model.EmulatorDefinition{
+		retroarchsnes9x.Definition{},
 		retroarchbsnes.Definition{},
 		retroarchmesen.Definition{},
 		retroarchgenesisplusgx.Definition{},
@@ -204,6 +206,7 @@ func TestRegistryGetEmulator(t *testing.T) {
 		id      model.EmulatorID
 		wantErr bool
 	}{
+		{model.EmulatorIDRetroArchSnes9x, false},
 		{model.EmulatorIDRetroArchBsnes, false},
 		{model.EmulatorIDRetroArchMesen, false},
 		{model.EmulatorIDRetroArchGenesisPlusGX, false},
@@ -250,7 +253,7 @@ func TestRegistryGetEmulatorsForSystem(t *testing.T) {
 		wantAny []model.EmulatorID
 	}{
 		{model.SystemIDNES, 1, []model.EmulatorID{model.EmulatorIDRetroArchMesen}},
-		{model.SystemIDSNES, 1, []model.EmulatorID{model.EmulatorIDRetroArchBsnes}},
+		{model.SystemIDSNES, 2, []model.EmulatorID{model.EmulatorIDRetroArchSnes9x, model.EmulatorIDRetroArchBsnes}},
 		{model.SystemIDN64, 1, []model.EmulatorID{model.EmulatorIDRetroArchMupen64Plus}},
 		{model.SystemIDGB, 1, []model.EmulatorID{model.EmulatorIDRetroArchMGBA}},
 		{model.SystemIDGBC, 1, []model.EmulatorID{model.EmulatorIDRetroArchMGBA}},
@@ -306,7 +309,7 @@ func TestRegistryGetDefaultEmulator(t *testing.T) {
 		wantErr bool
 	}{
 		{model.SystemIDNES, model.EmulatorIDRetroArchMesen, false},
-		{model.SystemIDSNES, model.EmulatorIDRetroArchBsnes, false},
+		{model.SystemIDSNES, model.EmulatorIDRetroArchSnes9x, false},
 		{model.SystemIDN64, model.EmulatorIDRetroArchMupen64Plus, false},
 		{model.SystemIDGB, model.EmulatorIDRetroArchMGBA, false},
 		{model.SystemIDGBC, model.EmulatorIDRetroArchMGBA, false},
@@ -410,6 +413,7 @@ func TestGetConfigGenerator(t *testing.T) {
 		emuID    model.EmulatorID
 		expected bool
 	}{
+		{model.EmulatorIDRetroArchSnes9x, true},
 		{model.EmulatorIDRetroArchBsnes, true},
 		{model.EmulatorIDRetroArchMesen, true},
 		{model.EmulatorIDRetroArchGenesisPlusGX, true},

@@ -17,5 +17,5 @@ func (Definition) System() model.System {
 }
 
 func (Definition) DefaultEmulatorID() model.EmulatorID {
-	return model.EmulatorIDRetroArchBsnes
+	return model.EmulatorIDRetroArchSnes9x
 }

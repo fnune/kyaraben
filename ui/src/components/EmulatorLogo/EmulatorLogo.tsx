@@ -16,6 +16,7 @@ import pcsx2 from '@/assets/emulators/pcsx2.png'
 import ppsspp from '@/assets/emulators/ppsspp.png'
 import retroarch from '@/assets/emulators/retroarch.svg'
 import rpcs3 from '@/assets/emulators/rpcs3.svg'
+import snes9x from '@/assets/emulators/snes9x.svg'
 import stella from '@/assets/emulators/stella.png'
 import vice from '@/assets/emulators/vice.svg'
 import vita3k from '@/assets/emulators/vita3k.png'
@@ -34,6 +35,7 @@ const EMULATOR_LOGOS: Partial<Record<EmulatorID, string>> = {
   retroarch,
   rpcs3,
   vita3k,
+  'retroarch:snes9x': snes9x,
   'retroarch:bsnes': bsnes,
   'retroarch:mesen': mesen,
   'retroarch:genesis_plus_gx': genesisPlusGx,

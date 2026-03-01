@@ -15,6 +15,7 @@ size = 274237400
 # Core filenames inside the archive (used to extract only what we need)
 # Format: core_name = "filename_in_archive"
 [retroarch-cores.files]
+snes9x = "snes9x_libretro.so"
 bsnes = "bsnes_libretro.so"
 mesen = "mesen_libretro.so"
 genesis_plus_gx = "genesis_plus_gx_libretro.so"
@@ -38,6 +39,7 @@ size = 2075879
 
 # Core sizes in bytes (for progress indication)
 [retroarch-cores.sizes]
+snes9x = 2161408
 bsnes = 6362240
 mesen = 3783048
 genesis_plus_gx = 12729616

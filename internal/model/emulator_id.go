@@ -11,6 +11,7 @@ const (
 	// EmulatorIDRetroArch is the base RetroArch installation shared by all cores.
 	// Used for shared data like the cores directory.
 	EmulatorIDRetroArch              EmulatorID = "retroarch"
+	EmulatorIDRetroArchSnes9x        EmulatorID = "retroarch:snes9x"
 	EmulatorIDRetroArchBsnes         EmulatorID = "retroarch:bsnes"
 	EmulatorIDRetroArchMesen         EmulatorID = "retroarch:mesen"
 	EmulatorIDRetroArchGenesisPlusGX EmulatorID = "retroarch:genesis_plus_gx"

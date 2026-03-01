@@ -19,6 +19,7 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmesen"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmgba"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmupen64plus"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchsnes9x"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchstella"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchvice"
 	"github.com/fnune/kyaraben/internal/emulators/rpcs3"
@@ -103,6 +104,7 @@ func NewDefault() *Registry {
 			arcade.Definition{},
 		},
 		[]model.EmulatorDefinition{
+			retroarchsnes9x.Definition{},
 			retroarchbsnes.Definition{},
 			retroarchmesen.Definition{},
 			retroarchgenesisplusgx.Definition{},

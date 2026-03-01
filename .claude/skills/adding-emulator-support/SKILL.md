@@ -29,6 +29,8 @@ Kyaraben uses a registry-based architecture where systems and emulators are defi
 - You want to leverage RetroArch's unified configuration
 - The system does not require complex setup (UI-based imports, etc.)
 
+Note that you may find the correct version of the cores bundle already downloaded in `~/.local/state/kyaraben/downloads`. If not, download it.
+
 ### Use a standalone emulator when
 
 - No suitable libretro core exists
@@ -108,6 +110,7 @@ func (Definition) DefaultEmulatorID() model.EmulatorID {
 ### Finding file extensions
 
 Check these sources for supported extensions:
+
 - EmuDeck: `~/Development/EmuDeck/roms/{system}/systeminfo.txt`
 - RetroDECK: `~/Development/RetroDECK/config/retrodeck/reference_lists/`
 - Libretro docs: `https://docs.libretro.com/library/{corename}/`
@@ -169,11 +172,13 @@ const libretroCoreName = "newcore_libretro"
 ### For standalone emulators
 
 See existing examples:
+
 - Simple: `internal/emulators/flycast/flycast.go`
 - With BIOS: `internal/emulators/duckstation/duckstation.go`
 - Complex: `internal/emulators/rpcs3/rpcs3.go`
 
 Key differences from RetroArch cores:
+
 - Define `Package` with specific emulator AppImage reference
 - Implement full `ConfigGenerator.Generate()` with emulator-specific config patches
 - Handle emulator-specific controller mapping
@@ -229,6 +234,7 @@ provision.ForSystems(model.SystemIDSpecific)
 ### Finding BIOS requirements
 
 Check these sources:
+
 - Libretro docs: `https://docs.libretro.com/library/{corename}/`
 - EmuDeck BIOS checker: `~/Development/EmuDeck/functions/checkBIOS.sh`
 - RetroDECK manifests: `~/Development/RetroDECK/` (search for MD5 hashes)
@@ -311,6 +317,7 @@ var systemMappings = map[model.SystemID]SystemMapping{
 ```
 
 Find ES-DE system names at:
+
 - ES-DE systems list: `https://gitlab.com/es-de/emulationstation-de/-/blob/master/resources/systems/linux/es_systems.xml`
 
 ## Step 8: Add UI assets
@@ -326,12 +333,12 @@ Add SVG: `ui/src/assets/esde/logos/newsystem.svg`
 File: `ui/src/assets/esde/index.ts`
 
 ```typescript
-import newsystemLogo from './logos/newsystem.svg'
+import newsystemLogo from "./logos/newsystem.svg";
 
 export const ESDE_LOGOS: Record<SystemID, string> = {
   // ... existing logos ...
   newsystem: newsystemLogo,
-}
+};
 ```
 
 #### System logos (for system picker)
@@ -341,12 +348,12 @@ Add SVG: `ui/src/assets/systems/newsystem.svg`
 File: `ui/src/components/SystemLogo/SystemLogo.tsx`
 
 ```typescript
-import newsystem from '@/assets/systems/newsystem.svg'
+import newsystem from "@/assets/systems/newsystem.svg";
 
 export const SYSTEM_LOGOS: Record<SystemID, string> = {
   // ... existing logos ...
   newsystem,
-}
+};
 ```
 
 ### System year
@@ -356,8 +363,8 @@ File: `ui/src/components/SystemCard/SystemCard.tsx`
 ```typescript
 export const SYSTEM_YEARS: Record<SystemID, number | null> = {
   // ... existing years ...
-  newsystem: 1999,  // Use null for categories like arcade
-}
+  newsystem: 1999, // Use null for categories like arcade
+};
 ```
 
 ### Emulator logo
@@ -367,13 +374,13 @@ Add logo file: `ui/src/assets/emulators/newemu.png` (or .svg)
 File: `ui/src/components/EmulatorLogo/EmulatorLogo.tsx`
 
 ```typescript
-import newemu from '@/assets/emulators/newemu.png'
+import newemu from "@/assets/emulators/newemu.png";
 
 const EMULATOR_LOGOS: Partial<Record<EmulatorID, string>> = {
   // ... existing logos ...
-  'retroarch:newcore': newemu,  // For RetroArch cores
-  newemu: newemu,               // For standalone emulators
-}
+  "retroarch:newcore": newemu, // For RetroArch cores
+  newemu: newemu, // For standalone emulators
+};
 ```
 
 Note: `EMULATOR_LOGOS` is `Partial` because not all emulators need custom logos.
@@ -411,6 +418,7 @@ Add a row to the emulator support table:
 ```
 
 Column definitions:
+
 - **Syncs**: `saves` (in-game), `states` (savestates), `screenshots`
 - **Hotkeys**: `full` (all hotkeys), `partial` (subset), `none`
 - **Controller**: `configured` (Kyaraben generates bindings), `auto` (emulator handles)
@@ -450,6 +458,7 @@ go test ./internal/systems/newsystem/...
 ### RetroArch cores
 
 RetroArch cores use shared controller configuration via `retroarch.CorePatches()`. This handles:
+
 - Button mapping based on layout (Standard vs Nintendo)
 - Hotkey configuration
 - Analog stick configuration
@@ -459,6 +468,7 @@ No additional work needed unless the core has special requirements.
 ### Standalone emulators
 
 Each standalone emulator needs custom controller mapping in its `ConfigGenerator.Generate()` method. See existing implementations:
+
 - INI format: `internal/emulators/duckstation/duckstation.go`
 - Custom format: `internal/emulators/dolphin/dolphin.go`
 - YAML format: `internal/emulators/rpcs3/rpcs3.go`
@@ -515,14 +525,14 @@ ProvisionGroups: []model.ProvisionGroup{{
 
 Study these for patterns:
 
-| Type | Example | Notes |
-|------|---------|-------|
-| Simple RetroArch core | `retroarchbsnes` | No BIOS, basic config |
-| RetroArch with BIOS | `retroarchbeetlesaturn` | Multiple BIOS variants |
-| Multi-system core | `retroarchgenesisplusgx` | 3 systems, optional BIOS |
-| Standalone simple | `flycast` | Basic standalone setup |
-| Standalone with BIOS | `duckstation` | Many BIOS variants, INI config |
-| Complex standalone | `rpcs3` | Import-based BIOS, YAML config |
+| Type                  | Example                  | Notes                          |
+| --------------------- | ------------------------ | ------------------------------ |
+| Simple RetroArch core | `retroarchbsnes`         | No BIOS, basic config          |
+| RetroArch with BIOS   | `retroarchbeetlesaturn`  | Multiple BIOS variants         |
+| Multi-system core     | `retroarchgenesisplusgx` | 3 systems, optional BIOS       |
+| Standalone simple     | `flycast`                | Basic standalone setup         |
+| Standalone with BIOS  | `duckstation`            | Many BIOS variants, INI config |
+| Complex standalone    | `rpcs3`                  | Import-based BIOS, YAML config |
 
 ## Troubleshooting
 
@@ -602,6 +612,7 @@ profileTarget := model.ConfigTarget{
 ```
 
 Examples:
+
 - DuckStation: settings.ini + inputprofiles/kyaraben-steamdeck.ini
 - Dolphin: Dolphin.ini + GFX.ini + GCPadNew.ini + Profiles/GCPad/Kyaraben.ini
 - RPCS3: vfs.yml + GuiConfigs/CurrentSettings.ini + input_configs/
@@ -656,6 +667,7 @@ model.ConfigEntry{
 ### Symlinks (last resort)
 
 Symlinks are only needed when:
+
 - The emulator can't be configured to use different paths
 - The emulator uses opaque directory structures
 
@@ -761,13 +773,13 @@ fmt.Sprintf("Cross = Button0")
 
 Each emulator has its own hotkey format:
 
-| Emulator | Format | Example |
-|----------|--------|---------|
-| DuckStation/PCSX2 | `btn & btn` | `SDL-0/Back & SDL-0/DPadUp` |
-| Dolphin | `@(btn+btn)` | `@(`Back`+`DPad Up`)` |
-| PPSSPP | `device-code:device-code` | `10-4001:10-4002` |
-| Flycast | `btn,btn:action` | `6,4:0:sequential` |
-| Eden | `btn+btn` | `Plus+Minus+A` |
+| Emulator          | Format                    | Example                     |
+| ----------------- | ------------------------- | --------------------------- |
+| DuckStation/PCSX2 | `btn & btn`               | `SDL-0/Back & SDL-0/DPadUp` |
+| Dolphin           | `@(btn+btn)`              | `@(`Back`+`DPad Up`)`       |
+| PPSSPP            | `device-code:device-code` | `10-4001:10-4002`           |
+| Flycast           | `btn,btn:action`          | `6,4:0:sequential`          |
+| Eden              | `btn+btn`                 | `Plus+Minus+A`              |
 
 ### GUID-based controller binding
 
@@ -823,16 +835,16 @@ model.ConfigEntry{
 
 ### Standalone emulator reference
 
-| Emulator | Config format | Multi-file | Paths via | Special |
-|----------|--------------|------------|-----------|---------|
-| DuckStation | INI | Yes (profile) | Config | - |
-| PCSX2 | INI | Yes (profile) | Config | - |
-| RPCS3 | YAML + Raw | Yes (4 files) | Symlinks | ImportViaUI |
-| Dolphin | INI | Yes (4 files) | Symlinks | Region BaseDir |
-| PPSSPP | INI | No | Symlinks | Raw joystick |
-| Flycast | INI | No | Config | Combo hotkeys |
-| Cemu | XML + Raw | Yes | Symlinks | GUID bindings |
-| Vita3K | YAML + Raw | Yes | Symlinks | ImportViaUI, manifest launch |
-| Eden | INI | Yes (profile) | Symlinks | GUID bindings, ImportViaUI |
-| xemu | TOML | No | Config | InitialDownloads, env vars |
-| Xenia | TOML | No | Config | env vars |
+| Emulator    | Config format | Multi-file    | Paths via | Special                      |
+| ----------- | ------------- | ------------- | --------- | ---------------------------- |
+| DuckStation | INI           | Yes (profile) | Config    | -                            |
+| PCSX2       | INI           | Yes (profile) | Config    | -                            |
+| RPCS3       | YAML + Raw    | Yes (4 files) | Symlinks  | ImportViaUI                  |
+| Dolphin     | INI           | Yes (4 files) | Symlinks  | Region BaseDir               |
+| PPSSPP      | INI           | No            | Symlinks  | Raw joystick                 |
+| Flycast     | INI           | No            | Config    | Combo hotkeys                |
+| Cemu        | XML + Raw     | Yes           | Symlinks  | GUID bindings                |
+| Vita3K      | YAML + Raw    | Yes           | Symlinks  | ImportViaUI, manifest launch |
+| Eden        | INI           | Yes (profile) | Symlinks  | GUID bindings, ImportViaUI   |
+| xemu        | TOML          | No            | Config    | InitialDownloads, env vars   |
+| Xenia       | TOML          | No            | Config    | env vars                     |
