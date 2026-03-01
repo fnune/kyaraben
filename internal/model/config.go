@@ -4,12 +4,44 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/twpayne/go-vfs/v5"
 
 	"github.com/fnune/kyaraben/internal/paths"
 )
+
+// ConfigWarning represents a non-fatal issue found during config loading.
+type ConfigWarning struct {
+	Field   string
+	Message string
+}
+
+func (w ConfigWarning) String() string {
+	if w.Field != "" {
+		return fmt.Sprintf("%s: %s", w.Field, w.Message)
+	}
+	return w.Message
+}
+
+// ConfigWarnings collects multiple warnings during config loading.
+type ConfigWarnings []ConfigWarning
+
+func (w ConfigWarnings) Error() string {
+	if len(w) == 0 {
+		return ""
+	}
+	var msgs []string
+	for _, warn := range w {
+		msgs = append(msgs, warn.String())
+	}
+	return fmt.Sprintf("config has %d warning(s):\n  - %s", len(w), strings.Join(msgs, "\n  - "))
+}
+
+func (w ConfigWarnings) HasWarnings() bool {
+	return len(w) > 0
+}
 
 // KyarabenConfig represents the user's kyaraben configuration.
 type KyarabenConfig struct {
@@ -57,9 +89,25 @@ type HotkeyTomlConfig struct {
 	OpenMenu         string `toml:"open_menu"`
 }
 
+// ControllerConfigResult contains the resolved controller config and any warnings.
+type ControllerConfigResult struct {
+	Config   *ControllerConfig
+	Warnings ConfigWarnings
+}
+
 // ResolveControllerConfig validates and resolves the TOML controller config into
-// the typed ControllerConfig used by generators.
+// the typed ControllerConfig used by generators. Invalid values are replaced with
+// defaults and warnings are returned.
 func (c *KyarabenConfig) ResolveControllerConfig() (*ControllerConfig, error) {
+	result := c.ResolveControllerConfigWithWarnings()
+	return result.Config, nil
+}
+
+// ResolveControllerConfigWithWarnings is like ResolveControllerConfig but also
+// returns warnings for invalid values that were replaced with defaults.
+func (c *KyarabenConfig) ResolveControllerConfigWithWarnings() *ControllerConfigResult {
+	var warnings ConfigWarnings
+
 	cc := &ControllerConfig{
 		NintendoConfirm: NintendoConfirmEast,
 		Hotkeys:         DefaultHotkeys(),
@@ -68,49 +116,66 @@ func (c *KyarabenConfig) ResolveControllerConfig() (*ControllerConfig, error) {
 	if c.Controller.NintendoConfirm != "" {
 		confirm, err := ValidateNintendoConfirmButton(c.Controller.NintendoConfirm)
 		if err != nil {
-			return nil, err
+			warnings = append(warnings, ConfigWarning{
+				Field:   "controller.nintendo_confirm",
+				Message: fmt.Sprintf("invalid value %q (valid: %q, %q), using default %q", c.Controller.NintendoConfirm, NintendoConfirmSouth, NintendoConfirmEast, NintendoConfirmEast),
+			})
+		} else {
+			cc.NintendoConfirm = confirm
 		}
-		cc.NintendoConfirm = confirm
 	}
 
 	hk := c.Controller.Hotkeys
 
 	modifier := SDLButton(ButtonBack)
+	modifierValid := true
 	if hk.Modifier != "" {
 		if !validButtons[SDLButton(hk.Modifier)] {
-			return nil, fmt.Errorf("controller.hotkeys.modifier: unknown button %q", hk.Modifier)
+			warnings = append(warnings, ConfigWarning{
+				Field:   "controller.hotkeys.modifier",
+				Message: fmt.Sprintf("invalid button %q, using default %q", hk.Modifier, ButtonBack),
+			})
+			modifierValid = false
+		} else {
+			modifier = SDLButton(hk.Modifier)
 		}
-		modifier = SDLButton(hk.Modifier)
 	}
 
-	resolvers := []struct {
-		src  string
-		dest *HotkeyBinding
+	hotkeyFields := []struct {
+		src   string
+		field string
+		dest  *HotkeyBinding
 	}{
-		{hk.SaveState, &cc.Hotkeys.SaveState},
-		{hk.LoadState, &cc.Hotkeys.LoadState},
-		{hk.NextSlot, &cc.Hotkeys.NextSlot},
-		{hk.PrevSlot, &cc.Hotkeys.PrevSlot},
-		{hk.FastForward, &cc.Hotkeys.FastForward},
-		{hk.Rewind, &cc.Hotkeys.Rewind},
-		{hk.Pause, &cc.Hotkeys.Pause},
-		{hk.Screenshot, &cc.Hotkeys.Screenshot},
-		{hk.Quit, &cc.Hotkeys.Quit},
-		{hk.ToggleFullscreen, &cc.Hotkeys.ToggleFullscreen},
-		{hk.OpenMenu, &cc.Hotkeys.OpenMenu},
+		{hk.SaveState, "save_state", &cc.Hotkeys.SaveState},
+		{hk.LoadState, "load_state", &cc.Hotkeys.LoadState},
+		{hk.NextSlot, "next_slot", &cc.Hotkeys.NextSlot},
+		{hk.PrevSlot, "prev_slot", &cc.Hotkeys.PrevSlot},
+		{hk.FastForward, "fast_forward", &cc.Hotkeys.FastForward},
+		{hk.Rewind, "rewind", &cc.Hotkeys.Rewind},
+		{hk.Pause, "pause", &cc.Hotkeys.Pause},
+		{hk.Screenshot, "screenshot", &cc.Hotkeys.Screenshot},
+		{hk.Quit, "quit", &cc.Hotkeys.Quit},
+		{hk.ToggleFullscreen, "toggle_fullscreen", &cc.Hotkeys.ToggleFullscreen},
+		{hk.OpenMenu, "open_menu", &cc.Hotkeys.OpenMenu},
 	}
-	for _, r := range resolvers {
+	for _, r := range hotkeyFields {
 		if r.src == "" {
 			continue
 		}
 		action := SDLButton(r.src)
 		if !validButtons[action] {
-			return nil, fmt.Errorf("controller.hotkeys: unknown button %q", r.src)
+			warnings = append(warnings, ConfigWarning{
+				Field:   fmt.Sprintf("controller.hotkeys.%s", r.field),
+				Message: fmt.Sprintf("invalid button %q, using default", r.src),
+			})
+			continue
 		}
-		*r.dest = HotkeyBinding{Buttons: []SDLButton{modifier, action}}
+		if modifierValid {
+			*r.dest = HotkeyBinding{Buttons: []SDLButton{modifier, action}}
+		}
 	}
 
-	return cc, nil
+	return &ControllerConfigResult{Config: cc, Warnings: warnings}
 }
 
 // FrontendConfig holds per-frontend configuration.
@@ -192,7 +257,21 @@ type ConfigValidators struct {
 	GetFrontend func(FrontendID) (Frontend, error)
 }
 
+// LoadResult contains the loaded config and any warnings encountered.
+type LoadResult struct {
+	Config   *KyarabenConfig
+	Warnings ConfigWarnings
+}
+
 func (s *ConfigStore) Load(path string, validators *ConfigValidators) (*KyarabenConfig, error) {
+	result, err := s.LoadWithWarnings(path, validators)
+	if err != nil {
+		return nil, err
+	}
+	return result.Config, nil
+}
+
+func (s *ConfigStore) LoadWithWarnings(path string, validators *ConfigValidators) (*LoadResult, error) {
 	data, err := s.fs.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("reading config: %w", err)
@@ -202,12 +281,13 @@ func (s *ConfigStore) Load(path string, validators *ConfigValidators) (*Kyaraben
 		return nil, fmt.Errorf("decoding config: %w", err)
 	}
 	cfg.applyDefaults()
+
+	var warnings ConfigWarnings
 	if validators != nil {
-		if err := cfg.validate(validators); err != nil {
-			return nil, err
-		}
+		warnings = cfg.validateAndFilter(validators)
 	}
-	return &cfg, nil
+
+	return &LoadResult{Config: &cfg, Warnings: warnings}, nil
 }
 
 func (c *KyarabenConfig) applyDefaults() {
@@ -216,23 +296,50 @@ func (c *KyarabenConfig) applyDefaults() {
 	}
 }
 
-func (c *KyarabenConfig) validate(v *ConfigValidators) error {
+func (c *KyarabenConfig) validateAndFilter(v *ConfigValidators) ConfigWarnings {
+	var warnings ConfigWarnings
+
+	newSystems := make(map[SystemID][]EmulatorID)
 	for sysID, emulatorIDs := range c.Systems {
 		if _, err := v.GetSystem(sysID); err != nil {
-			return fmt.Errorf("unknown system %q", sysID)
+			warnings = append(warnings, ConfigWarning{
+				Field:   fmt.Sprintf("systems.%s", sysID),
+				Message: fmt.Sprintf("unknown system %q, skipping", sysID),
+			})
+			continue
 		}
+
+		var validEmulators []EmulatorID
 		for _, emuID := range emulatorIDs {
 			if _, err := v.GetEmulator(emuID); err != nil {
-				return fmt.Errorf("system %s: unknown emulator %q", sysID, emuID)
+				warnings = append(warnings, ConfigWarning{
+					Field:   fmt.Sprintf("systems.%s", sysID),
+					Message: fmt.Sprintf("unknown emulator %q, skipping", emuID),
+				})
+				continue
 			}
+			validEmulators = append(validEmulators, emuID)
+		}
+		if len(validEmulators) > 0 {
+			newSystems[sysID] = validEmulators
 		}
 	}
-	for feID := range c.Frontends {
+	c.Systems = newSystems
+
+	newFrontends := make(map[FrontendID]FrontendConfig)
+	for feID, feConf := range c.Frontends {
 		if _, err := v.GetFrontend(feID); err != nil {
-			return fmt.Errorf("unknown frontend %q", feID)
+			warnings = append(warnings, ConfigWarning{
+				Field:   fmt.Sprintf("frontends.%s", feID),
+				Message: fmt.Sprintf("unknown frontend %q, skipping", feID),
+			})
+			continue
 		}
+		newFrontends[feID] = feConf
 	}
-	return nil
+	c.Frontends = newFrontends
+
+	return warnings
 }
 
 func (s *ConfigStore) Save(cfg *KyarabenConfig, path string) error {
@@ -261,6 +368,10 @@ func (s *ConfigStore) Save(cfg *KyarabenConfig, path string) error {
 
 func LoadConfig(path string, validators *ConfigValidators) (*KyarabenConfig, error) {
 	return NewConfigStore(vfs.OSFS).Load(path, validators)
+}
+
+func LoadConfigWithWarnings(path string, validators *ConfigValidators) (*LoadResult, error) {
+	return NewConfigStore(vfs.OSFS).LoadWithWarnings(path, validators)
 }
 
 func SaveConfig(cfg *KyarabenConfig, path string) error {

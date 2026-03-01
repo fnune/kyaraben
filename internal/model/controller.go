@@ -137,7 +137,7 @@ func ValidateNintendoConfirmButton(s string) (NintendoConfirmButton, error) {
 	case NintendoConfirmSouth, NintendoConfirmEast:
 		return NintendoConfirmButton(s), nil
 	default:
-		return "", fmt.Errorf("unknown nintendo confirm button %q (valid: south, east)", s)
+		return "", fmt.Errorf("unknown nintendo confirm button %q (valid: %q, %q)", s, NintendoConfirmSouth, NintendoConfirmEast)
 	}
 }
 

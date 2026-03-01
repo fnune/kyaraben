@@ -11,7 +11,7 @@ import {
 interface Toast {
   id: number
   content: ReactNode
-  type: 'error' | 'success' | 'info'
+  type: 'error' | 'success' | 'info' | 'warning'
   expiresAt: number
 }
 
@@ -45,6 +45,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         return 'bg-status-error/90 text-white border-status-error/50'
       case 'success':
         return 'bg-status-ok/90 text-white border-status-ok/50'
+      case 'warning':
+        return 'bg-status-warning/90 text-white border-status-warning/50'
       default:
         return 'bg-on-surface/90 text-surface border-on-surface-muted/50'
     }
@@ -94,6 +96,9 @@ function ToastItem({
     const remaining = remainingRef.current
     if (remaining <= 0) {
       onDismiss(toast.id)
+      return
+    }
+    if (!Number.isFinite(remaining)) {
       return
     }
     timeoutRef.current = window.setTimeout(() => {

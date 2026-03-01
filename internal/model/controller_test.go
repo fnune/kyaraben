@@ -441,9 +441,12 @@ func TestResolveControllerConfigInvalidNintendoConfirm(t *testing.T) {
 	cfg := &KyarabenConfig{
 		Controller: ControllerTomlConfig{NintendoConfirm: "north"},
 	}
-	_, err := cfg.ResolveControllerConfig()
-	if err == nil {
-		t.Error("expected error for invalid NintendoConfirm, got nil")
+	result := cfg.ResolveControllerConfigWithWarnings()
+	if !result.Warnings.HasWarnings() {
+		t.Error("expected warning for invalid NintendoConfirm, got none")
+	}
+	if result.Config.NintendoConfirm != NintendoConfirmEast {
+		t.Errorf("expected default %q, got %q", NintendoConfirmEast, result.Config.NintendoConfirm)
 	}
 }
 
@@ -487,9 +490,13 @@ func TestResolveControllerConfigInvalidHotkey(t *testing.T) {
 			},
 		},
 	}
-	_, err := cfg.ResolveControllerConfig()
-	if err == nil {
-		t.Error("expected error for invalid hotkey, got nil")
+	result := cfg.ResolveControllerConfigWithWarnings()
+	if !result.Warnings.HasWarnings() {
+		t.Error("expected warning for invalid hotkey, got none")
+	}
+	defaults := DefaultHotkeys()
+	if result.Config.Hotkeys.SaveState.String() != defaults.SaveState.String() {
+		t.Errorf("expected default SaveState %q, got %q", defaults.SaveState.String(), result.Config.Hotkeys.SaveState.String())
 	}
 }
 
@@ -503,8 +510,12 @@ func TestResolveControllerConfigInvalidModifier(t *testing.T) {
 			},
 		},
 	}
-	_, err := cfg.ResolveControllerConfig()
-	if err == nil {
-		t.Error("expected error for invalid modifier, got nil")
+	result := cfg.ResolveControllerConfigWithWarnings()
+	if !result.Warnings.HasWarnings() {
+		t.Error("expected warning for invalid modifier, got none")
+	}
+	defaults := DefaultHotkeys()
+	if result.Config.Hotkeys.SaveState.String() != defaults.SaveState.String() {
+		t.Errorf("expected default SaveState %q, got %q", defaults.SaveState.String(), result.Config.Hotkeys.SaveState.String())
 	}
 }

@@ -333,6 +333,24 @@ function AppContent() {
           )
         }
 
+        if (statusResult.data.configWarnings && statusResult.data.configWarnings.length > 0) {
+          const warnings = statusResult.data.configWarnings
+          showToast(
+            <div className="flex flex-col">
+              <span>Config issues found (using defaults):</span>
+              <ul className="list-disc ml-4 mt-1">
+                {warnings.map((w) => (
+                  <li key={w.field}>
+                    <code>{w.field}</code>: {w.message}
+                  </li>
+                ))}
+              </ul>
+            </div>,
+            'warning',
+            Infinity,
+          )
+        }
+
         const running = statusResult.data.kyarabenVersion
         const manifest = statusResult.data.manifestKyarabenVersion
         if (running && manifest && running !== manifest) {

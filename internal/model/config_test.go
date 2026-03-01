@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -263,4 +264,240 @@ func TestEmulatorShaders(t *testing.T) {
 
 func ptrString(s string) *string {
 	return &s
+}
+
+func TestConfigWarningsError(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		warnings ConfigWarnings
+		want     string
+	}{
+		{
+			name:     "empty warnings",
+			warnings: nil,
+			want:     "",
+		},
+		{
+			name: "single warning",
+			warnings: ConfigWarnings{
+				{Field: "systems.foo", Message: "unknown system"},
+			},
+			want: "config has 1 warning(s):\n  - systems.foo: unknown system",
+		},
+		{
+			name: "multiple warnings",
+			warnings: ConfigWarnings{
+				{Field: "systems.foo", Message: "unknown system"},
+				{Field: "frontends.bar", Message: "unknown frontend"},
+			},
+			want: "config has 2 warning(s):\n  - systems.foo: unknown system\n  - frontends.bar: unknown frontend",
+		},
+		{
+			name: "warning without field",
+			warnings: ConfigWarnings{
+				{Message: "something went wrong"},
+			},
+			want: "config has 1 warning(s):\n  - something went wrong",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.warnings.Error()
+			if got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestLoadWithWarnings_UnknownSystem(t *testing.T) {
+	t.Parallel()
+
+	fs := newTestFS(t, map[string]any{
+		"/config/config.toml": `[global]
+user_store = "~/Emulation"
+
+[systems]
+snes = ["retroarch:bsnes"]
+unknown_system = ["duckstation"]
+`,
+	})
+
+	validators := &ConfigValidators{
+		GetSystem: func(id SystemID) (System, error) {
+			if id == SystemIDSNES {
+				return System{ID: id}, nil
+			}
+			return System{}, fmt.Errorf("unknown")
+		},
+		GetEmulator: func(id EmulatorID) (Emulator, error) {
+			if id == EmulatorIDRetroArchBsnes {
+				return Emulator{ID: id}, nil
+			}
+			return Emulator{}, fmt.Errorf("unknown")
+		},
+		GetFrontend: func(id FrontendID) (Frontend, error) {
+			return Frontend{}, fmt.Errorf("unknown")
+		},
+	}
+
+	store := NewConfigStore(fs)
+	result, err := store.LoadWithWarnings("/config/config.toml", validators)
+	if err != nil {
+		t.Fatalf("LoadWithWarnings failed: %v", err)
+	}
+
+	if !result.Warnings.HasWarnings() {
+		t.Error("expected warnings for unknown system, got none")
+	}
+
+	if len(result.Config.Systems) != 1 {
+		t.Errorf("expected 1 system after filtering, got %d", len(result.Config.Systems))
+	}
+	if _, ok := result.Config.Systems[SystemIDSNES]; !ok {
+		t.Error("expected SNES to be preserved")
+	}
+}
+
+func TestLoadWithWarnings_UnknownEmulator(t *testing.T) {
+	t.Parallel()
+
+	fs := newTestFS(t, map[string]any{
+		"/config/config.toml": `[global]
+user_store = "~/Emulation"
+
+[systems]
+snes = ["retroarch:bsnes", "unknown_emulator"]
+`,
+	})
+
+	validators := &ConfigValidators{
+		GetSystem: func(id SystemID) (System, error) {
+			return System{ID: id}, nil
+		},
+		GetEmulator: func(id EmulatorID) (Emulator, error) {
+			if id == EmulatorIDRetroArchBsnes {
+				return Emulator{ID: id}, nil
+			}
+			return Emulator{}, fmt.Errorf("unknown")
+		},
+		GetFrontend: func(id FrontendID) (Frontend, error) {
+			return Frontend{}, fmt.Errorf("unknown")
+		},
+	}
+
+	store := NewConfigStore(fs)
+	result, err := store.LoadWithWarnings("/config/config.toml", validators)
+	if err != nil {
+		t.Fatalf("LoadWithWarnings failed: %v", err)
+	}
+
+	if !result.Warnings.HasWarnings() {
+		t.Error("expected warnings for unknown emulator, got none")
+	}
+
+	emulators := result.Config.Systems[SystemIDSNES]
+	if len(emulators) != 1 {
+		t.Errorf("expected 1 emulator after filtering, got %d", len(emulators))
+	}
+	if emulators[0] != EmulatorIDRetroArchBsnes {
+		t.Errorf("expected bsnes to be preserved, got %s", emulators[0])
+	}
+}
+
+func TestLoadWithWarnings_UnknownFrontend(t *testing.T) {
+	t.Parallel()
+
+	fs := newTestFS(t, map[string]any{
+		"/config/config.toml": `[global]
+user_store = "~/Emulation"
+
+[frontends.esde]
+enabled = true
+
+[frontends.unknown_frontend]
+enabled = true
+`,
+	})
+
+	validators := &ConfigValidators{
+		GetSystem: func(id SystemID) (System, error) {
+			return System{ID: id}, nil
+		},
+		GetEmulator: func(id EmulatorID) (Emulator, error) {
+			return Emulator{ID: id}, nil
+		},
+		GetFrontend: func(id FrontendID) (Frontend, error) {
+			if id == FrontendIDESDE {
+				return Frontend{ID: id}, nil
+			}
+			return Frontend{}, fmt.Errorf("unknown")
+		},
+	}
+
+	store := NewConfigStore(fs)
+	result, err := store.LoadWithWarnings("/config/config.toml", validators)
+	if err != nil {
+		t.Fatalf("LoadWithWarnings failed: %v", err)
+	}
+
+	if !result.Warnings.HasWarnings() {
+		t.Error("expected warnings for unknown frontend, got none")
+	}
+
+	if len(result.Config.Frontends) != 1 {
+		t.Errorf("expected 1 frontend after filtering, got %d", len(result.Config.Frontends))
+	}
+	if _, ok := result.Config.Frontends[FrontendIDESDE]; !ok {
+		t.Error("expected ESDE to be preserved")
+	}
+}
+
+func TestLoadWithWarnings_CollectsAllWarnings(t *testing.T) {
+	t.Parallel()
+
+	fs := newTestFS(t, map[string]any{
+		"/config/config.toml": `[global]
+user_store = "~/Emulation"
+
+[systems]
+unknown1 = ["emu1"]
+unknown2 = ["emu2"]
+snes = ["retroarch:bsnes"]
+
+[frontends.unknown_fe]
+enabled = true
+`,
+	})
+
+	validators := &ConfigValidators{
+		GetSystem: func(id SystemID) (System, error) {
+			if id == SystemIDSNES {
+				return System{ID: id}, nil
+			}
+			return System{}, fmt.Errorf("unknown")
+		},
+		GetEmulator: func(id EmulatorID) (Emulator, error) {
+			if id == EmulatorIDRetroArchBsnes {
+				return Emulator{ID: id}, nil
+			}
+			return Emulator{}, fmt.Errorf("unknown")
+		},
+		GetFrontend: func(id FrontendID) (Frontend, error) {
+			return Frontend{}, fmt.Errorf("unknown")
+		},
+	}
+
+	store := NewConfigStore(fs)
+	result, err := store.LoadWithWarnings("/config/config.toml", validators)
+	if err != nil {
+		t.Fatalf("LoadWithWarnings failed: %v", err)
+	}
+
+	if len(result.Warnings) < 3 {
+		t.Errorf("expected at least 3 warnings, got %d: %v", len(result.Warnings), result.Warnings)
+	}
 }

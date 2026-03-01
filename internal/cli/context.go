@@ -41,6 +41,14 @@ func (c *Context) GetPaths() *paths.Paths {
 }
 
 func (c *Context) LoadConfig() (*model.KyarabenConfig, error) {
+	result, err := c.LoadConfigWithWarnings()
+	if err != nil {
+		return nil, err
+	}
+	return result.Config, nil
+}
+
+func (c *Context) LoadConfigWithWarnings() (*model.LoadResult, error) {
 	path, err := c.GetConfigPath()
 	if err != nil {
 		return nil, err
@@ -53,11 +61,11 @@ func (c *Context) LoadConfig() (*model.KyarabenConfig, error) {
 		GetFrontend: reg.GetFrontend,
 	}
 
-	cfg, err := c.ConfigStore.Load(path, validators)
+	result, err := c.ConfigStore.LoadWithWarnings(path, validators)
 	if err != nil {
 		return nil, fmt.Errorf("loading config from %s: %w", path, err)
 	}
-	return cfg, nil
+	return result, nil
 }
 
 func (c *Context) SaveConfig(cfg *model.KyarabenConfig, path string) error {

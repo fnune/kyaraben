@@ -57,6 +57,12 @@ type StatusResponse struct {
 	HealthWarning           string              `json:"healthWarning,omitempty"`
 	KyarabenVersion         string              `json:"kyarabenVersion"`
 	ManifestKyarabenVersion string              `json:"manifestKyarabenVersion,omitempty"`
+	ConfigWarnings          []ConfigWarning     `json:"configWarnings,omitempty"`
+}
+
+type ConfigWarning struct {
+	Field   string `json:"field"`
+	Message string `json:"message"`
 }
 
 type InstalledEmulator struct {
@@ -171,6 +177,7 @@ type ConfigResponse struct {
 	Systems   map[string][]model.EmulatorID   `json:"systems"`
 	Emulators map[string]EmulatorConfResponse `json:"emulators,omitempty"`
 	Frontends map[string]FrontendConfResponse `json:"frontends,omitempty"`
+	Warnings  []ConfigWarning                 `json:"warnings,omitempty"`
 }
 
 type GraphicsConfigResponse struct {

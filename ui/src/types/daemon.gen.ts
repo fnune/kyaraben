@@ -46,6 +46,11 @@ export interface StatusResponse {
   healthWarning?: string;
   kyarabenVersion: string;
   manifestKyarabenVersion?: string;
+  configWarnings?: ConfigWarning[];
+}
+export interface ConfigWarning {
+  field: string;
+  message: string;
 }
 export interface InstalledEmulator {
   id: EmulatorID;
@@ -147,6 +152,7 @@ export interface ConfigResponse {
   systems: { [key: string]: EmulatorID[]};
   emulators?: { [key: string]: EmulatorConfResponse};
   frontends?: { [key: string]: FrontendConfResponse};
+  warnings?: ConfigWarning[];
 }
 export interface GraphicsConfigResponse {
   shaders: string;

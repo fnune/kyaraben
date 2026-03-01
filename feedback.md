@@ -4,14 +4,6 @@
 
 ### Proper blocker
 
-- Relay server runs on HTTP
-  - Is this really the case? Or only during development?
-  - If it's only during development it's fine, otherwise it's a blocker
-- We currently throw on every invalid symbol found in the config
-  - We need a way to inform the user that their config is outdated, how to update it, and launch anyway with it
-  - For example I just changed `layout = "nintendo" | "standard"` to `nintendo_confirm_button: "east" | "south"`, so configs are going to break launching the kyaraben app if we don't do something
-  - This needs to be the behavior for every part of the config
-
 ### Would be really nice
 
 - Use HTTPS with self-signed certificates for Syncthing's UI

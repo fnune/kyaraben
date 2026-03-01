@@ -212,7 +212,20 @@ func (d *Daemon) loadManifest() (*model.Manifest, error) {
 	return manifest, nil
 }
 
+type loadConfigResult struct {
+	Config   *model.KyarabenConfig
+	Warnings model.ConfigWarnings
+}
+
 func (d *Daemon) loadConfig() (*model.KyarabenConfig, error) {
+	result, err := d.loadConfigWithWarnings()
+	if err != nil {
+		return nil, err
+	}
+	return result.Config, nil
+}
+
+func (d *Daemon) loadConfigWithWarnings() (*loadConfigResult, error) {
 	path := d.configPath
 	if path == "" {
 		var err error
@@ -226,7 +239,7 @@ func (d *Daemon) loadConfig() (*model.KyarabenConfig, error) {
 		GetSystem:   d.reg.GetSystem,
 		GetFrontend: d.reg.GetFrontend,
 	}
-	cfg, err := d.configStore.Load(path, validators)
+	loadResult, err := d.configStore.LoadWithWarnings(path, validators)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			cfg := model.NewDefaultConfig()
@@ -237,18 +250,26 @@ func (d *Daemon) loadConfig() (*model.KyarabenConfig, error) {
 				cfg.Sync.Syncthing.GUIPort = 8484 + offset
 				cfg.Global.UserStore = "~/Emulation-" + d.paths.Instance
 			}
-			return cfg, nil
+			return &loadConfigResult{Config: cfg}, nil
 		}
 		return nil, err
 	}
-	return cfg, nil
+
+	ctrlResult := loadResult.Config.ResolveControllerConfigWithWarnings()
+	warnings := append(loadResult.Warnings, ctrlResult.Warnings...)
+
+	return &loadConfigResult{
+		Config:   loadResult.Config,
+		Warnings: warnings,
+	}, nil
 }
 
 func (d *Daemon) handleStatus() []Event {
-	cfg, err := d.loadConfig()
+	loadResult, err := d.loadConfigWithWarnings()
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
+	cfg := loadResult.Config
 
 	configPath := d.configPath
 	if configPath == "" {
@@ -362,6 +383,14 @@ func (d *Daemon) handleStatus() []Event {
 		manifestVersion = manifest.KyarabenVersion
 	}
 
+	var configWarnings []ConfigWarning
+	for _, w := range loadResult.Warnings {
+		configWarnings = append(configWarnings, ConfigWarning{
+			Field:   w.Field,
+			Message: w.Message,
+		})
+	}
+
 	return []Event{{
 		Type: EventTypeResult,
 		Data: StatusResponse{
@@ -374,6 +403,7 @@ func (d *Daemon) handleStatus() []Event {
 			HealthWarning:           result.HealthWarning,
 			KyarabenVersion:         version.Get(),
 			ManifestKyarabenVersion: manifestVersion,
+			ConfigWarnings:          configWarnings,
 		},
 	}}
 }
@@ -832,10 +862,11 @@ func (d *Daemon) handleGetFrontends() []Event {
 }
 
 func (d *Daemon) handleGetConfig() []Event {
-	cfg, err := d.loadConfig()
+	loadResult, err := d.loadConfigWithWarnings()
 	if err != nil {
 		return d.errorResponse(fmt.Sprintf("loading config: %v", err))
 	}
+	cfg := loadResult.Config
 
 	systems := make(map[string][]model.EmulatorID)
 	for sys, emulators := range cfg.Systems {
@@ -860,6 +891,14 @@ func (d *Daemon) handleGetConfig() []Event {
 		}
 	}
 
+	var warnings []ConfigWarning
+	for _, w := range loadResult.Warnings {
+		warnings = append(warnings, ConfigWarning{
+			Field:   w.Field,
+			Message: w.Message,
+		})
+	}
+
 	return []Event{{
 		Type: EventTypeResult,
 		Data: ConfigResponse{
@@ -868,6 +907,7 @@ func (d *Daemon) handleGetConfig() []Event {
 			Systems:   systems,
 			Emulators: emulators,
 			Frontends: frontends,
+			Warnings:  warnings,
 		},
 	}}
 }
