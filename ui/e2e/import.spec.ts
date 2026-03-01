@@ -105,7 +105,6 @@ test.describe('Import view initial state', () => {
   test('shows input for source path', async () => {
     await navigateToImport(ctx.page)
     await expect(ctx.page.getByPlaceholder('~/Emulation')).toBeVisible()
-    await ctx.page.waitForTimeout(2000)
   })
 
   test('shows input for ES-DE path', async () => {
@@ -143,7 +142,6 @@ test.describe('Import scan with existing collection', () => {
     await expect(scanButton).toBeEnabled()
     await scanButton.click()
     await expect(ctx.page.getByText('Back up your collection')).toBeVisible({ timeout: 10000 })
-    await ctx.page.waitForTimeout(3000)
   })
 
   test('shows system sections with found data', async () => {
@@ -162,7 +160,6 @@ test.describe('Import scan with existing collection', () => {
   test('can change source path to go back', async () => {
     await ctx.page.getByRole('button', { name: 'Change' }).click()
     await expect(ctx.page.getByPlaceholder('~/Emulation')).toBeVisible()
-    await ctx.page.waitForTimeout(2000)
   })
 })
 
@@ -187,7 +184,6 @@ test.describe('Import scan with disabled systems', () => {
     await ctx.page.getByRole('button', { name: 'Scan' }).click()
     await expect(ctx.page.getByText('Back up your collection')).toBeVisible({ timeout: 10000 })
     await expect(ctx.page.getByText('not enabled').first()).toBeVisible()
-    await ctx.page.waitForTimeout(3000)
   })
 })
 
@@ -213,7 +209,6 @@ test.describe('Import scan error handling', () => {
     await ctx.page.getByPlaceholder('~/Emulation').fill('/nonexistent/path/that/does/not/exist')
     await ctx.page.getByRole('button', { name: 'Scan' }).click()
     await expect(ctx.page.getByText('That folder does not exist')).toBeVisible()
-    await ctx.page.waitForTimeout(3000)
   })
 })
 
@@ -241,6 +236,5 @@ test.describe('Import scan with rescan', () => {
     await expect(ctx.page.getByText('Back up your collection')).toBeVisible({ timeout: 10000 })
     await ctx.page.getByRole('button', { name: 'Rescan' }).click()
     await expect(ctx.page.getByText('Back up your collection')).toBeVisible({ timeout: 10000 })
-    await ctx.page.waitForTimeout(2000)
   })
 })
