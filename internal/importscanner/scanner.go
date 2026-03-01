@@ -15,6 +15,13 @@ import (
 	"github.com/fnune/kyaraben/internal/store"
 )
 
+var ignoredDirs = map[string]bool{
+	".stfolder":    true,
+	".stversions":  true,
+	"shader_cache": true,
+	"cache":        true,
+}
+
 type Scanner struct {
 	fs         vfs.FS
 	registry   *registry.Registry
@@ -147,21 +154,29 @@ func (s *Scanner) scanSystemData(sourcePath string, reports map[model.SystemID]*
 		return err
 	}
 
-	kyarabenFns := map[DataType]func(model.SystemID) string{
-		DataTypeROMs:  s.collection.SystemRomsDir,
-		DataTypeBIOS:  s.collection.SystemBiosDir,
-		DataTypeSaves: s.collection.SystemSavesDir,
+	dataTypes := []struct {
+		dt DataType
+		fn func(model.SystemID) string
+	}{
+		{DataTypeROMs, s.collection.SystemRomsDir},
+		{DataTypeBIOS, s.collection.SystemBiosDir},
+		{DataTypeSaves, s.collection.SystemSavesDir},
 	}
 
-	allSystems := make(map[model.SystemID]bool)
+	allSystemsMap := make(map[model.SystemID]bool)
 	for sys := range sourceFound {
-		allSystems[sys] = true
+		allSystemsMap[sys] = true
 	}
 	for _, sys := range s.registry.AllSystems() {
-		allSystems[sys.ID] = true
+		allSystemsMap[sys.ID] = true
 	}
+	allSystems := make([]model.SystemID, 0, len(allSystemsMap))
+	for sys := range allSystemsMap {
+		allSystems = append(allSystems, sys)
+	}
+	sort.Slice(allSystems, func(i, j int) bool { return allSystems[i] < allSystems[j] })
 
-	for sys := range allSystems {
+	for _, sys := range allSystems {
 		sr := reports[sys]
 		if sr == nil {
 			name := string(sys)
@@ -172,17 +187,22 @@ func (s *Scanner) scanSystemData(sourcePath string, reports map[model.SystemID]*
 			reports[sys] = sr
 		}
 
-		for dt, kyarabenFn := range kyarabenFns {
-			kyarabenDir := kyarabenFn(sys)
+		for _, dtInfo := range dataTypes {
+			kyarabenDir := dtInfo.fn(sys)
 
 			var srcDir string
-			if sourceFound[sys] != nil && sourceFound[sys][dt] != "" {
-				srcDir = sourceFound[sys][dt]
+			if sourceFound[sys] != nil && sourceFound[sys][dtInfo.dt] != "" {
+				srcDir = sourceFound[sys][dtInfo.dt]
 			} else {
-				srcDir = kyarabenDir
+				expectedPaths := s.layout.ExpectedPaths(dtInfo.dt)
+				if len(expectedPaths) > 0 {
+					srcDir = filepath.Join(sourcePath, expectedPaths[0], string(sys))
+				} else {
+					srcDir = kyarabenDir
+				}
 			}
 
-			comparison, err := s.compareDirectories(srcDir, kyarabenDir, dt)
+			comparison, err := s.compareDirectories(srcDir, kyarabenDir, dtInfo.dt)
 			if err != nil {
 				return err
 			}
@@ -229,20 +249,28 @@ func (s *Scanner) scanEmulatorData(sourcePath string, reports map[model.Emulator
 		return err
 	}
 
-	kyarabenFns := map[DataType]func(model.EmulatorID) string{
-		DataTypeStates:      s.collection.EmulatorStatesDir,
-		DataTypeScreenshots: s.collection.EmulatorScreenshotsDir,
+	emuDataTypes := []struct {
+		dt DataType
+		fn func(model.EmulatorID) string
+	}{
+		{DataTypeStates, s.collection.EmulatorStatesDir},
+		{DataTypeScreenshots, s.collection.EmulatorScreenshotsDir},
 	}
 
-	allEmulators := make(map[model.EmulatorID]bool)
+	allEmulatorsMap := make(map[model.EmulatorID]bool)
 	for emu := range sourceFound {
-		allEmulators[emu] = true
+		allEmulatorsMap[emu] = true
 	}
 	for _, emu := range s.registry.AllEmulators() {
-		allEmulators[emu.ID] = true
+		allEmulatorsMap[emu.ID] = true
 	}
+	allEmulators := make([]model.EmulatorID, 0, len(allEmulatorsMap))
+	for emu := range allEmulatorsMap {
+		allEmulators = append(allEmulators, emu)
+	}
+	sort.Slice(allEmulators, func(i, j int) bool { return allEmulators[i] < allEmulators[j] })
 
-	for emu := range allEmulators {
+	for _, emu := range allEmulators {
 		er := reports[emu]
 		if er == nil {
 			name := string(emu)
@@ -253,17 +281,22 @@ func (s *Scanner) scanEmulatorData(sourcePath string, reports map[model.Emulator
 			reports[emu] = er
 		}
 
-		for dt, kyarabenFn := range kyarabenFns {
-			kyarabenDir := kyarabenFn(emu)
+		for _, dtInfo := range emuDataTypes {
+			kyarabenDir := dtInfo.fn(emu)
 
 			var srcDir string
-			if sourceFound[emu] != nil && sourceFound[emu][dt] != "" {
-				srcDir = sourceFound[emu][dt]
+			if sourceFound[emu] != nil && sourceFound[emu][dtInfo.dt] != "" {
+				srcDir = sourceFound[emu][dtInfo.dt]
 			} else {
-				srcDir = kyarabenDir
+				expectedPaths := s.layout.ExpectedPaths(dtInfo.dt)
+				if len(expectedPaths) > 0 {
+					srcDir = filepath.Join(sourcePath, expectedPaths[0], string(emu))
+				} else {
+					srcDir = kyarabenDir
+				}
 			}
 
-			comparison, err := s.compareDirectories(srcDir, kyarabenDir, dt)
+			comparison, err := s.compareDirectories(srcDir, kyarabenDir, dtInfo.dt)
 			if err != nil {
 				return err
 			}
@@ -369,7 +402,7 @@ func (s *Scanner) scanFolder(path string) (FolderInfo, error) {
 
 		if d.IsDir() {
 			rel, _ := filepath.Rel(path, p)
-			if !strings.Contains(rel, string(filepath.Separator)) {
+			if !strings.Contains(rel, string(filepath.Separator)) && !ignoredDirs[d.Name()] {
 				hasSubdirs = true
 			}
 			return nil
