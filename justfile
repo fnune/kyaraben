@@ -14,6 +14,7 @@ ensure:
     go mod download
     cd ui && npm ci
     cd site && npm ci
+    pre-commit install --install-hooks -t pre-commit -t commit-msg
 
 # Run the Electron app in development mode
 dev: generate-types _sidecar

@@ -44,3 +44,10 @@ repos:
         entry: sh -c 'cd site && npx prettier --write "${@#site/}"' --
         files: ^site/.*\.(md|mdx)$
         pass_filenames: true
+
+      - id: strip-claude-coauthor
+        name: strip Claude co-author
+        language: system
+        entry: sed -i '/Co-Authored-By:.*[Cc]laude\|Co-Authored-By:.*anthropic/d'
+        stages: [commit-msg]
+        always_run: true
