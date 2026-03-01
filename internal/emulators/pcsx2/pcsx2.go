@@ -108,8 +108,19 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	return model.GenerateResult{Patches: patches}, nil
 }
 
+var sdl3FaceButtons = map[model.SDLButton]string{
+	model.ButtonA: "FaceSouth",
+	model.ButtonB: "FaceEast",
+	model.ButtonX: "FaceWest",
+	model.ButtonY: "FaceNorth",
+}
+
 func sdlRef(playerIdx int, button model.SDLButton) string {
-	return fmt.Sprintf("SDL-%d/%s", playerIdx, string(button))
+	name := string(button)
+	if sdl3Name, ok := sdl3FaceButtons[button]; ok {
+		name = sdl3Name
+	}
+	return fmt.Sprintf("SDL-%d/%s", playerIdx, name)
 }
 
 func sdlAxisRef(playerIdx int, axis string, positive bool) string {
