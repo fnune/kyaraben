@@ -1321,6 +1321,7 @@ func (a *Applier) garbageCollect(emulatorIDs []model.EmulatorID, frontendIDs []m
 		}
 		pkgName := emu.Package.PackageName()
 		if coreName := emuID.RetroArchCoreName(); coreName != "" {
+			keep["retroarch"] = a.Installer.ResolveVersion("retroarch")
 			pkgName = coreName
 		}
 		keep[pkgName] = a.Installer.ResolveVersion(pkgName)

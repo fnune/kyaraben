@@ -749,3 +749,44 @@ func TestSetVersionOverridesReplacesMap(t *testing.T) {
 		t.Errorf("after unpin: ResolveVersion(bsnes) = %q, want %q (default)", got, want)
 	}
 }
+
+func TestGarbageCollectKeepsRetroArchWhenCoresEnabled(t *testing.T) {
+	t.Parallel()
+
+	env := newTestEnv(t)
+
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{
+			Collection: filepath.Join(env.rootDir, "Emulation"),
+		},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDGBA:  {model.EmulatorIDRetroArchMGBA},
+			model.SystemIDSNES: {model.EmulatorIDRetroArchBsnes},
+		},
+	}
+
+	env.installer.Versions["retroarch"] = "1.22.2"
+
+	_, err := env.applier.Apply(context.Background(), cfg, env.collection, Options{})
+	if err != nil {
+		t.Fatalf("Apply failed: %v", err)
+	}
+
+	if len(env.installer.GCCalls) != 1 {
+		t.Fatalf("Expected 1 GC call, got %d", len(env.installer.GCCalls))
+	}
+
+	keepMap := env.installer.GCCalls[0]
+
+	if _, ok := keepMap["retroarch"]; !ok {
+		t.Errorf("retroarch should be in GC keep map when cores are enabled, got: %v", keepMap)
+	}
+
+	if _, ok := keepMap["mgba"]; !ok {
+		t.Errorf("mgba core should be in GC keep map, got: %v", keepMap)
+	}
+
+	if _, ok := keepMap["bsnes"]; !ok {
+		t.Errorf("bsnes core should be in GC keep map, got: %v", keepMap)
+	}
+}
