@@ -1,7 +1,11 @@
 import { useState } from 'react'
-import { ChangeNotch } from '@/components/ChangeNotch/ChangeNotch'
 import { EmulatorLogo, getEmulatorLogo } from '@/components/EmulatorLogo/EmulatorLogo'
 import { EmulatorSettingsModal } from '@/components/EmulatorSettingsModal/EmulatorSettingsModal'
+import {
+  PackageCard,
+  PackageCardHeader,
+  useChangeType,
+} from '@/components/PackageCardHeader/PackageCardHeader'
 import { PathsModal } from '@/components/PathsModal/PathsModal'
 import { ProvisionSummary } from '@/components/ProvisionSummary/ProvisionSummary'
 import {
@@ -9,11 +13,9 @@ import {
   ProvisionActionInline,
   ProvisionsModal,
 } from '@/components/ProvisionsModal/ProvisionsModal'
-import { CHANGE_CONFIG, formatBytes, getChangeType } from '@/lib/changeUtils'
+import { formatBytes } from '@/lib/changeUtils'
 import { PathText } from '@/lib/PathText'
 import { useToast } from '@/lib/ToastContext'
-import { ToggleSwitch } from '@/lib/ToggleSwitch'
-import { VersionSelect } from '@/lib/VersionSelect'
 import type {
   EmulatorPaths,
   EmulatorRef,
@@ -21,7 +23,6 @@ import type {
   ProvisionResult,
   SystemID,
 } from '@/types/daemon'
-import { VERSION_DEFAULT } from '@/types/ui'
 
 function isNonEmpty<T>(arr: readonly T[]): arr is readonly [T, ...T[]] {
   return arr.length > 0
@@ -139,22 +140,13 @@ export function EmulatorSubcard({
   const hasSettings = (emulator.supportedSettings?.length ?? 0) > 0
   const supportsShaders = emulator.supportedSettings?.includes('shaders') ?? false
 
-  const effectiveVersion =
-    selectedVersion === VERSION_DEFAULT ? (emulator.defaultVersion ?? null) : selectedVersion
-  const changeType = getChangeType(
+  const changeType = useChangeType(
     enabled,
     installedVersion,
-    effectiveVersion,
+    selectedVersion,
+    emulator.defaultVersion,
     emulator.availableVersions,
   )
-
-  const cardClasses = (() => {
-    if (changeType) {
-      const config = CHANGE_CONFIG[changeType]
-      return `ring-1 ${config.ringColor} bg-surface-alt`
-    }
-    return enabled ? 'bg-surface-alt' : 'bg-surface-alt/50'
-  })()
 
   const handleLaunch = () => {
     if (onLaunch) {
@@ -173,114 +165,102 @@ export function EmulatorSubcard({
   }
 
   const logo = getEmulatorLogo(emulator.id)
+  const logoElement = logo ? (
+    <EmulatorLogo emulatorId={emulator.id} emulatorName={emulator.name} className="w-full h-full" />
+  ) : undefined
+
+  const secondaryContent = (
+    <div className="flex items-center gap-2 text-xs text-on-surface-muted">
+      {installedVersion ? (
+        <>
+          {execLine && (
+            <>
+              <button
+                type="button"
+                onClick={handleLaunch}
+                disabled={!enabled}
+                className={enabled ? 'hover:text-accent' : 'cursor-not-allowed'}
+              >
+                Launch
+              </button>
+              <span className="text-on-surface-faint">·</span>
+            </>
+          )}
+          {paths && (
+            <>
+              <button
+                type="button"
+                onClick={() => setPathsOpen(true)}
+                disabled={!enabled}
+                className={enabled ? 'hover:text-accent' : 'cursor-not-allowed'}
+              >
+                Paths
+              </button>
+              {provisions.length > 0 && <span className="text-on-surface-faint">·</span>}
+            </>
+          )}
+          {provisions.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setProvisionsOpen(true)}
+              disabled={!enabled}
+              className={enabled ? 'hover:text-accent' : 'cursor-not-allowed'}
+            >
+              Provisions
+            </button>
+          )}
+          {hasSettings && (
+            <>
+              {(paths || provisions.length > 0) && <span className="text-on-surface-faint">·</span>}
+              <button
+                type="button"
+                onClick={() => setSettingsOpen(true)}
+                disabled={!enabled}
+                className={enabled ? 'hover:text-accent' : 'cursor-not-allowed'}
+              >
+                Settings
+              </button>
+            </>
+          )}
+          {!enabled && enabledElsewhere && (
+            <>
+              <span className="text-on-surface-faint">·</span>
+              <span className="text-on-surface-dim">used by other systems</span>
+            </>
+          )}
+        </>
+      ) : (
+        (emulator.downloadBytes || emulator.coreBytes) && (
+          <span className="text-on-surface-dim">
+            {emulator.downloadBytes ? formatBytes(emulator.downloadBytes) : ''}
+            {sharedPackage && emulator.downloadBytes && (
+              <span className="text-accent ml-1">(shared)</span>
+            )}
+            {emulator.coreBytes && (
+              <span className="ml-1">
+                {emulator.downloadBytes ? '+ ' : ''}
+                {formatBytes(emulator.coreBytes)} core
+              </span>
+            )}
+          </span>
+        )
+      )}
+    </div>
+  )
 
   return (
-    <div className={`rounded-element overflow-hidden relative ${cardClasses}`}>
-      {changeType && <ChangeNotch type={changeType} />}
-
-      <div className="flex items-center gap-4 p-3">
-        {logo && (
-          <EmulatorLogo
-            emulatorId={emulator.id}
-            emulatorName={emulator.name}
-            className="hidden min-[720px]:flex items-center justify-center w-10 h-10 shrink-0"
-          />
-        )}
-        <div className="flex-1 space-y-0.5">
-          <div className="flex flex-col gap-2 min-[400px]:flex-row min-[400px]:items-center">
-            <span className="text-on-surface font-medium text-sm">{emulator.name}</span>
-            <div className="flex items-center gap-3 min-[400px]:ml-auto">
-              <VersionSelect
-                defaultVersion={emulator.defaultVersion}
-                availableVersions={emulator.availableVersions}
-                selectedVersion={selectedVersion}
-                onChange={onVersionChange}
-                disabled={!enabled}
-                size="sm"
-              />
-              <ToggleSwitch enabled={enabled} onChange={onToggle} />
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-on-surface-muted">
-            {installedVersion ? (
-              <>
-                {execLine && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleLaunch}
-                      disabled={!enabled}
-                      className={enabled ? 'hover:text-accent' : 'cursor-not-allowed'}
-                    >
-                      Launch
-                    </button>
-                    <span className="text-on-surface-faint">·</span>
-                  </>
-                )}
-                {paths && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setPathsOpen(true)}
-                      disabled={!enabled}
-                      className={enabled ? 'hover:text-accent' : 'cursor-not-allowed'}
-                    >
-                      Paths
-                    </button>
-                    {provisions.length > 0 && <span className="text-on-surface-faint">·</span>}
-                  </>
-                )}
-                {provisions.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setProvisionsOpen(true)}
-                    disabled={!enabled}
-                    className={enabled ? 'hover:text-accent' : 'cursor-not-allowed'}
-                  >
-                    Provisions
-                  </button>
-                )}
-                {hasSettings && (
-                  <>
-                    {(paths || provisions.length > 0) && (
-                      <span className="text-on-surface-faint">·</span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setSettingsOpen(true)}
-                      disabled={!enabled}
-                      className={enabled ? 'hover:text-accent' : 'cursor-not-allowed'}
-                    >
-                      Settings
-                    </button>
-                  </>
-                )}
-                {!enabled && enabledElsewhere && (
-                  <>
-                    <span className="text-on-surface-faint">·</span>
-                    <span className="text-on-surface-dim">used by other systems</span>
-                  </>
-                )}
-              </>
-            ) : (
-              (emulator.downloadBytes || emulator.coreBytes) && (
-                <span className="text-on-surface-dim">
-                  {emulator.downloadBytes ? formatBytes(emulator.downloadBytes) : ''}
-                  {sharedPackage && emulator.downloadBytes && (
-                    <span className="text-accent ml-1">(shared)</span>
-                  )}
-                  {emulator.coreBytes && (
-                    <span className="ml-1">
-                      {emulator.downloadBytes ? '+ ' : ''}
-                      {formatBytes(emulator.coreBytes)} core
-                    </span>
-                  )}
-                </span>
-              )
-            )}
-          </div>
-        </div>
-      </div>
+    <PackageCard changeType={changeType} installed={!!installedVersion} enabled={enabled}>
+      <PackageCardHeader
+        name={emulator.name}
+        logo={logoElement}
+        defaultVersion={emulator.defaultVersion}
+        availableVersions={emulator.availableVersions}
+        selectedVersion={selectedVersion}
+        enabled={enabled}
+        onToggle={onToggle}
+        onVersionChange={onVersionChange}
+        secondaryContent={secondaryContent}
+      />
 
       {isNonEmpty(provisions) && (
         <div className="border-t border-outline/50">
@@ -328,6 +308,6 @@ export function EmulatorSubcard({
           onShaderChange={onShaderChange ?? ((_: string | null) => undefined)}
         />
       )}
-    </div>
+    </PackageCard>
   )
 }
