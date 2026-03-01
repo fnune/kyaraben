@@ -361,10 +361,6 @@ func (s *Scanner) compareDirectories(srcPath, kyarabenPath string, dataType Data
 		Diff:     diff,
 	}
 
-	if srcInfo.IsFlat && !kyarabenInfo.IsFlat && kyarabenInfo.Exists {
-		comparison.Notes = append(comparison.Notes, "Source is flat, Kyaraben expects subdirectories")
-	}
-
 	return comparison, nil
 }
 
