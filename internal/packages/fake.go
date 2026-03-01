@@ -80,6 +80,7 @@ type FakeInstaller struct {
 	Icons        map[string]*InstalledIcon
 	Installed    map[string]bool
 	Versions     map[string]string
+	overrides    map[string]string
 	GCCalls      []map[string]string
 	InstallError error
 	CoresError   error
@@ -181,6 +182,11 @@ func (f *FakeInstaller) PackagesDir() string {
 }
 
 func (f *FakeInstaller) ResolveVersion(name string) string {
+	if f.overrides != nil {
+		if v, ok := f.overrides[name]; ok {
+			return v
+		}
+	}
 	if v, ok := f.Versions[name]; ok {
 		return v
 	}
@@ -194,9 +200,7 @@ func (f *FakeInstaller) ResolveVersion(name string) string {
 }
 
 func (f *FakeInstaller) SetVersionOverrides(overrides map[string]string) {
-	for k, v := range overrides {
-		f.Versions[k] = v
-	}
+	f.overrides = overrides
 }
 
 var _ Installer = (*FakeInstaller)(nil)

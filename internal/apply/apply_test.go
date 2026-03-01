@@ -729,3 +729,23 @@ func TestCoreArchiveTypeUsesResolvedVersion(t *testing.T) {
 		t.Errorf("coreArchiveType = %q, want 7z", archiveType)
 	}
 }
+
+func TestSetVersionOverridesReplacesMap(t *testing.T) {
+	t.Parallel()
+
+	v := versions.MustGet()
+	installer := packages.NewFakeInstaller(nil, "/packages")
+
+	installer.SetVersionOverrides(map[string]string{"bsnes": "1.19.1"})
+	if got := installer.ResolveVersion("bsnes"); got != "1.19.1" {
+		t.Errorf("after pin: ResolveVersion(bsnes) = %q, want 1.19.1", got)
+	}
+
+	installer.SetVersionOverrides(map[string]string{})
+	got := installer.ResolveVersion("bsnes")
+	bsnesSpec, _ := v.GetPackage("bsnes")
+	want := bsnesSpec.Default
+	if got != want {
+		t.Errorf("after unpin: ResolveVersion(bsnes) = %q, want %q (default)", got, want)
+	}
+}

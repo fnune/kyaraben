@@ -131,7 +131,7 @@ func (i *PackageInstaller) packageDir(name, version string) string {
 }
 
 func (i *PackageInstaller) IsEmulatorInstalled(name string) bool {
-	entry, spec, err := i.resolveSpec(name)
+	entry, _, err := i.resolveSpec(name)
 	if err != nil {
 		return false
 	}
@@ -141,13 +141,8 @@ func (i *PackageInstaller) IsEmulatorInstalled(name string) bool {
 		return false
 	}
 
-	binaryPath := entry.BinaryPathForTarget(target, spec)
-	if binaryPath == "" {
-		binaryPath = name
-	}
-
 	pkgDir := i.packageDir(name, entry.Version)
-	fullPath := filepath.Join(pkgDir, "bin", filepath.Base(binaryPath))
+	fullPath := filepath.Join(pkgDir, "bin", name)
 	_, err = i.fs.Stat(fullPath)
 	return err == nil
 }
