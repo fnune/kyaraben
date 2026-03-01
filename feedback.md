@@ -35,7 +35,6 @@
 
 ### Proper blocker
 
-- Eden hotkeys still don't work
 - Options aren't surfaced in the UI
   - Shader configuration
   - Nintendo confirm button position
@@ -57,6 +56,7 @@
 ### Can launch without
 
 - Eden/Cemu splash screens: emulator loading screens are ugly but can't be avoided
+- ESDE Steam entry does not have an icon (the tiny square one)
 
 ## Features
 

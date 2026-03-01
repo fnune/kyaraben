@@ -202,20 +202,19 @@ func TestFaceButtonsNonNintendoSystem(t *testing.T) {
 	t.Parallel()
 
 	cc := &ControllerConfig{NintendoConfirm: NintendoConfirmEast}
-	// Non-Nintendo system should not be affected by NintendoConfirm setting
-	south, east, west, north := cc.FaceButtons(SystemIDPSX)
+	fb := cc.FaceButtons(SystemIDPSX)
 
-	if south != ButtonA {
-		t.Errorf("PSX south = %q, want %q", south, ButtonA)
+	if fb.South != ButtonA {
+		t.Errorf("PSX south = %q, want %q", fb.South, ButtonA)
 	}
-	if east != ButtonB {
-		t.Errorf("PSX east = %q, want %q", east, ButtonB)
+	if fb.East != ButtonB {
+		t.Errorf("PSX east = %q, want %q", fb.East, ButtonB)
 	}
-	if west != ButtonX {
-		t.Errorf("PSX west = %q, want %q", west, ButtonX)
+	if fb.West != ButtonX {
+		t.Errorf("PSX west = %q, want %q", fb.West, ButtonX)
 	}
-	if north != ButtonY {
-		t.Errorf("PSX north = %q, want %q", north, ButtonY)
+	if fb.North != ButtonY {
+		t.Errorf("PSX north = %q, want %q", fb.North, ButtonY)
 	}
 }
 
@@ -223,19 +222,20 @@ func TestFaceButtonsNintendoSystemConfirmSouth(t *testing.T) {
 	t.Parallel()
 
 	cc := &ControllerConfig{NintendoConfirm: NintendoConfirmSouth}
-	south, east, west, north := cc.FaceButtons(SystemIDSNES)
+	fb := cc.FaceButtons(SystemIDSNES)
 
-	if south != ButtonA {
-		t.Errorf("SNES confirm-south south = %q, want %q", south, ButtonA)
+	// NintendoConfirmSouth swaps A/B so physical south triggers Nintendo A
+	if fb.South != ButtonB {
+		t.Errorf("SNES confirm-south south = %q, want %q", fb.South, ButtonB)
 	}
-	if east != ButtonB {
-		t.Errorf("SNES confirm-south east = %q, want %q", east, ButtonB)
+	if fb.East != ButtonA {
+		t.Errorf("SNES confirm-south east = %q, want %q", fb.East, ButtonA)
 	}
-	if west != ButtonX {
-		t.Errorf("SNES confirm-south west = %q, want %q", west, ButtonX)
+	if fb.West != ButtonY {
+		t.Errorf("SNES confirm-south west = %q, want %q", fb.West, ButtonY)
 	}
-	if north != ButtonY {
-		t.Errorf("SNES confirm-south north = %q, want %q", north, ButtonY)
+	if fb.North != ButtonX {
+		t.Errorf("SNES confirm-south north = %q, want %q", fb.North, ButtonX)
 	}
 }
 
@@ -243,19 +243,20 @@ func TestFaceButtonsNintendoSystemConfirmEast(t *testing.T) {
 	t.Parallel()
 
 	cc := &ControllerConfig{NintendoConfirm: NintendoConfirmEast}
-	south, east, west, north := cc.FaceButtons(SystemIDSNES)
+	fb := cc.FaceButtons(SystemIDSNES)
 
-	if south != ButtonB {
-		t.Errorf("SNES confirm-east south = %q, want %q", south, ButtonB)
+	// NintendoConfirmEast uses standard positional mapping (no swap)
+	if fb.South != ButtonA {
+		t.Errorf("SNES confirm-east south = %q, want %q", fb.South, ButtonA)
 	}
-	if east != ButtonA {
-		t.Errorf("SNES confirm-east east = %q, want %q", east, ButtonA)
+	if fb.East != ButtonB {
+		t.Errorf("SNES confirm-east east = %q, want %q", fb.East, ButtonB)
 	}
-	if west != ButtonY {
-		t.Errorf("SNES confirm-east west = %q, want %q", west, ButtonY)
+	if fb.West != ButtonX {
+		t.Errorf("SNES confirm-east west = %q, want %q", fb.West, ButtonX)
 	}
-	if north != ButtonX {
-		t.Errorf("SNES confirm-east north = %q, want %q", north, ButtonX)
+	if fb.North != ButtonY {
+		t.Errorf("SNES confirm-east north = %q, want %q", fb.North, ButtonY)
 	}
 }
 
@@ -263,20 +264,19 @@ func TestFaceButtonsN64NotAffected(t *testing.T) {
 	t.Parallel()
 
 	cc := &ControllerConfig{NintendoConfirm: NintendoConfirmEast}
-	// N64 should not be affected even with NintendoConfirmEast
-	south, east, west, north := cc.FaceButtons(SystemIDN64)
+	fb := cc.FaceButtons(SystemIDN64)
 
-	if south != ButtonA {
-		t.Errorf("N64 south = %q, want %q", south, ButtonA)
+	if fb.South != ButtonA {
+		t.Errorf("N64 south = %q, want %q", fb.South, ButtonA)
 	}
-	if east != ButtonB {
-		t.Errorf("N64 east = %q, want %q", east, ButtonB)
+	if fb.East != ButtonB {
+		t.Errorf("N64 east = %q, want %q", fb.East, ButtonB)
 	}
-	if west != ButtonX {
-		t.Errorf("N64 west = %q, want %q", west, ButtonX)
+	if fb.West != ButtonX {
+		t.Errorf("N64 west = %q, want %q", fb.West, ButtonX)
 	}
-	if north != ButtonY {
-		t.Errorf("N64 north = %q, want %q", north, ButtonY)
+	if fb.North != ButtonY {
+		t.Errorf("N64 north = %q, want %q", fb.North, ButtonY)
 	}
 }
 

@@ -162,12 +162,19 @@ func (s *ConfigStore) Load(path string, validators *ConfigValidators) (*Kyaraben
 	if _, err := toml.Decode(string(data), &cfg); err != nil {
 		return nil, fmt.Errorf("decoding config: %w", err)
 	}
+	cfg.applyDefaults()
 	if validators != nil {
 		if err := cfg.validate(validators); err != nil {
 			return nil, err
 		}
 	}
 	return &cfg, nil
+}
+
+func (c *KyarabenConfig) applyDefaults() {
+	if c.Controller.NintendoConfirm == "" {
+		c.Controller.NintendoConfirm = string(NintendoConfirmEast)
+	}
 }
 
 func (c *KyarabenConfig) validate(v *ConfigValidators) error {

@@ -924,7 +924,7 @@ func TestConfigTargetResolve(t *testing.T) {
 
 func defaultControllerConfig() *model.ControllerConfig {
 	return &model.ControllerConfig{
-		NintendoConfirm: model.NintendoConfirmSouth,
+		NintendoConfirm: model.NintendoConfirmEast,
 		Hotkeys:         model.DefaultHotkeys(),
 	}
 }
@@ -1331,22 +1331,22 @@ func TestEdenControllerBindingValues(t *testing.T) {
 		}
 	})
 
-	t.Run("nintendo layout profile", func(t *testing.T) {
+	t.Run("confirm south profile", func(t *testing.T) {
 		t.Parallel()
 
 		store := &fakeStoreReader{root: "/emulation"}
 		resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
 		gen := eden.Definition{}.ConfigGenerator()
 
-		nintendoCC := &model.ControllerConfig{
-			NintendoConfirm: model.NintendoConfirmEast,
+		southCC := &model.ControllerConfig{
+			NintendoConfirm: model.NintendoConfirmSouth,
 			Hotkeys:         model.DefaultHotkeys(),
 		}
 
 		result, err := gen.Generate(model.GenerateContext{
 			Store:            store,
 			BaseDirResolver:  resolver,
-			ControllerConfig: nintendoCC,
+			ControllerConfig: southCC,
 		})
 		if err != nil {
 			t.Fatalf("Generate() error = %v", err)
@@ -1358,7 +1358,8 @@ func TestEdenControllerBindingValues(t *testing.T) {
 			entryMap[e.Key()] = e.Value
 		}
 
-		// Nintendo layout: a=east=A(0), b=south=B(1), x=north=X(2), y=west=Y(3)
+		// NintendoConfirmSouth: physical south triggers Nintendo A
+		// So Eden's A (at east position) maps to physical south (button:0)
 		wantFace := map[string]string{
 			"button_a": `"engine:sdl,port:0,guid:` + guid + `,button:0"`,
 			"button_b": `"engine:sdl,port:0,guid:` + guid + `,button:1"`,
@@ -1544,11 +1545,13 @@ func TestRetroArchNintendoConfirmAffectsButtons(t *testing.T) {
 		t.Errorf("NintendoConfirm should produce different B button mapping for RetroArch, both got %s", southB)
 	}
 
-	if southA != "1" || southB != "0" {
-		t.Errorf("confirm-south: a_btn=%s (want 1), b_btn=%s (want 0)", southA, southB)
+	// NintendoConfirmSouth swaps buttons so physical south triggers SNES A
+	if southA != "0" || southB != "1" {
+		t.Errorf("confirm-south: a_btn=%s (want 0), b_btn=%s (want 1)", southA, southB)
 	}
-	if eastA != "0" || eastB != "1" {
-		t.Errorf("confirm-east: a_btn=%s (want 0), b_btn=%s (want 1)", eastA, eastB)
+	// NintendoConfirmEast uses standard positional mapping (no swap)
+	if eastA != "1" || eastB != "0" {
+		t.Errorf("confirm-east: a_btn=%s (want 1), b_btn=%s (want 0)", eastA, eastB)
 	}
 }
 

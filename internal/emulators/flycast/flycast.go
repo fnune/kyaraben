@@ -115,17 +115,17 @@ const (
 )
 
 func mappingEntries(cc *model.ControllerConfig) []model.ConfigEntry {
-	south, east, west, north := cc.FaceButtons(model.SystemIDDreamcast)
+	fb := cc.FaceButtons(model.SystemIDDreamcast)
 
 	// Flycast uses axis:action format for analog and button:action for digital.
 	// Dreamcast: A=south, B=east, X=west, Y=north.
 	// Dreamcast has 6 face buttons: A, B, X, Y plus Z and C (digital triggers behind A/B).
 	// L/R shoulders map to Z/C since Steam Deck has analog triggers for L/R.
 	entries := []model.ConfigEntry{
-		{Path: []string{"digital", "bind0"}, Value: fmt.Sprintf("%d:btn_a", rawJoystickIndex[south])},
-		{Path: []string{"digital", "bind1"}, Value: fmt.Sprintf("%d:btn_b", rawJoystickIndex[east])},
-		{Path: []string{"digital", "bind2"}, Value: fmt.Sprintf("%d:btn_x", rawJoystickIndex[west])},
-		{Path: []string{"digital", "bind3"}, Value: fmt.Sprintf("%d:btn_y", rawJoystickIndex[north])},
+		{Path: []string{"digital", "bind0"}, Value: fmt.Sprintf("%d:btn_a", rawJoystickIndex[fb.South])},
+		{Path: []string{"digital", "bind1"}, Value: fmt.Sprintf("%d:btn_b", rawJoystickIndex[fb.East])},
+		{Path: []string{"digital", "bind2"}, Value: fmt.Sprintf("%d:btn_x", rawJoystickIndex[fb.West])},
+		{Path: []string{"digital", "bind3"}, Value: fmt.Sprintf("%d:btn_y", rawJoystickIndex[fb.North])},
 		{Path: []string{"digital", "bind4"}, Value: fmt.Sprintf("%d:btn_z", rawJoystickIndex[model.ButtonLeftShoulder])},
 		{Path: []string{"digital", "bind5"}, Value: fmt.Sprintf("%d:btn_c", rawJoystickIndex[model.ButtonRightShoulder])},
 		{Path: []string{"digital", "bind6"}, Value: fmt.Sprintf("%d:btn_start", rawJoystickIndex[model.ButtonStart])},

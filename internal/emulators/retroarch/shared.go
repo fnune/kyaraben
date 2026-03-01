@@ -82,14 +82,14 @@ func controllerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 
 	// RetroArch's libretro "RetroPad" is based on SNES layout (A=east, B=south).
 	// The NintendoConfirm setting affects all RetroArch cores since most are Nintendo.
-	south, east, west, north := cc.FaceButtons(model.SystemIDSNES)
+	fb := cc.FaceButtons(model.SystemIDSNES)
 	for i := 1; i <= 4; i++ {
 		prefix := fmt.Sprintf("input_player%d_", i)
 		entries = append(entries,
-			model.ConfigEntry{Path: []string{prefix + "a_btn"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[east])},
-			model.ConfigEntry{Path: []string{prefix + "b_btn"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[south])},
-			model.ConfigEntry{Path: []string{prefix + "x_btn"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[north])},
-			model.ConfigEntry{Path: []string{prefix + "y_btn"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[west])},
+			model.ConfigEntry{Path: []string{prefix + "a_btn"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[fb.East])},
+			model.ConfigEntry{Path: []string{prefix + "b_btn"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[fb.South])},
+			model.ConfigEntry{Path: []string{prefix + "x_btn"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[fb.North])},
+			model.ConfigEntry{Path: []string{prefix + "y_btn"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[fb.West])},
 		)
 	}
 

@@ -149,16 +149,16 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 }
 
 func gcPadBindingEntries(cc *model.ControllerConfig, section string, defaultOnly bool) []model.ConfigEntry {
-	south, east, west, north := cc.FaceButtons(model.SystemIDGameCube)
+	fb := cc.FaceButtons(model.SystemIDGameCube)
 
 	// Dolphin maps SDL buttons to its own descriptive names.
 	// GameCube A=east (green), B=south (red), X=north, Y=west.
-	// Standard layout: A(SDL south)->GC B, B(SDL east)->GC A, X(SDL west)->GC Y, Y(SDL north)->GC X
+	// FaceButtons returns which SDL button is at each physical position.
 	faceMap := map[string]model.SDLButton{
-		"A": east,
-		"B": south,
-		"X": north,
-		"Y": west,
+		"A": fb.East,
+		"B": fb.South,
+		"X": fb.North,
+		"Y": fb.West,
 	}
 
 	return []model.ConfigEntry{

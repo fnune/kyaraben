@@ -238,7 +238,8 @@ func steamDeckFaceButton(btn model.SDLButton) int {
 // This profile is fully managed (FileRegion) and can be reloaded by users
 // at any time to restore kyaraben bindings.
 func profileEntries(cc *model.ControllerConfig) []model.ConfigEntry {
-	south, east, west, north := cc.FaceButtons(model.SystemIDSwitch)
+	fb := cc.FaceButtons(model.SystemIDSwitch)
+	south, east, west, north := fb.South, fb.East, fb.West, fb.North
 	guid := model.SteamDeckGUID
 
 	return []model.ConfigEntry{
@@ -269,7 +270,8 @@ func profileEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 // reload kyaraben bindings via the Kyaraben profile.
 func qtConfigControllerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	var entries []model.ConfigEntry
-	south, east, west, north := cc.FaceButtons(model.SystemIDSwitch)
+	fb := cc.FaceButtons(model.SystemIDSwitch)
+	south, east, west, north := fb.South, fb.East, fb.West, fb.North
 
 	guid := model.SteamDeckGUID
 
@@ -366,22 +368,43 @@ func edenButtonName(b model.SDLButton) string {
 	}
 }
 
-func edenHotkeyRef(binding model.HotkeyBinding) string {
+func edenHotkeyRef(binding model.HotkeyBinding, fb model.FaceButtonMapping) string {
 	parts := make([]string, len(binding.Buttons))
 	for i, b := range binding.Buttons {
-		parts[i] = edenButtonName(b)
+		parts[i] = edenHotkeyButtonName(b, fb)
+	}
+	// Eden puts modifier last, so reverse the order
+	for i, j := 0, len(parts)-1; i < j; i, j = i+1, j-1 {
+		parts[i], parts[j] = parts[j], parts[i]
 	}
 	return strings.Join(parts, "+")
 }
 
+func edenHotkeyButtonName(b model.SDLButton, fb model.FaceButtonMapping) string {
+	// Map SDL buttons to Eden hotkey names through the face button mapping.
+	// The input profile sets: A=fb.East, B=fb.South, X=fb.North, Y=fb.West
+	switch b {
+	case fb.South:
+		return "B"
+	case fb.East:
+		return "A"
+	case fb.North:
+		return "X"
+	case fb.West:
+		return "Y"
+	}
+	return edenButtonName(b)
+}
+
 func hotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	hk := cc.Hotkeys
+	fb := cc.FaceButtons(model.SystemIDSwitch)
 
 	type mapping struct {
 		key     string
 		binding model.HotkeyBinding
 	}
-	// Eden uses Shortcuts\ as part of the key name, not as a section header.
+	// Shortcuts are nested under the [UI] section in Eden's qt-config.ini
 	mappings := []mapping{
 		{`Shortcuts\Main%20Window\Continue\Pause%20Emulation\Controller_KeySeq`, hk.Pause},
 		{`Shortcuts\Main%20Window\Exit%20Eden\Controller_KeySeq`, hk.Quit},
@@ -395,11 +418,11 @@ func hotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 		if len(m.binding.Buttons) > 0 {
 			entries = append(entries,
 				model.ConfigEntry{
-					Path:  []string{m.key},
-					Value: edenHotkeyRef(m.binding),
+					Path:  []string{"UI", m.key},
+					Value: edenHotkeyRef(m.binding, fb),
 				},
 				model.ConfigEntry{
-					Path:  []string{m.key + `\default`},
+					Path:  []string{"UI", m.key + `\default`},
 					Value: "false",
 				},
 			)

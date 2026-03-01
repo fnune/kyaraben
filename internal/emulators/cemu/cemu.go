@@ -158,7 +158,8 @@ const (
 const cemuSteamDeckGUID = "030079f6de280000ff11000001000000"
 
 func generateControllerXML(cc *model.ControllerConfig) string {
-	south, east, west, north := cc.FaceButtons(model.SystemIDWiiU)
+	fb := cc.FaceButtons(model.SystemIDWiiU)
+	south, east, west, north := fb.South, fb.East, fb.West, fb.North
 
 	// Map face buttons to SDL button indices
 	// SDL: A=0, B=1, X=2, Y=3

@@ -130,15 +130,15 @@ func ppssppHotkeyRef(binding model.HotkeyBinding) string {
 }
 
 func padEntries(cc *model.ControllerConfig) []model.ConfigEntry {
-	south, east, west, north := cc.FaceButtons(model.SystemIDPSP)
+	fb := cc.FaceButtons(model.SystemIDPSP)
 	section := "ControlMapping"
 
 	// PSP maps: Cross=south, Circle=east, Square=west, Triangle=north
 	entries := []model.ConfigEntry{
-		{Path: []string{section, "Cross"}, Value: ppssppRef(south)},
-		{Path: []string{section, "Circle"}, Value: ppssppRef(east)},
-		{Path: []string{section, "Square"}, Value: ppssppRef(west)},
-		{Path: []string{section, "Triangle"}, Value: ppssppRef(north)},
+		{Path: []string{section, "Cross"}, Value: ppssppRef(fb.South)},
+		{Path: []string{section, "Circle"}, Value: ppssppRef(fb.East)},
+		{Path: []string{section, "Square"}, Value: ppssppRef(fb.West)},
+		{Path: []string{section, "Triangle"}, Value: ppssppRef(fb.North)},
 		{Path: []string{section, "Start"}, Value: ppssppRef(model.ButtonStart)},
 		{Path: []string{section, "Select"}, Value: ppssppRef(model.ButtonBack)},
 		{Path: []string{section, "L"}, Value: ppssppRef(model.ButtonLeftShoulder)},

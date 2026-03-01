@@ -163,15 +163,36 @@ var nintendoDiamondSystems = map[SystemID]bool{
 	SystemIDSwitch:   true,
 }
 
-// FaceButtons returns the four face buttons (south, east, west, north) for
-// the given system. For Nintendo systems with diamond layouts, the buttons
-// are adjusted based on NintendoConfirm. For all other systems (including N64),
-// positional mapping is used: A=south, B=east, X=west, Y=north.
-func (cc *ControllerConfig) FaceButtons(sys SystemID) (south, east, west, north SDLButton) {
-	if nintendoDiamondSystems[sys] && cc.NintendoConfirm == NintendoConfirmEast {
-		return ButtonB, ButtonA, ButtonY, ButtonX
+// FaceButtonMapping holds the SDL buttons for each physical position.
+// South/East/West/North refer to positions on the user's controller.
+type FaceButtonMapping struct {
+	South SDLButton
+	East  SDLButton
+	West  SDLButton
+	North SDLButton
+}
+
+// FaceButtons returns which SDL button is at each physical position for the
+// given system. For Nintendo diamond-layout systems, buttons are swapped when
+// NintendoConfirmSouth is set so that physical south triggers Nintendo A.
+// For all other systems (including N64), positional mapping is used.
+func (cc *ControllerConfig) FaceButtons(sys SystemID) FaceButtonMapping {
+	// NintendoConfirmSouth: swap so physical south triggers Nintendo A (which is at east)
+	if nintendoDiamondSystems[sys] && cc.NintendoConfirm == NintendoConfirmSouth {
+		return FaceButtonMapping{
+			South: ButtonB, // Nintendo A (originally east) now at south
+			East:  ButtonA, // Nintendo B (originally south) now at east
+			West:  ButtonY,
+			North: ButtonX,
+		}
 	}
-	return ButtonA, ButtonB, ButtonX, ButtonY
+	// Default: standard positional mapping (A=south, B=east, X=west, Y=north)
+	return FaceButtonMapping{
+		South: ButtonA,
+		East:  ButtonB,
+		West:  ButtonX,
+		North: ButtonY,
+	}
 }
 
 // SDLButtonIndex returns the standard SDL GameController button index.

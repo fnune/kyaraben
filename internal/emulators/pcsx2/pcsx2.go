@@ -122,7 +122,8 @@ func sdlAxisRef(playerIdx int, axis string, positive bool) string {
 
 func padEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	var entries []model.ConfigEntry
-	south, east, west, north := cc.FaceButtons(model.SystemIDPS2)
+	fb := cc.FaceButtons(model.SystemIDPS2)
+	south, east, west, north := fb.South, fb.East, fb.West, fb.North
 
 	for i := 0; i < 4; i++ {
 		section := fmt.Sprintf("Pad%d", i+1)
