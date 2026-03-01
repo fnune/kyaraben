@@ -222,7 +222,7 @@ These emulators require special handling or have significant limitations.
 - GUID-based bindings: `engine:sdl,port:0,guid:03000000de280000ff11000001000000,button:0`
 - Raw joystick indices (not GameController): A=0, B=1, X=2, Y=3
 - 2-player support only
-- Limited hotkeys (Plus+Minus combinations)
+- Hotkeys: pause, screenshot, exit, fullscreen, fast forward
 
 Quirks:
 - Requires Steam Deck GUID exactly
@@ -231,10 +231,18 @@ Quirks:
 - Axis bindings need threshold: `threshold:0.500000`
 - Stick bindings need deadzone: `deadzone:0.100000`
 
+Hotkey format quirks:
+- Must be in `[UI]` section of qt-config.ini (not at top of file)
+- Modifier goes last: `B+Minus` not `Minus+B`
+- Face buttons use remapped logical names from input profile, not physical positions
+- With NintendoConfirmEast: physical south → "B", physical east → "A" in hotkeys
+- To verify format: manually configure a hotkey in Eden UI, check what it writes
+
 Testing gotchas:
 - Must test on Steam Deck or with matching GUID
 - SNES USB controller won't work without adding its GUID
 - Compare bindings semantically, not as strings
+- If hotkeys don't work but appear in config, check section placement
 
 **xemu (Xbox)**
 - GUID-only binding: `input.bindings.port1 = "03000000de280000ff11000001000000"`
@@ -283,12 +291,18 @@ For multi-player emulators, also verify:
 **Hotkeys not working:**
 - Confirm emulator supports hotkeys (see tier table)
 - For RetroArch, verify `input_enable_hotkey_btn` is set to Back
+- For Eden, verify hotkeys are in `[UI]` section with modifier last (e.g., `B+Minus`)
 - Hold enable button before pressing action button
 
 **Config not applied:**
 - Run kyaraben apply after changes
 - Check for preflight conflicts
 - Verify config file path matches emulator expectations
+
+**Discovering correct hotkey format:**
+- Manually configure a hotkey in the emulator's UI
+- Check the config file to see what format the emulator wrote
+- Note: button order, separator characters, section placement, logical vs physical button names
 
 ## Adding controller support to a new emulator
 
