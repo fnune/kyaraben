@@ -146,8 +146,8 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	patches = append(patches, model.ConfigPatch{
 		Target: coreOptionsTarget,
 		Entries: []model.ConfigEntry{
-			{Path: []string{"fbneo-allow-patched-romsets"}, Value: "enabled", DefaultOnly: true},
-			{Path: []string{"fbneo-allow-depth-32"}, Value: "enabled", DefaultOnly: true},
+			model.Default(model.None, model.Path("fbneo-allow-patched-romsets"), "enabled"),
+			model.Default(model.None, model.Path("fbneo-allow-depth-32"), "enabled"),
 		},
 	})
 

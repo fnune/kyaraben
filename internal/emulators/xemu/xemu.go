@@ -83,22 +83,22 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	hddPath := filepath.Join(statesDir, hddFilename)
 
 	entries := []model.ConfigEntry{
-		{Path: []string{"sys", "mem_limit"}, Value: "128"},
-		{Path: []string{"sys", "files", "bootrom_path"}, Value: biosDir + "/mcpx_1.0.bin"},
-		{Path: []string{"sys", "files", "flashrom_path"}, Value: biosDir + "/Complex_4627v1.03.bin"},
-		{Path: []string{"sys", "files", "hdd_path"}, Value: hddPath},
-		{Path: []string{"sys", "files", "eeprom_path"}, Value: statesDir + "/eeprom.bin"},
-		{Path: []string{"general", "show_welcome"}, Value: "false"},
-		{Path: []string{"general", "check_for_update"}, Value: "false"},
-		{Path: []string{"general", "screenshot_dir"}, Value: screenshotsDir},
-		{Path: []string{"general", "games_dir"}, Value: romsDir},
-		{Path: []string{"general", "misc", "skip_boot_anim"}, Value: "true", DefaultOnly: true},
-		{Path: []string{"display", "renderer"}, Value: "VULKAN", DefaultOnly: true},
-		{Path: []string{"display", "quality", "surface_scale"}, Value: "2", DefaultOnly: true},
-		{Path: []string{"input", "bindings", "port1"}, Value: model.SteamDeckGUID, DefaultOnly: true},
-		{Path: []string{"input", "bindings", "port2"}, Value: model.SteamDeckGUID, DefaultOnly: true},
-		{Path: []string{"input", "bindings", "port3"}, Value: model.SteamDeckGUID, DefaultOnly: true},
-		{Path: []string{"input", "bindings", "port4"}, Value: model.SteamDeckGUID, DefaultOnly: true},
+		model.Entry(model.None, model.Path("sys", "mem_limit"), "128"),
+		model.Entry(model.Store, model.Path("sys", "files", "bootrom_path"), biosDir+"/mcpx_1.0.bin"),
+		model.Entry(model.Store, model.Path("sys", "files", "flashrom_path"), biosDir+"/Complex_4627v1.03.bin"),
+		model.Entry(model.Store, model.Path("sys", "files", "hdd_path"), hddPath),
+		model.Entry(model.Store, model.Path("sys", "files", "eeprom_path"), statesDir+"/eeprom.bin"),
+		model.Entry(model.None, model.Path("general", "show_welcome"), "false"),
+		model.Entry(model.None, model.Path("general", "check_for_update"), "false"),
+		model.Entry(model.Store, model.Path("general", "screenshot_dir"), screenshotsDir),
+		model.Entry(model.Store, model.Path("general", "games_dir"), romsDir),
+		model.Default(model.None, model.Path("general", "misc", "skip_boot_anim"), "true"),
+		model.Default(model.None, model.Path("display", "renderer"), "VULKAN"),
+		model.Default(model.None, model.Path("display", "quality", "surface_scale"), "2"),
+		model.Default(model.None, model.Path("input", "bindings", "port1"), model.SteamDeckGUID),
+		model.Default(model.None, model.Path("input", "bindings", "port2"), model.SteamDeckGUID),
+		model.Default(model.None, model.Path("input", "bindings", "port3"), model.SteamDeckGUID),
+		model.Default(model.None, model.Path("input", "bindings", "port4"), model.SteamDeckGUID),
 	}
 
 	patches := []model.ConfigPatch{{

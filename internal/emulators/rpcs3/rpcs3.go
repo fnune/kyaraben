@@ -291,25 +291,25 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		{
 			Target: vfsTarget,
 			Entries: []model.ConfigEntry{
-				{Path: []string{"/dev_hdd0/"}, Value: store.SystemSavesDir(model.SystemIDPS3) + "/"},
-				{Path: []string{"/games/"}, Value: store.SystemRomsDir(model.SystemIDPS3)},
+				model.Entry(model.Store, model.Path("/dev_hdd0/"), store.SystemSavesDir(model.SystemIDPS3)+"/"),
+				model.Entry(model.Store, model.Path("/games/"), store.SystemRomsDir(model.SystemIDPS3)),
 			},
 		},
 		{
 			Target: guiTarget,
 			Entries: []model.ConfigEntry{
-				{Path: []string{"main_window", "infoBoxEnabledWelcome"}, Value: "false"},
-				{Path: []string{"main_window", "confirmationBoxExitGame"}, Value: "false"},
-				{Path: []string{"Meta", "checkUpdateStart"}, Value: "false"},
+				model.Entry(model.None, model.Path("main_window", "infoBoxEnabledWelcome"), "false"),
+				model.Entry(model.None, model.Path("main_window", "confirmationBoxExitGame"), "false"),
+				model.Entry(model.None, model.Path("Meta", "checkUpdateStart"), "false"),
 			},
 		},
 		{
 			Target:  inputProfileTarget,
-			Entries: []model.ConfigEntry{{Value: generateInputProfileYAML(), DefaultOnly: true}},
+			Entries: []model.ConfigEntry{model.Default(model.None, model.Path(), generateInputProfileYAML())},
 		},
 		{
 			Target:  activeProfilesTarget,
-			Entries: []model.ConfigEntry{{Value: activeProfilesYAML, DefaultOnly: true}},
+			Entries: []model.ConfigEntry{model.Default(model.None, model.Path(), activeProfilesYAML)},
 		},
 	}
 

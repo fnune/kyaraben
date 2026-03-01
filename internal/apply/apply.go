@@ -89,18 +89,9 @@ func (a *Applier) Preflight(ctx context.Context, cfg *model.KyarabenConfig, user
 		}
 
 		genCtx.Shaders = cfg.EmulatorShaders(emuID)
-		if controllerConfig != nil {
-			controllerConfig.ResetTracking()
-		}
 		result, err := gen.Generate(genCtx)
 		if err != nil {
 			return nil, fmt.Errorf("generating config for %s: %w", emuID, err)
-		}
-		usedInputs := controllerConfig.UsedInputs()
-		for i := range result.Patches {
-			if len(usedInputs) > 0 {
-				applyUsedInputs(&result.Patches[i], usedInputs)
-			}
 		}
 		allPatches = append(allPatches, result.Patches...)
 	}
@@ -221,19 +212,12 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		}
 
 		genCtx.Shaders = cfg.EmulatorShaders(emuID)
-		if controllerConfig != nil {
-			controllerConfig.ResetTracking()
-		}
 		result, err := gen.Generate(genCtx)
 		if err != nil {
 			return nil, fmt.Errorf("generating config for %s: %w", emuID, err)
 		}
-		usedInputs := controllerConfig.UsedInputs()
-		for i := range result.Patches {
+		for range result.Patches {
 			patchEmulators = append(patchEmulators, emuID)
-			if len(usedInputs) > 0 {
-				applyUsedInputs(&result.Patches[i], usedInputs)
-			}
 		}
 		allPatches = append(allPatches, result.Patches...)
 		if len(result.Symlinks) > 0 {
@@ -1590,10 +1574,4 @@ func collectConfigInputs(entries []model.ConfigEntry, controllerConfig *model.Co
 		}
 	}
 	return inputs
-}
-
-func applyUsedInputs(patch *model.ConfigPatch, inputs []model.ConfigInput) {
-	for i := range patch.Entries {
-		patch.Entries[i].DependsOn = inputs
-	}
 }

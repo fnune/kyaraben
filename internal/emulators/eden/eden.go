@@ -94,11 +94,11 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	store := ctx.Store
 
 	entries := []model.ConfigEntry{
-		{Path: []string{"UI", "Screenshots\\screenshot_path"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDEden)},
-		{Path: []string{"UI", "Paths\\gamedirs\\size"}, Value: "1"},
-		{Path: []string{"UI", "Paths\\gamedirs\\1\\deep_scan"}, Value: "false"},
-		{Path: []string{"UI", "Paths\\gamedirs\\1\\expanded"}, Value: "true"},
-		{Path: []string{"UI", "Paths\\gamedirs\\1\\path"}, Value: store.SystemRomsDir(model.SystemIDSwitch)},
+		model.Entry(model.Store, model.Path("UI", "Screenshots\\screenshot_path"), store.EmulatorScreenshotsDir(model.EmulatorIDEden)),
+		model.Entry(model.Store, model.Path("UI", "Paths\\gamedirs\\size"), "1"),
+		model.Entry(model.Store, model.Path("UI", "Paths\\gamedirs\\1\\deep_scan"), "false"),
+		model.Entry(model.Store, model.Path("UI", "Paths\\gamedirs\\1\\expanded"), "true"),
+		model.Entry(model.Store, model.Path("UI", "Paths\\gamedirs\\1\\path"), store.SystemRomsDir(model.SystemIDSwitch)),
 	}
 
 	entries = append(entries, performanceEntries()...)
@@ -165,8 +165,8 @@ func performanceEntries() []model.ConfigEntry {
 	var entries []model.ConfigEntry
 	for _, s := range settings {
 		entries = append(entries,
-			model.ConfigEntry{Path: []string{s.section, s.key}, Value: s.value, DefaultOnly: true},
-			model.ConfigEntry{Path: []string{s.section, s.key + `\default`}, Value: "false", DefaultOnly: true},
+			model.Default(model.None, model.Path(s.section, s.key), s.value),
+			model.Default(model.None, model.Path(s.section, s.key+`\default`), "false"),
 		)
 	}
 	return entries
@@ -210,10 +210,11 @@ func edenStickRef(guid string, port, axisX, axisY int) string {
 
 // bindingEntry creates a ConfigEntry for Eden binding values with semantic
 // comparison enabled. Eden's key ordering in binding strings is nondeterministic.
-func bindingEntry(path []string, value string) model.ConfigEntry {
+func bindingEntry(deps []model.ConfigInput, path []string, value string) model.ConfigEntry {
 	return model.ConfigEntry{
 		Path:         path,
 		Value:        value,
+		DependsOn:    deps,
 		EqualityFunc: configformat.BindingValuesEqual,
 	}
 }
@@ -243,25 +244,25 @@ func profileEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	guid := model.SteamDeckGUID
 
 	return []model.ConfigEntry{
-		{Path: []string{"Controls", "type"}, Value: "0"},
-		bindingEntry([]string{"Controls", "button_a"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckFaceButton(east)))),
-		bindingEntry([]string{"Controls", "button_b"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckFaceButton(south)))),
-		bindingEntry([]string{"Controls", "button_x"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckFaceButton(north)))),
-		bindingEntry([]string{"Controls", "button_y"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckFaceButton(west)))),
-		bindingEntry([]string{"Controls", "button_lstick"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckButtonLStick))),
-		bindingEntry([]string{"Controls", "button_rstick"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckButtonRStick))),
-		bindingEntry([]string{"Controls", "button_l"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckButtonL))),
-		bindingEntry([]string{"Controls", "button_r"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckButtonR))),
-		bindingEntry([]string{"Controls", "button_zl"}, fmt.Sprintf(`"%s"`, edenAxisRef(guid, 0, model.AxisLeftTrigger))),
-		bindingEntry([]string{"Controls", "button_zr"}, fmt.Sprintf(`"%s"`, edenAxisRef(guid, 0, model.AxisRightTrigger))),
-		bindingEntry([]string{"Controls", "button_plus"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckButtonPlus))),
-		bindingEntry([]string{"Controls", "button_minus"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckButtonMinus))),
-		bindingEntry([]string{"Controls", "button_dleft"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, 0, 0, "left"))),
-		bindingEntry([]string{"Controls", "button_dright"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, 0, 0, "right"))),
-		bindingEntry([]string{"Controls", "button_dup"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, 0, 0, "up"))),
-		bindingEntry([]string{"Controls", "button_ddown"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, 0, 0, "down"))),
-		bindingEntry([]string{"Controls", "lstick"}, fmt.Sprintf(`"%s"`, edenStickRef(guid, 0, model.AxisLeftX, model.AxisLeftY))),
-		bindingEntry([]string{"Controls", "rstick"}, fmt.Sprintf(`"%s"`, edenStickRef(guid, 0, model.AxisRightX, model.AxisRightY))),
+		model.Entry(model.None, model.Path("Controls", "type"), "0"),
+		bindingEntry(model.Nintendo, model.Path("Controls", "button_a"), fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckFaceButton(east)))),
+		bindingEntry(model.Nintendo, model.Path("Controls", "button_b"), fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckFaceButton(south)))),
+		bindingEntry(model.Nintendo, model.Path("Controls", "button_x"), fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckFaceButton(north)))),
+		bindingEntry(model.Nintendo, model.Path("Controls", "button_y"), fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckFaceButton(west)))),
+		bindingEntry(model.None, model.Path("Controls", "button_lstick"), fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckButtonLStick))),
+		bindingEntry(model.None, model.Path("Controls", "button_rstick"), fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckButtonRStick))),
+		bindingEntry(model.None, model.Path("Controls", "button_l"), fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckButtonL))),
+		bindingEntry(model.None, model.Path("Controls", "button_r"), fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckButtonR))),
+		bindingEntry(model.None, model.Path("Controls", "button_zl"), fmt.Sprintf(`"%s"`, edenAxisRef(guid, 0, model.AxisLeftTrigger))),
+		bindingEntry(model.None, model.Path("Controls", "button_zr"), fmt.Sprintf(`"%s"`, edenAxisRef(guid, 0, model.AxisRightTrigger))),
+		bindingEntry(model.None, model.Path("Controls", "button_plus"), fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckButtonPlus))),
+		bindingEntry(model.None, model.Path("Controls", "button_minus"), fmt.Sprintf(`"%s"`, edenButtonRef(guid, 0, steamDeckButtonMinus))),
+		bindingEntry(model.None, model.Path("Controls", "button_dleft"), fmt.Sprintf(`"%s"`, edenHatRef(guid, 0, 0, "left"))),
+		bindingEntry(model.None, model.Path("Controls", "button_dright"), fmt.Sprintf(`"%s"`, edenHatRef(guid, 0, 0, "right"))),
+		bindingEntry(model.None, model.Path("Controls", "button_dup"), fmt.Sprintf(`"%s"`, edenHatRef(guid, 0, 0, "up"))),
+		bindingEntry(model.None, model.Path("Controls", "button_ddown"), fmt.Sprintf(`"%s"`, edenHatRef(guid, 0, 0, "down"))),
+		bindingEntry(model.None, model.Path("Controls", "lstick"), fmt.Sprintf(`"%s"`, edenStickRef(guid, 0, model.AxisLeftX, model.AxisLeftY))),
+		bindingEntry(model.None, model.Path("Controls", "rstick"), fmt.Sprintf(`"%s"`, edenStickRef(guid, 0, model.AxisRightX, model.AxisRightY))),
 	}
 }
 
@@ -277,35 +278,39 @@ func qtConfigControllerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 
 	for i := 0; i < 2; i++ {
 		prefix := fmt.Sprintf("player_%d_", i)
+		if i > 0 {
+			entries = append(entries, model.Default(model.None, model.Path("Controls", prefix+"connected"), "true"))
+		} else {
+			entries = append(entries, model.Entry(model.None, model.Path("Controls", prefix+"connected"), "true"))
+		}
 		entries = append(entries,
-			model.ConfigEntry{Path: []string{"Controls", prefix + "connected"}, Value: "true", DefaultOnly: i > 0},
-			model.ConfigEntry{Path: []string{"Controls", prefix + "profile_name"}, Value: "Kyaraben", DefaultOnly: true},
-			model.ConfigEntry{Path: []string{"Controls", prefix + "type"}, Value: "0", DefaultOnly: true},
+			model.Default(model.None, model.Path("Controls", prefix+"profile_name"), "Kyaraben"),
+			model.Default(model.None, model.Path("Controls", prefix+"type"), "0"),
 		)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_a"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckFaceButton(east))))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_b"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckFaceButton(south))))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_x"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckFaceButton(north))))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_y"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckFaceButton(west))))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_lstick"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckButtonLStick)))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_rstick"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckButtonRStick)))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_l"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckButtonL)))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_r"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckButtonR)))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_zl"}, fmt.Sprintf(`"%s"`, edenAxisRef(guid, i, model.AxisLeftTrigger)))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_zr"}, fmt.Sprintf(`"%s"`, edenAxisRef(guid, i, model.AxisRightTrigger)))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_plus"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckButtonPlus)))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_minus"}, fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckButtonMinus)))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_dleft"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "left")))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_dright"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "right")))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_dup"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "up")))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "button_ddown"}, fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "down")))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "lstick"}, fmt.Sprintf(`"%s"`, edenStickRef(guid, i, model.AxisLeftX, model.AxisLeftY)))...)
-		entries = append(entries, defaultBindingEntries([]string{"Controls", prefix + "rstick"}, fmt.Sprintf(`"%s"`, edenStickRef(guid, i, model.AxisRightX, model.AxisRightY)))...)
+		entries = append(entries, defaultBindingEntries(model.Nintendo, model.Path("Controls", prefix+"button_a"), fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckFaceButton(east))))...)
+		entries = append(entries, defaultBindingEntries(model.Nintendo, model.Path("Controls", prefix+"button_b"), fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckFaceButton(south))))...)
+		entries = append(entries, defaultBindingEntries(model.Nintendo, model.Path("Controls", prefix+"button_x"), fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckFaceButton(north))))...)
+		entries = append(entries, defaultBindingEntries(model.Nintendo, model.Path("Controls", prefix+"button_y"), fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckFaceButton(west))))...)
+		entries = append(entries, defaultBindingEntries(model.None, model.Path("Controls", prefix+"button_lstick"), fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckButtonLStick)))...)
+		entries = append(entries, defaultBindingEntries(model.None, model.Path("Controls", prefix+"button_rstick"), fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckButtonRStick)))...)
+		entries = append(entries, defaultBindingEntries(model.None, model.Path("Controls", prefix+"button_l"), fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckButtonL)))...)
+		entries = append(entries, defaultBindingEntries(model.None, model.Path("Controls", prefix+"button_r"), fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckButtonR)))...)
+		entries = append(entries, defaultBindingEntries(model.None, model.Path("Controls", prefix+"button_zl"), fmt.Sprintf(`"%s"`, edenAxisRef(guid, i, model.AxisLeftTrigger)))...)
+		entries = append(entries, defaultBindingEntries(model.None, model.Path("Controls", prefix+"button_zr"), fmt.Sprintf(`"%s"`, edenAxisRef(guid, i, model.AxisRightTrigger)))...)
+		entries = append(entries, defaultBindingEntries(model.None, model.Path("Controls", prefix+"button_plus"), fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckButtonPlus)))...)
+		entries = append(entries, defaultBindingEntries(model.None, model.Path("Controls", prefix+"button_minus"), fmt.Sprintf(`"%s"`, edenButtonRef(guid, i, steamDeckButtonMinus)))...)
+		entries = append(entries, defaultBindingEntries(model.None, model.Path("Controls", prefix+"button_dleft"), fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "left")))...)
+		entries = append(entries, defaultBindingEntries(model.None, model.Path("Controls", prefix+"button_dright"), fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "right")))...)
+		entries = append(entries, defaultBindingEntries(model.None, model.Path("Controls", prefix+"button_dup"), fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "up")))...)
+		entries = append(entries, defaultBindingEntries(model.None, model.Path("Controls", prefix+"button_ddown"), fmt.Sprintf(`"%s"`, edenHatRef(guid, i, 0, "down")))...)
+		entries = append(entries, defaultBindingEntries(model.None, model.Path("Controls", prefix+"lstick"), fmt.Sprintf(`"%s"`, edenStickRef(guid, i, model.AxisLeftX, model.AxisLeftY)))...)
+		entries = append(entries, defaultBindingEntries(model.None, model.Path("Controls", prefix+"rstick"), fmt.Sprintf(`"%s"`, edenStickRef(guid, i, model.AxisRightX, model.AxisRightY)))...)
 	}
 
 	return entries
 }
 
-func defaultBindingEntries(path []string, value string) []model.ConfigEntry {
+func defaultBindingEntries(deps []model.ConfigInput, path []string, value string) []model.ConfigEntry {
 	defaultFlagPath := make([]string, len(path))
 	copy(defaultFlagPath, path)
 	defaultFlagPath[len(defaultFlagPath)-1] = defaultFlagPath[len(defaultFlagPath)-1] + `\default`
@@ -314,12 +319,14 @@ func defaultBindingEntries(path []string, value string) []model.ConfigEntry {
 		{
 			Path:         path,
 			Value:        value,
+			DependsOn:    deps,
 			DefaultOnly:  true,
 			EqualityFunc: configformat.BindingValuesEqual,
 		},
 		{
 			Path:        defaultFlagPath,
 			Value:       "false",
+			DependsOn:   deps,
 			DefaultOnly: true,
 		},
 	}
@@ -417,14 +424,8 @@ func hotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	for _, m := range mappings {
 		if len(m.binding.Buttons) > 0 {
 			entries = append(entries,
-				model.ConfigEntry{
-					Path:  []string{"UI", m.key},
-					Value: edenHotkeyRef(m.binding, fb),
-				},
-				model.ConfigEntry{
-					Path:  []string{"UI", m.key + `\default`},
-					Value: "false",
-				},
+				model.Entry(model.None, model.Path("UI", m.key), edenHotkeyRef(m.binding, fb)),
+				model.Entry(model.None, model.Path("UI", m.key+`\default`), "false"),
 			)
 		}
 	}

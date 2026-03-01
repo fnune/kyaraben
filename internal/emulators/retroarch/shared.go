@@ -61,26 +61,25 @@ type ShaderConfig struct {
 // Screenshots go directly to a shared retroarch directory (no per-core sorting).
 // See: https://docs.libretro.com/guides/change-directories/
 func SharedConfig(store model.StoreReader, cc *model.ControllerConfig, sc *ShaderConfig) model.ConfigPatch {
-	storeDeps := []model.ConfigInput{model.ConfigInputUserStore}
 	entries := []model.ConfigEntry{
-		{Path: []string{"libretro_directory"}, Value: store.CoresDir(), DependsOn: storeDeps},
-		{Path: []string{"screenshot_directory"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDRetroArchBsnes), DependsOn: storeDeps},
-		{Path: []string{"video_driver"}, Value: "vulkan"},
-		{Path: []string{"sort_savefiles_enable"}, Value: "true"},
-		{Path: []string{"sort_savestates_enable"}, Value: "true"},
-		{Path: []string{"sort_savefiles_by_content_enable"}, Value: "false"},
-		{Path: []string{"sort_savestates_by_content_enable"}, Value: "false"},
-		{Path: []string{"rgui_browser_directory"}, Value: store.RomsDir(), DependsOn: storeDeps},
-		{Path: []string{"menu_driver"}, Value: "ozone", DefaultOnly: true},
-		{Path: []string{"menu_show_load_content_animation"}, Value: "false"},
-		{Path: []string{"notification_show_config_override_load"}, Value: "false", DefaultOnly: true},
-		{Path: []string{"notification_show_remap_load"}, Value: "false", DefaultOnly: true},
-		{Path: []string{"notification_show_autoconfig"}, Value: "false", DefaultOnly: true},
-		{Path: []string{"quit_press_twice"}, Value: "false"},
-		{Path: []string{"input_player1_analog_dpad_mode"}, Value: "1", DefaultOnly: true},
-		{Path: []string{"input_player2_analog_dpad_mode"}, Value: "1", DefaultOnly: true},
-		{Path: []string{"input_player3_analog_dpad_mode"}, Value: "1", DefaultOnly: true},
-		{Path: []string{"input_player4_analog_dpad_mode"}, Value: "1", DefaultOnly: true},
+		model.Entry(model.Store, model.Path("libretro_directory"), store.CoresDir()),
+		model.Entry(model.Store, model.Path("screenshot_directory"), store.EmulatorScreenshotsDir(model.EmulatorIDRetroArchBsnes)),
+		model.Entry(model.None, model.Path("video_driver"), "vulkan"),
+		model.Entry(model.None, model.Path("sort_savefiles_enable"), "true"),
+		model.Entry(model.None, model.Path("sort_savestates_enable"), "true"),
+		model.Entry(model.None, model.Path("sort_savefiles_by_content_enable"), "false"),
+		model.Entry(model.None, model.Path("sort_savestates_by_content_enable"), "false"),
+		model.Entry(model.Store, model.Path("rgui_browser_directory"), store.RomsDir()),
+		model.Default(model.None, model.Path("menu_driver"), "ozone"),
+		model.Entry(model.None, model.Path("menu_show_load_content_animation"), "false"),
+		model.Default(model.None, model.Path("notification_show_config_override_load"), "false"),
+		model.Default(model.None, model.Path("notification_show_remap_load"), "false"),
+		model.Default(model.None, model.Path("notification_show_autoconfig"), "false"),
+		model.Entry(model.None, model.Path("quit_press_twice"), "false"),
+		model.Default(model.None, model.Path("input_player1_analog_dpad_mode"), "1"),
+		model.Default(model.None, model.Path("input_player2_analog_dpad_mode"), "1"),
+		model.Default(model.None, model.Path("input_player3_analog_dpad_mode"), "1"),
+		model.Default(model.None, model.Path("input_player4_analog_dpad_mode"), "1"),
 	}
 
 	if cc != nil {
@@ -88,7 +87,7 @@ func SharedConfig(store model.StoreReader, cc *model.ControllerConfig, sc *Shade
 	}
 
 	if sc != nil && sc.Shaders == model.ShadersOn {
-		entries = append(entries, model.ConfigEntry{Path: []string{"video_shader_enable"}, Value: "true"})
+		entries = append(entries, model.Entry(model.None, model.Path("video_shader_enable"), "true"))
 	}
 
 	return model.ConfigPatch{Target: MainConfigTarget, Entries: entries}
@@ -96,8 +95,8 @@ func SharedConfig(store model.StoreReader, cc *model.ControllerConfig, sc *Shade
 
 func controllerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	entries := []model.ConfigEntry{
-		{Path: []string{"input_joypad_driver"}, Value: "sdl2"},
-		{Path: []string{"input_autodetect_enable"}, Value: "true"},
+		model.Entry(model.None, model.Path("input_joypad_driver"), "sdl2"),
+		model.Entry(model.None, model.Path("input_autodetect_enable"), "true"),
 	}
 
 	// RetroArch's libretro "RetroPad" is based on SNES layout (A=east, B=south).
@@ -106,10 +105,10 @@ func controllerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	for i := 1; i <= 4; i++ {
 		prefix := fmt.Sprintf("input_player%d_", i)
 		entries = append(entries,
-			model.ConfigEntry{Path: []string{prefix + "a_btn"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[fb.East])},
-			model.ConfigEntry{Path: []string{prefix + "b_btn"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[fb.South])},
-			model.ConfigEntry{Path: []string{prefix + "x_btn"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[fb.North])},
-			model.ConfigEntry{Path: []string{prefix + "y_btn"}, Value: fmt.Sprintf("%d", model.SDLButtonIndex[fb.West])},
+			model.Entry(model.Nintendo, model.Path(prefix+"a_btn"), fmt.Sprintf("%d", model.SDLButtonIndex[fb.East])),
+			model.Entry(model.Nintendo, model.Path(prefix+"b_btn"), fmt.Sprintf("%d", model.SDLButtonIndex[fb.South])),
+			model.Entry(model.Nintendo, model.Path(prefix+"x_btn"), fmt.Sprintf("%d", model.SDLButtonIndex[fb.North])),
+			model.Entry(model.Nintendo, model.Path(prefix+"y_btn"), fmt.Sprintf("%d", model.SDLButtonIndex[fb.West])),
 		)
 	}
 
@@ -141,17 +140,11 @@ func controllerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 		}
 		if !enableBtnSet {
 			enableBtn := m.binding.Buttons[0]
-			entries = append(entries, model.ConfigEntry{
-				Path:  []string{"input_enable_hotkey_btn"},
-				Value: fmt.Sprintf("%d", cc.SDLIndex(enableBtn)),
-			})
+			entries = append(entries, model.Entry(model.None, model.Path("input_enable_hotkey_btn"), fmt.Sprintf("%d", cc.SDLIndex(enableBtn))))
 			enableBtnSet = true
 		}
 		actionBtn := m.binding.Buttons[len(m.binding.Buttons)-1]
-		entries = append(entries, model.ConfigEntry{
-			Path:  []string{m.key},
-			Value: fmt.Sprintf("%d", cc.SDLIndex(actionBtn)),
-		})
+		entries = append(entries, model.Entry(model.None, model.Path(m.key), fmt.Sprintf("%d", cc.SDLIndex(actionBtn))))
 	}
 
 	return entries
@@ -240,9 +233,7 @@ func CorePatches(emuID model.EmulatorID, store model.StoreReader, cc *model.Cont
 	var entries []model.ConfigEntry
 	if coreNeedsBiosDir[emuID] {
 		systemID := coreToSystem[emuID]
-		entries = append(entries, model.ConfigEntry{
-			Path: []string{"system_directory"}, Value: store.SystemBiosDir(systemID),
-		})
+		entries = append(entries, model.Entry(model.Store, model.Path("system_directory"), store.SystemBiosDir(systemID)))
 	}
 
 	if sc != nil && sc.Shaders != model.ShadersManual && sc.Shaders != "" {
@@ -255,14 +246,14 @@ func CorePatches(emuID model.EmulatorID, store model.StoreReader, cc *model.Cont
 			if err == nil {
 				presetPath := filepath.Join(configDir, "retroarch", "config", configDirName, configDirName+".slangp")
 				entries = append(entries,
-					model.ConfigEntry{Path: []string{"video_shader_enable"}, Value: "true"},
-					model.ConfigEntry{Path: []string{"video_shader"}, Value: presetPath},
+					model.Entry(model.None, model.Path("video_shader_enable"), "true"),
+					model.Entry(model.None, model.Path("video_shader"), presetPath),
 				)
 			}
 		} else {
 			entries = append(entries,
-				model.ConfigEntry{Path: []string{"video_shader_enable"}, Value: "false"},
-				model.ConfigEntry{Path: []string{"video_shader"}, Value: ""},
+				model.Entry(model.None, model.Path("video_shader_enable"), "false"),
+				model.Entry(model.None, model.Path("video_shader"), ""),
 			)
 		}
 	}
@@ -327,7 +318,7 @@ filter_linear0 = false
 
 	return &model.ConfigPatch{
 		Target:  target,
-		Entries: []model.ConfigEntry{{Path: []string{}, Value: content}},
+		Entries: []model.ConfigEntry{model.Entry(model.None, model.Path(), content)},
 	}
 }
 

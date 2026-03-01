@@ -103,19 +103,19 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		{
 			Target: configTarget,
 			Entries: []model.ConfigEntry{
-				{Path: []string{"General", "ISOPath0"}, Value: store.SystemRomsDir(model.SystemIDGameCube)},
-				{Path: []string{"General", "ISOPath1"}, Value: store.SystemRomsDir(model.SystemIDWii)},
-				{Path: []string{"General", "ISOPaths"}, Value: "2"},
-				{Path: []string{"General", "DumpPath"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDDolphin)},
-				{Path: []string{"Interface", "ConfirmStop"}, Value: "False"},
-				{Path: []string{"AutoUpdate", "UpdateTrack"}, Value: ""},
-				{Path: []string{"GBA", "BIOS"}, Value: store.SystemBiosDir(model.SystemIDGBA) + "/gba_bios.bin"},
-				{Path: []string{"GBA", "SavesPath"}, Value: store.SystemSavesDir(model.SystemIDGBA)},
-				{Path: []string{"GBA", "SavesInRomPath"}, Value: "0"},
-				{Path: []string{"Core", "SIDevice0"}, Value: "6", DefaultOnly: true},
-				{Path: []string{"Core", "SIDevice1"}, Value: "0", DefaultOnly: true},
-				{Path: []string{"Core", "SIDevice2"}, Value: "0", DefaultOnly: true},
-				{Path: []string{"Core", "SIDevice3"}, Value: "0", DefaultOnly: true},
+				model.Entry(model.Store, model.Path("General", "ISOPath0"), store.SystemRomsDir(model.SystemIDGameCube)),
+				model.Entry(model.Store, model.Path("General", "ISOPath1"), store.SystemRomsDir(model.SystemIDWii)),
+				model.Entry(model.None, model.Path("General", "ISOPaths"), "2"),
+				model.Entry(model.Store, model.Path("General", "DumpPath"), store.EmulatorScreenshotsDir(model.EmulatorIDDolphin)),
+				model.Entry(model.None, model.Path("Interface", "ConfirmStop"), "False"),
+				model.Entry(model.None, model.Path("AutoUpdate", "UpdateTrack"), ""),
+				model.Entry(model.Store, model.Path("GBA", "BIOS"), store.SystemBiosDir(model.SystemIDGBA)+"/gba_bios.bin"),
+				model.Entry(model.Store, model.Path("GBA", "SavesPath"), store.SystemSavesDir(model.SystemIDGBA)),
+				model.Entry(model.None, model.Path("GBA", "SavesInRomPath"), "0"),
+				model.Default(model.None, model.Path("Core", "SIDevice0"), "6"),
+				model.Default(model.None, model.Path("Core", "SIDevice1"), "0"),
+				model.Default(model.None, model.Path("Core", "SIDevice2"), "0"),
+				model.Default(model.None, model.Path("Core", "SIDevice3"), "0"),
 			},
 		},
 		{
@@ -175,29 +175,36 @@ func gcPadBindingEntries(cc *model.ControllerConfig, section string, defaultOnly
 		"Y": fb.West,
 	}
 
+	newEntry := func(path []string, value string) model.ConfigEntry {
+		if defaultOnly {
+			return model.Default(model.Nintendo, path, value)
+		}
+		return model.Entry(model.Nintendo, path, value)
+	}
+
 	return []model.ConfigEntry{
-		{Path: []string{section, "Buttons/A"}, Value: fmt.Sprintf("`Button %s`", string(faceMap["A"])), DefaultOnly: defaultOnly},
-		{Path: []string{section, "Buttons/B"}, Value: fmt.Sprintf("`Button %s`", string(faceMap["B"])), DefaultOnly: defaultOnly},
-		{Path: []string{section, "Buttons/X"}, Value: fmt.Sprintf("`Button %s`", string(faceMap["X"])), DefaultOnly: defaultOnly},
-		{Path: []string{section, "Buttons/Y"}, Value: fmt.Sprintf("`Button %s`", string(faceMap["Y"])), DefaultOnly: defaultOnly},
-		{Path: []string{section, "Buttons/Z"}, Value: "`Shoulder R`", DefaultOnly: defaultOnly},
-		{Path: []string{section, "Buttons/Start"}, Value: "Start", DefaultOnly: defaultOnly},
-		{Path: []string{section, "Main Stick/Up"}, Value: "`Left Y+`", DefaultOnly: defaultOnly},
-		{Path: []string{section, "Main Stick/Down"}, Value: "`Left Y-`", DefaultOnly: defaultOnly},
-		{Path: []string{section, "Main Stick/Left"}, Value: "`Left X-`", DefaultOnly: defaultOnly},
-		{Path: []string{section, "Main Stick/Right"}, Value: "`Left X+`", DefaultOnly: defaultOnly},
-		{Path: []string{section, "C-Stick/Up"}, Value: "`Right Y+`", DefaultOnly: defaultOnly},
-		{Path: []string{section, "C-Stick/Down"}, Value: "`Right Y-`", DefaultOnly: defaultOnly},
-		{Path: []string{section, "C-Stick/Left"}, Value: "`Right X-`", DefaultOnly: defaultOnly},
-		{Path: []string{section, "C-Stick/Right"}, Value: "`Right X+`", DefaultOnly: defaultOnly},
-		{Path: []string{section, "Triggers/L"}, Value: "`Trigger L`", DefaultOnly: defaultOnly},
-		{Path: []string{section, "Triggers/R"}, Value: "`Trigger R`", DefaultOnly: defaultOnly},
-		{Path: []string{section, "Triggers/L-Analog"}, Value: "`Trigger L`", DefaultOnly: defaultOnly},
-		{Path: []string{section, "Triggers/R-Analog"}, Value: "`Trigger R`", DefaultOnly: defaultOnly},
-		{Path: []string{section, "D-Pad/Down"}, Value: "`Pad S`", DefaultOnly: defaultOnly},
-		{Path: []string{section, "D-Pad/Left"}, Value: "`Pad W`", DefaultOnly: defaultOnly},
-		{Path: []string{section, "D-Pad/Right"}, Value: "`Pad E`", DefaultOnly: defaultOnly},
-		{Path: []string{section, "Rumble/Motor"}, Value: "`Motor L`|`Motor R`", DefaultOnly: defaultOnly},
+		newEntry(model.Path(section, "Buttons/A"), fmt.Sprintf("`Button %s`", string(faceMap["A"]))),
+		newEntry(model.Path(section, "Buttons/B"), fmt.Sprintf("`Button %s`", string(faceMap["B"]))),
+		newEntry(model.Path(section, "Buttons/X"), fmt.Sprintf("`Button %s`", string(faceMap["X"]))),
+		newEntry(model.Path(section, "Buttons/Y"), fmt.Sprintf("`Button %s`", string(faceMap["Y"]))),
+		newEntry(model.Path(section, "Buttons/Z"), "`Shoulder R`"),
+		newEntry(model.Path(section, "Buttons/Start"), "Start"),
+		newEntry(model.Path(section, "Main Stick/Up"), "`Left Y+`"),
+		newEntry(model.Path(section, "Main Stick/Down"), "`Left Y-`"),
+		newEntry(model.Path(section, "Main Stick/Left"), "`Left X-`"),
+		newEntry(model.Path(section, "Main Stick/Right"), "`Left X+`"),
+		newEntry(model.Path(section, "C-Stick/Up"), "`Right Y+`"),
+		newEntry(model.Path(section, "C-Stick/Down"), "`Right Y-`"),
+		newEntry(model.Path(section, "C-Stick/Left"), "`Right X-`"),
+		newEntry(model.Path(section, "C-Stick/Right"), "`Right X+`"),
+		newEntry(model.Path(section, "Triggers/L"), "`Trigger L`"),
+		newEntry(model.Path(section, "Triggers/R"), "`Trigger R`"),
+		newEntry(model.Path(section, "Triggers/L-Analog"), "`Trigger L`"),
+		newEntry(model.Path(section, "Triggers/R-Analog"), "`Trigger R`"),
+		newEntry(model.Path(section, "D-Pad/Down"), "`Pad S`"),
+		newEntry(model.Path(section, "D-Pad/Left"), "`Pad W`"),
+		newEntry(model.Path(section, "D-Pad/Right"), "`Pad E`"),
+		newEntry(model.Path(section, "Rumble/Motor"), "`Motor L`|`Motor R`"),
 	}
 }
 
@@ -209,7 +216,7 @@ func gcPadEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	for i := 0; i < 4; i++ {
 		section := fmt.Sprintf("GCPad%d", i+1)
 		device := fmt.Sprintf("SDL/%d/Steam Deck Controller", i)
-		entries = append(entries, model.ConfigEntry{Path: []string{section, "Device"}, Value: device, DefaultOnly: true})
+		entries = append(entries, model.Default(model.None, model.Path(section, "Device"), device))
 		entries = append(entries, gcPadBindingEntries(cc, section, true)...)
 	}
 	return entries
@@ -280,7 +287,7 @@ func dolphinHotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	section := "Hotkeys"
 
 	entries := []model.ConfigEntry{
-		{Path: []string{section, "Device"}, Value: "SDL/0/Steam Deck Controller", DefaultOnly: true},
+		model.Default(model.None, model.Path(section, "Device"), "SDL/0/Steam Deck Controller"),
 	}
 
 	type mapping struct {
@@ -306,11 +313,7 @@ func dolphinHotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 			if m.toggle {
 				value = "toggle(" + value + ")"
 			}
-			entries = append(entries, model.ConfigEntry{
-				Path:        []string{section, m.key},
-				Value:       value,
-				DefaultOnly: true,
-			})
+			entries = append(entries, model.Default(model.None, model.Path(section, m.key), value))
 		}
 	}
 	return entries
@@ -376,17 +379,13 @@ func buildDolphinProvisionGroups() []model.ProvisionGroup {
 
 func gfxEntries(shaders string) []model.ConfigEntry {
 	entries := []model.ConfigEntry{
-		{Path: []string{"Settings", "InternalResolution"}, Value: "2", DefaultOnly: true},
+		model.Default(model.None, model.Path("Settings", "InternalResolution"), "2"),
 	}
 	switch shaders {
 	case model.ShadersOn:
-		entries = append(entries, model.ConfigEntry{
-			Path: []string{"Enhancements", "PostProcessingShader"}, Value: "crt_lottes_fast",
-		})
+		entries = append(entries, model.Entry(model.None, model.Path("Enhancements", "PostProcessingShader"), "crt_lottes_fast"))
 	case model.ShadersOff:
-		entries = append(entries, model.ConfigEntry{
-			Path: []string{"Enhancements", "PostProcessingShader"}, Value: "",
-		})
+		entries = append(entries, model.Entry(model.None, model.Path("Enhancements", "PostProcessingShader"), ""))
 	}
 	return entries
 }

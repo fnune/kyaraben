@@ -59,8 +59,8 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	patches = append(patches, model.ConfigPatch{
 		Target: coreOptionsTarget,
 		Entries: []model.ConfigEntry{
-			{Path: []string{"mupen64plus-43screensize"}, Value: "1280x960", DefaultOnly: true},
-			{Path: []string{"mupen64plus-169screensize"}, Value: "1920x1080", DefaultOnly: true},
+			model.Default(model.None, model.Path("mupen64plus-43screensize"), "1280x960"),
+			model.Default(model.None, model.Path("mupen64plus-169screensize"), "1920x1080"),
 		},
 	})
 

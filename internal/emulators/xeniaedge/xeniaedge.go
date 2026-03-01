@@ -53,10 +53,10 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	romsDir := store.SystemRomsDir(model.SystemIDXbox360)
 
 	entries := []model.ConfigEntry{
-		{Path: []string{"Storage", "content_root"}, Value: romsDir},
-		{Path: []string{"Storage", "storage_root"}, Value: savesDir},
-		{Path: []string{"HID", "hid"}, Value: "sdl"},
-		{Path: []string{"HID", "guide_button"}, Value: "false"},
+		model.Entry(model.Store, model.Path("Storage", "content_root"), romsDir),
+		model.Entry(model.Store, model.Path("Storage", "storage_root"), savesDir),
+		model.Entry(model.None, model.Path("HID", "hid"), "sdl"),
+		model.Entry(model.None, model.Path("HID", "guide_button"), "false"),
 	}
 
 	patches := []model.ConfigPatch{{

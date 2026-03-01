@@ -68,22 +68,22 @@ type Config struct{}
 func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
 	store := ctx.Store
 	entries := []model.ConfigEntry{
-		{Path: []string{"UI", "SettingsVersion"}, Value: "1"},
-		{Path: []string{"UI", "SetupWizardIncomplete"}, Value: "false"},
-		{Path: []string{"UI", "ConfirmShutdown"}, Value: "false"},
-		{Path: []string{"UI", "StartFullscreen"}, Value: "true"},
-		{Path: []string{"Folders", "Bios"}, Value: store.SystemBiosDir(model.SystemIDPS2)},
-		{Path: []string{"Folders", "MemoryCards"}, Value: store.SystemSavesDir(model.SystemIDPS2)},
-		{Path: []string{"Folders", "Savestates"}, Value: store.EmulatorStatesDir(model.EmulatorIDPCSX2)},
-		{Path: []string{"Folders", "Snapshots"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDPCSX2)},
-		{Path: []string{"GameList", "RecursivePaths"}, Value: store.SystemRomsDir(model.SystemIDPS2)},
+		model.Entry(model.None, model.Path("UI", "SettingsVersion"), "1"),
+		model.Entry(model.None, model.Path("UI", "SetupWizardIncomplete"), "false"),
+		model.Entry(model.None, model.Path("UI", "ConfirmShutdown"), "false"),
+		model.Entry(model.None, model.Path("UI", "StartFullscreen"), "true"),
+		model.Entry(model.Store, model.Path("Folders", "Bios"), store.SystemBiosDir(model.SystemIDPS2)),
+		model.Entry(model.Store, model.Path("Folders", "MemoryCards"), store.SystemSavesDir(model.SystemIDPS2)),
+		model.Entry(model.Store, model.Path("Folders", "Savestates"), store.EmulatorStatesDir(model.EmulatorIDPCSX2)),
+		model.Entry(model.Store, model.Path("Folders", "Snapshots"), store.EmulatorScreenshotsDir(model.EmulatorIDPCSX2)),
+		model.Entry(model.Store, model.Path("GameList", "RecursivePaths"), store.SystemRomsDir(model.SystemIDPS2)),
 	}
 
 	switch ctx.Shaders {
 	case model.ShadersOn:
-		entries = append(entries, model.ConfigEntry{Path: []string{"EmuCore/GS", "TVShader"}, Value: "5"})
+		entries = append(entries, model.Entry(model.None, model.Path("EmuCore/GS", "TVShader"), "5"))
 	case model.ShadersOff:
-		entries = append(entries, model.ConfigEntry{Path: []string{"EmuCore/GS", "TVShader"}, Value: "0"})
+		entries = append(entries, model.Entry(model.None, model.Path("EmuCore/GS", "TVShader"), "0"))
 	}
 
 	patches := []model.ConfigPatch{{Target: configTarget, Entries: entries}}
@@ -102,7 +102,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 
 		// Also create a profile file users can reapply (fully managed).
 		profileEntries := []model.ConfigEntry{
-			{Path: []string{"Pad", "UseProfileHotkeyBindings"}, Value: "true"},
+			model.Entry(model.None, model.Path("Pad", "UseProfileHotkeyBindings"), "true"),
 		}
 		profileEntries = append(profileEntries, padEntries(cc)...)
 		profileEntries = append(profileEntries, hotkeyEntries(cc)...)
@@ -147,33 +147,33 @@ func padEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	for i := 0; i < 4; i++ {
 		section := fmt.Sprintf("Pad%d", i+1)
 		entries = append(entries,
-			model.ConfigEntry{Path: []string{section, "Type"}, Value: "DualShock2"},
-			model.ConfigEntry{Path: []string{section, "Cross"}, Value: sdlRef(i, south)},
-			model.ConfigEntry{Path: []string{section, "Circle"}, Value: sdlRef(i, east)},
-			model.ConfigEntry{Path: []string{section, "Square"}, Value: sdlRef(i, west)},
-			model.ConfigEntry{Path: []string{section, "Triangle"}, Value: sdlRef(i, north)},
-			model.ConfigEntry{Path: []string{section, "L1"}, Value: sdlRef(i, model.ButtonLeftShoulder)},
-			model.ConfigEntry{Path: []string{section, "R1"}, Value: sdlRef(i, model.ButtonRightShoulder)},
-			model.ConfigEntry{Path: []string{section, "L2"}, Value: sdlAxisRef(i, "LeftTrigger", true)},
-			model.ConfigEntry{Path: []string{section, "R2"}, Value: sdlAxisRef(i, "RightTrigger", true)},
-			model.ConfigEntry{Path: []string{section, "L3"}, Value: sdlRef(i, model.ButtonLeftStick)},
-			model.ConfigEntry{Path: []string{section, "R3"}, Value: sdlRef(i, model.ButtonRightStick)},
-			model.ConfigEntry{Path: []string{section, "Up"}, Value: sdlRef(i, model.ButtonDPadUp)},
-			model.ConfigEntry{Path: []string{section, "Down"}, Value: sdlRef(i, model.ButtonDPadDown)},
-			model.ConfigEntry{Path: []string{section, "Left"}, Value: sdlRef(i, model.ButtonDPadLeft)},
-			model.ConfigEntry{Path: []string{section, "Right"}, Value: sdlRef(i, model.ButtonDPadRight)},
-			model.ConfigEntry{Path: []string{section, "LLeft"}, Value: sdlAxisRef(i, "LeftX", false)},
-			model.ConfigEntry{Path: []string{section, "LRight"}, Value: sdlAxisRef(i, "LeftX", true)},
-			model.ConfigEntry{Path: []string{section, "LUp"}, Value: sdlAxisRef(i, "LeftY", false)},
-			model.ConfigEntry{Path: []string{section, "LDown"}, Value: sdlAxisRef(i, "LeftY", true)},
-			model.ConfigEntry{Path: []string{section, "RLeft"}, Value: sdlAxisRef(i, "RightX", false)},
-			model.ConfigEntry{Path: []string{section, "RRight"}, Value: sdlAxisRef(i, "RightX", true)},
-			model.ConfigEntry{Path: []string{section, "RUp"}, Value: sdlAxisRef(i, "RightY", false)},
-			model.ConfigEntry{Path: []string{section, "RDown"}, Value: sdlAxisRef(i, "RightY", true)},
-			model.ConfigEntry{Path: []string{section, "Start"}, Value: sdlRef(i, model.ButtonStart)},
-			model.ConfigEntry{Path: []string{section, "Select"}, Value: sdlRef(i, model.ButtonBack)},
-			model.ConfigEntry{Path: []string{section, "SmallMotor"}, Value: fmt.Sprintf("SDL-%d/SmallMotor", i)},
-			model.ConfigEntry{Path: []string{section, "LargeMotor"}, Value: fmt.Sprintf("SDL-%d/LargeMotor", i)},
+			model.Entry(model.None, model.Path(section, "Type"), "DualShock2"),
+			model.Entry(model.None, model.Path(section, "Cross"), sdlRef(i, south)),
+			model.Entry(model.None, model.Path(section, "Circle"), sdlRef(i, east)),
+			model.Entry(model.None, model.Path(section, "Square"), sdlRef(i, west)),
+			model.Entry(model.None, model.Path(section, "Triangle"), sdlRef(i, north)),
+			model.Entry(model.None, model.Path(section, "L1"), sdlRef(i, model.ButtonLeftShoulder)),
+			model.Entry(model.None, model.Path(section, "R1"), sdlRef(i, model.ButtonRightShoulder)),
+			model.Entry(model.None, model.Path(section, "L2"), sdlAxisRef(i, "LeftTrigger", true)),
+			model.Entry(model.None, model.Path(section, "R2"), sdlAxisRef(i, "RightTrigger", true)),
+			model.Entry(model.None, model.Path(section, "L3"), sdlRef(i, model.ButtonLeftStick)),
+			model.Entry(model.None, model.Path(section, "R3"), sdlRef(i, model.ButtonRightStick)),
+			model.Entry(model.None, model.Path(section, "Up"), sdlRef(i, model.ButtonDPadUp)),
+			model.Entry(model.None, model.Path(section, "Down"), sdlRef(i, model.ButtonDPadDown)),
+			model.Entry(model.None, model.Path(section, "Left"), sdlRef(i, model.ButtonDPadLeft)),
+			model.Entry(model.None, model.Path(section, "Right"), sdlRef(i, model.ButtonDPadRight)),
+			model.Entry(model.None, model.Path(section, "LLeft"), sdlAxisRef(i, "LeftX", false)),
+			model.Entry(model.None, model.Path(section, "LRight"), sdlAxisRef(i, "LeftX", true)),
+			model.Entry(model.None, model.Path(section, "LUp"), sdlAxisRef(i, "LeftY", false)),
+			model.Entry(model.None, model.Path(section, "LDown"), sdlAxisRef(i, "LeftY", true)),
+			model.Entry(model.None, model.Path(section, "RLeft"), sdlAxisRef(i, "RightX", false)),
+			model.Entry(model.None, model.Path(section, "RRight"), sdlAxisRef(i, "RightX", true)),
+			model.Entry(model.None, model.Path(section, "RUp"), sdlAxisRef(i, "RightY", false)),
+			model.Entry(model.None, model.Path(section, "RDown"), sdlAxisRef(i, "RightY", true)),
+			model.Entry(model.None, model.Path(section, "Start"), sdlRef(i, model.ButtonStart)),
+			model.Entry(model.None, model.Path(section, "Select"), sdlRef(i, model.ButtonBack)),
+			model.Entry(model.None, model.Path(section, "SmallMotor"), fmt.Sprintf("SDL-%d/SmallMotor", i)),
+			model.Entry(model.None, model.Path(section, "LargeMotor"), fmt.Sprintf("SDL-%d/LargeMotor", i)),
 		)
 	}
 	return entries
@@ -211,10 +211,7 @@ func hotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	var entries []model.ConfigEntry
 	for _, m := range mappings {
 		if len(m.binding.Buttons) > 0 {
-			entries = append(entries, model.ConfigEntry{
-				Path:  []string{section, m.key},
-				Value: hotkeyRef(m.binding),
-			})
+			entries = append(entries, model.Entry(model.None, model.Path(section, m.key), hotkeyRef(m.binding)))
 		}
 	}
 	return entries

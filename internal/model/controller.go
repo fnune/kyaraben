@@ -110,32 +110,9 @@ type HotkeyConfig struct {
 }
 
 // ControllerConfig holds the resolved controller configuration passed to generators.
-// It tracks which config inputs are accessed during generation.
 type ControllerConfig struct {
 	NintendoConfirm NintendoConfirmButton
 	Hotkeys         HotkeyConfig
-	usedInputs      map[ConfigInput]bool
-}
-
-func (cc *ControllerConfig) markUsed(input ConfigInput) {
-	if cc.usedInputs == nil {
-		cc.usedInputs = make(map[ConfigInput]bool)
-	}
-	cc.usedInputs[input] = true
-}
-
-// UsedInputs returns the config inputs that were accessed since the last reset.
-func (cc *ControllerConfig) UsedInputs() []ConfigInput {
-	result := make([]ConfigInput, 0, len(cc.usedInputs))
-	for input := range cc.usedInputs {
-		result = append(result, input)
-	}
-	return result
-}
-
-// ResetTracking clears the tracked config inputs.
-func (cc *ControllerConfig) ResetTracking() {
-	cc.usedInputs = nil
 }
 
 // DefaultHotkeys returns the default hotkey configuration.
@@ -199,19 +176,13 @@ type FaceButtonMapping struct {
 // given system. For Nintendo diamond-layout systems, buttons are swapped when
 // NintendoConfirmSouth is set so that physical south triggers Nintendo A.
 // For all other systems (including N64), positional mapping is used.
-//
-// When called for a Nintendo system, this automatically tracks that
-// ConfigInputNintendoConfirm was used.
 func (cc *ControllerConfig) FaceButtons(sys SystemID) FaceButtonMapping {
-	if nintendoDiamondSystems[sys] {
-		cc.markUsed(ConfigInputNintendoConfirm)
-		if cc.NintendoConfirm == NintendoConfirmSouth {
-			return FaceButtonMapping{
-				South: ButtonB, // Nintendo A (originally east) now at south
-				East:  ButtonA, // Nintendo B (originally south) now at east
-				West:  ButtonY,
-				North: ButtonX,
-			}
+	if nintendoDiamondSystems[sys] && cc.NintendoConfirm == NintendoConfirmSouth {
+		return FaceButtonMapping{
+			South: ButtonB, // Nintendo A (originally east) now at south
+			East:  ButtonA, // Nintendo B (originally south) now at east
+			West:  ButtonY,
+			North: ButtonX,
 		}
 	}
 	// Default: standard positional mapping (A=south, B=east, X=west, Y=north)

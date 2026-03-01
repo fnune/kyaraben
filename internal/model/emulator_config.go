@@ -184,12 +184,37 @@ type ValueEqualityFunc func(a, b string) bool
 // Constants are defined near their corresponding schema fields (e.g., in config.go).
 type ConfigInput string
 
+// ConfigInputNone indicates an entry has no dynamic dependencies.
+// Use this for static values that don't change based on user settings.
+const ConfigInputNone ConfigInput = "none"
+
+// Shorthand dependency lists for common cases.
+var (
+	None     = []ConfigInput{ConfigInputNone}
+	Store    = []ConfigInput{ConfigInputUserStore}
+	Nintendo = []ConfigInput{ConfigInputNintendoConfirm}
+)
+
+// Path builds a config path from variadic string arguments.
+func Path(parts ...string) []string { return parts }
+
+// Entry creates a ConfigEntry with the given dependencies, path, and value.
+// Dependencies must be specified explicitly to ensure correct diff detection.
+func Entry(deps []ConfigInput, path []string, value string) ConfigEntry {
+	return ConfigEntry{Path: path, Value: value, DependsOn: deps}
+}
+
+// Default creates a DefaultOnly ConfigEntry that only sets the value if the key doesn't exist.
+func Default(deps []ConfigInput, path []string, value string) ConfigEntry {
+	return ConfigEntry{Path: path, Value: value, DependsOn: deps, DefaultOnly: true}
+}
+
 type ConfigEntry struct {
 	Path         []string
 	Value        string
 	DefaultOnly  bool              // Only set if key doesn't exist; user changes are preserved
 	EqualityFunc ValueEqualityFunc // Optional custom equality check; nil uses string comparison
-	DependsOn    []ConfigInput     // Config inputs this entry depends on
+	DependsOn    []ConfigInput     // Config inputs this entry depends on; use None for static values
 }
 
 // ManagedRegion describes a portion of a config file that kyaraben manages.

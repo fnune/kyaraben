@@ -66,19 +66,19 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	store := ctx.Store
 
 	entries := []model.ConfigEntry{
-		{Path: []string{"General", "CurrentDirectory"}, Value: store.SystemRomsDir(model.SystemIDPSP)},
-		{Path: []string{"General", "AskForExitConfirmationAfterSeconds"}, Value: "0"},
-		{Path: []string{"General", "FirstRun"}, Value: "False"},
+		model.Entry(model.Store, model.Path("General", "CurrentDirectory"), store.SystemRomsDir(model.SystemIDPSP)),
+		model.Entry(model.None, model.Path("General", "AskForExitConfirmationAfterSeconds"), "0"),
+		model.Entry(model.None, model.Path("General", "FirstRun"), "False"),
 	}
 
 	switch ctx.Shaders {
 	case model.ShadersOn:
 		entries = append(entries,
-			model.ConfigEntry{Path: []string{"Graphics", "PostShaderNames"}, Value: "LCDPersistence"},
+			model.Entry(model.None, model.Path("Graphics", "PostShaderNames"), "LCDPersistence"),
 		)
 	case model.ShadersOff:
 		entries = append(entries,
-			model.ConfigEntry{Path: []string{"Graphics", "PostShaderNames"}, Value: "Off"},
+			model.Entry(model.None, model.Path("Graphics", "PostShaderNames"), "Off"),
 		)
 	}
 
@@ -149,22 +149,22 @@ func padEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 
 	// PSP maps: Cross=south, Circle=east, Square=west, Triangle=north
 	entries := []model.ConfigEntry{
-		{Path: []string{section, "Cross"}, Value: ppssppRef(fb.South)},
-		{Path: []string{section, "Circle"}, Value: ppssppRef(fb.East)},
-		{Path: []string{section, "Square"}, Value: ppssppRef(fb.West)},
-		{Path: []string{section, "Triangle"}, Value: ppssppRef(fb.North)},
-		{Path: []string{section, "Start"}, Value: ppssppRef(model.ButtonStart)},
-		{Path: []string{section, "Select"}, Value: ppssppRef(model.ButtonBack)},
-		{Path: []string{section, "L"}, Value: ppssppRef(model.ButtonLeftShoulder)},
-		{Path: []string{section, "R"}, Value: ppssppRef(model.ButtonRightShoulder)},
-		{Path: []string{section, "Up"}, Value: ppssppRef(model.ButtonDPadUp)},
-		{Path: []string{section, "Down"}, Value: ppssppRef(model.ButtonDPadDown)},
-		{Path: []string{section, "Left"}, Value: ppssppRef(model.ButtonDPadLeft)},
-		{Path: []string{section, "Right"}, Value: ppssppRef(model.ButtonDPadRight)},
-		{Path: []string{section, "An.Up"}, Value: "10-4003"},
-		{Path: []string{section, "An.Down"}, Value: "10-4002"},
-		{Path: []string{section, "An.Left"}, Value: "10-4001"},
-		{Path: []string{section, "An.Right"}, Value: "10-4000"},
+		model.Entry(model.None, model.Path(section, "Cross"), ppssppRef(fb.South)),
+		model.Entry(model.None, model.Path(section, "Circle"), ppssppRef(fb.East)),
+		model.Entry(model.None, model.Path(section, "Square"), ppssppRef(fb.West)),
+		model.Entry(model.None, model.Path(section, "Triangle"), ppssppRef(fb.North)),
+		model.Entry(model.None, model.Path(section, "Start"), ppssppRef(model.ButtonStart)),
+		model.Entry(model.None, model.Path(section, "Select"), ppssppRef(model.ButtonBack)),
+		model.Entry(model.None, model.Path(section, "L"), ppssppRef(model.ButtonLeftShoulder)),
+		model.Entry(model.None, model.Path(section, "R"), ppssppRef(model.ButtonRightShoulder)),
+		model.Entry(model.None, model.Path(section, "Up"), ppssppRef(model.ButtonDPadUp)),
+		model.Entry(model.None, model.Path(section, "Down"), ppssppRef(model.ButtonDPadDown)),
+		model.Entry(model.None, model.Path(section, "Left"), ppssppRef(model.ButtonDPadLeft)),
+		model.Entry(model.None, model.Path(section, "Right"), ppssppRef(model.ButtonDPadRight)),
+		model.Entry(model.None, model.Path(section, "An.Up"), "10-4003"),
+		model.Entry(model.None, model.Path(section, "An.Down"), "10-4002"),
+		model.Entry(model.None, model.Path(section, "An.Left"), "10-4001"),
+		model.Entry(model.None, model.Path(section, "An.Right"), "10-4000"),
 	}
 
 	hk := cc.Hotkeys
@@ -185,10 +185,7 @@ func padEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	}
 	for _, m := range mappings {
 		if len(m.binding.Buttons) > 0 {
-			entries = append(entries, model.ConfigEntry{
-				Path:  []string{section, m.key},
-				Value: ppssppHotkeyRef(m.binding),
-			})
+			entries = append(entries, model.Entry(model.None, model.Path(section, m.key), ppssppHotkeyRef(m.binding)))
 		}
 	}
 

@@ -91,15 +91,15 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		{
 			Target: configTarget,
 			Entries: []model.ConfigEntry{
-				{Path: []string{"show-welcome"}, Value: "false"},
-				{Path: []string{"check-for-updates"}, Value: "false"},
-				{Path: []string{"user-auto-connect"}, Value: "true"},
-				{Path: []string{"bgm-volume"}, Value: "0"},
+				model.Entry(model.None, model.Path("show-welcome"), "false"),
+				model.Entry(model.None, model.Path("check-for-updates"), "false"),
+				model.Entry(model.None, model.Path("user-auto-connect"), "true"),
+				model.Entry(model.None, model.Path("bgm-volume"), "0"),
 			},
 		},
 		{
 			Target:  userTarget,
-			Entries: []model.ConfigEntry{{Value: userXML, DefaultOnly: true}},
+			Entries: []model.ConfigEntry{model.Default(model.None, model.Path(), userXML)},
 		},
 	}
 

@@ -73,13 +73,13 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	patches := []model.ConfigPatch{{
 		Target: configTarget,
 		Entries: []model.ConfigEntry{
-			{Path: []string{"content", "GamePaths", "Entry"}, Value: store.SystemRomsDir(model.SystemIDWiiU)},
-			{Path: []string{"content", "check_update"}, Value: "false"},
-			{Path: []string{"content", "Graphic", "api"}, Value: "1", DefaultOnly: true},
-			{Path: []string{"content", "Graphic", "VSync"}, Value: "0", DefaultOnly: true},
-			{Path: []string{"content", "Graphic", "AsyncCompile"}, Value: "true", DefaultOnly: true},
-			{Path: []string{"content", "Graphic", "GX2DrawdoneSync"}, Value: "true", DefaultOnly: true},
-			{Path: []string{"content", "Graphic", "Notification", "ShaderCompiling"}, Value: "false", DefaultOnly: true},
+			model.Entry(model.Store, model.Path("content", "GamePaths", "Entry"), store.SystemRomsDir(model.SystemIDWiiU)),
+			model.Entry(model.None, model.Path("content", "check_update"), "false"),
+			model.Default(model.None, model.Path("content", "Graphic", "api"), "1"),
+			model.Default(model.None, model.Path("content", "Graphic", "VSync"), "0"),
+			model.Default(model.None, model.Path("content", "Graphic", "AsyncCompile"), "true"),
+			model.Default(model.None, model.Path("content", "Graphic", "GX2DrawdoneSync"), "true"),
+			model.Default(model.None, model.Path("content", "Graphic", "Notification", "ShaderCompiling"), "false"),
 		},
 	}}
 
@@ -87,7 +87,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		patches = append(patches, model.ConfigPatch{
 			Target: controllerProfileTarget,
 			Entries: []model.ConfigEntry{
-				{Value: generateControllerXML(cc), DefaultOnly: true},
+				model.Default(model.Nintendo, model.Path(), generateControllerXML(cc)),
 			},
 		})
 	}

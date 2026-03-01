@@ -54,8 +54,8 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	patches = append(patches, model.ConfigPatch{
 		Target: coreOptionsTarget,
 		Entries: []model.ConfigEntry{
-			{Path: []string{"vice_drive_true_emulation"}, Value: "disabled", DefaultOnly: true},
-			{Path: []string{"vice_autoloadwarp"}, Value: "enabled", DefaultOnly: true},
+			model.Default(model.None, model.Path("vice_drive_true_emulation"), "disabled"),
+			model.Default(model.None, model.Path("vice_autoloadwarp"), "enabled"),
 		},
 	})
 
