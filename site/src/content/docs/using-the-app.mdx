@@ -42,6 +42,10 @@ configures for each emulator.
 | Beetle Saturn   | Saturn           | saves, states, screenshots | full    | configured | 4       | Saturn BIOS                   |
 | Beetle PCE      | PC Engine        | saves, states, screenshots | full    | configured | 4       | CD System Card (for CD games) |
 | Beetle NGP      | Neo Geo Pocket   | saves, states, screenshots | full    | configured | 4       | none                          |
+| FBNeo           | Arcade           | saves, states, screenshots | full    | configured | 4       | varies by game (optional)     |
+| FBNeo           | Neo Geo          | saves, states, screenshots | full    | configured | 4       | Neo Geo BIOS (optional)       |
+| Stella          | Atari 2600       | saves, states, screenshots | full    | configured | 4       | none                          |
+| VICE x64sc      | C64              | saves, states, screenshots | full    | configured | 4       | none                          |
 | DuckStation     | PSX              | saves, states, screenshots | full    | configured | 4       | PSX BIOS                      |
 | PCSX2           | PS2              | saves, states, screenshots | full    | configured | 4       | PS2 BIOS                      |
 | PPSSPP          | PSP              | saves, states, screenshots | full    | configured | 1       | none                          |
@@ -68,7 +72,7 @@ Definitions:
 - **Provisions**: BIOS, firmware, or encryption keys needed. Items marked
   "(optional)" enable extra features but aren't required for games to run.
 
-RetroArch cores (bsnes through Beetle NGP) share configuration. They use
+RetroArch cores (bsnes through VICE x64sc) share configuration. They use
 RetroArch's hotkey system where Back (Select) enables hotkeys and a second
 button triggers the action.
 
