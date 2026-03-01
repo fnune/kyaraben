@@ -59,7 +59,7 @@ test.describe('Kyaraben App', () => {
   test('displays system cards with emulators', async () => {
     const snesCard = page.getByRole('article').filter({ hasText: 'Super Nintendo' })
     await expect(snesCard).toBeVisible({ timeout: 10000 })
-    await expect(snesCard.getByRole('switch')).toBeVisible()
+    await expect(snesCard.getByRole('switch').first()).toBeVisible()
   })
 
   test('can toggle emulator selection', async () => {

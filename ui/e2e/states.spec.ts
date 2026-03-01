@@ -97,7 +97,7 @@ test.describe('Systems enabled but not installed', () => {
     const snesCard = page.getByRole('article').filter({ hasText: 'Super Nintendo' })
     await expect(snesCard).toBeVisible()
 
-    const toggle = snesCard.getByRole('switch').first()
+    const toggle = snesCard.getByText('bsnes', { exact: true }).locator('..').getByRole('switch')
     const isChecked = await toggle.getAttribute('aria-checked')
     expect(isChecked).toBe('true')
   })
