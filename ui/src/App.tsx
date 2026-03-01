@@ -15,15 +15,13 @@ import { useUpdateChecker } from '@/lib/hooks/useUpdateChecker'
 import { type FoundProvision, getNewlyFoundProvisions } from '@/lib/provisions'
 import { Spinner } from '@/lib/Spinner'
 import { ToastProvider, useToast } from '@/lib/ToastContext'
+import { useStatusData } from '@/lib/useStatusData'
 import type {
   ConfigResponse,
   DoctorResponse,
   EmulatorID,
-  EmulatorPaths,
   FrontendID,
   FrontendRef,
-  ManagedConfigInfo,
-  StatusResponse,
   System,
   SystemID,
 } from '@/types/daemon'
@@ -37,36 +35,6 @@ import {
   VIEW_SYNC,
   type View,
 } from '@/types/ui'
-
-function parseStatusResponse(data: StatusResponse) {
-  const versions = new Map<EmulatorID, string>()
-  const execLines = new Map<EmulatorID, string>()
-  const configs = new Map<EmulatorID, ManagedConfigInfo[]>()
-  const paths = new Map<EmulatorID, Record<string, EmulatorPaths>>()
-  for (const emu of data.installedEmulators ?? []) {
-    versions.set(emu.id, emu.version)
-    if (emu.execLine) {
-      execLines.set(emu.id, emu.execLine)
-    }
-    if (emu.managedConfigs) {
-      configs.set(emu.id, emu.managedConfigs)
-    }
-    if (emu.paths) {
-      paths.set(emu.id, emu.paths)
-    }
-  }
-
-  const feVersions = new Map<FrontendID, string>()
-  const feExecLines = new Map<FrontendID, string>()
-  for (const fe of data.installedFrontends ?? []) {
-    feVersions.set(fe.id, fe.version)
-    if (fe.execLine) {
-      feExecLines.set(fe.id, fe.execLine)
-    }
-  }
-
-  return { versions, execLines, configs, feVersions, feExecLines, paths }
-}
 
 interface ConfigState {
   collection: string
@@ -158,25 +126,21 @@ function AppContent() {
   const [currentView, setCurrentView] = useState<View>(VIEW_CATALOG)
   const [systems, setSystems] = useState<readonly System[]>([])
   const [frontends, setFrontends] = useState<readonly FrontendRef[]>([])
-  const [installedVersions, setInstalledVersions] = useState<Map<EmulatorID, string>>(new Map())
-  const [installedFrontendVersions, setInstalledFrontendVersions] = useState<
-    Map<FrontendID, string>
-  >(new Map())
-  const [installedFrontendExecLines, setInstalledFrontendExecLines] = useState<
-    Map<FrontendID, string>
-  >(new Map())
-  const [installedExecLines, setInstalledExecLines] = useState<Map<EmulatorID, string>>(new Map())
-  const [managedConfigs, setManagedConfigs] = useState<Map<EmulatorID, ManagedConfigInfo[]>>(
-    new Map(),
-  )
-  const [installedPaths, setInstalledPaths] = useState<
-    Map<EmulatorID, Record<string, EmulatorPaths>>
-  >(new Map())
   const [provisions, setProvisions] = useState<DoctorResponse>({})
   const [configState, setConfigState] = useState<ConfigState>(emptyConfigState)
   const [configReady, setConfigReady] = useState(false)
-  const [kyarabenVersion, setKyarabenVersion] = useState<string | null>(null)
   const [fontsReady, setFontsReady] = useState(false)
+
+  const {
+    setStatusResponse,
+    installedVersions,
+    installedExecLines,
+    managedConfigs,
+    installedPaths,
+    installedFrontendVersions,
+    installedFrontendExecLines,
+    kyarabenVersion,
+  } = useStatusData()
 
   const savedConfigState = useRef<ConfigState>(emptyConfigState())
 
@@ -258,23 +222,14 @@ function AppContent() {
     }
 
     if (statusResult.ok) {
-      const { versions, execLines, configs, feVersions, feExecLines, paths } = parseStatusResponse(
-        statusResult.data,
-      )
-      setInstalledVersions(versions)
-      setInstalledExecLines(execLines)
-      setManagedConfigs(configs)
-      setInstalledFrontendVersions(feVersions)
-      setInstalledFrontendExecLines(feExecLines)
-      setInstalledPaths(paths)
-      setKyarabenVersion(statusResult.data.kyarabenVersion)
+      setStatusResponse(statusResult.data)
     }
 
     if (configResult.ok) {
       const parsed = parseConfigResponse(configResult.data)
       savedConfigState.current = cloneConfigState(parsed)
     }
-  }, [])
+  }, [setStatusResponse])
 
   useEffect(() => {
     document.fonts.ready.then(() => setFontsReady(true))
@@ -314,15 +269,7 @@ function AppContent() {
       }
 
       if (statusResult.ok) {
-        const { versions, execLines, configs, feVersions, paths } = parseStatusResponse(
-          statusResult.data,
-        )
-        setInstalledVersions(versions)
-        setInstalledExecLines(execLines)
-        setManagedConfigs(configs)
-        setInstalledFrontendVersions(feVersions)
-        setInstalledPaths(paths)
-        setKyarabenVersion(statusResult.data.kyarabenVersion)
+        setStatusResponse(statusResult.data)
 
         if (statusResult.data.healthWarning === 'orphaned_artifacts') {
           showToast(
@@ -374,7 +321,7 @@ function AppContent() {
     }
 
     init()
-  }, [showToast, setShowApplyBanner, refreshSyncStatus])
+  }, [showToast, setShowApplyBanner, refreshSyncStatus, setStatusResponse])
 
   useEffect(() => {
     if (applyStatus === lastApplyStatus.current) return
@@ -518,18 +465,9 @@ function AppContent() {
     }
 
     if (statusResult.ok) {
-      const { versions, execLines, configs, feVersions, feExecLines, paths } = parseStatusResponse(
-        statusResult.data,
-      )
-      setInstalledVersions(versions)
-      setInstalledExecLines(execLines)
-      setManagedConfigs(configs)
-      setInstalledFrontendVersions(feVersions)
-      setInstalledFrontendExecLines(feExecLines)
-      setInstalledPaths(paths)
-      setKyarabenVersion(statusResult.data.kyarabenVersion)
+      setStatusResponse(statusResult.data)
     }
-  }, [])
+  }, [setStatusResponse])
 
   const configChanges = (() => {
     if (!configReady) return []
