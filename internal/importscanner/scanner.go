@@ -193,13 +193,6 @@ func (s *Scanner) scanSystemData(sourcePath string, reports map[model.SystemID]*
 			var srcDir string
 			if sourceFound[sys] != nil && sourceFound[sys][dtInfo.dt] != "" {
 				srcDir = sourceFound[sys][dtInfo.dt]
-			} else {
-				expectedPaths := s.layout.ExpectedPaths(dtInfo.dt)
-				if len(expectedPaths) > 0 {
-					srcDir = filepath.Join(sourcePath, expectedPaths[0], string(sys))
-				} else {
-					srcDir = kyarabenDir
-				}
 			}
 
 			comparison, err := s.compareDirectories(srcDir, kyarabenDir, dtInfo.dt)
@@ -287,13 +280,6 @@ func (s *Scanner) scanEmulatorData(sourcePath string, reports map[model.Emulator
 			var srcDir string
 			if sourceFound[emu] != nil && sourceFound[emu][dtInfo.dt] != "" {
 				srcDir = sourceFound[emu][dtInfo.dt]
-			} else {
-				expectedPaths := s.layout.ExpectedPaths(dtInfo.dt)
-				if len(expectedPaths) > 0 {
-					srcDir = filepath.Join(sourcePath, expectedPaths[0], string(emu))
-				} else {
-					srcDir = kyarabenDir
-				}
 			}
 
 			comparison, err := s.compareDirectories(srcDir, kyarabenDir, dtInfo.dt)
@@ -367,6 +353,10 @@ func (s *Scanner) compareDirectories(srcPath, kyarabenPath string, dataType Data
 }
 
 func (s *Scanner) scanFolder(path string) (FolderInfo, error) {
+	if path == "" {
+		return FolderInfo{}, nil
+	}
+
 	info := FolderInfo{Path: path}
 
 	stat, err := s.fs.Lstat(path)

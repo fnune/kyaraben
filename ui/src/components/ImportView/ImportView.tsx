@@ -110,17 +110,23 @@ function DataComparisonCard({
       <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
         <span className="text-on-surface-dim">{foundLabel}</span>
         <div>
-          <PathRow
-            path={comparison.source.path}
-            exists={comparison.source.exists}
-            onOpen={onOpenPath}
-          />
-          {comparison.source.exists ? (
-            <span className="text-on-surface-muted ml-2">
-              {comparison.source.fileCount} files, {formatBytes(comparison.source.totalSize)}
-            </span>
+          {comparison.source.path ? (
+            <>
+              <PathRow
+                path={comparison.source.path}
+                exists={comparison.source.exists}
+                onOpen={onOpenPath}
+              />
+              {comparison.source.exists ? (
+                <span className="text-on-surface-muted ml-2">
+                  {comparison.source.fileCount} files, {formatBytes(comparison.source.totalSize)}
+                </span>
+              ) : (
+                <span className="text-on-surface-dim ml-2">(not found)</span>
+              )}
+            </>
           ) : (
-            <span className="text-on-surface-dim ml-2">(not found)</span>
+            <span className="text-on-surface-dim">(not in source)</span>
           )}
         </div>
 
