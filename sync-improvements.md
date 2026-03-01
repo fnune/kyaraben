@@ -4,11 +4,7 @@ Remaining work and future ideas for sync. Historical sections (pairing flow evol
 
 ## Remaining work
 
-- Remove local discovery (UDP 21027)
-- Rebuild the sync CLI to match the relay-based pairing system
 - Pause sync during gameplay toggle
-- Bandwidth limits
-- Sync over metered connections
 - Document non-Kyaraben devices connecting to Kyaraben's Syncthing (e.g., NextUI on Trimui Brick with its own Syncthing, different directory structure)
 
 ## Config ownership
@@ -19,7 +15,7 @@ Supported: non-Kyaraben devices connecting to Kyaraben's Syncthing instance.
 
 Not supported: custom folders in Kyaraben's Syncthing (users should run their own instance), manual edits to Kyaraben's Syncthing config.
 
-Future first-class settings (instead of manual Syncthing config editing): bandwidth limits, versioning settings, relay server enable/disable, compression settings.
+Future first-class settings (instead of manual Syncthing config editing): versioning settings, relay server enable/disable, compression settings.
 
 ## Architecture notes
 
