@@ -29,3 +29,8 @@ ui/binaries/
 site/dist/
 site/node_modules/
 site/.astro/
+
+# Include Claude skills (overrides global ignore)
+!.claude/
+.claude/*
+!.claude/skills/
