@@ -1,4 +1,7 @@
 import type { SystemID } from '@/types/daemon'
+import arcadeLogo from './logos/arcade.svg'
+import atari2600Logo from './logos/atari2600.svg'
+import c64Logo from './logos/c64.svg'
 import dreamcastLogo from './logos/dreamcast.svg'
 import gamecubeLogo from './logos/gamecube.svg'
 import gamegearLogo from './logos/gamegear.svg'
@@ -10,6 +13,7 @@ import mastersystemLogo from './logos/mastersystem.svg'
 import n3dsLogo from './logos/n3ds.svg'
 import n64Logo from './logos/n64.svg'
 import ndsLogo from './logos/nds.svg'
+import neogeoLogo from './logos/neogeo.svg'
 import nesLogo from './logos/nes.svg'
 import ngpLogo from './logos/ngp.svg'
 import pcengineLogo from './logos/pcengine.svg'
@@ -51,6 +55,10 @@ export const ESDE_LOGOS: Record<SystemID, string> = {
   dreamcast: dreamcastLogo,
   pcengine: pcengineLogo,
   ngp: ngpLogo,
+  neogeo: neogeoLogo,
   xbox: xboxLogo,
   xbox360: xbox360Logo,
+  atari2600: atari2600Logo,
+  c64: c64Logo,
+  arcade: arcadeLogo,
 }

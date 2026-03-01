@@ -11,7 +11,7 @@ import type {
   SystemID,
 } from '@/types/daemon'
 
-export const SYSTEM_YEARS: Record<SystemID, number> = {
+export const SYSTEM_YEARS: Record<SystemID, number | null> = {
   nes: 1983,
   snes: 1990,
   n64: 1996,
@@ -36,8 +36,12 @@ export const SYSTEM_YEARS: Record<SystemID, number> = {
   dreamcast: 1998,
   pcengine: 1987,
   ngp: 1998,
+  neogeo: 1990,
   xbox: 2001,
   xbox360: 2005,
+  atari2600: 1977,
+  c64: 1982,
+  arcade: null,
 }
 
 export const LOGO_OPACITIES: Partial<Record<SystemID, number>> = {
@@ -97,7 +101,8 @@ export const SystemCard = forwardRef<HTMLElement, SystemCardProps>(function Syst
             {system.name}
           </h3>
           <p className="text-xs text-on-surface-muted whitespace-nowrap italic">
-            {system.manufacturer} · {year}
+            {system.manufacturer}
+            {year && ` · ${year}`}
           </p>
         </div>
         <img

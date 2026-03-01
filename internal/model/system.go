@@ -33,6 +33,10 @@ const (
 	SystemIDNGP          SystemID = "ngp"
 	SystemIDXbox         SystemID = "xbox"
 	SystemIDXbox360      SystemID = "xbox360"
+	SystemIDArcade       SystemID = "arcade"
+	SystemIDNeoGeo       SystemID = "neogeo"
+	SystemIDAtari2600    SystemID = "atari2600"
+	SystemIDC64          SystemID = "c64"
 )
 
 // Manufacturer represents the company that made a gaming system.
@@ -48,6 +52,7 @@ const (
 	ManufacturerBandai    Manufacturer = "Bandai"
 	ManufacturerOther     Manufacturer = "Other"
 	ManufacturerMicrosoft Manufacturer = "Microsoft"
+	ManufacturerCommodore Manufacturer = "Commodore"
 )
 
 // System represents a gaming platform that can be emulated.

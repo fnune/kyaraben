@@ -129,6 +129,11 @@ var systemMappings = map[model.SystemID]SystemMapping{
 		FullName: "SNK Neo Geo Pocket",
 		Platform: "ngp",
 	},
+	model.SystemIDNeoGeo: {
+		Name:     "neogeo",
+		FullName: "SNK Neo Geo",
+		Platform: "neogeo",
+	},
 	model.SystemIDXbox: {
 		Name:     "xbox",
 		FullName: "Microsoft Xbox",
@@ -138,6 +143,21 @@ var systemMappings = map[model.SystemID]SystemMapping{
 		Name:     "xbox360",
 		FullName: "Microsoft Xbox 360",
 		Platform: "xbox360",
+	},
+	model.SystemIDAtari2600: {
+		Name:     "atari2600",
+		FullName: "Atari 2600",
+		Platform: "atari2600",
+	},
+	model.SystemIDC64: {
+		Name:     "c64",
+		FullName: "Commodore 64",
+		Platform: "c64",
+	},
+	model.SystemIDArcade: {
+		Name:     "arcade",
+		FullName: "Arcade",
+		Platform: "arcade",
 	},
 }
 

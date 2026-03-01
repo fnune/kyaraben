@@ -24,6 +24,9 @@ export const EmulatorIDRetroArchBeetleNGP = "retroarch:mednafen_ngp";
 export const EmulatorIDRetroArchMGBA = "retroarch:mgba";
 export const EmulatorIDRetroArchMelonDS = "retroarch:melonds";
 export const EmulatorIDRetroArchCitra = "retroarch:citra";
+export const EmulatorIDRetroArchFBNeo = "retroarch:fbneo";
+export const EmulatorIDRetroArchStella = "retroarch:stella";
+export const EmulatorIDRetroArchVICE = "retroarch:vice_x64sc";
 export const EmulatorIDDuckStation = "duckstation";
 export const EmulatorIDPCSX2 = "pcsx2";
 export const EmulatorIDRPCS3 = "rpcs3";
@@ -35,7 +38,7 @@ export const EmulatorIDDolphin = "dolphin";
 export const EmulatorIDEden = "eden";
 export const EmulatorIDXemu = "xemu";
 export const EmulatorIDXeniaEdge = "xenia-edge";
-export type EmulatorID = typeof EmulatorIDRetroArch | typeof EmulatorIDRetroArchBsnes | typeof EmulatorIDRetroArchMesen | typeof EmulatorIDRetroArchGenesisPlusGX | typeof EmulatorIDRetroArchMupen64Plus | typeof EmulatorIDRetroArchBeetleSaturn | typeof EmulatorIDRetroArchBeetlePCE | typeof EmulatorIDRetroArchBeetleNGP | typeof EmulatorIDRetroArchMGBA | typeof EmulatorIDRetroArchMelonDS | typeof EmulatorIDRetroArchCitra | typeof EmulatorIDDuckStation | typeof EmulatorIDPCSX2 | typeof EmulatorIDRPCS3 | typeof EmulatorIDVita3K | typeof EmulatorIDPPSSPP | typeof EmulatorIDFlycast | typeof EmulatorIDCemu | typeof EmulatorIDDolphin | typeof EmulatorIDEden | typeof EmulatorIDXemu | typeof EmulatorIDXeniaEdge;
+export type EmulatorID = typeof EmulatorIDRetroArch | typeof EmulatorIDRetroArchBsnes | typeof EmulatorIDRetroArchMesen | typeof EmulatorIDRetroArchGenesisPlusGX | typeof EmulatorIDRetroArchMupen64Plus | typeof EmulatorIDRetroArchBeetleSaturn | typeof EmulatorIDRetroArchBeetlePCE | typeof EmulatorIDRetroArchBeetleNGP | typeof EmulatorIDRetroArchMGBA | typeof EmulatorIDRetroArchMelonDS | typeof EmulatorIDRetroArchCitra | typeof EmulatorIDRetroArchFBNeo | typeof EmulatorIDRetroArchStella | typeof EmulatorIDRetroArchVICE | typeof EmulatorIDDuckStation | typeof EmulatorIDPCSX2 | typeof EmulatorIDRPCS3 | typeof EmulatorIDVita3K | typeof EmulatorIDPPSSPP | typeof EmulatorIDFlycast | typeof EmulatorIDCemu | typeof EmulatorIDDolphin | typeof EmulatorIDEden | typeof EmulatorIDXemu | typeof EmulatorIDXeniaEdge;
 
 //////////
 // source: frontend_id.go
@@ -77,7 +80,11 @@ export const SystemIDPCEngine = "pcengine";
 export const SystemIDNGP = "ngp";
 export const SystemIDXbox = "xbox";
 export const SystemIDXbox360 = "xbox360";
-export type SystemID = typeof SystemIDNES | typeof SystemIDSNES | typeof SystemIDN64 | typeof SystemIDGB | typeof SystemIDGBC | typeof SystemIDGBA | typeof SystemIDNDS | typeof SystemIDN3DS | typeof SystemIDGameCube | typeof SystemIDWii | typeof SystemIDWiiU | typeof SystemIDSwitch | typeof SystemIDPSX | typeof SystemIDPS2 | typeof SystemIDPS3 | typeof SystemIDPSP | typeof SystemIDPSVita | typeof SystemIDGenesis | typeof SystemIDMasterSystem | typeof SystemIDGameGear | typeof SystemIDSaturn | typeof SystemIDDreamcast | typeof SystemIDPCEngine | typeof SystemIDNGP | typeof SystemIDXbox | typeof SystemIDXbox360;
+export const SystemIDArcade = "arcade";
+export const SystemIDNeoGeo = "neogeo";
+export const SystemIDAtari2600 = "atari2600";
+export const SystemIDC64 = "c64";
+export type SystemID = typeof SystemIDNES | typeof SystemIDSNES | typeof SystemIDN64 | typeof SystemIDGB | typeof SystemIDGBC | typeof SystemIDGBA | typeof SystemIDNDS | typeof SystemIDN3DS | typeof SystemIDGameCube | typeof SystemIDWii | typeof SystemIDWiiU | typeof SystemIDSwitch | typeof SystemIDPSX | typeof SystemIDPS2 | typeof SystemIDPS3 | typeof SystemIDPSP | typeof SystemIDPSVita | typeof SystemIDGenesis | typeof SystemIDMasterSystem | typeof SystemIDGameGear | typeof SystemIDSaturn | typeof SystemIDDreamcast | typeof SystemIDPCEngine | typeof SystemIDNGP | typeof SystemIDXbox | typeof SystemIDXbox360 | typeof SystemIDArcade | typeof SystemIDNeoGeo | typeof SystemIDAtari2600 | typeof SystemIDC64;
 /**
  * Manufacturer represents the company that made a gaming system.
  */
@@ -90,7 +97,8 @@ export const ManufacturerSNK = "SNK";
 export const ManufacturerBandai = "Bandai";
 export const ManufacturerOther = "Other";
 export const ManufacturerMicrosoft = "Microsoft";
-export type Manufacturer = typeof ManufacturerNintendo | typeof ManufacturerSony | typeof ManufacturerSega | typeof ManufacturerNEC | typeof ManufacturerAtari | typeof ManufacturerSNK | typeof ManufacturerBandai | typeof ManufacturerOther | typeof ManufacturerMicrosoft;
+export const ManufacturerCommodore = "Commodore";
+export type Manufacturer = typeof ManufacturerNintendo | typeof ManufacturerSony | typeof ManufacturerSega | typeof ManufacturerNEC | typeof ManufacturerAtari | typeof ManufacturerSNK | typeof ManufacturerBandai | typeof ManufacturerOther | typeof ManufacturerMicrosoft | typeof ManufacturerCommodore;
 /**
  * System represents a gaming platform that can be emulated.
  */

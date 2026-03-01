@@ -24,6 +24,9 @@ mednafen_pce_fast = "mednafen_pce_fast_libretro.so"
 mednafen_ngp = "mednafen_ngp_libretro.so"
 mgba = "mgba_libretro.so"
 citra = "citra_libretro.so"
+fbneo = "fbneo_libretro.so"
+stella = "stella_libretro.so"
+vice_x64sc = "vice_x64sc_libretro.so"
 
 # Standalone cores downloaded separately (not in the buildbot bundle)
 [retroarch-cores.standalone.melonds]
@@ -45,9 +48,12 @@ mednafen_ngp = 334064
 mgba = 1466704
 melonds = 4070336
 citra = 32347128
+fbneo = 72255952
+stella = 6530528
+vice_x64sc = 3555960
 
 # ============================================================================
-# EDEN - Nintendo Switch emulator (pilot for multi-version support)
+# EDEN - Nintendo Switch emulator
 # https://github.com/eden-emulator/Releases/releases
 # ============================================================================
 

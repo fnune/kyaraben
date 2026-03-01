@@ -4,6 +4,7 @@ import citra from '@/assets/emulators/citra.png'
 import dolphin from '@/assets/emulators/dolphin.png'
 import duckstation from '@/assets/emulators/duckstation.png'
 import eden from '@/assets/emulators/eden.png'
+import fbneo from '@/assets/emulators/fbneo.png'
 import flycast from '@/assets/emulators/flycast.png'
 import genesisPlusGx from '@/assets/emulators/genesis_plus_gx.png'
 import mednafen from '@/assets/emulators/mednafen.svg'
@@ -15,6 +16,8 @@ import pcsx2 from '@/assets/emulators/pcsx2.png'
 import ppsspp from '@/assets/emulators/ppsspp.png'
 import retroarch from '@/assets/emulators/retroarch.svg'
 import rpcs3 from '@/assets/emulators/rpcs3.svg'
+import stella from '@/assets/emulators/stella.png'
+import vice from '@/assets/emulators/vice.svg'
 import vita3k from '@/assets/emulators/vita3k.png'
 import xemu from '@/assets/emulators/xemu.png'
 import xeniaEdge from '@/assets/emulators/xenia-edge.png'
@@ -41,6 +44,9 @@ const EMULATOR_LOGOS: Partial<Record<EmulatorID, string>> = {
   'retroarch:mgba': mgba,
   'retroarch:melonds': melonds,
   'retroarch:citra': citra,
+  'retroarch:fbneo': fbneo,
+  'retroarch:stella': stella,
+  'retroarch:vice_x64sc': vice,
   xemu,
   'xenia-edge': xeniaEdge,
 }
