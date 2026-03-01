@@ -332,10 +332,19 @@ func (d *Daemon) handleStatus() []Event {
 
 	installedFrontends := make([]InstalledFrontend, len(result.InstalledFrontends))
 	for i, fe := range result.InstalledFrontends {
-		installedFrontends[i] = InstalledFrontend{
+		installed := InstalledFrontend{
 			ID:      fe.ID,
 			Version: fe.Version,
 		}
+		if f, err := d.reg.GetFrontend(fe.ID); err == nil && f.Launcher.Binary != "" {
+			installed.ExecLine = fmt.Sprintf("%s/%s", d.launcherManager.BinDir(), f.Launcher.Binary)
+			log.Info("frontend exec line: %s -> %s", fe.ID, installed.ExecLine)
+		} else if err != nil {
+			log.Error("failed to get frontend %s: %v", fe.ID, err)
+		} else {
+			log.Info("frontend %s has no binary", fe.ID)
+		}
+		installedFrontends[i] = installed
 	}
 
 	symlinks := make([]SymlinkInfo, len(result.Symlinks))

@@ -1,16 +1,12 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { ConfigDiffReview } from '@/components/ConfigDiffReview/ConfigDiffReview'
 import { FrontendCard } from '@/components/FrontendCard/FrontendCard'
+import { ManufacturerNav } from '@/components/ManufacturerNav/ManufacturerNav'
 import { SearchInput } from '@/components/SearchInput/SearchInput'
 import { GraphicsSettings } from '@/components/Settings/GraphicsSettings'
 import { Settings } from '@/components/Settings/Settings'
 import { StickyActionBar } from '@/components/StickyActionBar/StickyActionBar'
 import { SYSTEM_YEARS, SystemCard } from '@/components/SystemCard/SystemCard'
-import {
-  type ProvisionStatus,
-  SystemNav,
-  type SystemNavItem,
-} from '@/components/SystemNav/SystemNav'
 import { useApply } from '@/lib/ApplyContext'
 import { BottomBar } from '@/lib/BottomBar'
 import { Button } from '@/lib/Button'
@@ -24,7 +20,6 @@ import {
   withConfigChanges,
 } from '@/lib/changeUtils'
 import { ProgressSteps } from '@/lib/ProgressSteps'
-import { ToggleSwitch } from '@/lib/ToggleSwitch'
 import { useOpenLog } from '@/lib/useOpenLog'
 import type {
   DoctorResponse,
@@ -36,7 +31,7 @@ import type {
   System,
   SystemID,
 } from '@/types/daemon'
-import { MANUFACTURER_ORDER } from '@/types/ui'
+import { MANUFACTURER_ORDER, type Manufacturer } from '@/types/ui'
 
 export interface CatalogViewProps {
   readonly systems: readonly System[]
@@ -50,6 +45,7 @@ export interface CatalogViewProps {
   readonly frontendVersions: Map<FrontendID, string | null>
   readonly installedVersions: Map<EmulatorID, string>
   readonly installedFrontendVersions: Map<FrontendID, string>
+  readonly installedFrontendExecLines: Map<FrontendID, string>
   readonly installedExecLines: Map<EmulatorID, string>
   readonly managedConfigs: Map<EmulatorID, ManagedConfigInfo[]>
   readonly installedPaths: Map<EmulatorID, Record<string, EmulatorPaths>>
@@ -69,8 +65,8 @@ export interface CatalogViewProps {
   readonly onReapply?: () => void
 }
 
-function groupSystemsByManufacturer(systems: readonly System[]) {
-  const groups = new Map<string, System[]>()
+function groupSystemsByManufacturer(systems: readonly System[]): [Manufacturer, System[]][] {
+  const groups = new Map<Manufacturer, System[]>()
 
   for (const manufacturer of MANUFACTURER_ORDER) {
     groups.set(manufacturer, [])
@@ -90,12 +86,51 @@ function groupSystemsByManufacturer(systems: readonly System[]) {
   return Array.from(groups.entries()).filter(([, systems]) => systems.length > 0)
 }
 
+const SEARCH_ALIASES: Record<string, readonly string[]> = {
+  nes: ['nes', 'famicom'],
+  snes: ['snes', 'super famicom', 'sfc'],
+  n64: ['n64'],
+  gb: ['gameboy', 'game boy', 'dmg'],
+  gbc: ['gameboy color', 'game boy color', 'gbc'],
+  gba: ['gameboy advance', 'game boy advance', 'gba'],
+  nds: ['nds', 'ds', 'nintendo ds'],
+  n3ds: ['3ds', 'nintendo 3ds'],
+  psx: ['psx', 'ps1', 'playstation 1', 'playstation1'],
+  ps2: ['ps2', 'playstation2'],
+  ps3: ['ps3', 'playstation3'],
+  psp: ['psp'],
+  psvita: ['vita', 'ps vita', 'psvita'],
+  genesis: ['genesis', 'mega drive', 'megadrive', 'md'],
+  mastersystem: ['sms', 'master system'],
+  gamegear: ['gg', 'game gear'],
+  saturn: ['saturn'],
+  dreamcast: ['dc'],
+  pcengine: ['pce', 'pc engine', 'turbografx', 'tg16'],
+  ngp: ['ngp', 'neo geo pocket', 'neogeo pocket'],
+  neogeo: ['neo geo', 'neogeo', 'aes', 'mvs'],
+  atari2600: ['2600', 'vcs'],
+  c64: ['c64', 'commodore'],
+  gamecube: ['gc', 'gcn', 'gamecube'],
+  wii: ['wii'],
+  wiiu: ['wii u', 'wiiu'],
+  switch: ['switch', 'nx'],
+  xbox: ['xbox', 'og xbox'],
+  xbox360: ['360', 'xbox 360'],
+  arcade: ['arcade', 'mame'],
+}
+
 function matchesSearch(system: System, query: string): boolean {
   const lowerQuery = query.toLowerCase()
   if (system.name.toLowerCase().includes(lowerQuery)) return true
   if (system.manufacturer.toLowerCase().includes(lowerQuery)) return true
   for (const emulator of system.emulators) {
     if (emulator.name.toLowerCase().includes(lowerQuery)) return true
+  }
+  const aliases = SEARCH_ALIASES[system.id]
+  if (aliases) {
+    for (const alias of aliases) {
+      if (alias.includes(lowerQuery) || lowerQuery.includes(alias)) return true
+    }
   }
   return false
 }
@@ -112,6 +147,7 @@ export function CatalogView({
   frontendVersions,
   installedVersions,
   installedFrontendVersions,
+  installedFrontendExecLines,
   installedExecLines,
   managedConfigs,
   installedPaths,
@@ -148,8 +184,8 @@ export function CatalogView({
     applyStatus !== 'idle' && applyStatus !== 'reviewing' && applyStatus !== 'confirming_sync'
 
   const [searchQuery, setSearchQuery] = useState('')
-  const [showInstalledOnly, setShowInstalledOnly] = useState(false)
-  const systemRefs = useRef<Map<EmulatorID, HTMLElement>>(new Map())
+  const stickyHeaderRef = useRef<HTMLDivElement>(null)
+  const manufacturerRefs = useRef<Map<Manufacturer, HTMLElement>>(new Map())
 
   const handleApply = useCallback(
     async (changeSummary: ReturnType<typeof emptyChangeSummary>) => {
@@ -277,20 +313,11 @@ export function CatalogView({
   ])
 
   const filteredSystems = useMemo(() => {
-    let result = systems
-
     if (searchQuery) {
-      result = result.filter((system) => matchesSearch(system, searchQuery))
+      return systems.filter((system) => matchesSearch(system, searchQuery))
     }
-
-    if (showInstalledOnly) {
-      result = result.filter((system) =>
-        system.emulators.some((emu) => installedVersions.has(emu.id)),
-      )
-    }
-
-    return result
-  }, [systems, searchQuery, showInstalledOnly, installedVersions])
+    return systems
+  }, [systems, searchQuery])
 
   const groupedSystems = useMemo(
     () => groupSystemsByManufacturer(filteredSystems),
@@ -318,69 +345,27 @@ export function CatalogView({
     return shared
   }, [systems, enabledEmulators])
 
-  const emulatorNavItems = useMemo(() => {
-    const result: SystemNavItem[] = []
-    const seen = new Set<EmulatorID>()
-    const orderedSystems = groupSystemsByManufacturer(systems)
+  const allManufacturers = useMemo(
+    () => groupSystemsByManufacturer(systems).map(([manufacturer]) => manufacturer),
+    [systems],
+  )
 
-    for (const [, manufacturerSystems] of orderedSystems) {
-      for (const system of manufacturerSystems) {
-        for (const emulator of system.emulators) {
-          if (seen.has(emulator.id)) continue
-          seen.add(emulator.id)
+  const enabledManufacturers = useMemo(
+    () => new Set(groupedSystems.map(([manufacturer]) => manufacturer)),
+    [groupedSystems],
+  )
 
-          const installed = installedVersions.has(emulator.id)
-          let provisionStatus: ProvisionStatus = null
-
-          if (installed) {
-            const emulatorProvisions = provisions[`${system.id}:${emulator.id}`] ?? []
-            const missingRequired = emulatorProvisions.some(
-              (p) => p.status !== 'found' && p.groupRequired && !p.groupSatisfied,
-            )
-            const missingOptional = emulatorProvisions.some(
-              (p) => p.status !== 'found' && !p.groupRequired,
-            )
-
-            if (missingRequired) {
-              provisionStatus = 'required-missing'
-            } else if (missingOptional) {
-              provisionStatus = 'optional-missing'
-            } else {
-              provisionStatus = 'ok'
-            }
-          }
-
-          result.push({
-            id: emulator.id,
-            name: emulator.name,
-            systemName: system.name,
-            installed,
-            provisionStatus,
-          })
-        }
-      }
-    }
-
-    return result
-  }, [systems, installedVersions, provisions])
-
-  const handleSystemNavClick = useCallback((emulatorId: EmulatorID) => {
-    setSearchQuery('')
-    setShowInstalledOnly(false)
-
-    requestAnimationFrame(() => {
-      const element = systemRefs.current.get(emulatorId)
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }
-    })
-  }, [])
-
-  const setSystemRef = useCallback((emulatorId: EmulatorID, element: HTMLElement | null) => {
-    if (element) {
-      systemRefs.current.set(emulatorId, element)
-    } else {
-      systemRefs.current.delete(emulatorId)
+  const handleManufacturerClick = useCallback((manufacturer: Manufacturer) => {
+    const element = manufacturerRefs.current.get(manufacturer)
+    const header = stickyHeaderRef.current
+    const scrollContainer = document.getElementById('main-content')
+    if (element && scrollContainer) {
+      const headerHeight = header?.offsetHeight ?? 0
+      const containerRect = scrollContainer.getBoundingClientRect()
+      const elementRect = element.getBoundingClientRect()
+      const scrollTop =
+        scrollContainer.scrollTop + elementRect.top - containerRect.top - headerHeight - 16
+      scrollContainer.scrollTo({ top: scrollTop, behavior: 'smooth' })
     }
   }, [])
 
@@ -460,6 +445,10 @@ export function CatalogView({
       <div className="p-6 pb-0">
         <Settings userStore={userStore} onUserStoreChange={onUserStoreChange} />
 
+        <div className="mt-6">
+          <GraphicsSettings shaders={graphics.shaders} onShadersChange={onGraphicsShadersChange} />
+        </div>
+
         {frontends.length > 0 && (
           <div className="isolate">
             <div className="mt-6" data-section="frontends">
@@ -475,6 +464,7 @@ export function CatalogView({
                   enabled={enabledFrontends.get(frontend.id) ?? false}
                   pinnedVersion={frontendVersions.get(frontend.id) ?? null}
                   installedVersion={installedFrontendVersions.get(frontend.id) ?? null}
+                  execLine={installedFrontendExecLines.get(frontend.id)}
                   onToggle={(enabled) => onFrontendToggle(frontend.id, enabled)}
                   onVersionChange={(version) => onFrontendVersionChange(frontend.id, version)}
                 />
@@ -482,10 +472,6 @@ export function CatalogView({
             </div>
           </div>
         )}
-
-        <div className="mt-6">
-          <GraphicsSettings shaders={graphics.shaders} onShadersChange={onGraphicsShadersChange} />
-        </div>
 
         <div className="mt-6 flex items-center justify-between">
           <span className="text-xs font-semibold text-on-surface-dim uppercase tracking-widest">
@@ -502,24 +488,21 @@ export function CatalogView({
         </div>
       </div>
 
-      <div className="sticky top-0 z-10 bg-surface border-b border-outline px-6 py-3 space-y-2">
-        <SystemNav emulators={emulatorNavItems} onEmulatorClick={handleSystemNavClick} />
+      <div
+        ref={stickyHeaderRef}
+        className="sticky top-0 z-10 bg-surface border-b border-outline px-6 py-2 space-y-2"
+      >
+        <ManufacturerNav
+          manufacturers={allManufacturers}
+          enabledManufacturers={enabledManufacturers}
+          onManufacturerClick={handleManufacturerClick}
+        />
 
-        <div className="flex gap-3">
-          <div className="flex-1">
-            <SearchInput
-              value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="Search systems, manufacturers, or emulators..."
-            />
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <ToggleSwitch enabled={showInstalledOnly} onChange={setShowInstalledOnly} />
-            <span className="text-xs text-on-surface-secondary whitespace-nowrap">
-              Installed only
-            </span>
-          </div>
-        </div>
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search systems, manufacturers, or emulators..."
+        />
       </div>
 
       <div className="px-6 pt-6 isolate min-h-[calc(100vh-10rem)]">
@@ -530,7 +513,16 @@ export function CatalogView({
         ) : (
           <div className="space-y-8">
             {groupedSystems.map(([manufacturer, manufacturerSystems]) => (
-              <section key={manufacturer}>
+              <section
+                key={manufacturer}
+                ref={(el) => {
+                  if (el) {
+                    manufacturerRefs.current.set(manufacturer, el)
+                  } else {
+                    manufacturerRefs.current.delete(manufacturer)
+                  }
+                }}
+              >
                 <h2 className="font-heading text-sm font-semibold text-on-surface-dim uppercase tracking-widest mb-3 border-l-2 border-accent pl-2">
                   {manufacturer}
                 </h2>
@@ -540,11 +532,6 @@ export function CatalogView({
                     return (
                       <SystemCard
                         key={system.id}
-                        ref={(el) => {
-                          for (const emu of system.emulators) {
-                            setSystemRef(emu.id, el)
-                          }
-                        }}
                         system={system}
                         systemEnabledEmulators={new Set(systemEmuIds)}
                         globalEnabledEmulators={enabledEmulators}

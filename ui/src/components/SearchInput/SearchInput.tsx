@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { CloseIcon, SearchIcon } from '@/lib/icons'
+import { INPUT_BASE_CLASSES } from '@/lib/inputStyles'
 
 export interface SearchInputProps {
   readonly value: string
@@ -51,22 +52,22 @@ export function SearchInput({
 
   return (
     <div className="relative">
-      <SearchIcon className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-on-surface-dim" />
+      <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-dim" />
       <input
         type="text"
         value={localValue}
         onChange={(e) => handleChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full h-6 pl-8 pr-7 bg-surface-alt border border-outline rounded-sm text-sm text-on-surface placeholder:text-on-surface-dim focus:outline-none focus:border-accent"
+        className={`w-full pl-9 pr-9 py-2 ${INPUT_BASE_CLASSES}`}
       />
       {localValue && (
         <button
           type="button"
           onClick={handleClear}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-dim hover:text-on-surface-secondary"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-dim hover:text-on-surface-secondary"
           aria-label="Clear search"
         >
-          <CloseIcon className="w-3.5 h-3.5" />
+          <CloseIcon className="w-4 h-4" />
         </button>
       )}
     </div>

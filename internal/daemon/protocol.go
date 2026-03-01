@@ -94,8 +94,9 @@ type EmulatorPaths struct {
 }
 
 type InstalledFrontend struct {
-	ID      model.FrontendID `json:"id"`
-	Version string           `json:"version"`
+	ID       model.FrontendID `json:"id"`
+	Version  string           `json:"version"`
+	ExecLine string           `json:"execLine,omitempty"`
 }
 
 // DoctorResponse maps "systemId:emulatorId" to provisions for that system/emulator pair.

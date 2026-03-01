@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { INPUT_BASE_CLASSES } from './inputStyles'
 
 export interface SelectOption {
   value: string
@@ -157,11 +158,7 @@ export function Select({
             left: dropdownPosition.left,
             minWidth: dropdownPosition.width,
           }}
-          className="
-            z-50 max-h-48 overflow-auto
-            bg-surface-raised border border-outline-strong rounded-control
-            py-0.5
-          "
+          className={`z-50 max-h-48 overflow-auto py-0.5 ${INPUT_BASE_CLASSES}`}
         >
           {options.map((option, index) => (
             <div
@@ -206,10 +203,9 @@ export function Select({
         onClick={() => !disabled && setOpen(!open)}
         onKeyDown={handleKeyDown}
         className={`
-          flex items-center gap-1.5 bg-surface-raised rounded-control px-2 py-1 text-xs
-          outline-none focus:outline-2 focus:outline-offset-1 focus:outline-accent
+          flex items-center gap-1.5 px-2 py-1 text-xs tabular-nums font-mono text-on-surface-secondary
+          ${INPUT_BASE_CLASSES}
           ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
-          tabular-nums font-mono text-on-surface-secondary
         `}
       >
         <span className="truncate">{selectedOption?.label ?? ''}</span>

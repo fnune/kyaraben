@@ -1,4 +1,6 @@
+import { IconButton } from '@/lib/IconButton'
 import { FolderIcon } from '@/lib/icons'
+import { INPUT_BASE_CLASSES } from '@/lib/inputStyles'
 import { Modal } from '@/lib/Modal'
 import { PathText } from '@/lib/PathText'
 import type { EmulatorPaths, ManagedConfigInfo, ManagedRegionInfo } from '@/types/daemon'
@@ -49,17 +51,16 @@ export function PathsModal({
           <div key={label}>
             <p className="text-sm text-on-surface-muted mb-1">{label}</p>
             <div className="flex items-center gap-2">
-              <span className="flex-1 text-sm bg-surface-raised px-2 py-1.5 rounded-sm text-on-surface-secondary select-all truncate">
+              <span
+                className={`flex-1 text-sm px-3 py-2 text-on-surface-secondary select-all truncate ${INPUT_BASE_CLASSES}`}
+              >
                 <PathText>{path}</PathText>
               </span>
-              <button
-                type="button"
+              <IconButton
+                icon={<FolderIcon className="w-5 h-5 text-on-surface-muted" />}
+                label={`Open ${label} folder`}
                 onClick={() => handleOpenFolder(path)}
-                className="p-1.5 bg-outline hover:bg-outline-strong text-on-surface-secondary rounded-sm transition-colors shrink-0"
-                aria-label={`Open ${label} folder`}
-              >
-                <FolderIcon />
-              </button>
+              />
             </div>
           </div>
         ))}

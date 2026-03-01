@@ -54,11 +54,15 @@ function parseStatusResponse(data: StatusResponse) {
   }
 
   const feVersions = new Map<FrontendID, string>()
+  const feExecLines = new Map<FrontendID, string>()
   for (const fe of data.installedFrontends ?? []) {
     feVersions.set(fe.id, fe.version)
+    if (fe.execLine) {
+      feExecLines.set(fe.id, fe.execLine)
+    }
   }
 
-  return { versions, execLines, configs, feVersions, paths }
+  return { versions, execLines, configs, feVersions, feExecLines, paths }
 }
 
 interface ConfigState {
@@ -149,6 +153,9 @@ function AppContent() {
   const [frontends, setFrontends] = useState<readonly FrontendRef[]>([])
   const [installedVersions, setInstalledVersions] = useState<Map<EmulatorID, string>>(new Map())
   const [installedFrontendVersions, setInstalledFrontendVersions] = useState<
+    Map<FrontendID, string>
+  >(new Map())
+  const [installedFrontendExecLines, setInstalledFrontendExecLines] = useState<
     Map<FrontendID, string>
   >(new Map())
   const [installedExecLines, setInstalledExecLines] = useState<Map<EmulatorID, string>>(new Map())
@@ -244,13 +251,14 @@ function AppContent() {
     }
 
     if (statusResult.ok) {
-      const { versions, execLines, configs, feVersions, paths } = parseStatusResponse(
+      const { versions, execLines, configs, feVersions, feExecLines, paths } = parseStatusResponse(
         statusResult.data,
       )
       setInstalledVersions(versions)
       setInstalledExecLines(execLines)
       setManagedConfigs(configs)
       setInstalledFrontendVersions(feVersions)
+      setInstalledFrontendExecLines(feExecLines)
       setInstalledPaths(paths)
       setKyarabenVersion(statusResult.data.kyarabenVersion)
     }
@@ -492,13 +500,14 @@ function AppContent() {
     }
 
     if (statusResult.ok) {
-      const { versions, execLines, configs, feVersions, paths } = parseStatusResponse(
+      const { versions, execLines, configs, feVersions, feExecLines, paths } = parseStatusResponse(
         statusResult.data,
       )
       setInstalledVersions(versions)
       setInstalledExecLines(execLines)
       setManagedConfigs(configs)
       setInstalledFrontendVersions(feVersions)
+      setInstalledFrontendExecLines(feExecLines)
       setInstalledPaths(paths)
       setKyarabenVersion(statusResult.data.kyarabenVersion)
     }
@@ -622,6 +631,7 @@ function AppContent() {
             frontendVersions={configState.frontendVersions}
             installedVersions={installedVersions}
             installedFrontendVersions={installedFrontendVersions}
+            installedFrontendExecLines={installedFrontendExecLines}
             installedExecLines={installedExecLines}
             managedConfigs={managedConfigs}
             installedPaths={installedPaths}

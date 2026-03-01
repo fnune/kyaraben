@@ -2,6 +2,8 @@ import type { EmulatorID, ProvisionResult, SystemID } from './daemon'
 import type { LogEntry } from './logging.gen'
 import type { Manufacturer } from './model.gen'
 
+export type { Manufacturer }
+
 export const VIEW_CATALOG = 'catalog' as const
 export const VIEW_INSTALLATION = 'installation' as const
 export const VIEW_SYNC = 'sync' as const
@@ -13,7 +15,13 @@ export const VIEW_LABELS: Record<View, string> = {
   [VIEW_SYNC]: 'Synchronization',
 }
 
-export const MANUFACTURER_ORDER: readonly Manufacturer[] = ['Nintendo', 'Sony', 'Sega', 'Other']
+export const MANUFACTURER_ORDER: readonly Manufacturer[] = [
+  'Nintendo',
+  'Sony',
+  'Sega',
+  'Microsoft',
+  'Other',
+]
 
 export interface EmulatorProvisions {
   readonly emulatorId: EmulatorID

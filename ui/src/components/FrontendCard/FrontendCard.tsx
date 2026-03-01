@@ -1,7 +1,9 @@
 import { ChangeNotch } from '@/components/ChangeNotch/ChangeNotch'
 import { getFrontendLogo } from '@/components/FrontendLogo/FrontendLogo'
 import { CHANGE_CONFIG, formatBytes, getChangeType } from '@/lib/changeUtils'
+import { launchEmulator } from '@/lib/daemon'
 import { Select } from '@/lib/Select'
+import { useToast } from '@/lib/ToastContext'
 import { ToggleSwitch } from '@/lib/ToggleSwitch'
 import type { FrontendRef } from '@/types/daemon.gen'
 
@@ -10,6 +12,7 @@ export interface FrontendCardProps {
   readonly enabled: boolean
   readonly pinnedVersion: string | null
   readonly installedVersion: string | null
+  readonly execLine?: string | undefined
   readonly onToggle: (enabled: boolean) => void
   readonly onVersionChange: (version: string | null) => void
 }
@@ -19,10 +22,19 @@ export function FrontendCard({
   enabled,
   pinnedVersion,
   installedVersion,
+  execLine,
   onToggle,
   onVersionChange,
 }: FrontendCardProps) {
+  const { showToast } = useToast()
   const effectiveVersion = pinnedVersion ?? frontend.defaultVersion ?? null
+
+  const handleLaunch = () => {
+    if (execLine) {
+      launchEmulator(execLine)
+      showToast(`Launching ${frontend.name}.`)
+    }
+  }
   const changeType = getChangeType(
     enabled,
     installedVersion,
@@ -66,13 +78,20 @@ export function FrontendCard({
             </div>
           </div>
           <div className="flex items-center gap-2 text-xs text-on-surface-muted">
-            {installedVersion ? (
-              <span className="text-on-surface-dim">Installed: {installedVersion}</span>
-            ) : (
-              frontend.downloadBytes && (
-                <span className="text-on-surface-dim">{formatBytes(frontend.downloadBytes)}</span>
-              )
-            )}
+            {installedVersion
+              ? execLine && (
+                  <button
+                    type="button"
+                    onClick={handleLaunch}
+                    disabled={!enabled}
+                    className={enabled ? 'hover:text-accent' : 'cursor-not-allowed'}
+                  >
+                    Launch
+                  </button>
+                )
+              : frontend.downloadBytes && (
+                  <span className="text-on-surface-dim">{formatBytes(frontend.downloadBytes)}</span>
+                )}
           </div>
         </div>
       </div>

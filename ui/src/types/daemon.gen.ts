@@ -79,6 +79,7 @@ export interface EmulatorPaths {
 export interface InstalledFrontend {
   id: FrontendID;
   version: string;
+  execLine?: string;
 }
 /**
  * DoctorResponse maps "systemId:emulatorId" to provisions for that system/emulator pair.

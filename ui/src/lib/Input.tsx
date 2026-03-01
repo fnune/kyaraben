@@ -1,3 +1,5 @@
+import { INPUT_BASE_CLASSES } from './inputStyles'
+
 export interface InputProps {
   readonly value: string
   readonly onChange: (value: string) => void
@@ -17,8 +19,7 @@ export function Input({
   inputMode = 'text',
   enterKeyHint,
 }: InputProps) {
-  const baseClasses =
-    'block w-full rounded-control border-outline-strong bg-surface-raised text-on-surface placeholder-on-surface-dim shadow-xs focus:border-accent focus:ring-accent px-3 py-2 border font-mono tabular-nums'
+  const baseClasses = `block w-full px-3 py-2 font-mono tabular-nums ${INPUT_BASE_CLASSES}`
   const classes = className ? `${baseClasses} ${className}` : baseClasses
 
   return (
