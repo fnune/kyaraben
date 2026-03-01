@@ -266,7 +266,7 @@ func CorePatches(emuID model.EmulatorID, store model.StoreReader, cc *model.Cont
 	}
 
 	if sc != nil && sc.Shaders == model.EmulatorShadersOn {
-		shaderPatch := coreShaderPatch(emuID, true, sc.SystemDisplayTypes)
+		shaderPatch := coreShaderPatch(emuID, sc.SystemDisplayTypes, resolver)
 		if shaderPatch != nil {
 			patches = append(patches, *shaderPatch)
 		}
@@ -275,7 +275,7 @@ func CorePatches(emuID model.EmulatorID, store model.StoreReader, cc *model.Cont
 	return patches
 }
 
-func coreShaderPatch(emuID model.EmulatorID, shadersEnabled bool, displayTypes map[model.SystemID]model.DisplayType) *model.ConfigPatch {
+func coreShaderPatch(emuID model.EmulatorID, displayTypes map[model.SystemID]model.DisplayType, resolver model.BaseDirResolver) *model.ConfigPatch {
 	shortName := CoreShortName(emuID)
 	if shortName == "" {
 		return nil
@@ -286,39 +286,42 @@ func coreShaderPatch(emuID model.EmulatorID, shadersEnabled bool, displayTypes m
 		configDirName = displayName
 	}
 
+	configDir, err := resolver.UserConfigDir()
+	if err != nil {
+		return nil
+	}
+
 	systemID := coreToSystem[emuID]
 	displayType := displayTypes[systemID]
 
 	target := model.ConfigTarget{
 		RelPath: "retroarch/config/" + configDirName + "/" + configDirName + ".slangp",
-		Format:  model.ConfigFormatRaw,
+		Format:  model.ConfigFormatCFG,
 		BaseDir: model.ConfigBaseDirUserConfig,
 	}
 
-	if !shadersEnabled {
-		return &model.ConfigPatch{
-			Target: target,
-			Delete: true,
+	shaderDir := filepath.Join(configDir, "retroarch", "shaders", "kyaraben")
+	var entries []model.ConfigEntry
+
+	if displayType == model.DisplayTypeLCD {
+		entries = []model.ConfigEntry{
+			model.Entry(model.None, model.Path("shaders"), "1"),
+			model.Entry(model.None, model.Path("shader0"), filepath.Join(shaderDir, lcdShaderFile)),
+			model.Entry(model.None, model.Path("scale_type0"), "viewport"),
+			model.Entry(model.None, model.Path("filter_linear0"), "true"),
+		}
+	} else {
+		entries = []model.ConfigEntry{
+			model.Entry(model.None, model.Path("shaders"), "1"),
+			model.Entry(model.None, model.Path("shader0"), filepath.Join(shaderDir, crtShaderFile)),
+			model.Entry(model.None, model.Path("filter_linear0"), "false"),
 		}
 	}
 
-	var content string
-	if displayType == model.DisplayTypeLCD {
-		content = `shaders = 1
-shader0 = ../../shaders/kyaraben/` + lcdShaderFile + `
-scale_type0 = viewport
-filter_linear0 = true
-`
-	} else {
-		content = `shaders = 1
-shader0 = ../../shaders/kyaraben/` + crtShaderFile + `
-filter_linear0 = false
-`
-	}
-
 	return &model.ConfigPatch{
-		Target:  target,
-		Entries: []model.ConfigEntry{model.Entry(model.None, model.Path(), content)},
+		Target:         target,
+		Entries:        entries,
+		ManagedRegions: []model.ManagedRegion{model.FileRegion{}},
 	}
 }
 
