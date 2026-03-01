@@ -3,6 +3,7 @@ import { ConfigDiffReview } from '@/components/ConfigDiffReview/ConfigDiffReview
 import { FrontendCard } from '@/components/FrontendCard/FrontendCard'
 import { ManufacturerNav } from '@/components/ManufacturerNav/ManufacturerNav'
 import { SearchInput } from '@/components/SearchInput/SearchInput'
+import { ControllerSettings } from '@/components/Settings/ControllerSettings'
 import { GraphicsSettings } from '@/components/Settings/GraphicsSettings'
 import { Settings } from '@/components/Settings/Settings'
 import { StickyActionBar } from '@/components/StickyActionBar/StickyActionBar'
@@ -42,6 +43,7 @@ export interface CatalogViewProps {
   readonly emulatorVersions: Map<EmulatorID, string | null>
   readonly emulatorShaders: Map<EmulatorID, string | null>
   readonly graphics: { shaders: string }
+  readonly controller: { nintendoConfirm: string }
   readonly frontendVersions: Map<FrontendID, string | null>
   readonly installedVersions: Map<EmulatorID, string>
   readonly installedFrontendVersions: Map<FrontendID, string>
@@ -59,6 +61,7 @@ export interface CatalogViewProps {
   readonly onFrontendToggle: (frontendId: FrontendID, enabled: boolean) => void
   readonly onFrontendVersionChange: (frontendId: FrontendID, version: string | null) => void
   readonly onGraphicsShadersChange: (value: string) => void
+  readonly onControllerNintendoConfirmChange: (value: string) => void
   readonly onDiscard: () => void
   readonly onEnableAll: () => void
   readonly upgradeAvailable?: boolean
@@ -144,6 +147,7 @@ export function CatalogView({
   emulatorVersions,
   emulatorShaders,
   graphics,
+  controller,
   frontendVersions,
   installedVersions,
   installedFrontendVersions,
@@ -161,6 +165,7 @@ export function CatalogView({
   onFrontendToggle,
   onFrontendVersionChange,
   onGraphicsShadersChange,
+  onControllerNintendoConfirmChange,
   onDiscard,
   onEnableAll,
   upgradeAvailable,
@@ -217,6 +222,7 @@ export function CatalogView({
         emulators: emulatorsConfig,
         frontends: frontendsConfig,
         ...(graphics.shaders && { graphics }),
+        ...(controller.nintendoConfirm && { controller }),
         ...(summaryMessage && { summaryMessage }),
       })
     },
@@ -229,6 +235,7 @@ export function CatalogView({
       frontendVersions,
       userStore,
       graphics,
+      controller,
     ],
   )
 
@@ -447,6 +454,13 @@ export function CatalogView({
 
         <div className="mt-6">
           <GraphicsSettings shaders={graphics.shaders} onShadersChange={onGraphicsShadersChange} />
+        </div>
+
+        <div className="mt-6">
+          <ControllerSettings
+            nintendoConfirm={controller.nintendoConfirm}
+            onNintendoConfirmChange={onControllerNintendoConfirmChange}
+          />
         </div>
 
         {frontends.length > 0 && (

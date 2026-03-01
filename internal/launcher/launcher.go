@@ -25,7 +25,7 @@ type Manager struct {
 	executablePath string
 }
 
-func NewManager(p *paths.Paths) (*Manager, error) {
+func NewManager(fs vfs.FS, p *paths.Paths, resolver model.BaseDirResolver) (*Manager, error) {
 	stateDir, err := p.StateDir()
 	if err != nil {
 		return nil, fmt.Errorf("getting state directory: %w", err)
@@ -35,16 +35,16 @@ func NewManager(p *paths.Paths) (*Manager, error) {
 		return nil, fmt.Errorf("getting data directory: %w", err)
 	}
 	return &Manager{
-		fs:         vfs.OSFS,
+		fs:         fs,
 		paths:      p,
 		profileDir: stateDir,
 		dataDir:    dataDir,
-		resolver:   model.OSBaseDirResolver{},
+		resolver:   resolver,
 	}, nil
 }
 
 func NewDefaultManager() (*Manager, error) {
-	return NewManager(paths.DefaultPaths())
+	return NewManager(vfs.OSFS, paths.DefaultPaths(), model.NewDefaultResolver())
 }
 
 func (m *Manager) CoresDir() string {

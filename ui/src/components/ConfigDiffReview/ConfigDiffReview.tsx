@@ -137,7 +137,7 @@ function FileDiff({ diff }: { readonly diff: ConfigFileDiff }) {
           </p>
           {diff.userChanges.map((uc) => (
             <div key={uc.key} className="font-mono text-xs text-status-warning/80 pl-2">
-              {uc.key}: {uc.currentValue} &rarr; {uc.baselineValue}
+              {uc.key}: {uc.writtenValue} &rarr; {uc.currentValue}
             </div>
           ))}
         </div>

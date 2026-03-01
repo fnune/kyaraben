@@ -236,9 +236,9 @@ func TestManifest_AddManagedConfig(t *testing.T) {
 	m := NewManifest()
 
 	cfg := ManagedConfig{
-		EmulatorIDs:  []EmulatorID{"emu1"},
-		Target:       ConfigTarget{RelPath: "config.ini"},
-		BaselineHash: "hash1",
+		EmulatorIDs:    []EmulatorID{"emu1"},
+		Target:         ConfigTarget{RelPath: "config.ini"},
+		WrittenEntries: map[string]string{"key1": "value1"},
 	}
 	if err := m.AddManagedConfig(cfg); err != nil {
 		t.Fatalf("AddManagedConfig failed: %v", err)
@@ -248,8 +248,8 @@ func TestManifest_AddManagedConfig(t *testing.T) {
 		t.Fatalf("ManagedConfigs has %d entries, want 1", len(m.ManagedConfigs))
 	}
 
-	if m.ManagedConfigs[0].BaselineHash != "hash1" {
-		t.Errorf("BaselineHash = %q, want %q", m.ManagedConfigs[0].BaselineHash, "hash1")
+	if m.ManagedConfigs[0].WrittenEntries["key1"] != "value1" {
+		t.Errorf("WrittenEntries[key1] = %q, want %q", m.ManagedConfigs[0].WrittenEntries["key1"], "value1")
 	}
 }
 
@@ -260,16 +260,16 @@ func TestManifest_AddManagedConfig_MergesEmulatorIDs(t *testing.T) {
 	target := ConfigTarget{RelPath: "config.ini", BaseDir: ConfigBaseDirUserConfig}
 
 	if err := m.AddManagedConfig(ManagedConfig{
-		EmulatorIDs:  []EmulatorID{"emu1"},
-		Target:       target,
-		BaselineHash: "hash1",
+		EmulatorIDs:    []EmulatorID{"emu1"},
+		Target:         target,
+		WrittenEntries: map[string]string{"key1": "value1"},
 	}); err != nil {
 		t.Fatalf("AddManagedConfig failed: %v", err)
 	}
 	if err := m.AddManagedConfig(ManagedConfig{
-		EmulatorIDs:  []EmulatorID{"emu2"},
-		Target:       target,
-		BaselineHash: "hash2",
+		EmulatorIDs:    []EmulatorID{"emu2"},
+		Target:         target,
+		WrittenEntries: map[string]string{"key2": "value2"},
 	}); err != nil {
 		t.Fatalf("AddManagedConfig failed: %v", err)
 	}
@@ -282,8 +282,8 @@ func TestManifest_AddManagedConfig_MergesEmulatorIDs(t *testing.T) {
 		t.Errorf("EmulatorIDs has %d entries, want 2", len(m.ManagedConfigs[0].EmulatorIDs))
 	}
 
-	if m.ManagedConfigs[0].BaselineHash != "hash2" {
-		t.Errorf("BaselineHash = %q, want %q", m.ManagedConfigs[0].BaselineHash, "hash2")
+	if m.ManagedConfigs[0].WrittenEntries["key2"] != "value2" {
+		t.Errorf("WrittenEntries[key2] = %q, want %q", m.ManagedConfigs[0].WrittenEntries["key2"], "value2")
 	}
 }
 
@@ -294,9 +294,9 @@ func TestManifest_GetManagedConfig(t *testing.T) {
 	target := ConfigTarget{RelPath: "config.ini", BaseDir: ConfigBaseDirUserConfig}
 
 	if err := m.AddManagedConfig(ManagedConfig{
-		EmulatorIDs:  []EmulatorID{"emu1"},
-		Target:       target,
-		BaselineHash: "hash1",
+		EmulatorIDs:    []EmulatorID{"emu1"},
+		Target:         target,
+		WrittenEntries: map[string]string{"key1": "value1"},
 	}); err != nil {
 		t.Fatalf("AddManagedConfig failed: %v", err)
 	}
@@ -305,8 +305,8 @@ func TestManifest_GetManagedConfig(t *testing.T) {
 	if !ok {
 		t.Error("GetManagedConfig returned false for existing config")
 	}
-	if cfg.BaselineHash != "hash1" {
-		t.Errorf("BaselineHash = %q, want %q", cfg.BaselineHash, "hash1")
+	if cfg.WrittenEntries["key1"] != "value1" {
+		t.Errorf("WrittenEntries[key1] = %q, want %q", cfg.WrittenEntries["key1"], "value1")
 	}
 
 	_, ok = m.GetManagedConfig(ConfigTarget{RelPath: "other.ini"})

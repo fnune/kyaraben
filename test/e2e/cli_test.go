@@ -265,6 +265,46 @@ wiiu = ["cemu"]
 	c.assertContains(string(output), "Cancelled")
 }
 
+func TestApplyNintendoConfirmChangeIsNotConflict(t *testing.T) {
+	c := newCLITest(t)
+
+	configContent := `[global]
+user_store = "` + c.userStore + `"
+
+[controller]
+nintendo_confirm = "east"
+
+[systems]
+gamecube = ["dolphin"]
+`
+	c.writeFile("config.toml", configContent)
+	c.apply()
+
+	dolphinGCPadConfig := filepath.Join(c.tmpDir, "xdg-config", "dolphin-emu", "GCPadNew.ini")
+	c.assertFileExists(dolphinGCPadConfig)
+	originalContent := c.readFile("xdg-config/dolphin-emu/GCPadNew.ini")
+	if !strings.Contains(originalContent, "Buttons/A") {
+		t.Fatalf("expected Buttons/A in config, got:\n%s", originalContent)
+	}
+
+	configContent = `[global]
+user_store = "` + c.userStore + `"
+
+[controller]
+nintendo_confirm = "south"
+
+[systems]
+gamecube = ["dolphin"]
+`
+	c.writeFile("config.toml", configContent)
+
+	output := c.apply()
+
+	c.assertNotContains(output, "managed settings will be overwritten")
+	c.assertNotContains(output, "Your changes")
+	c.assertContains(output, "Done!")
+}
+
 func TestDoctor(t *testing.T) {
 	t.Run("reports missing required provisions", func(t *testing.T) {
 		c := newCLITest(t)

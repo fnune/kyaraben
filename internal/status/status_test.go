@@ -58,7 +58,7 @@ func TestGet(t *testing.T) {
 	reg := registry.NewDefault()
 	userStore := mustNewUserStore(t, fs, userStorePath)
 
-	getter := NewGetter(fs, paths.DefaultPaths())
+	getter := NewGetter(fs, paths.DefaultPaths(), testutil.FakeResolver{ConfigDir: "/config", DataDir: "/data", HomeDir: "/"})
 	result, err := getter.Get(context.Background(), cfg, configPath, reg, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
@@ -113,7 +113,7 @@ func TestGetWithInitializedStore(t *testing.T) {
 	reg := registry.NewDefault()
 	userStore := mustNewUserStore(t, fs, userStorePath)
 
-	getter := NewGetter(fs, paths.DefaultPaths())
+	getter := NewGetter(fs, paths.DefaultPaths(), testutil.FakeResolver{ConfigDir: "/config", DataDir: "/data", HomeDir: "/"})
 	result, err := getter.Get(context.Background(), cfg, configPath, reg, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
@@ -146,7 +146,7 @@ func TestGetSystemNames(t *testing.T) {
 	reg := registry.NewDefault()
 	userStore := mustNewUserStore(t, fs, "/Emulation")
 
-	getter := NewGetter(fs, paths.DefaultPaths())
+	getter := NewGetter(fs, paths.DefaultPaths(), testutil.FakeResolver{ConfigDir: "/config", DataDir: "/data", HomeDir: "/"})
 	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
@@ -189,7 +189,7 @@ func TestGetMissingRequiredCount(t *testing.T) {
 	reg := registry.NewDefault()
 	userStore := mustNewUserStore(t, fs, userStorePath)
 
-	getter := NewGetter(fs, paths.DefaultPaths())
+	getter := NewGetter(fs, paths.DefaultPaths(), testutil.FakeResolver{ConfigDir: "/config", DataDir: "/data", HomeDir: "/"})
 	result, err := getter.Get(context.Background(), cfg, "/config", reg, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
@@ -237,7 +237,7 @@ func TestGetWithManifest(t *testing.T) {
 	reg := registry.NewDefault()
 	userStore := mustNewUserStore(t, fs, "/Emulation")
 
-	getter := NewGetter(fs, paths.DefaultPaths())
+	getter := NewGetter(fs, paths.DefaultPaths(), testutil.FakeResolver{ConfigDir: "/config", DataDir: "/data", HomeDir: "/"})
 	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
@@ -303,7 +303,7 @@ func TestGetWithVersionPinning(t *testing.T) {
 	reg := registry.NewDefault()
 	userStore := mustNewUserStore(t, fs, "/Emulation")
 
-	getter := NewGetter(fs, paths.DefaultPaths())
+	getter := NewGetter(fs, paths.DefaultPaths(), testutil.FakeResolver{ConfigDir: "/config", DataDir: "/data", HomeDir: "/"})
 	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
@@ -361,7 +361,7 @@ func TestGetManagedConfigsIncludesKeys(t *testing.T) {
 	reg := registry.NewDefault()
 	userStore := mustNewUserStore(t, fs, "/Emulation")
 
-	getter := NewGetter(fs, paths.DefaultPaths())
+	getter := NewGetter(fs, paths.DefaultPaths(), testutil.FakeResolver{ConfigDir: "/config", DataDir: "/data", HomeDir: "/"})
 	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
@@ -444,7 +444,7 @@ func TestGetRetroArchCoreIncludesSharedConfig(t *testing.T) {
 	reg := registry.NewDefault()
 	userStore := mustNewUserStore(t, fs, "/Emulation")
 
-	getter := NewGetter(fs, paths.DefaultPaths())
+	getter := NewGetter(fs, paths.DefaultPaths(), testutil.FakeResolver{ConfigDir: "/config", DataDir: "/data", HomeDir: "/"})
 	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, userStore, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)

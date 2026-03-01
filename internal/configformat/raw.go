@@ -25,14 +25,11 @@ func (h *rawHandler) Apply(path string, entries []model.ConfigEntry, _ []model.M
 	}
 
 	entry := entries[0]
+	writtenEntries := make(map[string]string)
 
 	if entry.DefaultOnly {
 		if _, err := h.fs.Stat(path); err == nil {
-			hash, err := hashFileWithFS(h.fs, path)
-			if err != nil {
-				return ApplyResult{}, fmt.Errorf("hashing existing file: %w", err)
-			}
-			return ApplyResult{Path: path, BaselineHash: hash, PatchHash: ComputePatchHash(entries)}, nil
+			return ApplyResult{Path: path, WrittenEntries: writtenEntries}, nil
 		}
 	}
 
@@ -44,10 +41,6 @@ func (h *rawHandler) Apply(path string, entries []model.ConfigEntry, _ []model.M
 		return ApplyResult{}, fmt.Errorf("writing raw file: %w", err)
 	}
 
-	hash, err := hashFileWithFS(h.fs, path)
-	if err != nil {
-		return ApplyResult{}, fmt.Errorf("hashing config file: %w", err)
-	}
-
-	return ApplyResult{Path: path, BaselineHash: hash, PatchHash: ComputePatchHash(entries)}, nil
+	writtenEntries[entry.FullPath()] = entry.Value
+	return ApplyResult{Path: path, WrittenEntries: writtenEntries}, nil
 }

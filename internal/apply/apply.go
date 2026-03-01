@@ -89,9 +89,18 @@ func (a *Applier) Preflight(ctx context.Context, cfg *model.KyarabenConfig, user
 		}
 
 		genCtx.Shaders = cfg.EmulatorShaders(emuID)
+		if controllerConfig != nil {
+			controllerConfig.ResetTracking()
+		}
 		result, err := gen.Generate(genCtx)
 		if err != nil {
 			return nil, fmt.Errorf("generating config for %s: %w", emuID, err)
+		}
+		usedInputs := controllerConfig.UsedInputs()
+		for i := range result.Patches {
+			if len(usedInputs) > 0 {
+				applyUsedInputs(&result.Patches[i], usedInputs)
+			}
 		}
 		allPatches = append(allPatches, result.Patches...)
 	}
@@ -212,12 +221,19 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		}
 
 		genCtx.Shaders = cfg.EmulatorShaders(emuID)
+		if controllerConfig != nil {
+			controllerConfig.ResetTracking()
+		}
 		result, err := gen.Generate(genCtx)
 		if err != nil {
 			return nil, fmt.Errorf("generating config for %s: %w", emuID, err)
 		}
-		for range result.Patches {
+		usedInputs := controllerConfig.UsedInputs()
+		for i := range result.Patches {
 			patchEmulators = append(patchEmulators, emuID)
+			if len(usedInputs) > 0 {
+				applyUsedInputs(&result.Patches[i], usedInputs)
+			}
 		}
 		allPatches = append(allPatches, result.Patches...)
 		if len(result.Symlinks) > 0 {
@@ -509,13 +525,15 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 			regions = append(regions, r)
 		}
 
+		configInputs := collectConfigInputs(patch.Entries, controllerConfig, userStore.Root())
+
 		newManagedConfigs = append(newManagedConfigs, model.ManagedConfig{
-			EmulatorIDs:    []model.EmulatorID{patchEmulators[i]},
-			Target:         patch.Target,
-			BaselineHash:   configResults[i].BaselineHash,
-			PatchHash:      configResults[i].PatchHash,
-			LastModified:   now,
-			ManagedRegions: regions,
+			EmulatorIDs:             []model.EmulatorID{patchEmulators[i]},
+			Target:                  patch.Target,
+			WrittenEntries:          configResults[i].WrittenEntries,
+			ConfigInputsWhenWritten: configInputs,
+			LastModified:            now,
+			ManagedRegions:          regions,
 		})
 	}
 
@@ -1547,4 +1565,35 @@ func generateSteamAppID(exe, appName string) uint32 {
 	input := exe + appName
 	crc := crc32.ChecksumIEEE([]byte(input))
 	return crc | 0x80000000
+}
+
+func collectConfigInputs(entries []model.ConfigEntry, controllerConfig *model.ControllerConfig, userStoreRoot string) map[string]string {
+	deps := make(map[model.ConfigInput]bool)
+	for _, entry := range entries {
+		for _, dep := range entry.DependsOn {
+			deps[dep] = true
+		}
+	}
+
+	if len(deps) == 0 {
+		return nil
+	}
+
+	inputs := make(map[string]string)
+	for dep := range deps {
+		key := string(dep)
+		switch dep {
+		case model.ConfigInputNintendoConfirm:
+			inputs[key] = string(controllerConfig.NintendoConfirm)
+		case model.ConfigInputUserStore:
+			inputs[key] = userStoreRoot
+		}
+	}
+	return inputs
+}
+
+func applyUsedInputs(patch *model.ConfigPatch, inputs []model.ConfigInput) {
+	for i := range patch.Entries {
+		patch.Entries[i].DependsOn = inputs
+	}
 }

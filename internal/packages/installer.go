@@ -84,7 +84,7 @@ func NewPackageInstaller(fs vfs.FS, stateDir string, downloader Downloader, extr
 }
 
 func NewDefaultPackageInstaller(stateDir string, downloader Downloader, extractor Extractor) *PackageInstaller {
-	return NewPackageInstaller(vfs.OSFS, stateDir, downloader, extractor, model.OSBaseDirResolver{})
+	return NewPackageInstaller(vfs.OSFS, stateDir, downloader, extractor, model.NewDefaultResolver())
 }
 
 func (i *PackageInstaller) SetVersionOverrides(overrides map[string]string) {

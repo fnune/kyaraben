@@ -10,8 +10,10 @@ import {
 import {
   buildEnv,
   createFixture,
+  EmulatorIDDuckStation,
   EmulatorIDRetroArchMGBA,
   SystemIDGBA,
+  SystemIDPSX,
   type TestFixture,
 } from './fixtures'
 
@@ -51,7 +53,7 @@ test.describe('Config conflict review', () => {
 
     fs.writeFileSync(path.join(retroarchConfigDir, 'retroarch.cfg'), configContent)
 
-    // Write manifest that records the original baseline (before user modified the file)
+    // Write manifest that records what kyaraben wrote (before user modified the file)
     const manifest = {
       version: 1,
       last_applied: new Date().toISOString(),
@@ -71,7 +73,9 @@ test.describe('Config conflict review', () => {
             Format: 'cfg',
             BaseDir: 'user_config',
           },
-          baseline_hash: 'hash-before-user-modified-the-file',
+          written_entries: {
+            rgui_browser_directory: `"${fixture.userStore}/roms"`,
+          },
           last_modified: new Date().toISOString(),
           managed_regions: [{ type: 'file' }],
         },
@@ -116,6 +120,8 @@ test.describe('Config conflict review', () => {
     await expect(page.getByRole('button', { name: 'Open file' }).first()).toBeVisible()
     await expect(page.getByRole('button', { name: 'Continue and override' })).toBeVisible()
 
+    await page.pause() // TODO: remove - debug pause to see conflict review
+
     // Cancel returns to systems view
     await page.getByRole('button', { name: 'Cancel' }).click()
     await expect(page.getByText('Emulation folder')).toBeVisible()
@@ -127,6 +133,8 @@ test.describe('Config conflict review', () => {
     await page.getByRole('button', { name: 'Apply' }).click()
     await expect(page.getByText('Config conflicts detected')).toBeVisible({ timeout: 10000 })
 
+    await page.pause() // TODO: remove - debug pause to see conflict review (before override)
+
     await page.getByRole('button', { name: 'Continue and override' }).click()
 
     await expect(
@@ -134,6 +142,169 @@ test.describe('Config conflict review', () => {
     ).toBeVisible({ timeout: 5000 })
 
     await expect(page.getByRole('button', { name: 'Done' })).toBeVisible({ timeout: 30000 })
+
+    await page.pause() // TODO: remove - debug pause to see completion
+
+    await page.getByRole('button', { name: 'Done' }).click()
+    await expect(page.getByText('Emulation folder')).toBeVisible()
+  })
+})
+
+test.describe('UI-driven config change', () => {
+  let fixture: TestFixture
+  let app: ElectronApplication
+  let page: Page
+
+  test.beforeAll(async () => {
+    fixture = createFixture(
+      {
+        systems: {
+          [SystemIDGBA]: [EmulatorIDRetroArchMGBA],
+        },
+      },
+      undefined,
+    )
+
+    app = await electron.launch({
+      executablePath: getAppImagePath(),
+      args: ['--no-sandbox'],
+      env: buildEnv(fixture),
+    })
+
+    page = await app.firstWindow()
+    await page.getByRole('img', { name: 'Kyaraben' }).waitFor({ timeout: 30000 })
+  })
+
+  test.afterAll(async () => {
+    await app?.close()
+    fixture?.cleanup()
+  })
+
+  test('changing nintendo_confirm does not trigger conflict review', async () => {
+    await page.getByRole('button', { name: 'Apply' }).click()
+
+    await expect(page.getByRole('button', { name: 'Done' })).toBeVisible({ timeout: 30000 })
+
+    await page.pause() // TODO: remove - debug pause to see first completion
+
+    await page.getByRole('button', { name: 'Done' }).click()
+    await expect(page.getByText('Emulation folder')).toBeVisible()
+
+    const southButton = page.getByText('South button confirms')
+    await southButton.click()
+
+    await expect(page.getByRole('button', { name: 'Apply' })).toBeVisible()
+    await page.getByRole('button', { name: 'Apply' }).click()
+
+    await expect(page.getByText('Config conflicts detected')).not.toBeVisible({ timeout: 2000 })
+    await expect(page.getByText('Kyaraben has updated its defaults')).not.toBeVisible()
+
+    await expect(page.getByRole('button', { name: 'Done' })).toBeVisible({ timeout: 30000 })
+
+    await page.pause() // TODO: remove - debug pause to see second completion (no conflict)
+
+    await page.getByRole('button', { name: 'Done' }).click()
+    await expect(page.getByText('Emulation folder')).toBeVisible()
+  })
+})
+
+test.describe('Version upgrade review', () => {
+  let fixture: TestFixture
+  let app: ElectronApplication
+  let page: Page
+
+  test.beforeAll(async () => {
+    fixture = createFixture(
+      {
+        systems: {
+          [SystemIDPSX]: [EmulatorIDDuckStation],
+        },
+      },
+      undefined,
+    )
+
+    const dataDir = fixture.env.XDG_DATA_HOME
+    const duckstationDataDir = path.join(dataDir, 'duckstation')
+    fs.mkdirSync(duckstationDataDir, { recursive: true })
+
+    const configContent = [
+      '[Main]',
+      'SettingsVersion = 3',
+      `GamePaths = ${fixture.userStore}/roms/psx`,
+      '[AutoUpdater]',
+      'CheckAtStartup = true',
+    ].join('\n')
+
+    fs.writeFileSync(path.join(duckstationDataDir, 'settings.ini'), configContent)
+
+    const manifest = {
+      version: 1,
+      last_applied: new Date().toISOString(),
+      installed_emulators: {
+        [EmulatorIDDuckStation]: {
+          id: EmulatorIDDuckStation,
+          version: '0.1.0',
+          package_path: path.join(fixture.stateDir, 'kyaraben', 'packages', 'duckstation'),
+          installed: new Date().toISOString(),
+        },
+      },
+      managed_configs: [
+        {
+          emulator_ids: [EmulatorIDDuckStation],
+          target: {
+            RelPath: 'duckstation/settings.ini',
+            Format: 'ini',
+            BaseDir: 'user_data',
+          },
+          written_entries: {
+            'AutoUpdater.CheckAtStartup': 'true',
+          },
+          config_inputs_when_written: {},
+          last_modified: new Date().toISOString(),
+          managed_regions: [{ type: 'file' }],
+        },
+      ],
+      desktop_files: [],
+      icon_files: [],
+    }
+
+    fs.writeFileSync(
+      path.join(fixture.stateDir, 'kyaraben', 'build', 'manifest.json'),
+      JSON.stringify(manifest, null, 2),
+    )
+
+    app = await electron.launch({
+      executablePath: getAppImagePath(),
+      args: ['--no-sandbox'],
+      env: buildEnv(fixture),
+    })
+
+    page = await app.firstWindow()
+    await page.getByRole('img', { name: 'Kyaraben' }).waitFor({ timeout: 30000 })
+  })
+
+  test.afterAll(async () => {
+    await app?.close()
+    fixture?.cleanup()
+  })
+
+  test('shows version upgrade review when kyaraben defaults changed', async () => {
+    await page.getByRole('button', { name: 'Apply' }).click()
+
+    await expect(page.getByText('Kyaraben has updated its defaults')).toBeVisible({
+      timeout: 10000,
+    })
+    await expect(page.getByText('duckstation/settings.ini')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Continue' })).toBeVisible()
+
+    await page.pause() // TODO: remove - debug pause to see version upgrade review
+
+    await page.getByRole('button', { name: 'Continue' }).click()
+
+    await expect(page.getByRole('button', { name: 'Done' })).toBeVisible({ timeout: 30000 })
+
+    await page.pause() // TODO: remove - debug pause to see completion
+
     await page.getByRole('button', { name: 'Done' }).click()
     await expect(page.getByText('Emulation folder')).toBeVisible()
   })

@@ -27,6 +27,7 @@ const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
 interface ApplyConfig {
   userStore: string
   graphics?: { shaders: string }
+  controller?: { nintendoConfirm: string }
   systems: Record<string, string[]>
   emulators: Record<string, { version?: string; shaders?: string | null }>
   frontends?: Record<string, { enabled: boolean; version?: string }>
@@ -227,6 +228,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
         systems: config.systems,
         emulators: toEmulatorConfRequest(config.emulators),
         ...(config.graphics && { graphics: config.graphics }),
+        ...(config.controller && { controller: config.controller }),
         ...(config.frontends && { frontends: config.frontends }),
       })
 

@@ -39,11 +39,18 @@ export type EmulatorID =
   | string
 export type FrontendID = typeof FrontendIDESDE | string
 
+export interface TestFixtureEnv extends Record<string, string> {
+  XDG_CONFIG_HOME: string
+  XDG_STATE_HOME: string
+  XDG_DATA_HOME: string
+  HOME: string
+}
+
 export interface TestFixture {
   configDir: string
   stateDir: string
   userStore: string
-  env: Record<string, string>
+  env: TestFixtureEnv
   cleanup: () => void
   releasesServer?: http.Server
   syncthingServer?: http.Server
@@ -85,9 +92,9 @@ export interface ManifestFixture {
   managedConfigs?: Array<{
     emulatorId: EmulatorID
     target: { type: string; path?: string }
-    baselineHash: string
+    writtenEntries?: Record<string, string>
+    configInputsWhenWritten?: Record<string, string>
     lastModified: string
-    managedKeys: Array<{ path: string[]; value: string }>
   }>
   desktopFiles?: string[]
   iconFiles?: string[]
@@ -142,7 +149,7 @@ export function createFixture(config?: ConfigFixture, manifest?: ManifestFixture
   const dataDir = path.join(tmpDir, 'data')
   fs.mkdirSync(dataDir, { recursive: true })
 
-  const env: Record<string, string> = {
+  const env: TestFixtureEnv = {
     XDG_CONFIG_HOME: configDir,
     XDG_STATE_HOME: stateDir,
     XDG_DATA_HOME: dataDir,
@@ -301,9 +308,8 @@ export const presets = {
         {
           emulatorId: EmulatorIDRetroArchBsnes,
           target: { type: 'xdg_config', path: 'bsnes/settings.bml' },
-          baselineHash: 'abc123',
+          writtenEntries: {},
           lastModified: new Date().toISOString(),
-          managedKeys: [],
         },
       ],
     },

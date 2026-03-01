@@ -20,8 +20,8 @@ func NewConfigWriter(fs vfs.FS, resolver model.BaseDirResolver) *ConfigWriter {
 	return &ConfigWriter{fs: fs, resolver: resolver}
 }
 
-func NewDefaultConfigWriter(resolver model.BaseDirResolver) *ConfigWriter {
-	return NewConfigWriter(vfs.OSFS, resolver)
+func NewDefaultConfigWriter() *ConfigWriter {
+	return NewConfigWriter(vfs.OSFS, model.NewDefaultResolver())
 }
 
 func (w *ConfigWriter) resolvePath(target model.ConfigTarget) (string, error) {
@@ -29,10 +29,9 @@ func (w *ConfigWriter) resolvePath(target model.ConfigTarget) (string, error) {
 }
 
 type ApplyResult struct {
-	Path         string
-	BaselineHash string
-	PatchHash    string
-	BackupPath   string
+	Path           string
+	WrittenEntries map[string]string
+	BackupPath     string
 }
 
 type ApplyOptions struct {
@@ -95,9 +94,8 @@ func (w *ConfigWriter) ApplyWithOptions(patch model.ConfigPatch, opts ApplyOptio
 	}
 
 	return ApplyResult{
-		Path:         formatResult.Path,
-		BaselineHash: formatResult.BaselineHash,
-		PatchHash:    formatResult.PatchHash,
-		BackupPath:   backupPath,
+		Path:           formatResult.Path,
+		WrittenEntries: formatResult.WrittenEntries,
+		BackupPath:     backupPath,
 	}, nil
 }

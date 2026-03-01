@@ -7,6 +7,8 @@ import (
 	"os"
 	"sync"
 
+	"github.com/twpayne/go-vfs/v5"
+
 	"github.com/fnune/kyaraben/internal/daemon"
 	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/launcher"
@@ -21,8 +23,8 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 	if err != nil {
 		return fmt.Errorf("creating installer: %w", err)
 	}
-	configWriter := emulators.NewDefaultConfigWriter(model.OSBaseDirResolver{})
-	launcherManager, err := launcher.NewManager(ctx.GetPaths())
+	configWriter := emulators.NewDefaultConfigWriter()
+	launcherManager, err := launcher.NewManager(vfs.OSFS, ctx.GetPaths(), model.NewDefaultResolver())
 	if err != nil {
 		return fmt.Errorf("creating launcher manager: %w", err)
 	}

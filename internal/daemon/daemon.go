@@ -37,19 +37,24 @@ import (
 var log = logging.New("daemon")
 var pairingLog = log.WithPrefix("[pairing]")
 
+type Deps struct {
+	FS              vfs.FS
+	Paths           *paths.Paths
+	ConfigPath      string
+	StateDir        string
+	ManifestPath    string
+	Registry        *registry.Registry
+	Installer       packages.Installer
+	ConfigWriter    *emulators.ConfigWriter
+	LauncherManager *launcher.Manager
+	Service         syncpkg.ServiceManager
+	Resolver        model.BaseDirResolver
+}
+
 type Daemon struct {
-	fs              vfs.FS
-	paths           *paths.Paths
-	configStore     *model.ConfigStore
-	manifestStore   *model.ManifestStore
-	configPath      string
-	stateDir        string
-	manifestPath    string
-	reg             *registry.Registry
-	installer       packages.Installer
-	configWriter    *emulators.ConfigWriter
-	launcherManager *launcher.Manager
-	service         syncpkg.ServiceManager
+	deps          Deps
+	configStore   *model.ConfigStore
+	manifestStore *model.ManifestStore
 
 	mu              sync.Mutex
 	applyCancelFunc context.CancelFunc
@@ -67,25 +72,28 @@ type Daemon struct {
 	syncReconfigFailCount   int
 }
 
-func New(fs vfs.FS, p *paths.Paths, configPath, stateDir, manifestPath string, reg *registry.Registry, installer packages.Installer, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager, service syncpkg.ServiceManager) *Daemon {
+func New(deps Deps) *Daemon {
 	return &Daemon{
-		fs:              fs,
-		paths:           p,
-		configStore:     model.NewConfigStore(fs),
-		manifestStore:   model.NewManifestStore(fs),
-		configPath:      configPath,
-		stateDir:        stateDir,
-		manifestPath:    manifestPath,
-		reg:             reg,
-		installer:       installer,
-		configWriter:    configWriter,
-		launcherManager: launcherManager,
-		service:         service,
+		deps:          deps,
+		configStore:   model.NewConfigStore(deps.FS),
+		manifestStore: model.NewManifestStore(deps.FS),
 	}
 }
 
 func NewDefault(p *paths.Paths, configPath, stateDir, manifestPath string, reg *registry.Registry, installer packages.Installer, configWriter *emulators.ConfigWriter, launcherManager *launcher.Manager) *Daemon {
-	return New(vfs.OSFS, p, configPath, stateDir, manifestPath, reg, installer, configWriter, launcherManager, syncpkg.NewDefaultServiceManager())
+	return New(Deps{
+		FS:              vfs.OSFS,
+		Paths:           p,
+		ConfigPath:      configPath,
+		StateDir:        stateDir,
+		ManifestPath:    manifestPath,
+		Registry:        reg,
+		Installer:       installer,
+		ConfigWriter:    configWriter,
+		LauncherManager: launcherManager,
+		Service:         syncpkg.NewDefaultServiceManager(),
+		Resolver:        model.NewDefaultResolver(),
+	})
 }
 
 func shortenPath(path string) string {
@@ -205,7 +213,7 @@ func (d *Daemon) errorResponse(msg string) []Event {
 }
 
 func (d *Daemon) loadManifest() (*model.Manifest, error) {
-	manifest, err := d.manifestStore.Load(d.manifestPath)
+	manifest, err := d.manifestStore.Load(d.deps.ManifestPath)
 	if err != nil {
 		return nil, fmt.Errorf("manifest data appears corrupted: %w. Please report this as a bug and run 'kyaraben apply' to restore your configuration", err)
 	}
@@ -226,29 +234,29 @@ func (d *Daemon) loadConfig() (*model.KyarabenConfig, error) {
 }
 
 func (d *Daemon) loadConfigWithWarnings() (*loadConfigResult, error) {
-	path := d.configPath
+	path := d.deps.ConfigPath
 	if path == "" {
 		var err error
-		path, err = d.paths.ConfigPath()
+		path, err = d.deps.Paths.ConfigPath()
 		if err != nil {
 			return nil, err
 		}
 	}
 	validators := &model.ConfigValidators{
-		GetEmulator: d.reg.GetEmulator,
-		GetSystem:   d.reg.GetSystem,
-		GetFrontend: d.reg.GetFrontend,
+		GetEmulator: d.deps.Registry.GetEmulator,
+		GetSystem:   d.deps.Registry.GetSystem,
+		GetFrontend: d.deps.Registry.GetFrontend,
 	}
 	loadResult, err := d.configStore.LoadWithWarnings(path, validators)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			cfg := model.NewDefaultConfig()
-			if d.paths.Instance != "" {
-				offset := d.paths.InstancePortOffset()
+			if d.deps.Paths.Instance != "" {
+				offset := d.deps.Paths.InstancePortOffset()
 				cfg.Sync.Syncthing.ListenPort = 22100 + offset
 				cfg.Sync.Syncthing.DiscoveryPort = 21127 + offset
 				cfg.Sync.Syncthing.GUIPort = 8484 + offset
-				cfg.Global.UserStore = "~/Emulation-" + d.paths.Instance
+				cfg.Global.UserStore = "~/Emulation-" + d.deps.Paths.Instance
 			}
 			return &loadConfigResult{Config: cfg}, nil
 		}
@@ -271,17 +279,17 @@ func (d *Daemon) handleStatus() []Event {
 	}
 	cfg := loadResult.Config
 
-	configPath := d.configPath
+	configPath := d.deps.ConfigPath
 	if configPath == "" {
-		configPath, _ = d.paths.ConfigPath()
+		configPath, _ = d.deps.Paths.ConfigPath()
 	}
 
-	userStore, err := store.NewUserStore(d.fs, d.paths, cfg.Global.UserStore)
+	userStore, err := store.NewUserStore(d.deps.FS, d.deps.Paths, cfg.Global.UserStore)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
 
-	result, err := status.NewGetter(d.fs, d.paths).Get(context.Background(), cfg, configPath, d.reg, userStore, d.manifestPath)
+	result, err := status.NewGetter(d.deps.FS, d.deps.Paths, d.deps.Resolver).Get(context.Background(), cfg, configPath, d.deps.Registry, userStore, d.deps.ManifestPath)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
@@ -313,17 +321,17 @@ func (d *Daemon) handleStatus() []Event {
 			Version:        emu.Version,
 			ManagedConfigs: managedConfigs,
 		}
-		if e, err := d.reg.GetEmulator(emu.ID); err == nil && e.Launcher.Binary != "" {
-			execLine := fmt.Sprintf("%s/%s", d.launcherManager.BinDir(), e.Launcher.Binary)
+		if e, err := d.deps.Registry.GetEmulator(emu.ID); err == nil && e.Launcher.Binary != "" {
+			execLine := fmt.Sprintf("%s/%s", d.deps.LauncherManager.BinDir(), e.Launcher.Binary)
 			if e.Launcher.CoreName != "" {
-				corePath := fmt.Sprintf("%s/%s.so", d.launcherManager.CoresDir(), e.Launcher.CoreName)
+				corePath := fmt.Sprintf("%s/%s.so", d.deps.LauncherManager.CoresDir(), e.Launcher.CoreName)
 				execLine += " -L " + corePath + " --menu"
 			}
 			installed.ExecLine = execLine
 		}
 
 		installed.Paths = make(map[string]EmulatorPaths)
-		emuDef, _ := d.reg.GetEmulator(emu.ID)
+		emuDef, _ := d.deps.Registry.GetEmulator(emu.ID)
 		for sysID, emuIDs := range cfg.Systems {
 			for _, emuID := range emuIDs {
 				if emuID == emu.ID {
@@ -357,8 +365,8 @@ func (d *Daemon) handleStatus() []Event {
 			ID:      fe.ID,
 			Version: fe.Version,
 		}
-		if f, err := d.reg.GetFrontend(fe.ID); err == nil && f.Launcher.Binary != "" {
-			installed.ExecLine = fmt.Sprintf("%s/%s", d.launcherManager.BinDir(), f.Launcher.Binary)
+		if f, err := d.deps.Registry.GetFrontend(fe.ID); err == nil && f.Launcher.Binary != "" {
+			installed.ExecLine = fmt.Sprintf("%s/%s", d.deps.LauncherManager.BinDir(), f.Launcher.Binary)
 			log.Info("frontend exec line: %s -> %s", fe.ID, installed.ExecLine)
 		} else if err != nil {
 			log.Error("failed to get frontend %s: %v", fe.ID, err)
@@ -414,12 +422,12 @@ func (d *Daemon) handleDoctor() []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	userStore, err := store.NewUserStore(d.fs, d.paths, cfg.Global.UserStore)
+	userStore, err := store.NewUserStore(d.deps.FS, d.deps.Paths, cfg.Global.UserStore)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
 
-	result, err := doctor.Run(context.Background(), cfg, d.reg, userStore)
+	result, err := doctor.Run(context.Background(), cfg, d.deps.Registry, userStore)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
@@ -461,19 +469,19 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	versionOverrides, err := cfg.BuildVersionOverrides(d.reg.GetEmulator, d.reg.GetFrontend)
+	versionOverrides, err := cfg.BuildVersionOverrides(d.deps.Registry.GetEmulator, d.deps.Registry.GetFrontend)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
-	d.installer.SetVersionOverrides(versionOverrides)
+	d.deps.Installer.SetVersionOverrides(versionOverrides)
 
-	userStore, err := store.NewUserStore(d.fs, d.paths, cfg.Global.UserStore)
+	userStore, err := store.NewUserStore(d.deps.FS, d.deps.Paths, cfg.Global.UserStore)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
 
 	// Acquire exclusive lock to prevent concurrent Apply operations
-	lockDir := filepath.Dir(d.manifestPath)
+	lockDir := filepath.Dir(d.deps.ManifestPath)
 	if err := os.MkdirAll(lockDir, 0755); err != nil {
 		return d.errorResponse(fmt.Sprintf("creating state directory: %v", err))
 	}
@@ -512,14 +520,14 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 	}
 
 	applier := apply.NewApplier(
-		d.fs,
-		d.installer,
-		d.configWriter,
-		d.reg,
-		d.manifestPath,
-		d.launcherManager,
-		model.OSBaseDirResolver{},
-		symlink.NewCreator(d.fs),
+		d.deps.FS,
+		d.deps.Installer,
+		d.deps.ConfigWriter,
+		d.deps.Registry,
+		d.deps.ManifestPath,
+		d.deps.LauncherManager,
+		d.deps.Resolver,
+		symlink.NewCreator(d.deps.FS),
 	)
 	applier.SteamManager = steam.NewDefaultManager()
 
@@ -560,7 +568,7 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	if _, err := d.launcherManager.InstallCLI(); err != nil {
+	if _, err := d.deps.LauncherManager.InstallCLI(); err != nil {
 		log.Debug("Failed to install Kyaraben to PATH: %v", err)
 	}
 
@@ -592,20 +600,20 @@ func (d *Daemon) handlePreflight() []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	userStore, err := store.NewUserStore(d.fs, d.paths, cfg.Global.UserStore)
+	userStore, err := store.NewUserStore(d.deps.FS, d.deps.Paths, cfg.Global.UserStore)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
 
 	applier := apply.NewApplier(
-		d.fs,
-		d.installer,
-		d.configWriter,
-		d.reg,
-		d.manifestPath,
-		d.launcherManager,
-		model.OSBaseDirResolver{},
-		symlink.NewCreator(d.fs),
+		d.deps.FS,
+		d.deps.Installer,
+		d.deps.ConfigWriter,
+		d.deps.Registry,
+		d.deps.ManifestPath,
+		d.deps.LauncherManager,
+		d.deps.Resolver,
+		symlink.NewCreator(d.deps.FS),
 	)
 	applier.SteamManager = steam.NewDefaultManager()
 
@@ -614,10 +622,20 @@ func (d *Daemon) handlePreflight() []Event {
 		return d.errorResponse(fmt.Sprintf("preflight check: %v", err))
 	}
 
-	manifest, err := d.manifestStore.Load(d.manifestPath)
+	manifest, err := d.manifestStore.Load(d.deps.ManifestPath)
 	if err != nil {
 		return d.errorResponse(fmt.Sprintf("loading manifest: %v", err))
 	}
+
+	controllerConfig, _ := cfg.ResolveControllerConfig()
+	diffCtx := &emulators.DiffContext{
+		CurrentConfigInputs: map[string]string{
+			string(model.ConfigInputNintendoConfirm): string(controllerConfig.NintendoConfirm),
+			string(model.ConfigInputUserStore):       userStore.Root(),
+		},
+	}
+
+	diffComputer := emulators.NewDiffComputer(d.deps.FS, d.deps.Resolver)
 
 	type fileDiffState struct {
 		diff             ConfigFileDiff
@@ -637,7 +655,7 @@ func (d *Daemon) handlePreflight() []Event {
 			baselinePtr = &baseline
 		}
 
-		diff, err := emulators.ComputeDiffWithBaseline(patch, baselinePtr)
+		diff, err := diffComputer.ComputeDiffWithBaseline(patch, baselinePtr, diffCtx)
 		if err != nil {
 			continue
 		}
@@ -677,29 +695,27 @@ func (d *Daemon) handlePreflight() []Event {
 		state.diff.UserModified = state.diff.UserModified || diff.UserModified
 		state.diff.KyarabenChanged = state.diff.KyarabenChanged || diff.KyarabenChanged
 
-		for _, ku := range diff.KyarabenUpdates {
-			key := ku.Path[len(ku.Path)-1]
-			if state.seenKyarabenKeys[key] {
+		for _, vu := range diff.VersionUpgrades {
+			if state.seenKyarabenKeys[vu.Key] {
 				continue
 			}
-			state.seenKyarabenKeys[key] = true
+			state.seenKyarabenKeys[vu.Key] = true
 			state.diff.KyarabenUpdates = append(state.diff.KyarabenUpdates, KyarabenUpdateDetail{
-				Key:      key,
-				OldValue: ku.OldValue,
-				NewValue: ku.NewValue,
+				Key:      vu.Key,
+				OldValue: vu.OldValue,
+				NewValue: vu.NewValue,
 			})
 		}
 
 		for _, uc := range diff.UserChanges {
-			key := uc.Path[len(uc.Path)-1]
-			if state.seenUserKeys[key] {
+			if state.seenUserKeys[uc.Key] {
 				continue
 			}
-			state.seenUserKeys[key] = true
+			state.seenUserKeys[uc.Key] = true
 			state.diff.UserChanges = append(state.diff.UserChanges, UserChangeDetail{
-				Key:           key,
-				BaselineValue: uc.BaselineValue,
-				CurrentValue:  uc.CurrentValue,
+				Key:          uc.Key,
+				WrittenValue: uc.WrittenValue,
+				CurrentValue: uc.CurrentValue,
 			})
 		}
 
@@ -761,13 +777,13 @@ func (d *Daemon) handleCancelApply() []Event {
 }
 
 func (d *Daemon) handleGetSystems() []Event {
-	systems := d.reg.AllSystems()
+	systems := d.deps.Registry.AllSystems()
 	vers, _ := versions.Get()
 	detectedTarget := hardware.DetectTarget().Name
 
 	result := make(GetSystemsResponse, 0, len(systems))
 	for _, sys := range systems {
-		emus := d.reg.GetEmulatorsForSystem(sys.ID)
+		emus := d.deps.Registry.GetEmulatorsForSystem(sys.ID)
 		emuList := make([]EmulatorRef, 0, len(emus))
 		for _, emu := range emus {
 			ref := EmulatorRef{
@@ -802,7 +818,7 @@ func (d *Daemon) handleGetSystems() []Event {
 		}
 
 		var defaultEmuID model.EmulatorID
-		if defaultEmu, err := d.reg.GetDefaultEmulator(sys.ID); err == nil {
+		if defaultEmu, err := d.deps.Registry.GetDefaultEmulator(sys.ID); err == nil {
 			defaultEmuID = defaultEmu.ID
 		}
 
@@ -824,7 +840,7 @@ func (d *Daemon) handleGetSystems() []Event {
 }
 
 func (d *Daemon) handleGetFrontends() []Event {
-	frontends := d.reg.AllFrontends()
+	frontends := d.deps.Registry.AllFrontends()
 	vers, _ := versions.Get()
 	detectedTarget := hardware.DetectTarget().Name
 
@@ -902,12 +918,13 @@ func (d *Daemon) handleGetConfig() []Event {
 	return []Event{{
 		Type: EventTypeResult,
 		Data: ConfigResponse{
-			UserStore: cfg.Global.UserStore,
-			Graphics:  GraphicsConfigResponse{Shaders: cfg.Graphics.Shaders},
-			Systems:   systems,
-			Emulators: emulators,
-			Frontends: frontends,
-			Warnings:  warnings,
+			UserStore:  cfg.Global.UserStore,
+			Graphics:   GraphicsConfigResponse{Shaders: cfg.Graphics.Shaders},
+			Controller: ControllerConfigResponse{NintendoConfirm: cfg.Controller.NintendoConfirm},
+			Systems:    systems,
+			Emulators:  emulators,
+			Frontends:  frontends,
+			Warnings:   warnings,
 		},
 	}}
 }
@@ -925,6 +942,10 @@ func (d *Daemon) handleSetConfig(data *SetConfigRequest) []Event {
 
 		if data.Graphics != nil {
 			cfg.Graphics.Shaders = data.Graphics.Shaders
+		}
+
+		if data.Controller != nil {
+			cfg.Controller.NintendoConfirm = data.Controller.NintendoConfirm
 		}
 
 		if data.Systems != nil {
@@ -971,9 +992,9 @@ func (d *Daemon) handleSetConfig(data *SetConfigRequest) []Event {
 		}
 	}
 
-	path := d.configPath
+	path := d.deps.ConfigPath
 	if path == "" {
-		path, _ = d.paths.ConfigPath()
+		path, _ = d.deps.Paths.ConfigPath()
 	}
 
 	if err := d.configStore.Save(cfg, path); err != nil {
@@ -992,7 +1013,7 @@ func (d *Daemon) handleSyncStatus() []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	unit := syncpkg.NewSystemdUnit(d.fs, d.paths, d.service)
+	unit := syncpkg.NewSystemdUnit(d.deps.FS, d.deps.Paths, d.deps.Service)
 	serviceInstalled := unit.IsEnabled()
 
 	manifest, _ := d.loadManifest()
@@ -1022,7 +1043,7 @@ func (d *Daemon) handleSyncStatus() []Event {
 	if loadedKey != "" {
 		client.SetAPIKey(loadedKey)
 	} else {
-		log.Debug("No API key found at %s", filepath.Join(d.stateDir, "syncthing", "config", ".apikey"))
+		log.Debug("No API key found at %s", filepath.Join(d.deps.StateDir, "syncthing", "config", ".apikey"))
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -1062,7 +1083,7 @@ func (d *Daemon) handleSyncStatus() []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	userStore, err := store.NewUserStore(d.fs, d.paths, cfg.Global.UserStore)
+	userStore, err := store.NewUserStore(d.deps.FS, d.deps.Paths, cfg.Global.UserStore)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
@@ -1411,7 +1432,7 @@ func (d *Daemon) handleSyncJoinPeer(data *SyncJoinPeerRequest, emit func(Event))
 
 		flow := syncpkg.NewJoinerPairingFlow(syncpkg.PairingFlowConfig{
 			SyncConfig: cfg.Sync,
-			Instance:   d.paths.Instance,
+			Instance:   d.deps.Paths.Instance,
 			Client:     client,
 			OnProgress: func(msg string) {
 				emit(Event{
@@ -1479,7 +1500,7 @@ func (d *Daemon) handleSyncEnable(emit func(Event)) []Event {
 
 	cfg.Sync.Enabled = true
 
-	userStore, err := store.NewUserStore(d.fs, d.paths, cfg.Global.UserStore)
+	userStore, err := store.NewUserStore(d.deps.FS, d.deps.Paths, cfg.Global.UserStore)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
@@ -1502,7 +1523,7 @@ func (d *Daemon) handleSyncEnable(emit func(Event)) []Event {
 	go func() {
 		emitProgress("installing", "Installing syncthing...", 0)
 
-		setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir, d.service)
+		setup := syncpkg.NewSetup(d.deps.FS, d.deps.Paths, d.deps.Installer, d.deps.StateDir, d.deps.Service)
 		result, err := setup.Install(context.Background(), cfg.Sync, userStore.Root(), allSystems, func(p packages.InstallProgress) {
 			percent := 0
 			if p.BytesTotal > 0 {
@@ -1517,9 +1538,9 @@ func (d *Daemon) handleSyncEnable(emit func(Event)) []Event {
 
 		emitProgress("configuring", "Saving configuration...", 90)
 
-		path := d.configPath
+		path := d.deps.ConfigPath
 		if path == "" {
-			path, _ = d.paths.ConfigPath()
+			path, _ = d.deps.Paths.ConfigPath()
 		}
 		if err := d.configStore.Save(cfg, path); err != nil {
 			emit(Event{Type: EventTypeError, Data: ErrorResponse{Error: err.Error()}})
@@ -1534,14 +1555,14 @@ func (d *Daemon) handleSyncEnable(emit func(Event)) []Event {
 			return
 		}
 		manifest.SyncthingInstall = &model.SyncthingInstall{
-			Version:             d.installer.ResolveVersion("syncthing"),
+			Version:             d.deps.Installer.ResolveVersion("syncthing"),
 			ConfigSchemaVersion: syncpkg.ConfigSchemaVersion,
 			BinaryPath:          result.SyncthingBinary,
 			ConfigDir:           result.ConfigDir,
 			DataDir:             result.DataDir,
 			SystemdUnitPath:     result.SystemdUnitPath,
 		}
-		if saveErr := manifest.SaveWithBackup(d.manifestPath); saveErr != nil {
+		if saveErr := manifest.SaveWithBackup(d.deps.ManifestPath); saveErr != nil {
 			emit(Event{Type: EventTypeError, Data: ErrorResponse{Error: saveErr.Error()}})
 			return
 		}
@@ -1560,14 +1581,14 @@ func (d *Daemon) handleSyncEnable(emit func(Event)) []Event {
 func (d *Daemon) handleSyncReset() []Event {
 	d.stopAutoAcceptLoop()
 	d.stopJoinerPairing()
-	setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir, d.service)
+	setup := syncpkg.NewSetup(d.deps.FS, d.deps.Paths, d.deps.Installer, d.deps.StateDir, d.deps.Service)
 	var removedFiles []string
 
 	if setup.IsEnabled() {
-		removedFiles = append(removedFiles, "systemd unit: "+d.paths.DirName()+"-syncthing.service")
+		removedFiles = append(removedFiles, "systemd unit: "+d.deps.Paths.DirName()+"-syncthing.service")
 	}
 
-	syncthingDir := filepath.Join(d.stateDir, "syncthing")
+	syncthingDir := filepath.Join(d.deps.StateDir, "syncthing")
 	if d.dirExists(syncthingDir) {
 		removedFiles = append(removedFiles, syncthingDir)
 	}
@@ -1579,13 +1600,13 @@ func (d *Daemon) handleSyncReset() []Event {
 	cfg, err := d.loadConfig()
 	if err == nil && cfg.Sync.Enabled {
 		cfg.Sync.Enabled = false
-		_ = d.configStore.Save(cfg, d.configPath)
+		_ = d.configStore.Save(cfg, d.deps.ConfigPath)
 	}
 
 	manifest, err := d.loadManifest()
 	if err == nil && manifest.SyncthingInstall != nil {
 		manifest.SyncthingInstall = nil
-		_ = manifest.SaveWithBackup(d.manifestPath)
+		_ = manifest.SaveWithBackup(d.deps.ManifestPath)
 	}
 
 	return []Event{{
@@ -1620,29 +1641,29 @@ func (d *Daemon) handleSyncSetSettings(data *SyncSetSettingsRequest) []Event {
 		}}
 	}
 
-	path := d.configPath
+	path := d.deps.ConfigPath
 	if path == "" {
-		path, _ = d.paths.ConfigPath()
+		path, _ = d.deps.Paths.ConfigPath()
 	}
 	if err := d.configStore.Save(cfg, path); err != nil {
 		return d.errorResponse(err.Error())
 	}
 
 	if cfg.Sync.Enabled {
-		userStore, err := store.NewUserStore(d.fs, d.paths, cfg.Global.UserStore)
+		userStore, err := store.NewUserStore(d.deps.FS, d.deps.Paths, cfg.Global.UserStore)
 		if err != nil {
 			return d.errorResponse(err.Error())
 		}
 
 		allSystems := d.syncSystems(cfg)
-		setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir, d.service)
+		setup := syncpkg.NewSetup(d.deps.FS, d.deps.Paths, d.deps.Installer, d.deps.StateDir, d.deps.Service)
 		if err := setup.UpdateConfig(cfg.Sync, userStore.Root(), allSystems); err != nil {
 			return d.errorResponse(fmt.Sprintf("updating syncthing config: %v", err))
 		}
 
-		unit := syncpkg.NewSystemdUnit(d.fs, d.paths, d.service)
+		unit := syncpkg.NewSystemdUnit(d.deps.FS, d.deps.Paths, d.deps.Service)
 		if unit.IsEnabled() {
-			if err := d.service.Restart(unit.UnitName()); err != nil {
+			if err := d.deps.Service.Restart(unit.UnitName()); err != nil {
 				log.Error("Failed to restart syncthing after settings change: %v", err)
 			}
 		}
@@ -1747,8 +1768,8 @@ func (d *Daemon) handleSyncPending() []Event {
 }
 
 func (d *Daemon) loadSyncAPIKey() string {
-	keyPath := filepath.Join(d.stateDir, "syncthing", "config", ".apikey")
-	data, err := d.fs.ReadFile(keyPath)
+	keyPath := filepath.Join(d.deps.StateDir, "syncthing", "config", ".apikey")
+	data, err := d.deps.FS.ReadFile(keyPath)
 	if err != nil {
 		return ""
 	}
@@ -1756,14 +1777,14 @@ func (d *Daemon) loadSyncAPIKey() string {
 }
 
 func (d *Daemon) stopSyncthing(cfg *model.KyarabenConfig) bool {
-	unit := syncpkg.NewSystemdUnit(d.fs, d.paths, d.service)
+	unit := syncpkg.NewSystemdUnit(d.deps.FS, d.deps.Paths, d.deps.Service)
 	unitName := unit.UnitName()
-	state := d.service.State(unitName)
+	state := d.deps.Service.State(unitName)
 	if state != "active" && state != "activating" {
 		return false
 	}
 	log.Info("Stopping syncthing before apply")
-	if err := d.service.Stop(unitName); err != nil {
+	if err := d.deps.Service.Stop(unitName); err != nil {
 		log.Debug("Error stopping syncthing: %v", err)
 	}
 	ports := []int{cfg.Sync.Syncthing.GUIPort, cfg.Sync.Syncthing.ListenPort}
@@ -1777,7 +1798,7 @@ func (d *Daemon) stopSyncthing(cfg *model.KyarabenConfig) bool {
 
 func (d *Daemon) syncSystems(_ *model.KyarabenConfig) []model.SystemID {
 	var systems []model.SystemID
-	for _, sys := range d.reg.AllSystems() {
+	for _, sys := range d.deps.Registry.AllSystems() {
 		systems = append(systems, sys.ID)
 	}
 	return systems
@@ -1817,8 +1838,8 @@ func (d *Daemon) dismissUnwantedPendingFolders(client syncpkg.SyncClient) {
 // ensureSyncthingManaged sets up syncthing if it's not already being managed
 // by our systemd unit. "Managed" means systemd state is "active" or "activating".
 func (d *Daemon) ensureSyncthingManaged(cfg *model.KyarabenConfig) {
-	unit := syncpkg.NewSystemdUnit(d.fs, d.paths, d.service)
-	state := d.service.State(unit.UnitName())
+	unit := syncpkg.NewSystemdUnit(d.deps.FS, d.deps.Paths, d.deps.Service)
+	state := d.deps.Service.State(unit.UnitName())
 	if state == "active" || state == "activating" {
 		log.Debug("Syncthing already managed by systemd (state=%s)", state)
 		return
@@ -1842,7 +1863,7 @@ func (d *Daemon) ensureSyncthingManaged(cfg *model.KyarabenConfig) {
 		d.syncReconfigMu.Unlock()
 	}()
 
-	userStore, err := store.NewUserStore(d.fs, d.paths, cfg.Global.UserStore)
+	userStore, err := store.NewUserStore(d.deps.FS, d.deps.Paths, cfg.Global.UserStore)
 	if err != nil {
 		log.Error("Failed to create user store for sync setup: %v", err)
 		d.recordSyncSetupFailure()
@@ -1851,7 +1872,7 @@ func (d *Daemon) ensureSyncthingManaged(cfg *model.KyarabenConfig) {
 
 	allSystems := d.syncSystems(cfg)
 
-	setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir, d.service)
+	setup := syncpkg.NewSetup(d.deps.FS, d.deps.Paths, d.deps.Installer, d.deps.StateDir, d.deps.Service)
 	result, err := setup.Install(context.Background(), cfg.Sync, userStore.Root(), allSystems, nil)
 	if err != nil {
 		log.Error("Syncthing setup failed: %v", err)
@@ -1868,14 +1889,14 @@ func (d *Daemon) ensureSyncthingManaged(cfg *model.KyarabenConfig) {
 	}
 
 	manifest.SyncthingInstall = &model.SyncthingInstall{
-		Version:             d.installer.ResolveVersion("syncthing"),
+		Version:             d.deps.Installer.ResolveVersion("syncthing"),
 		ConfigSchemaVersion: syncpkg.ConfigSchemaVersion,
 		BinaryPath:          result.SyncthingBinary,
 		ConfigDir:           result.ConfigDir,
 		DataDir:             result.DataDir,
 		SystemdUnitPath:     result.SystemdUnitPath,
 	}
-	if err := manifest.SaveWithBackup(d.manifestPath); err != nil {
+	if err := manifest.SaveWithBackup(d.deps.ManifestPath); err != nil {
 		log.Error("Failed to save manifest: %v", err)
 	}
 
@@ -1923,13 +1944,13 @@ func (d *Daemon) updateSyncConfig(cfg *model.KyarabenConfig, userStorePath strin
 		return fmt.Errorf("loading manifest: %w", err)
 	}
 
-	setup := syncpkg.NewSetup(d.fs, d.paths, d.installer, d.stateDir, d.service)
+	setup := syncpkg.NewSetup(d.deps.FS, d.deps.Paths, d.deps.Installer, d.deps.StateDir, d.deps.Service)
 	result, installErr := setup.Install(context.Background(), cfg.Sync, userStorePath, allSystems, nil)
 	if installErr != nil {
 		return fmt.Errorf("updating syncthing: %w", installErr)
 	}
 
-	expectedVersion := d.installer.ResolveVersion("syncthing")
+	expectedVersion := d.deps.Installer.ResolveVersion("syncthing")
 	manifest.SyncthingInstall = &model.SyncthingInstall{
 		Version:             expectedVersion,
 		ConfigSchemaVersion: syncpkg.ConfigSchemaVersion,
@@ -1938,7 +1959,7 @@ func (d *Daemon) updateSyncConfig(cfg *model.KyarabenConfig, userStorePath strin
 		DataDir:             result.DataDir,
 		SystemdUnitPath:     result.SystemdUnitPath,
 	}
-	if saveErr := manifest.SaveWithBackup(d.manifestPath); saveErr != nil {
+	if saveErr := manifest.SaveWithBackup(d.deps.ManifestPath); saveErr != nil {
 		return fmt.Errorf("saving manifest: %w", saveErr)
 	}
 
@@ -1992,9 +2013,9 @@ func (d *Daemon) waitForSyncthingReady(ctx context.Context, client syncpkg.SyncC
 func (d *Daemon) persistSyncEnabled(cfg *model.KyarabenConfig) {
 	cfg.Sync.Enabled = true
 
-	path := d.configPath
+	path := d.deps.ConfigPath
 	if path == "" {
-		path, _ = d.paths.ConfigPath()
+		path, _ = d.deps.Paths.ConfigPath()
 	}
 
 	if err := d.configStore.Save(cfg, path); err != nil {
@@ -2148,7 +2169,7 @@ func isRelayCode(s string) bool {
 }
 
 func (d *Daemon) handleUninstallPreview() []Event {
-	manifest, err := d.manifestStore.Load(d.manifestPath)
+	manifest, err := d.manifestStore.Load(d.deps.ManifestPath)
 	if err != nil {
 		log.Error("Failed to load manifest for uninstall preview: %v", err)
 		manifest = model.NewManifest()
@@ -2160,7 +2181,7 @@ func (d *Daemon) handleUninstallPreview() []Event {
 	}
 	userStore := cfg.Global.UserStore
 
-	configDir, _ := d.paths.ConfigDir()
+	configDir, _ := d.deps.Paths.ConfigDir()
 
 	var desktopFiles []string
 	for _, f := range manifest.DesktopFiles {
@@ -2178,7 +2199,7 @@ func (d *Daemon) handleUninstallPreview() []Event {
 
 	var configFiles []string
 	for _, cfg := range manifest.ManagedConfigs {
-		path, err := cfg.Target.Resolve()
+		path, err := cfg.Target.ResolveWith(d.deps.Resolver)
 		if err == nil && d.fileExists(path) {
 			configFiles = append(configFiles, path)
 		}
@@ -2198,10 +2219,11 @@ func (d *Daemon) handleUninstallPreview() []Event {
 	}
 	if len(kyarabenFiles) == 0 {
 		homeDir, _ := os.UserHomeDir()
+		dataDir, _ := paths.DataDir()
 		kyarabenPaths := []string{
 			filepath.Join(homeDir, ".local", "bin", "kyaraben-ui"),
 			filepath.Join(homeDir, ".local", "bin", "kyaraben"),
-			filepath.Join(homeDir, ".local", "share", "applications", "kyaraben.desktop"),
+			filepath.Join(dataDir, "applications", "kyaraben.desktop"),
 		}
 		for _, p := range kyarabenPaths {
 			if d.fileExists(p) {
@@ -2227,7 +2249,7 @@ func (d *Daemon) handleUninstallPreview() []Event {
 
 	var retroArchCoresDir string
 	var retroArchCoreFiles []string
-	if coresDir, err := d.paths.CoresDir(); err == nil && d.dirExists(coresDir) {
+	if coresDir, err := d.deps.Paths.CoresDir(); err == nil && d.dirExists(coresDir) {
 		retroArchCoresDir = coresDir
 		entries, _ := os.ReadDir(coresDir)
 		for _, entry := range entries {
@@ -2240,8 +2262,8 @@ func (d *Daemon) handleUninstallPreview() []Event {
 	return []Event{{
 		Type: EventTypeResult,
 		Data: UninstallPreviewResponse{
-			StateDir:           d.stateDir,
-			StateDirExists:     d.dirExists(d.stateDir),
+			StateDir:           d.deps.StateDir,
+			StateDirExists:     d.dirExists(d.deps.StateDir),
 			RetroArchCoresDir:  retroArchCoresDir,
 			RetroArchCoreFiles: retroArchCoreFiles,
 			DesktopFiles:       desktopFiles,
@@ -2258,7 +2280,7 @@ func (d *Daemon) handleUninstallPreview() []Event {
 }
 
 func (d *Daemon) handleUninstall() []Event {
-	manifest, err := d.manifestStore.Load(d.manifestPath)
+	manifest, err := d.manifestStore.Load(d.deps.ManifestPath)
 	if err != nil {
 		log.Error("Failed to load manifest for uninstall: %v", err)
 		manifest = model.NewManifest()
@@ -2281,7 +2303,7 @@ func (d *Daemon) handleUninstall() []Event {
 	}
 
 	for _, cfg := range manifest.ManagedConfigs {
-		path, err := cfg.Target.Resolve()
+		path, err := cfg.Target.ResolveWith(d.deps.Resolver)
 		if err != nil {
 			continue
 		}
@@ -2322,23 +2344,23 @@ func (d *Daemon) handleUninstall() []Event {
 
 	syncServices, _ := syncpkg.FindKyarabenSyncthingServices()
 	for _, servicePath := range syncServices {
-		if err := syncpkg.StopAndRemoveServiceWithWait(d.service, servicePath, 10*time.Second, syncPorts); err != nil {
+		if err := syncpkg.StopAndRemoveServiceWithWait(d.deps.Service, servicePath, 10*time.Second, syncPorts); err != nil {
 			errors = append(errors, fmt.Sprintf("could not remove syncthing service %s: %v", servicePath, err))
 		} else {
 			removedFiles = append(removedFiles, servicePath)
 		}
 	}
 
-	if d.dirExists(d.stateDir) {
-		if err := forceRemoveAll(d.stateDir); err != nil {
-			errors = append(errors, fmt.Sprintf("could not remove %s: %v", d.stateDir, err))
+	if d.dirExists(d.deps.StateDir) {
+		if err := forceRemoveAll(d.deps.StateDir); err != nil {
+			errors = append(errors, fmt.Sprintf("could not remove %s: %v", d.deps.StateDir, err))
 		} else {
-			removedFiles = append(removedFiles, d.stateDir)
+			removedFiles = append(removedFiles, d.deps.StateDir)
 		}
 	}
 
-	homeDir, _ := os.UserHomeDir()
-	iconsDir := filepath.Join(homeDir, ".local", "share", "icons", "hicolor")
+	dataDir, _ := paths.DataDir()
+	iconsDir := filepath.Join(dataDir, "icons", "hicolor")
 	launcher.UpdateIconCaches(iconsDir)
 
 	return []Event{{
@@ -2391,12 +2413,12 @@ func forceChmodRecursive(path string) error {
 }
 
 func (d *Daemon) fileExists(path string) bool {
-	info, err := d.fs.Stat(path)
+	info, err := d.deps.FS.Stat(path)
 	return err == nil && !info.IsDir()
 }
 
 func (d *Daemon) dirExists(path string) bool {
-	info, err := d.fs.Stat(path)
+	info, err := d.deps.FS.Stat(path)
 	return err == nil && info.IsDir()
 }
 
@@ -2405,12 +2427,12 @@ func (d *Daemon) handleInstallKyaraben(data *InstallKyarabenRequest) []Event {
 		return d.errorResponse("appImagePath and sidecarPath are required")
 	}
 
-	result, err := d.launcherManager.InstallApp(data.AppImagePath, data.SidecarPath)
+	result, err := d.deps.LauncherManager.InstallApp(data.AppImagePath, data.SidecarPath)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
 
-	lockDir := filepath.Dir(d.manifestPath)
+	lockDir := filepath.Dir(d.deps.ManifestPath)
 	if err := os.MkdirAll(lockDir, 0755); err != nil {
 		return d.errorResponse(fmt.Sprintf("creating state directory: %v", err))
 	}
@@ -2447,7 +2469,7 @@ func (d *Daemon) handleInstallKyaraben(data *InstallKyarabenRequest) []Event {
 	}
 
 	if !shortcutGiven {
-		newShortcutPath, err := d.launcherManager.CreateDesktopShortcut()
+		newShortcutPath, err := d.deps.LauncherManager.CreateDesktopShortcut()
 		if err != nil {
 			log.Debug("Failed to create desktop shortcut: %v", err)
 		} else {
@@ -2457,7 +2479,7 @@ func (d *Daemon) handleInstallKyaraben(data *InstallKyarabenRequest) []Event {
 		}
 	}
 
-	if saveErr := manifest.SaveWithBackup(d.manifestPath); saveErr != nil {
+	if saveErr := manifest.SaveWithBackup(d.deps.ManifestPath); saveErr != nil {
 		return d.errorResponse(fmt.Sprintf("failed to save manifest: %v", saveErr))
 	}
 
@@ -2468,7 +2490,7 @@ func (d *Daemon) handleInstallKyaraben(data *InstallKyarabenRequest) []Event {
 }
 
 func (d *Daemon) handleInstallStatus() []Event {
-	manifest, err := d.manifestStore.Load(d.manifestPath)
+	manifest, err := d.manifestStore.Load(d.deps.ManifestPath)
 	if err != nil {
 		log.Error("Failed to load manifest for install status: %v", err)
 		manifest = model.NewManifest()
@@ -2491,7 +2513,7 @@ func (d *Daemon) handleInstallStatus() []Event {
 		}}
 	}
 
-	status := d.launcherManager.GetInstallStatus()
+	status := d.deps.LauncherManager.GetInstallStatus()
 	installed := status.CLIPath != "" && status.DesktopPath != ""
 
 	return []Event{{
@@ -2513,7 +2535,7 @@ func boolToPath(exists bool, path string) string {
 }
 
 func (d *Daemon) handleRefreshIconCaches() []Event {
-	refreshed := d.launcherManager.RefreshIconCaches()
+	refreshed := d.deps.LauncherManager.RefreshIconCaches()
 	return []Event{{
 		Type: EventTypeResult,
 		Data: RefreshIconCachesResponse{Refreshed: refreshed},
@@ -2542,7 +2564,7 @@ func (d *Daemon) maybeCreateDesktopShortcut() {
 		return
 	}
 
-	shortcutPath, err := d.launcherManager.CreateDesktopShortcut()
+	shortcutPath, err := d.deps.LauncherManager.CreateDesktopShortcut()
 	if err != nil {
 		log.Debug("Failed to create desktop shortcut: %v", err)
 		return
@@ -2550,7 +2572,7 @@ func (d *Daemon) maybeCreateDesktopShortcut() {
 
 	manifest.KyarabenInstall.DesktopShortcutGiven = true
 	manifest.KyarabenInstall.DesktopShortcutPath = shortcutPath
-	if err := d.manifestStore.Save(manifest, d.manifestPath); err != nil {
+	if err := d.manifestStore.Save(manifest, d.deps.ManifestPath); err != nil {
 		log.Debug("Failed to save manifest after desktop shortcut: %v", err)
 		return
 	}

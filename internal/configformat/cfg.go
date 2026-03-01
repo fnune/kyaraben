@@ -96,12 +96,14 @@ func (h *cfgHandler) Apply(path string, entries []model.ConfigEntry, managedRegi
 		}
 	}
 
+	writtenEntries := make(map[string]string)
 	for _, entry := range entries {
 		key := entry.Key()
 		if entry.DefaultOnly && snapshot[key] != "" {
 			continue
 		}
 		existing[key] = `"` + entry.Value + `"`
+		writtenEntries[entry.FullPath()] = entry.Value
 	}
 
 	f, err := h.fs.Create(path)
@@ -128,10 +130,5 @@ func (h *cfgHandler) Apply(path string, entries []model.ConfigEntry, managedRegi
 		_, _ = fmt.Fprintf(f, "%s = %s\n", key, existing[key])
 	}
 
-	hash, err := hashFileWithFS(h.fs, path)
-	if err != nil {
-		return ApplyResult{}, fmt.Errorf("hashing config file: %w", err)
-	}
-
-	return ApplyResult{Path: path, BaselineHash: hash, PatchHash: ComputePatchHash(entries)}, nil
+	return ApplyResult{Path: path, WrittenEntries: writtenEntries}, nil
 }

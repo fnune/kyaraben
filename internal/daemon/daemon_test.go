@@ -215,8 +215,10 @@ func TestEnsureSyncthingManagedSkipsWhenActivating(t *testing.T) {
 
 	service := &fakeServiceManager{state: "activating"}
 	d := &Daemon{
-		paths:   paths.NewPaths(""),
-		service: service,
+		deps: Deps{
+			Paths:   paths.NewPaths(""),
+			Service: service,
+		},
 	}
 
 	cfg := &model.KyarabenConfig{
@@ -236,8 +238,10 @@ func TestEnsureSyncthingManagedSkipsWhenActive(t *testing.T) {
 
 	service := &fakeServiceManager{state: "active"}
 	d := &Daemon{
-		paths:   paths.NewPaths(""),
-		service: service,
+		deps: Deps{
+			Paths:   paths.NewPaths(""),
+			Service: service,
+		},
 	}
 
 	cfg := &model.KyarabenConfig{

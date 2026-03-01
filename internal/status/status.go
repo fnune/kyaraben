@@ -68,18 +68,20 @@ type Getter struct {
 	fs            vfs.FS
 	paths         *paths.Paths
 	manifestStore *model.ManifestStore
+	resolver      model.BaseDirResolver
 }
 
-func NewGetter(fs vfs.FS, p *paths.Paths) *Getter {
+func NewGetter(fs vfs.FS, p *paths.Paths, resolver model.BaseDirResolver) *Getter {
 	return &Getter{
 		fs:            fs,
 		paths:         p,
 		manifestStore: model.NewManifestStore(fs),
+		resolver:      resolver,
 	}
 }
 
 func NewDefaultGetter() *Getter {
-	return NewGetter(vfs.OSFS, paths.DefaultPaths())
+	return NewGetter(vfs.OSFS, paths.DefaultPaths(), model.NewDefaultResolver())
 }
 
 func (g *Getter) Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg *registry.Registry, userStore *store.UserStore, manifestPath string) (*Result, error) {
@@ -125,7 +127,7 @@ func (g *Getter) Get(ctx context.Context, cfg *model.KyarabenConfig, configPath 
 		}
 
 		for _, mc := range manifest.GetManagedConfigsForEmulator(emu.ID) {
-			path, err := mc.Target.Resolve()
+			path, err := mc.Target.ResolveWith(g.resolver)
 			if err != nil {
 				continue
 			}

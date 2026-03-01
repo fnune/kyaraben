@@ -13,9 +13,8 @@ import (
 )
 
 type ApplyResult struct {
-	Path         string
-	BaselineHash string
-	PatchHash    string
+	Path           string
+	WrittenEntries map[string]string
 }
 
 type Handler interface {
@@ -155,15 +154,6 @@ func bindingMapsEqual(a, b map[string]string) bool {
 		}
 	}
 	return true
-}
-
-func hashFileWithFS(fs vfs.FS, path string) (string, error) {
-	data, err := fs.ReadFile(path)
-	if err != nil {
-		return "", err
-	}
-	hash := sha256.Sum256(data)
-	return hex.EncodeToString(hash[:]), nil
 }
 
 func flattenNestedMap(m map[string]interface{}, prefix []string, result map[string]map[string]string) {

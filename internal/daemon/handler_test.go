@@ -58,7 +58,15 @@ func newTestDaemonEnv(t *testing.T, cfg *model.KyarabenConfig) *testDaemonEnv {
 }
 
 func (e *testDaemonEnv) newDaemon() *Daemon {
-	return New(e.fs, paths.DefaultPaths(), e.configPath, e.stateDir, e.manifestPath, registry.NewDefault(), nil, nil, nil, nil)
+	return New(Deps{
+		FS:           e.fs,
+		Paths:        paths.DefaultPaths(),
+		ConfigPath:   e.configPath,
+		StateDir:     e.stateDir,
+		ManifestPath: e.manifestPath,
+		Registry:     registry.NewDefault(),
+		Resolver:     fakeBaseDirResolver{root: "/"},
+	})
 }
 
 func TestHandleUninstallPreview_EmptyManifest(t *testing.T) {
@@ -142,7 +150,15 @@ func TestHandleUninstallPreview_WithManifest(t *testing.T) {
 		t.Fatalf("saving config: %v", err)
 	}
 
-	d := New(fs, paths.DefaultPaths(), configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil, nil)
+	d := New(Deps{
+		FS:           fs,
+		Paths:        paths.DefaultPaths(),
+		ConfigPath:   configPath,
+		StateDir:     stateDir,
+		ManifestPath: manifestPath,
+		Registry:     registry.NewDefault(),
+		Resolver:     fakeBaseDirResolver{root: "/"},
+	})
 
 	events := d.Handle(Command{Type: CommandTypeUninstallPreview})
 	if len(events) != 1 {
@@ -362,7 +378,16 @@ func TestHandlePreflight_ReturnsPreflightResponse(t *testing.T) {
 	reg := registry.NewDefault()
 	resolver := fakeBaseDirResolver{root: "/"}
 	configWriter := emulators.NewConfigWriter(fs, resolver)
-	d := New(fs, paths.DefaultPaths(), configPath, stateDir, manifestPath, reg, nil, configWriter, nil, nil)
+	d := New(Deps{
+		FS:           fs,
+		Paths:        paths.DefaultPaths(),
+		ConfigPath:   configPath,
+		StateDir:     stateDir,
+		ManifestPath: manifestPath,
+		Registry:     reg,
+		ConfigWriter: configWriter,
+		Resolver:     resolver,
+	})
 
 	events := d.Handle(Command{Type: CommandTypePreflight})
 	if len(events) != 1 {
@@ -406,7 +431,16 @@ func TestHandlePreflight_EmptyConfig(t *testing.T) {
 
 	resolver := fakeBaseDirResolver{root: "/"}
 	configWriter := emulators.NewConfigWriter(fs, resolver)
-	d := New(fs, paths.DefaultPaths(), configPath, "/state", "/state/build/manifest.json", registry.NewDefault(), nil, configWriter, nil, nil)
+	d := New(Deps{
+		FS:           fs,
+		Paths:        paths.DefaultPaths(),
+		ConfigPath:   configPath,
+		StateDir:     "/state",
+		ManifestPath: "/state/build/manifest.json",
+		Registry:     registry.NewDefault(),
+		ConfigWriter: configWriter,
+		Resolver:     resolver,
+	})
 
 	events := d.Handle(Command{Type: CommandTypePreflight})
 	if len(events) != 1 {
@@ -420,6 +454,124 @@ func TestHandlePreflight_EmptyConfig(t *testing.T) {
 
 	if len(resp.Diffs) != 0 {
 		t.Errorf("expected 0 diffs for empty config, got %d", len(resp.Diffs))
+	}
+}
+
+func TestHandlePreflight_DetectsVersionUpgrade(t *testing.T) {
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/state/build":                           &vfst.Dir{Perm: 0755},
+		"/Emulation":                             &vfst.Dir{Perm: 0755},
+		"/Emulation/roms":                        &vfst.Dir{Perm: 0755},
+		"/Emulation/bios":                        &vfst.Dir{Perm: 0755},
+		"/Emulation/saves":                       &vfst.Dir{Perm: 0755},
+		"/Emulation/states":                      &vfst.Dir{Perm: 0755},
+		"/.local/share/duckstation/settings.ini": "[Main]\nSettingsVersion = 3\n[AutoUpdater]\nCheckAtStartup = true\n",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	configPath := "/config.toml"
+	stateDir := "/state"
+	manifestPath := "/state/build/manifest.json"
+
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{
+			UserStore: "/Emulation",
+		},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDPSX: {model.EmulatorIDDuckStation},
+		},
+	}
+	if err := model.NewConfigStore(fs).Save(cfg, configPath); err != nil {
+		t.Fatalf("saving config: %v", err)
+	}
+
+	manifest := model.NewManifest()
+	manifest.InstalledEmulators[model.EmulatorIDDuckStation] = model.InstalledEmulator{
+		ID:          model.EmulatorIDDuckStation,
+		Version:     "0.1.0",
+		PackagePath: "/packages/duckstation",
+		Installed:   time.Now(),
+	}
+	if err := manifest.AddManagedConfig(model.ManagedConfig{
+		EmulatorIDs: []model.EmulatorID{model.EmulatorIDDuckStation},
+		Target: model.ConfigTarget{
+			RelPath: "duckstation/settings.ini",
+			Format:  model.ConfigFormatINI,
+			BaseDir: model.ConfigBaseDirUserData,
+		},
+		WrittenEntries: map[string]string{
+			"AutoUpdater.CheckAtStartup": "true",
+		},
+		LastModified:   time.Now(),
+		ManagedRegions: model.ManagedRegions{model.FileRegion{}},
+	}); err != nil {
+		t.Fatalf("adding managed config: %v", err)
+	}
+	if err := model.NewManifestStore(fs).Save(manifest, manifestPath); err != nil {
+		t.Fatalf("saving manifest: %v", err)
+	}
+
+	reg := registry.NewDefault()
+	resolver := fakeBaseDirResolver{root: "/"}
+	configWriter := emulators.NewConfigWriter(fs, resolver)
+	d := New(Deps{
+		FS:           fs,
+		Paths:        paths.DefaultPaths(),
+		ConfigPath:   configPath,
+		StateDir:     stateDir,
+		ManifestPath: manifestPath,
+		Registry:     reg,
+		ConfigWriter: configWriter,
+		Resolver:     resolver,
+	})
+
+	events := d.Handle(Command{Type: CommandTypePreflight})
+	if len(events) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(events))
+	}
+
+	resp, ok := events[0].Data.(PreflightResponse)
+	if !ok {
+		t.Fatalf("expected PreflightResponse, got %T", events[0].Data)
+	}
+
+	var duckstationDiff *ConfigFileDiff
+	for i := range resp.Diffs {
+		if resp.Diffs[i].Path == "/.local/share/duckstation/settings.ini" {
+			duckstationDiff = &resp.Diffs[i]
+			break
+		}
+	}
+
+	if duckstationDiff == nil {
+		t.Fatalf("expected diff for duckstation settings.ini, got diffs: %+v", resp.Diffs)
+	}
+
+	if !duckstationDiff.KyarabenChanged {
+		t.Error("expected KyarabenChanged to be true")
+	}
+
+	if len(duckstationDiff.KyarabenUpdates) == 0 {
+		t.Fatal("expected KyarabenUpdates to be non-empty")
+	}
+
+	found := false
+	for _, update := range duckstationDiff.KyarabenUpdates {
+		if update.Key == "CheckAtStartup" {
+			found = true
+			if update.OldValue != "true" {
+				t.Errorf("expected old value 'true', got %q", update.OldValue)
+			}
+			if update.NewValue != "false" {
+				t.Errorf("expected new value 'false', got %q", update.NewValue)
+			}
+		}
+	}
+	if !found {
+		t.Errorf("expected KyarabenUpdate for CheckAtStartup, got: %+v", duckstationDiff.KyarabenUpdates)
 	}
 }
 
@@ -471,7 +623,15 @@ func TestHandleInstallStatus_EmptyManifest(t *testing.T) {
 		t.Fatalf("saving manifest: %v", err)
 	}
 
-	d := New(fs, paths.DefaultPaths(), configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil, nil)
+	d := New(Deps{
+		FS:           fs,
+		Paths:        paths.DefaultPaths(),
+		ConfigPath:   configPath,
+		StateDir:     stateDir,
+		ManifestPath: manifestPath,
+		Registry:     registry.NewDefault(),
+		Resolver:     fakeBaseDirResolver{root: "/"},
+	})
 
 	events := d.Handle(Command{Type: CommandTypeInstallStatus})
 	if len(events) != 1 {
@@ -526,7 +686,15 @@ func TestHandleInstallStatus_WithManifest(t *testing.T) {
 		t.Fatalf("saving manifest: %v", err)
 	}
 
-	d := New(fs, paths.DefaultPaths(), configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil, nil)
+	d := New(Deps{
+		FS:           fs,
+		Paths:        paths.DefaultPaths(),
+		ConfigPath:   configPath,
+		StateDir:     stateDir,
+		ManifestPath: manifestPath,
+		Registry:     registry.NewDefault(),
+		Resolver:     fakeBaseDirResolver{root: "/"},
+	})
 
 	events := d.Handle(Command{Type: CommandTypeInstallStatus})
 	if len(events) != 1 {
@@ -625,7 +793,15 @@ func TestHandleSyncStatus_DisabledWithSyncthingInstalled(t *testing.T) {
 		t.Fatalf("saving manifest: %v", err)
 	}
 
-	d := New(fs, paths.DefaultPaths(), configPath, stateDir, manifestPath, registry.NewDefault(), nil, nil, nil, nil)
+	d := New(Deps{
+		FS:           fs,
+		Paths:        paths.DefaultPaths(),
+		ConfigPath:   configPath,
+		StateDir:     stateDir,
+		ManifestPath: manifestPath,
+		Registry:     registry.NewDefault(),
+		Resolver:     fakeBaseDirResolver{root: "/"},
+	})
 
 	events := d.Handle(Command{Type: CommandTypeSyncStatus})
 	if len(events) != 1 {

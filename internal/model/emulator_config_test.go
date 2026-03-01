@@ -1,20 +1,22 @@
 package model
 
-import (
-	"os"
-	"path/filepath"
-	"testing"
-)
+import "testing"
+
+type fakeResolver struct {
+	configDir string
+	dataDir   string
+	homeDir   string
+}
+
+func (r fakeResolver) UserConfigDir() (string, error) { return r.configDir, nil }
+func (r fakeResolver) UserDataDir() (string, error)   { return r.dataDir, nil }
+func (r fakeResolver) UserHomeDir() (string, error)   { return r.homeDir, nil }
 
 func TestConfigTargetResolve(t *testing.T) {
-	configDir, err := os.UserConfigDir()
-	if err != nil {
-		t.Fatalf("failed to get user config dir: %v", err)
-	}
-
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		t.Fatalf("failed to get home dir: %v", err)
+	resolver := fakeResolver{
+		configDir: "/home/user/.config",
+		dataDir:   "/home/user/.local/share",
+		homeDir:   "/home/user",
 	}
 
 	tests := []struct {
@@ -30,7 +32,7 @@ func TestConfigTargetResolve(t *testing.T) {
 				Format:  ConfigFormatINI,
 				BaseDir: ConfigBaseDirUserConfig,
 			},
-			want: filepath.Join(configDir, "duckstation", "settings.ini"),
+			want: "/home/user/.config/duckstation/settings.ini",
 		},
 		{
 			name: "user data dir",
@@ -39,7 +41,7 @@ func TestConfigTargetResolve(t *testing.T) {
 				Format:  ConfigFormatCFG,
 				BaseDir: ConfigBaseDirUserData,
 			},
-			want: filepath.Join(homeDir, ".local", "share", "retroarch", "retroarch.cfg"),
+			want: "/home/user/.local/share/retroarch/retroarch.cfg",
 		},
 		{
 			name: "home dir",
@@ -48,7 +50,7 @@ func TestConfigTargetResolve(t *testing.T) {
 				Format:  ConfigFormatINI,
 				BaseDir: ConfigBaseDirHome,
 			},
-			want: filepath.Join(homeDir, ".emulatorrc"),
+			want: "/home/user/.emulatorrc",
 		},
 		{
 			name: "unknown base dir",
@@ -63,7 +65,7 @@ func TestConfigTargetResolve(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.target.Resolve()
+			got, err := tt.target.ResolveWith(resolver)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Resolve() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -76,7 +78,11 @@ func TestConfigTargetResolve(t *testing.T) {
 }
 
 func TestConfigTargetResolveNested(t *testing.T) {
-	configDir, _ := os.UserConfigDir()
+	resolver := fakeResolver{
+		configDir: "/home/user/.config",
+		dataDir:   "/home/user/.local/share",
+		homeDir:   "/home/user",
+	}
 
 	target := ConfigTarget{
 		RelPath: "emulator/subdir/deep/config.ini",
@@ -84,26 +90,22 @@ func TestConfigTargetResolveNested(t *testing.T) {
 		BaseDir: ConfigBaseDirUserConfig,
 	}
 
-	got, err := target.Resolve()
+	got, err := target.ResolveWith(resolver)
 	if err != nil {
 		t.Fatalf("Resolve() error = %v", err)
 	}
 
-	want := filepath.Join(configDir, "emulator", "subdir", "deep", "config.ini")
+	want := "/home/user/.config/emulator/subdir/deep/config.ini"
 	if got != want {
 		t.Errorf("Resolve() = %q, want %q", got, want)
 	}
 }
 
 func TestConfigTargetResolveDir(t *testing.T) {
-	configDir, err := os.UserConfigDir()
-	if err != nil {
-		t.Fatalf("failed to get user config dir: %v", err)
-	}
-
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		t.Fatalf("failed to get home dir: %v", err)
+	resolver := fakeResolver{
+		configDir: "/home/user/.config",
+		dataDir:   "/home/user/.local/share",
+		homeDir:   "/home/user",
 	}
 
 	tests := []struct {
@@ -118,7 +120,7 @@ func TestConfigTargetResolveDir(t *testing.T) {
 				RelPath: "duckstation/settings.ini",
 				BaseDir: ConfigBaseDirUserConfig,
 			},
-			want: filepath.Join(configDir, "duckstation"),
+			want: "/home/user/.config/duckstation",
 		},
 		{
 			name: "extracts top-level dir from nested path",
@@ -126,7 +128,7 @@ func TestConfigTargetResolveDir(t *testing.T) {
 				RelPath: "retroarch/config/bsnes/bsnes.cfg",
 				BaseDir: ConfigBaseDirUserConfig,
 			},
-			want: filepath.Join(configDir, "retroarch"),
+			want: "/home/user/.config/retroarch",
 		},
 		{
 			name: "extracts top-level dir from user data",
@@ -134,7 +136,7 @@ func TestConfigTargetResolveDir(t *testing.T) {
 				RelPath: "ppsspp/PSP/SYSTEM/ppsspp.ini",
 				BaseDir: ConfigBaseDirUserData,
 			},
-			want: filepath.Join(homeDir, ".local", "share", "ppsspp"),
+			want: "/home/user/.local/share/ppsspp",
 		},
 		{
 			name: "rejects single-component path for safety",
@@ -156,7 +158,7 @@ func TestConfigTargetResolveDir(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.target.ResolveDir()
+			got, err := tt.target.ResolveDirWith(resolver)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ResolveDir() error = %v, wantErr %v", err, tt.wantErr)
 				return

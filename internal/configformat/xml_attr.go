@@ -61,6 +61,7 @@ func (h *xmlAttrHandler) Apply(path string, entries []model.ConfigEntry, _ []mod
 		doc.CreateProcInst("xml", `version="1.0"`)
 	}
 
+	writtenEntries := make(map[string]string)
 	for _, entry := range entries {
 		if len(entry.Path) == 0 {
 			continue
@@ -85,6 +86,7 @@ func (h *xmlAttrHandler) Apply(path string, entries []model.ConfigEntry, _ []mod
 			elem.CreateAttr("value", entry.Value)
 			existing[name] = elem
 		}
+		writtenEntries[entry.FullPath()] = entry.Value
 	}
 
 	doc.Indent(2)
@@ -97,10 +99,5 @@ func (h *xmlAttrHandler) Apply(path string, entries []model.ConfigEntry, _ []mod
 		return ApplyResult{}, fmt.Errorf("writing XML file: %w", err)
 	}
 
-	hash, err := hashFileWithFS(h.fs, path)
-	if err != nil {
-		return ApplyResult{}, fmt.Errorf("hashing config file: %w", err)
-	}
-
-	return ApplyResult{Path: path, BaselineHash: hash, PatchHash: ComputePatchHash(entries)}, nil
+	return ApplyResult{Path: path, WrittenEntries: writtenEntries}, nil
 }

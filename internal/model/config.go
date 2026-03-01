@@ -72,6 +72,12 @@ type ControllerTomlConfig struct {
 	Hotkeys         HotkeyTomlConfig `toml:"hotkeys"`
 }
 
+// ConfigInput for ControllerTomlConfig.NintendoConfirm
+const ConfigInputNintendoConfirm ConfigInput = "controller.nintendo_confirm"
+
+// ConfigInput for GlobalConfig.UserStore
+const ConfigInputUserStore ConfigInput = "global.user_store"
+
 // HotkeyTomlConfig is the TOML representation of hotkey bindings.
 // All hotkeys share the same modifier button, with individual action buttons.
 type HotkeyTomlConfig struct {

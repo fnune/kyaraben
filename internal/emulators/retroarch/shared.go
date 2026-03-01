@@ -61,15 +61,16 @@ type ShaderConfig struct {
 // Screenshots go directly to a shared retroarch directory (no per-core sorting).
 // See: https://docs.libretro.com/guides/change-directories/
 func SharedConfig(store model.StoreReader, cc *model.ControllerConfig, sc *ShaderConfig) model.ConfigPatch {
+	storeDeps := []model.ConfigInput{model.ConfigInputUserStore}
 	entries := []model.ConfigEntry{
-		{Path: []string{"libretro_directory"}, Value: store.CoresDir()},
-		{Path: []string{"screenshot_directory"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDRetroArchBsnes)},
+		{Path: []string{"libretro_directory"}, Value: store.CoresDir(), DependsOn: storeDeps},
+		{Path: []string{"screenshot_directory"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDRetroArchBsnes), DependsOn: storeDeps},
 		{Path: []string{"video_driver"}, Value: "vulkan"},
 		{Path: []string{"sort_savefiles_enable"}, Value: "true"},
 		{Path: []string{"sort_savestates_enable"}, Value: "true"},
 		{Path: []string{"sort_savefiles_by_content_enable"}, Value: "false"},
 		{Path: []string{"sort_savestates_by_content_enable"}, Value: "false"},
-		{Path: []string{"rgui_browser_directory"}, Value: store.RomsDir()},
+		{Path: []string{"rgui_browser_directory"}, Value: store.RomsDir(), DependsOn: storeDeps},
 		{Path: []string{"menu_driver"}, Value: "ozone", DefaultOnly: true},
 		{Path: []string{"menu_show_load_content_animation"}, Value: "false"},
 		{Path: []string{"notification_show_config_override_load"}, Value: "false", DefaultOnly: true},

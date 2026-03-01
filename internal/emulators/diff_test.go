@@ -1,21 +1,13 @@
 package emulators
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"testing"
 
 	"github.com/twpayne/go-vfs/v5/vfst"
 
-	"github.com/fnune/kyaraben/internal/configformat"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/testutil"
 )
-
-func sha256sum(data string) string {
-	h := sha256.Sum256([]byte(data))
-	return hex.EncodeToString(h[:])
-}
 
 func TestComputeDiff_NewFile(t *testing.T) {
 	t.Parallel()
@@ -210,18 +202,18 @@ func TestComputeDiff_Stats(t *testing.T) {
 
 func TestComputeDiffWithBaseline_DetectsUserModifiedKeys(t *testing.T) {
 	t.Parallel()
-	originalContent := "[video]\nresolution = 1920x1080\nmonitor = 1\n"
-	modifiedContent := "[video]\nresolution = 1920x1080\nmonitor = 2\n"
-
 	fs := testutil.NewTestFS(t, map[string]any{
-		"/config/test.ini": modifiedContent,
+		"/config/test.ini": "[video]\nresolution = 1920x1080\nmonitor = 2\n",
 	})
 
 	resolver := testutil.FakeResolver{ConfigDir: "/config"}
 	dc := NewDiffComputer(fs, resolver)
 
 	baseline := &model.ManagedConfig{
-		BaselineHash: sha256sum(originalContent),
+		WrittenEntries: map[string]string{
+			"video.resolution": "1920x1080",
+			"video.monitor":    "1",
+		},
 	}
 
 	patch := model.ConfigPatch{
@@ -236,7 +228,7 @@ func TestComputeDiffWithBaseline_DetectsUserModifiedKeys(t *testing.T) {
 		},
 	}
 
-	diff, err := dc.ComputeDiffWithBaseline(patch, baseline)
+	diff, err := dc.ComputeDiffWithBaseline(patch, baseline, nil)
 	if err != nil {
 		t.Fatalf("ComputeDiffWithBaseline: %v", err)
 	}
@@ -249,30 +241,30 @@ func TestComputeDiffWithBaseline_DetectsUserModifiedKeys(t *testing.T) {
 	}
 
 	uc := diff.UserChanges[0]
-	if uc.Path[len(uc.Path)-1] != "monitor" {
-		t.Errorf("expected changed key monitor, got %s", uc.Path[len(uc.Path)-1])
+	if uc.Key != "monitor" {
+		t.Errorf("expected changed key monitor, got %s", uc.Key)
 	}
-	if uc.BaselineValue != "1" {
-		t.Errorf("expected baseline value 1, got %s", uc.BaselineValue)
+	if uc.WrittenValue != "1" {
+		t.Errorf("expected written value 1, got %s", uc.WrittenValue)
 	}
 	if uc.CurrentValue != "2" {
 		t.Errorf("expected current value 2, got %s", uc.CurrentValue)
 	}
 }
 
-func TestComputeDiffWithBaseline_NoChangesWhenHashMatches(t *testing.T) {
+func TestComputeDiffWithBaseline_NoChangesWhenValuesMatch(t *testing.T) {
 	t.Parallel()
-	content := "[video]\nresolution = 1920x1080\n"
-
 	fs := testutil.NewTestFS(t, map[string]any{
-		"/config/test.ini": content,
+		"/config/test.ini": "[video]\nresolution = 1920x1080\n",
 	})
 
 	resolver := testutil.FakeResolver{ConfigDir: "/config"}
 	dc := NewDiffComputer(fs, resolver)
 
 	baseline := &model.ManagedConfig{
-		BaselineHash: sha256sum(content),
+		WrittenEntries: map[string]string{
+			"video.resolution": "1920x1080",
+		},
 	}
 
 	patch := model.ConfigPatch{
@@ -286,13 +278,13 @@ func TestComputeDiffWithBaseline_NoChangesWhenHashMatches(t *testing.T) {
 		},
 	}
 
-	diff, err := dc.ComputeDiffWithBaseline(patch, baseline)
+	diff, err := dc.ComputeDiffWithBaseline(patch, baseline, nil)
 	if err != nil {
 		t.Fatalf("ComputeDiffWithBaseline: %v", err)
 	}
 
 	if diff.UserModified {
-		t.Error("expected UserModified to be false when hash matches")
+		t.Error("expected UserModified to be false when values match")
 	}
 	if len(diff.UserChanges) != 0 {
 		t.Errorf("expected 0 user changes, got %d", len(diff.UserChanges))
@@ -319,7 +311,7 @@ func TestComputeDiffWithBaseline_NilBaseline(t *testing.T) {
 		},
 	}
 
-	diff, err := dc.ComputeDiffWithBaseline(patch, nil)
+	diff, err := dc.ComputeDiffWithBaseline(patch, nil, nil)
 	if err != nil {
 		t.Fatalf("ComputeDiffWithBaseline: %v", err)
 	}
@@ -362,7 +354,7 @@ func TestFormatWithColor_ModifiedFileWithUserChanges(t *testing.T) {
 		IsNewFile:    false,
 		UserModified: true,
 		UserChanges: []UserChange{
-			{Path: []string{"video", "monitor"}, BaselineValue: "1", CurrentValue: "2"},
+			{Key: "monitor", WrittenValue: "1", CurrentValue: "2"},
 		},
 		Changes: []ConfigChange{
 			{Type: ChangeModify, Path: []string{"video", "resolution"}, OldValue: "1280x720", NewValue: "1920x1080"},
@@ -423,18 +415,17 @@ func TestComputeDiff_TildePathNormalization(t *testing.T) {
 
 func TestComputeDiffWithBaseline_TildePathNormalization(t *testing.T) {
 	t.Parallel()
-	originalContent := "[paths]\nsaves = ~/Emulation/saves\n"
-	modifiedContent := "[paths]\nsaves = /home/testuser/Emulation/saves\n"
-
 	fs := testutil.NewTestFS(t, map[string]any{
-		"/config/test.ini": modifiedContent,
+		"/config/test.ini": "[paths]\nsaves = /home/testuser/Emulation/saves\n",
 	})
 
 	resolver := testutil.FakeResolver{ConfigDir: "/config", HomeDir: "/home/testuser"}
 	dc := NewDiffComputer(fs, resolver)
 
 	baseline := &model.ManagedConfig{
-		BaselineHash: sha256sum(originalContent),
+		WrittenEntries: map[string]string{
+			"paths.saves": "~/Emulation/saves",
+		},
 	}
 
 	patch := model.ConfigPatch{
@@ -448,7 +439,7 @@ func TestComputeDiffWithBaseline_TildePathNormalization(t *testing.T) {
 		},
 	}
 
-	diff, err := dc.ComputeDiffWithBaseline(patch, baseline)
+	diff, err := dc.ComputeDiffWithBaseline(patch, baseline, nil)
 	if err != nil {
 		t.Fatalf("ComputeDiffWithBaseline: %v", err)
 	}
@@ -458,233 +449,19 @@ func TestComputeDiffWithBaseline_TildePathNormalization(t *testing.T) {
 	}
 }
 
-func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_XML(t *testing.T) {
+func TestComputeDiffWithBaseline_DetectsVersionUpgrade(t *testing.T) {
 	t.Parallel()
-	originalContent := `<settings>
-  <video>
-    <resolution>1920x1080</resolution>
-    <monitor>1</monitor>
-  </video>
-</settings>`
-	modifiedContent := `<settings>
-  <video>
-    <resolution>1920x1080</resolution>
-    <monitor>2</monitor>
-  </video>
-</settings>`
-
 	fs := testutil.NewTestFS(t, map[string]any{
-		"/config/settings.xml": modifiedContent,
+		"/config/test.ini": "[video]\nresolution = 1280x720\n",
 	})
 
 	resolver := testutil.FakeResolver{ConfigDir: "/config"}
 	dc := NewDiffComputer(fs, resolver)
 
 	baseline := &model.ManagedConfig{
-		BaselineHash: sha256sum(originalContent),
-	}
-
-	patch := model.ConfigPatch{
-		Target: model.ConfigTarget{
-			RelPath: "settings.xml",
-			Format:  model.ConfigFormatXML,
-			BaseDir: model.ConfigBaseDirUserConfig,
+		WrittenEntries: map[string]string{
+			"video.resolution": "1280x720",
 		},
-		Entries: []model.ConfigEntry{
-			{Path: []string{"settings", "video", "resolution"}, Value: "1920x1080"},
-			{Path: []string{"settings", "video", "monitor"}, Value: "1"},
-		},
-	}
-
-	diff, err := dc.ComputeDiffWithBaseline(patch, baseline)
-	if err != nil {
-		t.Fatalf("ComputeDiffWithBaseline: %v", err)
-	}
-
-	if !diff.UserModified {
-		t.Error("expected UserModified to be true")
-	}
-	if len(diff.UserChanges) != 1 {
-		t.Fatalf("expected 1 user change, got %d", len(diff.UserChanges))
-	}
-
-	uc := diff.UserChanges[0]
-	if uc.Path[len(uc.Path)-1] != "monitor" {
-		t.Errorf("expected changed key monitor, got %s", uc.Path[len(uc.Path)-1])
-	}
-}
-
-func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_YAML(t *testing.T) {
-	t.Parallel()
-	originalContent := `video:
-  resolution: 1920x1080
-  monitor: "1"
-`
-	modifiedContent := `video:
-  resolution: 1920x1080
-  monitor: "2"
-`
-
-	fs := testutil.NewTestFS(t, map[string]any{
-		"/config/config.yaml": modifiedContent,
-	})
-
-	resolver := testutil.FakeResolver{ConfigDir: "/config"}
-	dc := NewDiffComputer(fs, resolver)
-
-	baseline := &model.ManagedConfig{
-		BaselineHash: sha256sum(originalContent),
-	}
-
-	patch := model.ConfigPatch{
-		Target: model.ConfigTarget{
-			RelPath: "config.yaml",
-			Format:  model.ConfigFormatYAML,
-			BaseDir: model.ConfigBaseDirUserConfig,
-		},
-		Entries: []model.ConfigEntry{
-			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
-			{Path: []string{"video", "monitor"}, Value: "1"},
-		},
-	}
-
-	diff, err := dc.ComputeDiffWithBaseline(patch, baseline)
-	if err != nil {
-		t.Fatalf("ComputeDiffWithBaseline: %v", err)
-	}
-
-	if !diff.UserModified {
-		t.Error("expected UserModified to be true")
-	}
-	if len(diff.UserChanges) != 1 {
-		t.Fatalf("expected 1 user change, got %d", len(diff.UserChanges))
-	}
-}
-
-func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_TOML(t *testing.T) {
-	t.Parallel()
-	originalContent := `[video]
-resolution = "1920x1080"
-monitor = "1"
-`
-	modifiedContent := `[video]
-resolution = "1920x1080"
-monitor = "2"
-`
-
-	fs := testutil.NewTestFS(t, map[string]any{
-		"/config/config.toml": modifiedContent,
-	})
-
-	resolver := testutil.FakeResolver{ConfigDir: "/config"}
-	dc := NewDiffComputer(fs, resolver)
-
-	baseline := &model.ManagedConfig{
-		BaselineHash: sha256sum(originalContent),
-	}
-
-	patch := model.ConfigPatch{
-		Target: model.ConfigTarget{
-			RelPath: "config.toml",
-			Format:  model.ConfigFormatTOML,
-			BaseDir: model.ConfigBaseDirUserConfig,
-		},
-		Entries: []model.ConfigEntry{
-			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
-			{Path: []string{"video", "monitor"}, Value: "1"},
-		},
-	}
-
-	diff, err := dc.ComputeDiffWithBaseline(patch, baseline)
-	if err != nil {
-		t.Fatalf("ComputeDiffWithBaseline: %v", err)
-	}
-
-	if !diff.UserModified {
-		t.Error("expected UserModified to be true")
-	}
-	if len(diff.UserChanges) != 1 {
-		t.Fatalf("expected 1 user change, got %d", len(diff.UserChanges))
-	}
-}
-
-func TestComputeDiffWithBaseline_DetectsUserModifiedKeys_CFG(t *testing.T) {
-	t.Parallel()
-	originalContent := `savefile_directory = "/home/user/saves"
-savestate_directory = "/home/user/states"
-`
-	modifiedContent := `savefile_directory = "/home/user/saves"
-savestate_directory = "/custom/states"
-`
-
-	fs := testutil.NewTestFS(t, map[string]any{
-		"/config/retroarch.cfg": modifiedContent,
-	})
-
-	resolver := testutil.FakeResolver{ConfigDir: "/config"}
-	dc := NewDiffComputer(fs, resolver)
-
-	baseline := &model.ManagedConfig{
-		BaselineHash: sha256sum(originalContent),
-	}
-
-	patch := model.ConfigPatch{
-		Target: model.ConfigTarget{
-			RelPath: "retroarch.cfg",
-			Format:  model.ConfigFormatCFG,
-			BaseDir: model.ConfigBaseDirUserConfig,
-		},
-		Entries: []model.ConfigEntry{
-			{Path: []string{"savefile_directory"}, Value: "/home/user/saves"},
-			{Path: []string{"savestate_directory"}, Value: "/home/user/states"},
-		},
-	}
-
-	diff, err := dc.ComputeDiffWithBaseline(patch, baseline)
-	if err != nil {
-		t.Fatalf("ComputeDiffWithBaseline: %v", err)
-	}
-
-	if !diff.UserModified {
-		t.Error("expected UserModified to be true")
-	}
-	if len(diff.UserChanges) != 1 {
-		t.Fatalf("expected 1 user change, got %d", len(diff.UserChanges))
-	}
-
-	uc := diff.UserChanges[0]
-	if uc.Path[len(uc.Path)-1] != "savestate_directory" {
-		t.Errorf("expected changed key savestate_directory, got %s", uc.Path[len(uc.Path)-1])
-	}
-	if uc.BaselineValue != "/home/user/states" {
-		t.Errorf("expected baseline value /home/user/states, got %s", uc.BaselineValue)
-	}
-	if uc.CurrentValue != `"/custom/states"` {
-		t.Errorf("expected current value \"/custom/states\", got %s", uc.CurrentValue)
-	}
-}
-
-func TestComputeDiffWithBaseline_DetectsKyarabenChanged(t *testing.T) {
-	t.Parallel()
-	content := "[video]\nresolution = 1280x720\n"
-
-	fs := testutil.NewTestFS(t, map[string]any{
-		"/config/test.ini": content,
-	})
-
-	resolver := testutil.FakeResolver{ConfigDir: "/config"}
-	dc := NewDiffComputer(fs, resolver)
-
-	oldEntries := []model.ConfigEntry{
-		{Path: []string{"video", "resolution"}, Value: "1280x720"},
-	}
-	newEntries := []model.ConfigEntry{
-		{Path: []string{"video", "resolution"}, Value: "1920x1080"},
-	}
-
-	baseline := &model.ManagedConfig{
-		BaselineHash: sha256sum(content),
-		PatchHash:    computePatchHash(oldEntries),
 	}
 
 	patch := model.ConfigPatch{
@@ -693,10 +470,12 @@ func TestComputeDiffWithBaseline_DetectsKyarabenChanged(t *testing.T) {
 			Format:  model.ConfigFormatINI,
 			BaseDir: model.ConfigBaseDirUserConfig,
 		},
-		Entries: newEntries,
+		Entries: []model.ConfigEntry{
+			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
+		},
 	}
 
-	diff, err := dc.ComputeDiffWithBaseline(patch, baseline)
+	diff, err := dc.ComputeDiffWithBaseline(patch, baseline, nil)
 	if err != nil {
 		t.Fatalf("ComputeDiffWithBaseline: %v", err)
 	}
@@ -704,19 +483,19 @@ func TestComputeDiffWithBaseline_DetectsKyarabenChanged(t *testing.T) {
 	if !diff.KyarabenChanged {
 		t.Error("expected KyarabenChanged to be true")
 	}
-	if len(diff.KyarabenUpdates) != 1 {
-		t.Fatalf("expected 1 kyaraben update, got %d", len(diff.KyarabenUpdates))
+	if len(diff.VersionUpgrades) != 1 {
+		t.Fatalf("expected 1 version upgrade, got %d", len(diff.VersionUpgrades))
 	}
 
-	ku := diff.KyarabenUpdates[0]
-	if ku.Path[len(ku.Path)-1] != "resolution" {
-		t.Errorf("expected changed key resolution, got %s", ku.Path[len(ku.Path)-1])
+	vu := diff.VersionUpgrades[0]
+	if vu.Key != "resolution" {
+		t.Errorf("expected changed key resolution, got %s", vu.Key)
 	}
-	if ku.OldValue != "1280x720" {
-		t.Errorf("expected old value 1280x720, got %s", ku.OldValue)
+	if vu.OldValue != "1280x720" {
+		t.Errorf("expected old value 1280x720, got %s", vu.OldValue)
 	}
-	if ku.NewValue != "1920x1080" {
-		t.Errorf("expected new value 1920x1080, got %s", ku.NewValue)
+	if vu.NewValue != "1920x1080" {
+		t.Errorf("expected new value 1920x1080, got %s", vu.NewValue)
 	}
 
 	if diff.UserModified {
@@ -724,28 +503,28 @@ func TestComputeDiffWithBaseline_DetectsKyarabenChanged(t *testing.T) {
 	}
 }
 
-func TestComputeDiffWithBaseline_KyarabenChangedDoesNotReportAsUserModified(t *testing.T) {
+func TestComputeDiffWithBaseline_UIDrivenChangeNotReportedAsVersionUpgrade(t *testing.T) {
 	t.Parallel()
-	oldEntries := []model.ConfigEntry{
-		{Path: []string{"video", "resolution"}, Value: "1280x720"},
-	}
-	newEntries := []model.ConfigEntry{
-		{Path: []string{"video", "resolution"}, Value: "1920x1080"},
-	}
-
-	oldContent := "[video]\nresolution = 1280x720\n"
-	currentContent := "[video]\nresolution = 1920x1080\n"
-
 	fs := testutil.NewTestFS(t, map[string]any{
-		"/config/test.ini": currentContent,
+		"/config/test.ini": "[Controls]\nbutton_a = 0\n",
 	})
 
 	resolver := testutil.FakeResolver{ConfigDir: "/config"}
 	dc := NewDiffComputer(fs, resolver)
 
 	baseline := &model.ManagedConfig{
-		BaselineHash: sha256sum(oldContent),
-		PatchHash:    computePatchHash(oldEntries),
+		WrittenEntries: map[string]string{
+			"Controls.button_a": "0",
+		},
+		ConfigInputsWhenWritten: map[string]string{
+			string(model.ConfigInputNintendoConfirm): "east",
+		},
+	}
+
+	ctx := &DiffContext{
+		CurrentConfigInputs: map[string]string{
+			string(model.ConfigInputNintendoConfirm): "south",
+		},
 	}
 
 	patch := model.ConfigPatch{
@@ -754,22 +533,205 @@ func TestComputeDiffWithBaseline_KyarabenChangedDoesNotReportAsUserModified(t *t
 			Format:  model.ConfigFormatINI,
 			BaseDir: model.ConfigBaseDirUserConfig,
 		},
-		Entries: newEntries,
+		Entries: []model.ConfigEntry{
+			{
+				Path:      []string{"Controls", "button_a"},
+				Value:     "1",
+				DependsOn: []model.ConfigInput{model.ConfigInputNintendoConfirm},
+			},
+		},
 	}
 
-	diff, err := dc.ComputeDiffWithBaseline(patch, baseline)
+	diff, err := dc.ComputeDiffWithBaseline(patch, baseline, ctx)
+	if err != nil {
+		t.Fatalf("ComputeDiffWithBaseline: %v", err)
+	}
+
+	if diff.KyarabenChanged {
+		t.Error("expected KyarabenChanged to be false for UI-driven changes")
+	}
+	if len(diff.VersionUpgrades) != 0 {
+		t.Errorf("expected 0 version upgrades for UI-driven change, got %d", len(diff.VersionUpgrades))
+	}
+}
+
+func TestComputeDiffWithBaseline_NoConfigInputsStillDetectsVersionUpgrade(t *testing.T) {
+	t.Parallel()
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/config/test.ini": "[Controls]\nbutton_a = 0\n",
+	})
+
+	resolver := testutil.FakeResolver{ConfigDir: "/config"}
+	dc := NewDiffComputer(fs, resolver)
+
+	baseline := &model.ManagedConfig{
+		WrittenEntries: map[string]string{
+			"Controls.button_a": "0",
+		},
+	}
+
+	patch := model.ConfigPatch{
+		Target: model.ConfigTarget{
+			RelPath: "test.ini",
+			Format:  model.ConfigFormatINI,
+			BaseDir: model.ConfigBaseDirUserConfig,
+		},
+		Entries: []model.ConfigEntry{
+			{
+				Path:      []string{"Controls", "button_a"},
+				Value:     "1",
+				DependsOn: []model.ConfigInput{model.ConfigInputNintendoConfirm},
+			},
+		},
+	}
+
+	diff, err := dc.ComputeDiffWithBaseline(patch, baseline, nil)
+	if err != nil {
+		t.Fatalf("ComputeDiffWithBaseline: %v", err)
+	}
+
+	if !diff.KyarabenChanged {
+		t.Error("expected KyarabenChanged to be true when no context provided")
+	}
+	if len(diff.VersionUpgrades) != 1 {
+		t.Errorf("expected 1 version upgrade, got %d", len(diff.VersionUpgrades))
+	}
+}
+
+func TestComputeDiffWithBaseline_BothUserAndVersionChanges(t *testing.T) {
+	t.Parallel()
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/config/test.ini": "[video]\nresolution = 1280x720\nmonitor = 2\n",
+	})
+
+	resolver := testutil.FakeResolver{ConfigDir: "/config"}
+	dc := NewDiffComputer(fs, resolver)
+
+	baseline := &model.ManagedConfig{
+		WrittenEntries: map[string]string{
+			"video.resolution": "1280x720",
+			"video.monitor":    "1",
+		},
+	}
+
+	patch := model.ConfigPatch{
+		Target: model.ConfigTarget{
+			RelPath: "test.ini",
+			Format:  model.ConfigFormatINI,
+			BaseDir: model.ConfigBaseDirUserConfig,
+		},
+		Entries: []model.ConfigEntry{
+			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
+			{Path: []string{"video", "monitor"}, Value: "1"},
+		},
+	}
+
+	diff, err := dc.ComputeDiffWithBaseline(patch, baseline, nil)
+	if err != nil {
+		t.Fatalf("ComputeDiffWithBaseline: %v", err)
+	}
+
+	if !diff.UserModified {
+		t.Error("expected UserModified to be true")
+	}
+	if len(diff.UserChanges) != 1 {
+		t.Fatalf("expected 1 user change, got %d", len(diff.UserChanges))
+	}
+	if diff.UserChanges[0].Key != "monitor" {
+		t.Errorf("expected user change for monitor, got %s", diff.UserChanges[0].Key)
+	}
+
+	if !diff.KyarabenChanged {
+		t.Error("expected KyarabenChanged to be true")
+	}
+	if len(diff.VersionUpgrades) != 1 {
+		t.Fatalf("expected 1 version upgrade, got %d", len(diff.VersionUpgrades))
+	}
+	if diff.VersionUpgrades[0].Key != "resolution" {
+		t.Errorf("expected version upgrade for resolution, got %s", diff.VersionUpgrades[0].Key)
+	}
+}
+
+func TestComputeDiffWithBaseline_SameKeyUserModifiedAndVersionUpgrade(t *testing.T) {
+	t.Parallel()
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/config/test.ini": "[video]\nresolution = user_custom_value\n",
+	})
+
+	resolver := testutil.FakeResolver{ConfigDir: "/config"}
+	dc := NewDiffComputer(fs, resolver)
+
+	baseline := &model.ManagedConfig{
+		WrittenEntries: map[string]string{
+			"video.resolution": "1280x720",
+		},
+	}
+
+	patch := model.ConfigPatch{
+		Target: model.ConfigTarget{
+			RelPath: "test.ini",
+			Format:  model.ConfigFormatINI,
+			BaseDir: model.ConfigBaseDirUserConfig,
+		},
+		Entries: []model.ConfigEntry{
+			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
+		},
+	}
+
+	diff, err := dc.ComputeDiffWithBaseline(patch, baseline, nil)
+	if err != nil {
+		t.Fatalf("ComputeDiffWithBaseline: %v", err)
+	}
+
+	if !diff.UserModified {
+		t.Error("expected UserModified to be true")
+	}
+	if len(diff.UserChanges) != 1 {
+		t.Fatalf("expected 1 user change, got %d", len(diff.UserChanges))
+	}
+	if diff.UserChanges[0].Key != "resolution" {
+		t.Errorf("expected user change for resolution, got %s", diff.UserChanges[0].Key)
+	}
+
+	if len(diff.VersionUpgrades) != 0 {
+		t.Errorf("expected 0 version upgrades when key is user-modified, got %d: %+v",
+			len(diff.VersionUpgrades), diff.VersionUpgrades)
+	}
+}
+
+func TestComputeDiffWithBaseline_EmptyWrittenEntries(t *testing.T) {
+	t.Parallel()
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/config/test.ini": "[video]\nresolution = 1920x1080\n",
+	})
+
+	resolver := testutil.FakeResolver{ConfigDir: "/config"}
+	dc := NewDiffComputer(fs, resolver)
+
+	baseline := &model.ManagedConfig{
+		WrittenEntries: map[string]string{},
+	}
+
+	patch := model.ConfigPatch{
+		Target: model.ConfigTarget{
+			RelPath: "test.ini",
+			Format:  model.ConfigFormatINI,
+			BaseDir: model.ConfigBaseDirUserConfig,
+		},
+		Entries: []model.ConfigEntry{
+			{Path: []string{"video", "resolution"}, Value: "1920x1080"},
+		},
+	}
+
+	diff, err := dc.ComputeDiffWithBaseline(patch, baseline, nil)
 	if err != nil {
 		t.Fatalf("ComputeDiffWithBaseline: %v", err)
 	}
 
 	if diff.UserModified {
-		t.Error("expected UserModified to be false when change is a kyaraben update")
+		t.Error("expected UserModified to be false with empty written entries")
 	}
-	if len(diff.UserChanges) != 0 {
-		t.Errorf("expected 0 user changes, got %d", len(diff.UserChanges))
+	if diff.KyarabenChanged {
+		t.Error("expected KyarabenChanged to be false with empty written entries")
 	}
-}
-
-func computePatchHash(entries []model.ConfigEntry) string {
-	return configformat.ComputePatchHash(entries)
 }

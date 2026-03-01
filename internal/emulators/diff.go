@@ -1,8 +1,6 @@
 package emulators
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"strings"
 
@@ -22,7 +20,7 @@ func NewDiffComputer(fs vfs.FS, resolver model.BaseDirResolver) *DiffComputer {
 }
 
 func NewDefaultDiffComputer() *DiffComputer {
-	return NewDiffComputer(vfs.OSFS, &model.OSBaseDirResolver{})
+	return NewDiffComputer(vfs.OSFS, model.NewDefaultResolver())
 }
 
 type ConfigDiff struct {
@@ -32,17 +30,17 @@ type ConfigDiff struct {
 	KyarabenChanged bool
 	Changes         []ConfigChange
 	UserChanges     []UserChange
-	KyarabenUpdates []KyarabenUpdate
+	VersionUpgrades []VersionUpgrade
 }
 
 type UserChange struct {
-	Path          []string
-	BaselineValue string
-	CurrentValue  string
+	Key          string
+	WrittenValue string
+	CurrentValue string
 }
 
-type KyarabenUpdate struct {
-	Path     []string
+type VersionUpgrade struct {
+	Key      string
 	OldValue string
 	NewValue string
 }
@@ -94,11 +92,15 @@ const (
 	colorDim    = "\033[2m"
 )
 
-func ComputeDiffWithBaseline(patch model.ConfigPatch, baseline *model.ManagedConfig) (*ConfigDiff, error) {
-	return NewDefaultDiffComputer().ComputeDiffWithBaseline(patch, baseline)
+type DiffContext struct {
+	CurrentConfigInputs map[string]string
 }
 
-func (d *DiffComputer) ComputeDiffWithBaseline(patch model.ConfigPatch, baseline *model.ManagedConfig) (*ConfigDiff, error) {
+func ComputeDiffWithBaseline(patch model.ConfigPatch, baseline *model.ManagedConfig) (*ConfigDiff, error) {
+	return NewDefaultDiffComputer().ComputeDiffWithBaseline(patch, baseline, nil)
+}
+
+func (d *DiffComputer) ComputeDiffWithBaseline(patch model.ConfigPatch, baseline *model.ManagedConfig, ctx *DiffContext) (*ConfigDiff, error) {
 	diff, err := d.ComputeDiff(patch)
 	if err != nil {
 		return nil, err
@@ -108,82 +110,98 @@ func (d *DiffComputer) ComputeDiffWithBaseline(patch model.ConfigPatch, baseline
 		return diff, nil
 	}
 
-	currentPatchHash := configformat.ComputePatchHash(patch.Entries)
-	if baseline.PatchHash != "" && currentPatchHash != baseline.PatchHash {
-		diff.KyarabenChanged = true
-		for _, change := range diff.Changes {
-			if change.Type == ChangeModify {
-				diff.KyarabenUpdates = append(diff.KyarabenUpdates, KyarabenUpdate{
-					Path:     change.Path,
-					OldValue: change.OldValue,
-					NewValue: change.NewValue,
-				})
-			}
-		}
+	if len(baseline.WrittenEntries) == 0 {
+		return diff, nil
 	}
 
-	currentHash, err := d.hashConfigFile(diff.Path)
+	current, err := d.readConfig(diff.Path, patch.Target.Format)
 	if err != nil {
 		return diff, nil
 	}
 
-	if currentHash != baseline.BaselineHash {
-		current, err := d.readConfig(diff.Path, patch.Target.Format)
-		if err != nil {
-			return diff, nil
+	entryByPath := make(map[string]model.ConfigEntry)
+	for _, entry := range patch.Entries {
+		entryByPath[entry.FullPath()] = entry
+	}
+
+	for _, entry := range patch.Entries {
+		if entry.DefaultOnly {
+			continue
 		}
 
-		for _, entry := range patch.Entries {
-			if entry.DefaultOnly {
+		entryKey := entry.FullPath()
+		writtenValue, wasWritten := baseline.WrittenEntries[entryKey]
+		if !wasWritten {
+			continue
+		}
+
+		section := configformat.SectionKey(entry.Parent())
+		key := entry.Key()
+
+		var currentValue string
+		if sectionMap, ok := current[section]; ok {
+			currentValue = sectionMap[key]
+		}
+
+		newValue := entry.Value
+
+		userModifiedThisKey := !valuesEqualNormalized(writtenValue, currentValue, entry.EqualityFunc, d.homeDir())
+		if userModifiedThisKey {
+			diff.UserModified = true
+			diff.UserChanges = append(diff.UserChanges, UserChange{
+				Key:          key,
+				WrittenValue: writtenValue,
+				CurrentValue: currentValue,
+			})
+		}
+
+		if writtenValue != newValue && !userModifiedThisKey {
+			if isUIDrivenChange(entry, baseline.ConfigInputsWhenWritten, ctx) {
 				continue
 			}
-			section := configformat.SectionKey(entry.Parent())
-			key := entry.Key()
-
-			if sectionMap, ok := current[section]; ok {
-				if currentVal, ok := sectionMap[key]; ok && !valuesEqual(entry, currentVal, d.homeDir()) {
-					isKyarabenUpdate := false
-					for _, ku := range diff.KyarabenUpdates {
-						if pathsEqual(ku.Path, entry.Path) {
-							isKyarabenUpdate = true
-							break
-						}
-					}
-					if !isKyarabenUpdate {
-						diff.UserModified = true
-						diff.UserChanges = append(diff.UserChanges, UserChange{
-							Path:          entry.Path,
-							BaselineValue: entry.Value,
-							CurrentValue:  currentVal,
-						})
-					}
-				}
-			}
+			diff.KyarabenChanged = true
+			diff.VersionUpgrades = append(diff.VersionUpgrades, VersionUpgrade{
+				Key:      key,
+				OldValue: writtenValue,
+				NewValue: newValue,
+			})
 		}
 	}
 
 	return diff, nil
 }
 
-func pathsEqual(a, b []string) bool {
-	if len(a) != len(b) {
+func isUIDrivenChange(entry model.ConfigEntry, configInputsWhenWritten map[string]string, ctx *DiffContext) bool {
+	if len(entry.DependsOn) == 0 {
 		return false
 	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
+	if ctx == nil || ctx.CurrentConfigInputs == nil {
+		return false
+	}
+	if configInputsWhenWritten == nil {
+		return false
+	}
+
+	for _, dep := range entry.DependsOn {
+		key := string(dep)
+		oldValue, hadOld := configInputsWhenWritten[key]
+		newValue, hasNew := ctx.CurrentConfigInputs[key]
+
+		if hadOld != hasNew {
+			return true
+		}
+		if hadOld && oldValue != newValue {
+			return true
 		}
 	}
-	return true
+	return false
 }
 
-func (d *DiffComputer) hashConfigFile(path string) (string, error) {
-	data, err := d.fs.ReadFile(path)
-	if err != nil {
-		return "", err
+func valuesEqualNormalized(a, b string, equalityFunc model.ValueEqualityFunc, homeDir string) bool {
+	if equalityFunc != nil {
+		return equalityFunc(a, b)
 	}
-	hash := sha256.Sum256(data)
-	return hex.EncodeToString(hash[:]), nil
+	return configformat.NormalizePath(a, homeDir) == configformat.NormalizePath(b, homeDir)
 }
 
 func (d *DiffComputer) homeDir() string {
@@ -326,10 +344,9 @@ func (d *ConfigDiff) FormatWithColor(useColor bool) string {
 	} else if !d.HasChanges() {
 		sb.WriteString(fmt.Sprintf("  %s %s\n", dim("UNCHANGED"), d.Path))
 		if d.UserModified && len(d.UserChanges) > 0 {
-			sb.WriteString(fmt.Sprintf("    %s\n", yellow("⚠ You modified settings managed by kyaraben:")))
+			sb.WriteString(fmt.Sprintf("    %s\n", yellow("Your changes will be overwritten:")))
 			for _, uc := range d.UserChanges {
-				key := uc.Path[len(uc.Path)-1]
-				sb.WriteString(fmt.Sprintf("      %s: %s → %s\n", key, dim(uc.BaselineValue), yellow(uc.CurrentValue)))
+				sb.WriteString(fmt.Sprintf("      %s: %s -> %s\n", uc.Key, dim(uc.WrittenValue), yellow(uc.CurrentValue)))
 			}
 		}
 		return sb.String()
@@ -338,10 +355,17 @@ func (d *ConfigDiff) FormatWithColor(useColor bool) string {
 	}
 
 	if d.UserModified && len(d.UserChanges) > 0 {
-		sb.WriteString(fmt.Sprintf("    %s\n", yellow("⚠ You modified settings managed by kyaraben (will be overwritten):")))
+		sb.WriteString(fmt.Sprintf("    %s\n", yellow("Your changes will be overwritten:")))
 		for _, uc := range d.UserChanges {
-			key := uc.Path[len(uc.Path)-1]
-			sb.WriteString(fmt.Sprintf("      %s: %s → %s\n", key, dim(uc.BaselineValue), yellow(uc.CurrentValue)))
+			sb.WriteString(fmt.Sprintf("      %s: %s -> %s\n", uc.Key, dim(uc.WrittenValue), yellow(uc.CurrentValue)))
+		}
+		sb.WriteString("\n")
+	}
+
+	if d.KyarabenChanged && len(d.VersionUpgrades) > 0 {
+		sb.WriteString(fmt.Sprintf("    %s\n", green("Kyaraben has new defaults:")))
+		for _, vu := range d.VersionUpgrades {
+			sb.WriteString(fmt.Sprintf("      %s: %s -> %s\n", vu.Key, dim(vu.OldValue), green(vu.NewValue)))
 		}
 		sb.WriteString("\n")
 	}
@@ -395,9 +419,6 @@ func (d *DiffComputer) readConfig(path string, format model.ConfigFormat) (map[s
 	return handler.Read(path)
 }
 
-// valuesEqual compares the entry's value against an existing value.
-// Uses the entry's custom EqualityFunc if set, otherwise falls back to
-// path-normalized string comparison.
 func valuesEqual(entry model.ConfigEntry, existingValue, homeDir string) bool {
 	if entry.EqualityFunc != nil {
 		return entry.EqualityFunc(entry.Value, existingValue)

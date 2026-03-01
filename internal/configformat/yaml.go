@@ -44,11 +44,13 @@ func (h *yamlHandler) Apply(path string, entries []model.ConfigEntry, managedReg
 		}
 	}
 
+	writtenEntries := make(map[string]string)
 	for _, entry := range entries {
 		if entry.DefaultOnly && hasNestedValue(existing, entry.Path) {
 			continue
 		}
 		setNestedValue(existing, entry.Path, entry.Value)
+		writtenEntries[entry.FullPath()] = entry.Value
 	}
 
 	f, err := h.fs.Create(path)
@@ -72,10 +74,5 @@ func (h *yamlHandler) Apply(path string, entries []model.ConfigEntry, managedReg
 	}
 	_ = encoder.Close()
 
-	hash, err := hashFileWithFS(h.fs, path)
-	if err != nil {
-		return ApplyResult{}, fmt.Errorf("hashing config file: %w", err)
-	}
-
-	return ApplyResult{Path: path, BaselineHash: hash, PatchHash: ComputePatchHash(entries)}, nil
+	return ApplyResult{Path: path, WrittenEntries: writtenEntries}, nil
 }

@@ -22,7 +22,7 @@ func New(fileSystem vfs.FS, resolver model.BaseDirResolver) *Cleaner {
 }
 
 func NewDefault() *Cleaner {
-	return &Cleaner{fs: vfs.OSFS, resolver: model.OSBaseDirResolver{}}
+	return &Cleaner{fs: vfs.OSFS, resolver: model.NewDefaultResolver()}
 }
 
 func (c *Cleaner) RemoveConfigDirs(configs []model.ManagedConfig) []string {

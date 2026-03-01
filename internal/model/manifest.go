@@ -117,12 +117,12 @@ type InstalledFrontend struct {
 }
 
 type ManagedConfig struct {
-	EmulatorIDs    []EmulatorID   `json:"emulator_ids"`
-	Target         ConfigTarget   `json:"target"`
-	BaselineHash   string         `json:"baseline_hash"`
-	PatchHash      string         `json:"patch_hash,omitempty"`
-	LastModified   time.Time      `json:"last_modified"`
-	ManagedRegions ManagedRegions `json:"managed_regions,omitempty"`
+	EmulatorIDs             []EmulatorID      `json:"emulator_ids"`
+	Target                  ConfigTarget      `json:"target"`
+	WrittenEntries          map[string]string `json:"written_entries,omitempty"`
+	ConfigInputsWhenWritten map[string]string `json:"config_inputs_when_written,omitempty"`
+	LastModified            time.Time         `json:"last_modified"`
+	ManagedRegions          ManagedRegions    `json:"managed_regions,omitempty"`
 }
 
 // NewManifest creates a new empty manifest.
@@ -252,14 +252,48 @@ func (m *Manifest) AddManagedConfig(cfg ManagedConfig) error {
 		if existing.Target == cfg.Target {
 			m.ManagedConfigs[i].EmulatorIDs = appendUniqueEmulatorIDs(existing.EmulatorIDs, cfg.EmulatorIDs...)
 			m.ManagedConfigs[i].ManagedRegions = cfg.ManagedRegions
-			m.ManagedConfigs[i].BaselineHash = cfg.BaselineHash
-			m.ManagedConfigs[i].PatchHash = cfg.PatchHash
+			m.ManagedConfigs[i].WrittenEntries = mergeWrittenEntries(existing.WrittenEntries, cfg.WrittenEntries)
+			m.ManagedConfigs[i].ConfigInputsWhenWritten = mergeConfigInputs(existing.ConfigInputsWhenWritten, cfg.ConfigInputsWhenWritten)
 			m.ManagedConfigs[i].LastModified = cfg.LastModified
 			return nil
 		}
 	}
 	m.ManagedConfigs = append(m.ManagedConfigs, cfg)
 	return nil
+}
+
+func mergeWrittenEntries(existing, new map[string]string) map[string]string {
+	if existing == nil {
+		return new
+	}
+	if new == nil {
+		return existing
+	}
+	result := make(map[string]string, len(existing)+len(new))
+	for k, v := range existing {
+		result[k] = v
+	}
+	for k, v := range new {
+		result[k] = v
+	}
+	return result
+}
+
+func mergeConfigInputs(existing, new map[string]string) map[string]string {
+	if existing == nil {
+		return new
+	}
+	if new == nil {
+		return existing
+	}
+	result := make(map[string]string, len(existing)+len(new))
+	for k, v := range existing {
+		result[k] = v
+	}
+	for k, v := range new {
+		result[k] = v
+	}
+	return result
 }
 
 func appendUniqueEmulatorIDs(slice []EmulatorID, elems ...EmulatorID) []EmulatorID {

@@ -213,8 +213,8 @@ func TestApplyRemovesConfigDirsForDisabledEmulators(t *testing.T) {
 					Format:  model.ConfigFormatINI,
 					BaseDir: model.ConfigBaseDirUserConfig,
 				},
-				BaselineHash: "abc123",
-				LastModified: time.Now().Add(-time.Hour),
+				WrittenEntries: map[string]string{"section.key": "value"},
+				LastModified:   time.Now().Add(-time.Hour),
 			},
 		},
 	}

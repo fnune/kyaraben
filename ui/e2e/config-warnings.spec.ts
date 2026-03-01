@@ -60,7 +60,6 @@ enabled = true
 
   test('shows warning toast for invalid config values', async () => {
     await expect(page.getByText(/Config issues found/i)).toBeVisible({ timeout: 15000 })
-    await page.pause()
   })
 
   test('app still loads and functions despite invalid config', async () => {

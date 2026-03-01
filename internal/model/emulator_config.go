@@ -40,20 +40,20 @@ type BaseDirResolver interface {
 	UserDataDir() (string, error)
 }
 
-type OSBaseDirResolver struct{}
+type osBaseDirResolver struct{}
 
-func (OSBaseDirResolver) UserConfigDir() (string, error) {
+func (osBaseDirResolver) UserConfigDir() (string, error) {
 	if dir := os.Getenv("XDG_CONFIG_HOME"); dir != "" {
 		return dir, nil
 	}
 	return os.UserConfigDir()
 }
 
-func (OSBaseDirResolver) UserHomeDir() (string, error) {
+func (osBaseDirResolver) UserHomeDir() (string, error) {
 	return os.UserHomeDir()
 }
 
-func (OSBaseDirResolver) UserDataDir() (string, error) {
+func (osBaseDirResolver) UserDataDir() (string, error) {
 	if dir := os.Getenv("XDG_DATA_HOME"); dir != "" {
 		return dir, nil
 	}
@@ -62,6 +62,10 @@ func (OSBaseDirResolver) UserDataDir() (string, error) {
 		return "", err
 	}
 	return filepath.Join(home, ".local", "share"), nil
+}
+
+func NewDefaultResolver() BaseDirResolver {
+	return osBaseDirResolver{}
 }
 
 func (ct ConfigTarget) ResolveWith(resolver BaseDirResolver) (string, error) {
@@ -76,11 +80,11 @@ func (ct ConfigTarget) ResolveWith(resolver BaseDirResolver) (string, error) {
 		baseDir = dir
 
 	case ConfigBaseDirUserData:
-		home, err := resolver.UserHomeDir()
+		dir, err := resolver.UserDataDir()
 		if err != nil {
-			return "", fmt.Errorf("getting home dir: %w", err)
+			return "", fmt.Errorf("getting user data dir: %w", err)
 		}
-		baseDir = filepath.Join(home, ".local", "share")
+		baseDir = dir
 
 	case ConfigBaseDirHome:
 		home, err := resolver.UserHomeDir()
@@ -94,14 +98,6 @@ func (ct ConfigTarget) ResolveWith(resolver BaseDirResolver) (string, error) {
 	}
 
 	return filepath.Join(baseDir, ct.RelPath), nil
-}
-
-func (ct ConfigTarget) Resolve() (string, error) {
-	return ct.ResolveWith(OSBaseDirResolver{})
-}
-
-func (ct ConfigTarget) ResolveDir() (string, error) {
-	return ct.ResolveDirWith(OSBaseDirResolver{})
 }
 
 func (ct ConfigTarget) ResolveDirWith(resolver BaseDirResolver) (string, error) {
@@ -183,11 +179,17 @@ func (ct ConfigTarget) rejectDangerousPaths(resolver BaseDirResolver, path strin
 // key ordering may vary but the values are functionally equivalent.
 type ValueEqualityFunc func(a, b string) bool
 
+// ConfigInput identifies a user-configurable input that affects generated config values.
+// Used to distinguish UI-driven changes from version upgrades during diff detection.
+// Constants are defined near their corresponding schema fields (e.g., in config.go).
+type ConfigInput string
+
 type ConfigEntry struct {
 	Path         []string
 	Value        string
 	DefaultOnly  bool              // Only set if key doesn't exist; user changes are preserved
 	EqualityFunc ValueEqualityFunc // Optional custom equality check; nil uses string comparison
+	DependsOn    []ConfigInput     // Config inputs this entry depends on
 }
 
 // ManagedRegion describes a portion of a config file that kyaraben manages.
@@ -248,4 +250,14 @@ func (p ConfigPatch) ManagesWholeFile() bool {
 		}
 	}
 	return false
+}
+
+// WithDependsOn returns copies of the entries with DependsOn set to the given dependencies.
+func WithDependsOn(entries []ConfigEntry, deps ...ConfigInput) []ConfigEntry {
+	result := make([]ConfigEntry, len(entries))
+	for i, e := range entries {
+		result[i] = e
+		result[i].DependsOn = deps
+	}
+	return result
 }

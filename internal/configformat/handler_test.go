@@ -61,8 +61,8 @@ func TestINIHandler_Apply(t *testing.T) {
 	if result.Path != "/config/test.ini" {
 		t.Errorf("expected path /config/test.ini, got %s", result.Path)
 	}
-	if result.BaselineHash == "" {
-		t.Error("expected non-empty hash")
+	if len(result.WrittenEntries) == 0 {
+		t.Error("expected non-empty WrittenEntries")
 	}
 
 	readResult, err := handler.Read("/config/test.ini")

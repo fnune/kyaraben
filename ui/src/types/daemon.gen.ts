@@ -8,12 +8,16 @@ import type { LogEntry } from './logging.gen'
 export interface SetConfigRequest {
   userStore: string;
   graphics?: GraphicsConfigRequest;
+  controller?: ControllerConfigRequest;
   systems: { [key: string]: string[]};
   emulators?: { [key: string]: EmulatorConfRequest};
   frontends?: { [key: string]: FrontendConfRequest};
 }
 export interface GraphicsConfigRequest {
   shaders: string;
+}
+export interface ControllerConfigRequest {
+  nintendoConfirm: string;
 }
 export interface FrontendConfRequest {
   enabled: boolean;
@@ -149,6 +153,7 @@ export interface EmulatorRef {
 export interface ConfigResponse {
   userStore: string;
   graphics: GraphicsConfigResponse;
+  controller: ControllerConfigResponse;
   systems: { [key: string]: EmulatorID[]};
   emulators?: { [key: string]: EmulatorConfResponse};
   frontends?: { [key: string]: FrontendConfResponse};
@@ -156,6 +161,9 @@ export interface ConfigResponse {
 }
 export interface GraphicsConfigResponse {
   shaders: string;
+}
+export interface ControllerConfigResponse {
+  nintendoConfirm: string;
 }
 export interface EmulatorConfResponse {
   version?: string;
@@ -360,7 +368,7 @@ export interface KyarabenUpdateDetail {
 }
 export interface UserChangeDetail {
   key: string;
-  baselineValue: string;
+  writtenValue: string;
   currentValue: string;
 }
 export interface ConfigChangeDetail {

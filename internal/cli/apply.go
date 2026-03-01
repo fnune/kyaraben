@@ -52,7 +52,8 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		return err
 	}
 	installer.SetVersionOverrides(versionOverrides)
-	configWriter := emulators.NewDefaultConfigWriter(model.OSBaseDirResolver{})
+	resolver := model.NewDefaultResolver()
+	configWriter := emulators.NewDefaultConfigWriter()
 	manifestPath, err := ctx.GetPaths().ManifestPath()
 	if err != nil {
 		return err
@@ -74,7 +75,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	}
 	defer func() { _ = syscall.Flock(int(lockFile.Fd()), syscall.LOCK_UN) }()
 
-	launcherManager, err := launcher.NewManager(ctx.GetPaths())
+	launcherManager, err := launcher.NewManager(vfs.OSFS, ctx.GetPaths(), resolver)
 	if err != nil {
 		return fmt.Errorf("creating launcher manager: %w", err)
 	}
@@ -86,7 +87,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		registry,
 		manifestPath,
 		launcherManager,
-		model.OSBaseDirResolver{},
+		resolver,
 		symlink.NewCreator(vfs.OSFS),
 	)
 	applier.SteamManager = steam.NewDefaultManager()
@@ -229,7 +230,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		if diff.UserModified && len(diff.UserChanges) > 0 && diff.HasChanges() {
 			hasOverwrittenUserChanges = true
 		}
-		if diff.KyarabenChanged && len(diff.KyarabenUpdates) > 0 {
+		if diff.KyarabenChanged && len(diff.VersionUpgrades) > 0 {
 			hasKyarabenUpdates = true
 		}
 	}
@@ -260,15 +261,14 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		fmt.Println()
 		seenKyarabenPaths := make(map[string]bool)
 		for _, diff := range diffs {
-			if diff.KyarabenChanged && len(diff.KyarabenUpdates) > 0 && !seenKyarabenPaths[diff.Path] {
+			if diff.KyarabenChanged && len(diff.VersionUpgrades) > 0 && !seenKyarabenPaths[diff.Path] {
 				seenKyarabenPaths[diff.Path] = true
 				fmt.Printf("  %s\n", diff.Path)
 				seenKeys := make(map[string]bool)
-				for _, ku := range diff.KyarabenUpdates {
-					key := ku.Path[len(ku.Path)-1]
-					if !seenKeys[key] {
-						seenKeys[key] = true
-						fmt.Printf("    %s: %s → %s\n", key, ku.OldValue, ku.NewValue)
+				for _, vu := range diff.VersionUpgrades {
+					if !seenKeys[vu.Key] {
+						seenKeys[vu.Key] = true
+						fmt.Printf("    %s: %s → %s\n", vu.Key, vu.OldValue, vu.NewValue)
 					}
 				}
 			}
@@ -286,10 +286,9 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 				fmt.Printf("  %s\n", diff.Path)
 				seenKeys := make(map[string]bool)
 				for _, uc := range diff.UserChanges {
-					key := uc.Path[len(uc.Path)-1]
-					if !seenKeys[key] {
-						seenKeys[key] = true
-						fmt.Printf("    %s: %s → %s\n", key, uc.BaselineValue, uc.CurrentValue)
+					if !seenKeys[uc.Key] {
+						seenKeys[uc.Key] = true
+						fmt.Printf("    %s: %s → %s\n", uc.Key, uc.WrittenValue, uc.CurrentValue)
 					}
 				}
 			}
@@ -316,7 +315,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 
 	seenPaths := make(map[string]bool)
 	for _, patch := range result.Patches {
-		path, _ := patch.Target.Resolve()
+		path, _ := patch.Target.ResolveWith(resolver)
 		if !seenPaths[path] {
 			seenPaths[path] = true
 			fmt.Printf("  Applied: %s\n", path)

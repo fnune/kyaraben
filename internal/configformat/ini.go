@@ -95,11 +95,11 @@ func (h *iniHandler) Apply(path string, entries []model.ConfigEntry, managedRegi
 		_ = data.Close()
 	}
 
-	// Snapshot pre-deletion state so unmanaged checks use original values.
 	snapshot := snapshotSections(sections)
 
 	deleteManagedKeys(sections, managedRegions)
 
+	writtenEntries := make(map[string]string)
 	for _, entry := range entries {
 		section := SectionKey(entry.Parent())
 		if sections[section] == nil {
@@ -114,6 +114,7 @@ func (h *iniHandler) Apply(path string, entries []model.ConfigEntry, managedRegi
 			}
 		}
 		sections[section][key] = entry.Value
+		writtenEntries[entry.FullPath()] = entry.Value
 	}
 
 	f, err := h.fs.Create(path)
@@ -152,10 +153,5 @@ func (h *iniHandler) Apply(path string, entries []model.ConfigEntry, managedRegi
 		_, _ = fmt.Fprintln(f)
 	}
 
-	hash, err := hashFileWithFS(h.fs, path)
-	if err != nil {
-		return ApplyResult{}, fmt.Errorf("hashing config file: %w", err)
-	}
-
-	return ApplyResult{Path: path, BaselineHash: hash, PatchHash: ComputePatchHash(entries)}, nil
+	return ApplyResult{Path: path, WrittenEntries: writtenEntries}, nil
 }

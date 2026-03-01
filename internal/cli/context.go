@@ -19,21 +19,23 @@ import (
 type Context struct {
 	FS          vfs.FS
 	Paths       *paths.Paths
+	Resolver    model.BaseDirResolver
 	ConfigStore *model.ConfigStore
 	ConfigPath  string
 }
 
-func NewContext(fs vfs.FS, p *paths.Paths, configPath string) *Context {
+func NewContext(fs vfs.FS, p *paths.Paths, resolver model.BaseDirResolver, configPath string) *Context {
 	return &Context{
 		FS:          fs,
 		Paths:       p,
+		Resolver:    resolver,
 		ConfigStore: model.NewConfigStore(fs),
 		ConfigPath:  configPath,
 	}
 }
 
 func NewDefaultContext(instance, configPath string) *Context {
-	return NewContext(vfs.OSFS, paths.NewPaths(instance), configPath)
+	return NewContext(vfs.OSFS, paths.NewPaths(instance), model.NewDefaultResolver(), configPath)
 }
 
 func (c *Context) GetPaths() *paths.Paths {
@@ -100,7 +102,7 @@ func (c *Context) NewUserStore(cfg *model.KyarabenConfig) (*store.UserStore, err
 }
 
 func (c *Context) NewStatusGetter() *status.Getter {
-	return status.NewGetter(c.FS, c.Paths)
+	return status.NewGetter(c.FS, c.Paths, c.Resolver)
 }
 
 func (c *Context) stateDir() (string, error) {

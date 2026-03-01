@@ -68,6 +68,7 @@ function parseStatusResponse(data: StatusResponse) {
 interface ConfigState {
   userStore: string
   graphicsShaders: string
+  controllerNintendoConfirm: string
   systemEmulators: Map<SystemID, EmulatorID[]>
   emulatorVersions: Map<EmulatorID, string | null>
   emulatorShaders: Map<EmulatorID, string | null>
@@ -79,6 +80,7 @@ function emptyConfigState(): ConfigState {
   return {
     userStore: '',
     graphicsShaders: '',
+    controllerNintendoConfirm: '',
     systemEmulators: new Map(),
     emulatorVersions: new Map(),
     emulatorShaders: new Map(),
@@ -95,6 +97,7 @@ function cloneConfigState(state: ConfigState): ConfigState {
   return {
     userStore: state.userStore,
     graphicsShaders: state.graphicsShaders,
+    controllerNintendoConfirm: state.controllerNintendoConfirm,
     systemEmulators: new Map(state.systemEmulators),
     emulatorVersions: new Map(state.emulatorVersions),
     emulatorShaders: new Map(state.emulatorShaders),
@@ -139,6 +142,7 @@ function parseConfigResponse(data: ConfigResponse): ConfigState {
   return {
     userStore: data.userStore,
     graphicsShaders: data.graphics?.shaders ?? '',
+    controllerNintendoConfirm: data.controller?.nintendoConfirm ?? 'east',
     systemEmulators,
     emulatorVersions,
     emulatorShaders,
@@ -500,6 +504,10 @@ function AppContent() {
     setConfigState((prev) => ({ ...prev, graphicsShaders: value }))
   }, [])
 
+  const handleControllerNintendoConfirmChange = useCallback((value: string) => {
+    setConfigState((prev) => ({ ...prev, controllerNintendoConfirm: value }))
+  }, [])
+
   const handleEnableAll = useCallback(() => {
     const newSystemEmulators = new Map<SystemID, EmulatorID[]>()
     for (const sys of systems) {
@@ -541,6 +549,12 @@ function AppContent() {
 
     if (configState.graphicsShaders !== savedConfigState.current.graphicsShaders) {
       changes.push('Shader settings')
+    }
+
+    if (
+      configState.controllerNintendoConfirm !== savedConfigState.current.controllerNintendoConfirm
+    ) {
+      changes.push('Controller settings')
     }
 
     const systemEmulatorsChanged = (() => {
@@ -646,6 +660,7 @@ function AppContent() {
             emulatorVersions={configState.emulatorVersions}
             emulatorShaders={configState.emulatorShaders}
             graphics={{ shaders: configState.graphicsShaders }}
+            controller={{ nintendoConfirm: configState.controllerNintendoConfirm }}
             frontendVersions={configState.frontendVersions}
             installedVersions={installedVersions}
             installedFrontendVersions={installedFrontendVersions}
@@ -663,6 +678,7 @@ function AppContent() {
             onFrontendToggle={handleFrontendToggle}
             onFrontendVersionChange={handleFrontendVersionChange}
             onGraphicsShadersChange={handleGraphicsShadersChange}
+            onControllerNintendoConfirmChange={handleControllerNintendoConfirmChange}
             onDiscard={handleDiscard}
             onEnableAll={handleEnableAll}
             upgradeAvailable={showApplyBanner && !applyBannerDismissed}

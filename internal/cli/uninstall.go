@@ -13,6 +13,7 @@ import (
 	"github.com/fnune/kyaraben/internal/cleanup"
 	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/paths"
 )
 
 type UninstallCmd struct {
@@ -221,8 +222,8 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 		}
 	}
 
-	homeDir, _ := os.UserHomeDir()
-	iconsDir := filepath.Join(homeDir, ".local", "share", "icons", "hicolor")
+	dataDir, _ := paths.DataDir()
+	iconsDir := filepath.Join(dataDir, "icons", "hicolor")
 	launcher.UpdateIconCaches(iconsDir)
 
 	fmt.Println()

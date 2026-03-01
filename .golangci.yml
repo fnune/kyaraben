@@ -37,6 +37,24 @@ linters:
         - pattern: 'sync\.NewDefaultServiceManager'
           pkg: github.com/fnune/kyaraben/internal/sync
           msg: "use sync.NewFakeServiceManager() in tests"
+        - pattern: 'model\.NewDefaultResolver'
+          pkg: github.com/fnune/kyaraben/internal/model
+          msg: "use testutil.FakeResolver in tests"
+        - pattern: 'daemon\.NewDefault'
+          pkg: github.com/fnune/kyaraben/internal/daemon
+          msg: "use daemon.New(Deps{...}) in tests"
+        - pattern: 'status\.NewDefaultGetter'
+          pkg: github.com/fnune/kyaraben/internal/status
+          msg: "use status.NewGetter(fs, paths, resolver) in tests"
+        - pattern: 'launcher\.NewDefaultManager'
+          pkg: github.com/fnune/kyaraben/internal/launcher
+          msg: "use launcher.NewManager(fs, paths, resolver) in tests"
+        - pattern: 'cleanup\.NewDefault'
+          pkg: github.com/fnune/kyaraben/internal/cleanup
+          msg: "use cleanup.New(fs, resolver) in tests"
+        - pattern: 'emulators\.NewDefaultDiffComputer'
+          pkg: github.com/fnune/kyaraben/internal/emulators
+          msg: "use emulators.NewDiffComputer(fs, resolver) in tests"
       analyze-types: true
 
   exclusions:
