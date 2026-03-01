@@ -59,7 +59,7 @@ export interface ConfigWarning {
 export interface InstalledEmulator {
   id: EmulatorID;
   version: string;
-  execLine?: string;
+  execLine: string;
   managedConfigs?: ManagedConfigInfo[];
   iconPath?: string;
   paths?: { [key: string]: EmulatorPaths};
@@ -88,7 +88,7 @@ export interface EmulatorPaths {
 export interface InstalledFrontend {
   id: FrontendID;
   version: string;
-  execLine?: string;
+  execLine: string;
 }
 /**
  * DoctorResponse maps "systemId:emulatorId" to provisions for that system/emulator pair.

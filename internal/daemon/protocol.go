@@ -73,7 +73,7 @@ type ConfigWarning struct {
 type InstalledEmulator struct {
 	ID             model.EmulatorID         `json:"id"`
 	Version        string                   `json:"version"`
-	ExecLine       string                   `json:"execLine,omitempty"`
+	ExecLine       string                   `json:"execLine"`
 	ManagedConfigs []ManagedConfigInfo      `json:"managedConfigs,omitempty"`
 	IconPath       string                   `json:"iconPath,omitempty"`
 	Paths          map[string]EmulatorPaths `json:"paths,omitempty"`
@@ -107,7 +107,7 @@ type EmulatorPaths struct {
 type InstalledFrontend struct {
 	ID       model.FrontendID `json:"id"`
 	Version  string           `json:"version"`
-	ExecLine string           `json:"execLine,omitempty"`
+	ExecLine string           `json:"execLine"`
 }
 
 // DoctorResponse maps "systemId:emulatorId" to provisions for that system/emulator pair.
