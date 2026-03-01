@@ -304,7 +304,6 @@ func (i *PackageInstaller) InstallCores(ctx context.Context, coreNames []string,
 	}
 
 	var installedCores []InstalledCore
-	var installedCount int
 
 	for url, cores := range coresByURL {
 		if len(cores) == 0 {
@@ -320,15 +319,10 @@ func (i *PackageInstaller) InstallCores(ctx context.Context, coreNames []string,
 			return nil, err
 		}
 		installedCores = append(installedCores, installed...)
-		installedCount += len(installed)
 	}
 
 	if onProgress != nil {
 		onProgress(InstallProgress{PackageName: "retroarch-cores", Phase: "installed"})
-	}
-
-	if installedCount > 0 {
-		log.InfoCtx(ctx, "Installed %d RetroArch cores", installedCount)
 	}
 
 	return installedCores, nil
