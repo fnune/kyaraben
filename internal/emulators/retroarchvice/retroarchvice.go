@@ -28,6 +28,12 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 	return &Config{}
 }
 
+var coreOptionsTarget = model.ConfigTarget{
+	RelPath: "retroarch/config/VICE x64sc/VICE x64sc.opt",
+	Format:  model.ConfigFormatCFG,
+	BaseDir: model.ConfigBaseDirUserConfig,
+}
+
 type Config struct{}
 
 func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
@@ -35,8 +41,18 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	if err != nil {
 		return model.GenerateResult{}, err
 	}
+
+	patches := retroarch.CorePatches(model.EmulatorIDRetroArchVICE, ctx.Store, ctx.ControllerConfig)
+	patches = append(patches, model.ConfigPatch{
+		Target: coreOptionsTarget,
+		Entries: []model.ConfigEntry{
+			{Path: []string{"vice_drive_true_emulation"}, Value: "disabled", DefaultOnly: true},
+			{Path: []string{"vice_autoloadwarp"}, Value: "enabled", DefaultOnly: true},
+		},
+	})
+
 	return model.GenerateResult{
-		Patches:  retroarch.CorePatches(model.EmulatorIDRetroArchVICE, ctx.Store, ctx.ControllerConfig),
+		Patches:  patches,
 		Symlinks: symlinks,
 	}, nil
 }
