@@ -360,6 +360,7 @@ function VersionSelector({
       options={options}
       onChange={(v) => onChange(v === '' ? null : v)}
       disabled={disabled}
+      size="sm"
       className={isPinned ? '[&>button]:ring-2 [&>button]:ring-status-warning' : ''}
     />
   )
