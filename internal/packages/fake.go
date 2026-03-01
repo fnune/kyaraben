@@ -186,7 +186,13 @@ func (f *FakeInstaller) ResolveVersion(name string) string {
 	if name == "retroarch-cores" {
 		return versions.MustGet().RetroArchCores.Default
 	}
-	if spec, ok := versions.MustGet().GetPackage(name); ok {
+	v := versions.MustGet()
+	_, isBundledCore := v.RetroArchCores.Files[name]
+	_, isStandaloneCore := v.RetroArchCores.Standalone[name]
+	if isBundledCore || isStandaloneCore {
+		return v.RetroArchCores.Default
+	}
+	if spec, ok := v.GetPackage(name); ok {
 		if entry := spec.GetDefault(); entry != nil {
 			return entry.Version
 		}

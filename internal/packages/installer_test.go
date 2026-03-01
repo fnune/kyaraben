@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/twpayne/go-vfs/v5/vfst"
@@ -566,6 +567,60 @@ func TestPackageInstallerVersionOverride(t *testing.T) {
 	version := installer.ResolveVersion("eden")
 	if version != "v0.1.0" {
 		t.Errorf("version = %q, want v0.1.0", version)
+	}
+}
+
+func TestPackageInstallerCoreVersionOverride(t *testing.T) {
+	t.Parallel()
+
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/state": &vfst.Dir{Perm: 0755},
+	})
+
+	stateDir := "/state"
+	dl := NewFakeDownloader(fs, []byte("fake-cores-bundle"))
+	ext := NewFakeExtractor(fs, map[string]string{
+		"cores/bsnes_libretro.so": "fake-bsnes-core",
+		"cores/mesen_libretro.so": "fake-mesen-core",
+	})
+
+	installer := NewPackageInstaller(fs, stateDir, dl, ext, fakeBaseDirResolver{root: "/home"})
+	installer.SetVersionOverrides(map[string]string{"bsnes": "1.19.1"})
+
+	bsnesVersion := installer.ResolveVersion("bsnes")
+	if bsnesVersion != "1.19.1" {
+		t.Errorf("bsnes version = %q, want 1.19.1", bsnesVersion)
+	}
+
+	mesenVersion := installer.ResolveVersion("mesen")
+	if mesenVersion != "1.22.2" {
+		t.Errorf("mesen version = %q, want 1.22.2 (default)", mesenVersion)
+	}
+
+	cores, err := installer.InstallCores(context.Background(), []string{"bsnes", "mesen"}, nil)
+	if err != nil {
+		t.Fatalf("InstallCores: %v", err)
+	}
+
+	if len(cores) != 2 {
+		t.Fatalf("expected 2 cores, got %d", len(cores))
+	}
+
+	var bsnesPath, mesenPath string
+	for _, core := range cores {
+		switch core.Filename {
+		case "bsnes_libretro.so":
+			bsnesPath = core.Path
+		case "mesen_libretro.so":
+			mesenPath = core.Path
+		}
+	}
+
+	if !strings.Contains(bsnesPath, "1.19.1") {
+		t.Errorf("bsnes should be installed under 1.19.1, got path: %s", bsnesPath)
+	}
+	if !strings.Contains(mesenPath, "1.22.2") {
+		t.Errorf("mesen should be installed under 1.22.2, got path: %s", mesenPath)
 	}
 }
 

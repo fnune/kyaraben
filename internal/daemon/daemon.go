@@ -801,7 +801,13 @@ func (d *Daemon) handleGetSystems() []Event {
 			}
 
 			if vers != nil {
-				if spec, ok := vers.GetPackage(emu.Package.PackageName()); ok {
+				if coreName := retroArchCoreName(emu.ID); coreName != "" {
+					ref.DefaultVersion = vers.RetroArchCores.Default
+					availableVersions := vers.RetroArchCores.AvailableVersions()
+					sort.Strings(availableVersions)
+					ref.AvailableVersions = availableVersions
+					ref.CoreBytes = vers.GetCoreSize(coreName)
+				} else if spec, ok := vers.GetPackage(emu.Package.PackageName()); ok {
 					ref.DefaultVersion = spec.Default
 					availableVersions := spec.AvailableVersions()
 					sort.Strings(availableVersions)
@@ -814,10 +820,6 @@ func (d *Daemon) handleGetSystems() []Event {
 							}
 						}
 					}
-				}
-
-				if coreName := retroArchCoreName(emu.ID); coreName != "" {
-					ref.CoreBytes = vers.GetCoreSize(coreName)
 				}
 			}
 

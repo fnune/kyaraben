@@ -481,8 +481,8 @@ func TestApplyWithFakeInstallerE2E(t *testing.T) {
 	}
 
 	if mgba, ok := manifest.InstalledEmulators[model.EmulatorIDRetroArchMGBA]; ok {
-		if mgba.Version != "1.22.0" {
-			t.Errorf("mGBA (RetroArch) version = %q, want 1.22.0", mgba.Version)
+		if mgba.Version != "1.22.2" {
+			t.Errorf("mGBA (RetroArch) version = %q, want 1.22.2", mgba.Version)
 		}
 	} else {
 		t.Error("mGBA should be in manifest")

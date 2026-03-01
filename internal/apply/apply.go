@@ -469,7 +469,12 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, collecti
 		if err != nil {
 			continue
 		}
-		resolvedVersion := a.Installer.ResolveVersion(emu.Package.PackageName())
+		var resolvedVersion string
+		if coreName := emuID.RetroArchCoreName(); coreName != "" {
+			resolvedVersion = a.Installer.ResolveVersion(coreName)
+		} else {
+			resolvedVersion = a.Installer.ResolveVersion(emu.Package.PackageName())
+		}
 		if resolvedVersion == "" {
 			resolvedVersion = "unknown"
 		}
@@ -880,7 +885,7 @@ func (a *Applier) buildPackageSizes(plan installPlan) (map[string]int64, map[str
 
 	if len(plan.coreNames) > 0 {
 		installList = append(installList, "retroarch-cores")
-		installed["retroarch-cores"] = packages.RetroArchCoresInstalled(a.Installer.PackagesDir(), plan.coreNames, v)
+		installed["retroarch-cores"] = packages.RetroArchCoresInstalled(a.Installer, plan.coreNames, v)
 		packageDownloadSizes["retroarch-cores"] = coreDownloadSize(plan.coreNames, targetName, v)
 		packageArchiveTypes["retroarch-cores"] = coreArchiveType(targetName, v)
 	}

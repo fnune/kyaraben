@@ -122,11 +122,29 @@ func (i *PackageInstaller) ResolveVersion(name string) string {
 	if name == "retroarch-cores" {
 		return versions.MustGet().RetroArchCores.Default
 	}
+	if v := i.resolveCoreVersion(name); v != "" {
+		return v
+	}
 	entry, _, err := i.resolveSpec(name)
 	if err != nil {
 		return ""
 	}
 	return entry.Version
+}
+
+func (i *PackageInstaller) resolveCoreVersion(coreName string) string {
+	v := versions.MustGet()
+	_, isBundled := v.RetroArchCores.Files[coreName]
+	_, isStandalone := v.RetroArchCores.Standalone[coreName]
+	if !isBundled && !isStandalone {
+		return ""
+	}
+	if override, ok := i.overrides[coreName]; ok {
+		if _, ok := v.RetroArchCores.Versions[override]; ok {
+			return override
+		}
+	}
+	return v.RetroArchCores.Default
 }
 
 func (i *PackageInstaller) packageDir(name, version string) string {
@@ -282,39 +300,52 @@ func (i *PackageInstaller) InstallEmulator(ctx context.Context, name string, onP
 func (i *PackageInstaller) InstallCores(ctx context.Context, coreNames []string, onProgress func(InstallProgress)) ([]InstalledCore, error) {
 	v := versions.MustGet()
 
-	var bundleCores, standaloneCores []string
+	standaloneCores := make([]string, 0)
+	bundleCoresByVersion := make(map[string][]string)
+
 	for _, coreName := range coreNames {
 		if _, ok := v.RetroArchCores.Standalone[coreName]; ok {
 			standaloneCores = append(standaloneCores, coreName)
 		} else {
-			bundleCores = append(bundleCores, coreName)
+			version := i.resolveCoreVersion(coreName)
+			bundleCoresByVersion[version] = append(bundleCoresByVersion[version], coreName)
 		}
 	}
 
-	version := v.RetroArchCores.Default
-	pkgDir := i.packageDir("retroarch-cores", version)
-	coresDir := filepath.Join(pkgDir, "lib", "retroarch", "cores")
-
-	if err := vfs.MkdirAll(i.fs, coresDir, 0755); err != nil {
-		return nil, fmt.Errorf("creating cores dir: %w", err)
-	}
-
+	coreVersions := make(map[string]string)
 	var installedCount int
 
 	if len(standaloneCores) > 0 {
+		defaultVersion := v.RetroArchCores.Default
+		pkgDir := i.packageDir("retroarch-cores", defaultVersion)
+		coresDir := filepath.Join(pkgDir, "lib", "retroarch", "cores")
+		if err := vfs.MkdirAll(i.fs, coresDir, 0755); err != nil {
+			return nil, fmt.Errorf("creating cores dir: %w", err)
+		}
 		n, err := i.installStandaloneCores(ctx, standaloneCores, coresDir, v, onProgress)
 		if err != nil {
 			return nil, err
 		}
 		installedCount += n
+		for _, coreName := range standaloneCores {
+			coreVersions[coreName] = defaultVersion
+		}
 	}
 
-	if len(bundleCores) > 0 {
-		n, err := i.installBundleCores(ctx, bundleCores, coresDir, pkgDir, v, onProgress)
+	for version, cores := range bundleCoresByVersion {
+		pkgDir := i.packageDir("retroarch-cores", version)
+		coresDir := filepath.Join(pkgDir, "lib", "retroarch", "cores")
+		if err := vfs.MkdirAll(i.fs, coresDir, 0755); err != nil {
+			return nil, fmt.Errorf("creating cores dir: %w", err)
+		}
+		n, err := i.installBundleCores(ctx, cores, coresDir, pkgDir, version, v, onProgress)
 		if err != nil {
 			return nil, err
 		}
 		installedCount += n
+		for _, coreName := range cores {
+			coreVersions[coreName] = version
+		}
 	}
 
 	if onProgress != nil {
@@ -322,9 +353,9 @@ func (i *PackageInstaller) InstallCores(ctx context.Context, coreNames []string,
 	}
 
 	if installedCount > 0 {
-		log.InfoCtx(ctx, "Installed %d RetroArch cores to %s", installedCount, pkgDir)
+		log.InfoCtx(ctx, "Installed %d RetroArch cores", installedCount)
 	}
-	return i.buildCoresList(coreNames, coresDir, v), nil
+	return i.buildCoresList(coreNames, coreVersions, v), nil
 }
 
 func (i *PackageInstaller) installStandaloneCores(ctx context.Context, coreNames []string, coresDir string, v *versions.Versions, onProgress func(InstallProgress)) (int, error) {
@@ -395,14 +426,14 @@ func (i *PackageInstaller) installStandaloneCores(ctx context.Context, coreNames
 	return installedCount, nil
 }
 
-func (i *PackageInstaller) installBundleCores(ctx context.Context, coreNames []string, coresDir, pkgDir string, v *versions.Versions, onProgress func(InstallProgress)) (int, error) {
-	targetName := i.selectCoresTarget(v)
+func (i *PackageInstaller) installBundleCores(ctx context.Context, coreNames []string, coresDir, pkgDir, version string, v *versions.Versions, onProgress func(InstallProgress)) (int, error) {
+	targetName := i.selectCoresTarget(v, version)
 	if targetName == "" {
 		return 0, fmt.Errorf("no RetroArch cores bundle for this system")
 	}
-	url, sha256, ok := v.RetroArchCores.GetCoresURL(targetName)
+	url, sha256, ok := v.RetroArchCores.GetCoresURLForVersion(targetName, version)
 	if !ok {
-		return 0, fmt.Errorf("no RetroArch cores bundle for target %s", targetName)
+		return 0, fmt.Errorf("no RetroArch cores bundle for target %s version %s", targetName, version)
 	}
 
 	cache := &packageCache{fs: i.fs, pkgDir: pkgDir, expectedHash: sha256}
@@ -429,7 +460,6 @@ func (i *PackageInstaller) installBundleCores(ctx context.Context, coreNames []s
 		return 0, fmt.Errorf("creating downloads dir: %w", err)
 	}
 
-	version := v.RetroArchCores.Default
 	downloadDest := filepath.Join(i.downloadsDir, "retroarch-cores-"+version+".download")
 
 	if _, err := i.fs.Stat(downloadDest); err == nil {
@@ -501,7 +531,7 @@ func (i *PackageInstaller) installBundleCores(ctx context.Context, coreNames []s
 	return installedCount, nil
 }
 
-func (i *PackageInstaller) buildCoresList(coreNames []string, coresDir string, v *versions.Versions) []InstalledCore {
+func (i *PackageInstaller) buildCoresList(coreNames []string, coreVersions map[string]string, v *versions.Versions) []InstalledCore {
 	var cores []InstalledCore
 	for _, coreName := range coreNames {
 		var filename string
@@ -512,6 +542,8 @@ func (i *PackageInstaller) buildCoresList(coreNames []string, coresDir string, v
 		} else {
 			continue
 		}
+		version := coreVersions[coreName]
+		coresDir := filepath.Join(i.packageDir("retroarch-cores", version), "lib", "retroarch", "cores")
 		cores = append(cores, InstalledCore{
 			Filename: filename,
 			Path:     filepath.Join(coresDir, filename),
@@ -646,9 +678,8 @@ func (i *PackageInstaller) selectTarget(entry *versions.VersionEntry) string {
 	return entry.SelectTarget(hardware.DetectTarget().Name)
 }
 
-func (i *PackageInstaller) selectCoresTarget(v *versions.Versions) string {
+func (i *PackageInstaller) selectCoresTarget(v *versions.Versions, version string) string {
 	detected := hardware.DetectTarget().Name
-	version := v.RetroArchCores.Default
 	if version == "" {
 		return ""
 	}

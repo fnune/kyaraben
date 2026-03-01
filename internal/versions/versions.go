@@ -41,7 +41,20 @@ type RetroArchCoresBuild struct {
 
 // GetCoresURL returns the URL for the cores bundle for the given target name.
 func (r *RetroArchCoresSpec) GetCoresURL(targetName string) (string, string, bool) {
-	version := r.Default
+	return r.GetCoresURLForVersion(targetName, r.Default)
+}
+
+// AvailableVersions returns all version strings for the cores bundle.
+func (r *RetroArchCoresSpec) AvailableVersions() []string {
+	versions := make([]string, 0, len(r.Versions))
+	for v := range r.Versions {
+		versions = append(versions, v)
+	}
+	return versions
+}
+
+// GetCoresURLForVersion returns the URL for a specific version of the cores bundle.
+func (r *RetroArchCoresSpec) GetCoresURLForVersion(targetName, version string) (string, string, bool) {
 	if version == "" {
 		return "", "", false
 	}

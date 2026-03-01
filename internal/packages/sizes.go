@@ -49,20 +49,22 @@ func CalculateChangeSummary(toInstall []string, toRemove []string, installed map
 	return summary
 }
 
-func RetroArchCoresInstalled(packagesDir string, coreNames []string, v *versions.Versions) bool {
+func RetroArchCoresInstalled(installer Installer, coreNames []string, v *versions.Versions) bool {
 	if len(coreNames) == 0 {
 		return true
 	}
 
-	version := v.RetroArchCores.Default
-	if version == "" {
-		return false
-	}
-
-	pkgDir := filepath.Join(packagesDir, "retroarch-cores", version)
-	coresDir := filepath.Join(pkgDir, "lib", "retroarch", "cores")
+	packagesDir := installer.PackagesDir()
 
 	for _, coreName := range coreNames {
+		version := installer.ResolveVersion(coreName)
+		if version == "" {
+			return false
+		}
+
+		pkgDir := filepath.Join(packagesDir, "retroarch-cores", version)
+		coresDir := filepath.Join(pkgDir, "lib", "retroarch", "cores")
+
 		var filename string
 		if standalone, ok := v.RetroArchCores.Standalone[coreName]; ok {
 			filename = standalone.Filename

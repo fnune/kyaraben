@@ -1,11 +1,27 @@
 package model
 
+import "strings"
+
 // EmulatorID uniquely identifies an emulator implementation.
 // Format: "emulator" or "emulator:core" for RetroArch cores.
 //
 // Constants use the full type name as prefix (EmulatorID*) because tygo's
 // enum_style: union requires the prefix to match the type name exactly.
 type EmulatorID string
+
+// IsRetroArchCore returns true if this is a RetroArch core (not the base retroarch).
+func (id EmulatorID) IsRetroArchCore() bool {
+	return strings.HasPrefix(string(id), "retroarch:") && id != EmulatorIDRetroArch
+}
+
+// RetroArchCoreName returns the core name (e.g., "bsnes" from "retroarch:bsnes"),
+// or empty string if this is not a RetroArch core.
+func (id EmulatorID) RetroArchCoreName() string {
+	if !id.IsRetroArchCore() {
+		return ""
+	}
+	return strings.TrimPrefix(string(id), "retroarch:")
+}
 
 const (
 	// EmulatorIDRetroArch is the base RetroArch installation shared by all cores.

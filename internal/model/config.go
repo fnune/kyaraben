@@ -509,8 +509,9 @@ func NewDefaultConfig() *KyarabenConfig {
 	}
 }
 
-// BuildVersionOverrides returns a map from package names to pinned versions
-// based on the emulator and frontend versions configured in the config.
+// BuildVersionOverrides returns a map from package names (or core names for
+// RetroArch cores) to pinned versions based on the emulator and frontend
+// versions configured in the config.
 func (c *KyarabenConfig) BuildVersionOverrides(
 	getEmulator func(EmulatorID) (Emulator, error),
 	getFrontend func(FrontendID) (Frontend, error),
@@ -520,11 +521,15 @@ func (c *KyarabenConfig) BuildVersionOverrides(
 		if emuConf.Version == "" {
 			continue
 		}
-		emu, err := getEmulator(emuID)
-		if err != nil {
-			return nil, fmt.Errorf("unknown emulator %q: %w", emuID, err)
+		if coreName := emuID.RetroArchCoreName(); coreName != "" {
+			overrides[coreName] = emuConf.Version
+		} else {
+			emu, err := getEmulator(emuID)
+			if err != nil {
+				return nil, fmt.Errorf("unknown emulator %q: %w", emuID, err)
+			}
+			overrides[emu.Package.PackageName()] = emuConf.Version
 		}
-		overrides[emu.Package.PackageName()] = emuConf.Version
 	}
 	for feID, feConf := range c.Frontends {
 		if feConf.Version == "" {
