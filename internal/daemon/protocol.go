@@ -9,9 +9,14 @@ import (
 
 type SetConfigRequest struct {
 	UserStore string                         `json:"userStore"`
+	Graphics  *GraphicsConfigRequest         `json:"graphics,omitempty"`
 	Systems   map[string][]string            `json:"systems"`
 	Emulators map[string]EmulatorConfRequest `json:"emulators,omitempty"`
 	Frontends map[string]FrontendConfRequest `json:"frontends,omitempty"`
+}
+
+type GraphicsConfigRequest struct {
+	Shaders string `json:"shaders"`
 }
 
 type FrontendConfRequest struct {
@@ -20,8 +25,8 @@ type FrontendConfRequest struct {
 }
 
 type EmulatorConfRequest struct {
-	Version string `json:"version,omitempty"`
-	Shaders *bool  `json:"shaders"`
+	Version string  `json:"version,omitempty"`
+	Shaders *string `json:"shaders"`
 }
 
 type SyncRemoveDeviceRequest struct {
@@ -161,14 +166,19 @@ type EmulatorRef struct {
 
 type ConfigResponse struct {
 	UserStore string                          `json:"userStore"`
+	Graphics  GraphicsConfigResponse          `json:"graphics"`
 	Systems   map[string][]model.EmulatorID   `json:"systems"`
 	Emulators map[string]EmulatorConfResponse `json:"emulators,omitempty"`
 	Frontends map[string]FrontendConfResponse `json:"frontends,omitempty"`
 }
 
+type GraphicsConfigResponse struct {
+	Shaders string `json:"shaders"`
+}
+
 type EmulatorConfResponse struct {
-	Version string `json:"version,omitempty"`
-	Shaders *bool  `json:"shaders"`
+	Version string  `json:"version,omitempty"`
+	Shaders *string `json:"shaders"`
 }
 
 type FrontendConfResponse struct {

@@ -374,18 +374,16 @@ func buildDolphinProvisionGroups() []model.ProvisionGroup {
 	return groups
 }
 
-func gfxEntries(shaders *bool) []model.ConfigEntry {
+func gfxEntries(shaders string) []model.ConfigEntry {
 	entries := []model.ConfigEntry{
 		{Path: []string{"Settings", "InternalResolution"}, Value: "2", DefaultOnly: true},
 	}
-	if shaders == nil {
-		return entries
-	}
-	if *shaders {
+	switch shaders {
+	case model.ShadersOn:
 		entries = append(entries, model.ConfigEntry{
 			Path: []string{"Enhancements", "PostProcessingShader"}, Value: "crt_lottes_fast",
 		})
-	} else {
+	case model.ShadersOff:
 		entries = append(entries, model.ConfigEntry{
 			Path: []string{"Enhancements", "PostProcessingShader"}, Value: "",
 		})
@@ -393,8 +391,8 @@ func gfxEntries(shaders *bool) []model.ConfigEntry {
 	return entries
 }
 
-func shaderFiles(resolver model.BaseDirResolver, shaders *bool) ([]model.EmbeddedFile, error) {
-	if shaders == nil || !*shaders {
+func shaderFiles(resolver model.BaseDirResolver, shaders string) ([]model.EmbeddedFile, error) {
+	if shaders != model.ShadersOn {
 		return nil, nil
 	}
 

@@ -14,12 +14,25 @@ import (
 // KyarabenConfig represents the user's kyaraben configuration.
 type KyarabenConfig struct {
 	Global     GlobalConfig                  `toml:"global"`
+	Graphics   GraphicsConfig                `toml:"graphics"`
 	Sync       SyncConfig                    `toml:"sync"`
 	Controller ControllerTomlConfig          `toml:"controller"`
 	Systems    map[SystemID][]EmulatorID     `toml:"systems"`
 	Emulators  map[EmulatorID]EmulatorConf   `toml:"emulators,omitempty"`
 	Frontends  map[FrontendID]FrontendConfig `toml:"frontends,omitempty"`
 }
+
+// GraphicsConfig holds graphics-related default settings.
+type GraphicsConfig struct {
+	Shaders string `toml:"shaders,omitempty"`
+}
+
+// Shader setting values
+const (
+	ShadersOn     = "on"
+	ShadersOff    = "off"
+	ShadersManual = "manual"
+)
 
 // ControllerTomlConfig is the TOML representation of controller settings.
 type ControllerTomlConfig struct {
@@ -113,8 +126,8 @@ type GlobalConfig struct {
 
 // EmulatorConf holds per-emulator configuration.
 type EmulatorConf struct {
-	Version string `toml:"version,omitempty"`
-	Shaders *bool  `toml:"shaders,omitempty"`
+	Version string  `toml:"version,omitempty"`
+	Shaders *string `toml:"shaders,omitempty"`
 }
 
 // EmulatorVersion returns the configured version for an emulator, or empty for default.
@@ -128,8 +141,22 @@ func (c *KyarabenConfig) EmulatorVersion(id EmulatorID) string {
 	return ""
 }
 
-// EmulatorShaders returns the shader setting for an emulator, or nil if unmanaged.
-func (c *KyarabenConfig) EmulatorShaders(id EmulatorID) *bool {
+// EmulatorShaders returns the resolved shader setting for an emulator.
+// Resolution order: emulator override > graphics default > "manual".
+func (c *KyarabenConfig) EmulatorShaders(id EmulatorID) string {
+	if c.Emulators != nil {
+		if conf, ok := c.Emulators[id]; ok && conf.Shaders != nil {
+			return *conf.Shaders
+		}
+	}
+	if c.Graphics.Shaders != "" {
+		return c.Graphics.Shaders
+	}
+	return ShadersManual
+}
+
+// EmulatorShadersOverride returns the per-emulator shader override, or nil if using default.
+func (c *KyarabenConfig) EmulatorShadersOverride(id EmulatorID) *string {
 	if c.Emulators == nil {
 		return nil
 	}

@@ -190,3 +190,77 @@ func TestEmulatorVersion(t *testing.T) {
 		t.Errorf("Expected empty version for unconfigured emulator, got %s", version)
 	}
 }
+
+func TestEmulatorShaders(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		cfg      *KyarabenConfig
+		emulator EmulatorID
+		want     string
+	}{
+		{
+			name: "emulator override takes precedence",
+			cfg: &KyarabenConfig{
+				Graphics: GraphicsConfig{Shaders: ShadersOff},
+				Emulators: map[EmulatorID]EmulatorConf{
+					EmulatorIDDuckStation: {Shaders: ptrString(ShadersOn)},
+				},
+			},
+			emulator: EmulatorIDDuckStation,
+			want:     ShadersOn,
+		},
+		{
+			name: "graphics default when no emulator override",
+			cfg: &KyarabenConfig{
+				Graphics:  GraphicsConfig{Shaders: ShadersOff},
+				Emulators: map[EmulatorID]EmulatorConf{},
+			},
+			emulator: EmulatorIDDuckStation,
+			want:     ShadersOff,
+		},
+		{
+			name: "manual fallback when nothing configured",
+			cfg: &KyarabenConfig{
+				Graphics:  GraphicsConfig{},
+				Emulators: map[EmulatorID]EmulatorConf{},
+			},
+			emulator: EmulatorIDDuckStation,
+			want:     ShadersManual,
+		},
+		{
+			name: "nil emulators map",
+			cfg: &KyarabenConfig{
+				Graphics:  GraphicsConfig{Shaders: ShadersOn},
+				Emulators: nil,
+			},
+			emulator: EmulatorIDDuckStation,
+			want:     ShadersOn,
+		},
+		{
+			name: "emulator override to manual",
+			cfg: &KyarabenConfig{
+				Graphics: GraphicsConfig{Shaders: ShadersOn},
+				Emulators: map[EmulatorID]EmulatorConf{
+					EmulatorIDDuckStation: {Shaders: ptrString(ShadersManual)},
+				},
+			},
+			emulator: EmulatorIDDuckStation,
+			want:     ShadersManual,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.cfg.EmulatorShaders(tt.emulator)
+			if got != tt.want {
+				t.Errorf("EmulatorShaders(%q) = %q, want %q", tt.emulator, got, tt.want)
+			}
+		})
+	}
+}
+
+func ptrString(s string) *string {
+	return &s
+}

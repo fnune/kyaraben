@@ -7,9 +7,13 @@ import type { LogEntry } from './logging.gen'
 
 export interface SetConfigRequest {
   userStore: string;
+  graphics?: GraphicsConfigRequest;
   systems: { [key: string]: string[]};
   emulators?: { [key: string]: EmulatorConfRequest};
   frontends?: { [key: string]: FrontendConfRequest};
+}
+export interface GraphicsConfigRequest {
+  shaders: string;
 }
 export interface FrontendConfRequest {
   enabled: boolean;
@@ -17,7 +21,7 @@ export interface FrontendConfRequest {
 }
 export interface EmulatorConfRequest {
   version?: string;
-  shaders?: boolean;
+  shaders?: string;
 }
 export interface SyncRemoveDeviceRequest {
   deviceId: string;
@@ -138,13 +142,17 @@ export interface EmulatorRef {
 }
 export interface ConfigResponse {
   userStore: string;
+  graphics: GraphicsConfigResponse;
   systems: { [key: string]: EmulatorID[]};
   emulators?: { [key: string]: EmulatorConfResponse};
   frontends?: { [key: string]: FrontendConfResponse};
 }
+export interface GraphicsConfigResponse {
+  shaders: string;
+}
 export interface EmulatorConfResponse {
   version?: string;
-  shaders?: boolean;
+  shaders?: string;
 }
 export interface FrontendConfResponse {
   enabled: boolean;

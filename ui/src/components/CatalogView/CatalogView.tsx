@@ -44,7 +44,8 @@ export interface CatalogViewProps {
   readonly enabledEmulators: ReadonlySet<EmulatorID>
   readonly enabledFrontends: Map<FrontendID, boolean>
   readonly emulatorVersions: Map<EmulatorID, string | null>
-  readonly emulatorShaders: Map<EmulatorID, boolean | null>
+  readonly emulatorShaders: Map<EmulatorID, string | null>
+  readonly graphics: { shaders: string }
   readonly frontendVersions: Map<FrontendID, string | null>
   readonly installedVersions: Map<EmulatorID, string>
   readonly installedFrontendVersions: Map<FrontendID, string>
@@ -57,7 +58,7 @@ export interface CatalogViewProps {
   readonly onUserStoreChange: (value: string) => void
   readonly onEmulatorToggle: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
   readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
-  readonly onShaderChange: (emulatorId: EmulatorID, shaders: boolean | null) => void
+  readonly onShaderChange: (emulatorId: EmulatorID, shaders: string | null) => void
   readonly onFrontendToggle: (frontendId: FrontendID, enabled: boolean) => void
   readonly onFrontendVersionChange: (frontendId: FrontendID, version: string | null) => void
   readonly onDiscard: () => void
@@ -105,6 +106,7 @@ export function CatalogView({
   enabledFrontends,
   emulatorVersions,
   emulatorShaders,
+  graphics,
   frontendVersions,
   installedVersions,
   installedFrontendVersions,
@@ -153,7 +155,7 @@ export function CatalogView({
         systemsConfig[sysId] = emuIds
       }
 
-      const emulatorsConfig: Record<string, { version?: string; shaders?: boolean | null }> = {}
+      const emulatorsConfig: Record<string, { version?: string; shaders?: string | null }> = {}
       for (const [emuId, version] of emulatorVersions) {
         if (version) {
           emulatorsConfig[emuId] = { version }
@@ -175,6 +177,7 @@ export function CatalogView({
         systems: systemsConfig,
         emulators: emulatorsConfig,
         frontends: frontendsConfig,
+        ...(graphics.shaders && { graphics }),
         ...(summaryMessage && { summaryMessage }),
       })
     },
@@ -186,6 +189,7 @@ export function CatalogView({
       enabledFrontends,
       frontendVersions,
       userStore,
+      graphics,
     ],
   )
 
@@ -539,6 +543,7 @@ export function CatalogView({
                         globalEnabledEmulators={enabledEmulators}
                         emulatorVersions={emulatorVersions}
                         emulatorShaders={emulatorShaders}
+                        graphics={graphics}
                         installedVersions={installedVersions}
                         installedExecLines={installedExecLines}
                         managedConfigs={managedConfigs}

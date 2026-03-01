@@ -58,7 +58,8 @@ export interface SystemCardProps {
   readonly systemEnabledEmulators: ReadonlySet<EmulatorID>
   readonly globalEnabledEmulators: ReadonlySet<EmulatorID>
   readonly emulatorVersions: ReadonlyMap<EmulatorID, string | null>
-  readonly emulatorShaders: ReadonlyMap<EmulatorID, boolean | null>
+  readonly emulatorShaders: ReadonlyMap<EmulatorID, string | null>
+  readonly graphics: { shaders: string }
   readonly installedVersions: ReadonlyMap<EmulatorID, string>
   readonly installedExecLines: ReadonlyMap<EmulatorID, string>
   readonly managedConfigs: ReadonlyMap<EmulatorID, ManagedConfigInfo[]>
@@ -67,7 +68,7 @@ export interface SystemCardProps {
   readonly sharedPackages: ReadonlySet<string>
   readonly onEmulatorToggle: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
   readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
-  readonly onShaderChange: (emulatorId: EmulatorID, shaders: boolean | null) => void
+  readonly onShaderChange: (emulatorId: EmulatorID, shaders: string | null) => void
 }
 
 export const SystemCard = forwardRef<HTMLElement, SystemCardProps>(function SystemCard(
@@ -77,6 +78,7 @@ export const SystemCard = forwardRef<HTMLElement, SystemCardProps>(function Syst
     globalEnabledEmulators,
     emulatorVersions,
     emulatorShaders,
+    graphics,
     installedVersions,
     installedExecLines,
     managedConfigs,
@@ -137,6 +139,7 @@ export const SystemCard = forwardRef<HTMLElement, SystemCardProps>(function Syst
               provisions={provisions[`${system.id}:${emulator.id}`] ?? []}
               sharedPackage={isSharedPackage}
               shaders={emulatorShaders.get(emulator.id) ?? null}
+              graphics={graphics}
               onToggle={(enabled) => onEmulatorToggle(system.id, emulator.id, enabled)}
               onVersionChange={(version) => onVersionChange(emulator.id, version)}
               onShaderChange={(shaders) => onShaderChange(emulator.id, shaders)}

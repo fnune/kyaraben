@@ -855,6 +855,7 @@ func (d *Daemon) handleGetConfig() []Event {
 		Type: EventTypeResult,
 		Data: ConfigResponse{
 			UserStore: cfg.Global.UserStore,
+			Graphics:  GraphicsConfigResponse{Shaders: cfg.Graphics.Shaders},
 			Systems:   systems,
 			Emulators: emulators,
 			Frontends: frontends,
@@ -871,6 +872,10 @@ func (d *Daemon) handleSetConfig(data *SetConfigRequest) []Event {
 	if data != nil {
 		if data.UserStore != "" {
 			cfg.Global.UserStore = data.UserStore
+		}
+
+		if data.Graphics != nil {
+			cfg.Graphics.Shaders = data.Graphics.Shaders
 		}
 
 		if data.Systems != nil {

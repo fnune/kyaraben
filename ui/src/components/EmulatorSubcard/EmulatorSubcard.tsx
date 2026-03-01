@@ -38,10 +38,11 @@ export interface EmulatorSubcardProps {
   readonly paths?: EmulatorPaths
   readonly execLine?: string
   readonly sharedPackage?: boolean
-  readonly shaders?: boolean | null
+  readonly shaders?: string | null
+  readonly graphics: { shaders: string }
   readonly onToggle: (enabled: boolean) => void
   readonly onVersionChange: (version: string | null) => void
-  readonly onShaderChange?: (value: boolean | null) => void
+  readonly onShaderChange?: (value: string | null) => void
   readonly onLaunch?: () => void
 }
 
@@ -123,6 +124,7 @@ export function EmulatorSubcard({
   execLine,
   sharedPackage,
   shaders,
+  graphics,
   onToggle,
   onVersionChange,
   onShaderChange,
@@ -319,7 +321,8 @@ export function EmulatorSubcard({
           systemId={systemId}
           supportsShaders={supportsShaders}
           shaders={shaders ?? null}
-          onShaderChange={onShaderChange ?? ((_: boolean | null) => undefined)}
+          graphics={graphics}
+          onShaderChange={onShaderChange ?? ((_: string | null) => undefined)}
         />
       )}
     </div>

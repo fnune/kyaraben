@@ -51,7 +51,7 @@ var MainConfigTarget = model.ConfigTarget{
 
 // ShaderConfig holds shader-related settings for config generation.
 type ShaderConfig struct {
-	Shaders            *bool
+	Shaders            string
 	SystemDisplayTypes map[model.SystemID]model.DisplayType
 }
 
@@ -86,7 +86,7 @@ func SharedConfig(store model.StoreReader, cc *model.ControllerConfig, sc *Shade
 		entries = append(entries, controllerEntries(cc)...)
 	}
 
-	if sc != nil && sc.Shaders != nil && *sc.Shaders {
+	if sc != nil && sc.Shaders == model.ShadersOn {
 		entries = append(entries, model.ConfigEntry{Path: []string{"video_shader_enable"}, Value: "true"})
 	}
 
@@ -244,12 +244,12 @@ func CorePatches(emuID model.EmulatorID, store model.StoreReader, cc *model.Cont
 		})
 	}
 
-	if sc != nil && sc.Shaders != nil {
+	if sc != nil && sc.Shaders != model.ShadersManual && sc.Shaders != "" {
 		configDirName := shortName
 		if displayName, ok := coreConfigDirNames[shortName]; ok {
 			configDirName = displayName
 		}
-		if *sc.Shaders {
+		if sc.Shaders == model.ShadersOn {
 			configDir, err := resolver.UserConfigDir()
 			if err == nil {
 				presetPath := filepath.Join(configDir, "retroarch", "config", configDirName, configDirName+".slangp")
@@ -273,7 +273,7 @@ func CorePatches(emuID model.EmulatorID, store model.StoreReader, cc *model.Cont
 		})
 	}
 
-	if sc != nil && sc.Shaders != nil && *sc.Shaders {
+	if sc != nil && sc.Shaders == model.ShadersOn {
 		shaderPatch := coreShaderPatch(emuID, true, sc.SystemDisplayTypes)
 		if shaderPatch != nil {
 			patches = append(patches, *shaderPatch)
@@ -331,7 +331,7 @@ filter_linear0 = false
 }
 
 func CoreShaderDownloads(emuID model.EmulatorID, resolver model.BaseDirResolver, sc *ShaderConfig) ([]model.InitialDownload, error) {
-	if sc == nil || sc.Shaders == nil || !*sc.Shaders {
+	if sc == nil || sc.Shaders != model.ShadersOn {
 		return nil, nil
 	}
 

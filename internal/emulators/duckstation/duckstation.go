@@ -81,18 +81,17 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		{Path: []string{"GameList", "RecursivePaths"}, Value: store.SystemRomsDir(model.SystemIDPSX)},
 	}
 
-	if ctx.Shaders != nil {
-		if *ctx.Shaders {
-			entries = append(entries,
-				model.ConfigEntry{Path: []string{"PostProcessing", "Enabled"}, Value: "true"},
-				model.ConfigEntry{Path: []string{"PostProcessing", "StageCount"}, Value: "1"},
-				model.ConfigEntry{Path: []string{"PostProcessing/Stage1", "ShaderName"}, Value: "crt-lottes"},
-			)
-		} else {
-			entries = append(entries,
-				model.ConfigEntry{Path: []string{"PostProcessing", "Enabled"}, Value: "false"},
-			)
-		}
+	switch ctx.Shaders {
+	case model.ShadersOn:
+		entries = append(entries,
+			model.ConfigEntry{Path: []string{"PostProcessing", "Enabled"}, Value: "true"},
+			model.ConfigEntry{Path: []string{"PostProcessing", "StageCount"}, Value: "1"},
+			model.ConfigEntry{Path: []string{"PostProcessing/Stage1", "ShaderName"}, Value: "crt-lottes"},
+		)
+	case model.ShadersOff:
+		entries = append(entries,
+			model.ConfigEntry{Path: []string{"PostProcessing", "Enabled"}, Value: "false"},
+		)
 	}
 
 	patches := []model.ConfigPatch{{Target: configTarget, Entries: entries}}

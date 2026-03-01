@@ -8,22 +8,31 @@ export interface EmulatorSettingsModalProps {
   readonly emulatorName: string
   readonly systemId: SystemID
   readonly supportsShaders: boolean
-  readonly shaders: boolean | null
-  readonly onShaderChange: (value: boolean | null) => void
+  readonly shaders: string | null
+  readonly graphics: { shaders: string }
+  readonly onShaderChange: (value: string | null) => void
 }
 
-type ShaderOption = 'on' | 'off' | 'manual'
+type ShaderOption = 'on' | 'off' | 'manual' | 'default'
 
-function shaderValueToOption(value: boolean | null): ShaderOption {
-  if (value === true) return 'on'
-  if (value === false) return 'off'
-  return 'manual'
+function shaderValueToOption(value: string | null): ShaderOption {
+  if (value === 'on') return 'on'
+  if (value === 'off') return 'off'
+  if (value === 'manual') return 'manual'
+  return 'default'
 }
 
-function optionToShaderValue(option: ShaderOption): boolean | null {
-  if (option === 'on') return true
-  if (option === 'off') return false
+function optionToShaderValue(option: ShaderOption): string | null {
+  if (option === 'on') return 'on'
+  if (option === 'off') return 'off'
+  if (option === 'manual') return 'manual'
   return null
+}
+
+function resolveShaders(shaders: string | null, graphics: { shaders: string }): string {
+  if (shaders !== null) return shaders
+  if (graphics.shaders) return graphics.shaders
+  return 'manual'
 }
 
 const LCD_SYSTEMS: readonly SystemID[] = [
@@ -58,13 +67,30 @@ export function EmulatorSettingsModal({
   systemId,
   supportsShaders,
   shaders,
+  graphics,
   onShaderChange,
 }: EmulatorSettingsModalProps) {
   const displayType = getDisplayType(systemId)
   const currentOption = shaderValueToOption(shaders)
+  const resolvedShaders = resolveShaders(shaders, graphics)
 
   const handleOptionChange = (option: ShaderOption) => {
     onShaderChange(optionToShaderValue(option))
+  }
+
+  const getDefaultLabel = () => {
+    if (!graphics.shaders || graphics.shaders === 'manual') return 'Default'
+    return `Default (${graphics.shaders})`
+  }
+
+  const getDescription = () => {
+    if (resolvedShaders === 'manual') {
+      return 'Kyaraben will not modify shader settings.'
+    }
+    if (resolvedShaders === 'on') {
+      return <>Kyaraben will enable: {getShaderInfo(emulatorId, displayType)}.</>
+    }
+    return 'Kyaraben will disable shaders.'
   }
 
   return (
@@ -89,16 +115,13 @@ export function EmulatorSettingsModal({
                 selected={currentOption === 'manual'}
                 onClick={() => handleOptionChange('manual')}
               />
+              <SegmentedButton
+                label={getDefaultLabel()}
+                selected={currentOption === 'default'}
+                onClick={() => handleOptionChange('default')}
+              />
             </div>
-            <p className="text-xs text-on-surface-dim mt-2">
-              {currentOption === 'manual' ? (
-                'Kyaraben will not modify shader settings.'
-              ) : currentOption === 'on' ? (
-                <>Kyaraben will enable: {getShaderInfo(emulatorId, displayType)}.</>
-              ) : (
-                'Kyaraben will disable shaders.'
-              )}
-            </p>
+            <p className="text-xs text-on-surface-dim mt-2">{getDescription()}</p>
           </div>
         )}
       </div>

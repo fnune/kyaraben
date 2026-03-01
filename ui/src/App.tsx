@@ -63,9 +63,10 @@ function parseStatusResponse(data: StatusResponse) {
 
 interface ConfigState {
   userStore: string
+  graphicsShaders: string
   systemEmulators: Map<SystemID, EmulatorID[]>
   emulatorVersions: Map<EmulatorID, string | null>
-  emulatorShaders: Map<EmulatorID, boolean | null>
+  emulatorShaders: Map<EmulatorID, string | null>
   enabledFrontends: Map<FrontendID, boolean>
   frontendVersions: Map<FrontendID, string | null>
 }
@@ -73,6 +74,7 @@ interface ConfigState {
 function emptyConfigState(): ConfigState {
   return {
     userStore: '',
+    graphicsShaders: '',
     systemEmulators: new Map(),
     emulatorVersions: new Map(),
     emulatorShaders: new Map(),
@@ -88,6 +90,7 @@ function keyForProvision(provision: FoundProvision) {
 function cloneConfigState(state: ConfigState): ConfigState {
   return {
     userStore: state.userStore,
+    graphicsShaders: state.graphicsShaders,
     systemEmulators: new Map(state.systemEmulators),
     emulatorVersions: new Map(state.emulatorVersions),
     emulatorShaders: new Map(state.emulatorShaders),
@@ -99,7 +102,7 @@ function cloneConfigState(state: ConfigState): ConfigState {
 function parseConfigResponse(data: ConfigResponse): ConfigState {
   const systemEmulators = new Map<SystemID, EmulatorID[]>()
   const emulatorVersions = new Map<EmulatorID, string | null>()
-  const emulatorShaders = new Map<EmulatorID, boolean | null>()
+  const emulatorShaders = new Map<EmulatorID, string | null>()
   const enabledFrontends = new Map<FrontendID, boolean>()
   const frontendVersions = new Map<FrontendID, string | null>()
 
@@ -131,6 +134,7 @@ function parseConfigResponse(data: ConfigResponse): ConfigState {
 
   return {
     userStore: data.userStore,
+    graphicsShaders: data.graphics?.shaders ?? '',
     systemEmulators,
     emulatorVersions,
     emulatorShaders,
@@ -431,7 +435,7 @@ function AppContent() {
     })
   }, [])
 
-  const handleShaderChange = useCallback((emulatorId: EmulatorID, shaders: boolean | null) => {
+  const handleShaderChange = useCallback((emulatorId: EmulatorID, shaders: string | null) => {
     setConfigState((prev) => {
       const next = new Map(prev.emulatorShaders)
       if (shaders === null) {
@@ -547,6 +551,8 @@ function AppContent() {
       if (!configState.frontendVersions.has(feId)) return true
     }
 
+    if (configState.graphicsShaders !== savedConfigState.current.graphicsShaders) return true
+
     return false
   })()
 
@@ -572,6 +578,7 @@ function AppContent() {
             enabledFrontends={configState.enabledFrontends}
             emulatorVersions={configState.emulatorVersions}
             emulatorShaders={configState.emulatorShaders}
+            graphics={{ shaders: configState.graphicsShaders }}
             frontendVersions={configState.frontendVersions}
             installedVersions={installedVersions}
             installedFrontendVersions={installedFrontendVersions}

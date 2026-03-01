@@ -71,16 +71,15 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		{Path: []string{"General", "FirstRun"}, Value: "False"},
 	}
 
-	if ctx.Shaders != nil {
-		if *ctx.Shaders {
-			entries = append(entries,
-				model.ConfigEntry{Path: []string{"Graphics", "PostShaderNames"}, Value: "LCDPersistence"},
-			)
-		} else {
-			entries = append(entries,
-				model.ConfigEntry{Path: []string{"Graphics", "PostShaderNames"}, Value: "Off"},
-			)
-		}
+	switch ctx.Shaders {
+	case model.ShadersOn:
+		entries = append(entries,
+			model.ConfigEntry{Path: []string{"Graphics", "PostShaderNames"}, Value: "LCDPersistence"},
+		)
+	case model.ShadersOff:
+		entries = append(entries,
+			model.ConfigEntry{Path: []string{"Graphics", "PostShaderNames"}, Value: "Off"},
+		)
 	}
 
 	patches := []model.ConfigPatch{{

@@ -1590,11 +1590,10 @@ func TestDolphinShaderConfig(t *testing.T) {
 	t.Run("shaders enabled", func(t *testing.T) {
 		t.Parallel()
 
-		shadersOn := true
 		result, err := gen.Generate(model.GenerateContext{
 			Store:           store,
 			BaseDirResolver: resolver,
-			Shaders:         &shadersOn,
+			Shaders:         model.ShadersOn,
 		})
 		if err != nil {
 			t.Fatalf("Generate() error = %v", err)
@@ -1642,11 +1641,10 @@ func TestDolphinShaderConfig(t *testing.T) {
 	t.Run("shaders disabled", func(t *testing.T) {
 		t.Parallel()
 
-		shadersOff := false
 		result, err := gen.Generate(model.GenerateContext{
 			Store:           store,
 			BaseDirResolver: resolver,
-			Shaders:         &shadersOff,
+			Shaders:         model.ShadersOff,
 		})
 		if err != nil {
 			t.Fatalf("Generate() error = %v", err)
@@ -1679,7 +1677,7 @@ func TestDolphinShaderConfig(t *testing.T) {
 		result, err := gen.Generate(model.GenerateContext{
 			Store:           store,
 			BaseDirResolver: resolver,
-			Shaders:         nil,
+			Shaders:         model.ShadersManual,
 		})
 		if err != nil {
 			t.Fatalf("Generate() error = %v", err)
@@ -1741,11 +1739,10 @@ func TestRetroArchShaderConfig(t *testing.T) {
 	t.Run("shaders enabled creates per-core config", func(t *testing.T) {
 		t.Parallel()
 
-		shadersOn := true
 		result, err := gen.Generate(model.GenerateContext{
 			Store:              store,
 			BaseDirResolver:    resolver,
-			Shaders:            &shadersOn,
+			Shaders:            model.ShadersOn,
 			SystemDisplayTypes: map[model.SystemID]model.DisplayType{model.SystemIDSNES: model.DisplayTypeCRT},
 		})
 		if err != nil {

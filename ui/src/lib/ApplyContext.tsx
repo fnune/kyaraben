@@ -26,8 +26,9 @@ const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
 
 interface ApplyConfig {
   userStore: string
+  graphics?: { shaders: string }
   systems: Record<string, string[]>
-  emulators: Record<string, { version?: string; shaders?: boolean | null }>
+  emulators: Record<string, { version?: string; shaders?: string | null }>
   frontends?: Record<string, { enabled: boolean; version?: string }>
   summaryMessage?: string
 }
@@ -39,9 +40,9 @@ function hasUserConflicts(data: PreflightResponse): boolean {
 }
 
 function toEmulatorConfRequest(
-  emulators: Record<string, { version?: string; shaders?: boolean | null }>,
-): Record<string, { version?: string; shaders?: boolean }> {
-  const result: Record<string, { version?: string; shaders?: boolean }> = {}
+  emulators: Record<string, { version?: string; shaders?: string | null }>,
+): Record<string, { version?: string; shaders?: string }> {
+  const result: Record<string, { version?: string; shaders?: string }> = {}
   for (const [id, conf] of Object.entries(emulators)) {
     result[id] = {
       ...(conf.version !== undefined && { version: conf.version }),
@@ -225,6 +226,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
         userStore: config.userStore,
         systems: config.systems,
         emulators: toEmulatorConfRequest(config.emulators),
+        ...(config.graphics && { graphics: config.graphics }),
         ...(config.frontends && { frontends: config.frontends }),
       })
 
