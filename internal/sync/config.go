@@ -95,24 +95,24 @@ type XMLVersioningParam struct {
 type ConfigGenerator struct {
 	fs              vfs.FS
 	syncConfig      model.SyncConfig
-	userStore       string
+	collection      string
 	deviceID        string
 	apiKey          string
 	allSystems      []model.SystemID
 	existingDevices []XMLDevice
 }
 
-func NewConfigGenerator(fs vfs.FS, syncConfig model.SyncConfig, userStore string, allSystems []model.SystemID) *ConfigGenerator {
+func NewConfigGenerator(fs vfs.FS, syncConfig model.SyncConfig, collection string, allSystems []model.SystemID) *ConfigGenerator {
 	return &ConfigGenerator{
 		fs:         fs,
 		syncConfig: syncConfig,
-		userStore:  userStore,
+		collection: collection,
 		allSystems: allSystems,
 	}
 }
 
-func NewDefaultConfigGenerator(syncConfig model.SyncConfig, userStore string, allSystems []model.SystemID) *ConfigGenerator {
-	return NewConfigGenerator(vfs.OSFS, syncConfig, userStore, allSystems)
+func NewDefaultConfigGenerator(syncConfig model.SyncConfig, collection string, allSystems []model.SystemID) *ConfigGenerator {
+	return NewConfigGenerator(vfs.OSFS, syncConfig, collection, allSystems)
 }
 
 func (g *ConfigGenerator) SetDeviceID(id string) {
@@ -181,7 +181,7 @@ func (g *ConfigGenerator) Generate() (*SyncthingXMLConfig, error) {
 		},
 		Defaults: XMLDefaults{
 			Folder: XMLDefaultFolder{
-				Path: g.userStore,
+				Path: g.collection,
 			},
 		},
 	}
@@ -214,7 +214,7 @@ func (g *ConfigGenerator) generateFolders() ([]XMLFolder, error) {
 		if spec.subdirs != nil {
 			for _, subdir := range spec.subdirs {
 				folderID := fmt.Sprintf("kyaraben-%s-%s", category, subdir)
-				path := filepath.Join(g.userStore, category, subdir)
+				path := filepath.Join(g.collection, category, subdir)
 
 				folder := XMLFolder{
 					ID:               folderID,
@@ -234,7 +234,7 @@ func (g *ConfigGenerator) generateFolders() ([]XMLFolder, error) {
 			}
 		} else {
 			folderID := fmt.Sprintf("kyaraben-%s", category)
-			path := filepath.Join(g.userStore, category)
+			path := filepath.Join(g.collection, category)
 
 			folder := XMLFolder{
 				ID:               folderID,
@@ -267,7 +267,7 @@ func (g *ConfigGenerator) generateFrontendFolders(deviceRefs []XMLFolderDevice) 
 	for _, subType := range []string{"gamelists", "media"} {
 		for _, sys := range g.allSystems {
 			folderID := fmt.Sprintf("kyaraben-frontends-esde-%s-%s", subType, sys)
-			path := filepath.Join(g.userStore, "frontends", "esde", subType, string(sys))
+			path := filepath.Join(g.collection, "frontends", "esde", subType, string(sys))
 
 			folder := XMLFolder{
 				ID:               folderID,

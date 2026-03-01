@@ -14,11 +14,11 @@ import (
 	"github.com/fnune/kyaraben/internal/testutil"
 )
 
-func mustNewUserStore(t *testing.T, fs vfs.FS, path string) *store.UserStore {
+func mustNewCollection(t *testing.T, fs vfs.FS, path string) *store.Collection {
 	t.Helper()
-	s, err := store.NewUserStore(fs, paths.DefaultPaths(), path)
+	s, err := store.NewCollection(fs, paths.DefaultPaths(), path)
 	if err != nil {
-		t.Fatalf("NewUserStore(%q) failed: %v", path, err)
+		t.Fatalf("NewCollection(%q) failed: %v", path, err)
 	}
 	return s
 }
@@ -30,10 +30,10 @@ func TestRun(t *testing.T) {
 		"/Emulation/bios/psx": &vfst.Dir{Perm: 0755},
 	})
 
-	userStorePath := "/Emulation"
+	collectionPath := "/Emulation"
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: userStorePath,
+			Collection: collectionPath,
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDPSX: {model.EmulatorIDDuckStation},
@@ -42,9 +42,9 @@ func TestRun(t *testing.T) {
 	}
 
 	reg := registry.NewDefault()
-	userStore := mustNewUserStore(t, fs, userStorePath)
+	collection := mustNewCollection(t, fs, collectionPath)
 
-	result, err := Run(context.Background(), cfg, reg, userStore)
+	result, err := Run(context.Background(), cfg, reg, collection)
 	if err != nil {
 		t.Fatalf("Run failed: %v", err)
 	}
@@ -69,10 +69,10 @@ func TestRunNoRequiredProvisions(t *testing.T) {
 		"/Emulation": &vfst.Dir{Perm: 0755},
 	})
 
-	userStorePath := "/Emulation"
+	collectionPath := "/Emulation"
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: userStorePath,
+			Collection: collectionPath,
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
@@ -80,9 +80,9 @@ func TestRunNoRequiredProvisions(t *testing.T) {
 	}
 
 	reg := registry.NewDefault()
-	userStore := mustNewUserStore(t, fs, userStorePath)
+	collection := mustNewCollection(t, fs, collectionPath)
 
-	result, err := Run(context.Background(), cfg, reg, userStore)
+	result, err := Run(context.Background(), cfg, reg, collection)
 	if err != nil {
 		t.Fatalf("Run failed: %v", err)
 	}
@@ -115,10 +115,10 @@ func TestRunWithBiosFile(t *testing.T) {
 		"/Emulation/bios/psx/scph5501.bin": "fake bios content",
 	})
 
-	userStorePath := "/Emulation"
+	collectionPath := "/Emulation"
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: userStorePath,
+			Collection: collectionPath,
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDPSX: {model.EmulatorIDDuckStation},
@@ -126,9 +126,9 @@ func TestRunWithBiosFile(t *testing.T) {
 	}
 
 	reg := registry.NewDefault()
-	userStore := mustNewUserStore(t, fs, userStorePath)
+	collection := mustNewCollection(t, fs, collectionPath)
 
-	result, err := Run(context.Background(), cfg, reg, userStore)
+	result, err := Run(context.Background(), cfg, reg, collection)
 	if err != nil {
 		t.Fatalf("Run failed: %v", err)
 	}
@@ -164,10 +164,10 @@ func TestRunSystemResult(t *testing.T) {
 		"/Emulation/bios/psx": &vfst.Dir{Perm: 0755},
 	})
 
-	userStorePath := "/Emulation"
+	collectionPath := "/Emulation"
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: userStorePath,
+			Collection: collectionPath,
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDPSX: {model.EmulatorIDDuckStation},
@@ -175,9 +175,9 @@ func TestRunSystemResult(t *testing.T) {
 	}
 
 	reg := registry.NewDefault()
-	userStore := mustNewUserStore(t, fs, userStorePath)
+	collection := mustNewCollection(t, fs, collectionPath)
 
-	result, err := Run(context.Background(), cfg, reg, userStore)
+	result, err := Run(context.Background(), cfg, reg, collection)
 	if err != nil {
 		t.Fatalf("Run failed: %v", err)
 	}
@@ -206,10 +206,10 @@ func TestRunMultipleEmulators(t *testing.T) {
 		"/Emulation/bios/psx": &vfst.Dir{Perm: 0755},
 	})
 
-	userStorePath := "/Emulation"
+	collectionPath := "/Emulation"
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: userStorePath,
+			Collection: collectionPath,
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDPSX: {model.EmulatorIDDuckStation, model.EmulatorIDRetroArchBeetleSaturn},
@@ -217,9 +217,9 @@ func TestRunMultipleEmulators(t *testing.T) {
 	}
 
 	reg := registry.NewDefault()
-	userStore := mustNewUserStore(t, fs, userStorePath)
+	collection := mustNewCollection(t, fs, collectionPath)
 
-	result, err := Run(context.Background(), cfg, reg, userStore)
+	result, err := Run(context.Background(), cfg, reg, collection)
 	if err != nil {
 		t.Fatalf("Run failed: %v", err)
 	}

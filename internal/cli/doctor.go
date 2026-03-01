@@ -18,7 +18,7 @@ func (cmd *DoctorCmd) Run(ctx *Context) error {
 	}
 
 	registry := ctx.NewRegistry()
-	userStore, err := ctx.NewUserStore(cfg)
+	collection, err := ctx.NewCollection(cfg)
 	if err != nil {
 		return err
 	}
@@ -26,7 +26,7 @@ func (cmd *DoctorCmd) Run(ctx *Context) error {
 	fmt.Println("Checking provisions...")
 	fmt.Println()
 
-	result, err := doctor.Run(context.Background(), cfg, registry, userStore)
+	result, err := doctor.Run(context.Background(), cfg, registry, collection)
 	if err != nil {
 		return err
 	}

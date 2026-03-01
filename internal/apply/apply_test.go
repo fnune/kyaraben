@@ -34,7 +34,7 @@ type testEnv struct {
 	cleanup      func()
 	rootDir      string
 	manifestPath string
-	userStore    *store.UserStore
+	collection   *store.Collection
 	installer    *packages.FakeInstaller
 	configWriter *emulators.ConfigWriter
 	applier      *Applier
@@ -60,10 +60,10 @@ func newTestEnv(t *testing.T) *testEnv {
 
 	rootDir := "/home"
 	manifestPath := filepath.Join(rootDir, "manifest.json")
-	userStorePath := filepath.Join(rootDir, "Emulation")
+	collectionPath := filepath.Join(rootDir, "Emulation")
 	packagesDir := filepath.Join(rootDir, "packages")
 
-	userStore, err := store.NewUserStore(fs, paths.DefaultPaths(), userStorePath)
+	collection, err := store.NewCollection(fs, paths.DefaultPaths(), collectionPath)
 	if err != nil {
 		t.Fatalf("Failed to create user store: %v", err)
 	}
@@ -84,7 +84,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		cleanup:      func() {},
 		rootDir:      rootDir,
 		manifestPath: manifestPath,
-		userStore:    userStore,
+		collection:   collection,
 		installer:    installer,
 		configWriter: configWriter,
 		applier:      applier,
@@ -99,14 +99,14 @@ func TestUnmanagedEntriesExcludedFromManifest(t *testing.T) {
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: filepath.Join(env.rootDir, "Emulation"),
+			Collection: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDSNES: {model.EmulatorIDRetroArchBsnes},
 		},
 	}
 
-	_, err := env.applier.Apply(context.Background(), cfg, env.userStore, Options{})
+	_, err := env.applier.Apply(context.Background(), cfg, env.collection, Options{})
 	if err != nil {
 		t.Fatalf("Apply failed: %v", err)
 	}
@@ -152,14 +152,14 @@ func TestApplyRemovesUnenabledEmulatorsFromManifest(t *testing.T) {
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: filepath.Join(env.rootDir, "Emulation"),
+			Collection: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
 		},
 	}
 
-	_, err := env.applier.Apply(context.Background(), cfg, env.userStore, Options{})
+	_, err := env.applier.Apply(context.Background(), cfg, env.collection, Options{})
 	if err != nil {
 		t.Fatalf("Apply failed: %v", err)
 	}
@@ -224,12 +224,12 @@ func TestApplyRemovesConfigDirsForDisabledEmulators(t *testing.T) {
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: filepath.Join(env.rootDir, "Emulation"),
+			Collection: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{},
 	}
 
-	_, err := env.applier.Apply(context.Background(), cfg, env.userStore, Options{})
+	_, err := env.applier.Apply(context.Background(), cfg, env.collection, Options{})
 	if err != nil {
 		t.Fatalf("Apply failed: %v", err)
 	}
@@ -255,7 +255,7 @@ func TestApplyCreatesEmulatorStatesDirectories(t *testing.T) {
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: filepath.Join(env.rootDir, "Emulation"),
+			Collection: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDSNES: {model.EmulatorIDRetroArchBsnes},
@@ -263,18 +263,18 @@ func TestApplyCreatesEmulatorStatesDirectories(t *testing.T) {
 		},
 	}
 
-	_, err := env.applier.Apply(context.Background(), cfg, env.userStore, Options{})
+	_, err := env.applier.Apply(context.Background(), cfg, env.collection, Options{})
 	if err != nil {
 		t.Fatalf("Apply failed: %v", err)
 	}
 
-	userStorePath := filepath.Join(env.rootDir, "Emulation")
+	collectionPath := filepath.Join(env.rootDir, "Emulation")
 	for _, tc := range []struct {
 		name string
 		path string
 	}{
-		{"retroarch bsnes core", filepath.Join(userStorePath, "states", "retroarch:bsnes")},
-		{"retroarch mgba core", filepath.Join(userStorePath, "states", "retroarch:mgba")},
+		{"retroarch bsnes core", filepath.Join(collectionPath, "states", "retroarch:bsnes")},
+		{"retroarch mgba core", filepath.Join(collectionPath, "states", "retroarch:mgba")},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if info, err := env.fs.Stat(tc.path); err != nil || !info.IsDir() {
@@ -294,14 +294,14 @@ func TestApplyCreatesSymlinks(t *testing.T) {
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: filepath.Join(env.rootDir, "Emulation"),
+			Collection: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGameCube: {model.EmulatorIDDolphin},
 		},
 	}
 
-	_, err := env.applier.Apply(context.Background(), cfg, env.userStore, Options{})
+	_, err := env.applier.Apply(context.Background(), cfg, env.collection, Options{})
 	if err != nil {
 		t.Fatalf("Apply failed: %v", err)
 	}
@@ -353,23 +353,23 @@ func TestApplyCreatesProvisionDirectories(t *testing.T) {
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: filepath.Join(env.rootDir, "Emulation"),
+			Collection: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGameCube: {model.EmulatorIDDolphin},
 		},
 	}
 
-	if _, err := env.applier.Apply(context.Background(), cfg, env.userStore, Options{}); err != nil {
+	if _, err := env.applier.Apply(context.Background(), cfg, env.collection, Options{}); err != nil {
 		t.Fatalf("Apply failed: %v", err)
 	}
 
-	userStorePath := filepath.Join(env.rootDir, "Emulation")
+	collectionPath := filepath.Join(env.rootDir, "Emulation")
 	paths := []string{
-		filepath.Join(userStorePath, "saves", "gamecube", "USA"),
-		filepath.Join(userStorePath, "saves", "gamecube", "EUR"),
-		filepath.Join(userStorePath, "saves", "gamecube", "JAP"),
-		filepath.Join(userStorePath, "bios", "gba"),
+		filepath.Join(collectionPath, "saves", "gamecube", "USA"),
+		filepath.Join(collectionPath, "saves", "gamecube", "EUR"),
+		filepath.Join(collectionPath, "saves", "gamecube", "JAP"),
+		filepath.Join(collectionPath, "bios", "gba"),
 	}
 
 	for _, path := range paths {
@@ -395,7 +395,7 @@ func TestApplySucceedsWhenGCFails(t *testing.T) {
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: filepath.Join(env.rootDir, "Emulation"),
+			Collection: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
@@ -405,7 +405,7 @@ func TestApplySucceedsWhenGCFails(t *testing.T) {
 	env.applier.Installer = &failingGCInstaller{FakeInstaller: env.installer}
 
 	var progressSteps []Progress
-	_, err := env.applier.Apply(context.Background(), cfg, env.userStore, Options{
+	_, err := env.applier.Apply(context.Background(), cfg, env.collection, Options{
 		OnProgress: func(p Progress) {
 			progressSteps = append(progressSteps, p)
 		},
@@ -444,7 +444,7 @@ func TestApplyWithFakeInstallerE2E(t *testing.T) {
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: filepath.Join(env.rootDir, "Emulation"),
+			Collection: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGBA:  {model.EmulatorIDRetroArchMGBA},
@@ -457,7 +457,7 @@ func TestApplyWithFakeInstallerE2E(t *testing.T) {
 	env.installer.Versions["retroarch"] = "1.22.0"
 
 	var progressEvents []Progress
-	result, err := env.applier.Apply(context.Background(), cfg, env.userStore, Options{
+	result, err := env.applier.Apply(context.Background(), cfg, env.collection, Options{
 		OnProgress: func(p Progress) {
 			progressEvents = append(progressEvents, p)
 		},
@@ -524,7 +524,7 @@ func TestApplyInstallsFrontend(t *testing.T) {
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: filepath.Join(env.rootDir, "Emulation"),
+			Collection: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
@@ -537,7 +537,7 @@ func TestApplyInstallsFrontend(t *testing.T) {
 	env.installer.Versions["retroarch"] = "1.22.0"
 	env.installer.Versions["esde"] = "3.0.0"
 
-	_, err := env.applier.Apply(context.Background(), cfg, env.userStore, Options{})
+	_, err := env.applier.Apply(context.Background(), cfg, env.collection, Options{})
 	if err != nil {
 		t.Fatalf("Apply failed: %v", err)
 	}
@@ -582,7 +582,7 @@ func TestApplyInstallsFrontendIcon(t *testing.T) {
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: filepath.Join(env.rootDir, "Emulation"),
+			Collection: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
@@ -597,7 +597,7 @@ func TestApplyInstallsFrontendIcon(t *testing.T) {
 	installer := &iconTrackingInstaller{FakeInstaller: env.installer}
 	env.applier.Installer = installer
 
-	_, err := env.applier.Apply(context.Background(), cfg, env.userStore, Options{})
+	_, err := env.applier.Apply(context.Background(), cfg, env.collection, Options{})
 	if err != nil {
 		t.Fatalf("Apply failed: %v", err)
 	}
@@ -622,7 +622,7 @@ func TestGarbageCollectKeepsSyncthing(t *testing.T) {
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: filepath.Join(env.rootDir, "Emulation"),
+			Collection: filepath.Join(env.rootDir, "Emulation"),
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
@@ -632,7 +632,7 @@ func TestGarbageCollectKeepsSyncthing(t *testing.T) {
 	env.installer.Versions["retroarch"] = "1.22.0"
 	env.installer.Versions["syncthing"] = "v2.0.14"
 
-	_, err := env.applier.Apply(context.Background(), cfg, env.userStore, Options{})
+	_, err := env.applier.Apply(context.Background(), cfg, env.collection, Options{})
 	if err != nil {
 		t.Fatalf("Apply failed: %v", err)
 	}

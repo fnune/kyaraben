@@ -23,7 +23,7 @@ const (
 // State represents data an emulator produces during operation.
 type State struct {
 	Kind     StateKind
-	Path     string       // Relative path within UserStore
+	Path     string       // Relative path within Collection
 	Sync     SyncStrategy // How this state should be synced
 	SystemID SystemID     // Which system this state belongs to
 }

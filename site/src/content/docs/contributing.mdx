@@ -81,7 +81,7 @@ The core entities and their relationships:
 - `State`: data an emulator produces (saves, savestates, screenshots)
 - `EmulatorConfig`: a configuration file for an emulator
 - `KyarabenConfig`: Kyaraben's own configuration (config.toml)
-- `UserStore`: where the user's emulation data lives (~/Emulation)
+- `Collection`: where the user's emulation data lives (~/Emulation)
 - `Manifest`: tracks what Kyaraben has installed and managed
 
 ### Storage model
@@ -93,7 +93,7 @@ KyarabenState (XDG)
 ├── ~/.config/kyaraben/          # KyarabenConfig
 └── ~/.local/state/kyaraben/     # Emulator binaries, manifest, runtime state
 
-UserStore (e.g., ~/Emulation)
+Collection (e.g., ~/Emulation)
 ├── roms/
 ├── bios/
 ├── saves/           # Structured by system
@@ -113,7 +113,7 @@ internal/
 ├── apply/           # Apply orchestration
 ├── daemon/          # Daemon protocol and handlers
 ├── cli/             # CLI commands
-├── store/           # UserStore management
+├── store/           # Collection management
 ├── sync/            # Syncthing integration
 ├── frontends/       # Frontend integrations (EmulationStation DE)
 ├── launcher/        # Desktop launcher management

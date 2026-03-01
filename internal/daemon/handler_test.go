@@ -72,7 +72,7 @@ func (e *testDaemonEnv) newDaemon() *Daemon {
 func TestHandleUninstallPreview_EmptyManifest(t *testing.T) {
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: "~/Emulation",
+			Collection: "~/Emulation",
 		},
 		Systems: make(map[model.SystemID][]model.EmulatorID),
 	}
@@ -107,8 +107,8 @@ func TestHandleUninstallPreview_EmptyManifest(t *testing.T) {
 	if len(resp.ConfigFiles) != 0 {
 		t.Errorf("expected no config files, got %v", resp.ConfigFiles)
 	}
-	if resp.Preserved.UserStore != "~/Emulation" {
-		t.Errorf("expected userStore ~/Emulation, got %s", resp.Preserved.UserStore)
+	if resp.Preserved.Collection != "~/Emulation" {
+		t.Errorf("expected collection ~/Emulation, got %s", resp.Preserved.Collection)
 	}
 }
 
@@ -142,7 +142,7 @@ func TestHandleUninstallPreview_WithManifest(t *testing.T) {
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: "~/Games",
+			Collection: "~/Games",
 		},
 		Systems: make(map[model.SystemID][]model.EmulatorID),
 	}
@@ -181,15 +181,15 @@ func TestHandleUninstallPreview_WithManifest(t *testing.T) {
 	if len(resp.IconFiles) != 1 || resp.IconFiles[0] != iconFile {
 		t.Errorf("expected icon file %s, got %v", iconFile, resp.IconFiles)
 	}
-	if resp.Preserved.UserStore != "~/Games" {
-		t.Errorf("expected userStore ~/Games, got %s", resp.Preserved.UserStore)
+	if resp.Preserved.Collection != "~/Games" {
+		t.Errorf("expected collection ~/Games, got %s", resp.Preserved.Collection)
 	}
 }
 
 func TestHandleGetConfig_ReturnsConfig(t *testing.T) {
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: "~/TestEmulation",
+			Collection: "~/TestEmulation",
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
@@ -217,8 +217,8 @@ func TestHandleGetConfig_ReturnsConfig(t *testing.T) {
 		t.Fatalf("expected ConfigResponse, got %T", event.Data)
 	}
 
-	if resp.UserStore != "~/TestEmulation" {
-		t.Errorf("expected userStore ~/TestEmulation, got %s", resp.UserStore)
+	if resp.Collection != "~/TestEmulation" {
+		t.Errorf("expected collection ~/TestEmulation, got %s", resp.Collection)
 	}
 	if len(resp.Systems) != 1 {
 		t.Errorf("expected 1 system, got %d", len(resp.Systems))
@@ -251,8 +251,8 @@ func TestHandleGetConfig_DefaultConfig(t *testing.T) {
 		t.Fatalf("expected ConfigResponse, got %T", event.Data)
 	}
 
-	if resp.UserStore != "~/Emulation" {
-		t.Errorf("expected default userStore ~/Emulation, got %s", resp.UserStore)
+	if resp.Collection != "~/Emulation" {
+		t.Errorf("expected default collection ~/Emulation, got %s", resp.Collection)
 	}
 }
 
@@ -365,7 +365,7 @@ func TestHandlePreflight_ReturnsPreflightResponse(t *testing.T) {
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: "/Emulation",
+			Collection: "/Emulation",
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
@@ -420,7 +420,7 @@ func TestHandlePreflight_EmptyConfig(t *testing.T) {
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: "~/Emulation",
+			Collection: "~/Emulation",
 		},
 		Systems: make(map[model.SystemID][]model.EmulatorID),
 	}
@@ -478,7 +478,7 @@ func TestHandlePreflight_DetectsVersionUpgrade(t *testing.T) {
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: "/Emulation",
+			Collection: "/Emulation",
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDPSX: {model.EmulatorIDDuckStation},
@@ -725,7 +725,7 @@ func TestHandleInstallStatus_WithManifest(t *testing.T) {
 func TestHandleSyncStatus_Disabled(t *testing.T) {
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: "~/Emulation",
+			Collection: "~/Emulation",
 		},
 		Systems: make(map[model.SystemID][]model.EmulatorID),
 		Sync:    model.DefaultSyncConfig(),
@@ -773,7 +773,7 @@ func TestHandleSyncStatus_DisabledWithSyncthingInstalled(t *testing.T) {
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: "~/Emulation",
+			Collection: "~/Emulation",
 		},
 		Systems: make(map[model.SystemID][]model.EmulatorID),
 		Sync:    model.DefaultSyncConfig(),
@@ -825,7 +825,7 @@ func TestHandleSetConfig_MergesEmulatorSettings(t *testing.T) {
 	shaderOn := model.ShadersOn
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: "~/Emulation",
+			Collection: "~/Emulation",
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDSNES: {model.EmulatorIDRetroArchBsnes},
@@ -845,7 +845,7 @@ func TestHandleSetConfig_MergesEmulatorSettings(t *testing.T) {
 	setCmd := SetConfigCommand{
 		Type: CommandTypeSetConfig,
 		Data: SetConfigRequest{
-			UserStore: "~/Emulation",
+			Collection: "~/Emulation",
 			Systems: map[string][]string{
 				"snes": {"retroarch:bsnes"},
 				"gba":  {"retroarch:mgba"},

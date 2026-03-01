@@ -66,7 +66,7 @@ function parseStatusResponse(data: StatusResponse) {
 }
 
 interface ConfigState {
-  userStore: string
+  collection: string
   graphicsShaders: string
   controllerNintendoConfirm: string
   systemEmulators: Map<SystemID, EmulatorID[]>
@@ -78,7 +78,7 @@ interface ConfigState {
 
 function emptyConfigState(): ConfigState {
   return {
-    userStore: '',
+    collection: '',
     graphicsShaders: '',
     controllerNintendoConfirm: '',
     systemEmulators: new Map(),
@@ -95,7 +95,7 @@ function keyForProvision(provision: FoundProvision) {
 
 function cloneConfigState(state: ConfigState): ConfigState {
   return {
-    userStore: state.userStore,
+    collection: state.collection,
     graphicsShaders: state.graphicsShaders,
     controllerNintendoConfirm: state.controllerNintendoConfirm,
     systemEmulators: new Map(state.systemEmulators),
@@ -140,7 +140,7 @@ function parseConfigResponse(data: ConfigResponse): ConfigState {
   }
 
   return {
-    userStore: data.userStore,
+    collection: data.collection,
     graphicsShaders: data.graphics?.shaders ?? '',
     controllerNintendoConfirm: data.controller?.nintendoConfirm ?? 'east',
     systemEmulators,
@@ -214,7 +214,7 @@ function AppContent() {
       frontendsConfig[feId] = { enabled, ...(version && { version }) }
     }
     await apply({
-      userStore: saved.userStore,
+      collection: saved.collection,
       systems: systemsConfig,
       emulators: emulatorsConfig,
       frontends: frontendsConfig,
@@ -543,8 +543,8 @@ function AppContent() {
     if (!configReady) return []
     const changes: string[] = []
 
-    if (configState.userStore !== savedConfigState.current.userStore) {
-      changes.push('Emulation folder')
+    if (configState.collection !== savedConfigState.current.collection) {
+      changes.push('Collection')
     }
 
     if (configState.graphicsShaders !== savedConfigState.current.graphicsShaders) {
@@ -669,9 +669,11 @@ function AppContent() {
             managedConfigs={managedConfigs}
             installedPaths={installedPaths}
             provisions={provisions}
-            userStore={configState.userStore}
+            collection={configState.collection}
             configChanges={configChanges}
-            onUserStoreChange={(value) => setConfigState((prev) => ({ ...prev, userStore: value }))}
+            onCollectionChange={(value) =>
+              setConfigState((prev) => ({ ...prev, collection: value }))
+            }
             onEmulatorToggle={handleEmulatorToggle}
             onVersionChange={handleVersionChange}
             onShaderChange={handleShaderChange}

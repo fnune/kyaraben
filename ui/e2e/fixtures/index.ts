@@ -49,7 +49,7 @@ export interface TestFixtureEnv extends Record<string, string> {
 export interface TestFixture {
   configDir: string
   stateDir: string
-  userStore: string
+  collection: string
   env: TestFixtureEnv
   cleanup: () => void
   releasesServer?: http.Server
@@ -57,7 +57,7 @@ export interface TestFixture {
 }
 
 export interface ConfigFixture {
-  userStore?: string
+  collection?: string
   systems?: Partial<Record<SystemID, EmulatorID[]>>
   emulators?: Partial<Record<EmulatorID, { version?: string; shaders?: boolean | null }>>
   frontends?: Partial<Record<FrontendID, { enabled: boolean; version?: string }>>
@@ -106,15 +106,15 @@ export function createFixture(config?: ConfigFixture, manifest?: ManifestFixture
 
   const configDir = path.join(tmpDir, 'config')
   const stateDir = path.join(tmpDir, 'state')
-  const userStore = path.join(tmpDir, 'Emulation')
+  const collection = path.join(tmpDir, 'Emulation')
 
   fs.mkdirSync(path.join(configDir, 'kyaraben'), { recursive: true })
   fs.mkdirSync(path.join(stateDir, 'kyaraben', 'build'), { recursive: true })
   fs.mkdirSync(path.join(stateDir, 'kyaraben', 'bin'), { recursive: true })
-  fs.mkdirSync(userStore, { recursive: true })
+  fs.mkdirSync(collection, { recursive: true })
 
   if (config) {
-    const toml = generateConfigToml(config, userStore)
+    const toml = generateConfigToml(config, collection)
     fs.writeFileSync(path.join(configDir, 'kyaraben', 'config.toml'), toml)
   }
 
@@ -160,7 +160,7 @@ export function createFixture(config?: ConfigFixture, manifest?: ManifestFixture
   return {
     configDir,
     stateDir,
-    userStore,
+    collection,
     env,
     cleanup: () => {
       const logPath = path.join(stateDir, 'kyaraben', 'kyaraben.log')
@@ -186,11 +186,11 @@ export function createFixture(config?: ConfigFixture, manifest?: ManifestFixture
   }
 }
 
-function generateConfigToml(config: ConfigFixture, defaultUserStore: string): string {
+function generateConfigToml(config: ConfigFixture, defaultCollection: string): string {
   const lines: string[] = []
 
   lines.push('[global]')
-  lines.push(`user_store = "${config.userStore ?? defaultUserStore}"`)
+  lines.push(`collection = "${config.collection ?? defaultCollection}"`)
   lines.push('')
 
   if (config.sync) {
@@ -254,7 +254,7 @@ function generateConfigToml(config: ConfigFixture, defaultUserStore: string): st
 }
 
 export function createBiosDirectory(fixture: TestFixture, systemId: SystemID): string {
-  const biosDir = path.join(fixture.userStore, 'bios', systemId)
+  const biosDir = path.join(fixture.collection, 'bios', systemId)
   fs.mkdirSync(biosDir, { recursive: true })
   return biosDir
 }

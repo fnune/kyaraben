@@ -14,7 +14,7 @@ func TestSetConfigCommandParsing(t *testing.T) {
 	jsonData := `{
 		"type": "set_config",
 		"data": {
-			"userStore": "~/Emulation",
+			"collection": "~/Emulation",
 			"systems": {
 				"switch": ["eden"],
 				"psx": ["duckstation"]
@@ -34,8 +34,8 @@ func TestSetConfigCommandParsing(t *testing.T) {
 		t.Errorf("expected type %q, got %q", CommandTypeSetConfig, cmd.Type)
 	}
 
-	if cmd.Data.UserStore != "~/Emulation" {
-		t.Errorf("expected userStore %q, got %q", "~/Emulation", cmd.Data.UserStore)
+	if cmd.Data.Collection != "~/Emulation" {
+		t.Errorf("expected collection %q, got %q", "~/Emulation", cmd.Data.Collection)
 	}
 
 	if len(cmd.Data.Systems) != 2 {
@@ -62,7 +62,7 @@ func TestSetConfigCommandParsingWithMultipleEmulators(t *testing.T) {
 	jsonData := `{
 		"type": "set_config",
 		"data": {
-			"userStore": "~/Games",
+			"collection": "~/Games",
 			"systems": {
 				"psx": ["duckstation", "retroarch:mednafen_psx"]
 			}
@@ -114,7 +114,7 @@ func TestBasicCommandDoesNotCaptureData(t *testing.T) {
 	jsonData := `{
 		"type": "set_config",
 		"data": {
-			"userStore": "~/Emulation",
+			"collection": "~/Emulation",
 			"systems": {"switch": ["eden"]}
 		}
 	}`
@@ -222,7 +222,7 @@ func TestEnsureSyncthingManagedSkipsWhenActivating(t *testing.T) {
 	}
 
 	cfg := &model.KyarabenConfig{
-		Global: model.GlobalConfig{UserStore: "/tmp/test"},
+		Global: model.GlobalConfig{Collection: "/tmp/test"},
 		Sync:   model.SyncConfig{Enabled: true},
 	}
 
@@ -245,7 +245,7 @@ func TestEnsureSyncthingManagedSkipsWhenActive(t *testing.T) {
 	}
 
 	cfg := &model.KyarabenConfig{
-		Global: model.GlobalConfig{UserStore: "/tmp/test"},
+		Global: model.GlobalConfig{Collection: "/tmp/test"},
 		Sync:   model.SyncConfig{Enabled: true},
 	}
 

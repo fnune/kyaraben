@@ -5,18 +5,18 @@ import (
 )
 
 type ProvisionChecker struct {
-	userStore *UserStore
+	collection *Collection
 }
 
-func NewProvisionChecker(userStore *UserStore) *ProvisionChecker {
-	return &ProvisionChecker{userStore: userStore}
+func NewProvisionChecker(collection *Collection) *ProvisionChecker {
+	return &ProvisionChecker{collection: collection}
 }
 
 func (pc *ProvisionChecker) Check(emu model.Emulator, sys model.SystemID) []model.ProvisionGroupResult {
 	results := make([]model.ProvisionGroupResult, 0, len(emu.ProvisionGroups))
 
 	for _, group := range emu.ProvisionGroups {
-		baseDir := group.BaseDirFor(pc.userStore, sys)
+		baseDir := group.BaseDirFor(pc.collection, sys)
 		result := pc.checkGroup(group, baseDir, sys)
 		if len(result.Results) > 0 {
 			results = append(results, result)
@@ -38,7 +38,7 @@ func (pc *ProvisionChecker) checkGroup(group model.ProvisionGroup, baseDir strin
 		if !prov.AppliesToSystem(sys) {
 			continue
 		}
-		checkResult := prov.Check(pc.userStore.fs, baseDir)
+		checkResult := prov.Check(pc.collection.fs, baseDir)
 		provResult := model.ProvisionResult{
 			Provision:  prov,
 			Status:     checkResult.Status,

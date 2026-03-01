@@ -18,7 +18,7 @@ func TestProvisionCheckerCheck(t *testing.T) {
 		"/emulation": &vfst.Dir{Perm: 0755},
 	})
 
-	store := mustNewUserStore(t, fs, "/emulation")
+	store := mustNewCollection(t, fs, "/emulation")
 
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
@@ -73,7 +73,7 @@ func TestProvisionCheckerWithFile(t *testing.T) {
 		"/emulation": &vfst.Dir{Perm: 0755},
 	})
 
-	store := mustNewUserStore(t, fs, "/emulation")
+	store := mustNewCollection(t, fs, "/emulation")
 
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
@@ -107,7 +107,7 @@ func TestProvisionCheckerHashVerification(t *testing.T) {
 		"/emulation": &vfst.Dir{Perm: 0755},
 	})
 
-	store := mustNewUserStore(t, fs, "/emulation")
+	store := mustNewCollection(t, fs, "/emulation")
 
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
@@ -161,7 +161,7 @@ func TestProvisionCheckerCaseInsensitive(t *testing.T) {
 		"/emulation": &vfst.Dir{Perm: 0755},
 	})
 
-	store := mustNewUserStore(t, fs, "/emulation")
+	store := mustNewCollection(t, fs, "/emulation")
 
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
@@ -202,7 +202,7 @@ func TestProvisionGroupSatisfaction(t *testing.T) {
 		"/emulation": &vfst.Dir{Perm: 0755},
 	})
 
-	store := mustNewUserStore(t, fs, "/emulation")
+	store := mustNewCollection(t, fs, "/emulation")
 
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
@@ -254,7 +254,7 @@ func TestProvisionCheckerFilePattern(t *testing.T) {
 		"/emulation": &vfst.Dir{Perm: 0755},
 	})
 
-	store := mustNewUserStore(t, fs, "/emulation")
+	store := mustNewCollection(t, fs, "/emulation")
 
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)
@@ -303,7 +303,7 @@ func TestProvisionCheckerNestedPattern(t *testing.T) {
 		"/config": &vfst.Dir{Perm: 0755},
 	})
 
-	store := mustNewUserStore(t, fs, "/emulation")
+	store := mustNewCollection(t, fs, "/emulation")
 
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Failed to initialize store: %v", err)

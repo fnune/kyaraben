@@ -47,7 +47,7 @@ type SetupResult struct {
 	SystemdUnitPath string
 }
 
-func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, userStorePath string, allSystems []model.SystemID, onProgress func(packages.InstallProgress)) (*SetupResult, error) {
+func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, collectionPath string, allSystems []model.SystemID, onProgress func(packages.InstallProgress)) (*SetupResult, error) {
 	if !cfg.Enabled {
 		return nil, nil
 	}
@@ -73,7 +73,7 @@ func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, userStorePath
 		return nil, fmt.Errorf("generating API key: %w", err)
 	}
 
-	configGen := NewConfigGenerator(s.fs, cfg, userStorePath, allSystems)
+	configGen := NewConfigGenerator(s.fs, cfg, collectionPath, allSystems)
 	configGen.SetAPIKey(apiKey)
 
 	if err := configGen.WriteConfig(configDir); err != nil {
@@ -107,7 +107,7 @@ func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, userStorePath
 	}, nil
 }
 
-func (s *Setup) UpdateConfig(cfg model.SyncConfig, userStorePath string, allSystems []model.SystemID) error {
+func (s *Setup) UpdateConfig(cfg model.SyncConfig, collectionPath string, allSystems []model.SystemID) error {
 	if !cfg.Enabled {
 		return nil
 	}
@@ -119,7 +119,7 @@ func (s *Setup) UpdateConfig(cfg model.SyncConfig, userStorePath string, allSyst
 		return fmt.Errorf("loading API key: %w", err)
 	}
 
-	configGen := NewConfigGenerator(s.fs, cfg, userStorePath, allSystems)
+	configGen := NewConfigGenerator(s.fs, cfg, collectionPath, allSystems)
 	configGen.SetAPIKey(apiKey)
 
 	if err := configGen.WriteConfig(configDir); err != nil {

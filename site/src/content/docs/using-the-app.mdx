@@ -3,7 +3,7 @@ title: App reference
 description: How to use the Kyaraben UI, what it does under the hood, and what it guarantees
 ---
 
-import UserStore from "../../components/UserStore.astro";
+import Collection from "../../components/Collection.astro";
 import systemPickerScreenshot from "../../assets/screenshots/v0.1-app-system-picker.png";
 
 ## Selecting systems and emulators
@@ -60,7 +60,7 @@ configures for each emulator.
 
 Definitions:
 
-- **Synchronizes**: data types stored in the emulation directory and available for
+- **Synchronizes**: data types stored in the collection and available for
   synchronization. `saves` = in-game saves, `states` = savestates, `screenshots` =
   captured screenshots.
 - **Hotkeys**: `full` = save/load state, fast forward, pause, screenshot, quit.
@@ -89,7 +89,7 @@ When you confirm, Kyaraben:
 1. Fetches emulator packages (from a binary cache, so downloads are fast)
 2. Installs emulator binaries to Kyaraben-managed directories
 3. Generates or updates emulator configuration files
-4. Creates the folder structure in your <UserStore />
+4. Creates the folder structure in your <Collection />
 5. Creates `.desktop` entries for each emulator
 6. Updates the manifest tracking what was installed
 
@@ -107,7 +107,7 @@ launcher with metadata scraping, media art, and controller-friendly navigation.
 
 :::note[EmulationStation DE shows all systems with ROMs]
 EmulationStation DE has built-in definitions for hundreds of systems. It will
-show any system where it finds ROMs in your emulation directory, regardless of
+show any system where it finds ROMs in your collection, regardless of
 which systems you have enabled in Kyaraben. Enabling a system in Kyaraben
 configures an emulator to run that system's games. If you have ROMs for a
 system you haven't enabled, EmulationStation DE will show them but they won't
@@ -132,7 +132,7 @@ profiles, logs). Kyaraben does not manage these.
 ## Configuration management
 
 Kyaraben manages specific keys in emulator config files: paths that point to
-your <UserStore /> (ROM directories, BIOS paths, save directories, etc.).
+your <Collection /> (ROM directories, BIOS paths, save directories, etc.).
 Some settings like shaders can be opted into; most others (resolution, audio)
 are yours to configure.
 
@@ -143,9 +143,9 @@ preserved. If you changed a managed key, Kyaraben warns you before overwriting.
 Kyaraben expects to be the sole manager of these config files. Using another
 tool that writes to the same files will cause conflicts.
 
-## The emulation directory
+## The collection
 
-Your <UserStore /> (default `~/Emulation`) has a consistent structure:
+Your <Collection /> (default `~/Emulation`) has a consistent structure:
 
 ```
 ~/Emulation/
@@ -179,7 +179,7 @@ can share save files. States and screenshots are organized by emulator because
 their formats are emulator-specific. Kyaraben never reads, modifies, or deletes
 your ROMs, saves, or BIOS files.
 
-Kyaraben uses symlinks to redirect emulator data directories to your <UserStore />.
+Kyaraben uses symlinks to redirect emulator data directories to your <Collection />.
 For example, Dolphin normally stores GameCube saves in `~/.local/share/dolphin-emu/GC/`.
 Kyaraben creates a symlink from that location to `~/Emulation/saves/gamecube/`.
 The emulator runs with its default settings; the symlink transparently redirects
@@ -203,7 +203,7 @@ data to your managed location.
 - Apply is idempotent. Running it twice with the same config produces the same
   result.
 - Uninstall is clean. `kyaraben uninstall` removes only Kyaraben-managed
-  files. Your emulation directory (ROMs, saves, BIOS) is never touched.
+  files. Your collection (ROMs, saves, BIOS) is never touched.
 
 ## Updating
 

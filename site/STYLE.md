@@ -13,7 +13,7 @@ Rules for writing content in the kyaraben documentation site.
 - Use imperative mood for instructions ("run the command", not "you should run
   the command")
 - Use backticks for domain concepts: `System`, `Emulator`, `Provision`,
-  `UserStore`, `Manifest`, `EmulatorConfig`, `KyarabenConfig`
+  `Collection`, `Manifest`, `EmulatorConfig`, `KyarabenConfig`
 - Use backticks for CLI commands, file paths, config keys, and code
 - Link to reference pages for config details instead of duplicating them
 - Keep paragraphs short

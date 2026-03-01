@@ -75,8 +75,8 @@ type ControllerTomlConfig struct {
 // ConfigInput for ControllerTomlConfig.NintendoConfirm
 const ConfigInputNintendoConfirm ConfigInput = "controller.nintendo_confirm"
 
-// ConfigInput for GlobalConfig.UserStore
-const ConfigInputUserStore ConfigInput = "global.user_store"
+// ConfigInput for GlobalConfig.Collection
+const ConfigInputCollection ConfigInput = "global.collection"
 
 // HotkeyTomlConfig is the TOML representation of hotkey bindings.
 // All hotkeys share the same modifier button, with individual action buttons.
@@ -192,7 +192,7 @@ type FrontendConfig struct {
 
 // GlobalConfig holds global settings.
 type GlobalConfig struct {
-	UserStore string `toml:"user_store"` // Path to emulation directory
+	Collection string `toml:"collection"`
 }
 
 // EmulatorConf holds per-emulator configuration.
@@ -245,7 +245,7 @@ func DefaultConfigPath() (string, error) {
 	return filepath.Join(configDir, "config.toml"), nil
 }
 
-func DefaultUserStore() string {
+func DefaultCollection() string {
 	return "~/Emulation"
 }
 
@@ -384,20 +384,20 @@ func SaveConfig(cfg *KyarabenConfig, path string) error {
 	return NewConfigStore(vfs.OSFS).Save(cfg, path)
 }
 
-func (c *KyarabenConfig) ExpandUserStoreWith(homeDir string) string {
-	path := c.Global.UserStore
+func (c *KyarabenConfig) ExpandCollectionWith(homeDir string) string {
+	path := c.Global.Collection
 	if len(path) > 0 && path[0] == '~' && homeDir != "" {
 		path = filepath.Join(homeDir, path[1:])
 	}
 	return path
 }
 
-func (c *KyarabenConfig) ExpandUserStore() (string, error) {
+func (c *KyarabenConfig) ExpandCollection() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("expanding home directory: %w", err)
 	}
-	return c.ExpandUserStoreWith(home), nil
+	return c.ExpandCollectionWith(home), nil
 }
 
 func (c *KyarabenConfig) EnabledSystems() []SystemID {
@@ -448,7 +448,7 @@ func (c *KyarabenConfig) SystemsForEmulator(emu EmulatorID) []SystemID {
 func NewDefaultConfig() *KyarabenConfig {
 	return &KyarabenConfig{
 		Global: GlobalConfig{
-			UserStore: DefaultUserStore(),
+			Collection: DefaultCollection(),
 		},
 		Sync: DefaultSyncConfig(),
 		Controller: ControllerTomlConfig{

@@ -26,7 +26,7 @@ test.describe('Config warnings', () => {
 
     const configPath = path.join(fixture.configDir, 'kyaraben', 'config.toml')
     const configWithInvalid = `[global]
-user_store = "${fixture.userStore}"
+collection = "${fixture.collection}"
 
 [controller]
 nintendo_confirm = "invalid_value"

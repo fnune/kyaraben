@@ -65,7 +65,7 @@ type PreflightResult struct {
 	FilesToBackup []string
 }
 
-func (a *Applier) Preflight(ctx context.Context, cfg *model.KyarabenConfig, userStore *store.UserStore) (*PreflightResult, error) {
+func (a *Applier) Preflight(ctx context.Context, cfg *model.KyarabenConfig, collection *store.Collection) (*PreflightResult, error) {
 	allPatches := make([]model.ConfigPatch, 0)
 
 	controllerConfig, err := cfg.ResolveControllerConfig()
@@ -76,7 +76,7 @@ func (a *Applier) Preflight(ctx context.Context, cfg *model.KyarabenConfig, user
 	systemDisplayTypes := a.buildSystemDisplayTypes()
 
 	genCtx := model.GenerateContext{
-		Store:              userStore,
+		Store:              collection,
 		BaseDirResolver:    a.BaseDirResolver,
 		ControllerConfig:   controllerConfig,
 		SystemDisplayTypes: systemDisplayTypes,
@@ -163,7 +163,7 @@ func NewDefaultApplier(installer packages.Installer, configWriter *emulators.Con
 	return NewApplier(vfs.OSFS, installer, configWriter, reg, manifestPath, launcherManager, resolver, symlinkCreator)
 }
 
-func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStore *store.UserStore, opts Options) (*Result, error) {
+func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, collection *store.Collection, opts Options) (*Result, error) {
 	if opts.OnProgress == nil {
 		opts.OnProgress = func(Progress) {}
 	}
@@ -183,7 +183,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	systemDisplayTypes := a.buildSystemDisplayTypes()
 
 	genCtx := model.GenerateContext{
-		Store:              userStore,
+		Store:              collection,
 		BaseDirResolver:    a.BaseDirResolver,
 		ControllerConfig:   controllerConfig,
 		SystemDisplayTypes: systemDisplayTypes,
@@ -254,7 +254,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 			GetLaunchArgs: func(emuID model.EmulatorID) []string {
 				return allLaunchArgs[emuID]
 			},
-			Store:  userStore,
+			Store:  collection,
 			BinDir: binDir,
 		}
 
@@ -296,14 +296,14 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	}
 
 	var storeMsg string
-	if userStore.Exists() {
-		storeMsg = fmt.Sprintf("Using %s (existing data preserved)", userStore.Path())
+	if collection.Exists() {
+		storeMsg = fmt.Sprintf("Using %s (existing data preserved)", collection.Path())
 	} else {
-		storeMsg = fmt.Sprintf("Creating %s", userStore.Path())
+		storeMsg = fmt.Sprintf("Creating %s", collection.Path())
 	}
 	opts.OnProgress(Progress{Step: "store", Message: storeMsg})
 
-	if err := userStore.Initialize(); err != nil {
+	if err := collection.Initialize(); err != nil {
 		return nil, fmt.Errorf("initializing user store: %w", err)
 	}
 
@@ -313,13 +313,13 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 			if err != nil {
 				continue
 			}
-			if err := userStore.InitializeForEmulator(sys, emuID, emu.PathUsage); err != nil {
+			if err := collection.InitializeForEmulator(sys, emuID, emu.PathUsage); err != nil {
 				return nil, fmt.Errorf("initializing %s for %s: %w", sys, emuID, err)
 			}
-			if err := a.ensureProvisionDirs(userStore, sys, emu); err != nil {
+			if err := a.ensureProvisionDirs(collection, sys, emu); err != nil {
 				return nil, fmt.Errorf("preparing provision directories for %s/%s: %w", sys, emuID, err)
 			}
-			if err := a.downloadMissingProvisions(ctx, userStore, sys, emu, opts.OnProgress); err != nil {
+			if err := a.downloadMissingProvisions(ctx, collection, sys, emu, opts.OnProgress); err != nil {
 				return nil, fmt.Errorf("downloading provisions for %s/%s: %w", sys, emuID, err)
 			}
 		}
@@ -509,7 +509,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 			regions = append(regions, r)
 		}
 
-		configInputs := collectConfigInputs(patch.Entries, controllerConfig, userStore.Root())
+		configInputs := collectConfigInputs(patch.Entries, controllerConfig, collection.Root())
 
 		newManagedConfigs = append(newManagedConfigs, model.ManagedConfig{
 			EmulatorIDs:             []model.EmulatorID{patchEmulators[i]},
@@ -658,9 +658,9 @@ func (a *Applier) installPackages(ctx context.Context, emulatorIDs []model.Emula
 	return binaries, cores, icons, nil
 }
 
-func (a *Applier) ensureProvisionDirs(userStore *store.UserStore, sys model.SystemID, emu model.Emulator) error {
+func (a *Applier) ensureProvisionDirs(collection *store.Collection, sys model.SystemID, emu model.Emulator) error {
 	for _, group := range emu.ProvisionGroups {
-		baseDir := group.BaseDirFor(userStore, sys)
+		baseDir := group.BaseDirFor(collection, sys)
 		if baseDir == "" {
 			continue
 		}
@@ -671,12 +671,12 @@ func (a *Applier) ensureProvisionDirs(userStore *store.UserStore, sys model.Syst
 	return nil
 }
 
-func (a *Applier) downloadMissingProvisions(ctx context.Context, userStore *store.UserStore, sys model.SystemID, emu model.Emulator, onProgress func(Progress)) error {
+func (a *Applier) downloadMissingProvisions(ctx context.Context, collection *store.Collection, sys model.SystemID, emu model.Emulator, onProgress func(Progress)) error {
 	downloader := packages.NewDownloader(a.fs)
 	extractor := packages.NewExtractor(a.fs)
 
 	for _, group := range emu.ProvisionGroups {
-		baseDir := group.BaseDirFor(userStore, sys)
+		baseDir := group.BaseDirFor(collection, sys)
 		if baseDir == "" {
 			continue
 		}
@@ -1551,7 +1551,7 @@ func generateSteamAppID(exe, appName string) uint32 {
 	return crc | 0x80000000
 }
 
-func collectConfigInputs(entries []model.ConfigEntry, controllerConfig *model.ControllerConfig, userStoreRoot string) map[string]string {
+func collectConfigInputs(entries []model.ConfigEntry, controllerConfig *model.ControllerConfig, collectionRoot string) map[string]string {
 	deps := make(map[model.ConfigInput]bool)
 	for _, entry := range entries {
 		for _, dep := range entry.DependsOn {
@@ -1569,8 +1569,8 @@ func collectConfigInputs(entries []model.ConfigEntry, controllerConfig *model.Co
 		switch dep {
 		case model.ConfigInputNintendoConfirm:
 			inputs[key] = string(controllerConfig.NintendoConfirm)
-		case model.ConfigInputUserStore:
-			inputs[key] = userStoreRoot
+		case model.ConfigInputCollection:
+			inputs[key] = collectionRoot
 		}
 	}
 	return inputs

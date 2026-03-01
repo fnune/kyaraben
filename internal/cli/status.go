@@ -23,7 +23,7 @@ func (cmd *StatusCmd) Run(ctx *Context) error {
 	}
 
 	registry := ctx.NewRegistry()
-	userStore, err := ctx.NewUserStore(cfg)
+	collection, err := ctx.NewCollection(cfg)
 	if err != nil {
 		return err
 	}
@@ -32,14 +32,14 @@ func (cmd *StatusCmd) Run(ctx *Context) error {
 		return err
 	}
 
-	result, err := ctx.NewStatusGetter().Get(context.Background(), cfg, configPath, registry, userStore, manifestPath)
+	result, err := ctx.NewStatusGetter().Get(context.Background(), cfg, configPath, registry, collection, manifestPath)
 	if err != nil {
 		return err
 	}
 
 	fmt.Printf("Config: %s\n", result.ConfigPath)
-	fmt.Printf("Emulation folder: %s", result.UserStorePath)
-	if result.UserStoreInitialized {
+	fmt.Printf("Collection: %s", result.CollectionPath)
+	if result.CollectionInitialized {
 		fmt.Println(" (initialized)")
 	} else {
 		fmt.Println(" (not initialized)")
@@ -86,18 +86,18 @@ func (cmd *StatusCmd) Run(ctx *Context) error {
 						continue
 					}
 					fmt.Printf("  %s (%s)\n", emu.Name, sysID)
-					fmt.Printf("    ROMs:          %s\n", userStore.SystemRomsDir(sysID))
+					fmt.Printf("    ROMs:          %s\n", collection.SystemRomsDir(sysID))
 					if emuDef.PathUsage.UsesBiosDir {
-						fmt.Printf("    BIOS:          %s\n", userStore.SystemBiosDir(sysID))
+						fmt.Printf("    BIOS:          %s\n", collection.SystemBiosDir(sysID))
 					}
 					if emuDef.PathUsage.UsesSavesDir {
-						fmt.Printf("    Saves:         %s\n", userStore.SystemSavesDir(sysID))
+						fmt.Printf("    Saves:         %s\n", collection.SystemSavesDir(sysID))
 					}
 					if emuDef.PathUsage.UsesStatesDir {
-						fmt.Printf("    Savestates:    %s\n", userStore.EmulatorStatesDir(emu.ID))
+						fmt.Printf("    Savestates:    %s\n", collection.EmulatorStatesDir(emu.ID))
 					}
 					if emuDef.PathUsage.UsesScreenshotsDir {
-						fmt.Printf("    Screenshots:   %s\n", userStore.EmulatorScreenshotsDir(emu.ID))
+						fmt.Printf("    Screenshots:   %s\n", collection.EmulatorScreenshotsDir(emu.ID))
 					}
 					break
 				}

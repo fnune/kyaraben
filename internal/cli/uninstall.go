@@ -58,9 +58,9 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 	}
 
 	cfg, _ := ctx.LoadConfig()
-	userStore := "~/Emulation"
+	collection := "~/Emulation"
 	if cfg != nil {
-		userStore = cfg.Global.UserStore
+		collection = cfg.Global.Collection
 	}
 
 	fmt.Println("This will remove:")
@@ -137,7 +137,7 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 
 	fmt.Println()
 	fmt.Println("This will NOT remove:")
-	fmt.Printf("  %s (your ROMs, saves, BIOS)\n", userStore)
+	fmt.Printf("  %s (your ROMs, saves, BIOS)\n", collection)
 	fmt.Printf("  %s (your kyaraben config)\n", configDir)
 	fmt.Println()
 	if cmd.DryRun {

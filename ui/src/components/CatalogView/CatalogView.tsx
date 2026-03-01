@@ -52,9 +52,9 @@ export interface CatalogViewProps {
   readonly managedConfigs: Map<EmulatorID, ManagedConfigInfo[]>
   readonly installedPaths: Map<EmulatorID, Record<string, EmulatorPaths>>
   readonly provisions: DoctorResponse
-  readonly userStore: string
+  readonly collection: string
   readonly configChanges: readonly string[]
-  readonly onUserStoreChange: (value: string) => void
+  readonly onCollectionChange: (value: string) => void
   readonly onEmulatorToggle: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
   readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
   readonly onShaderChange: (emulatorId: EmulatorID, shaders: string | null) => void
@@ -156,9 +156,9 @@ export function CatalogView({
   managedConfigs,
   installedPaths,
   provisions,
-  userStore,
+  collection,
   configChanges,
-  onUserStoreChange,
+  onCollectionChange,
   onEmulatorToggle,
   onVersionChange,
   onShaderChange,
@@ -217,7 +217,7 @@ export function CatalogView({
 
       const summaryMessage = formatChangeSummary(changeSummary)
       await apply({
-        userStore,
+        collection,
         systems: systemsConfig,
         emulators: emulatorsConfig,
         frontends: frontendsConfig,
@@ -233,7 +233,7 @@ export function CatalogView({
       emulatorShaders,
       enabledFrontends,
       frontendVersions,
-      userStore,
+      collection,
       graphics,
       controller,
     ],
@@ -450,7 +450,7 @@ export function CatalogView({
   return (
     <div className="pb-24">
       <div className="p-6 pb-0">
-        <Settings userStore={userStore} onUserStoreChange={onUserStoreChange} />
+        <Settings collection={collection} onCollectionChange={onCollectionChange} />
 
         <div className="mt-6">
           <GraphicsSettings shaders={graphics.shaders} onShadersChange={onGraphicsShadersChange} />

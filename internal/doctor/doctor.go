@@ -39,8 +39,8 @@ type Result struct {
 	OptionalGroupsMissed int
 }
 
-func Run(ctx context.Context, cfg *model.KyarabenConfig, reg *registry.Registry, userStore *store.UserStore) (*Result, error) {
-	checker := store.NewProvisionChecker(userStore)
+func Run(ctx context.Context, cfg *model.KyarabenConfig, reg *registry.Registry, collection *store.Collection) (*Result, error) {
+	checker := store.NewProvisionChecker(collection)
 
 	result := &Result{}
 
@@ -55,7 +55,7 @@ func Run(ctx context.Context, cfg *model.KyarabenConfig, reg *registry.Registry,
 				SystemID:     sys,
 				EmulatorID:   emu.ID,
 				EmulatorName: emu.Name,
-				BiosDir:      userStore.SystemBiosDir(sys),
+				BiosDir:      collection.SystemBiosDir(sys),
 			}
 
 			groupResults := checker.Check(emu, sys)

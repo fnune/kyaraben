@@ -9,8 +9,8 @@ import (
 
 // InitCmd initializes a new kyaraben configuration.
 type InitCmd struct {
-	UserStore string `short:"u" help:"Path to emulation directory." default:"~/Emulation"`
-	Force     bool   `short:"f" help:"Overwrite existing configuration."`
+	Collection string `short:"d" help:"Path to collection." default:"~/Emulation"`
+	Force      bool   `short:"f" help:"Overwrite existing configuration."`
 }
 
 // Run executes the init command.
@@ -25,11 +25,11 @@ func (cmd *InitCmd) Run(ctx *Context) error {
 	}
 
 	cfg := model.NewDefaultConfig()
-	cfg.Global.UserStore = cmd.UserStore
+	cfg.Global.Collection = cmd.Collection
 
 	if ctx.Paths.Instance != "" {
-		if cmd.UserStore == "~/Emulation" {
-			cfg.Global.UserStore = "~/Emulation-" + ctx.Paths.Instance
+		if cmd.Collection == "~/Emulation" {
+			cfg.Global.Collection = "~/Emulation-" + ctx.Paths.Instance
 		}
 		offset := ctx.Paths.InstancePortOffset()
 		cfg.Sync.Syncthing.ListenPort = 22100 + offset

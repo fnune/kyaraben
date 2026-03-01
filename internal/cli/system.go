@@ -21,13 +21,13 @@ func (cmd *SystemESDEImportCmd) Run(ctx *Context) error {
 		return nil
 	}
 
-	userStore, err := ctx.NewUserStore(cfg)
+	collection, err := ctx.NewCollection(cfg)
 	if err != nil {
 		log.Warn("failed to create user store: %v", err)
 		return nil
 	}
 
-	sync, err := esde.NewDefaultGamelistSync(userStore)
+	sync, err := esde.NewDefaultGamelistSync(collection)
 	if err != nil {
 		log.Warn("failed to create gamelist sync: %v", err)
 		return nil
@@ -51,13 +51,13 @@ func (cmd *SystemESDEExportCmd) Run(ctx *Context) error {
 		return nil
 	}
 
-	userStore, err := ctx.NewUserStore(cfg)
+	collection, err := ctx.NewCollection(cfg)
 	if err != nil {
 		log.Warn("failed to create user store: %v", err)
 		return nil
 	}
 
-	sync, err := esde.NewDefaultGamelistSync(userStore)
+	sync, err := esde.NewDefaultGamelistSync(collection)
 	if err != nil {
 		log.Warn("failed to create gamelist sync: %v", err)
 		return nil

@@ -97,8 +97,8 @@ func (c *Context) NewInstaller() (packages.Installer, error) {
 	return packages.NewDefaultPackageInstaller(stateDir, downloader, extractor), nil
 }
 
-func (c *Context) NewUserStore(cfg *model.KyarabenConfig) (*store.UserStore, error) {
-	return store.NewUserStore(c.FS, c.Paths, cfg.Global.UserStore)
+func (c *Context) NewCollection(cfg *model.KyarabenConfig) (*store.Collection, error) {
+	return store.NewCollection(c.FS, c.Paths, cfg.Global.Collection)
 }
 
 func (c *Context) NewStatusGetter() *status.Getter {

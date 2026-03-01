@@ -37,7 +37,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		return err
 	}
 
-	userStore, err := ctx.NewUserStore(cfg)
+	collection, err := ctx.NewCollection(cfg)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	fmt.Println("Applying kyaraben configuration...")
 	fmt.Println()
 
-	preflight, err := applier.Preflight(context.Background(), cfg, userStore)
+	preflight, err := applier.Preflight(context.Background(), cfg, collection)
 	if err != nil {
 		return fmt.Errorf("preflight check: %w", err)
 	}
@@ -181,7 +181,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	}
 
 	dryOpts := apply.Options{DryRun: true}
-	dryResult, err := applier.Apply(context.Background(), cfg, userStore, dryOpts)
+	dryResult, err := applier.Apply(context.Background(), cfg, collection, dryOpts)
 	if err != nil {
 		return err
 	}
@@ -305,7 +305,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		fmt.Println()
 	}
 
-	result, err := applier.Apply(context.Background(), cfg, userStore, opts)
+	result, err := applier.Apply(context.Background(), cfg, collection, opts)
 	if err != nil {
 		return err
 	}
@@ -333,7 +333,7 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 
 	fmt.Println("Done!")
 	fmt.Println()
-	fmt.Printf("Your emulation directory is ready at: %s\n", userStore.Root())
+	fmt.Printf("Your collection is ready at: %s\n", collection.Root())
 	fmt.Println("Place your ROMs in the appropriate subdirectories.")
 
 	return nil

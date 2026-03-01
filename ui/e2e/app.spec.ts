@@ -94,13 +94,13 @@ test.describe('Kyaraben App', () => {
     }
   })
 
-  test('shows emulation folder setting', async () => {
-    await expect(page.getByText('Emulation folder')).toBeVisible()
+  test('shows collection setting', async () => {
+    await expect(page.getByText('Collection')).toBeVisible()
     const input = page.getByPlaceholder('~/Emulation')
     await expect(input).toBeVisible()
   })
 
-  test('can change emulation folder path', async () => {
+  test('can change collection path', async () => {
     const input = page.getByPlaceholder('~/Emulation')
     await input.clear()
     await input.fill('~/EmulationTest')

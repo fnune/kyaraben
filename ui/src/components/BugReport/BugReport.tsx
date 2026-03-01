@@ -33,7 +33,7 @@ function generateMarkdown(
 
   lines.push('## Configuration')
   if (status) {
-    lines.push(`- User store: ${status.userStore || '(not set)'}`)
+    lines.push(`- User store: ${status.collection || '(not set)'}`)
     lines.push(`- Last applied: ${status.lastApplied || 'never'}`)
     lines.push(
       `- Enabled systems: ${status.enabledSystems.length > 0 ? status.enabledSystems.join(', ') : 'none'}`,

@@ -52,16 +52,16 @@ type FrontendInfo struct {
 }
 
 type Result struct {
-	ConfigPath           string
-	UserStorePath        string
-	UserStoreInitialized bool
-	EnabledSystems       []SystemInfo
-	InstalledEmulators   []EmulatorInfo
-	InstalledFrontends   []FrontendInfo
-	Symlinks             []SymlinkInfo
-	LastApplied          time.Time
-	MissingRequiredCount int
-	HealthWarning        string // Non-empty if inconsistent state detected
+	ConfigPath            string
+	CollectionPath        string
+	CollectionInitialized bool
+	EnabledSystems        []SystemInfo
+	InstalledEmulators    []EmulatorInfo
+	InstalledFrontends    []FrontendInfo
+	Symlinks              []SymlinkInfo
+	LastApplied           time.Time
+	MissingRequiredCount  int
+	HealthWarning         string // Non-empty if inconsistent state detected
 }
 
 type Getter struct {
@@ -84,17 +84,17 @@ func NewDefaultGetter() *Getter {
 	return NewGetter(vfs.OSFS, paths.DefaultPaths(), model.NewDefaultResolver())
 }
 
-func (g *Getter) Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg *registry.Registry, userStore *store.UserStore, manifestPath string) (*Result, error) {
+func (g *Getter) Get(ctx context.Context, cfg *model.KyarabenConfig, configPath string, reg *registry.Registry, collection *store.Collection, manifestPath string) (*Result, error) {
 	manifest, err := g.manifestStore.Load(manifestPath)
 	if err != nil {
 		return nil, err
 	}
 
 	result := &Result{
-		ConfigPath:           configPath,
-		UserStorePath:        userStore.Root(),
-		UserStoreInitialized: userStore.IsInitialized(),
-		LastApplied:          manifest.LastApplied,
+		ConfigPath:            configPath,
+		CollectionPath:        collection.Root(),
+		CollectionInitialized: collection.IsInitialized(),
+		LastApplied:           manifest.LastApplied,
 	}
 
 	for _, sysID := range cfg.EnabledSystems() {
@@ -170,7 +170,7 @@ func (g *Getter) Get(ctx context.Context, cfg *model.KyarabenConfig, configPath 
 		})
 	}
 
-	checker := store.NewProvisionChecker(userStore)
+	checker := store.NewProvisionChecker(collection)
 	for sys, emulatorIDs := range cfg.Systems {
 		for _, emuID := range emulatorIDs {
 			emu, err := reg.GetEmulator(emuID)

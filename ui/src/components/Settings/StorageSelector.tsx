@@ -9,8 +9,8 @@ import { RadioCard } from '@/lib/RadioCard'
 import type { StorageDevice } from '@/types/daemon'
 
 export interface StorageSelectorProps {
-  readonly userStore: string
-  readonly onUserStoreChange: (value: string) => void
+  readonly collection: string
+  readonly onCollectionChange: (value: string) => void
   readonly onOpenFolder: () => void
   readonly folderExists: boolean
   readonly opening: boolean
@@ -23,8 +23,8 @@ function formatStorageDescription(device: StorageDevice): string {
 }
 
 export function StorageSelector({
-  userStore,
-  onUserStoreChange,
+  collection,
+  onCollectionChange,
   onOpenFolder,
   folderExists,
   opening,
@@ -48,36 +48,36 @@ export function StorageSelector({
 
   useEffect(() => {
     if (!homeDir || devices.length === 0) return
-    const expandedUserStore = expandTilde(userStore, homeDir)
-    const matching = devices.find((d) => d.path === expandedUserStore)
+    const expandedCollection = expandTilde(collection, homeDir)
+    const matching = devices.find((d) => d.path === expandedCollection)
     if (matching) {
       setSelectedId(matching.id)
-    } else if (userStore) {
+    } else if (collection) {
       setSelectedId('custom')
     }
-  }, [userStore, homeDir, devices])
+  }, [collection, homeDir, devices])
 
   const handleSelect = useCallback(
     (device: StorageDevice) => {
       setSelectedId(device.id)
-      onUserStoreChange(collapseTilde(device.path, homeDir))
+      onCollectionChange(collapseTilde(device.path, homeDir))
     },
-    [onUserStoreChange, homeDir],
+    [onCollectionChange, homeDir],
   )
 
   const handleCustomSelect = useCallback(async () => {
     const result = await selectDirectory()
     if (result.ok && result.data) {
       setSelectedId('custom')
-      onUserStoreChange(collapseTilde(result.data, homeDir))
+      onCollectionChange(collapseTilde(result.data, homeDir))
     }
-  }, [onUserStoreChange, homeDir])
+  }, [onCollectionChange, homeDir])
 
   if (loading) {
     return (
       <div>
         <span className="text-xs font-semibold text-on-surface-dim uppercase tracking-widest block">
-          Emulation folder
+          Collection
         </span>
         <div className="mt-2 text-on-surface-muted">Detecting storage...</div>
       </div>
@@ -87,7 +87,7 @@ export function StorageSelector({
   return (
     <div>
       <span className="text-xs font-semibold text-on-surface-dim uppercase tracking-widest block">
-        Emulation folder
+        Collection
       </span>
 
       <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
@@ -118,7 +118,7 @@ export function StorageSelector({
 
       <div className="mt-2 flex gap-2">
         <div className="flex-1">
-          <Input value={userStore} onChange={onUserStoreChange} placeholder="~/Emulation" />
+          <Input value={collection} onChange={onCollectionChange} placeholder="~/Emulation" />
         </div>
         <IconButton
           icon={<FolderIcon className="w-5 h-5 text-on-surface-muted" />}

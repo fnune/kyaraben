@@ -67,7 +67,7 @@
     "StatusResponse": {
       "type": "object",
       "properties": {
-        "userStore": { "type": "string" },
+        "collection": { "type": "string" },
         "enabledSystems": {
           "type": "array",
           "items": { "type": "string" }
@@ -95,7 +95,7 @@
     "ConfigResponse": {
       "type": "object",
       "properties": {
-        "userStore": { "type": "string" },
+        "collection": { "type": "string" },
         "systems": {
           "type": "object",
           "additionalProperties": { "type": "string" }

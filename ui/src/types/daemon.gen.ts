@@ -6,7 +6,7 @@ import type { LogEntry } from './logging.gen'
 // source: protocol.go
 
 export interface SetConfigRequest {
-  userStore: string;
+  collection: string;
   graphics?: GraphicsConfigRequest;
   controller?: ControllerConfigRequest;
   systems: { [key: string]: string[]};
@@ -41,7 +41,7 @@ export interface ErrorResponse {
   error: string;
 }
 export interface StatusResponse {
-  userStore: string;
+  collection: string;
   enabledSystems: SystemID[];
   installedEmulators: InstalledEmulator[];
   installedFrontends: InstalledFrontend[];
@@ -151,7 +151,7 @@ export interface EmulatorRef {
   supportedSettings?: string[];
 }
 export interface ConfigResponse {
-  userStore: string;
+  collection: string;
   graphics: GraphicsConfigResponse;
   controller: ControllerConfigResponse;
   systems: { [key: string]: EmulatorID[]};
@@ -322,7 +322,7 @@ export interface UninstallPreviewResponse {
   preserved: PreservedPaths;
 }
 export interface PreservedPaths {
-  userStore: string;
+  collection: string;
   configDir: string;
 }
 export interface InstallKyarabenRequest {

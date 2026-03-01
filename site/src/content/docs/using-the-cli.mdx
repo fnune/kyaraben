@@ -3,7 +3,7 @@ title: CLI reference
 description: CLI commands and the config file
 ---
 
-import UserStore from "../../components/UserStore.astro";
+import Collection from "../../components/Collection.astro";
 
 ## The config file
 
@@ -18,7 +18,7 @@ who prefer text editors or want to version-control their setup.
 
 ```toml
 [global]
-user_store = "~/Emulation"
+collection = "~/Emulation"
 
 [systems]
 snes = ["retroarch:bsnes"]
@@ -38,9 +38,9 @@ enabled = true
 
 ### `[global]`
 
-| Key          | Type   | Default       | Description                     |
-| ------------ | ------ | ------------- | ------------------------------- |
-| `user_store` | string | `~/Emulation` | Path to the emulation directory |
+| Key          | Type   | Default       | Description            |
+| ------------ | ------ | ------------- | ---------------------- |
+| `collection` | string | `~/Emulation` | Path to the collection |
 
 ### `[systems]`
 
@@ -110,7 +110,7 @@ Configuring emulators...
 
 Done!
 
-Your emulation directory is ready at: ~/Emulation
+Your collection is ready at: ~/Emulation
 Place your ROMs in the appropriate subdirectories.
 ```
 
@@ -125,7 +125,7 @@ where files are stored.
 $ kyaraben status
 
 Config: ~/.config/kyaraben/config.toml
-Emulation folder: ~/Emulation (initialized)
+Collection: ~/Emulation (initialized)
 
 Enabled systems: PlayStation, Super Nintendo, Game Boy Advance, Nintendo DS
 
@@ -193,7 +193,7 @@ Run 'kyaraben apply' to install emulators and create directories.
 
 ### `kyaraben uninstall`
 
-Removes Kyaraben-managed files. Never touches the <UserStore />.
+Removes Kyaraben-managed files. Never touches the <Collection />.
 
 ```
 $ kyaraben uninstall

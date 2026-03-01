@@ -191,7 +191,7 @@ const ConfigInputNone ConfigInput = "none"
 // Shorthand dependency lists for common cases.
 var (
 	None     = []ConfigInput{ConfigInputNone}
-	Store    = []ConfigInput{ConfigInputUserStore}
+	Store    = []ConfigInput{ConfigInputCollection}
 	Nintendo = []ConfigInput{ConfigInputNintendoConfirm}
 )
 

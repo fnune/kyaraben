@@ -45,7 +45,7 @@ test.describe('Config conflict review', () => {
     fs.mkdirSync(retroarchConfigDir, { recursive: true })
 
     const configContent = [
-      `libretro_directory = "${fixture.userStore}/cores"`,
+      `libretro_directory = "${fixture.collection}/cores"`,
       'rgui_browser_directory = "/user/custom/roms/path"',
       'sort_savefiles_enable = "true"',
       'sort_savestates_enable = "true"',
@@ -74,7 +74,7 @@ test.describe('Config conflict review', () => {
             BaseDir: 'user_config',
           },
           written_entries: {
-            rgui_browser_directory: `"${fixture.userStore}/roms"`,
+            rgui_browser_directory: `"${fixture.collection}/roms"`,
           },
           last_modified: new Date().toISOString(),
           managed_regions: [{ type: 'file' }],
@@ -120,11 +120,9 @@ test.describe('Config conflict review', () => {
     await expect(page.getByRole('button', { name: 'Open file' }).first()).toBeVisible()
     await expect(page.getByRole('button', { name: 'Continue and override' })).toBeVisible()
 
-    await page.pause() // TODO: remove - debug pause to see conflict review
-
     // Cancel returns to systems view
     await page.getByRole('button', { name: 'Cancel' }).click()
-    await expect(page.getByText('Emulation folder')).toBeVisible()
+    await expect(page.getByText('Collection')).toBeVisible()
     await expect(page.getByText('Config conflicts detected')).not.toBeVisible()
   })
 
@@ -132,8 +130,6 @@ test.describe('Config conflict review', () => {
     // Re-trigger apply — SNES toggle is still on from earlier
     await page.getByRole('button', { name: 'Apply' }).click()
     await expect(page.getByText('Config conflicts detected')).toBeVisible({ timeout: 10000 })
-
-    await page.pause() // TODO: remove - debug pause to see conflict review (before override)
 
     await page.getByRole('button', { name: 'Continue and override' }).click()
 
@@ -143,10 +139,8 @@ test.describe('Config conflict review', () => {
 
     await expect(page.getByRole('button', { name: 'Done' })).toBeVisible({ timeout: 30000 })
 
-    await page.pause() // TODO: remove - debug pause to see completion
-
     await page.getByRole('button', { name: 'Done' }).click()
-    await expect(page.getByText('Emulation folder')).toBeVisible()
+    await expect(page.getByText('Collection')).toBeVisible()
   })
 })
 
@@ -185,10 +179,8 @@ test.describe('UI-driven config change', () => {
 
     await expect(page.getByRole('button', { name: 'Done' })).toBeVisible({ timeout: 30000 })
 
-    await page.pause() // TODO: remove - debug pause to see first completion
-
     await page.getByRole('button', { name: 'Done' }).click()
-    await expect(page.getByText('Emulation folder')).toBeVisible()
+    await expect(page.getByText('Collection')).toBeVisible()
 
     const southButton = page.getByText('South button confirms')
     await southButton.click()
@@ -201,10 +193,8 @@ test.describe('UI-driven config change', () => {
 
     await expect(page.getByRole('button', { name: 'Done' })).toBeVisible({ timeout: 30000 })
 
-    await page.pause() // TODO: remove - debug pause to see second completion (no conflict)
-
     await page.getByRole('button', { name: 'Done' }).click()
-    await expect(page.getByText('Emulation folder')).toBeVisible()
+    await expect(page.getByText('Collection')).toBeVisible()
   })
 })
 
@@ -230,7 +220,7 @@ test.describe('Version upgrade review', () => {
     const configContent = [
       '[Main]',
       'SettingsVersion = 3',
-      `GamePaths = ${fixture.userStore}/roms/psx`,
+      `GamePaths = ${fixture.collection}/roms/psx`,
       '[AutoUpdater]',
       'CheckAtStartup = true',
     ].join('\n')
@@ -297,15 +287,11 @@ test.describe('Version upgrade review', () => {
     await expect(page.getByText('duckstation/settings.ini')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Continue' })).toBeVisible()
 
-    await page.pause() // TODO: remove - debug pause to see version upgrade review
-
     await page.getByRole('button', { name: 'Continue' }).click()
 
     await expect(page.getByRole('button', { name: 'Done' })).toBeVisible({ timeout: 30000 })
 
-    await page.pause() // TODO: remove - debug pause to see completion
-
     await page.getByRole('button', { name: 'Done' }).click()
-    await expect(page.getByText('Emulation folder')).toBeVisible()
+    await expect(page.getByText('Collection')).toBeVisible()
   })
 })

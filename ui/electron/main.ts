@@ -535,7 +535,7 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle(
     'set_config',
-    async (_, data: { userStore: string; systems: Record<string, string> }) => {
+    async (_, data: { collection: string; systems: Record<string, string> }) => {
       const event = await sendCommand({ type: 'set_config', data })
       return event.data
     },

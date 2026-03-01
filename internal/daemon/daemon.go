@@ -107,13 +107,13 @@ func shortenPath(path string) string {
 	return path
 }
 
-func computeFolderPath(userStoreRoot, folderID string) string {
+func computeFolderPath(collectionRoot, folderID string) string {
 	id := strings.TrimPrefix(folderID, "kyaraben-")
 	parts := strings.SplitN(id, "-", 2)
 	if len(parts) == 2 {
-		return filepath.Join(userStoreRoot, parts[0], parts[1])
+		return filepath.Join(collectionRoot, parts[0], parts[1])
 	}
-	return filepath.Join(userStoreRoot, id)
+	return filepath.Join(collectionRoot, id)
 }
 
 func (d *Daemon) Handle(cmd Command) []Event {
@@ -256,7 +256,7 @@ func (d *Daemon) loadConfigWithWarnings() (*loadConfigResult, error) {
 				cfg.Sync.Syncthing.ListenPort = 22100 + offset
 				cfg.Sync.Syncthing.DiscoveryPort = 21127 + offset
 				cfg.Sync.Syncthing.GUIPort = 8484 + offset
-				cfg.Global.UserStore = "~/Emulation-" + d.deps.Paths.Instance
+				cfg.Global.Collection = "~/Emulation-" + d.deps.Paths.Instance
 			}
 			return &loadConfigResult{Config: cfg}, nil
 		}
@@ -284,12 +284,12 @@ func (d *Daemon) handleStatus() []Event {
 		configPath, _ = d.deps.Paths.ConfigPath()
 	}
 
-	userStore, err := store.NewUserStore(d.deps.FS, d.deps.Paths, cfg.Global.UserStore)
+	collection, err := store.NewCollection(d.deps.FS, d.deps.Paths, cfg.Global.Collection)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
 
-	result, err := status.NewGetter(d.deps.FS, d.deps.Paths, d.deps.Resolver).Get(context.Background(), cfg, configPath, d.deps.Registry, userStore, d.deps.ManifestPath)
+	result, err := status.NewGetter(d.deps.FS, d.deps.Paths, d.deps.Resolver).Get(context.Background(), cfg, configPath, d.deps.Registry, collection, d.deps.ManifestPath)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
@@ -336,19 +336,19 @@ func (d *Daemon) handleStatus() []Event {
 			for _, emuID := range emuIDs {
 				if emuID == emu.ID {
 					paths := EmulatorPaths{
-						Roms: shortenPath(userStore.SystemRomsDir(sysID)),
+						Roms: shortenPath(collection.SystemRomsDir(sysID)),
 					}
 					if emuDef.PathUsage.UsesBiosDir {
-						paths.Bios = shortenPath(userStore.SystemBiosDir(sysID))
+						paths.Bios = shortenPath(collection.SystemBiosDir(sysID))
 					}
 					if emuDef.PathUsage.UsesSavesDir {
-						paths.Saves = shortenPath(userStore.SystemSavesDir(sysID))
+						paths.Saves = shortenPath(collection.SystemSavesDir(sysID))
 					}
 					if emuDef.PathUsage.UsesStatesDir {
-						paths.Savestates = shortenPath(userStore.EmulatorStatesDir(emu.ID))
+						paths.Savestates = shortenPath(collection.EmulatorStatesDir(emu.ID))
 					}
 					if emuDef.PathUsage.UsesScreenshotsDir {
-						paths.Screenshots = shortenPath(userStore.EmulatorScreenshotsDir(emu.ID))
+						paths.Screenshots = shortenPath(collection.EmulatorScreenshotsDir(emu.ID))
 					}
 					installed.Paths[string(sysID)] = paths
 					break
@@ -402,7 +402,7 @@ func (d *Daemon) handleStatus() []Event {
 	return []Event{{
 		Type: EventTypeResult,
 		Data: StatusResponse{
-			UserStore:               result.UserStorePath,
+			Collection:              result.CollectionPath,
 			EnabledSystems:          systems,
 			InstalledEmulators:      installedEmulators,
 			InstalledFrontends:      installedFrontends,
@@ -422,12 +422,12 @@ func (d *Daemon) handleDoctor() []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	userStore, err := store.NewUserStore(d.deps.FS, d.deps.Paths, cfg.Global.UserStore)
+	collection, err := store.NewCollection(d.deps.FS, d.deps.Paths, cfg.Global.Collection)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
 
-	result, err := doctor.Run(context.Background(), cfg, d.deps.Registry, userStore)
+	result, err := doctor.Run(context.Background(), cfg, d.deps.Registry, collection)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
@@ -475,7 +475,7 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 	}
 	d.deps.Installer.SetVersionOverrides(versionOverrides)
 
-	userStore, err := store.NewUserStore(d.deps.FS, d.deps.Paths, cfg.Global.UserStore)
+	collection, err := store.NewCollection(d.deps.FS, d.deps.Paths, cfg.Global.Collection)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
@@ -557,7 +557,7 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 		},
 	}
 
-	_, err = applier.Apply(ctx, cfg, userStore, opts)
+	_, err = applier.Apply(ctx, cfg, collection, opts)
 	if ctx.Err() != nil {
 		return []Event{{
 			Type: EventTypeCancelled,
@@ -581,7 +581,7 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 				Data: ProgressEvent{Step: "sync-resume", Message: "Resuming synchronization"},
 			})
 		}
-		if err := d.updateSyncConfig(cfg, userStore.Root()); err != nil {
+		if err := d.updateSyncConfig(cfg, collection.Root()); err != nil {
 			log.Info("Failed to update sync config: %v", err)
 		}
 	}
@@ -600,7 +600,7 @@ func (d *Daemon) handlePreflight() []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	userStore, err := store.NewUserStore(d.deps.FS, d.deps.Paths, cfg.Global.UserStore)
+	collection, err := store.NewCollection(d.deps.FS, d.deps.Paths, cfg.Global.Collection)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
@@ -617,7 +617,7 @@ func (d *Daemon) handlePreflight() []Event {
 	)
 	applier.SteamManager = steam.NewDefaultManager()
 
-	preflight, err := applier.Preflight(context.Background(), cfg, userStore)
+	preflight, err := applier.Preflight(context.Background(), cfg, collection)
 	if err != nil {
 		return d.errorResponse(fmt.Sprintf("preflight check: %v", err))
 	}
@@ -631,7 +631,7 @@ func (d *Daemon) handlePreflight() []Event {
 	diffCtx := &emulators.DiffContext{
 		CurrentConfigInputs: map[string]string{
 			string(model.ConfigInputNintendoConfirm): string(controllerConfig.NintendoConfirm),
-			string(model.ConfigInputUserStore):       userStore.Root(),
+			string(model.ConfigInputCollection):      collection.Root(),
 		},
 	}
 
@@ -918,7 +918,7 @@ func (d *Daemon) handleGetConfig() []Event {
 	return []Event{{
 		Type: EventTypeResult,
 		Data: ConfigResponse{
-			UserStore:  cfg.Global.UserStore,
+			Collection: cfg.Global.Collection,
 			Graphics:   GraphicsConfigResponse{Shaders: cfg.Graphics.Shaders},
 			Controller: ControllerConfigResponse{NintendoConfirm: cfg.Controller.NintendoConfirm},
 			Systems:    systems,
@@ -936,8 +936,8 @@ func (d *Daemon) handleSetConfig(data *SetConfigRequest) []Event {
 	}
 
 	if data != nil {
-		if data.UserStore != "" {
-			cfg.Global.UserStore = data.UserStore
+		if data.Collection != "" {
+			cfg.Global.Collection = data.Collection
 		}
 
 		if data.Graphics != nil {
@@ -1083,7 +1083,7 @@ func (d *Daemon) handleSyncStatus() []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	userStore, err := store.NewUserStore(d.deps.FS, d.deps.Paths, cfg.Global.UserStore)
+	collection, err := store.NewCollection(d.deps.FS, d.deps.Paths, cfg.Global.Collection)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
@@ -1108,7 +1108,7 @@ func (d *Daemon) handleSyncStatus() []Event {
 	for i, f := range syncStatus.Folders {
 		path := f.Path
 		if !filepath.IsAbs(path) {
-			path = computeFolderPath(userStore.Root(), f.ID)
+			path = computeFolderPath(collection.Root(), f.ID)
 		}
 		folders[i] = SyncFolder{
 			ID:                 f.ID,
@@ -1500,7 +1500,7 @@ func (d *Daemon) handleSyncEnable(emit func(Event)) []Event {
 
 	cfg.Sync.Enabled = true
 
-	userStore, err := store.NewUserStore(d.deps.FS, d.deps.Paths, cfg.Global.UserStore)
+	collection, err := store.NewCollection(d.deps.FS, d.deps.Paths, cfg.Global.Collection)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
@@ -1524,7 +1524,7 @@ func (d *Daemon) handleSyncEnable(emit func(Event)) []Event {
 		emitProgress("installing", "Installing syncthing...", 0)
 
 		setup := syncpkg.NewSetup(d.deps.FS, d.deps.Paths, d.deps.Installer, d.deps.StateDir, d.deps.Service)
-		result, err := setup.Install(context.Background(), cfg.Sync, userStore.Root(), allSystems, func(p packages.InstallProgress) {
+		result, err := setup.Install(context.Background(), cfg.Sync, collection.Root(), allSystems, func(p packages.InstallProgress) {
 			percent := 0
 			if p.BytesTotal > 0 {
 				percent = int(p.BytesDownloaded * 80 / p.BytesTotal)
@@ -1650,14 +1650,14 @@ func (d *Daemon) handleSyncSetSettings(data *SyncSetSettingsRequest) []Event {
 	}
 
 	if cfg.Sync.Enabled {
-		userStore, err := store.NewUserStore(d.deps.FS, d.deps.Paths, cfg.Global.UserStore)
+		collection, err := store.NewCollection(d.deps.FS, d.deps.Paths, cfg.Global.Collection)
 		if err != nil {
 			return d.errorResponse(err.Error())
 		}
 
 		allSystems := d.syncSystems(cfg)
 		setup := syncpkg.NewSetup(d.deps.FS, d.deps.Paths, d.deps.Installer, d.deps.StateDir, d.deps.Service)
-		if err := setup.UpdateConfig(cfg.Sync, userStore.Root(), allSystems); err != nil {
+		if err := setup.UpdateConfig(cfg.Sync, collection.Root(), allSystems); err != nil {
 			return d.errorResponse(fmt.Sprintf("updating syncthing config: %v", err))
 		}
 
@@ -1863,7 +1863,7 @@ func (d *Daemon) ensureSyncthingManaged(cfg *model.KyarabenConfig) {
 		d.syncReconfigMu.Unlock()
 	}()
 
-	userStore, err := store.NewUserStore(d.deps.FS, d.deps.Paths, cfg.Global.UserStore)
+	collection, err := store.NewCollection(d.deps.FS, d.deps.Paths, cfg.Global.Collection)
 	if err != nil {
 		log.Error("Failed to create user store for sync setup: %v", err)
 		d.recordSyncSetupFailure()
@@ -1873,7 +1873,7 @@ func (d *Daemon) ensureSyncthingManaged(cfg *model.KyarabenConfig) {
 	allSystems := d.syncSystems(cfg)
 
 	setup := syncpkg.NewSetup(d.deps.FS, d.deps.Paths, d.deps.Installer, d.deps.StateDir, d.deps.Service)
-	result, err := setup.Install(context.Background(), cfg.Sync, userStore.Root(), allSystems, nil)
+	result, err := setup.Install(context.Background(), cfg.Sync, collection.Root(), allSystems, nil)
 	if err != nil {
 		log.Error("Syncthing setup failed: %v", err)
 		d.recordSyncSetupFailure()
@@ -1936,7 +1936,7 @@ func (d *Daemon) resetSyncSetupBackoff() {
 	d.syncReconfigLastFailure = time.Time{}
 }
 
-func (d *Daemon) updateSyncConfig(cfg *model.KyarabenConfig, userStorePath string) error {
+func (d *Daemon) updateSyncConfig(cfg *model.KyarabenConfig, collectionPath string) error {
 	allSystems := d.syncSystems(cfg)
 
 	manifest, err := d.loadManifest()
@@ -1945,7 +1945,7 @@ func (d *Daemon) updateSyncConfig(cfg *model.KyarabenConfig, userStorePath strin
 	}
 
 	setup := syncpkg.NewSetup(d.deps.FS, d.deps.Paths, d.deps.Installer, d.deps.StateDir, d.deps.Service)
-	result, installErr := setup.Install(context.Background(), cfg.Sync, userStorePath, allSystems, nil)
+	result, installErr := setup.Install(context.Background(), cfg.Sync, collectionPath, allSystems, nil)
 	if installErr != nil {
 		return fmt.Errorf("updating syncthing: %w", installErr)
 	}
@@ -2179,7 +2179,7 @@ func (d *Daemon) handleUninstallPreview() []Event {
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}
-	userStore := cfg.Global.UserStore
+	collection := cfg.Global.Collection
 
 	configDir, _ := d.deps.Paths.ConfigDir()
 
@@ -2272,8 +2272,8 @@ func (d *Daemon) handleUninstallPreview() []Event {
 			KyarabenFiles:      kyarabenFiles,
 			SyncthingFiles:     syncthingFiles,
 			Preserved: PreservedPaths{
-				UserStore: shortenPath(userStore),
-				ConfigDir: shortenPath(configDir),
+				Collection: shortenPath(collection),
+				ConfigDir:  shortenPath(configDir),
 			},
 		},
 	}}

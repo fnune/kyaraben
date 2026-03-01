@@ -8,7 +8,7 @@ import (
 // Request types
 
 type SetConfigRequest struct {
-	UserStore  string                         `json:"userStore"`
+	Collection string                         `json:"collection"`
 	Graphics   *GraphicsConfigRequest         `json:"graphics,omitempty"`
 	Controller *ControllerConfigRequest       `json:"controller,omitempty"`
 	Systems    map[string][]string            `json:"systems"`
@@ -53,7 +53,7 @@ type ErrorResponse struct {
 }
 
 type StatusResponse struct {
-	UserStore               string              `json:"userStore"`
+	Collection              string              `json:"collection"`
 	EnabledSystems          []model.SystemID    `json:"enabledSystems"`
 	InstalledEmulators      []InstalledEmulator `json:"installedEmulators"`
 	InstalledFrontends      []InstalledFrontend `json:"installedFrontends"`
@@ -177,7 +177,7 @@ type EmulatorRef struct {
 }
 
 type ConfigResponse struct {
-	UserStore  string                          `json:"userStore"`
+	Collection string                          `json:"collection"`
 	Graphics   GraphicsConfigResponse          `json:"graphics"`
 	Controller ControllerConfigResponse        `json:"controller"`
 	Systems    map[string][]model.EmulatorID   `json:"systems"`
@@ -381,8 +381,8 @@ type UninstallPreviewResponse struct {
 }
 
 type PreservedPaths struct {
-	UserStore string `json:"userStore"`
-	ConfigDir string `json:"configDir"`
+	Collection string `json:"collection"`
+	ConfigDir  string `json:"configDir"`
 }
 
 type InstallKyarabenRequest struct {

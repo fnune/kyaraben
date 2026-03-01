@@ -28,7 +28,7 @@ func (cmd *PathsCmd) Run(ctx *Context) error {
 	}
 
 	registry := ctx.NewRegistry()
-	userStore, err := ctx.NewUserStore(cfg)
+	collection, err := ctx.NewCollection(cfg)
 	if err != nil {
 		return err
 	}
@@ -65,19 +65,19 @@ func (cmd *PathsCmd) Run(ctx *Context) error {
 					continue
 				}
 
-				fmt.Printf("    ROMs:        %s\n", shortenPath(userStore.SystemRomsDir(sysID)))
+				fmt.Printf("    ROMs:        %s\n", shortenPath(collection.SystemRomsDir(sysID)))
 
 				if emu.PathUsage.UsesBiosDir {
-					fmt.Printf("    BIOS:        %s\n", shortenPath(userStore.SystemBiosDir(sysID)))
+					fmt.Printf("    BIOS:        %s\n", shortenPath(collection.SystemBiosDir(sysID)))
 				}
 				if emu.PathUsage.UsesSavesDir {
-					fmt.Printf("    Saves:       %s\n", shortenPath(userStore.SystemSavesDir(sysID)))
+					fmt.Printf("    Saves:       %s\n", shortenPath(collection.SystemSavesDir(sysID)))
 				}
 				if emu.PathUsage.UsesStatesDir {
-					fmt.Printf("    Savestates:  %s\n", shortenPath(userStore.EmulatorStatesDir(emuID)))
+					fmt.Printf("    Savestates:  %s\n", shortenPath(collection.EmulatorStatesDir(emuID)))
 				}
 				if emu.PathUsage.UsesScreenshotsDir {
-					fmt.Printf("    Screenshots: %s\n", shortenPath(userStore.EmulatorScreenshotsDir(emuID)))
+					fmt.Printf("    Screenshots: %s\n", shortenPath(collection.EmulatorScreenshotsDir(emuID)))
 				}
 
 				break

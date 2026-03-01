@@ -59,7 +59,7 @@ func TestKyarabenSync(t *testing.T) {
 
 	t.Run("roms sync bidirectionally", func(t *testing.T) {
 		romData := []byte("fake rom data")
-		romPath := filepath.Join(device1.userStore, "roms", "snes", "game.sfc")
+		romPath := filepath.Join(device1.collection, "roms", "snes", "game.sfc")
 
 		if err := os.MkdirAll(filepath.Dir(romPath), 0755); err != nil {
 			t.Fatalf("MkdirAll: %v", err)
@@ -68,13 +68,13 @@ func TestKyarabenSync(t *testing.T) {
 			t.Fatalf("WriteFile: %v", err)
 		}
 
-		syncedPath := filepath.Join(device2.userStore, "roms", "snes", "game.sfc")
+		syncedPath := filepath.Join(device2.collection, "roms", "snes", "game.sfc")
 		if err := waitForFile(ctx, syncedPath, romData); err != nil {
 			t.Fatalf("ROM did not sync device1 → device2: %v", err)
 		}
 
 		romData2 := []byte("rom from device2")
-		romPath2 := filepath.Join(device2.userStore, "roms", "psx", "game.bin")
+		romPath2 := filepath.Join(device2.collection, "roms", "psx", "game.bin")
 
 		if err := os.MkdirAll(filepath.Dir(romPath2), 0755); err != nil {
 			t.Fatalf("MkdirAll: %v", err)
@@ -83,7 +83,7 @@ func TestKyarabenSync(t *testing.T) {
 			t.Fatalf("WriteFile: %v", err)
 		}
 
-		syncedPath2 := filepath.Join(device1.userStore, "roms", "psx", "game.bin")
+		syncedPath2 := filepath.Join(device1.collection, "roms", "psx", "game.bin")
 		if err := waitForFile(ctx, syncedPath2, romData2); err != nil {
 			t.Fatalf("ROM did not sync device2 → device1: %v", err)
 		}
@@ -91,13 +91,13 @@ func TestKyarabenSync(t *testing.T) {
 
 	t.Run("rom deletions sync", func(t *testing.T) {
 		romData := []byte("rom to delete")
-		romPath := filepath.Join(device1.userStore, "roms", "snes", "deleteme.sfc")
+		romPath := filepath.Join(device1.collection, "roms", "snes", "deleteme.sfc")
 
 		if err := os.WriteFile(romPath, romData, 0644); err != nil {
 			t.Fatalf("WriteFile: %v", err)
 		}
 
-		syncedPath := filepath.Join(device2.userStore, "roms", "snes", "deleteme.sfc")
+		syncedPath := filepath.Join(device2.collection, "roms", "snes", "deleteme.sfc")
 		if err := waitForFile(ctx, syncedPath, romData); err != nil {
 			t.Fatalf("ROM did not sync before deletion test: %v", err)
 		}
@@ -113,7 +113,7 @@ func TestKyarabenSync(t *testing.T) {
 
 	t.Run("saves sync bidirectionally", func(t *testing.T) {
 		saveData := []byte("save from device1")
-		savePath := filepath.Join(device1.userStore, "saves", "snes", "game.srm")
+		savePath := filepath.Join(device1.collection, "saves", "snes", "game.srm")
 
 		if err := os.MkdirAll(filepath.Dir(savePath), 0755); err != nil {
 			t.Fatalf("MkdirAll: %v", err)
@@ -122,7 +122,7 @@ func TestKyarabenSync(t *testing.T) {
 			t.Fatalf("WriteFile: %v", err)
 		}
 
-		syncedPath := filepath.Join(device2.userStore, "saves", "snes", "game.srm")
+		syncedPath := filepath.Join(device2.collection, "saves", "snes", "game.srm")
 		if err := waitForFile(ctx, syncedPath, saveData); err != nil {
 			t.Fatalf("save did not sync device1 → device2: %v", err)
 		}
@@ -174,32 +174,32 @@ func waitForFile(ctx context.Context, path string, expectedContent []byte) error
 
 type kyarabenInstance struct {
 	*testInstance
-	userStore string
-	systems   []model.SystemID
+	collection string
+	systems    []model.SystemID
 }
 
 func newKyarabenInstance(t *testing.T, name string, guiPort, listenPort int) *kyarabenInstance {
 	t.Helper()
 
 	inst := newTestInstance(t, name, guiPort, listenPort)
-	userStore := filepath.Join(filepath.Dir(inst.configDir), "emulation")
+	collection := filepath.Join(filepath.Dir(inst.configDir), "emulation")
 
 	systems := []model.SystemID{"snes", "psx"}
 	for _, sys := range systems {
 		for _, category := range []string{"roms", "saves", "states", "bios"} {
-			dir := filepath.Join(userStore, category, string(sys))
+			dir := filepath.Join(collection, category, string(sys))
 			if err := os.MkdirAll(dir, 0755); err != nil {
 				t.Fatalf("creating %s: %v", dir, err)
 			}
 		}
 	}
-	if err := os.MkdirAll(filepath.Join(userStore, "screenshots"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(collection, "screenshots"), 0755); err != nil {
 		t.Fatalf("creating screenshots: %v", err)
 	}
 
 	return &kyarabenInstance{
 		testInstance: inst,
-		userStore:    userStore,
+		collection:   collection,
 		systems:      systems,
 	}
 }
@@ -230,7 +230,7 @@ func (k *kyarabenInstance) writeKyarabenConfig(peer *kyarabenInstance) error {
 		},
 	}
 
-	gen := NewDefaultConfigGenerator(cfg, k.userStore, k.systems)
+	gen := NewDefaultConfigGenerator(cfg, k.collection, k.systems)
 	gen.SetDeviceID(k.deviceID)
 	gen.SetAPIKey(k.apiKey)
 

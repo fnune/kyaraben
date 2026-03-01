@@ -330,7 +330,7 @@ export function InstallationView() {
             <div>
               <p className="text-sm text-on-surface-secondary">Uninstall Kyaraben</p>
               <p className="text-xs text-on-surface-dim">
-                Remove all managed files (preserves your emulation folder)
+                Remove all managed files (preserves your collection)
               </p>
             </div>
             <Button variant="danger" onClick={handleUninstall}>
@@ -355,10 +355,7 @@ export function InstallationView() {
       <Section title="Preserved on uninstall">
         <SectionIntro>These directories will not be removed when uninstalling:</SectionIntro>
         <ul className="space-y-1">
-          <PathItem
-            path={`${preview.preserved.userStore} (emulation folder)`}
-            variant="preserved"
-          />
+          <PathItem path={`${preview.preserved.collection} (collection)`} variant="preserved" />
           <PathItem path={`${preview.preserved.configDir} (config)`} variant="preserved" />
         </ul>
       </Section>

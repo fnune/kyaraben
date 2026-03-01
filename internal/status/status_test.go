@@ -24,11 +24,11 @@ func TestMain(m *testing.M) {
 	m.Run()
 }
 
-func mustNewUserStore(t *testing.T, fs vfs.FS, path string) *store.UserStore {
+func mustNewCollection(t *testing.T, fs vfs.FS, path string) *store.Collection {
 	t.Helper()
-	s, err := store.NewUserStore(fs, paths.DefaultPaths(), path)
+	s, err := store.NewCollection(fs, paths.DefaultPaths(), path)
 	if err != nil {
-		t.Fatalf("NewUserStore(%q) failed: %v", path, err)
+		t.Fatalf("NewCollection(%q) failed: %v", path, err)
 	}
 	return s
 }
@@ -41,13 +41,13 @@ func TestGet(t *testing.T) {
 		"/state":     &vfst.Dir{Perm: 0755},
 	})
 
-	userStorePath := "/Emulation"
+	collectionPath := "/Emulation"
 	configPath := "/config.toml"
 	manifestPath := "/state/manifest.json"
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: userStorePath,
+			Collection: collectionPath,
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGBA:  {model.EmulatorIDRetroArchMGBA},
@@ -56,10 +56,10 @@ func TestGet(t *testing.T) {
 	}
 
 	reg := registry.NewDefault()
-	userStore := mustNewUserStore(t, fs, userStorePath)
+	collection := mustNewCollection(t, fs, collectionPath)
 
 	getter := NewGetter(fs, paths.DefaultPaths(), testutil.FakeResolver{ConfigDir: "/config", DataDir: "/data", HomeDir: "/"})
-	result, err := getter.Get(context.Background(), cfg, configPath, reg, userStore, manifestPath)
+	result, err := getter.Get(context.Background(), cfg, configPath, reg, collection, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
@@ -68,12 +68,12 @@ func TestGet(t *testing.T) {
 		t.Errorf("ConfigPath: got %s, want %s", result.ConfigPath, configPath)
 	}
 
-	if result.UserStorePath != userStorePath {
-		t.Errorf("UserStorePath: got %s, want %s", result.UserStorePath, userStorePath)
+	if result.CollectionPath != collectionPath {
+		t.Errorf("CollectionPath: got %s, want %s", result.CollectionPath, collectionPath)
 	}
 
-	if result.UserStoreInitialized {
-		t.Error("UserStoreInitialized should be false for non-existent directory")
+	if result.CollectionInitialized {
+		t.Error("CollectionInitialized should be false for non-existent directory")
 	}
 
 	if len(result.EnabledSystems) != 2 {
@@ -97,13 +97,13 @@ func TestGetWithInitializedStore(t *testing.T) {
 		"/state":                 &vfst.Dir{Perm: 0755},
 	})
 
-	userStorePath := "/Emulation"
+	collectionPath := "/Emulation"
 	configPath := "/config.toml"
 	manifestPath := "/state/manifest.json"
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: userStorePath,
+			Collection: collectionPath,
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
@@ -111,16 +111,16 @@ func TestGetWithInitializedStore(t *testing.T) {
 	}
 
 	reg := registry.NewDefault()
-	userStore := mustNewUserStore(t, fs, userStorePath)
+	collection := mustNewCollection(t, fs, collectionPath)
 
 	getter := NewGetter(fs, paths.DefaultPaths(), testutil.FakeResolver{ConfigDir: "/config", DataDir: "/data", HomeDir: "/"})
-	result, err := getter.Get(context.Background(), cfg, configPath, reg, userStore, manifestPath)
+	result, err := getter.Get(context.Background(), cfg, configPath, reg, collection, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
 
-	if !result.UserStoreInitialized {
-		t.Error("UserStoreInitialized should be true when all directories exist")
+	if !result.CollectionInitialized {
+		t.Error("CollectionInitialized should be true when all directories exist")
 	}
 }
 
@@ -136,7 +136,7 @@ func TestGetSystemNames(t *testing.T) {
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: "/Emulation",
+			Collection: "/Emulation",
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
@@ -144,10 +144,10 @@ func TestGetSystemNames(t *testing.T) {
 	}
 
 	reg := registry.NewDefault()
-	userStore := mustNewUserStore(t, fs, "/Emulation")
+	collection := mustNewCollection(t, fs, "/Emulation")
 
 	getter := NewGetter(fs, paths.DefaultPaths(), testutil.FakeResolver{ConfigDir: "/config", DataDir: "/data", HomeDir: "/"})
-	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, userStore, manifestPath)
+	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, collection, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
@@ -173,12 +173,12 @@ func TestGetMissingRequiredCount(t *testing.T) {
 		"/state":              &vfst.Dir{Perm: 0755},
 	})
 
-	userStorePath := "/Emulation"
+	collectionPath := "/Emulation"
 	manifestPath := "/state/manifest.json"
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: userStorePath,
+			Collection: collectionPath,
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDPSX: {model.EmulatorIDDuckStation},
@@ -187,10 +187,10 @@ func TestGetMissingRequiredCount(t *testing.T) {
 	}
 
 	reg := registry.NewDefault()
-	userStore := mustNewUserStore(t, fs, userStorePath)
+	collection := mustNewCollection(t, fs, collectionPath)
 
 	getter := NewGetter(fs, paths.DefaultPaths(), testutil.FakeResolver{ConfigDir: "/config", DataDir: "/data", HomeDir: "/"})
-	result, err := getter.Get(context.Background(), cfg, "/config", reg, userStore, manifestPath)
+	result, err := getter.Get(context.Background(), cfg, "/config", reg, collection, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
@@ -227,7 +227,7 @@ func TestGetWithManifest(t *testing.T) {
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: "/Emulation",
+			Collection: "/Emulation",
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
@@ -235,10 +235,10 @@ func TestGetWithManifest(t *testing.T) {
 	}
 
 	reg := registry.NewDefault()
-	userStore := mustNewUserStore(t, fs, "/Emulation")
+	collection := mustNewCollection(t, fs, "/Emulation")
 
 	getter := NewGetter(fs, paths.DefaultPaths(), testutil.FakeResolver{ConfigDir: "/config", DataDir: "/data", HomeDir: "/"})
-	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, userStore, manifestPath)
+	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, collection, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
@@ -290,7 +290,7 @@ func TestGetWithVersionPinning(t *testing.T) {
 
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
-			UserStore: "/Emulation",
+			Collection: "/Emulation",
 		},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDPSX: {model.EmulatorIDDuckStation},
@@ -301,10 +301,10 @@ func TestGetWithVersionPinning(t *testing.T) {
 	}
 
 	reg := registry.NewDefault()
-	userStore := mustNewUserStore(t, fs, "/Emulation")
+	collection := mustNewCollection(t, fs, "/Emulation")
 
 	getter := NewGetter(fs, paths.DefaultPaths(), testutil.FakeResolver{ConfigDir: "/config", DataDir: "/data", HomeDir: "/"})
-	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, userStore, manifestPath)
+	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, collection, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
@@ -354,15 +354,15 @@ func TestGetManagedConfigsIncludesKeys(t *testing.T) {
 	}
 
 	cfg := &model.KyarabenConfig{
-		Global:  model.GlobalConfig{UserStore: "/Emulation"},
+		Global:  model.GlobalConfig{Collection: "/Emulation"},
 		Systems: map[model.SystemID][]model.EmulatorID{model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA}},
 	}
 
 	reg := registry.NewDefault()
-	userStore := mustNewUserStore(t, fs, "/Emulation")
+	collection := mustNewCollection(t, fs, "/Emulation")
 
 	getter := NewGetter(fs, paths.DefaultPaths(), testutil.FakeResolver{ConfigDir: "/config", DataDir: "/data", HomeDir: "/"})
-	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, userStore, manifestPath)
+	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, collection, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
@@ -434,7 +434,7 @@ func TestGetRetroArchCoreIncludesSharedConfig(t *testing.T) {
 	}
 
 	cfg := &model.KyarabenConfig{
-		Global: model.GlobalConfig{UserStore: "/Emulation"},
+		Global: model.GlobalConfig{Collection: "/Emulation"},
 		Systems: map[model.SystemID][]model.EmulatorID{
 			model.SystemIDSNES: {model.EmulatorIDRetroArchBsnes},
 			model.SystemIDNES:  {model.EmulatorIDRetroArchMesen},
@@ -442,10 +442,10 @@ func TestGetRetroArchCoreIncludesSharedConfig(t *testing.T) {
 	}
 
 	reg := registry.NewDefault()
-	userStore := mustNewUserStore(t, fs, "/Emulation")
+	collection := mustNewCollection(t, fs, "/Emulation")
 
 	getter := NewGetter(fs, paths.DefaultPaths(), testutil.FakeResolver{ConfigDir: "/config", DataDir: "/data", HomeDir: "/"})
-	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, userStore, manifestPath)
+	result, err := getter.Get(context.Background(), cfg, "/Emulation", reg, collection, manifestPath)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}

@@ -4,35 +4,35 @@ import { useToast } from '@/lib/ToastContext'
 import { StorageSelector } from './StorageSelector'
 
 export interface SettingsProps {
-  readonly userStore: string
-  readonly onUserStoreChange: (value: string) => void
+  readonly collection: string
+  readonly onCollectionChange: (value: string) => void
 }
 
-export function Settings({ userStore, onUserStoreChange }: SettingsProps) {
+export function Settings({ collection, onCollectionChange }: SettingsProps) {
   const [opening, setOpening] = useState(false)
   const [folderExists, setFolderExists] = useState(false)
   const { showToast } = useToast()
 
   useEffect(() => {
-    if (!userStore) {
+    if (!collection) {
       setFolderExists(false)
       return
     }
-    window.electron.invoke('path_exists', userStore).then((exists) => {
+    window.electron.invoke('path_exists', collection).then((exists) => {
       setFolderExists(Boolean(exists))
     })
-  }, [userStore])
+  }, [collection])
 
   const handleOpenFolder = async () => {
     setOpening(true)
     try {
-      const error = await window.electron.invoke('open_path', userStore)
+      const error = await window.electron.invoke('open_path', collection)
       if (error) {
         showToast(`Could not open folder: ${error}.`, 'error')
       } else {
         showToast(
           <span>
-            Opening <PathText>{userStore}</PathText>.
+            Opening <PathText>{collection}</PathText>.
           </span>,
         )
       }
@@ -43,8 +43,8 @@ export function Settings({ userStore, onUserStoreChange }: SettingsProps) {
 
   return (
     <StorageSelector
-      userStore={userStore}
-      onUserStoreChange={onUserStoreChange}
+      collection={collection}
+      onCollectionChange={onCollectionChange}
       onOpenFolder={handleOpenFolder}
       folderExists={folderExists}
       opening={opening}

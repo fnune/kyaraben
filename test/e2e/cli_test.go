@@ -13,7 +13,7 @@ type cliTest struct {
 	t          *testing.T
 	tmpDir     string
 	configPath string
-	userStore  string
+	collection string
 }
 
 func TestMain(m *testing.M) {
@@ -50,7 +50,7 @@ func newCLITest(t *testing.T) *cliTest {
 		t:          t,
 		tmpDir:     tmpDir,
 		configPath: filepath.Join(tmpDir, "config.toml"),
-		userStore:  filepath.Join(tmpDir, "Emulation"),
+		collection: filepath.Join(tmpDir, "Emulation"),
 	}
 }
 
@@ -69,7 +69,7 @@ func (c *cliTest) cmd(args ...string) *exec.Cmd {
 
 func (c *cliTest) init() string {
 	c.t.Helper()
-	output, err := c.run("init", "-u", c.userStore)
+	output, err := c.run("init", "--collection", c.collection)
 	if err != nil {
 		c.t.Fatalf("init failed: %v\nOutput: %s", err, output)
 	}
@@ -147,7 +147,7 @@ func TestInit(t *testing.T) {
 		c := newCLITest(t)
 		c.init()
 
-		output, err := c.run("init", "-u", c.userStore)
+		output, err := c.run("init", "--collection", c.collection)
 		if err == nil {
 			t.Error("expected error when config already exists")
 		}
@@ -158,7 +158,7 @@ func TestInit(t *testing.T) {
 		c := newCLITest(t)
 		c.init()
 
-		output, err := c.run("init", "-u", c.userStore, "-f")
+		output, err := c.run("init", "--collection", c.collection, "-f")
 		if err != nil {
 			t.Fatalf("init --force failed: %v\nOutput: %s", err, output)
 		}
@@ -173,9 +173,9 @@ func TestApplyWorkflow(t *testing.T) {
 
 		c.assertContains(output, "Applying kyaraben configuration")
 		c.assertContains(output, "Done!")
-		c.assertFileExists(filepath.Join(c.userStore, "roms", "snes"))
-		c.assertFileExists(filepath.Join(c.userStore, "roms", "gba"))
-		c.assertFileExists(filepath.Join(c.userStore, "roms", "psx"))
+		c.assertFileExists(filepath.Join(c.collection, "roms", "snes"))
+		c.assertFileExists(filepath.Join(c.collection, "roms", "gba"))
+		c.assertFileExists(filepath.Join(c.collection, "roms", "psx"))
 	})
 
 	t.Run("dry run does not modify filesystem", func(t *testing.T) {
@@ -188,7 +188,7 @@ func TestApplyWorkflow(t *testing.T) {
 		}
 
 		c.assertContains(strings.ToLower(output), "dry run")
-		c.assertFileNotExists(c.userStore)
+		c.assertFileNotExists(c.collection)
 	})
 
 	t.Run("reapply is idempotent", func(t *testing.T) {
@@ -213,7 +213,7 @@ func TestApplyUserModifiedConfig(t *testing.T) {
 
 	retroarchConfig := filepath.Join(c.tmpDir, "xdg-config", "retroarch", "retroarch.cfg")
 	content := c.readFile("xdg-config/retroarch/retroarch.cfg")
-	modified := strings.Replace(content, c.userStore, "/user/modified/path", 1)
+	modified := strings.Replace(content, c.collection, "/user/modified/path", 1)
 	if modified == content {
 		t.Fatal("failed to modify config - no substitution made")
 	}
@@ -233,7 +233,7 @@ func TestApplyUserModifiedConfigXML(t *testing.T) {
 	c := newCLITest(t)
 
 	configContent := `[global]
-user_store = "` + c.userStore + `"
+collection = "` + c.collection + `"
 
 [systems]
 wiiu = ["cemu"]
@@ -269,7 +269,7 @@ func TestApplyNintendoConfirmChangeIsNotConflict(t *testing.T) {
 	c := newCLITest(t)
 
 	configContent := `[global]
-user_store = "` + c.userStore + `"
+collection = "` + c.collection + `"
 
 [controller]
 nintendo_confirm = "east"
@@ -288,7 +288,7 @@ gamecube = ["dolphin"]
 	}
 
 	configContent = `[global]
-user_store = "` + c.userStore + `"
+collection = "` + c.collection + `"
 
 [controller]
 nintendo_confirm = "south"
@@ -309,7 +309,7 @@ func TestDoctor(t *testing.T) {
 	t.Run("reports missing required provisions", func(t *testing.T) {
 		c := newCLITest(t)
 		c.init()
-		_ = os.MkdirAll(filepath.Join(c.userStore, "bios", "psx"), 0755)
+		_ = os.MkdirAll(filepath.Join(c.collection, "bios", "psx"), 0755)
 
 		output, _ := c.run("doctor")
 		c.assertContains(output, "Checking provisions")
@@ -337,7 +337,7 @@ func TestStatus(t *testing.T) {
 		}
 
 		c.assertContains(output, "Config:")
-		c.assertContains(output, "Emulation folder:")
+		c.assertContains(output, "Collection:")
 	})
 
 	t.Run("suggests init when no config", func(t *testing.T) {

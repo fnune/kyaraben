@@ -17,7 +17,7 @@ import type { ApplyStatus, ProgressStep } from '@/types/ui'
 const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
   'sync-pause': 'Pausing synchronization',
   summary: 'Applying configuration',
-  store: 'Setting up emulation folder',
+  store: 'Setting up collection',
   build: 'Installing emulators',
   cleanup: 'Cleaning up',
   finalize: 'Finalizing',
@@ -25,7 +25,7 @@ const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
 }
 
 interface ApplyConfig {
-  userStore: string
+  collection: string
   graphics?: { shaders: string }
   controller?: { nintendoConfirm: string }
   systems: Record<string, string[]>
@@ -224,7 +224,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
       summaryMessageRef.current = config.summaryMessage ?? null
 
       const configResult = await daemon.setConfig({
-        userStore: config.userStore,
+        collection: config.collection,
         systems: config.systems,
         emulators: toEmulatorConfRequest(config.emulators),
         ...(config.graphics && { graphics: config.graphics }),

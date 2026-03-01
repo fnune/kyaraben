@@ -56,7 +56,7 @@ test.describe('Fresh install state', () => {
     fixture?.cleanup()
   })
 
-  test('shows default emulation folder path', async () => {
+  test('shows default collection path', async () => {
     const input = page.getByPlaceholder('~/Emulation')
     await expect(input).toBeVisible()
   })
@@ -303,7 +303,7 @@ test.describe('Apply flow', () => {
     await page.getByRole('button', { name: 'Done' }).click()
 
     await expect(page.getByRole('button', { name: 'Apply' })).not.toBeVisible()
-    await expect(page.getByText('Emulation folder')).toBeVisible()
+    await expect(page.getByText('Collection')).toBeVisible()
   })
 
   test('emulator now shows Launch button', async () => {
@@ -382,7 +382,7 @@ test.describe('Tab navigation', () => {
   })
 
   test('starts on Catalog view', async () => {
-    await expect(page.getByText('Emulation folder')).toBeVisible()
+    await expect(page.getByText('Collection')).toBeVisible()
     await expect(page.getByRole('heading', { level: 2, name: 'Nintendo' })).toBeVisible()
   })
 
@@ -391,7 +391,7 @@ test.describe('Tab navigation', () => {
     await expect(page.getByText('State directory')).toBeVisible()
 
     await page.getByRole('button', { name: 'Catalog', exact: true }).click()
-    await expect(page.getByText('Emulation folder')).toBeVisible()
+    await expect(page.getByText('Collection')).toBeVisible()
   })
 
   test('can switch to Sync and back', async () => {
@@ -399,6 +399,6 @@ test.describe('Tab navigation', () => {
     await expect(page.getByRole('heading', { name: 'Enable sync' })).toBeVisible()
 
     await page.getByRole('button', { name: 'Catalog', exact: true }).click()
-    await expect(page.getByText('Emulation folder')).toBeVisible()
+    await expect(page.getByText('Collection')).toBeVisible()
   })
 })

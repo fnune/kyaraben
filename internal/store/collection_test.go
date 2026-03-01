@@ -11,22 +11,22 @@ import (
 	"github.com/fnune/kyaraben/internal/testutil"
 )
 
-func mustNewUserStore(t *testing.T, fs vfs.FS, path string) *UserStore {
+func mustNewCollection(t *testing.T, fs vfs.FS, path string) *Collection {
 	t.Helper()
-	s, err := NewUserStore(fs, paths.DefaultPaths(), path)
+	s, err := NewCollection(fs, paths.DefaultPaths(), path)
 	if err != nil {
-		t.Fatalf("NewUserStore(%q) failed: %v", path, err)
+		t.Fatalf("NewCollection(%q) failed: %v", path, err)
 	}
 	return s
 }
 
-func TestUserStoreInitialize(t *testing.T) {
+func TestCollectionInitialize(t *testing.T) {
 	t.Parallel()
 	fs := testutil.NewTestFS(t, map[string]any{
 		"/emulation": &vfst.Dir{Perm: 0755},
 	})
 
-	store := mustNewUserStore(t, fs, "/emulation")
+	store := mustNewCollection(t, fs, "/emulation")
 
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Initialize failed: %v", err)
@@ -45,13 +45,13 @@ func TestUserStoreInitialize(t *testing.T) {
 	}
 }
 
-func TestUserStoreInitializeForEmulator(t *testing.T) {
+func TestCollectionInitializeForEmulator(t *testing.T) {
 	t.Parallel()
 	fs := testutil.NewTestFS(t, map[string]any{
 		"/emulation": &vfst.Dir{Perm: 0755},
 	})
 
-	store := mustNewUserStore(t, fs, "/emulation")
+	store := mustNewCollection(t, fs, "/emulation")
 
 	if err := store.Initialize(); err != nil {
 		t.Fatalf("Initialize failed: %v", err)
@@ -70,11 +70,11 @@ func TestUserStoreInitializeForEmulator(t *testing.T) {
 	)
 }
 
-func TestUserStorePaths(t *testing.T) {
+func TestCollectionPaths(t *testing.T) {
 	t.Parallel()
 	fs := testutil.NewTestFS(t, map[string]any{})
 
-	store := mustNewUserStore(t, fs, "/home/user/Emulation")
+	store := mustNewCollection(t, fs, "/home/user/Emulation")
 
 	tests := []struct {
 		name string
@@ -98,11 +98,11 @@ func TestUserStorePaths(t *testing.T) {
 	}
 }
 
-func TestUserStoreSystemPaths(t *testing.T) {
+func TestCollectionSystemPaths(t *testing.T) {
 	t.Parallel()
 	fs := testutil.NewTestFS(t, map[string]any{})
 
-	store := mustNewUserStore(t, fs, "/home/user/Emulation")
+	store := mustNewCollection(t, fs, "/home/user/Emulation")
 
 	tests := []struct {
 		name   string
@@ -125,11 +125,11 @@ func TestUserStoreSystemPaths(t *testing.T) {
 	}
 }
 
-func TestUserStoreEmulatorPaths(t *testing.T) {
+func TestCollectionEmulatorPaths(t *testing.T) {
 	t.Parallel()
 	fs := testutil.NewTestFS(t, map[string]any{})
 
-	store := mustNewUserStore(t, fs, "/home/user/Emulation")
+	store := mustNewCollection(t, fs, "/home/user/Emulation")
 
 	got := store.EmulatorStatesDir(model.EmulatorIDRetroArchBsnes)
 	want := "/home/user/Emulation/states/retroarch:bsnes"
@@ -150,24 +150,24 @@ func TestUserStoreEmulatorPaths(t *testing.T) {
 	}
 }
 
-func TestUserStoreExists(t *testing.T) {
+func TestCollectionExists(t *testing.T) {
 	t.Parallel()
 	fs := testutil.NewTestFS(t, map[string]any{
 		"/existing": &vfst.Dir{Perm: 0755},
 		"/file":     "test content",
 	})
 
-	store := mustNewUserStore(t, fs, "/nonexistent")
+	store := mustNewCollection(t, fs, "/nonexistent")
 	if store.Exists() {
 		t.Error("Exists returned true for non-existent directory")
 	}
 
-	store = mustNewUserStore(t, fs, "/existing")
+	store = mustNewCollection(t, fs, "/existing")
 	if !store.Exists() {
 		t.Error("Exists returned false for existing directory")
 	}
 
-	store = mustNewUserStore(t, fs, "/file")
+	store = mustNewCollection(t, fs, "/file")
 	if store.Exists() {
 		t.Error("Exists returned true for file (not directory)")
 	}

@@ -43,7 +43,7 @@ func (s *syncTest) initWithSyncEnabled() {
 	}
 
 	config := fmt.Sprintf(`[global]
-user_store = %q
+collection = %q
 
 [systems]
 snes = ["retroarch:bsnes"]
@@ -55,7 +55,7 @@ relay_url = %q
 [sync.syncthing]
 base_url = %q
 gui_port = %d
-`, s.userStore, relayURL, s.fakeSyncthing.BaseURL(), s.fakeSyncthing.Port())
+`, s.collection, relayURL, s.fakeSyncthing.BaseURL(), s.fakeSyncthing.Port())
 
 	s.writeFile("config.toml", config)
 }

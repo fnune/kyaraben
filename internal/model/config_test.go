@@ -30,7 +30,7 @@ func TestLoadSaveConfig(t *testing.T) {
 
 	cfg := &KyarabenConfig{
 		Global: GlobalConfig{
-			UserStore: "~/Emulation",
+			Collection: "~/Emulation",
 		},
 		Systems: map[SystemID][]EmulatorID{
 			SystemIDSNES: {EmulatorIDRetroArchBsnes},
@@ -52,8 +52,8 @@ func TestLoadSaveConfig(t *testing.T) {
 		t.Fatalf("Load failed: %v", err)
 	}
 
-	if loaded.Global.UserStore != cfg.Global.UserStore {
-		t.Errorf("UserStore mismatch: got %s, want %s", loaded.Global.UserStore, cfg.Global.UserStore)
+	if loaded.Global.Collection != cfg.Global.Collection {
+		t.Errorf("Collection mismatch: got %s, want %s", loaded.Global.Collection, cfg.Global.Collection)
 	}
 
 	if len(loaded.Systems) != len(cfg.Systems) {
@@ -71,40 +71,40 @@ func TestLoadSaveConfig(t *testing.T) {
 	}
 }
 
-func TestExpandUserStore(t *testing.T) {
+func TestExpandCollection(t *testing.T) {
 	t.Parallel()
 
 	const homeDir = "/home/testuser"
 
 	tests := []struct {
-		name      string
-		userStore string
-		want      string
+		name       string
+		collection string
+		want       string
 	}{
 		{
-			name:      "expand tilde",
-			userStore: "~/Emulation",
-			want:      filepath.Join(homeDir, "Emulation"),
+			name:       "expand tilde",
+			collection: "~/Emulation",
+			want:       filepath.Join(homeDir, "Emulation"),
 		},
 		{
-			name:      "absolute path",
-			userStore: "/tmp/Emulation",
-			want:      "/tmp/Emulation",
+			name:       "absolute path",
+			collection: "/tmp/Emulation",
+			want:       "/tmp/Emulation",
 		},
 		{
-			name:      "relative path",
-			userStore: "Emulation",
-			want:      "Emulation",
+			name:       "relative path",
+			collection: "Emulation",
+			want:       "Emulation",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &KyarabenConfig{
-				Global: GlobalConfig{UserStore: tt.userStore},
+				Global: GlobalConfig{Collection: tt.collection},
 			}
 
-			got := cfg.ExpandUserStoreWith(homeDir)
+			got := cfg.ExpandCollectionWith(homeDir)
 			if got != tt.want {
 				t.Errorf("got %s, want %s", got, tt.want)
 			}
@@ -318,7 +318,7 @@ func TestLoadWithWarnings_UnknownSystem(t *testing.T) {
 
 	fs := newTestFS(t, map[string]any{
 		"/config/config.toml": `[global]
-user_store = "~/Emulation"
+collection = "~/Emulation"
 
 [systems]
 snes = ["retroarch:bsnes"]
@@ -367,7 +367,7 @@ func TestLoadWithWarnings_UnknownEmulator(t *testing.T) {
 
 	fs := newTestFS(t, map[string]any{
 		"/config/config.toml": `[global]
-user_store = "~/Emulation"
+collection = "~/Emulation"
 
 [systems]
 snes = ["retroarch:bsnes", "unknown_emulator"]
@@ -413,7 +413,7 @@ func TestLoadWithWarnings_UnknownFrontend(t *testing.T) {
 
 	fs := newTestFS(t, map[string]any{
 		"/config/config.toml": `[global]
-user_store = "~/Emulation"
+collection = "~/Emulation"
 
 [frontends.esde]
 enabled = true
@@ -461,7 +461,7 @@ func TestLoadWithWarnings_CollectsAllWarnings(t *testing.T) {
 
 	fs := newTestFS(t, map[string]any{
 		"/config/config.toml": `[global]
-user_store = "~/Emulation"
+collection = "~/Emulation"
 
 [systems]
 unknown1 = ["emu1"]

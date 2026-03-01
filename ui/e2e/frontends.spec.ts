@@ -67,7 +67,7 @@ test.describe('Frontend installation', () => {
     await expect(page.getByRole('button', { name: 'Done' })).toBeVisible({ timeout: 30000 })
 
     await page.getByRole('button', { name: 'Done' }).click()
-    await expect(page.getByText('Emulation folder')).toBeVisible()
+    await expect(page.getByText('Collection')).toBeVisible()
 
     const esdeToggleAfter = page
       .locator('div')
