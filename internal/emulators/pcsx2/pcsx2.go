@@ -44,7 +44,7 @@ func (Definition) Emulator() model.Emulator {
 		},
 		PathUsage:         model.StandardPathUsage(),
 		SupportedSettings: []string{model.SettingShaders, model.SettingResumeAutosave},
-		ResumeRecommended: true,
+		ResumeRecommended: false,
 	}
 }
 

@@ -38,12 +38,15 @@ func (Definition) Emulator() model.Emulator {
 				if opts.Fullscreen {
 					cmd += " -fullscreen"
 				}
+				for _, arg := range opts.LaunchArgs {
+					cmd += " " + arg
+				}
 				cmd += " -- %ROM%"
 				return cmd
 			},
 		},
 		PathUsage:          model.StandardPathUsage(),
-		SupportedSettings:  []string{model.SettingShaders, model.SettingResumeAutosave},
+		SupportedSettings:  []string{model.SettingShaders, model.SettingResumeAutosave, model.SettingResumeAutoload},
 		ShadersRecommended: true,
 		ResumeRecommended:  true,
 	}
@@ -122,8 +125,14 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		})
 	}
 
+	var launchArgs []string
+	if ctx.Resume == model.EmulatorResumeOn {
+		launchArgs = append(launchArgs, "-resume")
+	}
+
 	return model.GenerateResult{
-		Patches: patches,
+		Patches:    patches,
+		LaunchArgs: launchArgs,
 	}, nil
 }
 

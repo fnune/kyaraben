@@ -41,7 +41,7 @@ func (Definition) Emulator() model.Emulator {
 			UsesScreenshotsDir: true,
 		},
 		SupportedSettings: []string{model.SettingShaders, model.SettingResumeAutoload},
-		ResumeRecommended: true,
+		ResumeRecommended: false,
 	}
 }
 
@@ -67,9 +67,9 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	store := ctx.Store
 
 	entries := []model.ConfigEntry{
-		model.Entry(model.Store, model.Path("General", "CurrentDirectory"), store.SystemRomsDir(model.SystemIDPSP)),
-		model.Entry(model.None, model.Path("General", "AskForExitConfirmationAfterSeconds"), "0"),
-		model.Entry(model.None, model.Path("General", "FirstRun"), "False"),
+		model.Default(model.Store, model.Path("General", "CurrentDirectory"), store.SystemRomsDir(model.SystemIDPSP)),
+		model.Default(model.None, model.Path("General", "AskForExitConfirmationAfterSeconds"), "0"),
+		model.Default(model.None, model.Path("General", "FirstRun"), "False"),
 	}
 
 	switch ctx.Shaders {
