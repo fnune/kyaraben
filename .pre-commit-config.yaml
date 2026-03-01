@@ -6,7 +6,7 @@ repos:
         language: system
         entry: gofmt -w
         files: \.go$
-        exclude: ^\.sandbox/
+        exclude: ^\.test/
         pass_filenames: true
 
       - id: golangci-lint
@@ -14,7 +14,7 @@ repos:
         language: system
         entry: golangci-lint run --fix
         files: \.go$
-        exclude: ^\.sandbox/
+        exclude: ^\.test/
         pass_filenames: false
 
       - id: nixpkgs-fmt
@@ -22,7 +22,7 @@ repos:
         language: system
         entry: nixpkgs-fmt
         files: \.nix$
-        exclude: ^\.sandbox/
+        exclude: ^\.test/
         pass_filenames: true
 
       - id: biome

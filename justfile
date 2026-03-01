@@ -1,5 +1,7 @@
 # Kyaraben task runner
 
+test_dir := ".test"
+
 default:
     @just --list
 
@@ -62,35 +64,18 @@ e2e: _container-e2e-build
 ui-e2e *args: _extract-appimage _relay-binary
     #!/usr/bin/env bash
     cd ui && \
-        KYARABEN_APPIMAGE="$(pwd)/../.sandbox/app/kyaraben-ui" \
-        APPDIR="$(pwd)/../.sandbox/app" \
-        KYARABEN_RELAY_BINARY="$(pwd)/../.sandbox/relay/relay" \
+        KYARABEN_APPIMAGE="$(pwd)/../{{ test_dir }}/app/kyaraben-ui" \
+        APPDIR="$(pwd)/../{{ test_dir }}/app" \
+        KYARABEN_RELAY_BINARY="$(pwd)/../{{ test_dir }}/relay/relay" \
         ../scripts/run-ui-e2e.sh npx playwright test {{ args }}
 
 # Run Playwright UI e2e tests with interactive UI (run 'just build' first)
 ui-e2e-ui *args: _extract-appimage
     #!/usr/bin/env bash
     cd ui && \
-        KYARABEN_APPIMAGE="$(pwd)/../.sandbox/app/kyaraben-ui" \
-        APPDIR="$(pwd)/../.sandbox/app" \
+        KYARABEN_APPIMAGE="$(pwd)/../{{ test_dir }}/app/kyaraben-ui" \
+        APPDIR="$(pwd)/../{{ test_dir }}/app" \
         ../scripts/run-ui-e2e.sh npx playwright test --ui {{ args }}
-
-# Run app in sandbox container for manual testing (persistent state)
-sandbox: build _container-sandbox-build _extract-appimage
-    #!/usr/bin/env bash
-    mkdir -p .sandbox/home
-    podman run -it --rm \
-        --userns=keep-id \
-        -e WAYLAND_DISPLAY=$WAYLAND_DISPLAY \
-        -e XDG_RUNTIME_DIR=/run/user/$(id -u) \
-        -e DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus" \
-        -v $XDG_RUNTIME_DIR:/run/user/$(id -u) \
-        -v /run/dbus/system_bus_socket:/run/dbus/system_bus_socket:ro \
-        -v "$(pwd)/.sandbox/app:/app:ro" \
-        -v "$(pwd)/.sandbox/home:/home/sandbox" \
-        --device /dev/dri \
-        --security-opt label=disable \
-        kyaraben-sandbox
 
 # Run site development server
 site-dev: ensure
@@ -119,12 +104,7 @@ relay-deploy:
 # Clean build artifacts
 clean:
     rm -f kyaraben
-    rm -rf ui/dist ui/dist-electron ui/release ui/binaries
-
-# Clean all sandbox state (chmod needed for read-only paths)
-clean-sandbox:
-    chmod -R u+w .sandbox 2>/dev/null || true
-    rm -rf .sandbox
+    rm -rf ui/dist ui/dist-electron ui/release ui/binaries {{ test_dir }}
 
 # Clean all emulator config directories (for development/testing)
 clean-emu-configs:
@@ -229,22 +209,16 @@ instance name: _sidecar
 
 # --- Internal targets (prefixed with _) ---
 
- 
-
 _sidecar:
     ./scripts/build-sidecar.sh
 
 _relay-binary:
     #!/usr/bin/env bash
-    mkdir -p .sandbox/relay
-    cd relay && go build -o ../.sandbox/relay/relay ./cmd/relay
+    mkdir -p {{ test_dir }}/relay
+    cd relay && go build -o ../{{ test_dir }}/relay/relay ./cmd/relay
 
 _container-e2e-build:
     podman build -t kyaraben-cli-e2e -f Containerfile.cli-e2e .
-
-_container-sandbox-build:
-    podman build -t kyaraben-sandbox -f Containerfile.sandbox \
-        --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .
 
 _extract-appimage:
     #!/usr/bin/env bash
@@ -253,8 +227,8 @@ _extract-appimage:
         echo "AppImage not found. Run 'just build' first."
         exit 1
     fi
-    rm -rf .sandbox/app
-    mkdir -p .sandbox/app
-    (cd .sandbox/app && "$appimage" --appimage-extract > /dev/null)
-    mv .sandbox/app/squashfs-root/* .sandbox/app/
-    rm -rf .sandbox/app/squashfs-root
+    rm -rf {{ test_dir }}/app
+    mkdir -p {{ test_dir }}/app
+    (cd {{ test_dir }}/app && "$appimage" --appimage-extract > /dev/null)
+    mv {{ test_dir }}/app/squashfs-root/* {{ test_dir }}/app/
+    rm -rf {{ test_dir }}/app/squashfs-root
