@@ -22,6 +22,22 @@ var ignoredDirs = map[string]bool{
 	"cache":        true,
 }
 
+var ignoredFiles = map[string]bool{
+	".stignore": true,
+	".DS_Store": true,
+	"Thumbs.db": true,
+}
+
+func shouldIgnorePath(relPath string) bool {
+	parts := strings.Split(filepath.ToSlash(relPath), "/")
+	for _, part := range parts {
+		if ignoredDirs[part] || ignoredFiles[part] {
+			return true
+		}
+	}
+	return false
+}
+
 type Scanner struct {
 	fs         vfs.FS
 	registry   *registry.Registry
@@ -390,9 +406,16 @@ func (s *Scanner) scanFolder(path string) (FolderInfo, error) {
 			return nil
 		}
 
+		rel, _ := filepath.Rel(path, p)
+		if shouldIgnorePath(rel) {
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
 		if d.IsDir() {
-			rel, _ := filepath.Rel(path, p)
-			if !strings.Contains(rel, string(filepath.Separator)) && !ignoredDirs[d.Name()] {
+			if !strings.Contains(rel, string(filepath.Separator)) {
 				hasSubdirs = true
 			}
 			return nil
@@ -433,6 +456,9 @@ func (s *Scanner) computeDiff(srcPath, kyarabenPath string, srcInfo, kyarabenInf
 				return nil
 			}
 			rel, _ := filepath.Rel(srcPath, p)
+			if shouldIgnorePath(rel) {
+				return nil
+			}
 			fi, _ := d.Info()
 			if fi != nil {
 				srcFiles[rel] = fi.Size()
@@ -447,6 +473,9 @@ func (s *Scanner) computeDiff(srcPath, kyarabenPath string, srcInfo, kyarabenInf
 				return nil
 			}
 			rel, _ := filepath.Rel(kyarabenPath, p)
+			if shouldIgnorePath(rel) {
+				return nil
+			}
 			fi, _ := d.Info()
 			if fi != nil {
 				kyarabenFiles[rel] = fi.Size()
