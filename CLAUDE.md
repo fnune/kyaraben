@@ -1,5 +1,7 @@
 # Claude instructions for kyaraben
 
+NEVER AUTHOR COMMITS AS THE AI, OR ADD CO-AUTHORED-BY. ATTRIBUTE THE USER.
+
 To quickly learn about kyaraben:
 
 - `site/src/content/docs/index.mdx`: what kyaraben is and how it works
