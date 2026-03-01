@@ -3,6 +3,20 @@ import { BottomBar } from '@/lib/BottomBar'
 import { Button } from '@/lib/Button'
 import { CHANGE_CONFIG, type ChangeSummary, formatBytes, getChangeGroups } from '@/lib/changeUtils'
 
+function formatConfigChanges(changes: readonly string[]): string {
+  if (changes.length === 0) return ''
+  const lower = changes.map((c) => c.toLowerCase())
+  const first = lower[0] ?? ''
+  if (lower.length === 1) return `${capitalize(first)} changed.`
+  const last = lower[lower.length - 1] ?? ''
+  const rest = lower.slice(0, -1)
+  return `${capitalize(rest.join(', '))} and ${last} changed.`
+}
+
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
 export interface StickyActionBarProps {
   readonly changes: ChangeSummary
   readonly onApply: (changes: ChangeSummary) => void
@@ -70,6 +84,11 @@ export function StickyActionBar({
                   )
                 })}
               </div>
+            )}
+            {changeGroups.length === 0 && changes.configChanges.length > 0 && (
+              <span className="text-on-surface-secondary">
+                {formatConfigChanges(changes.configChanges)}
+              </span>
             )}
             {hasSize && (
               <div className="flex items-center gap-2 font-mono shrink-0">

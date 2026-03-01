@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { ConfigDiffReview } from '@/components/ConfigDiffReview/ConfigDiffReview'
 import { FrontendCard } from '@/components/FrontendCard/FrontendCard'
 import { SearchInput } from '@/components/SearchInput/SearchInput'
+import { GraphicsSettings } from '@/components/Settings/GraphicsSettings'
 import { Settings } from '@/components/Settings/Settings'
 import { StickyActionBar } from '@/components/StickyActionBar/StickyActionBar'
 import { SYSTEM_YEARS, SystemCard } from '@/components/SystemCard/SystemCard'
@@ -54,13 +55,14 @@ export interface CatalogViewProps {
   readonly installedPaths: Map<EmulatorID, Record<string, EmulatorPaths>>
   readonly provisions: DoctorResponse
   readonly userStore: string
-  readonly hasConfigChanges: boolean
+  readonly configChanges: readonly string[]
   readonly onUserStoreChange: (value: string) => void
   readonly onEmulatorToggle: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
   readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
   readonly onShaderChange: (emulatorId: EmulatorID, shaders: string | null) => void
   readonly onFrontendToggle: (frontendId: FrontendID, enabled: boolean) => void
   readonly onFrontendVersionChange: (frontendId: FrontendID, version: string | null) => void
+  readonly onGraphicsShadersChange: (value: string) => void
   readonly onDiscard: () => void
   readonly onEnableAll: () => void
   readonly upgradeAvailable?: boolean
@@ -115,13 +117,14 @@ export function CatalogView({
   installedPaths,
   provisions,
   userStore,
-  hasConfigChanges,
+  configChanges,
   onUserStoreChange,
   onEmulatorToggle,
   onVersionChange,
   onShaderChange,
   onFrontendToggle,
   onFrontendVersionChange,
+  onGraphicsShadersChange,
   onDiscard,
   onEnableAll,
   upgradeAvailable,
@@ -260,7 +263,7 @@ export function CatalogView({
       })
     }
 
-    return withConfigChanges(summary, hasConfigChanges)
+    return withConfigChanges(summary, configChanges)
   }, [
     systems,
     frontends,
@@ -270,7 +273,7 @@ export function CatalogView({
     frontendVersions,
     installedVersions,
     installedFrontendVersions,
-    hasConfigChanges,
+    configChanges,
   ])
 
   const filteredSystems = useMemo(() => {
@@ -479,6 +482,10 @@ export function CatalogView({
             </div>
           </div>
         )}
+
+        <div className="mt-6">
+          <GraphicsSettings shaders={graphics.shaders} onShadersChange={onGraphicsShadersChange} />
+        </div>
 
         <div className="mt-6 flex items-center justify-between">
           <span className="text-xs font-semibold text-on-surface-dim uppercase tracking-widest">

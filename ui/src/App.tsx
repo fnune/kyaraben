@@ -470,6 +470,10 @@ function AppContent() {
     [],
   )
 
+  const handleGraphicsShadersChange = useCallback((value: string) => {
+    setConfigState((prev) => ({ ...prev, graphicsShaders: value }))
+  }, [])
+
   const handleEnableAll = useCallback(() => {
     const newSystemEmulators = new Map<SystemID, EmulatorID[]>()
     for (const sys of systems) {
@@ -500,60 +504,96 @@ function AppContent() {
     }
   }, [])
 
-  const hasConfigChanges = (() => {
-    if (!configReady) return false
-    if (configState.userStore !== savedConfigState.current.userStore) return true
+  const configChanges = (() => {
+    if (!configReady) return []
+    const changes: string[] = []
 
-    if (configState.systemEmulators.size !== savedConfigState.current.systemEmulators.size)
-      return true
-    for (const [sysId, emuIds] of configState.systemEmulators) {
-      const savedIds = savedConfigState.current.systemEmulators.get(sysId)
-      if (!savedIds || emuIds.length !== savedIds.length) return true
-      if (!emuIds.every((id, i) => savedIds[i] === id)) return true
-    }
-    for (const sysId of savedConfigState.current.systemEmulators.keys()) {
-      if (!configState.systemEmulators.has(sysId)) return true
+    if (configState.userStore !== savedConfigState.current.userStore) {
+      changes.push('Emulation folder')
     }
 
-    if (configState.emulatorVersions.size !== savedConfigState.current.emulatorVersions.size)
-      return true
-    for (const [emuId, version] of configState.emulatorVersions) {
-      if (savedConfigState.current.emulatorVersions.get(emuId) !== version) return true
-    }
-    for (const emuId of savedConfigState.current.emulatorVersions.keys()) {
-      if (!configState.emulatorVersions.has(emuId)) return true
+    if (configState.graphicsShaders !== savedConfigState.current.graphicsShaders) {
+      changes.push('Shader settings')
     }
 
-    if (configState.emulatorShaders.size !== savedConfigState.current.emulatorShaders.size)
-      return true
-    for (const [emuId, shaders] of configState.emulatorShaders) {
-      if (savedConfigState.current.emulatorShaders.get(emuId) !== shaders) return true
-    }
-    for (const emuId of savedConfigState.current.emulatorShaders.keys()) {
-      if (!configState.emulatorShaders.has(emuId)) return true
-    }
-
-    if (configState.enabledFrontends.size !== savedConfigState.current.enabledFrontends.size)
-      return true
-    for (const [feId, enabled] of configState.enabledFrontends) {
-      if (savedConfigState.current.enabledFrontends.get(feId) !== enabled) return true
-    }
-    for (const feId of savedConfigState.current.enabledFrontends.keys()) {
-      if (!configState.enabledFrontends.has(feId)) return true
-    }
-
-    if (configState.frontendVersions.size !== savedConfigState.current.frontendVersions.size)
-      return true
-    for (const [feId, version] of configState.frontendVersions) {
-      if (savedConfigState.current.frontendVersions.get(feId) !== version) return true
-    }
-    for (const feId of savedConfigState.current.frontendVersions.keys()) {
-      if (!configState.frontendVersions.has(feId)) return true
+    const systemEmulatorsChanged = (() => {
+      if (configState.systemEmulators.size !== savedConfigState.current.systemEmulators.size)
+        return true
+      for (const [sysId, emuIds] of configState.systemEmulators) {
+        const savedIds = savedConfigState.current.systemEmulators.get(sysId)
+        if (!savedIds || emuIds.length !== savedIds.length) return true
+        if (!emuIds.every((id, i) => savedIds[i] === id)) return true
+      }
+      for (const sysId of savedConfigState.current.systemEmulators.keys()) {
+        if (!configState.systemEmulators.has(sysId)) return true
+      }
+      return false
+    })()
+    if (systemEmulatorsChanged) {
+      changes.push('Enabled emulators')
     }
 
-    if (configState.graphicsShaders !== savedConfigState.current.graphicsShaders) return true
+    const emulatorVersionsChanged = (() => {
+      if (configState.emulatorVersions.size !== savedConfigState.current.emulatorVersions.size)
+        return true
+      for (const [emuId, version] of configState.emulatorVersions) {
+        if (savedConfigState.current.emulatorVersions.get(emuId) !== version) return true
+      }
+      for (const emuId of savedConfigState.current.emulatorVersions.keys()) {
+        if (!configState.emulatorVersions.has(emuId)) return true
+      }
+      return false
+    })()
+    if (emulatorVersionsChanged) {
+      changes.push('Emulator versions')
+    }
 
-    return false
+    const emulatorShadersChanged = (() => {
+      if (configState.emulatorShaders.size !== savedConfigState.current.emulatorShaders.size)
+        return true
+      for (const [emuId, shaders] of configState.emulatorShaders) {
+        if (savedConfigState.current.emulatorShaders.get(emuId) !== shaders) return true
+      }
+      for (const emuId of savedConfigState.current.emulatorShaders.keys()) {
+        if (!configState.emulatorShaders.has(emuId)) return true
+      }
+      return false
+    })()
+    if (emulatorShadersChanged) {
+      changes.push('Emulator shaders')
+    }
+
+    const enabledFrontendsChanged = (() => {
+      if (configState.enabledFrontends.size !== savedConfigState.current.enabledFrontends.size)
+        return true
+      for (const [feId, enabled] of configState.enabledFrontends) {
+        if (savedConfigState.current.enabledFrontends.get(feId) !== enabled) return true
+      }
+      for (const feId of savedConfigState.current.enabledFrontends.keys()) {
+        if (!configState.enabledFrontends.has(feId)) return true
+      }
+      return false
+    })()
+    if (enabledFrontendsChanged) {
+      changes.push('Enabled frontends')
+    }
+
+    const frontendVersionsChanged = (() => {
+      if (configState.frontendVersions.size !== savedConfigState.current.frontendVersions.size)
+        return true
+      for (const [feId, version] of configState.frontendVersions) {
+        if (savedConfigState.current.frontendVersions.get(feId) !== version) return true
+      }
+      for (const feId of savedConfigState.current.frontendVersions.keys()) {
+        if (!configState.frontendVersions.has(feId)) return true
+      }
+      return false
+    })()
+    if (frontendVersionsChanged) {
+      changes.push('Frontend versions')
+    }
+
+    return changes
   })()
 
   const renderView = () => {
@@ -587,13 +627,14 @@ function AppContent() {
             installedPaths={installedPaths}
             provisions={provisions}
             userStore={configState.userStore}
-            hasConfigChanges={hasConfigChanges}
+            configChanges={configChanges}
             onUserStoreChange={(value) => setConfigState((prev) => ({ ...prev, userStore: value }))}
             onEmulatorToggle={handleEmulatorToggle}
             onVersionChange={handleVersionChange}
             onShaderChange={handleShaderChange}
             onFrontendToggle={handleFrontendToggle}
             onFrontendVersionChange={handleFrontendVersionChange}
+            onGraphicsShadersChange={handleGraphicsShadersChange}
             onDiscard={handleDiscard}
             onEnableAll={handleEnableAll}
             upgradeAvailable={showApplyBanner && !applyBannerDismissed}

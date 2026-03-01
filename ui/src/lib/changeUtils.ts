@@ -113,6 +113,7 @@ export interface ChangeSummary {
   readonly downloadBytes: number
   readonly freeBytes: number
   readonly hasConfigChanges: boolean
+  readonly configChanges: readonly string[]
   readonly installItems: readonly ChangeItem[]
   readonly removeItems: readonly ChangeItem[]
   readonly upgradeItems: readonly ChangeItem[]
@@ -129,6 +130,7 @@ export function emptyChangeSummary(): ChangeSummary {
     downloadBytes: 0,
     freeBytes: 0,
     hasConfigChanges: false,
+    configChanges: [],
     installItems: [],
     removeItems: [],
     upgradeItems: [],
@@ -233,9 +235,9 @@ export function addChange(
 
 export function withConfigChanges(
   summary: ChangeSummary,
-  hasConfigChanges: boolean,
+  configChanges: readonly string[],
 ): ChangeSummary {
-  return { ...summary, hasConfigChanges }
+  return { ...summary, hasConfigChanges: configChanges.length > 0, configChanges }
 }
 
 export interface EmulatorChangeInput {
