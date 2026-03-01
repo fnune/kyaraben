@@ -43,7 +43,8 @@ func (Definition) Emulator() model.Emulator {
 			},
 		},
 		PathUsage:         model.StandardPathUsage(),
-		SupportedSettings: []string{model.SettingShaders},
+		SupportedSettings: []string{model.SettingShaders, model.SettingResumeAutosave},
+		ResumeRecommended: true,
 	}
 }
 
@@ -81,9 +82,16 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 
 	switch ctx.Shaders {
 	case model.EmulatorShadersOn:
-		entries = append(entries, model.Entry(model.None, model.Path("EmuCore/GS", "TVShader"), "5"))
+		entries = append(entries, model.Entry(model.Shaders, model.Path("EmuCore/GS", "TVShader"), "5"))
 	case model.EmulatorShadersOff:
-		entries = append(entries, model.Entry(model.None, model.Path("EmuCore/GS", "TVShader"), "0"))
+		entries = append(entries, model.Entry(model.Shaders, model.Path("EmuCore/GS", "TVShader"), "0"))
+	}
+
+	switch ctx.Resume {
+	case model.EmulatorResumeOn:
+		entries = append(entries, model.Entry(model.Resume, model.Path("EmuCore", "SaveStateOnShutdown"), "true"))
+	case model.EmulatorResumeOff:
+		entries = append(entries, model.Entry(model.Resume, model.Path("EmuCore", "SaveStateOnShutdown"), "false"))
 	}
 
 	upscaleEntry := model.Entry(model.None, model.Path("EmuCore/GS", "upscale_multiplier"), "2")
@@ -215,7 +223,7 @@ func hotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	var entries []model.ConfigEntry
 	for _, m := range mappings {
 		if len(m.binding.Buttons) > 0 {
-			entries = append(entries, model.Entry(model.None, model.Path(section, m.key), hotkeyRef(m.binding)))
+			entries = append(entries, model.Entry(model.Nintendo, model.Path(section, m.key), hotkeyRef(m.binding)))
 		}
 	}
 	return entries

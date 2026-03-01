@@ -424,8 +424,8 @@ func hotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	for _, m := range mappings {
 		if len(m.binding.Buttons) > 0 {
 			entries = append(entries,
-				model.Entry(model.None, model.Path("UI", m.key), edenHotkeyRef(m.binding, fb)),
-				model.Entry(model.None, model.Path("UI", m.key+`\default`), "false"),
+				model.Entry(model.Nintendo, model.Path("UI", m.key), edenHotkeyRef(m.binding, fb)),
+				model.Entry(model.Nintendo, model.Path("UI", m.key+`\default`), "false"),
 			)
 		}
 	}

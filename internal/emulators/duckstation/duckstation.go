@@ -43,8 +43,9 @@ func (Definition) Emulator() model.Emulator {
 			},
 		},
 		PathUsage:          model.StandardPathUsage(),
-		SupportedSettings:  []string{model.SettingShaders},
+		SupportedSettings:  []string{model.SettingShaders, model.SettingResumeAutosave},
 		ShadersRecommended: true,
+		ResumeRecommended:  true,
 	}
 }
 
@@ -73,7 +74,6 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	entries := []model.ConfigEntry{
 		model.Entry(model.None, model.Path("Main", "SettingsVersion"), "3"),
 		model.Entry(model.None, model.Path("Main", "ConfirmPowerOff"), "false"),
-		model.Entry(model.None, model.Path("Main", "SaveStateOnExit"), "false"),
 		model.Entry(model.None, model.Path("AutoUpdater", "CheckAtStartup"), "false"),
 		model.Entry(model.Store, model.Path("BIOS", "SearchDirectory"), store.SystemBiosDir(model.SystemIDPSX)),
 		model.Entry(model.Store, model.Path("MemoryCards", "Directory"), store.SystemSavesDir(model.SystemIDPSX)),
@@ -85,14 +85,21 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	switch ctx.Shaders {
 	case model.EmulatorShadersOn:
 		entries = append(entries,
-			model.Entry(model.None, model.Path("PostProcessing", "Enabled"), "true"),
-			model.Entry(model.None, model.Path("PostProcessing", "StageCount"), "1"),
-			model.Entry(model.None, model.Path("PostProcessing/Stage1", "ShaderName"), "crt-lottes"),
+			model.Entry(model.Shaders, model.Path("PostProcessing", "Enabled"), "true"),
+			model.Entry(model.Shaders, model.Path("PostProcessing", "StageCount"), "1"),
+			model.Entry(model.Shaders, model.Path("PostProcessing/Stage1", "ShaderName"), "crt-lottes"),
 		)
 	case model.EmulatorShadersOff:
 		entries = append(entries,
-			model.Entry(model.None, model.Path("PostProcessing", "Enabled"), "false"),
+			model.Entry(model.Shaders, model.Path("PostProcessing", "Enabled"), "false"),
 		)
+	}
+
+	switch ctx.Resume {
+	case model.EmulatorResumeOn:
+		entries = append(entries, model.Entry(model.Resume, model.Path("Main", "SaveStateOnExit"), "true"))
+	case model.EmulatorResumeOff:
+		entries = append(entries, model.Entry(model.Resume, model.Path("Main", "SaveStateOnExit"), "false"))
 	}
 
 	patches := []model.ConfigPatch{{Target: configTarget, Entries: entries}}
@@ -203,7 +210,7 @@ func hotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	var entries []model.ConfigEntry
 	for _, m := range mappings {
 		if len(m.binding.Buttons) > 0 {
-			entries = append(entries, model.Entry(model.None, model.Path(section, m.key), hotkeyRef(m.binding)))
+			entries = append(entries, model.Entry(model.Nintendo, model.Path(section, m.key), hotkeyRef(m.binding)))
 		}
 	}
 	return entries

@@ -11,27 +11,26 @@ export interface EmulatorSettingsModalProps {
   readonly shaders: string | null
   readonly graphics: { shaders: string }
   readonly onShaderChange: (value: string | null) => void
+  readonly supportsResume: boolean
+  readonly resume: string | null
+  readonly savestate: { resume: string }
+  readonly onResumeChange: (value: string | null) => void
 }
 
-type ShaderOption = 'on' | 'off' | 'manual' | 'default'
+type SettingOption = 'on' | 'off' | 'manual' | 'default'
 
-function shaderValueToOption(value: string | null): ShaderOption {
-  if (value === 'on') return 'on'
-  if (value === 'off') return 'off'
-  if (value === 'manual') return 'manual'
+function valueToOption(value: string | null): SettingOption {
+  if (value === 'on' || value === 'off' || value === 'manual') return value
   return 'default'
 }
 
-function optionToShaderValue(option: ShaderOption): string | null {
-  if (option === 'on') return 'on'
-  if (option === 'off') return 'off'
-  if (option === 'manual') return 'manual'
-  return null
+function optionToValue(option: SettingOption): string | null {
+  return option === 'default' ? null : option
 }
 
-function resolveShaders(shaders: string | null, graphics: { shaders: string }): string {
-  if (shaders !== null) return shaders
-  if (graphics.shaders) return graphics.shaders
+function resolveSetting(override: string | null, global: string): string {
+  if (override !== null) return override
+  if (global) return global
   return 'manual'
 }
 
@@ -69,22 +68,32 @@ export function EmulatorSettingsModal({
   shaders,
   graphics,
   onShaderChange,
+  supportsResume,
+  resume,
+  savestate,
+  onResumeChange,
 }: EmulatorSettingsModalProps) {
   const displayType = getDisplayType(systemId)
-  const currentOption = shaderValueToOption(shaders)
-  const resolvedShaders = resolveShaders(shaders, graphics)
+  const currentShaderOption = valueToOption(shaders)
+  const resolvedShaders = resolveSetting(shaders, graphics.shaders)
+  const currentResumeOption = valueToOption(resume)
+  const resolvedResume = resolveSetting(resume, savestate.resume)
 
-  const handleOptionChange = (option: ShaderOption) => {
-    onShaderChange(optionToShaderValue(option))
+  const handleShaderOptionChange = (option: SettingOption) => {
+    onShaderChange(optionToValue(option))
   }
 
-  const getDefaultLabel = () => {
+  const handleResumeOptionChange = (option: SettingOption) => {
+    onResumeChange(optionToValue(option))
+  }
+
+  const getShaderDefaultLabel = () => {
     if (!graphics.shaders || graphics.shaders === 'manual') return 'Default'
     if (graphics.shaders === 'recommended') return 'Default (recommended)'
     return `Default (${graphics.shaders})`
   }
 
-  const getDescription = () => {
+  const getShaderDescription = () => {
     if (resolvedShaders === 'manual') {
       return 'Kyaraben will not modify shader settings.'
     }
@@ -92,6 +101,22 @@ export function EmulatorSettingsModal({
       return <>Kyaraben will enable: {getShaderInfo(emulatorId, displayType)}.</>
     }
     return 'Kyaraben will disable shaders.'
+  }
+
+  const getResumeDefaultLabel = () => {
+    if (!savestate.resume || savestate.resume === 'manual') return 'Default'
+    if (savestate.resume === 'recommended') return 'Default (recommended)'
+    return `Default (${savestate.resume})`
+  }
+
+  const getResumeDescription = () => {
+    if (resolvedResume === 'manual') {
+      return 'Kyaraben will not modify resume settings.'
+    }
+    if (resolvedResume === 'on' || resolvedResume === 'recommended') {
+      return 'Kyaraben will enable auto-resume (save on exit, load on launch).'
+    }
+    return 'Kyaraben will disable auto-resume.'
   }
 
   return (
@@ -103,26 +128,54 @@ export function EmulatorSettingsModal({
             <div className="flex rounded-element overflow-hidden border border-outline">
               <SegmentedButton
                 label="On"
-                selected={currentOption === 'on'}
-                onClick={() => handleOptionChange('on')}
+                selected={currentShaderOption === 'on'}
+                onClick={() => handleShaderOptionChange('on')}
               />
               <SegmentedButton
                 label="Off"
-                selected={currentOption === 'off'}
-                onClick={() => handleOptionChange('off')}
+                selected={currentShaderOption === 'off'}
+                onClick={() => handleShaderOptionChange('off')}
               />
               <SegmentedButton
                 label="Manual"
-                selected={currentOption === 'manual'}
-                onClick={() => handleOptionChange('manual')}
+                selected={currentShaderOption === 'manual'}
+                onClick={() => handleShaderOptionChange('manual')}
               />
               <SegmentedButton
-                label={getDefaultLabel()}
-                selected={currentOption === 'default'}
-                onClick={() => handleOptionChange('default')}
+                label={getShaderDefaultLabel()}
+                selected={currentShaderOption === 'default'}
+                onClick={() => handleShaderOptionChange('default')}
               />
             </div>
-            <p className="text-xs text-on-surface-dim mt-2">{getDescription()}</p>
+            <p className="text-xs text-on-surface-dim mt-2">{getShaderDescription()}</p>
+          </div>
+        )}
+        {supportsResume && (
+          <div>
+            <p className="text-sm text-on-surface-muted mb-2">Resume</p>
+            <div className="flex rounded-element overflow-hidden border border-outline">
+              <SegmentedButton
+                label="On"
+                selected={currentResumeOption === 'on'}
+                onClick={() => handleResumeOptionChange('on')}
+              />
+              <SegmentedButton
+                label="Off"
+                selected={currentResumeOption === 'off'}
+                onClick={() => handleResumeOptionChange('off')}
+              />
+              <SegmentedButton
+                label="Manual"
+                selected={currentResumeOption === 'manual'}
+                onClick={() => handleResumeOptionChange('manual')}
+              />
+              <SegmentedButton
+                label={getResumeDefaultLabel()}
+                selected={currentResumeOption === 'default'}
+                onClick={() => handleResumeOptionChange('default')}
+              />
+            </div>
+            <p className="text-xs text-on-surface-dim mt-2">{getResumeDescription()}</p>
           </div>
         )}
       </div>

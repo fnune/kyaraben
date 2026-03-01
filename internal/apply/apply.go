@@ -90,6 +90,7 @@ func (a *Applier) Preflight(ctx context.Context, cfg *model.KyarabenConfig, coll
 
 		emu, _ := a.Registry.GetEmulator(emuID)
 		genCtx.Shaders = cfg.EmulatorShaders(emuID, emu.ShadersRecommended)
+		genCtx.Resume = cfg.EmulatorResume(emuID, emu.ResumeRecommended)
 		result, err := gen.Generate(genCtx)
 		if err != nil {
 			return nil, fmt.Errorf("generating config for %s: %w", emuID, err)
@@ -214,6 +215,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, collecti
 
 		emu, _ := a.Registry.GetEmulator(emuID)
 		genCtx.Shaders = cfg.EmulatorShaders(emuID, emu.ShadersRecommended)
+		genCtx.Resume = cfg.EmulatorResume(emuID, emu.ResumeRecommended)
 		result, err := gen.Generate(genCtx)
 		if err != nil {
 			return nil, fmt.Errorf("generating config for %s: %w", emuID, err)
@@ -516,7 +518,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, collecti
 			regions = append(regions, r)
 		}
 
-		configInputs := collectConfigInputs(patch.Entries, controllerConfig, collection.Root())
+		configInputs := collectConfigInputs(patch.Entries, cfg, controllerConfig, collection.Root())
 
 		newManagedConfigs = append(newManagedConfigs, model.ManagedConfig{
 			EmulatorIDs:             []model.EmulatorID{patchEmulators[i]},
@@ -1543,7 +1545,7 @@ func generateSteamAppID(exe, appName string) uint32 {
 	return crc | 0x80000000
 }
 
-func collectConfigInputs(entries []model.ConfigEntry, controllerConfig *model.ControllerConfig, collectionRoot string) map[string]string {
+func collectConfigInputs(entries []model.ConfigEntry, cfg *model.KyarabenConfig, controllerConfig *model.ControllerConfig, collectionRoot string) map[string]string {
 	deps := make(map[model.ConfigInput]bool)
 	for _, entry := range entries {
 		for _, dep := range entry.DependsOn {
@@ -1563,6 +1565,10 @@ func collectConfigInputs(entries []model.ConfigEntry, controllerConfig *model.Co
 			inputs[key] = string(controllerConfig.NintendoConfirm)
 		case model.ConfigInputCollection:
 			inputs[key] = collectionRoot
+		case model.ConfigInputShaders:
+			inputs[key] = cfg.Graphics.Shaders
+		case model.ConfigInputResume:
+			inputs[key] = cfg.Savestate.Resume
 		}
 	}
 	return inputs

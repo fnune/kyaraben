@@ -34,9 +34,12 @@ type Emulator struct {
 	PathUsage          PathUsage
 	SupportedSettings  []string
 	ShadersRecommended bool
+	ResumeRecommended  bool
 }
 
 const SettingShaders = "shaders"
+const SettingResumeAutosave = "resume:autosave"
+const SettingResumeAutoload = "resume:autoload"
 
 type LauncherInfo struct {
 	// Binary must match the name passed to AppImageRef() for AppImage packages.

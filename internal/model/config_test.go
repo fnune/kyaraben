@@ -292,6 +292,102 @@ func ptrString(s string) *string {
 	return &s
 }
 
+func TestEmulatorResume(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name              string
+		cfg               *KyarabenConfig
+		emulator          EmulatorID
+		resumeRecommended bool
+		want              string
+	}{
+		{
+			name: "emulator override takes precedence over recommended",
+			cfg: &KyarabenConfig{
+				Savestate: SavestateConfig{Resume: ResumeRecommended},
+				Emulators: map[EmulatorID]EmulatorConf{
+					EmulatorIDDuckStation: {Resume: ptrString(EmulatorResumeOff)},
+				},
+			},
+			emulator:          EmulatorIDDuckStation,
+			resumeRecommended: true,
+			want:              EmulatorResumeOff,
+		},
+		{
+			name: "recommended global with recommended emulator enables resume",
+			cfg: &KyarabenConfig{
+				Savestate: SavestateConfig{Resume: ResumeRecommended},
+				Emulators: map[EmulatorID]EmulatorConf{},
+			},
+			emulator:          EmulatorIDDuckStation,
+			resumeRecommended: true,
+			want:              EmulatorResumeOn,
+		},
+		{
+			name: "recommended global with non-recommended emulator returns manual",
+			cfg: &KyarabenConfig{
+				Savestate: SavestateConfig{Resume: ResumeRecommended},
+				Emulators: map[EmulatorID]EmulatorConf{},
+			},
+			emulator:          EmulatorIDCemu,
+			resumeRecommended: false,
+			want:              EmulatorResumeManual,
+		},
+		{
+			name: "off global returns off regardless of recommendation",
+			cfg: &KyarabenConfig{
+				Savestate: SavestateConfig{Resume: ResumeOff},
+				Emulators: map[EmulatorID]EmulatorConf{},
+			},
+			emulator:          EmulatorIDDuckStation,
+			resumeRecommended: true,
+			want:              EmulatorResumeOff,
+		},
+		{
+			name: "manual fallback when nothing configured",
+			cfg: &KyarabenConfig{
+				Savestate: SavestateConfig{},
+				Emulators: map[EmulatorID]EmulatorConf{},
+			},
+			emulator:          EmulatorIDDuckStation,
+			resumeRecommended: true,
+			want:              EmulatorResumeManual,
+		},
+		{
+			name: "nil emulators map with recommended",
+			cfg: &KyarabenConfig{
+				Savestate: SavestateConfig{Resume: ResumeRecommended},
+				Emulators: nil,
+			},
+			emulator:          EmulatorIDDuckStation,
+			resumeRecommended: true,
+			want:              EmulatorResumeOn,
+		},
+		{
+			name: "emulator override to on for non-recommended emulator",
+			cfg: &KyarabenConfig{
+				Savestate: SavestateConfig{Resume: ResumeManual},
+				Emulators: map[EmulatorID]EmulatorConf{
+					EmulatorIDCemu: {Resume: ptrString(EmulatorResumeOn)},
+				},
+			},
+			emulator:          EmulatorIDCemu,
+			resumeRecommended: false,
+			want:              EmulatorResumeOn,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.cfg.EmulatorResume(tt.emulator, tt.resumeRecommended)
+			if got != tt.want {
+				t.Errorf("EmulatorResume(%q, %v) = %q, want %q", tt.emulator, tt.resumeRecommended, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestBuildVersionOverrides(t *testing.T) {
 	t.Parallel()
 

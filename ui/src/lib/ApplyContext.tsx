@@ -27,9 +27,10 @@ const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
 interface ApplyConfig {
   collection: string
   graphics?: { shaders: string }
+  savestate?: { resume: string }
   controller?: { nintendoConfirm: string }
   systems: Record<string, string[]>
-  emulators: Record<string, { version?: string; shaders?: string | null }>
+  emulators: Record<string, { version?: string; shaders?: string | null; resume?: string | null }>
   frontends?: Record<string, { enabled: boolean; version?: string }>
   summaryMessage?: string
 }
@@ -41,13 +42,14 @@ function hasUserConflicts(data: PreflightResponse): boolean {
 }
 
 function toEmulatorConfRequest(
-  emulators: Record<string, { version?: string; shaders?: string | null }>,
-): Record<string, { version?: string; shaders?: string }> {
-  const result: Record<string, { version?: string; shaders?: string }> = {}
+  emulators: Record<string, { version?: string; shaders?: string | null; resume?: string | null }>,
+): Record<string, { version?: string; shaders?: string; resume?: string }> {
+  const result: Record<string, { version?: string; shaders?: string; resume?: string }> = {}
   for (const [id, conf] of Object.entries(emulators)) {
     result[id] = {
       ...(conf.version !== undefined && { version: conf.version }),
       ...(conf.shaders !== null && conf.shaders !== undefined && { shaders: conf.shaders }),
+      ...(conf.resume !== null && conf.resume !== undefined && { resume: conf.resume }),
     }
   }
   return result
@@ -228,6 +230,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
         systems: config.systems,
         emulators: toEmulatorConfRequest(config.emulators),
         ...(config.graphics && { graphics: config.graphics }),
+        ...(config.savestate && { savestate: config.savestate }),
         ...(config.controller && { controller: config.controller }),
         ...(config.frontends && { frontends: config.frontends }),
       })

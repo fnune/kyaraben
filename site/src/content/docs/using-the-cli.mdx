@@ -42,6 +42,25 @@ enabled = true
 | ------------ | ------ | ------------- | ---------------------- |
 | `collection` | string | `~/Emulation` | Path to the collection |
 
+### `[graphics]`
+
+| Key       | Type   | Default  | Description                                                    |
+| --------- | ------ | -------- | -------------------------------------------------------------- |
+| `shaders` | string | `manual` | Global shader setting: `recommended`, `on`, `off`, or `manual` |
+
+When set to `recommended`, shaders are enabled only for emulators where they
+work well. Per-emulator overrides in `[emulators.<id>]` take precedence.
+
+### `[savestate]`
+
+| Key      | Type   | Default  | Description                                                    |
+| -------- | ------ | -------- | -------------------------------------------------------------- |
+| `resume` | string | `manual` | Global resume setting: `recommended`, `on`, `off`, or `manual` |
+
+When set to `recommended`, auto-resume (autosave on exit, autoload on launch)
+is enabled only for emulators that support it reliably. Per-emulator overrides
+in `[emulators.<id>]` take precedence.
+
 ### `[systems]`
 
 Maps system IDs to lists of emulator IDs. Each system can have one or more
@@ -60,12 +79,15 @@ Optional per-emulator configuration:
 ```toml
 [emulators.duckstation]
 version = "v0.1-10655"
-shaders = true
+shaders = "on"
+resume = "on"
 ```
 
 - `version`: Pin to a specific version. When omitted, uses the latest supported.
-- `shaders`: Enable managed CRT/LCD shaders. When omitted, shader settings are
-  left to the user.
+- `shaders`: Enable managed CRT/LCD shaders. Values: `on`, `off`, `manual`.
+  When omitted, follows the global `[graphics]` setting.
+- `resume`: Enable auto-resume (autosave on exit, autoload on launch). Values:
+  `on`, `off`, `manual`. When omitted, follows the global `[savestate]` setting.
 
 ### `[frontends.<id>]`
 

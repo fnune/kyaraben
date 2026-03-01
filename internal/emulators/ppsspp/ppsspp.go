@@ -40,7 +40,8 @@ func (Definition) Emulator() model.Emulator {
 			UsesStatesDir:      true,
 			UsesScreenshotsDir: true,
 		},
-		SupportedSettings: []string{model.SettingShaders},
+		SupportedSettings: []string{model.SettingShaders, model.SettingResumeAutoload},
+		ResumeRecommended: true,
 	}
 }
 
@@ -80,6 +81,13 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		entries = append(entries,
 			model.Entry(model.None, model.Path("Graphics", "PostShaderNames"), "Off"),
 		)
+	}
+
+	switch ctx.Resume {
+	case model.EmulatorResumeOn:
+		entries = append(entries, model.Entry(model.Resume, model.Path("General", "AutoLoadSaveState"), "1"))
+	case model.EmulatorResumeOff:
+		entries = append(entries, model.Entry(model.Resume, model.Path("General", "AutoLoadSaveState"), "0"))
 	}
 
 	patches := []model.ConfigPatch{{

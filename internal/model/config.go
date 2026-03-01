@@ -47,6 +47,7 @@ func (w ConfigWarnings) HasWarnings() bool {
 type KyarabenConfig struct {
 	Global     GlobalConfig                  `toml:"global"`
 	Graphics   GraphicsConfig                `toml:"graphics"`
+	Savestate  SavestateConfig               `toml:"savestate"`
 	Sync       SyncConfig                    `toml:"sync"`
 	Controller ControllerTomlConfig          `toml:"controller"`
 	Systems    map[SystemID][]EmulatorID     `toml:"systems"`
@@ -73,6 +74,32 @@ const (
 	EmulatorShadersOff    = "off"
 	EmulatorShadersManual = "manual"
 )
+
+// ConfigInput for GraphicsConfig.Shaders
+const ConfigInputShaders ConfigInput = "graphics.shaders"
+
+// SavestateConfig holds savestate/resume-related settings.
+type SavestateConfig struct {
+	Resume string `toml:"resume,omitempty"`
+}
+
+// Resume setting values for savestate.resume (global setting).
+// "recommended" enables resume only on emulators that recommend it.
+const (
+	ResumeRecommended = "recommended"
+	ResumeOff         = "off"
+	ResumeManual      = "manual"
+)
+
+// Per-emulator resume override values.
+const (
+	EmulatorResumeOn     = "on"
+	EmulatorResumeOff    = "off"
+	EmulatorResumeManual = "manual"
+)
+
+// ConfigInput for SavestateConfig.Resume
+const ConfigInputResume ConfigInput = "savestate.resume"
 
 // ControllerTomlConfig is the TOML representation of controller settings.
 type ControllerTomlConfig struct {
@@ -207,6 +234,7 @@ type GlobalConfig struct {
 type EmulatorConf struct {
 	Version string  `toml:"version,omitempty"`
 	Shaders *string `toml:"shaders,omitempty"`
+	Resume  *string `toml:"resume,omitempty"`
 }
 
 // EmulatorVersion returns the configured version for an emulator, or empty for default.
@@ -252,6 +280,42 @@ func (c *KyarabenConfig) EmulatorShadersOverride(id EmulatorID) *string {
 	}
 	if conf, ok := c.Emulators[id]; ok {
 		return conf.Shaders
+	}
+	return nil
+}
+
+// EmulatorResume returns the resolved resume setting for an emulator.
+// Resolution order:
+//  1. Per-emulator override (on/off/manual)
+//  2. If global = "recommended" and emulator recommends resume -> "on"
+//  3. If global = "off" -> "off"
+//  4. Otherwise -> "manual"
+func (c *KyarabenConfig) EmulatorResume(id EmulatorID, resumeRecommended bool) string {
+	if c.Emulators != nil {
+		if conf, ok := c.Emulators[id]; ok && conf.Resume != nil {
+			return *conf.Resume
+		}
+	}
+	switch c.Savestate.Resume {
+	case ResumeRecommended:
+		if resumeRecommended {
+			return EmulatorResumeOn
+		}
+		return EmulatorResumeManual
+	case ResumeOff:
+		return EmulatorResumeOff
+	default:
+		return EmulatorResumeManual
+	}
+}
+
+// EmulatorResumeOverride returns the per-emulator resume override, or nil if using default.
+func (c *KyarabenConfig) EmulatorResumeOverride(id EmulatorID) *string {
+	if c.Emulators == nil {
+		return nil
+	}
+	if conf, ok := c.Emulators[id]; ok {
+		return conf.Resume
 	}
 	return nil
 }

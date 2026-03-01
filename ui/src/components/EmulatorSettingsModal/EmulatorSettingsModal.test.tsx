@@ -14,6 +14,10 @@ describe('EmulatorSettingsModal', () => {
     shaders: null as string | null,
     graphics: { shaders: '' },
     onShaderChange: vi.fn(),
+    supportsResume: false,
+    resume: null as string | null,
+    savestate: { resume: '' },
+    onResumeChange: vi.fn(),
   }
 
   it('renders modal with emulator name in title', () => {

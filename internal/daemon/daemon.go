@@ -639,6 +639,8 @@ func (d *Daemon) handlePreflight() []Event {
 		CurrentConfigInputs: map[string]string{
 			string(model.ConfigInputNintendoConfirm): string(controllerConfig.NintendoConfirm),
 			string(model.ConfigInputCollection):      collection.Root(),
+			string(model.ConfigInputShaders):         cfg.Graphics.Shaders,
+			string(model.ConfigInputResume):          cfg.Savestate.Resume,
 		},
 	}
 
@@ -915,10 +917,11 @@ func (d *Daemon) handleGetConfig() []Event {
 
 	emulators := make(map[string]EmulatorConfResponse)
 	for emuID, emuConf := range cfg.Emulators {
-		if emuConf.Version != "" || emuConf.Shaders != nil {
+		if emuConf.Version != "" || emuConf.Shaders != nil || emuConf.Resume != nil {
 			emulators[string(emuID)] = EmulatorConfResponse{
 				Version: emuConf.Version,
 				Shaders: emuConf.Shaders,
+				Resume:  emuConf.Resume,
 			}
 		}
 	}
@@ -944,6 +947,7 @@ func (d *Daemon) handleGetConfig() []Event {
 		Data: ConfigResponse{
 			Collection: cfg.Global.Collection,
 			Graphics:   GraphicsConfigResponse{Shaders: cfg.Graphics.Shaders},
+			Savestate:  SavestateConfigResponse{Resume: cfg.Savestate.Resume},
 			Controller: ControllerConfigResponse{NintendoConfirm: cfg.Controller.NintendoConfirm},
 			Systems:    systems,
 			Emulators:  emulators,
@@ -966,6 +970,10 @@ func (d *Daemon) handleSetConfig(data *SetConfigRequest) []Event {
 
 		if data.Graphics != nil {
 			cfg.Graphics.Shaders = data.Graphics.Shaders
+		}
+
+		if data.Savestate != nil {
+			cfg.Savestate.Resume = data.Savestate.Resume
 		}
 
 		if data.Controller != nil {
@@ -996,7 +1004,10 @@ func (d *Daemon) handleSetConfig(data *SetConfigRequest) []Event {
 				if emuConf.Shaders != nil {
 					existing.Shaders = emuConf.Shaders
 				}
-				if existing.Version == "" && existing.Shaders == nil {
+				if emuConf.Resume != nil {
+					existing.Resume = emuConf.Resume
+				}
+				if existing.Version == "" && existing.Shaders == nil && existing.Resume == nil {
 					delete(cfg.Emulators, emuID)
 				} else {
 					cfg.Emulators[emuID] = existing

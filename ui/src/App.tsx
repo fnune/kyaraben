@@ -39,10 +39,12 @@ import {
 interface ConfigState {
   collection: string
   graphicsShaders: string
+  savestateResume: string
   controllerNintendoConfirm: string
   systemEmulators: Map<SystemID, EmulatorID[]>
   emulatorVersions: Map<EmulatorID, string>
   emulatorShaders: Map<EmulatorID, string | null>
+  emulatorResume: Map<EmulatorID, string | null>
   enabledFrontends: Map<FrontendID, boolean>
   frontendVersions: Map<FrontendID, string>
 }
@@ -51,10 +53,12 @@ function emptyConfigState(): ConfigState {
   return {
     collection: '',
     graphicsShaders: '',
+    savestateResume: '',
     controllerNintendoConfirm: '',
     systemEmulators: new Map(),
     emulatorVersions: new Map(),
     emulatorShaders: new Map(),
+    emulatorResume: new Map(),
     enabledFrontends: new Map(),
     frontendVersions: new Map(),
   }
@@ -68,10 +72,12 @@ function cloneConfigState(state: ConfigState): ConfigState {
   return {
     collection: state.collection,
     graphicsShaders: state.graphicsShaders,
+    savestateResume: state.savestateResume,
     controllerNintendoConfirm: state.controllerNintendoConfirm,
     systemEmulators: new Map(state.systemEmulators),
     emulatorVersions: new Map(state.emulatorVersions),
     emulatorShaders: new Map(state.emulatorShaders),
+    emulatorResume: new Map(state.emulatorResume),
     enabledFrontends: new Map(state.enabledFrontends),
     frontendVersions: new Map(state.frontendVersions),
   }
@@ -81,6 +87,7 @@ function parseConfigResponse(data: ConfigResponse): ConfigState {
   const systemEmulators = new Map<SystemID, EmulatorID[]>()
   const emulatorVersions = new Map<EmulatorID, string>()
   const emulatorShaders = new Map<EmulatorID, string | null>()
+  const emulatorResume = new Map<EmulatorID, string | null>()
   const enabledFrontends = new Map<FrontendID, boolean>()
   const frontendVersions = new Map<FrontendID, string>()
 
@@ -98,6 +105,9 @@ function parseConfigResponse(data: ConfigResponse): ConfigState {
       if (conf.shaders !== undefined) {
         emulatorShaders.set(emuId as EmulatorID, conf.shaders ?? null)
       }
+      if (conf.resume !== undefined) {
+        emulatorResume.set(emuId as EmulatorID, conf.resume ?? null)
+      }
     }
   }
 
@@ -113,10 +123,12 @@ function parseConfigResponse(data: ConfigResponse): ConfigState {
   return {
     collection: data.collection,
     graphicsShaders: data.graphics?.shaders ?? '',
+    savestateResume: data.savestate?.resume ?? '',
     controllerNintendoConfirm: data.controller?.nintendoConfirm ?? 'east',
     systemEmulators,
     emulatorVersions,
     emulatorShaders,
+    emulatorResume,
     enabledFrontends,
     frontendVersions,
   }
@@ -423,6 +435,18 @@ function AppContent() {
     })
   }, [])
 
+  const handleResumeChange = useCallback((emulatorId: EmulatorID, resume: string | null) => {
+    setConfigState((prev) => {
+      const next = new Map(prev.emulatorResume)
+      if (resume === null) {
+        next.delete(emulatorId)
+      } else {
+        next.set(emulatorId, resume)
+      }
+      return { ...prev, emulatorResume: next }
+    })
+  }, [])
+
   const handleFrontendToggle = useCallback((frontendId: FrontendID, enabled: boolean) => {
     setConfigState((prev) => {
       const next = new Map(prev.enabledFrontends)
@@ -441,6 +465,10 @@ function AppContent() {
 
   const handleGraphicsShadersChange = useCallback((value: string) => {
     setConfigState((prev) => ({ ...prev, graphicsShaders: value }))
+  }, [])
+
+  const handleSavestateResumeChange = useCallback((value: string) => {
+    setConfigState((prev) => ({ ...prev, savestateResume: value }))
   }, [])
 
   const handleControllerNintendoConfirmChange = useCallback((value: string) => {
@@ -479,6 +507,10 @@ function AppContent() {
 
     if (configState.graphicsShaders !== savedConfigState.current.graphicsShaders) {
       changes.push('Shader settings')
+    }
+
+    if (configState.savestateResume !== savedConfigState.current.savestateResume) {
+      changes.push('Savestate settings')
     }
 
     if (
@@ -532,6 +564,21 @@ function AppContent() {
     })()
     if (emulatorShadersChanged) {
       changes.push('Emulator shaders')
+    }
+
+    const emulatorResumeChanged = (() => {
+      for (const [emuId, resume] of configState.emulatorResume) {
+        const saved = savedConfigState.current.emulatorResume.get(emuId) ?? null
+        if (saved !== resume) return true
+      }
+      for (const [emuId, saved] of savedConfigState.current.emulatorResume) {
+        const current = configState.emulatorResume.get(emuId) ?? null
+        if (current !== saved) return true
+      }
+      return false
+    })()
+    if (emulatorResumeChanged) {
+      changes.push('Emulator resume')
     }
 
     const enabledFrontendsChanged = (() => {
@@ -589,7 +636,9 @@ function AppContent() {
             enabledFrontends={configState.enabledFrontends}
             emulatorVersions={configState.emulatorVersions}
             emulatorShaders={configState.emulatorShaders}
+            emulatorResume={configState.emulatorResume}
             graphics={{ shaders: configState.graphicsShaders }}
+            savestate={{ resume: configState.savestateResume }}
             controller={{ nintendoConfirm: configState.controllerNintendoConfirm }}
             frontendVersions={configState.frontendVersions}
             installedVersions={installedVersions}
@@ -607,9 +656,11 @@ function AppContent() {
             onEmulatorToggle={handleEmulatorToggle}
             onVersionChange={handleVersionChange}
             onShaderChange={handleShaderChange}
+            onResumeChange={handleResumeChange}
             onFrontendToggle={handleFrontendToggle}
             onFrontendVersionChange={handleFrontendVersionChange}
             onGraphicsShadersChange={handleGraphicsShadersChange}
+            onSavestateResumeChange={handleSavestateResumeChange}
             onControllerNintendoConfirmChange={handleControllerNintendoConfirmChange}
             onDiscard={handleDiscard}
             onEnableAll={handleEnableAll}

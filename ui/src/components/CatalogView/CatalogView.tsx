@@ -5,6 +5,7 @@ import { ManufacturerNav } from '@/components/ManufacturerNav/ManufacturerNav'
 import { SearchInput } from '@/components/SearchInput/SearchInput'
 import { ControllerSettings } from '@/components/Settings/ControllerSettings'
 import { GraphicsSettings } from '@/components/Settings/GraphicsSettings'
+import { SavestateSettings } from '@/components/Settings/SavestateSettings'
 import { Settings } from '@/components/Settings/Settings'
 import { StickyActionBar } from '@/components/StickyActionBar/StickyActionBar'
 import { SYSTEM_YEARS, SystemCard } from '@/components/SystemCard/SystemCard'
@@ -42,7 +43,9 @@ export interface CatalogViewProps {
   readonly enabledFrontends: Map<FrontendID, boolean>
   readonly emulatorVersions: Map<EmulatorID, string>
   readonly emulatorShaders: Map<EmulatorID, string | null>
+  readonly emulatorResume: Map<EmulatorID, string | null>
   readonly graphics: { shaders: string }
+  readonly savestate: { resume: string }
   readonly controller: { nintendoConfirm: string }
   readonly frontendVersions: Map<FrontendID, string>
   readonly installedVersions: Map<EmulatorID, string>
@@ -58,9 +61,11 @@ export interface CatalogViewProps {
   readonly onEmulatorToggle: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
   readonly onVersionChange: (emulatorId: EmulatorID, version: string) => void
   readonly onShaderChange: (emulatorId: EmulatorID, shaders: string | null) => void
+  readonly onResumeChange: (emulatorId: EmulatorID, resume: string | null) => void
   readonly onFrontendToggle: (frontendId: FrontendID, enabled: boolean) => void
   readonly onFrontendVersionChange: (frontendId: FrontendID, version: string) => void
   readonly onGraphicsShadersChange: (value: string) => void
+  readonly onSavestateResumeChange: (value: string) => void
   readonly onControllerNintendoConfirmChange: (value: string) => void
   readonly onDiscard: () => void
   readonly onEnableAll: () => void
@@ -146,7 +151,9 @@ export function CatalogView({
   enabledFrontends,
   emulatorVersions,
   emulatorShaders,
+  emulatorResume,
   graphics,
+  savestate,
   controller,
   frontendVersions,
   installedVersions,
@@ -162,9 +169,11 @@ export function CatalogView({
   onEmulatorToggle,
   onVersionChange,
   onShaderChange,
+  onResumeChange,
   onFrontendToggle,
   onFrontendVersionChange,
   onGraphicsShadersChange,
+  onSavestateResumeChange,
   onControllerNintendoConfirmChange,
   onDiscard,
   onEnableAll,
@@ -199,7 +208,10 @@ export function CatalogView({
         systemsConfig[sysId] = emuIds
       }
 
-      const emulatorsConfig: Record<string, { version?: string; shaders?: string | null }> = {}
+      const emulatorsConfig: Record<
+        string,
+        { version?: string; shaders?: string | null; resume?: string | null }
+      > = {}
       for (const [emuId, version] of emulatorVersions) {
         if (version === VERSION_DEFAULT) {
           emulatorsConfig[emuId] = { version: '' }
@@ -209,6 +221,9 @@ export function CatalogView({
       }
       for (const [emuId, shaders] of emulatorShaders) {
         emulatorsConfig[emuId] = { ...emulatorsConfig[emuId], shaders }
+      }
+      for (const [emuId, resume] of emulatorResume) {
+        emulatorsConfig[emuId] = { ...emulatorsConfig[emuId], resume }
       }
 
       const frontendsConfig: Record<string, { enabled: boolean; version?: string }> = {}
@@ -230,6 +245,7 @@ export function CatalogView({
         emulators: emulatorsConfig,
         frontends: frontendsConfig,
         ...(graphics.shaders && { graphics }),
+        ...(savestate.resume && { savestate }),
         ...(controller.nintendoConfirm && { controller }),
         ...(summaryMessage && { summaryMessage }),
       })
@@ -239,10 +255,12 @@ export function CatalogView({
       systemEmulators,
       emulatorVersions,
       emulatorShaders,
+      emulatorResume,
       enabledFrontends,
       frontendVersions,
       collection,
       graphics,
+      savestate,
       controller,
     ],
   )
@@ -467,6 +485,10 @@ export function CatalogView({
         </div>
 
         <div className="mt-6">
+          <SavestateSettings resume={savestate.resume} onResumeChange={onSavestateResumeChange} />
+        </div>
+
+        <div className="mt-6">
           <ControllerSettings
             nintendoConfirm={controller.nintendoConfirm}
             onNintendoConfirmChange={onControllerNintendoConfirmChange}
@@ -561,7 +583,9 @@ export function CatalogView({
                         globalEnabledEmulators={enabledEmulators}
                         emulatorVersions={emulatorVersions}
                         emulatorShaders={emulatorShaders}
+                        emulatorResume={emulatorResume}
                         graphics={graphics}
+                        savestate={savestate}
                         installedVersions={installedVersions}
                         installedExecLines={installedExecLines}
                         managedConfigs={managedConfigs}
@@ -571,6 +595,7 @@ export function CatalogView({
                         onEmulatorToggle={onEmulatorToggle}
                         onVersionChange={onVersionChange}
                         onShaderChange={onShaderChange}
+                        onResumeChange={onResumeChange}
                       />
                     )
                   })}

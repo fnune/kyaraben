@@ -8,6 +8,7 @@ import type { LogEntry } from './logging.gen'
 export interface SetConfigRequest {
   collection: string;
   graphics?: GraphicsConfigRequest;
+  savestate?: SavestateConfigRequest;
   controller?: ControllerConfigRequest;
   systems: { [key: string]: string[]};
   emulators?: { [key: string]: EmulatorConfRequest};
@@ -15,6 +16,9 @@ export interface SetConfigRequest {
 }
 export interface GraphicsConfigRequest {
   shaders: string;
+}
+export interface SavestateConfigRequest {
+  resume: string;
 }
 export interface ControllerConfigRequest {
   nintendoConfirm: string;
@@ -26,6 +30,7 @@ export interface FrontendConfRequest {
 export interface EmulatorConfRequest {
   version?: string;
   shaders?: string;
+  resume?: string;
 }
 export interface SyncRemoveDeviceRequest {
   deviceId: string;
@@ -153,6 +158,7 @@ export interface EmulatorRef {
 export interface ConfigResponse {
   collection: string;
   graphics: GraphicsConfigResponse;
+  savestate: SavestateConfigResponse;
   controller: ControllerConfigResponse;
   systems: { [key: string]: EmulatorID[]};
   emulators?: { [key: string]: EmulatorConfResponse};
@@ -162,12 +168,16 @@ export interface ConfigResponse {
 export interface GraphicsConfigResponse {
   shaders: string;
 }
+export interface SavestateConfigResponse {
+  resume: string;
+}
 export interface ControllerConfigResponse {
   nintendoConfirm: string;
 }
 export interface EmulatorConfResponse {
   version?: string;
   shaders?: string;
+  resume?: string;
 }
 export interface FrontendConfResponse {
   enabled: boolean;

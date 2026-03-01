@@ -22,6 +22,7 @@ type GenerateContext struct {
 	BaseDirResolver    BaseDirResolver
 	ControllerConfig   *ControllerConfig
 	Shaders            string
+	Resume             string
 	SystemDisplayTypes map[SystemID]DisplayType
 }
 

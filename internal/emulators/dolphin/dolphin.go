@@ -314,7 +314,7 @@ func dolphinHotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 			if m.toggle {
 				value = "toggle(" + value + ")"
 			}
-			entries = append(entries, model.Default(model.None, model.Path(section, m.key), value))
+			entries = append(entries, model.Default(model.Nintendo, model.Path(section, m.key), value))
 		}
 	}
 	return entries
@@ -384,9 +384,9 @@ func gfxEntries(shaders string) []model.ConfigEntry {
 	}
 	switch shaders {
 	case model.EmulatorShadersOn:
-		entries = append(entries, model.Entry(model.None, model.Path("Enhancements", "PostProcessingShader"), "crt_lottes_fast"))
+		entries = append(entries, model.Entry(model.Shaders, model.Path("Enhancements", "PostProcessingShader"), "crt_lottes_fast"))
 	case model.EmulatorShadersOff:
-		entries = append(entries, model.Entry(model.None, model.Path("Enhancements", "PostProcessingShader"), ""))
+		entries = append(entries, model.Entry(model.Shaders, model.Path("Enhancements", "PostProcessingShader"), ""))
 	}
 	return entries
 }

@@ -49,9 +49,10 @@ var MainConfigTarget = model.ConfigTarget{
 	BaseDir: model.ConfigBaseDirUserConfig,
 }
 
-// ShaderConfig holds shader-related settings for config generation.
+// ShaderConfig holds shader and resume settings for config generation.
 type ShaderConfig struct {
 	Shaders            string
+	Resume             string
 	SystemDisplayTypes map[model.SystemID]model.DisplayType
 }
 
@@ -87,7 +88,19 @@ func SharedConfig(store model.StoreReader, cc *model.ControllerConfig, sc *Shade
 	}
 
 	if sc != nil && sc.Shaders == model.EmulatorShadersOn {
-		entries = append(entries, model.Entry(model.None, model.Path("video_shader_enable"), "true"))
+		entries = append(entries, model.Entry(model.Shaders, model.Path("video_shader_enable"), "true"))
+	}
+
+	if sc != nil && sc.Resume == model.EmulatorResumeOn {
+		entries = append(entries,
+			model.Entry(model.Resume, model.Path("savestate_auto_save"), "true"),
+			model.Entry(model.Resume, model.Path("savestate_auto_load"), "true"),
+		)
+	} else if sc != nil && sc.Resume == model.EmulatorResumeOff {
+		entries = append(entries,
+			model.Entry(model.Resume, model.Path("savestate_auto_save"), "false"),
+			model.Entry(model.Resume, model.Path("savestate_auto_load"), "false"),
+		)
 	}
 
 	return model.ConfigPatch{Target: MainConfigTarget, Entries: entries}
@@ -140,11 +153,11 @@ func controllerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 		}
 		if !enableBtnSet {
 			enableBtn := m.binding.Buttons[0]
-			entries = append(entries, model.Entry(model.None, model.Path("input_enable_hotkey_btn"), fmt.Sprintf("%d", cc.SDLIndex(enableBtn))))
+			entries = append(entries, model.Entry(model.Nintendo, model.Path("input_enable_hotkey_btn"), fmt.Sprintf("%d", cc.SDLIndex(enableBtn))))
 			enableBtnSet = true
 		}
 		actionBtn := m.binding.Buttons[len(m.binding.Buttons)-1]
-		entries = append(entries, model.Entry(model.None, model.Path(m.key), fmt.Sprintf("%d", cc.SDLIndex(actionBtn))))
+		entries = append(entries, model.Entry(model.Nintendo, model.Path(m.key), fmt.Sprintf("%d", cc.SDLIndex(actionBtn))))
 	}
 
 	return entries
@@ -246,14 +259,14 @@ func CorePatches(emuID model.EmulatorID, store model.StoreReader, cc *model.Cont
 			if err == nil {
 				presetPath := filepath.Join(configDir, "retroarch", "config", configDirName, configDirName+".slangp")
 				entries = append(entries,
-					model.Entry(model.None, model.Path("video_shader_enable"), "true"),
-					model.Entry(model.None, model.Path("video_shader"), presetPath),
+					model.Entry(model.Shaders, model.Path("video_shader_enable"), "true"),
+					model.Entry(model.Shaders, model.Path("video_shader"), presetPath),
 				)
 			}
 		} else {
 			entries = append(entries,
-				model.Entry(model.None, model.Path("video_shader_enable"), "false"),
-				model.Entry(model.None, model.Path("video_shader"), ""),
+				model.Entry(model.Shaders, model.Path("video_shader_enable"), "false"),
+				model.Entry(model.Shaders, model.Path("video_shader"), ""),
 			)
 		}
 	}
@@ -305,16 +318,16 @@ func coreShaderPatch(emuID model.EmulatorID, displayTypes map[model.SystemID]mod
 
 	if displayType == model.DisplayTypeLCD {
 		entries = []model.ConfigEntry{
-			model.Entry(model.None, model.Path("shaders"), "1"),
-			model.Entry(model.None, model.Path("shader0"), filepath.Join(shaderDir, lcdShaderFile)),
-			model.Entry(model.None, model.Path("scale_type0"), "viewport"),
-			model.Entry(model.None, model.Path("filter_linear0"), "true"),
+			model.Entry(model.Shaders, model.Path("shaders"), "1"),
+			model.Entry(model.Shaders, model.Path("shader0"), filepath.Join(shaderDir, lcdShaderFile)),
+			model.Entry(model.Shaders, model.Path("scale_type0"), "viewport"),
+			model.Entry(model.Shaders, model.Path("filter_linear0"), "true"),
 		}
 	} else {
 		entries = []model.ConfigEntry{
-			model.Entry(model.None, model.Path("shaders"), "1"),
-			model.Entry(model.None, model.Path("shader0"), filepath.Join(shaderDir, crtShaderFile)),
-			model.Entry(model.None, model.Path("filter_linear0"), "false"),
+			model.Entry(model.Shaders, model.Path("shaders"), "1"),
+			model.Entry(model.Shaders, model.Path("shader0"), filepath.Join(shaderDir, crtShaderFile)),
+			model.Entry(model.Shaders, model.Path("filter_linear0"), "false"),
 		}
 	}
 

@@ -27,8 +27,10 @@ func (Definition) Emulator() model.Emulator {
 			model.StateSavestates,
 			model.StateScreenshots,
 		},
-		Launcher:  retroarch.LauncherWithCore(libretroCoreName),
-		PathUsage: model.StandardPathUsage(),
+		Launcher:          retroarch.LauncherWithCore(libretroCoreName),
+		PathUsage:         model.StandardPathUsage(),
+		SupportedSettings: []string{model.SettingResumeAutosave, model.SettingResumeAutoload},
+		ResumeRecommended: true,
 	}
 }
 
@@ -45,6 +47,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	}
 	sc := &retroarch.ShaderConfig{
 		Shaders:            ctx.Shaders,
+		Resume:             ctx.Resume,
 		SystemDisplayTypes: ctx.SystemDisplayTypes,
 	}
 	downloads, err := retroarch.CoreShaderDownloads(model.EmulatorIDRetroArchBeetlePCE, ctx.BaseDirResolver, sc)

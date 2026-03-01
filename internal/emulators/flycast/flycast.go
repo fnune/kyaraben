@@ -41,7 +41,9 @@ func (Definition) Emulator() model.Emulator {
 				return cmd
 			},
 		},
-		PathUsage: model.StandardPathUsage(),
+		PathUsage:         model.StandardPathUsage(),
+		SupportedSettings: []string{model.SettingResumeAutosave, model.SettingResumeAutoload},
+		ResumeRecommended: true,
 	}
 }
 
@@ -68,16 +70,31 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	biosDir := store.SystemBiosDir(model.SystemIDDreamcast)
 	savesDir := store.SystemSavesDir(model.SystemIDDreamcast)
 
+	entries := []model.ConfigEntry{
+		model.Entry(model.Store, model.Path("config", "Flycast.DataPath"), biosDir),
+		model.Entry(model.Store, model.Path("config", "Dreamcast.BiosPath"), biosDir),
+		model.Entry(model.Store, model.Path("config", "Dreamcast.ContentPath"), store.SystemRomsDir(model.SystemIDDreamcast)),
+		model.Entry(model.Store, model.Path("config", "Dreamcast.SavePath"), savesDir),
+		model.Entry(model.Store, model.Path("config", "Dreamcast.VMUPath"), savesDir),
+		model.Entry(model.Store, model.Path("config", "Dreamcast.SavestatePath"), store.EmulatorStatesDir(model.EmulatorIDFlycast)),
+	}
+
+	switch ctx.Resume {
+	case model.EmulatorResumeOn:
+		entries = append(entries,
+			model.Entry(model.Resume, model.Path("config", "Dreamcast.AutoSaveState"), "yes"),
+			model.Entry(model.Resume, model.Path("config", "Dreamcast.AutoLoadState"), "yes"),
+		)
+	case model.EmulatorResumeOff:
+		entries = append(entries,
+			model.Entry(model.Resume, model.Path("config", "Dreamcast.AutoSaveState"), "no"),
+			model.Entry(model.Resume, model.Path("config", "Dreamcast.AutoLoadState"), "no"),
+		)
+	}
+
 	patches := []model.ConfigPatch{{
-		Target: configTarget,
-		Entries: []model.ConfigEntry{
-			model.Entry(model.Store, model.Path("config", "Flycast.DataPath"), biosDir),
-			model.Entry(model.Store, model.Path("config", "Dreamcast.BiosPath"), biosDir),
-			model.Entry(model.Store, model.Path("config", "Dreamcast.ContentPath"), store.SystemRomsDir(model.SystemIDDreamcast)),
-			model.Entry(model.Store, model.Path("config", "Dreamcast.SavePath"), savesDir),
-			model.Entry(model.Store, model.Path("config", "Dreamcast.VMUPath"), savesDir),
-			model.Entry(model.Store, model.Path("config", "Dreamcast.SavestatePath"), store.EmulatorStatesDir(model.EmulatorIDFlycast)),
-		},
+		Target:  configTarget,
+		Entries: entries,
 	}}
 
 	if cc := ctx.ControllerConfig; cc != nil {
@@ -181,7 +198,7 @@ func hotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 			}
 			// Format: button1,button2:action:sequential (0=simultaneous, 1=sequential)
 			value := fmt.Sprintf("%s:%s:0", join(buttonIndices, ","), m.action)
-			entries = append(entries, model.Entry(model.None, model.Path("combo", fmt.Sprintf("bind%d", bindNum)), value))
+			entries = append(entries, model.Entry(model.Nintendo, model.Path("combo", fmt.Sprintf("bind%d", bindNum)), value))
 			bindNum++
 		}
 	}

@@ -193,6 +193,8 @@ var (
 	None     = []ConfigInput{ConfigInputNone}
 	Store    = []ConfigInput{ConfigInputCollection}
 	Nintendo = []ConfigInput{ConfigInputNintendoConfirm}
+	Shaders  = []ConfigInput{ConfigInputShaders}
+	Resume   = []ConfigInput{ConfigInputResume}
 )
 
 // Path builds a config path from variadic string arguments.

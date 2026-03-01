@@ -42,9 +42,12 @@ export interface EmulatorSubcardProps {
   readonly sharedPackage?: boolean
   readonly shaders?: string | null
   readonly graphics: { shaders: string }
+  readonly resume?: string | null
+  readonly savestate: { resume: string }
   readonly onToggle: (enabled: boolean) => void
   readonly onVersionChange: (version: string) => void
   readonly onShaderChange?: (value: string | null) => void
+  readonly onResumeChange?: (value: string | null) => void
   readonly onLaunch?: () => void
 }
 
@@ -127,9 +130,12 @@ export function EmulatorSubcard({
   sharedPackage,
   shaders,
   graphics,
+  resume,
+  savestate,
   onToggle,
   onVersionChange,
   onShaderChange,
+  onResumeChange,
   onLaunch,
 }: EmulatorSubcardProps) {
   const [pathsOpen, setPathsOpen] = useState(false)
@@ -139,6 +145,7 @@ export function EmulatorSubcard({
 
   const hasSettings = (emulator.supportedSettings?.length ?? 0) > 0
   const supportsShaders = emulator.supportedSettings?.includes('shaders') ?? false
+  const supportsResume = emulator.supportedSettings?.some((s) => s.startsWith('resume:')) ?? false
 
   const changeType = useChangeType(
     enabled,
@@ -305,7 +312,11 @@ export function EmulatorSubcard({
           supportsShaders={supportsShaders}
           shaders={shaders ?? null}
           graphics={graphics}
-          onShaderChange={onShaderChange ?? ((_: string | null) => undefined)}
+          onShaderChange={onShaderChange ?? (() => undefined)}
+          supportsResume={supportsResume}
+          resume={resume ?? null}
+          savestate={savestate}
+          onResumeChange={onResumeChange ?? (() => undefined)}
         />
       )}
     </PackageCard>

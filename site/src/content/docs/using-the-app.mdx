@@ -30,34 +30,34 @@ Kyaraben configures each emulator with paths, controller bindings, and hotkeys.
 Not all emulators support all features. This table shows what Kyaraben
 configures for each emulator.
 
-| Emulator        | System           | Syncs                      | Hotkeys | Controller | Players | Provisions                    |
-| --------------- | ---------------- | -------------------------- | ------- | ---------- | ------- | ----------------------------- |
-| Snes9x          | SNES             | saves, states, screenshots | full    | configured | 4       | none                          |
-| bsnes           | SNES             | saves, states, screenshots | full    | configured | 4       | none                          |
-| Mesen           | NES              | saves, states, screenshots | full    | configured | 4       | none                          |
-| Genesis Plus GX | Genesis, SMS, GG | saves, states, screenshots | full    | configured | 4       | none                          |
-| mGBA            | GB, GBC, GBA     | saves, states, screenshots | full    | configured | 4       | none                          |
-| melonDS         | DS               | saves, states, screenshots | full    | configured | 4       | none                          |
-| Citra           | 3DS              | saves, states, screenshots | full    | configured | 4       | none                          |
-| Mupen64Plus     | N64              | saves, states, screenshots | full    | configured | 4       | none                          |
-| Beetle Saturn   | Saturn           | saves, states, screenshots | full    | configured | 4       | Saturn BIOS                   |
-| Beetle PCE      | PC Engine        | saves, states, screenshots | full    | configured | 4       | CD System Card (for CD games) |
-| Beetle NGP      | Neo Geo Pocket   | saves, states, screenshots | full    | configured | 4       | none                          |
-| FBNeo           | Arcade           | saves, states, screenshots | full    | configured | 4       | varies by game (optional)     |
-| FBNeo           | Neo Geo          | saves, states, screenshots | full    | configured | 4       | Neo Geo BIOS (optional)       |
-| Stella          | Atari 2600       | saves, states, screenshots | full    | configured | 4       | none                          |
-| VICE x64sc      | C64              | saves, states, screenshots | full    | configured | 4       | none                          |
-| DuckStation     | PSX              | saves, states, screenshots | full    | configured | 4       | PSX BIOS                      |
-| PCSX2           | PS2              | saves, states, screenshots | full    | configured | 4       | PS2 BIOS                      |
-| PPSSPP          | PSP              | saves, states, screenshots | full    | configured | 1       | none                          |
-| Dolphin         | GC, Wii          | saves, states, screenshots | full    | configured | 4       | Wii keys (optional)           |
-| Flycast         | Dreamcast        | saves, states, screenshots | partial | configured | 1       | DC BIOS (optional)            |
-| Cemu            | Wii U            | saves                      | none    | configured | 1       | Wii U keys (optional)         |
-| Eden            | Switch           | saves, screenshots         | partial | configured | 2       | Switch keys                   |
-| xemu            | Xbox             | states, screenshots        | none    | auto       | 4       | Xbox Boot ROM, Flash ROM      |
-| Xenia Edge      | Xbox 360         | saves, screenshots         | none    | auto       | -       | none                          |
-| Vita3K          | PS Vita          | saves, screenshots         | none    | auto       | -       | PS Vita firmware              |
-| RPCS3           | PS3              | saves, states, screenshots | none    | auto       | -       | PS3 firmware                  |
+| Emulator        | System           | Syncs                      | Hotkeys | Resume | Controller | Players | Provisions                    |
+| --------------- | ---------------- | -------------------------- | ------- | ------ | ---------- | ------- | ----------------------------- |
+| Snes9x          | SNES             | saves, states, screenshots | full    | full   | configured | 4       | none                          |
+| bsnes           | SNES             | saves, states, screenshots | full    | full   | configured | 4       | none                          |
+| Mesen           | NES              | saves, states, screenshots | full    | full   | configured | 4       | none                          |
+| Genesis Plus GX | Genesis, SMS, GG | saves, states, screenshots | full    | full   | configured | 4       | none                          |
+| mGBA            | GB, GBC, GBA     | saves, states, screenshots | full    | full   | configured | 4       | none                          |
+| melonDS         | DS               | saves, states, screenshots | full    | full   | configured | 4       | none                          |
+| Citra           | 3DS              | saves, states, screenshots | full    | full   | configured | 4       | none                          |
+| Mupen64Plus     | N64              | saves, states, screenshots | full    | full   | configured | 4       | none                          |
+| Beetle Saturn   | Saturn           | saves, states, screenshots | full    | full   | configured | 4       | Saturn BIOS                   |
+| Beetle PCE      | PC Engine        | saves, states, screenshots | full    | full   | configured | 4       | CD System Card (for CD games) |
+| Beetle NGP      | Neo Geo Pocket   | saves, states, screenshots | full    | full   | configured | 4       | none                          |
+| FBNeo           | Arcade           | saves, states, screenshots | full    | full   | configured | 4       | varies by game (optional)     |
+| FBNeo           | Neo Geo          | saves, states, screenshots | full    | full   | configured | 4       | Neo Geo BIOS (optional)       |
+| Stella          | Atari 2600       | saves, states, screenshots | full    | full   | configured | 4       | none                          |
+| VICE x64sc      | C64              | saves, states, screenshots | full    | full   | configured | 4       | none                          |
+| DuckStation     | PSX              | saves, states, screenshots | full    | save   | configured | 4       | PSX BIOS                      |
+| PCSX2           | PS2              | saves, states, screenshots | full    | save   | configured | 4       | PS2 BIOS                      |
+| PPSSPP          | PSP              | saves, states, screenshots | full    | load   | configured | 1       | none                          |
+| Dolphin         | GC, Wii          | saves, states, screenshots | full    | none   | configured | 4       | Wii keys (optional)           |
+| Flycast         | Dreamcast        | saves, states, screenshots | partial | full   | configured | 1       | DC BIOS (optional)            |
+| Cemu            | Wii U            | saves                      | none    | none   | configured | 1       | Wii U keys (optional)         |
+| Eden            | Switch           | saves, screenshots         | partial | none   | configured | 2       | Switch keys                   |
+| xemu            | Xbox             | states, screenshots        | none    | none   | auto       | 4       | Xbox Boot ROM, Flash ROM      |
+| Xenia Edge      | Xbox 360         | saves, screenshots         | none    | none   | auto       | -       | none                          |
+| Vita3K          | PS Vita          | saves, screenshots         | none    | none   | auto       | -       | PS Vita firmware              |
+| RPCS3           | PS3              | saves, states, screenshots | none    | none   | auto       | -       | PS3 firmware                  |
 
 Definitions:
 
@@ -66,6 +66,8 @@ Definitions:
   captured screenshots.
 - **Hotkeys**: `full` = save/load state, fast forward, pause, screenshot, quit.
   `partial` = subset of these. `none` = no Kyaraben hotkey configuration.
+- **Resume**: auto-resume support. `full` = autosave on exit and autoload on
+  launch. `save` = autosave only. `load` = autoload only. `none` = not supported.
 - **Controller**: `configured` = Kyaraben generates controller bindings.
   `auto` = emulator handles controller detection.
 - **Players**: number of controller slots Kyaraben configures. `-` = handled
@@ -134,8 +136,8 @@ profiles, logs). Kyaraben does not manage these.
 
 Kyaraben manages specific keys in emulator config files: paths that point to
 your <Collection /> (ROM directories, BIOS paths, save directories, etc.).
-Some settings like shaders can be opted into; most others (resolution, audio)
-are yours to configure.
+Some settings like shaders and auto-resume can be opted into; most others
+(resolution, audio) are yours to configure.
 
 When you apply, Kyaraben compares what it last wrote with what's currently on
 disk. If you changed something Kyaraben doesn't manage, your change is

@@ -26,8 +26,9 @@ func (Definition) Emulator() model.Emulator {
 			UsesStatesDir:      true,
 			UsesScreenshotsDir: true,
 		},
-		SupportedSettings:  []string{model.SettingShaders},
+		SupportedSettings:  []string{model.SettingShaders, model.SettingResumeAutosave, model.SettingResumeAutoload},
 		ShadersRecommended: true,
+		ResumeRecommended:  true,
 	}
 }
 
@@ -44,6 +45,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	}
 	sc := &retroarch.ShaderConfig{
 		Shaders:            ctx.Shaders,
+		Resume:             ctx.Resume,
 		SystemDisplayTypes: ctx.SystemDisplayTypes,
 	}
 	downloads, err := retroarch.CoreShaderDownloads(model.EmulatorIDRetroArchSnes9x, ctx.BaseDirResolver, sc)

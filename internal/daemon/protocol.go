@@ -10,6 +10,7 @@ import (
 type SetConfigRequest struct {
 	Collection string                         `json:"collection"`
 	Graphics   *GraphicsConfigRequest         `json:"graphics,omitempty"`
+	Savestate  *SavestateConfigRequest        `json:"savestate,omitempty"`
 	Controller *ControllerConfigRequest       `json:"controller,omitempty"`
 	Systems    map[string][]string            `json:"systems"`
 	Emulators  map[string]EmulatorConfRequest `json:"emulators,omitempty"`
@@ -18,6 +19,10 @@ type SetConfigRequest struct {
 
 type GraphicsConfigRequest struct {
 	Shaders string `json:"shaders"`
+}
+
+type SavestateConfigRequest struct {
+	Resume string `json:"resume"`
 }
 
 type ControllerConfigRequest struct {
@@ -32,6 +37,7 @@ type FrontendConfRequest struct {
 type EmulatorConfRequest struct {
 	Version *string `json:"version"`
 	Shaders *string `json:"shaders"`
+	Resume  *string `json:"resume"`
 }
 
 type SyncRemoveDeviceRequest struct {
@@ -179,6 +185,7 @@ type EmulatorRef struct {
 type ConfigResponse struct {
 	Collection string                          `json:"collection"`
 	Graphics   GraphicsConfigResponse          `json:"graphics"`
+	Savestate  SavestateConfigResponse         `json:"savestate"`
 	Controller ControllerConfigResponse        `json:"controller"`
 	Systems    map[string][]model.EmulatorID   `json:"systems"`
 	Emulators  map[string]EmulatorConfResponse `json:"emulators,omitempty"`
@@ -190,6 +197,10 @@ type GraphicsConfigResponse struct {
 	Shaders string `json:"shaders"`
 }
 
+type SavestateConfigResponse struct {
+	Resume string `json:"resume"`
+}
+
 type ControllerConfigResponse struct {
 	NintendoConfirm string `json:"nintendoConfirm"`
 }
@@ -197,6 +208,7 @@ type ControllerConfigResponse struct {
 type EmulatorConfResponse struct {
 	Version string  `json:"version,omitempty"`
 	Shaders *string `json:"shaders"`
+	Resume  *string `json:"resume"`
 }
 
 type FrontendConfResponse struct {
