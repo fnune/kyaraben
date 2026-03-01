@@ -886,8 +886,8 @@ func (a *Applier) buildPackageSizes(plan installPlan) (map[string]int64, map[str
 	if len(plan.coreNames) > 0 {
 		installList = append(installList, "retroarch-cores")
 		installed["retroarch-cores"] = packages.RetroArchCoresInstalled(a.Installer, plan.coreNames, v)
-		packageDownloadSizes["retroarch-cores"] = coreDownloadSize(plan.coreNames, targetName, v)
-		packageArchiveTypes["retroarch-cores"] = coreArchiveType(targetName, v)
+		packageDownloadSizes["retroarch-cores"] = coreDownloadSize(plan.coreNames, targetName, v, a.Installer)
+		packageArchiveTypes["retroarch-cores"] = coreArchiveType(plan.coreNames, targetName, v, a.Installer)
 	}
 
 	summary := packages.CalculateChangeSummary(installList, nil, installed, func(pkgName string) int64 {
@@ -935,30 +935,43 @@ func packageDownloadSize(pkgName string, targetName string, v *versions.Versions
 	return build.Size
 }
 
-func coreDownloadSize(coreNames []string, targetName string, v *versions.Versions) int64 {
+func coreDownloadSize(coreNames []string, targetName string, v *versions.Versions, installer packages.Installer) int64 {
 	if len(coreNames) == 0 {
 		return 0
 	}
 
-	version := v.RetroArchCores.Default
-	if version == "" {
-		return 0
-	}
-	build, ok := v.RetroArchCores.Versions[version]
-	if !ok {
-		return 0
-	}
-
-	selectedTarget := selectCoresTargetName(build, targetName)
-	if selectedTarget != "" {
-		if targetBuild, ok := build.Targets[selectedTarget]; ok && targetBuild.Size > 0 {
-			return targetBuild.Size
-		}
-	}
-
 	var total int64
+	seenURLs := make(map[string]bool)
 	for _, coreName := range coreNames {
-		total += v.GetCoreSize(coreName)
+		spec, ok := v.GetPackage(coreName)
+		if !ok {
+			continue
+		}
+		version := installer.ResolveVersion(coreName)
+		entry := spec.GetVersion(version)
+		if entry == nil {
+			entry = spec.GetDefault()
+		}
+		if entry == nil {
+			continue
+		}
+		target := entry.SelectTarget(targetName)
+		if target == "" {
+			continue
+		}
+		url := entry.URL(target, spec)
+		if seenURLs[url] {
+			continue
+		}
+		seenURLs[url] = true
+		if spec.BundleSize > 0 {
+			total += spec.BundleSize
+		} else {
+			build := entry.Target(target)
+			if build != nil && build.Size > 0 {
+				total += build.Size
+			}
+		}
 	}
 	return total
 }
@@ -983,57 +996,28 @@ func packageArchiveType(pkgName string, targetName string, v *versions.Versions,
 	return entry.ArchiveType(target, spec)
 }
 
-func coreArchiveType(targetName string, v *versions.Versions) string {
-	version := v.RetroArchCores.Default
-	if version == "" {
+func coreArchiveType(coreNames []string, targetName string, v *versions.Versions, installer packages.Installer) string {
+	if len(coreNames) == 0 {
 		return ""
 	}
-	build, ok := v.RetroArchCores.Versions[version]
+	coreName := coreNames[0]
+	spec, ok := v.GetPackage(coreName)
 	if !ok {
 		return ""
 	}
-
-	selectedTarget := selectCoresTargetName(build, targetName)
-	if selectedTarget == "" {
+	version := installer.ResolveVersion(coreName)
+	entry := spec.GetVersion(version)
+	if entry == nil {
+		entry = spec.GetDefault()
+	}
+	if entry == nil {
 		return ""
 	}
-
-	url, _, ok := v.RetroArchCores.GetCoresURL(selectedTarget)
-	if !ok {
+	target := entry.SelectTarget(targetName)
+	if target == "" {
 		return ""
 	}
-	return archiveTypeFromURL(url)
-}
-
-func archiveTypeFromURL(url string) string {
-	switch {
-	case strings.HasSuffix(url, ".tar.zst"):
-		return "tar.zst"
-	case strings.HasSuffix(url, ".tar.gz"), strings.HasSuffix(url, ".tgz"):
-		return "tar.gz"
-	case strings.HasSuffix(url, ".tar.xz"):
-		return "tar.xz"
-	case strings.HasSuffix(url, ".zip"):
-		return "zip"
-	case strings.HasSuffix(url, ".7z"):
-		return "7z"
-	default:
-		return ""
-	}
-}
-
-func selectCoresTargetName(build versions.RetroArchCoresBuild, detected string) string {
-	if _, ok := build.Targets[detected]; ok {
-		return detected
-	}
-
-	if fallback, ok := versions.TargetFallback[detected]; ok {
-		if _, ok := build.Targets[fallback.String()]; ok {
-			return fallback.String()
-		}
-	}
-
-	return ""
+	return entry.ArchiveType(target, spec)
 }
 
 func extractionWeight(downloadSize int64) int64 {
@@ -1336,6 +1320,9 @@ func (a *Applier) garbageCollect(emulatorIDs []model.EmulatorID, frontendIDs []m
 			continue
 		}
 		pkgName := emu.Package.PackageName()
+		if coreName := emuID.RetroArchCoreName(); coreName != "" {
+			pkgName = coreName
+		}
 		keep[pkgName] = a.Installer.ResolveVersion(pkgName)
 	}
 	for _, feID := range frontendIDs {
@@ -1345,9 +1332,6 @@ func (a *Applier) garbageCollect(emulatorIDs []model.EmulatorID, frontendIDs []m
 		}
 		pkgName := fe.Package.PackageName()
 		keep[pkgName] = a.Installer.ResolveVersion(pkgName)
-	}
-	if len(keep) > 0 {
-		keep["retroarch-cores"] = a.Installer.ResolveVersion("retroarch-cores")
 	}
 	keep["syncthing"] = a.Installer.ResolveVersion("syncthing")
 	return a.Installer.GarbageCollect(keep)

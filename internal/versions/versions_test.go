@@ -219,20 +219,6 @@ func TestAllPackagesHaveSize(t *testing.T) {
 			}
 		}
 	}
-
-	version := v.RetroArchCores.Default
-	if version == "" {
-		t.Fatal("retroarch-cores default version missing")
-	}
-	build, ok := v.RetroArchCores.Versions[version]
-	if !ok {
-		t.Fatalf("retroarch-cores version %s not found", version)
-	}
-	for target, targetBuild := range build.Targets {
-		if targetBuild.SHA256 != "" && targetBuild.Size == 0 {
-			t.Errorf("retroarch-cores %s: missing size", target)
-		}
-	}
 }
 
 func TestAllPackagesHaveSHA256(t *testing.T) {
@@ -244,29 +230,6 @@ func TestAllPackagesHaveSHA256(t *testing.T) {
 					t.Errorf("%s %s %s: missing SHA256", name, version, target)
 				}
 			}
-		}
-	}
-
-	version := v.RetroArchCores.Default
-	if version == "" {
-		t.Fatal("retroarch-cores default version missing")
-	}
-	build, ok := v.RetroArchCores.Versions[version]
-	if !ok {
-		t.Fatalf("retroarch-cores version %s not found", version)
-	}
-	for target, targetBuild := range build.Targets {
-		if targetBuild.SHA256 == "" {
-			t.Errorf("retroarch-cores %s: missing SHA256", target)
-		}
-	}
-
-	for name, core := range v.RetroArchCores.Standalone {
-		if core.SHA256 == "" {
-			t.Errorf("retroarch-cores standalone %s: missing SHA256", name)
-		}
-		if core.Size == 0 {
-			t.Errorf("retroarch-cores standalone %s: missing size", name)
 		}
 	}
 }
@@ -305,20 +268,39 @@ func TestGetPackage(t *testing.T) {
 	}
 }
 
-func TestGetCoreSize(t *testing.T) {
+func TestCoresArePackages(t *testing.T) {
 	v := MustGet()
 
 	knownCores := []string{"bsnes", "mesen", "genesis_plus_gx", "mupen64plus_next", "mednafen_saturn"}
 	for _, core := range knownCores {
-		size := v.GetCoreSize(core)
-		if size <= 0 {
-			t.Errorf("GetCoreSize(%s) = %d, want > 0", core, size)
+		spec, ok := v.GetPackage(core)
+		if !ok {
+			t.Errorf("core %s not found as package", core)
+			continue
 		}
-	}
-
-	unknownSize := v.GetCoreSize("nonexistent_core")
-	if unknownSize != 0 {
-		t.Errorf("GetCoreSize(nonexistent_core) = %d, want 0", unknownSize)
+		if !spec.IsRetroArchCore() {
+			t.Errorf("core %s should have install_type=retroarch-core", core)
+		}
+		if spec.BinaryPath == "" {
+			t.Errorf("core %s missing binary_path", core)
+		}
+		entry := spec.GetDefault()
+		if entry == nil {
+			t.Errorf("core %s has no default version", core)
+			continue
+		}
+		target := entry.SelectTarget("x64")
+		if target == "" {
+			target = entry.SelectTarget("amd64")
+		}
+		if target == "" {
+			t.Errorf("core %s has no x64/amd64 target", core)
+			continue
+		}
+		build := entry.Target(target)
+		if build == nil || build.Size <= 0 {
+			t.Errorf("core %s has no size", core)
+		}
 	}
 }
 
@@ -379,28 +361,4 @@ func TestVersionsTomlIntegrity(t *testing.T) {
 		})
 	}
 
-	t.Run("retroarch-cores", func(t *testing.T) {
-		t.Parallel()
-		if v.RetroArchCores.Default == "" {
-			t.Fatal("no default version")
-		}
-		build, ok := v.RetroArchCores.Versions[v.RetroArchCores.Default]
-		if !ok {
-			t.Fatalf("default version %q not in Versions", v.RetroArchCores.Default)
-		}
-		if len(build.Targets) == 0 {
-			t.Fatal("no targets")
-		}
-		url, _, ok := v.RetroArchCores.GetCoresURL("x64")
-		if !ok {
-			t.Fatal("no x64 target")
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		if size, err := FetchSize(ctx, url); err != nil {
-			t.Errorf("URL not reachable: %v", err)
-		} else if size == 0 {
-			t.Error("URL returned zero size")
-		}
-	})
 }

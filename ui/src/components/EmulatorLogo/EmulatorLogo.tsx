@@ -44,7 +44,7 @@ const EMULATOR_LOGOS: Partial<Record<EmulatorID, string>> = {
   'retroarch:mednafen_pce_fast': mednafen,
   'retroarch:mednafen_ngp': mednafen,
   'retroarch:mgba': mgba,
-  'retroarch:melonds': melonds,
+  'retroarch:melondsds': melonds,
   'retroarch:citra': citra,
   'retroarch:fbneo': fbneo,
   'retroarch:stella': stella,

@@ -324,6 +324,9 @@ func TestHandleGetSystems_PopulatesPackageNameAndCoreBytes(t *testing.T) {
 				if emu.CoreBytes <= 0 {
 					t.Errorf("RetroArch emulator %s should have CoreBytes > 0, got %d", emu.ID, emu.CoreBytes)
 				}
+				if emu.DownloadBytes <= 0 {
+					t.Errorf("RetroArch emulator %s should have DownloadBytes > 0 (retroarch binary), got %d", emu.ID, emu.DownloadBytes)
+				}
 			}
 		}
 	}
@@ -586,7 +589,7 @@ func TestRetroArchCoreName(t *testing.T) {
 		{model.EmulatorIDRetroArchMupen64Plus, "mupen64plus_next"},
 		{model.EmulatorIDRetroArchBeetleSaturn, "mednafen_saturn"},
 		{model.EmulatorIDRetroArchMGBA, "mgba"},
-		{model.EmulatorIDRetroArchMelonDS, "melonds"},
+		{model.EmulatorIDRetroArchMelonDS, "melondsds"},
 		{model.EmulatorIDDolphin, ""},
 	}
 

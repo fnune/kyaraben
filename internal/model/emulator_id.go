@@ -36,7 +36,7 @@ const (
 	EmulatorIDRetroArchBeetlePCE     EmulatorID = "retroarch:mednafen_pce_fast"
 	EmulatorIDRetroArchBeetleNGP     EmulatorID = "retroarch:mednafen_ngp"
 	EmulatorIDRetroArchMGBA          EmulatorID = "retroarch:mgba"
-	EmulatorIDRetroArchMelonDS       EmulatorID = "retroarch:melonds"
+	EmulatorIDRetroArchMelonDS       EmulatorID = "retroarch:melondsds"
 	EmulatorIDRetroArchCitra         EmulatorID = "retroarch:citra"
 	EmulatorIDRetroArchFBNeo         EmulatorID = "retroarch:fbneo"
 	EmulatorIDRetroArchStella        EmulatorID = "retroarch:stella"

@@ -801,13 +801,12 @@ func (d *Daemon) handleGetSystems() []Event {
 			}
 
 			if vers != nil {
-				if coreName := retroArchCoreName(emu.ID); coreName != "" {
-					ref.DefaultVersion = vers.RetroArchCores.Default
-					availableVersions := vers.RetroArchCores.AvailableVersions()
-					sort.Strings(availableVersions)
-					ref.AvailableVersions = availableVersions
-					ref.CoreBytes = vers.GetCoreSize(coreName)
-				} else if spec, ok := vers.GetPackage(emu.Package.PackageName()); ok {
+				pkgName := emu.Package.PackageName()
+				coreName := retroArchCoreName(emu.ID)
+				if coreName != "" {
+					pkgName = coreName
+				}
+				if spec, ok := vers.GetPackage(pkgName); ok {
 					ref.DefaultVersion = spec.Default
 					availableVersions := spec.AvailableVersions()
 					sort.Strings(availableVersions)
@@ -815,8 +814,24 @@ func (d *Daemon) handleGetSystems() []Event {
 
 					if entry := spec.GetDefault(); entry != nil {
 						if target := entry.SelectTarget(detectedTarget); target != "" {
-							if build := entry.Target(target); build != nil && build.Size > 0 {
-								ref.DownloadBytes = build.Size
+							if build := entry.Target(target); build != nil {
+								if spec.IsRetroArchCore() {
+									ref.CoreBytes = build.Size
+								} else if build.Size > 0 {
+									ref.DownloadBytes = build.Size
+								}
+							}
+						}
+					}
+				}
+
+				if coreName != "" {
+					if raSpec, ok := vers.GetPackage("retroarch"); ok {
+						if entry := raSpec.GetDefault(); entry != nil {
+							if target := entry.SelectTarget(detectedTarget); target != "" {
+								if build := entry.Target(target); build != nil && build.Size > 0 {
+									ref.DownloadBytes = build.Size
+								}
 							}
 						}
 					}

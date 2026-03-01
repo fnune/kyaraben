@@ -39,27 +39,6 @@ func CheckAllVersions(ctx context.Context) <-chan VersionCheck {
 		v := MustGet()
 		var wg sync.WaitGroup
 
-		if v.RetroArchCores.ReleasesURL != "" {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				check := checkReleasesURL(ctx, "retroarch-cores", v.RetroArchCores.Default, v.RetroArchCores.ReleasesURL)
-				results <- check
-			}()
-		}
-
-		for name, core := range v.RetroArchCores.Standalone {
-			if core.ReleasesURL != "" {
-				wg.Add(1)
-				go func(name string, core StandaloneCore) {
-					defer wg.Done()
-					currentVersion := extractVersionFromURL(core.URL)
-					check := checkReleasesURL(ctx, "core:"+name, currentVersion, core.ReleasesURL)
-					results <- check
-				}(name, core)
-			}
-		}
-
 		for name, spec := range v.Packages {
 			if spec.ReleasesURL != "" {
 				wg.Add(1)
@@ -284,14 +263,4 @@ func fetchGitLabReleases(ctx context.Context, project string) ([]ReleaseInfo, er
 	}
 
 	return releases, nil
-}
-
-func extractVersionFromURL(downloadURL string) string {
-	parts := strings.Split(downloadURL, "/")
-	for i, part := range parts {
-		if part == "download" && i+1 < len(parts) {
-			return parts[i+1]
-		}
-	}
-	return "unknown"
 }

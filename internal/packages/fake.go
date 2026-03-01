@@ -125,20 +125,21 @@ func (f *FakeInstaller) InstallCores(ctx context.Context, coreNames []string, on
 	if f.Cores != nil {
 		return f.Cores, nil
 	}
-	coresDir := filepath.Join(f.packagesDir, "retroarch-cores", "lib", "retroarch", "cores")
-	if err := vfs.MkdirAll(f.fs, coresDir, 0755); err != nil {
-		return nil, err
-	}
 	v := versions.MustGet()
 	installed := make([]InstalledCore, 0, len(coreNames))
 	for _, name := range coreNames {
-		var filename string
-		if standalone, ok := v.RetroArchCores.Standalone[name]; ok {
-			filename = standalone.Filename
-		} else if mapped, ok := v.RetroArchCores.Files[name]; ok {
-			filename = mapped
-		} else {
-			filename = name
+		spec, ok := v.GetPackage(name)
+		if !ok {
+			continue
+		}
+		filename := spec.BinaryPath
+		if filename == "" {
+			filename = name + "_libretro.so"
+		}
+		version := f.ResolveVersion(name)
+		coresDir := filepath.Join(f.packagesDir, name, version, "lib", "retroarch", "cores")
+		if err := vfs.MkdirAll(f.fs, coresDir, 0755); err != nil {
+			return nil, err
 		}
 		corePath := filepath.Join(coresDir, filename)
 		if err := f.fs.WriteFile(corePath, []byte("fake core"), 0644); err != nil {
@@ -183,15 +184,7 @@ func (f *FakeInstaller) ResolveVersion(name string) string {
 	if v, ok := f.Versions[name]; ok {
 		return v
 	}
-	if name == "retroarch-cores" {
-		return versions.MustGet().RetroArchCores.Default
-	}
 	v := versions.MustGet()
-	_, isBundledCore := v.RetroArchCores.Files[name]
-	_, isStandaloneCore := v.RetroArchCores.Standalone[name]
-	if isBundledCore || isStandaloneCore {
-		return v.RetroArchCores.Default
-	}
 	if spec, ok := v.GetPackage(name); ok {
 		if entry := spec.GetDefault(); entry != nil {
 			return entry.Version

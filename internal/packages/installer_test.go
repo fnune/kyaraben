@@ -414,7 +414,7 @@ func TestPackageInstallerInstallStandaloneCores(t *testing.T) {
 
 	installer := NewPackageInstaller(fs, stateDir, dl, ext, fakeBaseDirResolver{root: "/home"})
 
-	cores, err := installer.InstallCores(context.Background(), []string{"melonds"}, nil)
+	cores, err := installer.InstallCores(context.Background(), []string{"melondsds"}, nil)
 	if err != nil {
 		t.Fatalf("InstallCores with standalone: %v", err)
 	}
@@ -448,7 +448,7 @@ func TestPackageInstallerInstallMixedCores(t *testing.T) {
 
 	installer := NewPackageInstaller(fs, stateDir, dl, ext, fakeBaseDirResolver{root: "/home"})
 
-	cores, err := installer.InstallCores(context.Background(), []string{"bsnes", "melonds"}, nil)
+	cores, err := installer.InstallCores(context.Background(), []string{"bsnes", "melondsds"}, nil)
 	if err != nil {
 		t.Fatalf("InstallCores with mixed: %v", err)
 	}

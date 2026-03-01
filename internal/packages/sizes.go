@@ -57,22 +57,23 @@ func RetroArchCoresInstalled(installer Installer, coreNames []string, v *version
 	packagesDir := installer.PackagesDir()
 
 	for _, coreName := range coreNames {
+		spec, ok := v.GetPackage(coreName)
+		if !ok {
+			continue
+		}
+		filename := spec.BinaryPath
+		if filename == "" {
+			continue
+		}
+
 		version := installer.ResolveVersion(coreName)
 		if version == "" {
 			return false
 		}
 
-		pkgDir := filepath.Join(packagesDir, "retroarch-cores", version)
+		pkgDir := filepath.Join(packagesDir, coreName, version)
 		coresDir := filepath.Join(pkgDir, "lib", "retroarch", "cores")
 
-		var filename string
-		if standalone, ok := v.RetroArchCores.Standalone[coreName]; ok {
-			filename = standalone.Filename
-		} else if f, ok := v.RetroArchCores.Files[coreName]; ok {
-			filename = f
-		} else {
-			continue
-		}
 		if _, err := os.Stat(filepath.Join(coresDir, filename)); err != nil {
 			return false
 		}

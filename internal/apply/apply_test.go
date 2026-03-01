@@ -646,3 +646,86 @@ func TestGarbageCollectKeepsSyncthing(t *testing.T) {
 		t.Errorf("syncthing should always be in the GC keep map, got: %v", keepMap)
 	}
 }
+
+func TestCoreDownloadSizeUsesBundleSize(t *testing.T) {
+	t.Parallel()
+
+	v := versions.MustGet()
+	installer := packages.NewFakeInstaller(nil, "/packages")
+
+	size := coreDownloadSize([]string{"bsnes", "snes9x", "mesen"}, "x64", v, installer)
+
+	bsnesSpec, _ := v.GetPackage("bsnes")
+	if bsnesSpec.BundleSize == 0 {
+		t.Fatal("bsnes should have BundleSize configured")
+	}
+
+	if size != bsnesSpec.BundleSize {
+		t.Errorf("coreDownloadSize = %d, want %d (bundle size counted once despite multiple cores)", size, bsnesSpec.BundleSize)
+	}
+}
+
+func TestCoreDownloadSizeFallsBackToIndividualSize(t *testing.T) {
+	t.Parallel()
+
+	v := versions.MustGet()
+	installer := packages.NewFakeInstaller(nil, "/packages")
+
+	size := coreDownloadSize([]string{"melondsds"}, "x64", v, installer)
+
+	spec, _ := v.GetPackage("melondsds")
+	entry := spec.GetDefault()
+	build := entry.Target("x64")
+
+	if size != build.Size {
+		t.Errorf("coreDownloadSize for non-bundled core = %d, want %d", size, build.Size)
+	}
+}
+
+func TestCoreDownloadSizeCountsMultipleBundles(t *testing.T) {
+	t.Parallel()
+
+	v := versions.MustGet()
+	installer := packages.NewFakeInstaller(nil, "/packages")
+	installer.Versions["bsnes"] = "1.22.2"
+	installer.Versions["snes9x"] = "1.19.1"
+
+	size := coreDownloadSize([]string{"bsnes", "snes9x"}, "x64", v, installer)
+
+	bsnesSpec, _ := v.GetPackage("bsnes")
+	snes9xSpec, _ := v.GetPackage("snes9x")
+
+	expectedSize := bsnesSpec.BundleSize + snes9xSpec.BundleSize
+	if size != expectedSize {
+		t.Errorf("coreDownloadSize with different versions = %d, want %d (two bundles)", size, expectedSize)
+	}
+}
+
+func TestCoreDownloadSizeUsesResolvedVersion(t *testing.T) {
+	t.Parallel()
+
+	v := versions.MustGet()
+	installer := packages.NewFakeInstaller(nil, "/packages")
+	installer.Versions["bsnes"] = "1.19.1"
+
+	size := coreDownloadSize([]string{"bsnes"}, "x64", v, installer)
+
+	spec, _ := v.GetPackage("bsnes")
+	if size != spec.BundleSize {
+		t.Errorf("coreDownloadSize should use resolved version, got %d want %d", size, spec.BundleSize)
+	}
+}
+
+func TestCoreArchiveTypeUsesResolvedVersion(t *testing.T) {
+	t.Parallel()
+
+	v := versions.MustGet()
+	installer := packages.NewFakeInstaller(nil, "/packages")
+	installer.Versions["bsnes"] = "1.22.2"
+
+	archiveType := coreArchiveType([]string{"bsnes"}, "x64", v, installer)
+
+	if archiveType != "7z" {
+		t.Errorf("coreArchiveType = %q, want 7z", archiveType)
+	}
+}

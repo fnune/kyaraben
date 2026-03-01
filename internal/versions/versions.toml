@@ -1,63 +1,199 @@
 # Kyaraben version pinning
 
-# RetroArch cores bundle from buildbot (same source as RetroArch itself)
-# Contains all cores in one archive, we extract only what we need
-[retroarch-cores]
+# ============================================================================
+# RETROARCH CORES - libretro cores from buildbot bundle
+# All cores share the same bundle URL, download is deduplicated by the installer
+# ============================================================================
+
+[bsnes]
 releases_url = "github:libretro/RetroArch"
 url_template = "https://buildbot.libretro.com/stable/{version}/linux/{variant}/RetroArch_cores.7z"
 default = "1.22.2"
+binary_path = "bsnes_libretro.so"
+install_type = "retroarch-core"
+bundle_size = 274237400
 
-[retroarch-cores."1.22.2".targets.x64]
+[bsnes."1.22.2".targets.x64]
 variant = "x86_64"
 sha256 = "sha256-S37Y3JfUvwNfzhgsZLVljHZi4unl1CEpU4r71LYJYwc="
-size = 274237400
+size = 6362240
 
-[retroarch-cores."1.19.1".targets.x64]
+[bsnes."1.19.1".targets.x64]
 variant = "x86_64"
 sha256 = "sha256-/nXn55bimTOrMeSljwcqGkfqFVtHeYikjzOw9K3cnUk="
-size = 260000000
+size = 6362240
 
-# Core filenames inside the archive (used to extract only what we need)
-# Format: core_name = "filename_in_archive"
-[retroarch-cores.files]
-snes9x = "snes9x_libretro.so"
-bsnes = "bsnes_libretro.so"
-mesen = "mesen_libretro.so"
-genesis_plus_gx = "genesis_plus_gx_libretro.so"
-mupen64plus_next = "mupen64plus_next_libretro.so"
-mednafen_saturn = "mednafen_saturn_libretro.so"
-mednafen_pce_fast = "mednafen_pce_fast_libretro.so"
-mednafen_ngp = "mednafen_ngp_libretro.so"
-mgba = "mgba_libretro.so"
-citra = "citra_libretro.so"
-fbneo = "fbneo_libretro.so"
-stella = "stella_libretro.so"
-vice_x64sc = "vice_x64sc_libretro.so"
+[snes9x]
+releases_url = "github:libretro/RetroArch"
+url_template = "https://buildbot.libretro.com/stable/{version}/linux/{variant}/RetroArch_cores.7z"
+default = "1.22.2"
+binary_path = "snes9x_libretro.so"
+install_type = "retroarch-core"
+bundle_size = 274237400
 
-# Standalone cores downloaded separately (not in the buildbot bundle)
-[retroarch-cores.standalone.melonds]
+[snes9x."1.22.2".targets.x64]
+variant = "x86_64"
+sha256 = "sha256-S37Y3JfUvwNfzhgsZLVljHZi4unl1CEpU4r71LYJYwc="
+size = 2161408
+
+[snes9x."1.19.1".targets.x64]
+variant = "x86_64"
+sha256 = "sha256-/nXn55bimTOrMeSljwcqGkfqFVtHeYikjzOw9K3cnUk="
+size = 2161408
+
+[mesen]
+releases_url = "github:libretro/RetroArch"
+url_template = "https://buildbot.libretro.com/stable/{version}/linux/{variant}/RetroArch_cores.7z"
+default = "1.22.2"
+binary_path = "mesen_libretro.so"
+install_type = "retroarch-core"
+bundle_size = 274237400
+
+[mesen."1.22.2".targets.x64]
+variant = "x86_64"
+sha256 = "sha256-S37Y3JfUvwNfzhgsZLVljHZi4unl1CEpU4r71LYJYwc="
+size = 3783048
+
+[genesis_plus_gx]
+releases_url = "github:libretro/RetroArch"
+url_template = "https://buildbot.libretro.com/stable/{version}/linux/{variant}/RetroArch_cores.7z"
+default = "1.22.2"
+binary_path = "genesis_plus_gx_libretro.so"
+install_type = "retroarch-core"
+bundle_size = 274237400
+
+[genesis_plus_gx."1.22.2".targets.x64]
+variant = "x86_64"
+sha256 = "sha256-S37Y3JfUvwNfzhgsZLVljHZi4unl1CEpU4r71LYJYwc="
+size = 12729616
+
+[mupen64plus_next]
+releases_url = "github:libretro/RetroArch"
+url_template = "https://buildbot.libretro.com/stable/{version}/linux/{variant}/RetroArch_cores.7z"
+default = "1.22.2"
+binary_path = "mupen64plus_next_libretro.so"
+install_type = "retroarch-core"
+bundle_size = 274237400
+
+[mupen64plus_next."1.22.2".targets.x64]
+variant = "x86_64"
+sha256 = "sha256-S37Y3JfUvwNfzhgsZLVljHZi4unl1CEpU4r71LYJYwc="
+size = 8725856
+
+[mednafen_saturn]
+releases_url = "github:libretro/RetroArch"
+url_template = "https://buildbot.libretro.com/stable/{version}/linux/{variant}/RetroArch_cores.7z"
+default = "1.22.2"
+binary_path = "mednafen_saturn_libretro.so"
+install_type = "retroarch-core"
+bundle_size = 274237400
+
+[mednafen_saturn."1.22.2".targets.x64]
+variant = "x86_64"
+sha256 = "sha256-S37Y3JfUvwNfzhgsZLVljHZi4unl1CEpU4r71LYJYwc="
+size = 8316472
+
+[mednafen_pce_fast]
+releases_url = "github:libretro/RetroArch"
+url_template = "https://buildbot.libretro.com/stable/{version}/linux/{variant}/RetroArch_cores.7z"
+default = "1.22.2"
+binary_path = "mednafen_pce_fast_libretro.so"
+install_type = "retroarch-core"
+bundle_size = 274237400
+
+[mednafen_pce_fast."1.22.2".targets.x64]
+variant = "x86_64"
+sha256 = "sha256-S37Y3JfUvwNfzhgsZLVljHZi4unl1CEpU4r71LYJYwc="
+size = 4277936
+
+[mednafen_ngp]
+releases_url = "github:libretro/RetroArch"
+url_template = "https://buildbot.libretro.com/stable/{version}/linux/{variant}/RetroArch_cores.7z"
+default = "1.22.2"
+binary_path = "mednafen_ngp_libretro.so"
+install_type = "retroarch-core"
+bundle_size = 274237400
+
+[mednafen_ngp."1.22.2".targets.x64]
+variant = "x86_64"
+sha256 = "sha256-S37Y3JfUvwNfzhgsZLVljHZi4unl1CEpU4r71LYJYwc="
+size = 334064
+
+[mgba]
+releases_url = "github:libretro/RetroArch"
+url_template = "https://buildbot.libretro.com/stable/{version}/linux/{variant}/RetroArch_cores.7z"
+default = "1.22.2"
+binary_path = "mgba_libretro.so"
+install_type = "retroarch-core"
+bundle_size = 274237400
+
+[mgba."1.22.2".targets.x64]
+variant = "x86_64"
+sha256 = "sha256-S37Y3JfUvwNfzhgsZLVljHZi4unl1CEpU4r71LYJYwc="
+size = 1466704
+
+[citra]
+releases_url = "github:libretro/RetroArch"
+url_template = "https://buildbot.libretro.com/stable/{version}/linux/{variant}/RetroArch_cores.7z"
+default = "1.22.2"
+binary_path = "citra_libretro.so"
+install_type = "retroarch-core"
+bundle_size = 274237400
+
+[citra."1.22.2".targets.x64]
+variant = "x86_64"
+sha256 = "sha256-S37Y3JfUvwNfzhgsZLVljHZi4unl1CEpU4r71LYJYwc="
+size = 32347128
+
+[fbneo]
+releases_url = "github:libretro/RetroArch"
+url_template = "https://buildbot.libretro.com/stable/{version}/linux/{variant}/RetroArch_cores.7z"
+default = "1.22.2"
+binary_path = "fbneo_libretro.so"
+install_type = "retroarch-core"
+bundle_size = 274237400
+
+[fbneo."1.22.2".targets.x64]
+variant = "x86_64"
+sha256 = "sha256-S37Y3JfUvwNfzhgsZLVljHZi4unl1CEpU4r71LYJYwc="
+size = 72255952
+
+[stella]
+releases_url = "github:libretro/RetroArch"
+url_template = "https://buildbot.libretro.com/stable/{version}/linux/{variant}/RetroArch_cores.7z"
+default = "1.22.2"
+binary_path = "stella_libretro.so"
+install_type = "retroarch-core"
+bundle_size = 274237400
+
+[stella."1.22.2".targets.x64]
+variant = "x86_64"
+sha256 = "sha256-S37Y3JfUvwNfzhgsZLVljHZi4unl1CEpU4r71LYJYwc="
+size = 6530528
+
+[vice_x64sc]
+releases_url = "github:libretro/RetroArch"
+url_template = "https://buildbot.libretro.com/stable/{version}/linux/{variant}/RetroArch_cores.7z"
+default = "1.22.2"
+binary_path = "vice_x64sc_libretro.so"
+install_type = "retroarch-core"
+bundle_size = 274237400
+
+[vice_x64sc."1.22.2".targets.x64]
+variant = "x86_64"
+sha256 = "sha256-S37Y3JfUvwNfzhgsZLVljHZi4unl1CEpU4r71LYJYwc="
+size = 3555960
+
+[melondsds]
 releases_url = "github:JesseTG/melonds-ds"
-filename = "melondsds_libretro.so"
-url = "https://github.com/JesseTG/melonds-ds/releases/download/v1.2.0/melondsds_libretro-linux-x86_64-Release.zip"
+url_template = "https://github.com/JesseTG/melonds-ds/releases/download/{version}/melondsds_libretro-linux-x86_64-Release.zip"
+default = "v1.2.0"
+binary_path = "melondsds_libretro.so"
+install_type = "retroarch-core"
+
+[melondsds."v1.2.0".targets.x64]
 sha256 = "9b7c1ef08a9ed3d1a61be3981cf40332c88ce3f59ca76336262701b27dabdb2b"
 size = 2075879
-
-# Core sizes in bytes (for progress indication)
-[retroarch-cores.sizes]
-snes9x = 2161408
-bsnes = 6362240
-mesen = 3783048
-genesis_plus_gx = 12729616
-mupen64plus_next = 8725856
-mednafen_saturn = 8316472
-mednafen_pce_fast = 4277936
-mednafen_ngp = 334064
-mgba = 1466704
-melonds = 4070336
-citra = 32347128
-fbneo = 72255952
-stella = 6530528
-vice_x64sc = 3555960
 
 # ============================================================================
 # EDEN - Nintendo Switch emulator

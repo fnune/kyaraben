@@ -13,63 +13,7 @@ var versionsData string
 
 // Versions holds all version information parsed from versions.toml.
 type Versions struct {
-	RetroArchCores RetroArchCoresSpec     `toml:"retroarch-cores"`
-	Packages       map[string]PackageSpec // Populated after parsing
-}
-
-type RetroArchCoresSpec struct {
-	ReleasesURL string `toml:"releases_url"`
-	URLTemplate string `toml:"url_template"`
-	Default     string `toml:"default"`
-	Versions    map[string]RetroArchCoresBuild
-	Files       map[string]string         `toml:"files"`      // core name -> filename in archive
-	Sizes       map[string]int64          `toml:"sizes"`      // core name -> size
-	Standalone  map[string]StandaloneCore `toml:"standalone"` // cores downloaded separately
-}
-
-type StandaloneCore struct {
-	ReleasesURL string `toml:"releases_url"`
-	Filename    string `toml:"filename"`
-	URL         string `toml:"url"`
-	SHA256      string `toml:"sha256"`
-	Size        int64  `toml:"size"`
-}
-
-type RetroArchCoresBuild struct {
-	Targets map[string]TargetBuild
-}
-
-// GetCoresURL returns the URL for the cores bundle for the given target name.
-func (r *RetroArchCoresSpec) GetCoresURL(targetName string) (string, string, bool) {
-	return r.GetCoresURLForVersion(targetName, r.Default)
-}
-
-// AvailableVersions returns all version strings for the cores bundle.
-func (r *RetroArchCoresSpec) AvailableVersions() []string {
-	versions := make([]string, 0, len(r.Versions))
-	for v := range r.Versions {
-		versions = append(versions, v)
-	}
-	return versions
-}
-
-// GetCoresURLForVersion returns the URL for a specific version of the cores bundle.
-func (r *RetroArchCoresSpec) GetCoresURLForVersion(targetName, version string) (string, string, bool) {
-	if version == "" {
-		return "", "", false
-	}
-	build, ok := r.Versions[version]
-	if !ok {
-		return "", "", false
-	}
-	target, ok := build.Targets[targetName]
-	if !ok {
-		return "", "", false
-	}
-	url := r.URLTemplate
-	url = strings.ReplaceAll(url, "{version}", version)
-	url = strings.ReplaceAll(url, "{variant}", target.Variant)
-	return url, target.SHA256, true
+	Packages map[string]PackageSpec // Populated after parsing
 }
 
 // PackageSpec describes all available versions of a package.
@@ -80,7 +24,14 @@ type PackageSpec struct {
 	Default     string                  // Default version string
 	IconURL     string                  // URL to download icon from
 	IconSHA256  string                  // SHA256 hash of icon
+	InstallType string                  // Installation type: "" for normal, "retroarch-core" for cores
+	BundleSize  int64                   // Download size for shared bundles (retroarch-cores)
 	Versions    map[string]VersionEntry // Map of version string to entry
+}
+
+// IsRetroArchCore returns true if this package is a RetroArch core.
+func (s *PackageSpec) IsRetroArchCore() bool {
+	return s.InstallType == "retroarch-core"
 }
 
 // GetVersion returns a specific version entry, or nil if not found.
@@ -232,21 +183,37 @@ func ParseTargetName(s string) (TargetName, bool) {
 
 // Known package names for parsing
 var packageNames = []string{
+	// RetroArch cores (from bundle)
+	"bsnes",
+	"snes9x",
+	"mesen",
+	"genesis_plus_gx",
+	"mupen64plus_next",
+	"mednafen_saturn",
+	"mednafen_pce_fast",
+	"mednafen_ngp",
+	"mgba",
+	"citra",
+	"fbneo",
+	"stella",
+	"vice_x64sc",
+	"melondsds",
+	// Standalone emulators
 	"eden",
 	"duckstation",
 	"pcsx2",
 	"ppsspp",
-	"mgba",
 	"cemu",
 	"dolphin",
-	"melonds",
 	"vita3k",
 	"rpcs3",
 	"flycast",
 	"xemu",
 	"xenia-edge",
 	"retroarch",
+	// Frontends
 	"esde",
+	// Utilities
 	"syncthing",
 }
 
@@ -257,14 +224,6 @@ func (v *Versions) GetPackage(name string) (*PackageSpec, bool) {
 		return nil, false
 	}
 	return &spec, true
-}
-
-// GetCoreSize returns the size in bytes for a RetroArch core, or 0 if not found.
-func (v *Versions) GetCoreSize(coreName string) int64 {
-	if v.RetroArchCores.Sizes == nil {
-		return 0
-	}
-	return v.RetroArchCores.Sizes[coreName]
 }
 
 var parsed *Versions
@@ -310,85 +269,6 @@ func parse(data string) (*Versions, error) {
 		Packages: make(map[string]PackageSpec),
 	}
 
-	if racRaw, ok := raw["retroarch-cores"].(map[string]interface{}); ok {
-		if releasesURL, ok := racRaw["releases_url"].(string); ok {
-			v.RetroArchCores.ReleasesURL = releasesURL
-		}
-		if urlTemplate, ok := racRaw["url_template"].(string); ok {
-			v.RetroArchCores.URLTemplate = urlTemplate
-		}
-		if defaultVer, ok := racRaw["default"].(string); ok {
-			v.RetroArchCores.Default = defaultVer
-		}
-		if filesRaw, ok := racRaw["files"].(map[string]interface{}); ok {
-			v.RetroArchCores.Files = make(map[string]string)
-			for name, file := range filesRaw {
-				if f, ok := file.(string); ok {
-					v.RetroArchCores.Files[name] = f
-				}
-			}
-		}
-		if sizesRaw, ok := racRaw["sizes"].(map[string]interface{}); ok {
-			v.RetroArchCores.Sizes = make(map[string]int64)
-			for name, size := range sizesRaw {
-				if s, ok := size.(int64); ok {
-					v.RetroArchCores.Sizes[name] = s
-				}
-			}
-		}
-		if standaloneRaw, ok := racRaw["standalone"].(map[string]interface{}); ok {
-			v.RetroArchCores.Standalone = make(map[string]StandaloneCore)
-			for name, coreRaw := range standaloneRaw {
-				if coreData, ok := coreRaw.(map[string]interface{}); ok {
-					core := StandaloneCore{}
-					if r, ok := coreData["releases_url"].(string); ok {
-						core.ReleasesURL = r
-					}
-					if f, ok := coreData["filename"].(string); ok {
-						core.Filename = f
-					}
-					if u, ok := coreData["url"].(string); ok {
-						core.URL = u
-					}
-					if s, ok := coreData["sha256"].(string); ok {
-						core.SHA256 = s
-					}
-					if sz, ok := coreData["size"].(int64); ok {
-						core.Size = sz
-					}
-					v.RetroArchCores.Standalone[name] = core
-				}
-			}
-		}
-		v.RetroArchCores.Versions = make(map[string]RetroArchCoresBuild)
-		for key, val := range racRaw {
-			if versionRaw, ok := val.(map[string]interface{}); ok {
-				if targetsRaw, ok := versionRaw["targets"].(map[string]interface{}); ok {
-					build := RetroArchCoresBuild{Targets: make(map[string]TargetBuild)}
-					for targetName, targetVal := range targetsRaw {
-						if _, ok := ParseTargetName(targetName); !ok {
-							return nil, fmt.Errorf("retroarch-cores: invalid target name %q", targetName)
-						}
-						if targetData, ok := targetVal.(map[string]interface{}); ok {
-							target := TargetBuild{}
-							if variant, ok := targetData["variant"].(string); ok {
-								target.Variant = variant
-							}
-							if sha, ok := targetData["sha256"].(string); ok {
-								target.SHA256 = sha
-							}
-							if size, ok := targetData["size"].(int64); ok {
-								target.Size = size
-							}
-							build.Targets[targetName] = target
-						}
-					}
-					v.RetroArchCores.Versions[key] = build
-				}
-			}
-		}
-	}
-
 	for _, name := range packageNames {
 		pkgRaw, ok := raw[name].(map[string]interface{})
 		if !ok {
@@ -429,6 +309,12 @@ func parsePackageSpec(raw map[string]interface{}) (PackageSpec, error) {
 	if v, ok := raw["icon_sha256"].(string); ok {
 		spec.IconSHA256 = v
 	}
+	if v, ok := raw["install_type"].(string); ok {
+		spec.InstallType = v
+	}
+	if v, ok := raw["bundle_size"].(int64); ok {
+		spec.BundleSize = v
+	}
 
 	// Everything else is a version entry
 	knownKeys := map[string]bool{
@@ -438,6 +324,8 @@ func parsePackageSpec(raw map[string]interface{}) (PackageSpec, error) {
 		"default":      true,
 		"icon_url":     true,
 		"icon_sha256":  true,
+		"install_type": true,
+		"bundle_size":  true,
 	}
 
 	for key, value := range raw {
