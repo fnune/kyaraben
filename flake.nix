@@ -46,6 +46,7 @@
 
             # General tools
             git
+            goreleaser
             jq
             just
             podman

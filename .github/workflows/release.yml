@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  release-cli:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Install goreleaser
+        run: |
+          curl -sfL https://goreleaser.com/static/run | bash -s -- --version
+
+      - name: Run goreleaser
+        run: curl -sfL https://goreleaser.com/static/run | bash -s -- release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release-electron:
+    runs-on: ubuntu-latest
+    needs: release-cli
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install rpm
+        run: sudo apt-get update && sudo apt-get install -y rpm
+
+      - name: Build Go sidecar
+        run: ./scripts/build-sidecar.sh
+
+      - name: Install UI dependencies
+        run: cd ui && npm ci
+
+      - name: Build and publish
+        run: cd ui && npm run electron:build -- --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

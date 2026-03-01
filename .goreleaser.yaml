@@ -1,0 +1,22 @@
+version: 2
+
+builds:
+  - main: ./cmd/kyaraben
+    binary: kyaraben
+    goos:
+      - linux
+    goarch:
+      - amd64
+
+archives:
+  - formats: [tar.gz]
+    name_template: "kyaraben-cli-{{ .Version }}-linux-amd64"
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  use: github-native
+
+release:
+  draft: true

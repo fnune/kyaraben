@@ -134,7 +134,7 @@ jobs:
         run: cd ui && npm ci
 
       - name: Build AppImage
-        run: cd ui && npm run electron:build -- --linux AppImage
+        run: cd ui && npm run electron:build -- --linux AppImage --publish never
 
       - name: Extract AppImage
         run: |

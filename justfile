@@ -56,6 +56,34 @@ release: ensure generate-types
     RELEASE_BUILD=1 ./scripts/build-sidecar.sh
     cd ui && npm run electron:build
 
+# Test release build locally without publishing
+release-test: ensure generate-types
+    RELEASE_BUILD=1 ./scripts/build-sidecar.sh
+    goreleaser release --snapshot --clean
+    cd ui && npm run electron:build
+
+# Create and push a release tag (triggers CI release)
+release-create version:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! git diff --quiet || ! git diff --cached --quiet; then
+        echo "Working directory not clean. Commit or stash changes first."
+        exit 1
+    fi
+    if ! git diff --quiet HEAD origin/main; then
+        echo "Local main differs from origin. Push first."
+        exit 1
+    fi
+    git tag "v{{ version }}"
+    git push origin "v{{ version }}"
+    echo "Tag v{{ version }} pushed. Watch: https://github.com/fnune/kyaraben/actions"
+
+# Delete a release (GitHub Release + git tag)
+release-delete version:
+    gh release delete "v{{ version }}" --yes || true
+    git tag -d "v{{ version }}" || true
+    git push origin --delete "v{{ version }}" || true
+
 # Run CLI e2e tests in container
 e2e: _container-e2e-build
     podman run -it --rm kyaraben-cli-e2e
