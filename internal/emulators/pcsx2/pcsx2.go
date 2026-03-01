@@ -80,9 +80,9 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	}
 
 	switch ctx.Shaders {
-	case model.ShadersOn:
+	case model.EmulatorShadersOn:
 		entries = append(entries, model.Entry(model.None, model.Path("EmuCore/GS", "TVShader"), "5"))
-	case model.ShadersOff:
+	case model.EmulatorShadersOff:
 		entries = append(entries, model.Entry(model.None, model.Path("EmuCore/GS", "TVShader"), "0"))
 	}
 

@@ -122,7 +122,11 @@ describe('EmulatorSettingsModal', () => {
 
   it('shows manual message when Manual is explicitly selected', () => {
     render(
-      <EmulatorSettingsModal {...defaultProps} shaders="manual" graphics={{ shaders: 'on' }} />,
+      <EmulatorSettingsModal
+        {...defaultProps}
+        shaders="manual"
+        graphics={{ shaders: 'recommended' }}
+      />,
     )
     expect(screen.getByText('Kyaraben will not modify shader settings.')).toBeInTheDocument()
   })
@@ -132,14 +136,26 @@ describe('EmulatorSettingsModal', () => {
     expect(screen.getByText('Kyaraben will not modify shader settings.')).toBeInTheDocument()
   })
 
-  it('shows resolved shader info when Default is selected with global on', () => {
-    render(<EmulatorSettingsModal {...defaultProps} shaders={null} graphics={{ shaders: 'on' }} />)
+  it('shows resolved shader info when Default is selected with global recommended', () => {
+    render(
+      <EmulatorSettingsModal
+        {...defaultProps}
+        shaders={null}
+        graphics={{ shaders: 'recommended' }}
+      />,
+    )
     expect(screen.getByText(/CRT shader \(crt-mattias\)\./)).toBeInTheDocument()
   })
 
-  it('shows Default (on) label when global default is on', () => {
-    render(<EmulatorSettingsModal {...defaultProps} shaders={null} graphics={{ shaders: 'on' }} />)
-    expect(screen.getByRole('button', { name: 'Default (on)' })).toBeInTheDocument()
+  it('shows Default (recommended) label when global default is recommended', () => {
+    render(
+      <EmulatorSettingsModal
+        {...defaultProps}
+        shaders={null}
+        graphics={{ shaders: 'recommended' }}
+      />,
+    )
+    expect(screen.getByRole('button', { name: 'Default (recommended)' })).toBeInTheDocument()
   })
 
   it('shows disable message when Off is selected', () => {

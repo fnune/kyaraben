@@ -42,8 +42,9 @@ func (Definition) Emulator() model.Emulator {
 				return cmd
 			},
 		},
-		PathUsage:         model.StandardPathUsage(),
-		SupportedSettings: []string{model.SettingShaders},
+		PathUsage:          model.StandardPathUsage(),
+		SupportedSettings:  []string{model.SettingShaders},
+		ShadersRecommended: true,
 	}
 }
 
@@ -82,13 +83,13 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	}
 
 	switch ctx.Shaders {
-	case model.ShadersOn:
+	case model.EmulatorShadersOn:
 		entries = append(entries,
 			model.Entry(model.None, model.Path("PostProcessing", "Enabled"), "true"),
 			model.Entry(model.None, model.Path("PostProcessing", "StageCount"), "1"),
 			model.Entry(model.None, model.Path("PostProcessing/Stage1", "ShaderName"), "crt-lottes"),
 		)
-	case model.ShadersOff:
+	case model.EmulatorShadersOff:
 		entries = append(entries,
 			model.Entry(model.None, model.Path("PostProcessing", "Enabled"), "false"),
 		)

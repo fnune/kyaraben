@@ -88,7 +88,8 @@ func (a *Applier) Preflight(ctx context.Context, cfg *model.KyarabenConfig, coll
 			continue
 		}
 
-		genCtx.Shaders = cfg.EmulatorShaders(emuID)
+		emu, _ := a.Registry.GetEmulator(emuID)
+		genCtx.Shaders = cfg.EmulatorShaders(emuID, emu.ShadersRecommended)
 		result, err := gen.Generate(genCtx)
 		if err != nil {
 			return nil, fmt.Errorf("generating config for %s: %w", emuID, err)
@@ -211,7 +212,8 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, collecti
 			continue
 		}
 
-		genCtx.Shaders = cfg.EmulatorShaders(emuID)
+		emu, _ := a.Registry.GetEmulator(emuID)
+		genCtx.Shaders = cfg.EmulatorShaders(emuID, emu.ShadersRecommended)
 		result, err := gen.Generate(genCtx)
 		if err != nil {
 			return nil, fmt.Errorf("generating config for %s: %w", emuID, err)

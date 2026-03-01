@@ -24,15 +24,16 @@ func StandardPathUsage() PathUsage {
 }
 
 type Emulator struct {
-	ID                EmulatorID
-	Name              string
-	Systems           []SystemID
-	Package           PackageRef
-	ProvisionGroups   []ProvisionGroup
-	StateKinds        []StateKind
-	Launcher          LauncherInfo
-	PathUsage         PathUsage
-	SupportedSettings []string
+	ID                 EmulatorID
+	Name               string
+	Systems            []SystemID
+	Package            PackageRef
+	ProvisionGroups    []ProvisionGroup
+	StateKinds         []StateKind
+	Launcher           LauncherInfo
+	PathUsage          PathUsage
+	SupportedSettings  []string
+	ShadersRecommended bool
 }
 
 const SettingShaders = "shaders"

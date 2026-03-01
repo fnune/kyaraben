@@ -1593,7 +1593,7 @@ func TestDolphinShaderConfig(t *testing.T) {
 		result, err := gen.Generate(model.GenerateContext{
 			Store:           store,
 			BaseDirResolver: resolver,
-			Shaders:         model.ShadersOn,
+			Shaders:         model.EmulatorShadersOn,
 		})
 		if err != nil {
 			t.Fatalf("Generate() error = %v", err)
@@ -1644,7 +1644,7 @@ func TestDolphinShaderConfig(t *testing.T) {
 		result, err := gen.Generate(model.GenerateContext{
 			Store:           store,
 			BaseDirResolver: resolver,
-			Shaders:         model.ShadersOff,
+			Shaders:         model.EmulatorShadersOff,
 		})
 		if err != nil {
 			t.Fatalf("Generate() error = %v", err)
@@ -1677,7 +1677,7 @@ func TestDolphinShaderConfig(t *testing.T) {
 		result, err := gen.Generate(model.GenerateContext{
 			Store:           store,
 			BaseDirResolver: resolver,
-			Shaders:         model.ShadersManual,
+			Shaders:         model.EmulatorShadersManual,
 		})
 		if err != nil {
 			t.Fatalf("Generate() error = %v", err)
@@ -1742,7 +1742,7 @@ func TestRetroArchShaderConfig(t *testing.T) {
 		result, err := gen.Generate(model.GenerateContext{
 			Store:              store,
 			BaseDirResolver:    resolver,
-			Shaders:            model.ShadersOn,
+			Shaders:            model.EmulatorShadersOn,
 			SystemDisplayTypes: map[model.SystemID]model.DisplayType{model.SystemIDSNES: model.DisplayTypeCRT},
 		})
 		if err != nil {

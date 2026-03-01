@@ -56,7 +56,8 @@ func (Definition) Emulator() model.Emulator {
 			UsesStatesDir:      true,
 			UsesScreenshotsDir: true,
 		},
-		SupportedSettings: []string{model.SettingShaders},
+		SupportedSettings:  []string{model.SettingShaders},
+		ShadersRecommended: true,
 	}
 }
 
@@ -382,16 +383,16 @@ func gfxEntries(shaders string) []model.ConfigEntry {
 		model.Default(model.None, model.Path("Settings", "InternalResolution"), "2"),
 	}
 	switch shaders {
-	case model.ShadersOn:
+	case model.EmulatorShadersOn:
 		entries = append(entries, model.Entry(model.None, model.Path("Enhancements", "PostProcessingShader"), "crt_lottes_fast"))
-	case model.ShadersOff:
+	case model.EmulatorShadersOff:
 		entries = append(entries, model.Entry(model.None, model.Path("Enhancements", "PostProcessingShader"), ""))
 	}
 	return entries
 }
 
 func shaderFiles(resolver model.BaseDirResolver, shaders string) ([]model.EmbeddedFile, error) {
-	if shaders != model.ShadersOn {
+	if shaders != model.EmulatorShadersOn {
 		return nil, nil
 	}
 

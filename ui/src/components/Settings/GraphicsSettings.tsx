@@ -5,16 +5,20 @@ export interface GraphicsSettingsProps {
   readonly onShadersChange: (value: string) => void
 }
 
-type ShaderOption = 'on' | 'off' | 'manual'
+type ShaderOption = 'recommended' | 'off' | 'manual'
 
 const SHADER_OPTIONS: { value: ShaderOption; title: string; description: string }[] = [
-  { value: 'on', title: 'Shaders on', description: 'CRT for consoles, LCD for handhelds.' },
+  {
+    value: 'recommended',
+    title: 'Recommended shaders on',
+    description: 'CRT for consoles, LCD for handhelds.',
+  },
   { value: 'off', title: 'Shaders off', description: 'Disable shaders.' },
   { value: 'manual', title: 'Shaders manual', description: 'Configure shaders yourself.' },
 ]
 
 export function GraphicsSettings({ shaders, onShadersChange }: GraphicsSettingsProps) {
-  const selectedValue = shaders === 'on' || shaders === 'off' ? shaders : 'manual'
+  const selectedValue = shaders === 'recommended' || shaders === 'off' ? shaders : 'manual'
 
   return (
     <div>

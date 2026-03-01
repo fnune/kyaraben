@@ -822,7 +822,7 @@ func TestHandleSyncStatus_DisabledWithSyncthingInstalled(t *testing.T) {
 }
 
 func TestHandleSetConfig_MergesEmulatorSettings(t *testing.T) {
-	shaderOn := model.ShadersOn
+	shaderOn := model.EmulatorShadersOn
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
 			Collection: "~/Emulation",
@@ -841,7 +841,7 @@ func TestHandleSetConfig_MergesEmulatorSettings(t *testing.T) {
 	defer env.cleanup()
 	d := env.newDaemon()
 
-	shaderOff := model.ShadersOff
+	shaderOff := model.EmulatorShadersOff
 	setCmd := SetConfigCommand{
 		Type: CommandTypeSetConfig,
 		Data: SetConfigRequest{
@@ -868,12 +868,12 @@ func TestHandleSetConfig_MergesEmulatorSettings(t *testing.T) {
 	}
 
 	bsnesConf := resp.Emulators["retroarch:bsnes"]
-	if bsnesConf.Shaders == nil || *bsnesConf.Shaders != model.ShadersOn {
+	if bsnesConf.Shaders == nil || *bsnesConf.Shaders != model.EmulatorShadersOn {
 		t.Errorf("expected bsnes shaders to be preserved as on, got %v", bsnesConf.Shaders)
 	}
 
 	mgbaConf := resp.Emulators["retroarch:mgba"]
-	if mgbaConf.Shaders == nil || *mgbaConf.Shaders != model.ShadersOff {
+	if mgbaConf.Shaders == nil || *mgbaConf.Shaders != model.EmulatorShadersOff {
 		t.Errorf("expected mgba shaders to be updated to off, got %v", mgbaConf.Shaders)
 	}
 	if mgbaConf.Version != "0.10.0" {

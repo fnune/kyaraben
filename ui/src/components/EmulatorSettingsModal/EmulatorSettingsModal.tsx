@@ -80,6 +80,7 @@ export function EmulatorSettingsModal({
 
   const getDefaultLabel = () => {
     if (!graphics.shaders || graphics.shaders === 'manual') return 'Default'
+    if (graphics.shaders === 'recommended') return 'Default (recommended)'
     return `Default (${graphics.shaders})`
   }
 
@@ -87,7 +88,7 @@ export function EmulatorSettingsModal({
     if (resolvedShaders === 'manual') {
       return 'Kyaraben will not modify shader settings.'
     }
-    if (resolvedShaders === 'on') {
+    if (resolvedShaders === 'on' || resolvedShaders === 'recommended') {
       return <>Kyaraben will enable: {getShaderInfo(emulatorId, displayType)}.</>
     }
     return 'Kyaraben will disable shaders.'

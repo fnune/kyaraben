@@ -59,11 +59,19 @@ type GraphicsConfig struct {
 	Shaders string `toml:"shaders,omitempty"`
 }
 
-// Shader setting values
+// Shader setting values for graphics.shaders (global setting).
+// "recommended" enables shaders only on emulators that recommend them.
 const (
-	ShadersOn     = "on"
-	ShadersOff    = "off"
-	ShadersManual = "manual"
+	ShadersRecommended = "recommended"
+	ShadersOff         = "off"
+	ShadersManual      = "manual"
+)
+
+// Per-emulator shader override values.
+const (
+	EmulatorShadersOn     = "on"
+	EmulatorShadersOff    = "off"
+	EmulatorShadersManual = "manual"
 )
 
 // ControllerTomlConfig is the TOML representation of controller settings.
@@ -213,17 +221,28 @@ func (c *KyarabenConfig) EmulatorVersion(id EmulatorID) string {
 }
 
 // EmulatorShaders returns the resolved shader setting for an emulator.
-// Resolution order: emulator override > graphics default > "manual".
-func (c *KyarabenConfig) EmulatorShaders(id EmulatorID) string {
+// Resolution order:
+//  1. Per-emulator override (on/off/manual)
+//  2. If global = "recommended" and emulator recommends shaders -> "on"
+//  3. If global = "off" -> "off"
+//  4. Otherwise -> "manual"
+func (c *KyarabenConfig) EmulatorShaders(id EmulatorID, shadersRecommended bool) string {
 	if c.Emulators != nil {
 		if conf, ok := c.Emulators[id]; ok && conf.Shaders != nil {
 			return *conf.Shaders
 		}
 	}
-	if c.Graphics.Shaders != "" {
-		return c.Graphics.Shaders
+	switch c.Graphics.Shaders {
+	case ShadersRecommended:
+		if shadersRecommended {
+			return EmulatorShadersOn
+		}
+		return EmulatorShadersManual
+	case ShadersOff:
+		return EmulatorShadersOff
+	default:
+		return EmulatorShadersManual
 	}
-	return ShadersManual
 }
 
 // EmulatorShadersOverride returns the per-emulator shader override, or nil if using default.
