@@ -86,6 +86,10 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		entries = append(entries, model.Entry(model.None, model.Path("EmuCore/GS", "TVShader"), "0"))
 	}
 
+	upscaleEntry := model.Entry(model.None, model.Path("EmuCore/GS", "upscale_multiplier"), "2")
+	upscaleEntry.DefaultOnly = true
+	entries = append(entries, upscaleEntry)
+
 	patches := []model.ConfigPatch{{Target: configTarget, Entries: entries}}
 
 	if cc := ctx.ControllerConfig; cc != nil {
