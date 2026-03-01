@@ -53,6 +53,7 @@ func (c *Config) generateSettings(ctx model.FrontendContext) (model.ConfigPatch,
 			{Path: []string{"ThemeVariant"}, Value: "simpleCarousel", DefaultOnly: true},
 			{Path: []string{"SystemsSorting"}, Value: "manufacturer_year", DefaultOnly: true},
 			{Path: []string{"DefaultSortOrder"}, Value: "last played, descending", DefaultOnly: true},
+			{Path: []string{"ScreensaverType"}, Value: "dim", DefaultOnly: true},
 		},
 	}, nil
 }
