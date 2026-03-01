@@ -36,9 +36,19 @@
 ### Proper blocker
 
 - Options aren't surfaced in the UI
-  - Shader configuration
   - Nintendo confirm button position
   - Other upcoming options
+  - The options that are surfaced are surfaced per-emulator
+    - For example shaders
+    - Sometimes we want both per-emulator, and a way to enable or disable something globally, kind of like enabling and disabling emulators (with "Enable all systems")
+    - For example toggling shaders enabled/disabled/manual for all emulators should be possible
+- Per-emulator settings could also benefit from a global setting counterpart
+  - For example, even if we make it possible to enable all emulators, or shaders for all emulators, what happens when e.g. Kyaraben ships a new emulator? Or the user enables a new emulator? How do we decide what to default to? We currently would set e.g. 'nil' (manual) for shaders, or disabled for new emulators. Is this the right way to do things?
+- Documentation lives on the website too much
+  - One goal of Kyaraben is to have its app be self-documenting
+  - Users are expected to be able to figure things out just from what the app tells them
+  - This clashes with having so much information within the docs
+  - For example, the emulator support table could ideally be displayed within the app, for each emulator
 
 ### Would be really nice
 
@@ -74,7 +84,6 @@
 - Cross-emulator presets: toggle high-level features that cascade to all compatible emulators (widescreen, integer scaling, Discord presence, RetroAchievements, auto-save on exit)
   - With these, emulator feature parity is important to explore first
   - Categories
-    - Shader and overlay management: CRT shaders, bezel overlays, per-core shader presets
     - Autosave on exit
     - RetroAchievements integration: global credential storage with per-emulator login. Supported by DuckStation, PCSX2, PPSSPP, RetroArch cores, and Dolphin (experimental)
   - Performance presets (e.g. Steam Deck vs. Beefy Desktop): ship sensible defaults for renderer (Vulkan), resolution scale, recompilers, fast boot. Currently kyaraben focuses on paths but users must manually configure performance settings
