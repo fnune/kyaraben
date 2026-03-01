@@ -73,10 +73,13 @@ func (a *Applier) Preflight(ctx context.Context, cfg *model.KyarabenConfig, user
 		return nil, fmt.Errorf("resolving controller config: %w", err)
 	}
 
+	systemDisplayTypes := a.buildSystemDisplayTypes()
+
 	genCtx := model.GenerateContext{
-		Store:            userStore,
-		BaseDirResolver:  a.BaseDirResolver,
-		ControllerConfig: controllerConfig,
+		Store:              userStore,
+		BaseDirResolver:    a.BaseDirResolver,
+		ControllerConfig:   controllerConfig,
+		SystemDisplayTypes: systemDisplayTypes,
 	}
 
 	for emuID := range a.collectEnabledEmulators(cfg) {
@@ -85,6 +88,7 @@ func (a *Applier) Preflight(ctx context.Context, cfg *model.KyarabenConfig, user
 			continue
 		}
 
+		genCtx.Shaders = cfg.EmulatorShaders(emuID)
 		result, err := gen.Generate(genCtx)
 		if err != nil {
 			return nil, fmt.Errorf("generating config for %s: %w", emuID, err)
@@ -176,10 +180,13 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 		return nil, fmt.Errorf("resolving controller config: %w", err)
 	}
 
+	systemDisplayTypes := a.buildSystemDisplayTypes()
+
 	genCtx := model.GenerateContext{
-		Store:            userStore,
-		BaseDirResolver:  a.BaseDirResolver,
-		ControllerConfig: controllerConfig,
+		Store:              userStore,
+		BaseDirResolver:    a.BaseDirResolver,
+		ControllerConfig:   controllerConfig,
+		SystemDisplayTypes: systemDisplayTypes,
 	}
 
 	enabledEmulators := a.collectEnabledEmulators(cfg)
@@ -189,6 +196,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 	allSymlinks := make(map[model.EmulatorID][]model.SymlinkSpec)
 	allLaunchArgs := make(map[model.EmulatorID][]string)
 	allInitialDownloads := make([]model.InitialDownload, 0)
+	allEmbeddedFiles := make([]model.EmbeddedFile, 0)
 	binaryEnvs := make(map[string]map[string]string)
 
 	for emuID := range enabledEmulators {
@@ -203,6 +211,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 			continue
 		}
 
+		genCtx.Shaders = cfg.EmulatorShaders(emuID)
 		result, err := gen.Generate(genCtx)
 		if err != nil {
 			return nil, fmt.Errorf("generating config for %s: %w", emuID, err)
@@ -218,6 +227,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 			allLaunchArgs[emuID] = result.LaunchArgs
 		}
 		allInitialDownloads = append(allInitialDownloads, result.InitialDownloads...)
+		allEmbeddedFiles = append(allEmbeddedFiles, result.EmbeddedFiles...)
 	}
 
 	enabledFrontends := cfg.EnabledFrontends()
@@ -317,6 +327,10 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, userStor
 
 	if err := a.downloadInitialFiles(ctx, allInitialDownloads); err != nil {
 		return nil, fmt.Errorf("downloading initial files: %w", err)
+	}
+
+	if err := a.writeEmbeddedFiles(allEmbeddedFiles); err != nil {
+		return nil, fmt.Errorf("writing embedded files: %w", err)
 	}
 
 	installCtx, cancel := context.WithTimeout(ctx, installTimeout)
@@ -769,6 +783,20 @@ func (a *Applier) downloadInitialFiles(ctx context.Context, downloads []model.In
 		}
 	}
 
+	return nil
+}
+
+func (a *Applier) writeEmbeddedFiles(files []model.EmbeddedFile) error {
+	for _, f := range files {
+		destDir := filepath.Dir(f.DestPath)
+		if err := vfs.MkdirAll(a.fs, destDir, 0o755); err != nil {
+			return fmt.Errorf("creating directory %s: %w", destDir, err)
+		}
+
+		if err := a.fs.WriteFile(f.DestPath, f.Content, 0o644); err != nil {
+			return fmt.Errorf("writing %s: %w", filepath.Base(f.DestPath), err)
+		}
+	}
 	return nil
 }
 
@@ -1399,6 +1427,15 @@ func (a *Applier) collectEnabledEmulators(cfg *model.KyarabenConfig) map[model.E
 		}
 	}
 	return enabled
+}
+
+func (a *Applier) buildSystemDisplayTypes() map[model.SystemID]model.DisplayType {
+	systems := a.Registry.AllSystems()
+	result := make(map[model.SystemID]model.DisplayType, len(systems))
+	for _, sys := range systems {
+		result[sys.ID] = sys.DisplayType
+	}
+	return result
 }
 
 func toLauncherBinaries(binaries []packages.InstalledBinary, binaryEnvs map[string]map[string]string) []launcher.InstalledBinary {

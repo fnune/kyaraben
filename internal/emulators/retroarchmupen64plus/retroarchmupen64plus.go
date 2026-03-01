@@ -46,8 +46,16 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	if err != nil {
 		return model.GenerateResult{}, err
 	}
+	sc := &retroarch.ShaderConfig{
+		Shaders:            ctx.Shaders,
+		SystemDisplayTypes: ctx.SystemDisplayTypes,
+	}
+	downloads, err := retroarch.CoreShaderDownloads(model.EmulatorIDRetroArchMupen64Plus, ctx.BaseDirResolver, sc)
+	if err != nil {
+		return model.GenerateResult{}, err
+	}
 
-	patches := retroarch.CorePatches(model.EmulatorIDRetroArchMupen64Plus, ctx.Store, ctx.ControllerConfig)
+	patches := retroarch.CorePatches(model.EmulatorIDRetroArchMupen64Plus, ctx.Store, ctx.ControllerConfig, sc, ctx.BaseDirResolver)
 	patches = append(patches, model.ConfigPatch{
 		Target: coreOptionsTarget,
 		Entries: []model.ConfigEntry{
@@ -57,8 +65,9 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	})
 
 	return model.GenerateResult{
-		Patches:  patches,
-		Symlinks: symlinks,
+		Patches:          patches,
+		Symlinks:         symlinks,
+		InitialDownloads: downloads,
 	}, nil
 }
 

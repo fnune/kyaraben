@@ -18,9 +18,11 @@ type StoreReader interface {
 // GenerateContext provides all dependencies a config generator needs.
 // Emulators that do not need controller config ignore the nil ControllerConfig.
 type GenerateContext struct {
-	Store            StoreReader
-	BaseDirResolver  BaseDirResolver
-	ControllerConfig *ControllerConfig
+	Store              StoreReader
+	BaseDirResolver    BaseDirResolver
+	ControllerConfig   *ControllerConfig
+	Shaders            *bool
+	SystemDisplayTypes map[SystemID]DisplayType
 }
 
 // GenerateResult consolidates all outputs from a config generator:
@@ -30,6 +32,7 @@ type GenerateResult struct {
 	Symlinks         []SymlinkSpec
 	LaunchArgs       []string
 	InitialDownloads []InitialDownload
+	EmbeddedFiles    []EmbeddedFile
 }
 
 // InitialDownload describes a file that should be downloaded once if missing.
@@ -38,6 +41,13 @@ type GenerateResult struct {
 type InitialDownload struct {
 	URL      string
 	SHA256   string
+	DestPath string
+}
+
+// EmbeddedFile describes a file with content embedded in the binary.
+// Used for assets like shaders that we bundle rather than download.
+type EmbeddedFile struct {
+	Content  []byte
 	DestPath string
 }
 

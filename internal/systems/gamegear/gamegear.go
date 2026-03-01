@@ -12,6 +12,7 @@ func (Definition) System() model.System {
 		Manufacturer: model.ManufacturerSega,
 		Label:        "GG",
 		Extensions:   []string{".gg", ".bin", ".7z", ".zip"},
+		DisplayType:  model.DisplayTypeLCD,
 	}
 }
 

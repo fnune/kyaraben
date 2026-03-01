@@ -12,6 +12,7 @@ func (Definition) System() model.System {
 		Manufacturer: model.ManufacturerSega,
 		Label:        "GEN",
 		Extensions:   []string{".gen", ".md", ".smd", ".bin", ".chd", ".cue", ".iso", ".m3u", ".7z", ".zip"},
+		DisplayType:  model.DisplayTypeCRT,
 	}
 }
 

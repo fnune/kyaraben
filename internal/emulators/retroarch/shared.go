@@ -12,6 +12,14 @@ import (
 	"github.com/fnune/kyaraben/internal/model"
 )
 
+const (
+	slangShadersCommit = "09c7468812414b682703719c1726bb6263ec5530"
+	crtShaderFile      = "crt-mattias.slang"
+	crtShaderSHA256    = "8219c0dcadfec5db9fb4b9c53cb695cecaa8e1b0fb5993fe3d5a7a7584fe4fed"
+	lcdShaderFile      = "lcd-grid-v2.slang"
+	lcdShaderSHA256    = "dc77b29530e5b771f12a5a2dd68c390805139bc25d84a30dead021fd38e581c5"
+)
+
 var SharedLauncher = model.LauncherInfo{
 	Binary:      "retroarch",
 	DisplayName: "RetroArch",
@@ -41,15 +49,22 @@ var MainConfigTarget = model.ConfigTarget{
 	BaseDir: model.ConfigBaseDirUserConfig,
 }
 
+// ShaderConfig holds shader-related settings for config generation.
+type ShaderConfig struct {
+	Shaders            *bool
+	SystemDisplayTypes map[model.SystemID]model.DisplayType
+}
+
 // SharedConfig generates the base RetroArch configuration shared by all cores.
 // Enables per-core sorting so RetroArch creates subdirectories like saves/bsnes/.
 // We symlink these sorted directories to kyaraben's store locations.
 // Screenshots go directly to a shared retroarch directory (no per-core sorting).
 // See: https://docs.libretro.com/guides/change-directories/
-func SharedConfig(store model.StoreReader, cc *model.ControllerConfig) model.ConfigPatch {
+func SharedConfig(store model.StoreReader, cc *model.ControllerConfig, sc *ShaderConfig) model.ConfigPatch {
 	entries := []model.ConfigEntry{
 		{Path: []string{"libretro_directory"}, Value: store.CoresDir()},
 		{Path: []string{"screenshot_directory"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDRetroArchBsnes)},
+		{Path: []string{"video_driver"}, Value: "vulkan"},
 		{Path: []string{"sort_savefiles_enable"}, Value: "true"},
 		{Path: []string{"sort_savestates_enable"}, Value: "true"},
 		{Path: []string{"sort_savefiles_by_content_enable"}, Value: "false"},
@@ -69,6 +84,10 @@ func SharedConfig(store model.StoreReader, cc *model.ControllerConfig) model.Con
 
 	if cc != nil {
 		entries = append(entries, controllerEntries(cc)...)
+	}
+
+	if sc != nil && sc.Shaders != nil && *sc.Shaders {
+		entries = append(entries, model.ConfigEntry{Path: []string{"video_shader_enable"}, Value: "true"})
 	}
 
 	return model.ConfigPatch{Target: MainConfigTarget, Entries: entries}
@@ -148,6 +167,9 @@ var coreConfigDirNames = map[string]string{
 	"mgba":              "mGBA",
 	"melondsds":         "melonDS DS",
 	"citra":             "Citra",
+	"fbneo":             "FinalBurn Neo",
+	"stella":            "Stella",
+	"vice_x64sc":        "VICE x64sc",
 }
 
 func CoreOverrideTarget(shortName string) model.ConfigTarget {
@@ -173,6 +195,9 @@ var coreShortNames = map[model.EmulatorID]string{
 	model.EmulatorIDRetroArchMGBA:          "mgba",
 	model.EmulatorIDRetroArchMelonDS:       "melondsds",
 	model.EmulatorIDRetroArchCitra:         "citra",
+	model.EmulatorIDRetroArchFBNeo:         "fbneo",
+	model.EmulatorIDRetroArchStella:        "stella",
+	model.EmulatorIDRetroArchVICE:          "vice_x64sc",
 }
 
 var coreToSystem = map[model.EmulatorID]model.SystemID{
@@ -186,6 +211,9 @@ var coreToSystem = map[model.EmulatorID]model.SystemID{
 	model.EmulatorIDRetroArchMGBA:          model.SystemIDGBA,
 	model.EmulatorIDRetroArchMelonDS:       model.SystemIDNDS,
 	model.EmulatorIDRetroArchCitra:         model.SystemIDN3DS,
+	model.EmulatorIDRetroArchFBNeo:         model.SystemIDArcade,
+	model.EmulatorIDRetroArchStella:        model.SystemIDAtari2600,
+	model.EmulatorIDRetroArchVICE:          model.SystemIDC64,
 }
 
 var coreNeedsBiosDir = map[model.EmulatorID]bool{
@@ -200,8 +228,8 @@ func CoreShortName(emuID model.EmulatorID) string {
 
 // CorePatches returns the base RetroArch config plus a per-core override for
 // cores that need additional settings like system_directory for BIOS files.
-func CorePatches(emuID model.EmulatorID, store model.StoreReader, cc *model.ControllerConfig) []model.ConfigPatch {
-	patches := []model.ConfigPatch{SharedConfig(store, cc)}
+func CorePatches(emuID model.EmulatorID, store model.StoreReader, cc *model.ControllerConfig, sc *ShaderConfig, resolver model.BaseDirResolver) []model.ConfigPatch {
+	patches := []model.ConfigPatch{SharedConfig(store, cc, sc)}
 
 	shortName := CoreShortName(emuID)
 	if shortName == "" {
@@ -216,13 +244,123 @@ func CorePatches(emuID model.EmulatorID, store model.StoreReader, cc *model.Cont
 		})
 	}
 
+	if sc != nil && sc.Shaders != nil {
+		configDirName := shortName
+		if displayName, ok := coreConfigDirNames[shortName]; ok {
+			configDirName = displayName
+		}
+		if *sc.Shaders {
+			configDir, err := resolver.UserConfigDir()
+			if err == nil {
+				presetPath := filepath.Join(configDir, "retroarch", "config", configDirName, configDirName+".slangp")
+				entries = append(entries,
+					model.ConfigEntry{Path: []string{"video_shader_enable"}, Value: "true"},
+					model.ConfigEntry{Path: []string{"video_shader"}, Value: presetPath},
+				)
+			}
+		} else {
+			entries = append(entries,
+				model.ConfigEntry{Path: []string{"video_shader_enable"}, Value: "false"},
+				model.ConfigEntry{Path: []string{"video_shader"}, Value: ""},
+			)
+		}
+	}
+
 	if len(entries) > 0 {
 		patches = append(patches, model.ConfigPatch{
 			Target:  CoreOverrideTarget(shortName),
 			Entries: entries,
 		})
 	}
+
+	if sc != nil && sc.Shaders != nil && *sc.Shaders {
+		shaderPatch := coreShaderPatch(emuID, true, sc.SystemDisplayTypes)
+		if shaderPatch != nil {
+			patches = append(patches, *shaderPatch)
+		}
+	}
+
 	return patches
+}
+
+func coreShaderPatch(emuID model.EmulatorID, shadersEnabled bool, displayTypes map[model.SystemID]model.DisplayType) *model.ConfigPatch {
+	shortName := CoreShortName(emuID)
+	if shortName == "" {
+		return nil
+	}
+
+	configDirName := shortName
+	if displayName, ok := coreConfigDirNames[shortName]; ok {
+		configDirName = displayName
+	}
+
+	systemID := coreToSystem[emuID]
+	displayType := displayTypes[systemID]
+
+	target := model.ConfigTarget{
+		RelPath: "retroarch/config/" + configDirName + "/" + configDirName + ".slangp",
+		Format:  model.ConfigFormatRaw,
+		BaseDir: model.ConfigBaseDirUserConfig,
+	}
+
+	if !shadersEnabled {
+		return &model.ConfigPatch{
+			Target: target,
+			Delete: true,
+		}
+	}
+
+	var content string
+	if displayType == model.DisplayTypeLCD {
+		content = `shaders = 1
+shader0 = ../../shaders/kyaraben/` + lcdShaderFile + `
+scale_type0 = viewport
+filter_linear0 = true
+`
+	} else {
+		content = `shaders = 1
+shader0 = ../../shaders/kyaraben/` + crtShaderFile + `
+filter_linear0 = false
+`
+	}
+
+	return &model.ConfigPatch{
+		Target:  target,
+		Entries: []model.ConfigEntry{{Path: []string{}, Value: content}},
+	}
+}
+
+func CoreShaderDownloads(emuID model.EmulatorID, resolver model.BaseDirResolver, sc *ShaderConfig) ([]model.InitialDownload, error) {
+	if sc == nil || sc.Shaders == nil || !*sc.Shaders {
+		return nil, nil
+	}
+
+	systemID := coreToSystem[emuID]
+	if systemID == "" {
+		return nil, nil
+	}
+
+	configDir, err := resolver.UserConfigDir()
+	if err != nil {
+		return nil, fmt.Errorf("getting config dir: %w", err)
+	}
+
+	shaderDir := filepath.Join(configDir, "retroarch", "shaders", "kyaraben")
+	displayType := sc.SystemDisplayTypes[systemID]
+
+	if displayType == model.DisplayTypeLCD {
+		return []model.InitialDownload{{
+			URL:      "https://raw.githubusercontent.com/libretro/slang-shaders/" + slangShadersCommit + "/handheld/shaders/lcd-cgwg/lcd-grid-v2.slang",
+			SHA256:   lcdShaderSHA256,
+			DestPath: filepath.Join(shaderDir, lcdShaderFile),
+		}}, nil
+	}
+
+	return []model.InitialDownload{{
+		URL:      "https://raw.githubusercontent.com/libretro/slang-shaders/" + slangShadersCommit + "/crt/shaders/crt-mattias.slang",
+		SHA256:   crtShaderSHA256,
+		DestPath: filepath.Join(shaderDir, crtShaderFile),
+	}}, nil
 }
 
 func CoreSymlinks(emuID model.EmulatorID, store model.StoreReader, resolver model.BaseDirResolver) ([]model.SymlinkSpec, error) {

@@ -12,6 +12,7 @@ func (Definition) System() model.System {
 		Manufacturer: model.ManufacturerNintendo,
 		Label:        "NSW",
 		Extensions:   []string{".nsp", ".xci", ".nca", ".nro", ".nso", ".nsz", ".xcz"},
+		DisplayType:  model.DisplayTypeLCD,
 	}
 }
 

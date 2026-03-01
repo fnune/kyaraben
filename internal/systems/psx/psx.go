@@ -12,6 +12,7 @@ func (Definition) System() model.System {
 		Manufacturer: model.ManufacturerSony,
 		Label:        "PSX",
 		Extensions:   []string{".bin", ".cue", ".chd", ".iso", ".img", ".pbp", ".m3u", ".7z", ".zip"},
+		DisplayType:  model.DisplayTypeCRT,
 	}
 }
 

@@ -16,6 +16,7 @@ func (Definition) System() model.System {
 			".g41", ".g64", ".nib", ".prg", ".p00", ".t64",
 			".tap", ".x64", ".vsf", ".m3u", ".7z", ".zip",
 		},
+		DisplayType: model.DisplayTypeCRT,
 	}
 }
 

@@ -86,6 +86,12 @@ export const SystemIDAtari2600 = "atari2600";
 export const SystemIDC64 = "c64";
 export type SystemID = typeof SystemIDNES | typeof SystemIDSNES | typeof SystemIDN64 | typeof SystemIDGB | typeof SystemIDGBC | typeof SystemIDGBA | typeof SystemIDNDS | typeof SystemIDN3DS | typeof SystemIDGameCube | typeof SystemIDWii | typeof SystemIDWiiU | typeof SystemIDSwitch | typeof SystemIDPSX | typeof SystemIDPS2 | typeof SystemIDPS3 | typeof SystemIDPSP | typeof SystemIDPSVita | typeof SystemIDGenesis | typeof SystemIDMasterSystem | typeof SystemIDGameGear | typeof SystemIDSaturn | typeof SystemIDDreamcast | typeof SystemIDPCEngine | typeof SystemIDNGP | typeof SystemIDXbox | typeof SystemIDXbox360 | typeof SystemIDArcade | typeof SystemIDNeoGeo | typeof SystemIDAtari2600 | typeof SystemIDC64;
 /**
+ * DisplayType indicates the original display technology for a system.
+ */
+export const DisplayTypeCRT = "crt";
+export const DisplayTypeLCD = "lcd";
+export type DisplayType = typeof DisplayTypeCRT | typeof DisplayTypeLCD;
+/**
  * Manufacturer represents the company that made a gaming system.
  */
 export const ManufacturerNintendo = "Nintendo";
@@ -109,4 +115,5 @@ export interface System {
   manufacturer: Manufacturer;
   label: string;
   extensions: string[];
+  displayType: DisplayType;
 }

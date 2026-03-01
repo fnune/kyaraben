@@ -44,6 +44,7 @@ export interface CatalogViewProps {
   readonly enabledEmulators: ReadonlySet<EmulatorID>
   readonly enabledFrontends: Map<FrontendID, boolean>
   readonly emulatorVersions: Map<EmulatorID, string | null>
+  readonly emulatorShaders: Map<EmulatorID, boolean | null>
   readonly frontendVersions: Map<FrontendID, string | null>
   readonly installedVersions: Map<EmulatorID, string>
   readonly installedFrontendVersions: Map<FrontendID, string>
@@ -56,6 +57,7 @@ export interface CatalogViewProps {
   readonly onUserStoreChange: (value: string) => void
   readonly onEmulatorToggle: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
   readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
+  readonly onShaderChange: (emulatorId: EmulatorID, shaders: boolean | null) => void
   readonly onFrontendToggle: (frontendId: FrontendID, enabled: boolean) => void
   readonly onFrontendVersionChange: (frontendId: FrontendID, version: string | null) => void
   readonly onDiscard: () => void
@@ -102,6 +104,7 @@ export function CatalogView({
   enabledEmulators,
   enabledFrontends,
   emulatorVersions,
+  emulatorShaders,
   frontendVersions,
   installedVersions,
   installedFrontendVersions,
@@ -114,6 +117,7 @@ export function CatalogView({
   onUserStoreChange,
   onEmulatorToggle,
   onVersionChange,
+  onShaderChange,
   onFrontendToggle,
   onFrontendVersionChange,
   onDiscard,
@@ -149,11 +153,14 @@ export function CatalogView({
         systemsConfig[sysId] = emuIds
       }
 
-      const emulatorsConfig: Record<string, { version?: string }> = {}
+      const emulatorsConfig: Record<string, { version?: string; shaders?: boolean | null }> = {}
       for (const [emuId, version] of emulatorVersions) {
         if (version) {
           emulatorsConfig[emuId] = { version }
         }
+      }
+      for (const [emuId, shaders] of emulatorShaders) {
+        emulatorsConfig[emuId] = { ...emulatorsConfig[emuId], shaders }
       }
 
       const frontendsConfig: Record<string, { enabled: boolean; version?: string }> = {}
@@ -171,7 +178,15 @@ export function CatalogView({
         ...(summaryMessage && { summaryMessage }),
       })
     },
-    [apply, systemEmulators, emulatorVersions, enabledFrontends, frontendVersions, userStore],
+    [
+      apply,
+      systemEmulators,
+      emulatorVersions,
+      emulatorShaders,
+      enabledFrontends,
+      frontendVersions,
+      userStore,
+    ],
   )
 
   const changes = useMemo(() => {
@@ -523,6 +538,7 @@ export function CatalogView({
                         systemEnabledEmulators={new Set(systemEmuIds)}
                         globalEnabledEmulators={enabledEmulators}
                         emulatorVersions={emulatorVersions}
+                        emulatorShaders={emulatorShaders}
                         installedVersions={installedVersions}
                         installedExecLines={installedExecLines}
                         managedConfigs={managedConfigs}
@@ -531,6 +547,7 @@ export function CatalogView({
                         sharedPackages={sharedPackages}
                         onEmulatorToggle={onEmulatorToggle}
                         onVersionChange={onVersionChange}
+                        onShaderChange={onShaderChange}
                       />
                     )
                   })}

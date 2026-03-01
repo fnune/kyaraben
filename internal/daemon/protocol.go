@@ -21,6 +21,7 @@ type FrontendConfRequest struct {
 
 type EmulatorConfRequest struct {
 	Version string `json:"version,omitempty"`
+	Shaders *bool  `json:"shaders"`
 }
 
 type SyncRemoveDeviceRequest struct {
@@ -155,6 +156,7 @@ type EmulatorRef struct {
 	DownloadBytes     int64            `json:"downloadBytes,omitempty"`
 	CoreBytes         int64            `json:"coreBytes,omitempty"`
 	PackageName       string           `json:"packageName,omitempty"`
+	SupportedSettings []string         `json:"supportedSettings,omitempty"`
 }
 
 type ConfigResponse struct {
@@ -166,6 +168,7 @@ type ConfigResponse struct {
 
 type EmulatorConfResponse struct {
 	Version string `json:"version,omitempty"`
+	Shaders *bool  `json:"shaders"`
 }
 
 type FrontendConfResponse struct {

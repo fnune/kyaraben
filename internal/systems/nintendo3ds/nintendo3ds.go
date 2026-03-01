@@ -12,6 +12,7 @@ func (Definition) System() model.System {
 		Manufacturer: model.ManufacturerNintendo,
 		Label:        "3DS",
 		Extensions:   []string{".3ds", ".3dsx", ".cia", ".cxi", ".cci", ".app", ".7z", ".zip"},
+		DisplayType:  model.DisplayTypeLCD,
 	}
 }
 

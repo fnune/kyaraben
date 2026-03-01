@@ -12,6 +12,7 @@ func (Definition) System() model.System {
 		Manufacturer: model.ManufacturerSony,
 		Label:        "PS2",
 		Extensions:   []string{".bin", ".chd", ".cso", ".iso", ".gz", ".m3u", ".img", ".isz", ".zso"},
+		DisplayType:  model.DisplayTypeCRT,
 	}
 }
 

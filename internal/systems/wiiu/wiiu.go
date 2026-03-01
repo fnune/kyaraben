@@ -12,6 +12,7 @@ func (Definition) System() model.System {
 		Manufacturer: model.ManufacturerNintendo,
 		Label:        "WiiU",
 		Extensions:   []string{".wua", ".wux", ".rpx", ".wud", ".elf"},
+		DisplayType:  model.DisplayTypeCRT,
 	}
 }
 

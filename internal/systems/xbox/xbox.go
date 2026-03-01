@@ -12,6 +12,7 @@ func (Definition) System() model.System {
 		Manufacturer: model.ManufacturerMicrosoft,
 		Label:        "XBOX",
 		Extensions:   []string{".iso", ".xiso"},
+		DisplayType:  model.DisplayTypeCRT,
 	}
 }
 

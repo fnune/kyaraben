@@ -2,15 +2,24 @@
 // - EmuDeck (https://github.com/dragoonDorise/EmuDeck) - GPL-3
 // - RetroDECK (https://github.com/XargonWan/RetroDECK) - GPL-3
 // - Libretro documentation (https://docs.libretro.com)
+//
+// Shader support uses crt-lottes-fast from:
+// https://github.com/dolphin-emu/dolphin/pull/12014
 package dolphin
 
 import (
+	_ "embed"
 	"fmt"
 	"path/filepath"
 	"strings"
 
 	"github.com/fnune/kyaraben/internal/model"
 )
+
+//go:embed crt_lottes_fast.glsl
+var crtShader []byte
+
+const crtShaderFile = "crt_lottes_fast.glsl"
 
 type Definition struct{}
 
@@ -47,6 +56,7 @@ func (Definition) Emulator() model.Emulator {
 			UsesStatesDir:      true,
 			UsesScreenshotsDir: true,
 		},
+		SupportedSettings: []string{model.SettingShaders},
 	}
 }
 
@@ -109,10 +119,8 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 			},
 		},
 		{
-			Target: gfxTarget,
-			Entries: []model.ConfigEntry{
-				{Path: []string{"Settings", "InternalResolution"}, Value: "2", DefaultOnly: true},
-			},
+			Target:  gfxTarget,
+			Entries: gfxEntries(ctx.Shaders),
 		},
 	}
 
@@ -142,9 +150,15 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		{Source: filepath.Join(dolphinDir, "ScreenShots"), Target: store.EmulatorScreenshotsDir(model.EmulatorIDDolphin)},
 	}
 
+	embeddedFiles, err := shaderFiles(ctx.BaseDirResolver, ctx.Shaders)
+	if err != nil {
+		return model.GenerateResult{}, err
+	}
+
 	return model.GenerateResult{
-		Patches:  patches,
-		Symlinks: symlinks,
+		Patches:       patches,
+		Symlinks:      symlinks,
+		EmbeddedFiles: embeddedFiles,
 	}, nil
 }
 
@@ -358,4 +372,40 @@ func buildDolphinProvisionGroups() []model.ProvisionGroup {
 	})
 
 	return groups
+}
+
+func gfxEntries(shaders *bool) []model.ConfigEntry {
+	entries := []model.ConfigEntry{
+		{Path: []string{"Settings", "InternalResolution"}, Value: "2", DefaultOnly: true},
+	}
+	if shaders == nil {
+		return entries
+	}
+	if *shaders {
+		entries = append(entries, model.ConfigEntry{
+			Path: []string{"Enhancements", "PostProcessingShader"}, Value: "crt_lottes_fast",
+		})
+	} else {
+		entries = append(entries, model.ConfigEntry{
+			Path: []string{"Enhancements", "PostProcessingShader"}, Value: "",
+		})
+	}
+	return entries
+}
+
+func shaderFiles(resolver model.BaseDirResolver, shaders *bool) ([]model.EmbeddedFile, error) {
+	if shaders == nil || !*shaders {
+		return nil, nil
+	}
+
+	dataDir, err := resolver.UserDataDir()
+	if err != nil {
+		return nil, fmt.Errorf("getting data dir: %w", err)
+	}
+
+	shaderDir := filepath.Join(dataDir, "dolphin-emu", "Shaders")
+	return []model.EmbeddedFile{{
+		Content:  crtShader,
+		DestPath: filepath.Join(shaderDir, crtShaderFile),
+	}}, nil
 }

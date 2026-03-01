@@ -732,9 +732,10 @@ func (d *Daemon) handleGetSystems() []Event {
 		emuList := make([]EmulatorRef, 0, len(emus))
 		for _, emu := range emus {
 			ref := EmulatorRef{
-				ID:          emu.ID,
-				Name:        emu.Name,
-				PackageName: emu.Package.PackageName(),
+				ID:                emu.ID,
+				Name:              emu.Name,
+				PackageName:       emu.Package.PackageName(),
+				SupportedSettings: emu.SupportedSettings,
 			}
 
 			if vers != nil {
@@ -834,9 +835,10 @@ func (d *Daemon) handleGetConfig() []Event {
 
 	emulators := make(map[string]EmulatorConfResponse)
 	for emuID, emuConf := range cfg.Emulators {
-		if emuConf.Version != "" {
+		if emuConf.Version != "" || emuConf.Shaders != nil {
 			emulators[string(emuID)] = EmulatorConfResponse{
 				Version: emuConf.Version,
+				Shaders: emuConf.Shaders,
 			}
 		}
 	}
@@ -883,21 +885,34 @@ func (d *Daemon) handleSetConfig(data *SetConfigRequest) []Event {
 		}
 
 		if data.Emulators != nil {
-			cfg.Emulators = make(map[model.EmulatorID]model.EmulatorConf)
+			if cfg.Emulators == nil {
+				cfg.Emulators = make(map[model.EmulatorID]model.EmulatorConf)
+			}
 			for emuStr, emuConf := range data.Emulators {
-				cfg.Emulators[model.EmulatorID(emuStr)] = model.EmulatorConf{
-					Version: emuConf.Version,
+				emuID := model.EmulatorID(emuStr)
+				existing := cfg.Emulators[emuID]
+				if emuConf.Version != "" {
+					existing.Version = emuConf.Version
 				}
+				if emuConf.Shaders != nil {
+					existing.Shaders = emuConf.Shaders
+				}
+				cfg.Emulators[emuID] = existing
 			}
 		}
 
 		if data.Frontends != nil {
-			cfg.Frontends = make(map[model.FrontendID]model.FrontendConfig)
+			if cfg.Frontends == nil {
+				cfg.Frontends = make(map[model.FrontendID]model.FrontendConfig)
+			}
 			for feStr, feConf := range data.Frontends {
-				cfg.Frontends[model.FrontendID(feStr)] = model.FrontendConfig{
-					Enabled: feConf.Enabled,
-					Version: feConf.Version,
+				feID := model.FrontendID(feStr)
+				existing := cfg.Frontends[feID]
+				existing.Enabled = feConf.Enabled
+				if feConf.Version != "" {
+					existing.Version = feConf.Version
 				}
+				cfg.Frontends[feID] = existing
 			}
 		}
 	}

@@ -42,7 +42,8 @@ func (Definition) Emulator() model.Emulator {
 				return cmd
 			},
 		},
-		PathUsage: model.StandardPathUsage(),
+		PathUsage:         model.StandardPathUsage(),
+		SupportedSettings: []string{model.SettingShaders},
 	}
 }
 
@@ -78,6 +79,20 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		{Path: []string{"Folders", "SaveStates"}, Value: store.EmulatorStatesDir(model.EmulatorIDDuckStation)},
 		{Path: []string{"Folders", "Screenshots"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDDuckStation)},
 		{Path: []string{"GameList", "RecursivePaths"}, Value: store.SystemRomsDir(model.SystemIDPSX)},
+	}
+
+	if ctx.Shaders != nil {
+		if *ctx.Shaders {
+			entries = append(entries,
+				model.ConfigEntry{Path: []string{"PostProcessing", "Enabled"}, Value: "true"},
+				model.ConfigEntry{Path: []string{"PostProcessing", "StageCount"}, Value: "1"},
+				model.ConfigEntry{Path: []string{"PostProcessing/Stage1", "ShaderName"}, Value: "crt-lottes"},
+			)
+		} else {
+			entries = append(entries,
+				model.ConfigEntry{Path: []string{"PostProcessing", "Enabled"}, Value: "false"},
+			)
+		}
 	}
 
 	patches := []model.ConfigPatch{{Target: configTarget, Entries: entries}}

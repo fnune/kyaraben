@@ -114,6 +114,7 @@ type GlobalConfig struct {
 // EmulatorConf holds per-emulator configuration.
 type EmulatorConf struct {
 	Version string `toml:"version,omitempty"`
+	Shaders *bool  `toml:"shaders,omitempty"`
 }
 
 // EmulatorVersion returns the configured version for an emulator, or empty for default.
@@ -125,6 +126,17 @@ func (c *KyarabenConfig) EmulatorVersion(id EmulatorID) string {
 		return conf.Version
 	}
 	return ""
+}
+
+// EmulatorShaders returns the shader setting for an emulator, or nil if unmanaged.
+func (c *KyarabenConfig) EmulatorShaders(id EmulatorID) *bool {
+	if c.Emulators == nil {
+		return nil
+	}
+	if conf, ok := c.Emulators[id]; ok {
+		return conf.Shaders
+	}
+	return nil
 }
 
 func DefaultConfigPath() (string, error) {

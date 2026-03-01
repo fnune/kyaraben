@@ -52,7 +52,7 @@ export interface TestFixture {
 export interface ConfigFixture {
   userStore?: string
   systems?: Partial<Record<SystemID, EmulatorID[]>>
-  emulators?: Partial<Record<EmulatorID, { version?: string }>>
+  emulators?: Partial<Record<EmulatorID, { version?: string; shaders?: boolean | null }>>
   frontends?: Partial<Record<FrontendID, { enabled: boolean; version?: string }>>
   sync?: {
     enabled?: boolean
@@ -221,6 +221,9 @@ function generateConfigToml(config: ConfigFixture, defaultUserStore: string): st
         lines.push(`[emulators."${emuId}"]`)
         if (emuConfig.version) {
           lines.push(`version = "${emuConfig.version}"`)
+        }
+        if (emuConfig.shaders !== undefined && emuConfig.shaders !== null) {
+          lines.push(`shaders = ${emuConfig.shaders}`)
         }
         lines.push('')
       }

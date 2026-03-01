@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ChangeNotch } from '@/components/ChangeNotch/ChangeNotch'
 import { EmulatorLogo, getEmulatorLogo } from '@/components/EmulatorLogo/EmulatorLogo'
+import { EmulatorSettingsModal } from '@/components/EmulatorSettingsModal/EmulatorSettingsModal'
 import { PathsModal } from '@/components/PathsModal/PathsModal'
 import { ProvisionSummary } from '@/components/ProvisionSummary/ProvisionSummary'
 import {
@@ -13,7 +14,13 @@ import { PathText } from '@/lib/PathText'
 import { Select } from '@/lib/Select'
 import { useToast } from '@/lib/ToastContext'
 import { ToggleSwitch } from '@/lib/ToggleSwitch'
-import type { EmulatorPaths, EmulatorRef, ManagedConfigInfo, ProvisionResult } from '@/types/daemon'
+import type {
+  EmulatorPaths,
+  EmulatorRef,
+  ManagedConfigInfo,
+  ProvisionResult,
+  SystemID,
+} from '@/types/daemon'
 
 function isNonEmpty<T>(arr: readonly T[]): arr is readonly [T, ...T[]] {
   return arr.length > 0
@@ -21,6 +28,7 @@ function isNonEmpty<T>(arr: readonly T[]): arr is readonly [T, ...T[]] {
 
 export interface EmulatorSubcardProps {
   readonly emulator: EmulatorRef
+  readonly systemId: SystemID
   readonly enabled: boolean
   readonly enabledElsewhere?: boolean
   readonly pinnedVersion: string | null
@@ -30,8 +38,10 @@ export interface EmulatorSubcardProps {
   readonly paths?: EmulatorPaths
   readonly execLine?: string
   readonly sharedPackage?: boolean
+  readonly shaders?: boolean | null
   readonly onToggle: (enabled: boolean) => void
   readonly onVersionChange: (version: string | null) => void
+  readonly onShaderChange?: (value: boolean | null) => void
   readonly onLaunch?: () => void
 }
 
@@ -102,6 +112,7 @@ function ProvisionsSummary({
 
 export function EmulatorSubcard({
   emulator,
+  systemId,
   enabled,
   enabledElsewhere,
   pinnedVersion,
@@ -111,13 +122,19 @@ export function EmulatorSubcard({
   paths,
   execLine,
   sharedPackage,
+  shaders,
   onToggle,
   onVersionChange,
+  onShaderChange,
   onLaunch,
 }: EmulatorSubcardProps) {
   const [pathsOpen, setPathsOpen] = useState(false)
   const [provisionsOpen, setProvisionsOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const { showToast } = useToast()
+
+  const hasSettings = (emulator.supportedSettings?.length ?? 0) > 0
+  const supportsShaders = emulator.supportedSettings?.includes('shaders') ?? false
 
   const effectiveVersion = pinnedVersion ?? emulator.defaultVersion ?? null
   const changeType = getChangeType(
@@ -218,6 +235,21 @@ export function EmulatorSubcard({
                     Provisions
                   </button>
                 )}
+                {hasSettings && (
+                  <>
+                    {(paths || provisions.length > 0) && (
+                      <span className="text-on-surface-faint">·</span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setSettingsOpen(true)}
+                      disabled={!enabled}
+                      className={enabled ? 'hover:text-accent' : 'cursor-not-allowed'}
+                    >
+                      Settings
+                    </button>
+                  </>
+                )}
                 {!enabled && enabledElsewhere && (
                   <>
                     <span className="text-on-surface-faint">·</span>
@@ -275,6 +307,19 @@ export function EmulatorSubcard({
           provisions={provisions}
           disabled={!enabled}
           {...(execLine && onLaunch && { onLaunch: handleLaunch })}
+        />
+      )}
+
+      {hasSettings && (
+        <EmulatorSettingsModal
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          emulatorId={emulator.id}
+          emulatorName={emulator.name}
+          systemId={systemId}
+          supportsShaders={supportsShaders}
+          shaders={shaders ?? null}
+          onShaderChange={onShaderChange ?? ((_: boolean | null) => undefined)}
         />
       )}
     </div>

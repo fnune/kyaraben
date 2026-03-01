@@ -42,7 +42,8 @@ func (Definition) Emulator() model.Emulator {
 				return cmd
 			},
 		},
-		PathUsage: model.StandardPathUsage(),
+		PathUsage:         model.StandardPathUsage(),
+		SupportedSettings: []string{model.SettingShaders},
 	}
 }
 
@@ -76,6 +77,14 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		{Path: []string{"Folders", "Savestates"}, Value: store.EmulatorStatesDir(model.EmulatorIDPCSX2)},
 		{Path: []string{"Folders", "Snapshots"}, Value: store.EmulatorScreenshotsDir(model.EmulatorIDPCSX2)},
 		{Path: []string{"GameList", "RecursivePaths"}, Value: store.SystemRomsDir(model.SystemIDPS2)},
+	}
+
+	if ctx.Shaders != nil {
+		if *ctx.Shaders {
+			entries = append(entries, model.ConfigEntry{Path: []string{"EmuCore/GS", "TVShader"}, Value: "5"})
+		} else {
+			entries = append(entries, model.ConfigEntry{Path: []string{"EmuCore/GS", "TVShader"}, Value: "0"})
+		}
 	}
 
 	patches := []model.ConfigPatch{{Target: configTarget, Entries: entries}}

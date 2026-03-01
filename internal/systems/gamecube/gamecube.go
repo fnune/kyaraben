@@ -12,6 +12,7 @@ func (Definition) System() model.System {
 		Manufacturer: model.ManufacturerNintendo,
 		Label:        "GC",
 		Extensions:   []string{".gcm", ".iso", ".gcz", ".rvz", ".wbfs", ".ciso", ".dol", ".elf", ".wad", ".wia", ".m3u", ".7z", ".zip"},
+		DisplayType:  model.DisplayTypeCRT,
 	}
 }
 

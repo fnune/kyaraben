@@ -35,9 +35,18 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	if err != nil {
 		return model.GenerateResult{}, err
 	}
+	sc := &retroarch.ShaderConfig{
+		Shaders:            ctx.Shaders,
+		SystemDisplayTypes: ctx.SystemDisplayTypes,
+	}
+	downloads, err := retroarch.CoreShaderDownloads(model.EmulatorIDRetroArchStella, ctx.BaseDirResolver, sc)
+	if err != nil {
+		return model.GenerateResult{}, err
+	}
 	return model.GenerateResult{
-		Patches:  retroarch.CorePatches(model.EmulatorIDRetroArchStella, ctx.Store, ctx.ControllerConfig),
-		Symlinks: symlinks,
+		Patches:          retroarch.CorePatches(model.EmulatorIDRetroArchStella, ctx.Store, ctx.ControllerConfig, sc, ctx.BaseDirResolver),
+		Symlinks:         symlinks,
+		InitialDownloads: downloads,
 	}, nil
 }
 

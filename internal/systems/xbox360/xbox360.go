@@ -12,6 +12,7 @@ func (Definition) System() model.System {
 		Manufacturer: model.ManufacturerMicrosoft,
 		Label:        "360",
 		Extensions:   []string{".iso", ".xex", ".zar", ".god"},
+		DisplayType:  model.DisplayTypeCRT,
 	}
 }
 

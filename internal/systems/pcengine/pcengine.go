@@ -12,6 +12,7 @@ func (Definition) System() model.System {
 		Manufacturer: model.ManufacturerNEC,
 		Label:        "PCE",
 		Extensions:   []string{".pce", ".sgx", ".cue", ".ccd", ".chd", ".7z", ".zip"},
+		DisplayType:  model.DisplayTypeCRT,
 	}
 }
 

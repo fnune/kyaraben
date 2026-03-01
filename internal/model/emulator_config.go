@@ -237,6 +237,7 @@ type ConfigPatch struct {
 	Target         ConfigTarget
 	Entries        []ConfigEntry
 	ManagedRegions []ManagedRegion
+	Delete         bool
 }
 
 // ManagesWholeFile reports whether any managed region covers the entire file.

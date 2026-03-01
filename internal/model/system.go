@@ -39,6 +39,14 @@ const (
 	SystemIDC64          SystemID = "c64"
 )
 
+// DisplayType indicates the original display technology for a system.
+type DisplayType string
+
+const (
+	DisplayTypeCRT DisplayType = "crt"
+	DisplayTypeLCD DisplayType = "lcd"
+)
+
 // Manufacturer represents the company that made a gaming system.
 type Manufacturer string
 
@@ -63,4 +71,5 @@ type System struct {
 	Manufacturer Manufacturer `json:"manufacturer"`
 	Label        string       `json:"label"`
 	Extensions   []string     `json:"extensions"`
+	DisplayType  DisplayType  `json:"displayType"`
 }

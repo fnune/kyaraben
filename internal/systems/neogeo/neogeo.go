@@ -12,6 +12,7 @@ func (Definition) System() model.System {
 		Manufacturer: model.ManufacturerSNK,
 		Label:        "NEOGEO",
 		Extensions:   []string{".zip", ".7z"},
+		DisplayType:  model.DisplayTypeCRT,
 	}
 }
 

@@ -79,6 +79,11 @@ func (w *ConfigWriter) ApplyWithOptions(patch model.ConfigPatch, opts ApplyOptio
 		}
 	}
 
+	if patch.Delete {
+		_ = w.fs.Remove(path)
+		return ApplyResult{Path: path, BackupPath: backupPath}, nil
+	}
+
 	if patch.ManagesWholeFile() {
 		_ = w.fs.Remove(path)
 	}

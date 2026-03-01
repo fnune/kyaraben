@@ -55,14 +55,17 @@ psx = ["duckstation"]
 
 ### `[emulators.<id>]`
 
-Optional per-emulator configuration. Currently supports version pinning:
+Optional per-emulator configuration:
 
 ```toml
 [emulators.duckstation]
 version = "v0.1-10655"
+shaders = true
 ```
 
-When no version is specified, Kyaraben uses the latest supported version.
+- `version`: Pin to a specific version. When omitted, uses the latest supported.
+- `shaders`: Enable managed CRT/LCD shaders. When omitted, shader settings are
+  left to the user.
 
 ### `[frontends.<id>]`
 

@@ -139,6 +139,7 @@ func TestGenerateSettingsIncludesDefaults(t *testing.T) {
 		"ThemeVariant":     {"simpleCarousel", true},
 		"SystemsSorting":   {"manufacturer_year", true},
 		"DefaultSortOrder": {"last played, descending", true},
+		"ScreensaverType":  {"dim", true},
 	}
 
 	if len(patch.Entries) != len(expectedSettings) {

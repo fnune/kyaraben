@@ -1579,3 +1579,219 @@ func TestNoControllerConfigWhenNil(t *testing.T) {
 		t.Error("controller entries should not be present when ControllerConfig is nil")
 	}
 }
+
+func TestDolphinShaderConfig(t *testing.T) {
+	t.Parallel()
+
+	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+	gen := dolphin.Definition{}.ConfigGenerator()
+
+	t.Run("shaders enabled", func(t *testing.T) {
+		t.Parallel()
+
+		shadersOn := true
+		result, err := gen.Generate(model.GenerateContext{
+			Store:           store,
+			BaseDirResolver: resolver,
+			Shaders:         &shadersOn,
+		})
+		if err != nil {
+			t.Fatalf("Generate() error = %v", err)
+		}
+
+		var gfxPatch model.ConfigPatch
+		for _, p := range result.Patches {
+			if strings.Contains(p.Target.RelPath, "GFX.ini") {
+				gfxPatch = p
+				break
+			}
+		}
+
+		found := false
+		for _, entry := range gfxPatch.Entries {
+			if entry.Key() == "PostProcessingShader" {
+				found = true
+				if entry.Value != "crt_lottes_fast" {
+					t.Errorf("PostProcessingShader = %q, want %q", entry.Value, "crt_lottes_fast")
+				}
+				if len(entry.Path) != 2 || entry.Path[0] != "Enhancements" {
+					t.Errorf("PostProcessingShader should be in [Enhancements] section, got %v", entry.Path)
+				}
+			}
+		}
+		if !found {
+			t.Error("PostProcessingShader entry not found")
+		}
+
+		if len(result.EmbeddedFiles) != 1 {
+			t.Fatalf("expected 1 embedded file, got %d", len(result.EmbeddedFiles))
+		}
+		embeddedFile := result.EmbeddedFiles[0]
+		if !strings.HasSuffix(embeddedFile.DestPath, "crt_lottes_fast.glsl") {
+			t.Errorf("embedded file path = %q, want suffix crt_lottes_fast.glsl", embeddedFile.DestPath)
+		}
+		if !strings.Contains(embeddedFile.DestPath, "dolphin-emu/Shaders") {
+			t.Errorf("embedded file should be in dolphin-emu/Shaders, got %s", embeddedFile.DestPath)
+		}
+		if len(embeddedFile.Content) == 0 {
+			t.Error("embedded shader content is empty")
+		}
+	})
+
+	t.Run("shaders disabled", func(t *testing.T) {
+		t.Parallel()
+
+		shadersOff := false
+		result, err := gen.Generate(model.GenerateContext{
+			Store:           store,
+			BaseDirResolver: resolver,
+			Shaders:         &shadersOff,
+		})
+		if err != nil {
+			t.Fatalf("Generate() error = %v", err)
+		}
+
+		var gfxPatch model.ConfigPatch
+		for _, p := range result.Patches {
+			if strings.Contains(p.Target.RelPath, "GFX.ini") {
+				gfxPatch = p
+				break
+			}
+		}
+
+		for _, entry := range gfxPatch.Entries {
+			if entry.Key() == "PostProcessingShader" {
+				if entry.Value != "" {
+					t.Errorf("PostProcessingShader should be empty when disabled, got %q", entry.Value)
+				}
+			}
+		}
+
+		if len(result.EmbeddedFiles) != 0 {
+			t.Errorf("expected no embedded files when shaders disabled, got %d", len(result.EmbeddedFiles))
+		}
+	})
+
+	t.Run("shaders unmanaged", func(t *testing.T) {
+		t.Parallel()
+
+		result, err := gen.Generate(model.GenerateContext{
+			Store:           store,
+			BaseDirResolver: resolver,
+			Shaders:         nil,
+		})
+		if err != nil {
+			t.Fatalf("Generate() error = %v", err)
+		}
+
+		var gfxPatch model.ConfigPatch
+		for _, p := range result.Patches {
+			if strings.Contains(p.Target.RelPath, "GFX.ini") {
+				gfxPatch = p
+				break
+			}
+		}
+
+		for _, entry := range gfxPatch.Entries {
+			if entry.Key() == "PostProcessingShader" {
+				t.Error("PostProcessingShader should not be present when shaders is nil (unmanaged)")
+			}
+		}
+
+		if len(result.EmbeddedFiles) != 0 {
+			t.Errorf("expected no embedded files when shaders unmanaged, got %d", len(result.EmbeddedFiles))
+		}
+	})
+}
+
+func TestRetroArchShaderConfig(t *testing.T) {
+	t.Parallel()
+
+	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+	gen := retroarchbsnes.Definition{}.ConfigGenerator()
+
+	t.Run("always uses vulkan driver", func(t *testing.T) {
+		t.Parallel()
+
+		result, err := gen.Generate(model.GenerateContext{
+			Store:           store,
+			BaseDirResolver: resolver,
+		})
+		if err != nil {
+			t.Fatalf("Generate() error = %v", err)
+		}
+
+		shared := result.Patches[0]
+		found := false
+		for _, entry := range shared.Entries {
+			if entry.Key() == "video_driver" {
+				found = true
+				if entry.Value != "vulkan" {
+					t.Errorf("video_driver = %q, want %q", entry.Value, "vulkan")
+				}
+			}
+		}
+		if !found {
+			t.Error("video_driver entry not found")
+		}
+	})
+
+	t.Run("shaders enabled creates per-core config", func(t *testing.T) {
+		t.Parallel()
+
+		shadersOn := true
+		result, err := gen.Generate(model.GenerateContext{
+			Store:              store,
+			BaseDirResolver:    resolver,
+			Shaders:            &shadersOn,
+			SystemDisplayTypes: map[model.SystemID]model.DisplayType{model.SystemIDSNES: model.DisplayTypeCRT},
+		})
+		if err != nil {
+			t.Fatalf("Generate() error = %v", err)
+		}
+
+		if len(result.Patches) < 2 {
+			t.Fatalf("expected at least 2 patches (shared + per-core), got %d", len(result.Patches))
+		}
+
+		shared := result.Patches[0]
+		foundShaderEnable := false
+		for _, entry := range shared.Entries {
+			if entry.Key() == "video_shader_enable" {
+				foundShaderEnable = true
+				if entry.Value != "true" {
+					t.Errorf("video_shader_enable = %q, want %q", entry.Value, "true")
+				}
+			}
+		}
+		if !foundShaderEnable {
+			t.Error("video_shader_enable not found in shared config")
+		}
+
+		override := result.Patches[1]
+		foundVideoShader := false
+		foundShaderEnableOverride := false
+		for _, entry := range override.Entries {
+			if entry.Key() == "video_shader" {
+				foundVideoShader = true
+				if !strings.HasSuffix(entry.Value, ".slangp") {
+					t.Errorf("video_shader should end with .slangp, got %q", entry.Value)
+				}
+			}
+			if entry.Key() == "video_shader_enable" {
+				foundShaderEnableOverride = true
+				if entry.Value != "true" {
+					t.Errorf("per-core video_shader_enable = %q, want %q", entry.Value, "true")
+				}
+			}
+		}
+		if !foundVideoShader {
+			t.Error("video_shader not found in per-core override")
+		}
+		if !foundShaderEnableOverride {
+			t.Error("video_shader_enable not found in per-core override")
+		}
+	})
+}

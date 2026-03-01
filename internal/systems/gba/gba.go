@@ -12,6 +12,7 @@ func (Definition) System() model.System {
 		Manufacturer: model.ManufacturerNintendo,
 		Label:        "GBA",
 		Extensions:   []string{".gba", ".7z", ".zip"},
+		DisplayType:  model.DisplayTypeLCD,
 	}
 }
 

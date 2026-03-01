@@ -12,6 +12,7 @@ func (Definition) System() model.System {
 		Manufacturer: model.ManufacturerSega,
 		Label:        "SAT",
 		Extensions:   []string{".bin", ".cue", ".chd", ".iso", ".m3u", ".mds", ".ccd", ".7z", ".zip"},
+		DisplayType:  model.DisplayTypeCRT,
 	}
 }
 

@@ -12,6 +12,7 @@ func (Definition) System() model.System {
 		Manufacturer: model.ManufacturerSega,
 		Label:        "DC",
 		Extensions:   []string{".gdi", ".cdi", ".chd", ".cue", ".iso", ".m3u", ".7z", ".zip"},
+		DisplayType:  model.DisplayTypeCRT,
 	}
 }
 

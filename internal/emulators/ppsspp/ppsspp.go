@@ -40,6 +40,7 @@ func (Definition) Emulator() model.Emulator {
 			UsesStatesDir:      true,
 			UsesScreenshotsDir: true,
 		},
+		SupportedSettings: []string{model.SettingShaders},
 	}
 }
 
@@ -64,13 +65,27 @@ type Config struct{}
 func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
 	store := ctx.Store
 
+	entries := []model.ConfigEntry{
+		{Path: []string{"General", "CurrentDirectory"}, Value: store.SystemRomsDir(model.SystemIDPSP)},
+		{Path: []string{"General", "AskForExitConfirmationAfterSeconds"}, Value: "0"},
+		{Path: []string{"General", "FirstRun"}, Value: "False"},
+	}
+
+	if ctx.Shaders != nil {
+		if *ctx.Shaders {
+			entries = append(entries,
+				model.ConfigEntry{Path: []string{"Graphics", "PostShaderNames"}, Value: "LCDPersistence"},
+			)
+		} else {
+			entries = append(entries,
+				model.ConfigEntry{Path: []string{"Graphics", "PostShaderNames"}, Value: "Off"},
+			)
+		}
+	}
+
 	patches := []model.ConfigPatch{{
-		Target: configTarget,
-		Entries: []model.ConfigEntry{
-			{Path: []string{"General", "CurrentDirectory"}, Value: store.SystemRomsDir(model.SystemIDPSP)},
-			{Path: []string{"General", "AskForExitConfirmationAfterSeconds"}, Value: "0"},
-			{Path: []string{"General", "FirstRun"}, Value: "False"},
-		},
+		Target:  configTarget,
+		Entries: entries,
 	}}
 
 	if cc := ctx.ControllerConfig; cc != nil {

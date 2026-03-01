@@ -12,6 +12,7 @@ func (Definition) System() model.System {
 		Manufacturer: model.ManufacturerSony,
 		Label:        "PSP",
 		Extensions:   []string{".iso", ".cso", ".chd", ".pbp", ".7z", ".zip"},
+		DisplayType:  model.DisplayTypeLCD,
 	}
 }
 

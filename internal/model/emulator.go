@@ -24,15 +24,18 @@ func StandardPathUsage() PathUsage {
 }
 
 type Emulator struct {
-	ID              EmulatorID
-	Name            string
-	Systems         []SystemID
-	Package         PackageRef
-	ProvisionGroups []ProvisionGroup
-	StateKinds      []StateKind
-	Launcher        LauncherInfo
-	PathUsage       PathUsage
+	ID                EmulatorID
+	Name              string
+	Systems           []SystemID
+	Package           PackageRef
+	ProvisionGroups   []ProvisionGroup
+	StateKinds        []StateKind
+	Launcher          LauncherInfo
+	PathUsage         PathUsage
+	SupportedSettings []string
 }
+
+const SettingShaders = "shaders"
 
 type LauncherInfo struct {
 	// Binary must match the name passed to AppImageRef() for AppImage packages.

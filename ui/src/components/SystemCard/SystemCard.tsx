@@ -58,6 +58,7 @@ export interface SystemCardProps {
   readonly systemEnabledEmulators: ReadonlySet<EmulatorID>
   readonly globalEnabledEmulators: ReadonlySet<EmulatorID>
   readonly emulatorVersions: ReadonlyMap<EmulatorID, string | null>
+  readonly emulatorShaders: ReadonlyMap<EmulatorID, boolean | null>
   readonly installedVersions: ReadonlyMap<EmulatorID, string>
   readonly installedExecLines: ReadonlyMap<EmulatorID, string>
   readonly managedConfigs: ReadonlyMap<EmulatorID, ManagedConfigInfo[]>
@@ -66,6 +67,7 @@ export interface SystemCardProps {
   readonly sharedPackages: ReadonlySet<string>
   readonly onEmulatorToggle: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
   readonly onVersionChange: (emulatorId: EmulatorID, version: string | null) => void
+  readonly onShaderChange: (emulatorId: EmulatorID, shaders: boolean | null) => void
 }
 
 export const SystemCard = forwardRef<HTMLElement, SystemCardProps>(function SystemCard(
@@ -74,6 +76,7 @@ export const SystemCard = forwardRef<HTMLElement, SystemCardProps>(function Syst
     systemEnabledEmulators,
     globalEnabledEmulators,
     emulatorVersions,
+    emulatorShaders,
     installedVersions,
     installedExecLines,
     managedConfigs,
@@ -82,6 +85,7 @@ export const SystemCard = forwardRef<HTMLElement, SystemCardProps>(function Syst
     sharedPackages,
     onEmulatorToggle,
     onVersionChange,
+    onShaderChange,
   },
   ref,
 ) {
@@ -125,14 +129,17 @@ export const SystemCard = forwardRef<HTMLElement, SystemCardProps>(function Syst
             <EmulatorSubcard
               key={emulator.id}
               emulator={emulator}
+              systemId={system.id}
               enabled={isEnabled}
               enabledElsewhere={isEnabledElsewhere}
               pinnedVersion={emulatorVersions.get(emulator.id) ?? null}
               installedVersion={installedVersions.get(emulator.id) ?? null}
               provisions={provisions[`${system.id}:${emulator.id}`] ?? []}
               sharedPackage={isSharedPackage}
+              shaders={emulatorShaders.get(emulator.id) ?? null}
               onToggle={(enabled) => onEmulatorToggle(system.id, emulator.id, enabled)}
               onVersionChange={(version) => onVersionChange(emulator.id, version)}
+              onShaderChange={(shaders) => onShaderChange(emulator.id, shaders)}
               {...(emuManagedConfigs && { managedConfigs: emuManagedConfigs })}
               {...(emuPaths && { paths: emuPaths })}
               {...(execLine && {

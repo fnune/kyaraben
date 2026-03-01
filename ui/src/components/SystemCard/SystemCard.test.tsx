@@ -16,7 +16,7 @@ const mockSystem: System = {
   manufacturer: 'Nintendo',
   label: 'SNES',
   defaultEmulatorId: 'retroarch:bsnes',
-  emulators: [{ id: 'retroarch:bsnes', name: 'RetroArch (bsnes)' }],
+  emulators: [{ id: 'retroarch:bsnes', name: 'RetroArch (bsnes)', supportedSettings: ['shaders'] }],
 }
 
 describe('SystemCard', () => {
@@ -27,6 +27,7 @@ describe('SystemCard', () => {
         systemEnabledEmulators={new Set<EmulatorID>()}
         globalEnabledEmulators={new Set<EmulatorID>()}
         emulatorVersions={new Map()}
+        emulatorShaders={new Map()}
         installedVersions={new Map()}
         installedExecLines={new Map()}
         managedConfigs={new Map()}
@@ -35,6 +36,7 @@ describe('SystemCard', () => {
         sharedPackages={new Set()}
         onEmulatorToggle={vi.fn()}
         onVersionChange={vi.fn()}
+        onShaderChange={vi.fn()}
       />,
     )
 
@@ -49,6 +51,7 @@ describe('SystemCard', () => {
         systemEnabledEmulators={new Set<EmulatorID>(['retroarch:bsnes'])}
         globalEnabledEmulators={new Set<EmulatorID>(['retroarch:bsnes'])}
         emulatorVersions={new Map()}
+        emulatorShaders={new Map()}
         installedVersions={new Map()}
         installedExecLines={new Map()}
         managedConfigs={new Map()}
@@ -57,6 +60,7 @@ describe('SystemCard', () => {
         sharedPackages={new Set()}
         onEmulatorToggle={vi.fn()}
         onVersionChange={vi.fn()}
+        onShaderChange={vi.fn()}
       />,
     )
 
@@ -74,6 +78,7 @@ describe('SystemCard', () => {
         systemEnabledEmulators={new Set<EmulatorID>()}
         globalEnabledEmulators={new Set<EmulatorID>()}
         emulatorVersions={new Map()}
+        emulatorShaders={new Map()}
         installedVersions={new Map()}
         installedExecLines={new Map()}
         managedConfigs={new Map()}
@@ -82,6 +87,7 @@ describe('SystemCard', () => {
         sharedPackages={new Set()}
         onEmulatorToggle={onEmulatorToggle}
         onVersionChange={vi.fn()}
+        onShaderChange={vi.fn()}
       />,
     )
 
@@ -112,6 +118,7 @@ describe('SystemCard', () => {
         systemEnabledEmulators={new Set<EmulatorID>()}
         globalEnabledEmulators={new Set<EmulatorID>()}
         emulatorVersions={new Map()}
+        emulatorShaders={new Map()}
         installedVersions={new Map()}
         installedExecLines={new Map()}
         managedConfigs={new Map()}
@@ -120,6 +127,7 @@ describe('SystemCard', () => {
         sharedPackages={new Set()}
         onEmulatorToggle={vi.fn()}
         onVersionChange={vi.fn()}
+        onShaderChange={vi.fn()}
       />,
     )
 
@@ -133,6 +141,7 @@ describe('SystemCard', () => {
         systemEnabledEmulators={new Set<EmulatorID>()}
         globalEnabledEmulators={new Set<EmulatorID>()}
         emulatorVersions={new Map()}
+        emulatorShaders={new Map()}
         installedVersions={new Map()}
         installedExecLines={new Map()}
         managedConfigs={new Map()}
@@ -141,6 +150,7 @@ describe('SystemCard', () => {
         sharedPackages={new Set()}
         onEmulatorToggle={vi.fn()}
         onVersionChange={vi.fn()}
+        onShaderChange={vi.fn()}
       />,
     )
 

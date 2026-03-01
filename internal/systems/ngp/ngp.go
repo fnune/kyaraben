@@ -12,6 +12,7 @@ func (Definition) System() model.System {
 		Manufacturer: model.ManufacturerSNK,
 		Label:        "NGP",
 		Extensions:   []string{".ngp", ".ngc", ".ngpc", ".npc", ".7z", ".zip"},
+		DisplayType:  model.DisplayTypeLCD,
 	}
 }
 

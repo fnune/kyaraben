@@ -27,7 +27,7 @@ const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
 interface ApplyConfig {
   userStore: string
   systems: Record<string, string[]>
-  emulators: Record<string, { version?: string }>
+  emulators: Record<string, { version?: string; shaders?: boolean | null }>
   frontends?: Record<string, { enabled: boolean; version?: string }>
   summaryMessage?: string
 }
@@ -36,6 +36,19 @@ function hasUserConflicts(data: PreflightResponse): boolean {
   return (data.diffs ?? []).some(
     (d) => d.userModified && d.hasChanges && (d.userChanges?.length ?? 0) > 0,
   )
+}
+
+function toEmulatorConfRequest(
+  emulators: Record<string, { version?: string; shaders?: boolean | null }>,
+): Record<string, { version?: string; shaders?: boolean }> {
+  const result: Record<string, { version?: string; shaders?: boolean }> = {}
+  for (const [id, conf] of Object.entries(emulators)) {
+    result[id] = {
+      ...(conf.version !== undefined && { version: conf.version }),
+      ...(conf.shaders !== null && conf.shaders !== undefined && { shaders: conf.shaders }),
+    }
+  }
+  return result
 }
 
 function hasKyarabenUpdates(data: PreflightResponse): boolean {
@@ -211,7 +224,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
       const configResult = await daemon.setConfig({
         userStore: config.userStore,
         systems: config.systems,
-        emulators: config.emulators,
+        emulators: toEmulatorConfRequest(config.emulators),
         ...(config.frontends && { frontends: config.frontends }),
       })
 

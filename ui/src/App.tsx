@@ -65,6 +65,7 @@ interface ConfigState {
   userStore: string
   systemEmulators: Map<SystemID, EmulatorID[]>
   emulatorVersions: Map<EmulatorID, string | null>
+  emulatorShaders: Map<EmulatorID, boolean | null>
   enabledFrontends: Map<FrontendID, boolean>
   frontendVersions: Map<FrontendID, string | null>
 }
@@ -74,6 +75,7 @@ function emptyConfigState(): ConfigState {
     userStore: '',
     systemEmulators: new Map(),
     emulatorVersions: new Map(),
+    emulatorShaders: new Map(),
     enabledFrontends: new Map(),
     frontendVersions: new Map(),
   }
@@ -88,6 +90,7 @@ function cloneConfigState(state: ConfigState): ConfigState {
     userStore: state.userStore,
     systemEmulators: new Map(state.systemEmulators),
     emulatorVersions: new Map(state.emulatorVersions),
+    emulatorShaders: new Map(state.emulatorShaders),
     enabledFrontends: new Map(state.enabledFrontends),
     frontendVersions: new Map(state.frontendVersions),
   }
@@ -96,6 +99,7 @@ function cloneConfigState(state: ConfigState): ConfigState {
 function parseConfigResponse(data: ConfigResponse): ConfigState {
   const systemEmulators = new Map<SystemID, EmulatorID[]>()
   const emulatorVersions = new Map<EmulatorID, string | null>()
+  const emulatorShaders = new Map<EmulatorID, boolean | null>()
   const enabledFrontends = new Map<FrontendID, boolean>()
   const frontendVersions = new Map<FrontendID, string | null>()
 
@@ -109,6 +113,9 @@ function parseConfigResponse(data: ConfigResponse): ConfigState {
     for (const [emuId, conf] of Object.entries(data.emulators)) {
       if (conf.version) {
         emulatorVersions.set(emuId as EmulatorID, conf.version)
+      }
+      if (conf.shaders !== undefined) {
+        emulatorShaders.set(emuId as EmulatorID, conf.shaders ?? null)
       }
     }
   }
@@ -126,6 +133,7 @@ function parseConfigResponse(data: ConfigResponse): ConfigState {
     userStore: data.userStore,
     systemEmulators,
     emulatorVersions,
+    emulatorShaders,
     enabledFrontends,
     frontendVersions,
   }
@@ -423,6 +431,18 @@ function AppContent() {
     })
   }, [])
 
+  const handleShaderChange = useCallback((emulatorId: EmulatorID, shaders: boolean | null) => {
+    setConfigState((prev) => {
+      const next = new Map(prev.emulatorShaders)
+      if (shaders === null) {
+        next.delete(emulatorId)
+      } else {
+        next.set(emulatorId, shaders)
+      }
+      return { ...prev, emulatorShaders: next }
+    })
+  }, [])
+
   const handleFrontendToggle = useCallback((frontendId: FrontendID, enabled: boolean) => {
     setConfigState((prev) => {
       const next = new Map(prev.enabledFrontends)
@@ -500,6 +520,15 @@ function AppContent() {
       if (!configState.emulatorVersions.has(emuId)) return true
     }
 
+    if (configState.emulatorShaders.size !== savedConfigState.current.emulatorShaders.size)
+      return true
+    for (const [emuId, shaders] of configState.emulatorShaders) {
+      if (savedConfigState.current.emulatorShaders.get(emuId) !== shaders) return true
+    }
+    for (const emuId of savedConfigState.current.emulatorShaders.keys()) {
+      if (!configState.emulatorShaders.has(emuId)) return true
+    }
+
     if (configState.enabledFrontends.size !== savedConfigState.current.enabledFrontends.size)
       return true
     for (const [feId, enabled] of configState.enabledFrontends) {
@@ -542,6 +571,7 @@ function AppContent() {
             enabledEmulators={enabledEmulators}
             enabledFrontends={configState.enabledFrontends}
             emulatorVersions={configState.emulatorVersions}
+            emulatorShaders={configState.emulatorShaders}
             frontendVersions={configState.frontendVersions}
             installedVersions={installedVersions}
             installedFrontendVersions={installedFrontendVersions}
@@ -554,6 +584,7 @@ function AppContent() {
             onUserStoreChange={(value) => setConfigState((prev) => ({ ...prev, userStore: value }))}
             onEmulatorToggle={handleEmulatorToggle}
             onVersionChange={handleVersionChange}
+            onShaderChange={handleShaderChange}
             onFrontendToggle={handleFrontendToggle}
             onFrontendVersionChange={handleFrontendVersionChange}
             onDiscard={handleDiscard}

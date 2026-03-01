@@ -21,9 +21,13 @@ dev: generate-types _sidecar
     cd ui && npm run dev
 
 # Run all checks (lint + test)
-check: ensure lint test
+check: ensure
     cd ui && npm run typecheck && npm run lint
     cd site && npm run fmt:check
+    golangci-lint run
+    cd relay && golangci-lint run
+    go test ./...
+    cd relay && go test ./...
 
 # Run Go tests
 test: ensure

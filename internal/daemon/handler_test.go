@@ -644,3 +644,63 @@ func TestHandleSyncStatus_DisabledWithSyncthingInstalled(t *testing.T) {
 		t.Error("expected installed to be true when syncthing binary exists")
 	}
 }
+
+func TestHandleSetConfig_MergesEmulatorSettings(t *testing.T) {
+	shaderTrue := true
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{
+			UserStore: "~/Emulation",
+		},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDSNES: {model.EmulatorIDRetroArchBsnes},
+			model.SystemIDGBA:  {model.EmulatorIDRetroArchMGBA},
+		},
+		Emulators: map[model.EmulatorID]model.EmulatorConf{
+			model.EmulatorIDRetroArchBsnes: {Shaders: &shaderTrue},
+			model.EmulatorIDRetroArchMGBA:  {Shaders: &shaderTrue, Version: "0.10.0"},
+		},
+		Frontends: map[model.FrontendID]model.FrontendConfig{},
+	}
+	env := newTestDaemonEnv(t, cfg)
+	defer env.cleanup()
+	d := env.newDaemon()
+
+	shaderFalse := false
+	setCmd := SetConfigCommand{
+		Type: CommandTypeSetConfig,
+		Data: SetConfigRequest{
+			UserStore: "~/Emulation",
+			Systems: map[string][]string{
+				"snes": {"retroarch:bsnes"},
+				"gba":  {"retroarch:mgba"},
+			},
+			Emulators: map[string]EmulatorConfRequest{
+				"retroarch:mgba": {Shaders: &shaderFalse},
+			},
+		},
+	}
+
+	events := d.HandleSetConfig(setCmd, nil)
+	if len(events) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(events))
+	}
+
+	getEvents := d.Handle(Command{Type: CommandTypeGetConfig})
+	resp, ok := getEvents[0].Data.(ConfigResponse)
+	if !ok {
+		t.Fatalf("expected ConfigResponse, got %T", getEvents[0].Data)
+	}
+
+	bsnesConf := resp.Emulators["retroarch:bsnes"]
+	if bsnesConf.Shaders == nil || *bsnesConf.Shaders != true {
+		t.Errorf("expected bsnes shaders to be preserved as true, got %v", bsnesConf.Shaders)
+	}
+
+	mgbaConf := resp.Emulators["retroarch:mgba"]
+	if mgbaConf.Shaders == nil || *mgbaConf.Shaders != false {
+		t.Errorf("expected mgba shaders to be updated to false, got %v", mgbaConf.Shaders)
+	}
+	if mgbaConf.Version != "0.10.0" {
+		t.Errorf("expected mgba version to be preserved as 0.10.0, got %s", mgbaConf.Version)
+	}
+}

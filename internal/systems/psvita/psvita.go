@@ -12,6 +12,7 @@ func (Definition) System() model.System {
 		Manufacturer: model.ManufacturerSony,
 		Label:        "Vita",
 		Extensions:   []string{".vpk", ".psvita"},
+		DisplayType:  model.DisplayTypeLCD,
 	}
 }
 

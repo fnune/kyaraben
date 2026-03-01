@@ -17,6 +17,7 @@ export interface FrontendConfRequest {
 }
 export interface EmulatorConfRequest {
   version?: string;
+  shaders?: boolean;
 }
 export interface SyncRemoveDeviceRequest {
   deviceId: string;
@@ -133,6 +134,7 @@ export interface EmulatorRef {
   downloadBytes?: number /* int64 */;
   coreBytes?: number /* int64 */;
   packageName?: string;
+  supportedSettings?: string[];
 }
 export interface ConfigResponse {
   userStore: string;
@@ -142,6 +144,7 @@ export interface ConfigResponse {
 }
 export interface EmulatorConfResponse {
   version?: string;
+  shaders?: boolean;
 }
 export interface FrontendConfResponse {
   enabled: boolean;

@@ -12,6 +12,7 @@ func (Definition) System() model.System {
 		Manufacturer: model.ManufacturerNintendo,
 		Label:        "SNES",
 		Extensions:   []string{".sfc", ".smc", ".bs", ".bsx", ".fig", ".swc", ".7z", ".zip"},
+		DisplayType:  model.DisplayTypeCRT,
 	}
 }
 
