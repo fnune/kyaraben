@@ -16,6 +16,14 @@ type rawHandler struct {
 func (h *rawHandler) Read(path string) (map[string]map[string]string, error) {
 	result := make(map[string]map[string]string)
 	result[""] = make(map[string]string)
+
+	content, err := h.fs.ReadFile(path)
+	if err != nil {
+		return result, nil
+	}
+
+	// Raw entries use model.Path() (empty path), so section="" and key=""
+	result[""][""] = string(content)
 	return result, nil
 }
 

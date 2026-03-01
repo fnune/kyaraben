@@ -47,6 +47,10 @@ function isWholeFile(regions?: readonly ManagedRegionInfo[]): boolean {
   return regions?.some((r) => r.type === 'file') ?? false
 }
 
+function hasOnlyEmptyKeys(changes?: readonly { key: string }[]): boolean {
+  return changes?.every((c) => c.key === '') ?? false
+}
+
 function conflictMessage(regions?: readonly ManagedRegionInfo[]): string {
   if (isWholeFile(regions)) {
     return 'This entire file is managed by Kyaraben and will be rewritten:'
@@ -135,11 +139,15 @@ function FileDiff({ diff }: { readonly diff: ConfigFileDiff }) {
           <p className="text-xs text-status-warning font-medium mb-1">
             {conflictMessage(diff.managedRegions)}
           </p>
-          {diff.userChanges.map((uc) => (
-            <div key={uc.key} className="font-mono text-xs text-status-warning/80 pl-2">
-              {uc.key}: {uc.writtenValue} &rarr; {uc.currentValue}
-            </div>
-          ))}
+          {isWholeFile(diff.managedRegions) || hasOnlyEmptyKeys(diff.userChanges) ? (
+            <p className="text-xs text-status-warning/80 pl-2 italic">File content was modified</p>
+          ) : (
+            diff.userChanges.map((uc) => (
+              <div key={uc.key} className="font-mono text-xs text-status-warning/80 pl-2">
+                {uc.key}: {uc.writtenValue} &rarr; {uc.currentValue}
+              </div>
+            ))
+          )}
         </div>
       )}
 
