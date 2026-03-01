@@ -9,11 +9,20 @@ import (
 	"strings"
 )
 
-type LayoutID string
+// NintendoConfirmButton specifies where the confirm button should be for
+// Nintendo systems with diamond-layout face buttons (SNES, GameCube, Switch, etc.).
+// This does not affect N64 (unique layout) or non-Nintendo systems.
+type NintendoConfirmButton string
 
 const (
-	LayoutStandard LayoutID = "standard"
-	LayoutNintendo LayoutID = "nintendo"
+	// NintendoConfirmSouth places confirm at the south button position.
+	// Use this for consistent muscle memory across all systems.
+	NintendoConfirmSouth NintendoConfirmButton = "south"
+
+	// NintendoConfirmEast places confirm at the east button position,
+	// matching the original Nintendo controller feel where A is at east.
+	// This is the default.
+	NintendoConfirmEast NintendoConfirmButton = "east"
 )
 
 // SDLButton represents a standard SDL GameController button name.
@@ -102,8 +111,8 @@ type HotkeyConfig struct {
 
 // ControllerConfig holds the resolved controller configuration passed to generators.
 type ControllerConfig struct {
-	Layout  LayoutID
-	Hotkeys HotkeyConfig
+	NintendoConfirm NintendoConfirmButton
+	Hotkeys         HotkeyConfig
 }
 
 // DefaultHotkeys returns the default hotkey configuration.
@@ -123,12 +132,12 @@ func DefaultHotkeys() HotkeyConfig {
 	}
 }
 
-func ValidateLayoutID(s string) (LayoutID, error) {
-	switch LayoutID(s) {
-	case LayoutStandard, LayoutNintendo:
-		return LayoutID(s), nil
+func ValidateNintendoConfirmButton(s string) (NintendoConfirmButton, error) {
+	switch NintendoConfirmButton(s) {
+	case NintendoConfirmSouth, NintendoConfirmEast:
+		return NintendoConfirmButton(s), nil
 	default:
-		return "", fmt.Errorf("unknown controller layout %q (valid: standard, nintendo)", s)
+		return "", fmt.Errorf("unknown nintendo confirm button %q (valid: south, east)", s)
 	}
 }
 
@@ -137,12 +146,29 @@ func ValidateLayoutID(s string) (LayoutID, error) {
 // controller (Xbox, PlayStation, etc.) appears with this GUID.
 const SteamDeckGUID = "03000000de280000ff11000001000000"
 
-// FaceButtons returns the four face buttons (south, east, west, north) adjusted
-// for the configured layout. Standard layout: A=south, B=east, X=west, Y=north.
-// Nintendo layout swaps A/B and X/Y so that the physical button positions match
-// the expected console behavior.
-func (cc *ControllerConfig) FaceButtons() (south, east, west, north SDLButton) {
-	if cc.Layout == LayoutNintendo {
+// nintendoDiamondSystems lists Nintendo systems with diamond-layout face buttons
+// where the NintendoConfirmButton setting applies. N64 is excluded because its
+// controller has a unique layout where A/B aren't in a standard diamond.
+var nintendoDiamondSystems = map[SystemID]bool{
+	SystemIDNES:      true,
+	SystemIDSNES:     true,
+	SystemIDGB:       true,
+	SystemIDGBC:      true,
+	SystemIDGBA:      true,
+	SystemIDNDS:      true,
+	SystemIDN3DS:     true,
+	SystemIDGameCube: true,
+	SystemIDWii:      true,
+	SystemIDWiiU:     true,
+	SystemIDSwitch:   true,
+}
+
+// FaceButtons returns the four face buttons (south, east, west, north) for
+// the given system. For Nintendo systems with diamond layouts, the buttons
+// are adjusted based on NintendoConfirm. For all other systems (including N64),
+// positional mapping is used: A=south, B=east, X=west, Y=north.
+func (cc *ControllerConfig) FaceButtons(sys SystemID) (south, east, west, north SDLButton) {
+	if nintendoDiamondSystems[sys] && cc.NintendoConfirm == NintendoConfirmEast {
 		return ButtonB, ButtonA, ButtonY, ButtonX
 	}
 	return ButtonA, ButtonB, ButtonX, ButtonY
@@ -168,23 +194,11 @@ var SDLButtonIndex = map[SDLButton]int{
 	ButtonDPadRight:     14,
 }
 
-// SDLIndex returns the SDL button index for the given logical button, adjusted
-// for the configured layout. Face buttons (A, B, X, Y) are transformed so that
-// the logical button name corresponds to the game action, not the physical button.
+// SDLIndex returns the SDL button index for the given button.
+// This returns the raw index without any layout transformation,
+// suitable for hotkeys which are defined in terms of physical buttons.
 func (cc *ControllerConfig) SDLIndex(btn SDLButton) int {
-	south, east, west, north := cc.FaceButtons()
-	switch btn {
-	case ButtonA:
-		return SDLButtonIndex[east]
-	case ButtonB:
-		return SDLButtonIndex[south]
-	case ButtonX:
-		return SDLButtonIndex[north]
-	case ButtonY:
-		return SDLButtonIndex[west]
-	default:
-		return SDLButtonIndex[btn]
-	}
+	return SDLButtonIndex[btn]
 }
 
 // SDLAxisIndex maps SDL axis names to their standard indices.

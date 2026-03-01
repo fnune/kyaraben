@@ -238,7 +238,7 @@ func steamDeckFaceButton(btn model.SDLButton) int {
 // This profile is fully managed (FileRegion) and can be reloaded by users
 // at any time to restore kyaraben bindings.
 func profileEntries(cc *model.ControllerConfig) []model.ConfigEntry {
-	south, east, west, north := cc.FaceButtons()
+	south, east, west, north := cc.FaceButtons(model.SystemIDSwitch)
 	guid := model.SteamDeckGUID
 
 	return []model.ConfigEntry{
@@ -269,7 +269,7 @@ func profileEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 // reload kyaraben bindings via the Kyaraben profile.
 func qtConfigControllerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	var entries []model.ConfigEntry
-	south, east, west, north := cc.FaceButtons()
+	south, east, west, north := cc.FaceButtons(model.SystemIDSwitch)
 
 	guid := model.SteamDeckGUID
 

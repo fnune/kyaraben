@@ -23,8 +23,8 @@ type KyarabenConfig struct {
 
 // ControllerTomlConfig is the TOML representation of controller settings.
 type ControllerTomlConfig struct {
-	Layout  string           `toml:"layout"`
-	Hotkeys HotkeyTomlConfig `toml:"hotkeys"`
+	NintendoConfirm string           `toml:"nintendo_confirm"`
+	Hotkeys         HotkeyTomlConfig `toml:"hotkeys"`
 }
 
 // HotkeyTomlConfig is the TOML representation of hotkey bindings.
@@ -48,16 +48,16 @@ type HotkeyTomlConfig struct {
 // the typed ControllerConfig used by generators.
 func (c *KyarabenConfig) ResolveControllerConfig() (*ControllerConfig, error) {
 	cc := &ControllerConfig{
-		Layout:  LayoutStandard,
-		Hotkeys: DefaultHotkeys(),
+		NintendoConfirm: NintendoConfirmEast,
+		Hotkeys:         DefaultHotkeys(),
 	}
 
-	if c.Controller.Layout != "" {
-		layout, err := ValidateLayoutID(c.Controller.Layout)
+	if c.Controller.NintendoConfirm != "" {
+		confirm, err := ValidateNintendoConfirmButton(c.Controller.NintendoConfirm)
 		if err != nil {
 			return nil, err
 		}
-		cc.Layout = layout
+		cc.NintendoConfirm = confirm
 	}
 
 	hk := c.Controller.Hotkeys
@@ -289,7 +289,7 @@ func NewDefaultConfig() *KyarabenConfig {
 		},
 		Sync: DefaultSyncConfig(),
 		Controller: ControllerTomlConfig{
-			Layout: string(LayoutStandard),
+			NintendoConfirm: string(NintendoConfirmEast),
 			Hotkeys: HotkeyTomlConfig{
 				Modifier:         string(ButtonBack),
 				SaveState:        string(ButtonRightShoulder),

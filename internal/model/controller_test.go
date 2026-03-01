@@ -167,29 +167,29 @@ func TestHotkeyBindingRoundTrip(t *testing.T) {
 	}
 }
 
-func TestValidateLayoutID(t *testing.T) {
+func TestValidateNintendoConfirmButton(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name    string
 		input   string
-		want    LayoutID
+		want    NintendoConfirmButton
 		wantErr bool
 	}{
-		{name: "standard", input: "standard", want: LayoutStandard},
-		{name: "nintendo", input: "nintendo", want: LayoutNintendo},
+		{name: "south", input: "south", want: NintendoConfirmSouth},
+		{name: "east", input: "east", want: NintendoConfirmEast},
 		{name: "empty string", input: "", wantErr: true},
-		{name: "unknown layout", input: "playstation", wantErr: true},
-		{name: "case sensitive", input: "Standard", wantErr: true},
+		{name: "unknown value", input: "north", wantErr: true},
+		{name: "case sensitive", input: "South", wantErr: true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := ValidateLayoutID(tt.input)
+			got, err := ValidateNintendoConfirmButton(tt.input)
 			if (err != nil) != tt.wantErr {
-				t.Fatalf("ValidateLayoutID(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
+				t.Fatalf("ValidateNintendoConfirmButton(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
 			}
 			if !tt.wantErr && got != tt.want {
 				t.Errorf("got %q, want %q", got, tt.want)
@@ -198,76 +198,92 @@ func TestValidateLayoutID(t *testing.T) {
 	}
 }
 
-func TestFaceButtonsStandard(t *testing.T) {
+func TestFaceButtonsNonNintendoSystem(t *testing.T) {
 	t.Parallel()
 
-	cc := &ControllerConfig{Layout: LayoutStandard}
-	south, east, west, north := cc.FaceButtons()
+	cc := &ControllerConfig{NintendoConfirm: NintendoConfirmEast}
+	// Non-Nintendo system should not be affected by NintendoConfirm setting
+	south, east, west, north := cc.FaceButtons(SystemIDPSX)
 
 	if south != ButtonA {
-		t.Errorf("standard south = %q, want %q", south, ButtonA)
+		t.Errorf("PSX south = %q, want %q", south, ButtonA)
 	}
 	if east != ButtonB {
-		t.Errorf("standard east = %q, want %q", east, ButtonB)
+		t.Errorf("PSX east = %q, want %q", east, ButtonB)
 	}
 	if west != ButtonX {
-		t.Errorf("standard west = %q, want %q", west, ButtonX)
+		t.Errorf("PSX west = %q, want %q", west, ButtonX)
 	}
 	if north != ButtonY {
-		t.Errorf("standard north = %q, want %q", north, ButtonY)
+		t.Errorf("PSX north = %q, want %q", north, ButtonY)
 	}
 }
 
-func TestFaceButtonsNintendo(t *testing.T) {
+func TestFaceButtonsNintendoSystemConfirmSouth(t *testing.T) {
 	t.Parallel()
 
-	cc := &ControllerConfig{Layout: LayoutNintendo}
-	south, east, west, north := cc.FaceButtons()
+	cc := &ControllerConfig{NintendoConfirm: NintendoConfirmSouth}
+	south, east, west, north := cc.FaceButtons(SystemIDSNES)
+
+	if south != ButtonA {
+		t.Errorf("SNES confirm-south south = %q, want %q", south, ButtonA)
+	}
+	if east != ButtonB {
+		t.Errorf("SNES confirm-south east = %q, want %q", east, ButtonB)
+	}
+	if west != ButtonX {
+		t.Errorf("SNES confirm-south west = %q, want %q", west, ButtonX)
+	}
+	if north != ButtonY {
+		t.Errorf("SNES confirm-south north = %q, want %q", north, ButtonY)
+	}
+}
+
+func TestFaceButtonsNintendoSystemConfirmEast(t *testing.T) {
+	t.Parallel()
+
+	cc := &ControllerConfig{NintendoConfirm: NintendoConfirmEast}
+	south, east, west, north := cc.FaceButtons(SystemIDSNES)
 
 	if south != ButtonB {
-		t.Errorf("nintendo south = %q, want %q", south, ButtonB)
+		t.Errorf("SNES confirm-east south = %q, want %q", south, ButtonB)
 	}
 	if east != ButtonA {
-		t.Errorf("nintendo east = %q, want %q", east, ButtonA)
+		t.Errorf("SNES confirm-east east = %q, want %q", east, ButtonA)
 	}
 	if west != ButtonY {
-		t.Errorf("nintendo west = %q, want %q", west, ButtonY)
+		t.Errorf("SNES confirm-east west = %q, want %q", west, ButtonY)
 	}
 	if north != ButtonX {
-		t.Errorf("nintendo north = %q, want %q", north, ButtonX)
+		t.Errorf("SNES confirm-east north = %q, want %q", north, ButtonX)
 	}
 }
 
-func TestSDLIndexStandard(t *testing.T) {
+func TestFaceButtonsN64NotAffected(t *testing.T) {
 	t.Parallel()
 
-	cc := &ControllerConfig{Layout: LayoutStandard}
+	cc := &ControllerConfig{NintendoConfirm: NintendoConfirmEast}
+	// N64 should not be affected even with NintendoConfirmEast
+	south, east, west, north := cc.FaceButtons(SystemIDN64)
 
-	tests := []struct {
-		btn  SDLButton
-		want int
-	}{
-		{ButtonA, 1},
-		{ButtonB, 0},
-		{ButtonX, 3},
-		{ButtonY, 2},
-		{ButtonBack, 4},
-		{ButtonStart, 6},
-		{ButtonLeftShoulder, 9},
+	if south != ButtonA {
+		t.Errorf("N64 south = %q, want %q", south, ButtonA)
 	}
-
-	for _, tt := range tests {
-		got := cc.SDLIndex(tt.btn)
-		if got != tt.want {
-			t.Errorf("standard SDLIndex(%q) = %d, want %d", tt.btn, got, tt.want)
-		}
+	if east != ButtonB {
+		t.Errorf("N64 east = %q, want %q", east, ButtonB)
+	}
+	if west != ButtonX {
+		t.Errorf("N64 west = %q, want %q", west, ButtonX)
+	}
+	if north != ButtonY {
+		t.Errorf("N64 north = %q, want %q", north, ButtonY)
 	}
 }
 
-func TestSDLIndexNintendo(t *testing.T) {
+func TestSDLIndex(t *testing.T) {
 	t.Parallel()
 
-	cc := &ControllerConfig{Layout: LayoutNintendo}
+	cc := &ControllerConfig{NintendoConfirm: NintendoConfirmSouth}
 
 	tests := []struct {
 		btn  SDLButton
@@ -285,7 +301,7 @@ func TestSDLIndexNintendo(t *testing.T) {
 	for _, tt := range tests {
 		got := cc.SDLIndex(tt.btn)
 		if got != tt.want {
-			t.Errorf("nintendo SDLIndex(%q) = %d, want %d", tt.btn, got, tt.want)
+			t.Errorf("SDLIndex(%q) = %d, want %d", tt.btn, got, tt.want)
 		}
 	}
 }
@@ -394,8 +410,8 @@ func TestResolveControllerConfigDefaults(t *testing.T) {
 		t.Fatalf("ResolveControllerConfig() error = %v", err)
 	}
 
-	if cc.Layout != LayoutStandard {
-		t.Errorf("default layout = %q, want %q", cc.Layout, LayoutStandard)
+	if cc.NintendoConfirm != NintendoConfirmEast {
+		t.Errorf("default NintendoConfirm = %q, want %q", cc.NintendoConfirm, NintendoConfirmEast)
 	}
 
 	if cc.Hotkeys.SaveState.String() != "Back+RightShoulder" {
@@ -403,31 +419,31 @@ func TestResolveControllerConfigDefaults(t *testing.T) {
 	}
 }
 
-func TestResolveControllerConfigWithLayout(t *testing.T) {
+func TestResolveControllerConfigWithNintendoConfirm(t *testing.T) {
 	t.Parallel()
 
 	cfg := &KyarabenConfig{
-		Controller: ControllerTomlConfig{Layout: "nintendo"},
+		Controller: ControllerTomlConfig{NintendoConfirm: "east"},
 	}
 	cc, err := cfg.ResolveControllerConfig()
 	if err != nil {
 		t.Fatalf("ResolveControllerConfig() error = %v", err)
 	}
 
-	if cc.Layout != LayoutNintendo {
-		t.Errorf("layout = %q, want %q", cc.Layout, LayoutNintendo)
+	if cc.NintendoConfirm != NintendoConfirmEast {
+		t.Errorf("NintendoConfirm = %q, want %q", cc.NintendoConfirm, NintendoConfirmEast)
 	}
 }
 
-func TestResolveControllerConfigInvalidLayout(t *testing.T) {
+func TestResolveControllerConfigInvalidNintendoConfirm(t *testing.T) {
 	t.Parallel()
 
 	cfg := &KyarabenConfig{
-		Controller: ControllerTomlConfig{Layout: "xbox"},
+		Controller: ControllerTomlConfig{NintendoConfirm: "north"},
 	}
 	_, err := cfg.ResolveControllerConfig()
 	if err == nil {
-		t.Error("expected error for invalid layout, got nil")
+		t.Error("expected error for invalid NintendoConfirm, got nil")
 	}
 }
 

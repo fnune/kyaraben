@@ -130,7 +130,7 @@ func ppssppHotkeyRef(binding model.HotkeyBinding) string {
 }
 
 func padEntries(cc *model.ControllerConfig) []model.ConfigEntry {
-	south, east, west, north := cc.FaceButtons()
+	south, east, west, north := cc.FaceButtons(model.SystemIDPSP)
 	section := "ControlMapping"
 
 	// PSP maps: Cross=south, Circle=east, Square=west, Triangle=north

@@ -80,7 +80,9 @@ func controllerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 		{Path: []string{"input_autodetect_enable"}, Value: "true"},
 	}
 
-	south, east, west, north := cc.FaceButtons()
+	// RetroArch's libretro "RetroPad" is based on SNES layout (A=east, B=south).
+	// The NintendoConfirm setting affects all RetroArch cores since most are Nintendo.
+	south, east, west, north := cc.FaceButtons(model.SystemIDSNES)
 	for i := 1; i <= 4; i++ {
 		prefix := fmt.Sprintf("input_player%d_", i)
 		entries = append(entries,

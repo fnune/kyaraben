@@ -924,8 +924,8 @@ func TestConfigTargetResolve(t *testing.T) {
 
 func defaultControllerConfig() *model.ControllerConfig {
 	return &model.ControllerConfig{
-		Layout:  model.LayoutStandard,
-		Hotkeys: model.DefaultHotkeys(),
+		NintendoConfirm: model.NintendoConfirmSouth,
+		Hotkeys:         model.DefaultHotkeys(),
 	}
 }
 
@@ -1339,8 +1339,8 @@ func TestEdenControllerBindingValues(t *testing.T) {
 		gen := eden.Definition{}.ConfigGenerator()
 
 		nintendoCC := &model.ControllerConfig{
-			Layout:  model.LayoutNintendo,
-			Hotkeys: model.DefaultHotkeys(),
+			NintendoConfirm: model.NintendoConfirmEast,
+			Hotkeys:         model.DefaultHotkeys(),
 		}
 
 		result, err := gen.Generate(model.GenerateContext{
@@ -1446,25 +1446,25 @@ func TestRetroArchControllerConfig(t *testing.T) {
 	}
 }
 
-func TestNintendoLayoutSwapsFaceButtons(t *testing.T) {
+func TestNintendoConfirmDoesNotAffectPlayStation(t *testing.T) {
 	t.Parallel()
 
 	store := &fakeStoreReader{root: "/emulation"}
 	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
 
-	standardCC := &model.ControllerConfig{
-		Layout:  model.LayoutStandard,
-		Hotkeys: model.DefaultHotkeys(),
+	southCC := &model.ControllerConfig{
+		NintendoConfirm: model.NintendoConfirmSouth,
+		Hotkeys:         model.DefaultHotkeys(),
 	}
-	nintendoCC := &model.ControllerConfig{
-		Layout:  model.LayoutNintendo,
-		Hotkeys: model.DefaultHotkeys(),
+	eastCC := &model.ControllerConfig{
+		NintendoConfirm: model.NintendoConfirmEast,
+		Hotkeys:         model.DefaultHotkeys(),
 	}
 
 	gen := duckstation.Definition{}.ConfigGenerator()
 
-	standardResult, _ := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver, ControllerConfig: standardCC})
-	nintendoResult, _ := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver, ControllerConfig: nintendoCC})
+	southResult, _ := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver, ControllerConfig: southCC})
+	eastResult, _ := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver, ControllerConfig: eastCC})
 
 	findPad1Value := func(entries []model.ConfigEntry, key string) string {
 		for _, e := range entries {
@@ -1475,46 +1475,46 @@ func TestNintendoLayoutSwapsFaceButtons(t *testing.T) {
 		return ""
 	}
 
-	var stdProfileEntries, ninProfileEntries []model.ConfigEntry
-	for _, p := range standardResult.Patches {
+	var southProfileEntries, eastProfileEntries []model.ConfigEntry
+	for _, p := range southResult.Patches {
 		if p.ManagesWholeFile() {
-			stdProfileEntries = p.Entries
+			southProfileEntries = p.Entries
 			break
 		}
 	}
-	for _, p := range nintendoResult.Patches {
+	for _, p := range eastResult.Patches {
 		if p.ManagesWholeFile() {
-			ninProfileEntries = p.Entries
+			eastProfileEntries = p.Entries
 			break
 		}
 	}
-	stdCross := findPad1Value(stdProfileEntries, "Cross")
-	ninCross := findPad1Value(ninProfileEntries, "Cross")
+	southCross := findPad1Value(southProfileEntries, "Cross")
+	eastCross := findPad1Value(eastProfileEntries, "Cross")
 
-	if stdCross == ninCross {
-		t.Errorf("Nintendo layout should produce different Cross mapping, both got %s", stdCross)
+	if southCross != eastCross {
+		t.Errorf("NintendoConfirm should not affect PlayStation: south=%s, east=%s", southCross, eastCross)
 	}
 }
 
-func TestRetroArchLayoutSwapsFaceButtons(t *testing.T) {
+func TestRetroArchNintendoConfirmAffectsButtons(t *testing.T) {
 	t.Parallel()
 
 	store := &fakeStoreReader{root: "/emulation"}
 	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
 
-	standardCC := &model.ControllerConfig{
-		Layout:  model.LayoutStandard,
-		Hotkeys: model.DefaultHotkeys(),
+	southCC := &model.ControllerConfig{
+		NintendoConfirm: model.NintendoConfirmSouth,
+		Hotkeys:         model.DefaultHotkeys(),
 	}
-	nintendoCC := &model.ControllerConfig{
-		Layout:  model.LayoutNintendo,
-		Hotkeys: model.DefaultHotkeys(),
+	eastCC := &model.ControllerConfig{
+		NintendoConfirm: model.NintendoConfirmEast,
+		Hotkeys:         model.DefaultHotkeys(),
 	}
 
 	gen := retroarchbsnes.Definition{}.ConfigGenerator()
 
-	standardResult, _ := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver, ControllerConfig: standardCC})
-	nintendoResult, _ := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver, ControllerConfig: nintendoCC})
+	southResult, _ := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver, ControllerConfig: southCC})
+	eastResult, _ := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver, ControllerConfig: eastCC})
 
 	findValue := func(entries []model.ConfigEntry, key string) string {
 		for _, e := range entries {
@@ -1525,30 +1525,30 @@ func TestRetroArchLayoutSwapsFaceButtons(t *testing.T) {
 		return ""
 	}
 
-	stdEntries := standardResult.Patches[0].Entries
-	ninEntries := nintendoResult.Patches[0].Entries
+	southEntries := southResult.Patches[0].Entries
+	eastEntries := eastResult.Patches[0].Entries
 
-	stdA := findValue(stdEntries, "input_player1_a_btn")
-	ninA := findValue(ninEntries, "input_player1_a_btn")
-	stdB := findValue(stdEntries, "input_player1_b_btn")
-	ninB := findValue(ninEntries, "input_player1_b_btn")
+	southA := findValue(southEntries, "input_player1_a_btn")
+	eastA := findValue(eastEntries, "input_player1_a_btn")
+	southB := findValue(southEntries, "input_player1_b_btn")
+	eastB := findValue(eastEntries, "input_player1_b_btn")
 
-	if stdA == "" || ninA == "" {
+	if southA == "" || eastA == "" {
 		t.Fatal("missing input_player1_a_btn entries")
 	}
 
-	if stdA == ninA {
-		t.Errorf("Nintendo layout should produce different A button mapping, both got %s", stdA)
+	if southA == eastA {
+		t.Errorf("NintendoConfirm should produce different A button mapping for RetroArch, both got %s", southA)
 	}
-	if stdB == ninB {
-		t.Errorf("Nintendo layout should produce different B button mapping, both got %s", stdB)
+	if southB == eastB {
+		t.Errorf("NintendoConfirm should produce different B button mapping for RetroArch, both got %s", southB)
 	}
 
-	if stdA != "1" || stdB != "0" {
-		t.Errorf("standard layout: a_btn=%s (want 1), b_btn=%s (want 0)", stdA, stdB)
+	if southA != "1" || southB != "0" {
+		t.Errorf("confirm-south: a_btn=%s (want 1), b_btn=%s (want 0)", southA, southB)
 	}
-	if ninA != "0" || ninB != "1" {
-		t.Errorf("nintendo layout: a_btn=%s (want 0), b_btn=%s (want 1)", ninA, ninB)
+	if eastA != "0" || eastB != "1" {
+		t.Errorf("confirm-east: a_btn=%s (want 0), b_btn=%s (want 1)", eastA, eastB)
 	}
 }
 

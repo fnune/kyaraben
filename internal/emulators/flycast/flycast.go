@@ -115,7 +115,7 @@ const (
 )
 
 func mappingEntries(cc *model.ControllerConfig) []model.ConfigEntry {
-	south, east, west, north := cc.FaceButtons()
+	south, east, west, north := cc.FaceButtons(model.SystemIDDreamcast)
 
 	// Flycast uses axis:action format for analog and button:action for digital.
 	// Dreamcast: A=south, B=east, X=west, Y=north.

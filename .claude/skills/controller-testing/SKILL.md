@@ -13,19 +13,21 @@ See `site/src/content/docs/using-the-app.mdx` under "Emulator support" for the a
 
 ### Default hotkeys (Xbox layout)
 
-| Action      | Chord        |
-| ----------- | ------------ |
-| Save state  | Back + RB    |
-| Load state  | Back + LB    |
-| Next slot   | Start + RB   |
-| Prev slot   | Start + LB   |
-| Fast fwd    | Back + RT    |
-| Rewind      | Back + LT    |
-| Pause       | Back + A     |
-| Screenshot  | Back + B     |
-| Quit        | Back + Start |
-| Fullscreen  | Start + L3   |
-| Menu        | Back + R3    |
+Hotkeys are always position-based and not affected by NintendoConfirmButton.
+
+| Action      | Chord           |
+| ----------- | --------------- |
+| Save state  | Back + RB       |
+| Load state  | Back + LB       |
+| Next slot   | Back + DPadRight|
+| Prev slot   | Back + DPadLeft |
+| Fast fwd    | Back + Y        |
+| Rewind      | Back + X        |
+| Pause       | Back + A        |
+| Screenshot  | Back + B        |
+| Quit        | Back + Start    |
+| Fullscreen  | Back + L3       |
+| Menu        | Back + R3       |
 
 SNES USB controllers lack triggers, sticks, and extra buttons. Only hotkeys using Select, Start, L, R, and face buttons work.
 
@@ -42,27 +44,28 @@ West         East
 
 On Xbox-layout controllers: A=south, B=east, X=west, Y=north.
 
-### Confirm button position setting
+### NintendoConfirmButton setting
 
-Kyaraben asks: "Where is your controller's confirm button?" This determines how face buttons map to Nintendo games.
+This setting controls where the confirm button is mapped for Nintendo systems with diamond-layout face buttons. It does not affect hotkeys (which are always position-based).
 
-**South (default)**: Your confirm button is at the south position (Xbox A, PlayStation Cross). This is the standard for Xbox and PlayStation controllers.
+**East (default)**: Pressing your controller's east button (B on Xbox) triggers the game's A action (confirm). This matches the original Nintendo controller feel where A is at east position.
 
-**East**: Your confirm button is at the east position (Nintendo A). Use this if you have a Nintendo Pro Controller or Switch controller and want button labels to match Nintendo games.
+**South**: Pressing your controller's south button (A on Xbox) triggers the game's A action (confirm). Use this for consistent muscle memory across all systems.
 
-| Setting | Your A button triggers | Your B button triggers |
-| ------- | ---------------------- | ---------------------- |
-| South | Nintendo B (south action) | Nintendo A (east action) |
-| East | Nintendo A (east action) | Nintendo B (south action) |
+| Setting | Your south button (Xbox A) | Your east button (Xbox B) |
+| ------- | -------------------------- | ------------------------- |
+| East | Nintendo B (cancel) | Nintendo A (confirm) |
+| South | Nintendo A (confirm) | Nintendo B (cancel) |
 
 **Which systems are affected:**
 
-Only Nintendo systems with diamond-layout face buttons: SNES, GameCube, Wii, Wii U, Switch, DS, 3DS, GBA.
+Only Nintendo systems with diamond-layout face buttons: NES, SNES, GB, GBC, GBA, NDS, N3DS, GameCube, Wii, Wii U, Switch.
 
 **Not affected:**
-- N64: Unique controller layout, no clean A/B swap applies
-- PlayStation, Sega, Xbox: No ambiguity, positions already match
+- N64: Unique controller layout where A/B are not in a standard diamond
+- PlayStation, Sega, Xbox: Positions already match (south=confirm)
 - Systems using auto-detection (Vita3K, RPCS3, xemu, Xenia)
+- Hotkeys: Always position-based regardless of this setting
 
 ### Nintendo systems
 
@@ -80,7 +83,7 @@ All Nintendo systems use A=east, B=south (opposite of Xbox).
 | GB/GBA | A (east), B (west) | A→east (B), B→west (X) |
 | DS/3DS | A (east), B (south), X (north), Y (west) | A→east (B), B→south (A), X→north (Y), Y→west (X) |
 
-Testing tip: On Nintendo systems, pressing your controller's B button (east) should trigger the game's "A" action (usually confirm/jump). Pressing A (south) triggers "B" (usually cancel/run).
+Testing tip: With the default `east` setting, pressing your controller's B button (east) triggers the game's "A" action (confirm/jump). Pressing A (south) triggers "B" (cancel/run). This matches the original Nintendo controller feel.
 
 ### PlayStation systems
 
@@ -126,11 +129,12 @@ Testing tip: No remapping needed. Your controller is the native layout.
 
 ### Quick reference: "confirm" button by system family
 
-When testing menu navigation:
+When testing menu navigation (with default `NintendoConfirmButton = east`):
 
-| System family | Confirm button on original | Press this on Xbox controller |
-| ------------- | -------------------------- | ----------------------------- |
-| Nintendo | A (east) | B |
+| System family | Confirm on original | Press this on Xbox controller |
+| ------------- | ------------------- | ----------------------------- |
+| Nintendo (diamond) | A (east) | B (matches original feel) |
+| N64 | A (east) | B (positional, not swapped) |
 | PlayStation (Western) | Cross (south) | A |
 | PlayStation (Japanese) | Circle (east) | B |
 | Sega (Dreamcast) | A (south) | A |
@@ -293,6 +297,7 @@ See `/.claude/skills/adding-emulator-support/SKILL.md` for the full process. Con
 1. Determine if emulator uses SDL GameController or raw joystick API
 2. Find button/axis naming convention in emulator docs or existing configs
 3. Implement `ConfigGenerator.Generate()` with controller patches
-4. Use `ctx.ControllerConfig.FaceButtons()` for layout-aware button mapping
-5. Test with Xbox-layout controller and Nintendo-layout controller
-6. Document any quirks in this skill under the appropriate tier
+4. Use `ctx.ControllerConfig.FaceButtons(systemID)` for NintendoConfirmButton-aware button mapping
+5. Use `ctx.ControllerConfig.SDLIndex(button)` for hotkeys (raw indices, position-based)
+6. Test with default settings, then test with `NintendoConfirmButton = south`
+7. Document any quirks in this skill under the appropriate tier
