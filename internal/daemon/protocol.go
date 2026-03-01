@@ -25,12 +25,12 @@ type ControllerConfigRequest struct {
 }
 
 type FrontendConfRequest struct {
-	Enabled bool   `json:"enabled"`
-	Version string `json:"version,omitempty"`
+	Enabled bool    `json:"enabled"`
+	Version *string `json:"version"`
 }
 
 type EmulatorConfRequest struct {
-	Version string  `json:"version,omitempty"`
+	Version *string `json:"version"`
 	Shaders *string `json:"shaders"`
 }
 

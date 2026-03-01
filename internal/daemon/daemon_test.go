@@ -53,8 +53,8 @@ func TestSetConfigCommandParsing(t *testing.T) {
 	}
 
 	edenConf := cmd.Data.Emulators["eden"]
-	if edenConf.Version != "v0.1.0" {
-		t.Errorf("expected eden version v0.1.0, got %s", edenConf.Version)
+	if edenConf.Version == nil || *edenConf.Version != "v0.1.0" {
+		t.Errorf("expected eden version v0.1.0, got %v", edenConf.Version)
 	}
 }
 

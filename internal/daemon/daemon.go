@@ -990,13 +990,17 @@ func (d *Daemon) handleSetConfig(data *SetConfigRequest) []Event {
 			for emuStr, emuConf := range data.Emulators {
 				emuID := model.EmulatorID(emuStr)
 				existing := cfg.Emulators[emuID]
-				if emuConf.Version != "" {
-					existing.Version = emuConf.Version
+				if emuConf.Version != nil {
+					existing.Version = *emuConf.Version
 				}
 				if emuConf.Shaders != nil {
 					existing.Shaders = emuConf.Shaders
 				}
-				cfg.Emulators[emuID] = existing
+				if existing.Version == "" && existing.Shaders == nil {
+					delete(cfg.Emulators, emuID)
+				} else {
+					cfg.Emulators[emuID] = existing
+				}
 			}
 		}
 
@@ -1008,8 +1012,8 @@ func (d *Daemon) handleSetConfig(data *SetConfigRequest) []Event {
 				feID := model.FrontendID(feStr)
 				existing := cfg.Frontends[feID]
 				existing.Enabled = feConf.Enabled
-				if feConf.Version != "" {
-					existing.Version = feConf.Version
+				if feConf.Version != nil {
+					existing.Version = *feConf.Version
 				}
 				cfg.Frontends[feID] = existing
 			}

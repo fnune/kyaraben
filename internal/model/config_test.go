@@ -292,6 +292,52 @@ func ptrString(s string) *string {
 	return &s
 }
 
+func TestBuildVersionOverrides(t *testing.T) {
+	t.Parallel()
+
+	fs := newTestFS(t, map[string]any{
+		"/config/config.toml": `[global]
+collection = "~/Emulation"
+
+[systems]
+snes = ["retroarch:bsnes"]
+
+[emulators."retroarch:bsnes"]
+version = "1.19.1"
+`,
+	})
+
+	store := NewConfigStore(fs)
+	cfg, err := store.Load("/config/config.toml", nil)
+	if err != nil {
+		t.Fatalf("Load failed: %v", err)
+	}
+
+	if len(cfg.Emulators) == 0 {
+		t.Fatal("expected Emulators map to be populated")
+	}
+
+	if cfg.Emulators[EmulatorIDRetroArchBsnes].Version != "1.19.1" {
+		t.Errorf("expected bsnes version 1.19.1, got %q", cfg.Emulators[EmulatorIDRetroArchBsnes].Version)
+	}
+
+	getEmulator := func(id EmulatorID) (Emulator, error) {
+		return Emulator{ID: id, Package: AppImage{Name: "retroarch"}}, nil
+	}
+	getFrontend := func(id FrontendID) (Frontend, error) {
+		return Frontend{}, fmt.Errorf("not found")
+	}
+
+	overrides, err := cfg.BuildVersionOverrides(getEmulator, getFrontend)
+	if err != nil {
+		t.Fatalf("BuildVersionOverrides failed: %v", err)
+	}
+
+	if overrides["bsnes"] != "1.19.1" {
+		t.Errorf("expected override bsnes=1.19.1, got %v", overrides)
+	}
+}
+
 func TestConfigWarningsError(t *testing.T) {
 	t.Parallel()
 
