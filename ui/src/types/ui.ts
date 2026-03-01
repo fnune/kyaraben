@@ -7,12 +7,18 @@ export type { Manufacturer }
 export const VIEW_CATALOG = 'catalog' as const
 export const VIEW_INSTALLATION = 'installation' as const
 export const VIEW_SYNC = 'sync' as const
-export type View = typeof VIEW_CATALOG | typeof VIEW_INSTALLATION | typeof VIEW_SYNC
+export const VIEW_IMPORT = 'import' as const
+export type View =
+  | typeof VIEW_CATALOG
+  | typeof VIEW_INSTALLATION
+  | typeof VIEW_SYNC
+  | typeof VIEW_IMPORT
 
 export const VIEW_LABELS: Record<View, string> = {
   [VIEW_CATALOG]: 'Catalog',
   [VIEW_INSTALLATION]: 'Installation',
   [VIEW_SYNC]: 'Synchronization',
+  [VIEW_IMPORT]: 'Import',
 }
 
 export const MANUFACTURER_ORDER: readonly Manufacturer[] = [

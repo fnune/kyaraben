@@ -459,3 +459,79 @@ type StorageDevice struct {
 type StorageDevicesResponse struct {
 	Devices []StorageDevice `json:"devices"`
 }
+
+type ImportScanRequest struct {
+	SourcePath string `json:"sourcePath"`
+	ESDEPath   string `json:"esdePath,omitempty"`
+	Layout     string `json:"layout,omitempty"`
+}
+
+type ImportScanResponse struct {
+	SourcePath   string                 `json:"sourcePath"`
+	ESDEPath     string                 `json:"esdePath,omitempty"`
+	KyarabenPath string                 `json:"kyarabenPath"`
+	Mode         string                 `json:"mode"`
+	Systems      []ImportSystemReport   `json:"systems"`
+	Frontends    []ImportFrontendReport `json:"frontends,omitempty"`
+	Summary      ImportDiffSummary      `json:"summary"`
+}
+
+type ImportSystemReport struct {
+	System     model.SystemID         `json:"system"`
+	SystemName string                 `json:"systemName"`
+	Enabled    bool                   `json:"enabled"`
+	SystemData []ImportDataComparison `json:"systemData"`
+	Emulators  []ImportEmulatorReport `json:"emulators"`
+}
+
+type ImportEmulatorReport struct {
+	Emulator     model.EmulatorID       `json:"emulator"`
+	EmulatorName string                 `json:"emulatorName"`
+	Enabled      bool                   `json:"enabled"`
+	EmulatorData []ImportDataComparison `json:"emulatorData"`
+}
+
+type ImportFrontendReport struct {
+	Frontend     model.FrontendID       `json:"frontend"`
+	FrontendName string                 `json:"frontendName"`
+	FrontendData []ImportDataComparison `json:"frontendData"`
+}
+
+type ImportDataComparison struct {
+	DataType string           `json:"dataType"`
+	Source   ImportFolderInfo `json:"source"`
+	Kyaraben ImportFolderInfo `json:"kyaraben"`
+	Diff     ImportDiffInfo   `json:"diff"`
+	Notes    []string         `json:"notes,omitempty"`
+}
+
+type ImportFolderInfo struct {
+	Path      string             `json:"path"`
+	FileCount int                `json:"fileCount"`
+	TotalSize int64              `json:"totalSize"`
+	Symlink   *ImportSymlinkInfo `json:"symlink,omitempty"`
+	Exists    bool               `json:"exists"`
+	IsFlat    bool               `json:"isFlat,omitempty"`
+}
+
+type ImportSymlinkInfo struct {
+	Target string `json:"target"`
+	Intact bool   `json:"intact"`
+}
+
+type ImportDiffInfo struct {
+	OnlyInSource   []ImportFileInfo `json:"onlyInSource,omitempty"`
+	OnlyInKyaraben []ImportFileInfo `json:"onlyInKyaraben,omitempty"`
+	SourceDelta    int64            `json:"sourceDelta"`
+	KyarabenDelta  int64            `json:"kyarabenDelta"`
+}
+
+type ImportFileInfo struct {
+	RelPath string `json:"relPath"`
+	Size    int64  `json:"size"`
+}
+
+type ImportDiffSummary struct {
+	TotalOnlyInSource   int64 `json:"totalOnlyInSource"`
+	TotalOnlyInKyaraben int64 `json:"totalOnlyInKyaraben"`
+}

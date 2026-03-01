@@ -11,7 +11,14 @@ import {
   SyncStateSynced,
   SyncStateSyncing,
 } from '@/types/daemon'
-import { VIEW_CATALOG, VIEW_INSTALLATION, VIEW_LABELS, VIEW_SYNC, type View } from '@/types/ui'
+import {
+  VIEW_CATALOG,
+  VIEW_IMPORT,
+  VIEW_INSTALLATION,
+  VIEW_LABELS,
+  VIEW_SYNC,
+  type View,
+} from '@/types/ui'
 
 export interface SidebarProps {
   readonly currentView: View
@@ -82,6 +89,11 @@ export function Sidebar({ currentView, onNavigate, syncStatus, version }: Sideba
           active={currentView === VIEW_SYNC}
           onClick={() => onNavigate(VIEW_SYNC)}
           indicator={<span className={`w-2 h-2 rounded-full ${syncDotColor}`} />}
+        />
+        <NavItem
+          label={VIEW_LABELS[VIEW_IMPORT]}
+          active={currentView === VIEW_IMPORT}
+          onClick={() => onNavigate(VIEW_IMPORT)}
         />
       </nav>
 

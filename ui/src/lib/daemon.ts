@@ -4,6 +4,7 @@ import type {
   ConfigResponse,
   DoctorResponse,
   FrontendRef,
+  ImportScanRequest,
   InstallStatus,
   PreflightResponse,
   SetConfigRequest,
@@ -104,6 +105,9 @@ export const setSyncSettings = (req: SyncSetSettingsRequest) =>
 export const getUninstallPreview = () => invoke<UninstallPreviewResponse>('uninstall_preview')
 
 export const getStorageDevices = () => invoke<StorageDevicesResponse>('get_storage_devices')
+
+export const importScan = (req: ImportScanRequest) =>
+  invoke<import('@/types/daemon').ImportScanResponse>('import_scan', req)
 
 export const selectDirectory = () => invoke<string | null>('select_directory')
 

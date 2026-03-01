@@ -39,6 +39,7 @@ const (
 	CommandTypeSyncDiscoveredDevices CommandType = "sync_discovered_devices"
 	CommandTypeSyncSetSettings       CommandType = "sync_set_settings"
 	CommandTypeGetStorageDevices     CommandType = "get_storage_devices"
+	CommandTypeImportScan            CommandType = "import_scan"
 )
 
 // Command represents a command from the UI.
@@ -101,6 +102,13 @@ type SyncSetSettingsCommand struct {
 	Type CommandType            `json:"type"`
 	ID   string                 `json:"id,omitempty"`
 	Data SyncSetSettingsRequest `json:"data"`
+}
+
+// ImportScanCommand includes the paths to scan for import.
+type ImportScanCommand struct {
+	Type CommandType       `json:"type"`
+	ID   string            `json:"id,omitempty"`
+	Data ImportScanRequest `json:"data"`
 }
 
 // EventType identifies the type of event.

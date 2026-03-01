@@ -13,6 +13,7 @@ export interface SelectProps {
   readonly onChange: (value: string) => void
   readonly disabled?: boolean
   readonly className?: string
+  readonly size?: 'sm' | 'md'
 }
 
 export function Select({
@@ -21,6 +22,7 @@ export function Select({
   onChange,
   disabled = false,
   className = '',
+  size = 'md',
 }: SelectProps) {
   const [open, setOpen] = useState(false)
   const [focusedIndex, setFocusedIndex] = useState(-1)
@@ -176,7 +178,8 @@ export function Select({
               }}
               onMouseEnter={() => setFocusedIndex(index)}
               className={`
-                px-2 py-1 text-xs font-mono tabular-nums cursor-pointer
+                font-mono tabular-nums cursor-pointer
+                ${size === 'sm' ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm'}
                 ${option.value === value ? 'text-accent' : 'text-on-surface-secondary'}
                 ${focusedIndex === index ? 'bg-accent/10' : ''}
               `}
@@ -203,7 +206,8 @@ export function Select({
         onClick={() => !disabled && setOpen(!open)}
         onKeyDown={handleKeyDown}
         className={`
-          flex items-center gap-1.5 px-2 py-1 text-xs tabular-nums font-mono text-on-surface-secondary
+          flex items-center gap-1.5 tabular-nums font-mono text-on-surface-secondary
+          ${size === 'sm' ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm'}
           ${INPUT_BASE_CLASSES}
           ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
         `}

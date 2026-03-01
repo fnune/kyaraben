@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApplyProgressBar } from '@/components/ApplyProgressBar/ApplyProgressBar'
 import { CatalogView } from '@/components/CatalogView/CatalogView'
+import { ImportView } from '@/components/ImportView/ImportView'
 import { InstallationView } from '@/components/InstallationView/InstallationView'
 import { Sidebar } from '@/components/Sidebar/Sidebar'
 import { SyncView } from '@/components/SyncView/SyncView'
@@ -29,6 +30,7 @@ import type {
 import {
   type ApplyStatus,
   VIEW_CATALOG,
+  VIEW_IMPORT,
   VIEW_INSTALLATION,
   VIEW_LABELS,
   VIEW_SYNC,
@@ -713,6 +715,8 @@ function AppContent() {
             isEnabling={isEnabling}
           />
         )
+      case VIEW_IMPORT:
+        return <ImportView onNavigateToCatalog={() => setCurrentView(VIEW_CATALOG)} />
       default:
         return null
     }

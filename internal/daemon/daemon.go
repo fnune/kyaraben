@@ -20,6 +20,7 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/emulators/symlink"
 	"github.com/fnune/kyaraben/internal/hardware"
+	"github.com/fnune/kyaraben/internal/importscanner"
 	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/logging"
 	"github.com/fnune/kyaraben/internal/model"
@@ -172,6 +173,8 @@ func (d *Daemon) HandleWithEmit(cmd Command, emit func(Event)) []Event {
 		return d.handleSyncSetSettings(nil)
 	case CommandTypeGetStorageDevices:
 		return d.handleGetStorageDevices()
+	case CommandTypeImportScan:
+		return d.handleImportScan(nil)
 	default:
 		return d.errorResponse(fmt.Sprintf("unknown command: %s", cmd.Type))
 	}
@@ -203,6 +206,10 @@ func (d *Daemon) HandleSyncLocalChanges(cmd SyncLocalChangesCommand, emit func(E
 
 func (d *Daemon) HandleSyncSetSettings(cmd SyncSetSettingsCommand, emit func(Event)) []Event {
 	return d.handleSyncSetSettings(&cmd.Data)
+}
+
+func (d *Daemon) HandleImportScan(cmd ImportScanCommand, emit func(Event)) []Event {
+	return d.handleImportScan(&cmd.Data)
 }
 
 func (d *Daemon) errorResponse(msg string) []Event {
@@ -2700,4 +2707,146 @@ func isSDCard(mountPath string) bool {
 		}
 	}
 	return false
+}
+
+func (d *Daemon) handleImportScan(req *ImportScanRequest) []Event {
+	if req == nil {
+		return d.errorResponse("import_scan requires data")
+	}
+
+	cfg, err := d.loadConfig()
+	if err != nil {
+		return d.errorResponse(fmt.Sprintf("loading config: %v", err))
+	}
+
+	collection, err := store.NewCollection(d.deps.FS, d.deps.Paths, cfg.Global.Collection)
+	if err != nil {
+		return d.errorResponse(fmt.Sprintf("creating collection: %v", err))
+	}
+
+	scanner := importscanner.NewScanner(d.deps.FS, d.deps.Registry, collection)
+	report, err := scanner.Scan(importscanner.ScanOptions{
+		SourcePath: req.SourcePath,
+		ESDEPath:   req.ESDEPath,
+		Layout:     req.Layout,
+	})
+	if err != nil {
+		return d.errorResponse(fmt.Sprintf("scanning: %v", err))
+	}
+
+	resp := convertImportReport(report, cfg)
+	return []Event{{
+		Type: EventTypeResult,
+		Data: resp,
+	}}
+}
+
+func convertImportReport(r *importscanner.ImportReport, cfg *model.KyarabenConfig) ImportScanResponse {
+	resp := ImportScanResponse{
+		SourcePath:   r.SourcePath,
+		ESDEPath:     r.ESDEPath,
+		KyarabenPath: r.KyarabenPath,
+		Mode:         string(r.Mode),
+		Systems:      []ImportSystemReport{},
+		Summary: ImportDiffSummary{
+			TotalOnlyInSource:   r.Summary.TotalOnlyInSource,
+			TotalOnlyInKyaraben: r.Summary.TotalOnlyInKyaraben,
+		},
+	}
+
+	for _, sys := range r.Systems {
+		enabledEmulators := cfg.Systems[sys.System]
+		sysReport := ImportSystemReport{
+			System:     sys.System,
+			SystemName: sys.SystemName,
+			Enabled:    len(enabledEmulators) > 0,
+			SystemData: []ImportDataComparison{},
+			Emulators:  []ImportEmulatorReport{},
+		}
+		for _, data := range sys.SystemData {
+			sysReport.SystemData = append(sysReport.SystemData, convertDataComparison(data))
+		}
+		for _, emu := range sys.Emulators {
+			emuEnabled := false
+			for _, e := range enabledEmulators {
+				if e == emu.Emulator {
+					emuEnabled = true
+					break
+				}
+			}
+			emuReport := ImportEmulatorReport{
+				Emulator:     emu.Emulator,
+				EmulatorName: emu.EmulatorName,
+				Enabled:      emuEnabled,
+				EmulatorData: []ImportDataComparison{},
+			}
+			for _, data := range emu.EmulatorData {
+				emuReport.EmulatorData = append(emuReport.EmulatorData, convertDataComparison(data))
+			}
+			sysReport.Emulators = append(sysReport.Emulators, emuReport)
+		}
+		resp.Systems = append(resp.Systems, sysReport)
+	}
+
+	for _, fe := range r.Frontends {
+		feReport := ImportFrontendReport{
+			Frontend:     fe.Frontend,
+			FrontendName: fe.FrontendName,
+			FrontendData: []ImportDataComparison{},
+		}
+		for _, data := range fe.FrontendData {
+			feReport.FrontendData = append(feReport.FrontendData, convertDataComparison(data))
+		}
+		resp.Frontends = append(resp.Frontends, feReport)
+	}
+
+	return resp
+}
+
+func convertDataComparison(d importscanner.DataComparison) ImportDataComparison {
+	result := ImportDataComparison{
+		DataType: string(d.DataType),
+		Source:   convertFolderInfo(d.Source),
+		Kyaraben: convertFolderInfo(d.Kyaraben),
+		Diff:     convertDiffInfo(d.Diff),
+		Notes:    d.Notes,
+	}
+	return result
+}
+
+func convertFolderInfo(f importscanner.FolderInfo) ImportFolderInfo {
+	result := ImportFolderInfo{
+		Path:      f.Path,
+		FileCount: f.FileCount,
+		TotalSize: f.TotalSize,
+		Exists:    f.Exists,
+		IsFlat:    f.IsFlat,
+	}
+	if f.Symlink != nil {
+		result.Symlink = &ImportSymlinkInfo{
+			Target: f.Symlink.Target,
+			Intact: f.Symlink.Intact,
+		}
+	}
+	return result
+}
+
+func convertDiffInfo(d importscanner.DiffInfo) ImportDiffInfo {
+	result := ImportDiffInfo{
+		SourceDelta:   d.SourceDelta,
+		KyarabenDelta: d.KyarabenDelta,
+	}
+	for _, f := range d.OnlyInSource {
+		result.OnlyInSource = append(result.OnlyInSource, ImportFileInfo{
+			RelPath: f.RelPath,
+			Size:    f.Size,
+		})
+	}
+	for _, f := range d.OnlyInKyaraben {
+		result.OnlyInKyaraben = append(result.OnlyInKyaraben, ImportFileInfo{
+			RelPath: f.RelPath,
+			Size:    f.Size,
+		})
+	}
+	return result
 }

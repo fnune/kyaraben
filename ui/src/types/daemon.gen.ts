@@ -388,6 +388,71 @@ export interface StorageDevice {
 export interface StorageDevicesResponse {
   devices: StorageDevice[];
 }
+export interface ImportScanRequest {
+  sourcePath: string;
+  esdePath?: string;
+  layout?: string;
+}
+export interface ImportScanResponse {
+  sourcePath: string;
+  esdePath?: string;
+  kyarabenPath: string;
+  mode: string;
+  systems: ImportSystemReport[];
+  frontends?: ImportFrontendReport[];
+  summary: ImportDiffSummary;
+}
+export interface ImportSystemReport {
+  system: SystemID;
+  systemName: string;
+  enabled: boolean;
+  systemData: ImportDataComparison[];
+  emulators: ImportEmulatorReport[];
+}
+export interface ImportEmulatorReport {
+  emulator: EmulatorID;
+  emulatorName: string;
+  enabled: boolean;
+  emulatorData: ImportDataComparison[];
+}
+export interface ImportFrontendReport {
+  frontend: FrontendID;
+  frontendName: string;
+  frontendData: ImportDataComparison[];
+}
+export interface ImportDataComparison {
+  dataType: string;
+  source: ImportFolderInfo;
+  kyaraben: ImportFolderInfo;
+  diff: ImportDiffInfo;
+  notes?: string[];
+}
+export interface ImportFolderInfo {
+  path: string;
+  fileCount: number /* int */;
+  totalSize: number /* int64 */;
+  symlink?: ImportSymlinkInfo;
+  exists: boolean;
+  isFlat?: boolean;
+}
+export interface ImportSymlinkInfo {
+  target: string;
+  intact: boolean;
+}
+export interface ImportDiffInfo {
+  onlyInSource?: ImportFileInfo[];
+  onlyInKyaraben?: ImportFileInfo[];
+  sourceDelta: number /* int64 */;
+  kyarabenDelta: number /* int64 */;
+}
+export interface ImportFileInfo {
+  relPath: string;
+  size: number /* int64 */;
+}
+export interface ImportDiffSummary {
+  totalOnlyInSource: number /* int64 */;
+  totalOnlyInKyaraben: number /* int64 */;
+}
 
 //////////
 // source: types.go
@@ -424,7 +489,8 @@ export const CommandTypeSyncReset = "sync_reset";
 export const CommandTypeSyncDiscoveredDevices = "sync_discovered_devices";
 export const CommandTypeSyncSetSettings = "sync_set_settings";
 export const CommandTypeGetStorageDevices = "get_storage_devices";
-export type CommandType = typeof CommandTypeStatus | typeof CommandTypeDoctor | typeof CommandTypeApply | typeof CommandTypeCancelApply | typeof CommandTypeGetSystems | typeof CommandTypeGetFrontends | typeof CommandTypeGetConfig | typeof CommandTypeSetConfig | typeof CommandTypeSyncStatus | typeof CommandTypeSyncRemoveDevice | typeof CommandTypeSyncStartPairing | typeof CommandTypeSyncJoinPeer | typeof CommandTypeSyncCancelPairing | typeof CommandTypeSyncPending | typeof CommandTypeUninstallPreview | typeof CommandTypeUninstall | typeof CommandTypeInstallKyaraben | typeof CommandTypeInstallStatus | typeof CommandTypeRefreshIconCaches | typeof CommandTypePreflight | typeof CommandTypeSyncEnable | typeof CommandTypeSyncRevertFolder | typeof CommandTypeSyncLocalChanges | typeof CommandTypeSyncReset | typeof CommandTypeSyncDiscoveredDevices | typeof CommandTypeSyncSetSettings | typeof CommandTypeGetStorageDevices;
+export const CommandTypeImportScan = "import_scan";
+export type CommandType = typeof CommandTypeStatus | typeof CommandTypeDoctor | typeof CommandTypeApply | typeof CommandTypeCancelApply | typeof CommandTypeGetSystems | typeof CommandTypeGetFrontends | typeof CommandTypeGetConfig | typeof CommandTypeSetConfig | typeof CommandTypeSyncStatus | typeof CommandTypeSyncRemoveDevice | typeof CommandTypeSyncStartPairing | typeof CommandTypeSyncJoinPeer | typeof CommandTypeSyncCancelPairing | typeof CommandTypeSyncPending | typeof CommandTypeUninstallPreview | typeof CommandTypeUninstall | typeof CommandTypeInstallKyaraben | typeof CommandTypeInstallStatus | typeof CommandTypeRefreshIconCaches | typeof CommandTypePreflight | typeof CommandTypeSyncEnable | typeof CommandTypeSyncRevertFolder | typeof CommandTypeSyncLocalChanges | typeof CommandTypeSyncReset | typeof CommandTypeSyncDiscoveredDevices | typeof CommandTypeSyncSetSettings | typeof CommandTypeGetStorageDevices | typeof CommandTypeImportScan;
 /**
  * Command represents a command from the UI.
  */
@@ -495,6 +561,14 @@ export interface SyncSetSettingsCommand {
   type: CommandType;
   id?: string;
   data: SyncSetSettingsRequest;
+}
+/**
+ * ImportScanCommand includes the paths to scan for import.
+ */
+export interface ImportScanCommand {
+  type: CommandType;
+  id?: string;
+  data: ImportScanRequest;
 }
 /**
  * EventType identifies the type of event.

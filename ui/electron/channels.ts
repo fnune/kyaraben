@@ -26,6 +26,7 @@ const DAEMON_CHANNELS = [
   'uninstall_preview',
   'refresh_icon_caches',
   'get_storage_devices',
+  'import_scan',
 ] as const
 
 // Electron-only commands handled by main.ts, not the daemon.

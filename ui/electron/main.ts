@@ -736,6 +736,11 @@ function setupIpcHandlers(): void {
     return event.data
   })
 
+  ipcMain.handle('import_scan', async (_, data: { sourcePath: string; esdePath?: string }) => {
+    const event = await sendCommand({ type: 'import_scan', data })
+    return event.data
+  })
+
   ipcMain.handle('launch_emulator', (_, execLine: string) => {
     const { spawn } = require('node:child_process')
     console.log('[launch_emulator]', execLine)
@@ -892,6 +897,7 @@ function setupIpcHandlers(): void {
     'apply_update',
     'select_directory',
     'get_storage_devices',
+    'import_scan',
   ] as const
   type HandledChannels = (typeof _dependencies)[number]
   type _AssertAllChannelsHandled = InvokeChannel extends HandledChannels ? true : never

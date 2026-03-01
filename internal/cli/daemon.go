@@ -200,6 +200,16 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 				continue
 			}
 			events = d.HandleInstallKyaraben(installCmd, emitWithID)
+		case daemon.CommandTypeImportScan:
+			var importCmd daemon.ImportScanCommand
+			if err := json.Unmarshal(line, &importCmd); err != nil {
+				sendEventWithID(daemon.Event{
+					Type: daemon.EventTypeError,
+					Data: map[string]string{"error": fmt.Sprintf("invalid import_scan command: %v", err)},
+				}, cmdID)
+				continue
+			}
+			events = d.HandleImportScan(importCmd, emitWithID)
 		default:
 			events = d.HandleWithEmit(cmd, emitWithID)
 		}
