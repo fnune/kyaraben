@@ -126,7 +126,9 @@ function DataComparisonCard({
               )}
             </>
           ) : (
-            <span className="text-on-surface-dim">Not found in your existing collection</span>
+            <span className="text-sm text-on-surface-dim">
+              Not found in your existing collection
+            </span>
           )}
         </div>
 
