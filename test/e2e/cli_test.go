@@ -17,6 +17,10 @@ type cliTest struct {
 }
 
 func TestMain(m *testing.M) {
+	if testing.Short() {
+		os.Exit(0)
+	}
+
 	root, err := os.Getwd()
 	if err != nil {
 		panic(err)
