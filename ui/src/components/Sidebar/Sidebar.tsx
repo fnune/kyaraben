@@ -16,6 +16,7 @@ import {
   VIEW_IMPORT,
   VIEW_INSTALLATION,
   VIEW_LABELS,
+  VIEW_PREFERENCES,
   VIEW_SYNC,
   type View,
 } from '@/types/ui'
@@ -83,6 +84,11 @@ export function Sidebar({ currentView, onNavigate, syncStatus, version }: Sideba
           label={VIEW_LABELS[VIEW_CATALOG]}
           active={currentView === VIEW_CATALOG}
           onClick={() => onNavigate(VIEW_CATALOG)}
+        />
+        <NavItem
+          label={VIEW_LABELS[VIEW_PREFERENCES]}
+          active={currentView === VIEW_PREFERENCES}
+          onClick={() => onNavigate(VIEW_PREFERENCES)}
         />
         <NavItem
           label={VIEW_LABELS[VIEW_SYNC]}

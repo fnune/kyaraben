@@ -2,25 +2,14 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { ConfigDiffReview } from '@/components/ConfigDiffReview/ConfigDiffReview'
 import { FrontendCard } from '@/components/FrontendCard/FrontendCard'
 import { ManufacturerNav } from '@/components/ManufacturerNav/ManufacturerNav'
+import { PreferencesSummary } from '@/components/PreferencesSummary/PreferencesSummary'
 import { SearchInput } from '@/components/SearchInput/SearchInput'
-import { ControllerSettings } from '@/components/Settings/ControllerSettings'
-import { GraphicsSettings } from '@/components/Settings/GraphicsSettings'
-import { SavestateSettings } from '@/components/Settings/SavestateSettings'
 import { Settings } from '@/components/Settings/Settings'
-import { StickyActionBar } from '@/components/StickyActionBar/StickyActionBar'
 import { SYSTEM_YEARS, SystemCard } from '@/components/SystemCard/SystemCard'
 import { useApply } from '@/lib/ApplyContext'
 import { BottomBar } from '@/lib/BottomBar'
 import { Button } from '@/lib/Button'
-import {
-  addChange,
-  calculateEmulatorSizes,
-  type EmulatorChangeInput,
-  emptyChangeSummary,
-  formatChangeSummary,
-  getChangeType,
-  withConfigChanges,
-} from '@/lib/changeUtils'
+import { useConfig } from '@/lib/ConfigContext'
 import { ProgressSteps } from '@/lib/ProgressSteps'
 import { useOpenLog } from '@/lib/useOpenLog'
 import type {
@@ -28,49 +17,19 @@ import type {
   EmulatorID,
   EmulatorPaths,
   FrontendID,
-  FrontendRef,
   ManagedConfigInfo,
   System,
-  SystemID,
 } from '@/types/daemon'
 import { MANUFACTURER_ORDER, type Manufacturer, VERSION_DEFAULT } from '@/types/ui'
 
 export interface CatalogViewProps {
-  readonly systems: readonly System[]
-  readonly frontends: readonly FrontendRef[]
-  readonly systemEmulators: Map<SystemID, EmulatorID[]>
-  readonly enabledEmulators: ReadonlySet<EmulatorID>
-  readonly enabledFrontends: Map<FrontendID, boolean>
-  readonly emulatorVersions: Map<EmulatorID, string>
-  readonly emulatorShaders: Map<EmulatorID, string | null>
-  readonly emulatorResume: Map<EmulatorID, string | null>
-  readonly graphics: { shaders: string }
-  readonly savestate: { resume: string }
-  readonly controller: { nintendoConfirm: string }
-  readonly frontendVersions: Map<FrontendID, string>
-  readonly installedVersions: Map<EmulatorID, string>
-  readonly installedFrontendVersions: Map<FrontendID, string>
-  readonly installedFrontendExecLines: Map<FrontendID, string>
+  readonly provisions: DoctorResponse
   readonly installedExecLines: Map<EmulatorID, string>
+  readonly installedFrontendExecLines: Map<FrontendID, string>
   readonly managedConfigs: Map<EmulatorID, ManagedConfigInfo[]>
   readonly installedPaths: Map<EmulatorID, Record<string, EmulatorPaths>>
-  readonly provisions: DoctorResponse
-  readonly collection: string
-  readonly configChanges: readonly string[]
-  readonly onCollectionChange: (value: string) => void
-  readonly onEmulatorToggle: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
-  readonly onVersionChange: (emulatorId: EmulatorID, version: string) => void
-  readonly onShaderChange: (emulatorId: EmulatorID, shaders: string | null) => void
-  readonly onResumeChange: (emulatorId: EmulatorID, resume: string | null) => void
-  readonly onFrontendToggle: (frontendId: FrontendID, enabled: boolean) => void
-  readonly onFrontendVersionChange: (frontendId: FrontendID, version: string) => void
-  readonly onGraphicsShadersChange: (value: string) => void
-  readonly onSavestateResumeChange: (value: string) => void
-  readonly onControllerNintendoConfirmChange: (value: string) => void
-  readonly onDiscard: () => void
+  readonly onNavigateToPreferences: () => void
   readonly onEnableAll: () => void
-  readonly upgradeAvailable?: boolean
-  readonly onReapply?: () => void
 }
 
 function groupSystemsByManufacturer(systems: readonly System[]): [Manufacturer, System[]][] {
@@ -144,56 +103,28 @@ function matchesSearch(system: System, query: string): boolean {
 }
 
 export function CatalogView({
-  systems,
-  frontends,
-  systemEmulators,
-  enabledEmulators,
-  enabledFrontends,
-  emulatorVersions,
-  emulatorShaders,
-  emulatorResume,
-  graphics,
-  savestate,
-  controller,
-  frontendVersions,
-  installedVersions,
-  installedFrontendVersions,
-  installedFrontendExecLines,
+  provisions,
   installedExecLines,
+  installedFrontendExecLines,
   managedConfigs,
   installedPaths,
-  provisions,
-  collection,
-  configChanges,
-  onCollectionChange,
-  onEmulatorToggle,
-  onVersionChange,
-  onShaderChange,
-  onResumeChange,
-  onFrontendToggle,
-  onFrontendVersionChange,
-  onGraphicsShadersChange,
-  onSavestateResumeChange,
-  onControllerNintendoConfirmChange,
-  onDiscard,
+  onNavigateToPreferences,
   onEnableAll,
-  upgradeAvailable,
-  onReapply,
 }: CatalogViewProps) {
+  const config = useConfig()
   const {
     status: applyStatus,
     progressSteps,
     error,
     preflightData,
     syncPendingData,
-    apply,
     confirmApply,
     confirmSyncPending,
     reset,
     logPosition,
   } = useApply()
   const openLog = useOpenLog()
-  const isApplying = applyStatus === 'applying'
+
   const showProgress =
     applyStatus !== 'idle' && applyStatus !== 'reviewing' && applyStatus !== 'confirming_sync'
 
@@ -201,151 +132,14 @@ export function CatalogView({
   const stickyHeaderRef = useRef<HTMLDivElement>(null)
   const manufacturerRefs = useRef<Map<Manufacturer, HTMLElement>>(new Map())
 
-  const handleApply = useCallback(
-    async (changeSummary: ReturnType<typeof emptyChangeSummary>) => {
-      const systemsConfig: Record<string, string[]> = {}
-      for (const [sysId, emuIds] of systemEmulators) {
-        systemsConfig[sysId] = emuIds
-      }
-
-      const emulatorsConfig: Record<
-        string,
-        { version?: string; shaders?: string | null; resume?: string | null }
-      > = {}
-      for (const [emuId, version] of emulatorVersions) {
-        if (version === VERSION_DEFAULT) {
-          emulatorsConfig[emuId] = { version: '' }
-        } else {
-          emulatorsConfig[emuId] = { version }
-        }
-      }
-      for (const [emuId, shaders] of emulatorShaders) {
-        emulatorsConfig[emuId] = { ...emulatorsConfig[emuId], shaders }
-      }
-      for (const [emuId, resume] of emulatorResume) {
-        emulatorsConfig[emuId] = { ...emulatorsConfig[emuId], resume }
-      }
-
-      const frontendsConfig: Record<string, { enabled: boolean; version?: string }> = {}
-      for (const [feId, enabled] of enabledFrontends) {
-        const version = frontendVersions.get(feId)
-        if (version === VERSION_DEFAULT) {
-          frontendsConfig[feId] = { enabled, version: '' }
-        } else if (version) {
-          frontendsConfig[feId] = { enabled, version }
-        } else {
-          frontendsConfig[feId] = { enabled }
-        }
-      }
-
-      const summaryMessage = formatChangeSummary(changeSummary)
-      await apply({
-        collection,
-        systems: systemsConfig,
-        emulators: emulatorsConfig,
-        frontends: frontendsConfig,
-        ...(graphics.shaders && { graphics }),
-        ...(savestate.resume && { savestate }),
-        ...(controller.nintendoConfirm && { controller }),
-        ...(summaryMessage && { summaryMessage }),
-      })
-    },
-    [
-      apply,
-      systemEmulators,
-      emulatorVersions,
-      emulatorShaders,
-      emulatorResume,
-      enabledFrontends,
-      frontendVersions,
-      collection,
-      graphics,
-      savestate,
-      controller,
-    ],
-  )
-
-  const changes = useMemo(() => {
-    let summary = emptyChangeSummary()
-    const seenEmulators = new Set<EmulatorID>()
-
-    interface EmulatorInputWithName extends EmulatorChangeInput {
-      name: string
-    }
-
-    const emulatorInputs: EmulatorInputWithName[] = []
-
-    for (const system of systems) {
-      for (const emulator of system.emulators) {
-        if (seenEmulators.has(emulator.id)) continue
-        seenEmulators.add(emulator.id)
-
-        const enabled = enabledEmulators.has(emulator.id)
-        const installedVersion = installedVersions.get(emulator.id) ?? null
-        const selectedVersion = emulatorVersions.get(emulator.id) ?? VERSION_DEFAULT
-        const effectiveVersion =
-          selectedVersion === VERSION_DEFAULT ? (emulator.defaultVersion ?? null) : selectedVersion
-
-        const changeType = getChangeType(
-          enabled,
-          installedVersion,
-          effectiveVersion,
-          emulator.availableVersions,
-        )
-
-        emulatorInputs.push({
-          id: emulator.id,
-          name: emulator.name,
-          packageName: emulator.packageName ?? emulator.id,
-          downloadBytes: emulator.downloadBytes ?? 0,
-          coreBytes: emulator.coreBytes ?? 0,
-          changeType,
-          isInstalled: installedVersion !== null,
-        })
-      }
-    }
-
-    const emulatorSizes = calculateEmulatorSizes(emulatorInputs)
-    for (const input of emulatorInputs) {
-      summary = addChange(summary, input.changeType, emulatorSizes.get(input.id) ?? 0, {
-        id: input.id,
-        name: input.name,
-      })
-    }
-
-    for (const frontend of frontends) {
-      const enabled = enabledFrontends.get(frontend.id) ?? false
-      const installedVersion = installedFrontendVersions.get(frontend.id) ?? null
-      const selectedVersion = frontendVersions.get(frontend.id) ?? VERSION_DEFAULT
-      const effectiveVersion =
-        selectedVersion === VERSION_DEFAULT ? (frontend.defaultVersion ?? null) : selectedVersion
-
-      const changeType = getChangeType(
-        enabled,
-        installedVersion,
-        effectiveVersion,
-        frontend.availableVersions,
-      )
-
-      const downloadBytes = frontend.downloadBytes ?? 0
-      summary = addChange(summary, changeType, downloadBytes, {
-        id: frontend.id,
-        name: frontend.name,
-      })
-    }
-
-    return withConfigChanges(summary, configChanges)
-  }, [
+  const {
     systems,
     frontends,
+    configState,
     enabledEmulators,
-    enabledFrontends,
-    emulatorVersions,
-    frontendVersions,
     installedVersions,
     installedFrontendVersions,
-    configChanges,
-  ])
+  } = config
 
   const filteredSystems = useMemo(() => {
     if (searchQuery) {
@@ -478,20 +272,14 @@ export function CatalogView({
   return (
     <div className="pb-24">
       <div className="p-6 pb-0">
-        <Settings collection={collection} onCollectionChange={onCollectionChange} />
+        <Settings collection={configState.collection} onCollectionChange={config.setCollection} />
 
         <div className="mt-6">
-          <GraphicsSettings shaders={graphics.shaders} onShadersChange={onGraphicsShadersChange} />
-        </div>
-
-        <div className="mt-6">
-          <SavestateSettings resume={savestate.resume} onResumeChange={onSavestateResumeChange} />
-        </div>
-
-        <div className="mt-6">
-          <ControllerSettings
-            nintendoConfirm={controller.nintendoConfirm}
-            onNintendoConfirmChange={onControllerNintendoConfirmChange}
+          <PreferencesSummary
+            shaders={configState.graphicsShaders}
+            resume={configState.savestateResume}
+            nintendoConfirm={configState.controllerNintendoConfirm}
+            onNavigate={onNavigateToPreferences}
           />
         </div>
 
@@ -507,12 +295,12 @@ export function CatalogView({
                 <FrontendCard
                   key={frontend.id}
                   frontend={frontend}
-                  enabled={enabledFrontends.get(frontend.id) ?? false}
-                  selectedVersion={frontendVersions.get(frontend.id) ?? VERSION_DEFAULT}
+                  enabled={configState.enabledFrontends.get(frontend.id) ?? false}
+                  selectedVersion={configState.frontendVersions.get(frontend.id) ?? VERSION_DEFAULT}
                   installedVersion={installedFrontendVersions.get(frontend.id) ?? null}
                   execLine={installedFrontendExecLines.get(frontend.id)}
-                  onToggle={(enabled) => onFrontendToggle(frontend.id, enabled)}
-                  onVersionChange={(version) => onFrontendVersionChange(frontend.id, version)}
+                  onToggle={(enabled) => config.toggleFrontend(frontend.id, enabled)}
+                  onVersionChange={(version) => config.setFrontendVersion(frontend.id, version)}
                 />
               ))}
             </div>
@@ -574,28 +362,28 @@ export function CatalogView({
                 </h2>
                 <div className="space-y-4">
                   {manufacturerSystems.map((system) => {
-                    const systemEmuIds = systemEmulators.get(system.id) ?? []
+                    const systemEmuIds = configState.systemEmulators.get(system.id) ?? []
                     return (
                       <SystemCard
                         key={system.id}
                         system={system}
                         systemEnabledEmulators={new Set(systemEmuIds)}
                         globalEnabledEmulators={enabledEmulators}
-                        emulatorVersions={emulatorVersions}
-                        emulatorShaders={emulatorShaders}
-                        emulatorResume={emulatorResume}
-                        graphics={graphics}
-                        savestate={savestate}
+                        emulatorVersions={configState.emulatorVersions}
+                        emulatorShaders={configState.emulatorShaders}
+                        emulatorResume={configState.emulatorResume}
+                        graphics={{ shaders: configState.graphicsShaders }}
+                        savestate={{ resume: configState.savestateResume }}
                         installedVersions={installedVersions}
                         installedExecLines={installedExecLines}
                         managedConfigs={managedConfigs}
                         installedPaths={installedPaths}
                         provisions={provisions}
                         sharedPackages={sharedPackages}
-                        onEmulatorToggle={onEmulatorToggle}
-                        onVersionChange={onVersionChange}
-                        onShaderChange={onShaderChange}
-                        onResumeChange={onResumeChange}
+                        onEmulatorToggle={config.toggleEmulator}
+                        onVersionChange={config.setEmulatorVersion}
+                        onShaderChange={config.setEmulatorShaders}
+                        onResumeChange={config.setEmulatorResume}
                       />
                     )
                   })}
@@ -605,15 +393,6 @@ export function CatalogView({
           </div>
         )}
       </div>
-
-      <StickyActionBar
-        changes={changes}
-        onApply={handleApply}
-        onDiscard={onDiscard}
-        applying={isApplying}
-        {...(upgradeAvailable && { upgradeAvailable })}
-        {...(onReapply && { onReapply })}
-      />
     </div>
   )
 }

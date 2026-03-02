@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { ApplyProgressBar } from '@/components/ApplyProgressBar/ApplyProgressBar'
+import { useEffect, useRef, useState } from 'react'
+import { ApplyBar } from '@/components/ApplyBar/ApplyBar'
 import { CatalogView } from '@/components/CatalogView/CatalogView'
 import { ImportView } from '@/components/ImportView/ImportView'
 import { InstallationView } from '@/components/InstallationView/InstallationView'
+import { PreferencesView } from '@/components/PreferencesView/PreferencesView'
 import { Sidebar } from '@/components/Sidebar/Sidebar'
 import { SyncView } from '@/components/SyncView/SyncView'
 import { UpdateBanner } from '@/components/UpdateBanner/UpdateBanner'
 import { ApplyProvider, useApply } from '@/lib/ApplyContext'
 import { BottomBarSlot, BottomBarSlotProvider } from '@/lib/BottomBarSlot'
+import { ConfigProvider, useConfig } from '@/lib/ConfigContext'
 import * as daemon from '@/lib/daemon'
 import { useOnWindowFocus } from '@/lib/hooks/useOnWindowFocus'
 import { useSyncPairing } from '@/lib/hooks/useSyncPairing'
@@ -16,147 +18,48 @@ import { type FoundProvision, getNewlyFoundProvisions } from '@/lib/provisions'
 import { Spinner } from '@/lib/Spinner'
 import { ToastProvider, useToast } from '@/lib/ToastContext'
 import { useStatusData } from '@/lib/useStatusData'
-import type {
-  ConfigResponse,
-  DoctorResponse,
-  EmulatorID,
-  FrontendID,
-  FrontendRef,
-  System,
-  SystemID,
-} from '@/types/daemon'
+import type { DoctorResponse, EmulatorID, FrontendID } from '@/types/daemon'
 import {
   type ApplyStatus,
-  VERSION_DEFAULT,
   VIEW_CATALOG,
   VIEW_IMPORT,
   VIEW_INSTALLATION,
   VIEW_LABELS,
+  VIEW_PREFERENCES,
   VIEW_SYNC,
   type View,
 } from '@/types/ui'
-
-interface ConfigState {
-  collection: string
-  graphicsShaders: string
-  savestateResume: string
-  controllerNintendoConfirm: string
-  systemEmulators: Map<SystemID, EmulatorID[]>
-  emulatorVersions: Map<EmulatorID, string>
-  emulatorShaders: Map<EmulatorID, string | null>
-  emulatorResume: Map<EmulatorID, string | null>
-  enabledFrontends: Map<FrontendID, boolean>
-  frontendVersions: Map<FrontendID, string>
-}
-
-function emptyConfigState(): ConfigState {
-  return {
-    collection: '',
-    graphicsShaders: '',
-    savestateResume: '',
-    controllerNintendoConfirm: '',
-    systemEmulators: new Map(),
-    emulatorVersions: new Map(),
-    emulatorShaders: new Map(),
-    emulatorResume: new Map(),
-    enabledFrontends: new Map(),
-    frontendVersions: new Map(),
-  }
-}
 
 function keyForProvision(provision: FoundProvision) {
   return provision.id
 }
 
-function cloneConfigState(state: ConfigState): ConfigState {
-  return {
-    collection: state.collection,
-    graphicsShaders: state.graphicsShaders,
-    savestateResume: state.savestateResume,
-    controllerNintendoConfirm: state.controllerNintendoConfirm,
-    systemEmulators: new Map(state.systemEmulators),
-    emulatorVersions: new Map(state.emulatorVersions),
-    emulatorShaders: new Map(state.emulatorShaders),
-    emulatorResume: new Map(state.emulatorResume),
-    enabledFrontends: new Map(state.enabledFrontends),
-    frontendVersions: new Map(state.frontendVersions),
-  }
-}
-
-function parseConfigResponse(data: ConfigResponse): ConfigState {
-  const systemEmulators = new Map<SystemID, EmulatorID[]>()
-  const emulatorVersions = new Map<EmulatorID, string>()
-  const emulatorShaders = new Map<EmulatorID, string | null>()
-  const emulatorResume = new Map<EmulatorID, string | null>()
-  const enabledFrontends = new Map<FrontendID, boolean>()
-  const frontendVersions = new Map<FrontendID, string>()
-
-  for (const [sysId, emulatorIds] of Object.entries(data.systems)) {
-    if (emulatorIds && emulatorIds.length > 0) {
-      systemEmulators.set(sysId as SystemID, emulatorIds as EmulatorID[])
-    }
-  }
-
-  if (data.emulators) {
-    for (const [emuId, conf] of Object.entries(data.emulators)) {
-      if (conf.version) {
-        emulatorVersions.set(emuId as EmulatorID, conf.version)
-      }
-      if (conf.shaders !== undefined) {
-        emulatorShaders.set(emuId as EmulatorID, conf.shaders ?? null)
-      }
-      if (conf.resume !== undefined) {
-        emulatorResume.set(emuId as EmulatorID, conf.resume ?? null)
-      }
-    }
-  }
-
-  if (data.frontends) {
-    for (const [feId, conf] of Object.entries(data.frontends)) {
-      enabledFrontends.set(feId as FrontendID, conf.enabled)
-      if (conf.version) {
-        frontendVersions.set(feId as FrontendID, conf.version)
-      }
-    }
-  }
-
-  return {
-    collection: data.collection,
-    graphicsShaders: data.graphics?.shaders ?? '',
-    savestateResume: data.savestate?.resume ?? '',
-    controllerNintendoConfirm: data.controller?.nintendoConfirm ?? 'east',
-    systemEmulators,
-    emulatorVersions,
-    emulatorShaders,
-    emulatorResume,
-    enabledFrontends,
-    frontendVersions,
-  }
-}
-
 function AppContent() {
   const [currentView, setCurrentView] = useState<View>(VIEW_CATALOG)
-  const [systems, setSystems] = useState<readonly System[]>([])
-  const [frontends, setFrontends] = useState<readonly FrontendRef[]>([])
   const [provisions, setProvisions] = useState<DoctorResponse>({})
-  const [configState, setConfigState] = useState<ConfigState>(emptyConfigState)
-  const [configReady, setConfigReady] = useState(false)
   const [fontsReady, setFontsReady] = useState(false)
 
   const {
     setStatusResponse,
-    installedVersions,
     installedExecLines,
     managedConfigs,
     installedPaths,
-    installedFrontendVersions,
     installedFrontendExecLines,
     kyarabenVersion,
   } = useStatusData()
 
-  const savedConfigState = useRef<ConfigState>(emptyConfigState())
-
-  const { onCompleteRef, apply } = useApply()
+  const config = useConfig()
+  const {
+    refreshAfterApply,
+    setSystems,
+    setFrontends,
+    initFromResponse,
+    setInstalledVersions,
+    setInstalledFrontendVersions,
+    setUpgradeAvailable,
+    enableAllSystems,
+  } = config
+  const { onCompleteRef } = useApply()
   const { showToast } = useToast()
   const { status: applyStatus } = useApply()
   const lastApplyStatus = useRef<ApplyStatus | null>(null)
@@ -174,31 +77,6 @@ function AppContent() {
     setShowApplyBanner,
     clearApplyBannerDismissal,
   } = useUpdateChecker(showToast)
-
-  const handleReapply = useCallback(async () => {
-    const saved = savedConfigState.current
-    const systemsConfig: Record<string, string[]> = {}
-    for (const [sysId, emuIds] of saved.systemEmulators) {
-      systemsConfig[sysId] = emuIds
-    }
-    const emulatorsConfig: Record<string, { version?: string }> = {}
-    for (const [emuId, version] of saved.emulatorVersions) {
-      if (version) {
-        emulatorsConfig[emuId] = { version }
-      }
-    }
-    const frontendsConfig: Record<string, { enabled: boolean; version?: string }> = {}
-    for (const [feId, enabled] of saved.enabledFrontends) {
-      const version = saved.frontendVersions.get(feId)
-      frontendsConfig[feId] = { enabled, ...(version && { version }) }
-    }
-    await apply({
-      collection: saved.collection,
-      systems: systemsConfig,
-      emulators: emulatorsConfig,
-      frontends: frontendsConfig,
-    })
-  }, [apply])
 
   const {
     syncStatus,
@@ -222,37 +100,29 @@ function AppContent() {
     refreshSyncStatus,
   } = useSyncPairing(showToast, currentView === VIEW_SYNC)
 
-  const refreshAfterApply = useCallback(async () => {
-    const [doctorResult, statusResult, configResult] = await Promise.all([
-      daemon.runDoctor(),
-      daemon.getStatus(),
-      daemon.getConfig(),
-    ])
-
-    if (doctorResult.ok) {
-      setProvisions(doctorResult.data)
-    }
-
-    if (statusResult.ok) {
-      setStatusResponse(statusResult.data)
-    }
-
-    if (configResult.ok) {
-      const parsed = parseConfigResponse(configResult.data)
-      savedConfigState.current = cloneConfigState(parsed)
-    }
-  }, [setStatusResponse])
-
   useEffect(() => {
     document.fonts.ready.then(() => setFontsReady(true))
   }, [])
 
   useEffect(() => {
-    onCompleteRef.current = () => {
-      refreshAfterApply()
+    onCompleteRef.current = async () => {
+      const [doctorResult, statusResult] = await Promise.all([
+        daemon.runDoctor(),
+        daemon.getStatus(),
+      ])
+
+      if (doctorResult.ok) {
+        setProvisions(doctorResult.data)
+      }
+
+      if (statusResult.ok) {
+        setStatusResponse(statusResult.data)
+      }
+
+      await refreshAfterApply()
       clearApplyBannerDismissal()
     }
-  }, [onCompleteRef, refreshAfterApply, clearApplyBannerDismissal])
+  }, [onCompleteRef, clearApplyBannerDismissal, setStatusResponse, refreshAfterApply])
 
   useEffect(() => {
     async function init() {
@@ -272,16 +142,25 @@ function AppContent() {
       }
 
       if (configResult.ok) {
-        const parsed = parseConfigResponse(configResult.data)
-        setConfigState(parsed)
-        savedConfigState.current = cloneConfigState(parsed)
-        setConfigReady(true)
+        initFromResponse(configResult.data)
       } else {
         showToast(`Failed to load configuration: ${configResult.error.message}`, 'error')
       }
 
       if (statusResult.ok) {
         setStatusResponse(statusResult.data)
+
+        const emuVersions = new Map<EmulatorID, string>()
+        for (const emu of statusResult.data.installedEmulators) {
+          emuVersions.set(emu.id, emu.version)
+        }
+        setInstalledVersions(emuVersions)
+
+        const feVersions = new Map<FrontendID, string>()
+        for (const fe of statusResult.data.installedFrontends) {
+          feVersions.set(fe.id, fe.version)
+        }
+        setInstalledFrontendVersions(feVersions)
 
         if (statusResult.data.healthWarning === 'orphaned_artifacts') {
           showToast(
@@ -333,7 +212,21 @@ function AppContent() {
     }
 
     init()
-  }, [showToast, setShowApplyBanner, refreshSyncStatus, setStatusResponse])
+  }, [
+    showToast,
+    setShowApplyBanner,
+    refreshSyncStatus,
+    setStatusResponse,
+    initFromResponse,
+    setSystems,
+    setFrontends,
+    setInstalledVersions,
+    setInstalledFrontendVersions,
+  ])
+
+  useEffect(() => {
+    setUpgradeAvailable(showApplyBanner && !applyBannerDismissed)
+  }, [showApplyBanner, applyBannerDismissed, setUpgradeAvailable])
 
   useEffect(() => {
     if (applyStatus === lastApplyStatus.current) return
@@ -389,233 +282,13 @@ function AppContent() {
     }
   })
 
-  const handleEmulatorToggle = useCallback(
-    (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => {
-      setConfigState((prev) => {
-        const next = new Map(prev.systemEmulators)
-        const current = next.get(systemId) ?? []
-
-        if (enabled) {
-          if (!current.includes(emulatorId)) {
-            next.set(systemId, [...current, emulatorId])
-          }
-        } else {
-          const filtered = current.filter((id) => id !== emulatorId)
-          if (filtered.length === 0) {
-            next.delete(systemId)
-          } else {
-            next.set(systemId, filtered)
-          }
-        }
-        return { ...prev, systemEmulators: next }
-      })
-    },
-    [],
-  )
-
-  const enabledEmulators = new Set(Array.from(configState.systemEmulators.values()).flat())
-
-  const handleVersionChange = useCallback((emulatorId: EmulatorID, version: string) => {
-    setConfigState((prev) => {
-      const next = new Map(prev.emulatorVersions)
-      next.set(emulatorId, version)
-      return { ...prev, emulatorVersions: next }
-    })
-  }, [])
-
-  const handleShaderChange = useCallback((emulatorId: EmulatorID, shaders: string | null) => {
-    setConfigState((prev) => {
-      const next = new Map(prev.emulatorShaders)
-      if (shaders === null) {
-        next.delete(emulatorId)
-      } else {
-        next.set(emulatorId, shaders)
-      }
-      return { ...prev, emulatorShaders: next }
-    })
-  }, [])
-
-  const handleResumeChange = useCallback((emulatorId: EmulatorID, resume: string | null) => {
-    setConfigState((prev) => {
-      const next = new Map(prev.emulatorResume)
-      if (resume === null) {
-        next.delete(emulatorId)
-      } else {
-        next.set(emulatorId, resume)
-      }
-      return { ...prev, emulatorResume: next }
-    })
-  }, [])
-
-  const handleFrontendToggle = useCallback((frontendId: FrontendID, enabled: boolean) => {
-    setConfigState((prev) => {
-      const next = new Map(prev.enabledFrontends)
-      next.set(frontendId, enabled)
-      return { ...prev, enabledFrontends: next }
-    })
-  }, [])
-
-  const handleFrontendVersionChange = useCallback((frontendId: FrontendID, version: string) => {
-    setConfigState((prev) => {
-      const next = new Map(prev.frontendVersions)
-      next.set(frontendId, version)
-      return { ...prev, frontendVersions: next }
-    })
-  }, [])
-
-  const handleGraphicsShadersChange = useCallback((value: string) => {
-    setConfigState((prev) => ({ ...prev, graphicsShaders: value }))
-  }, [])
-
-  const handleSavestateResumeChange = useCallback((value: string) => {
-    setConfigState((prev) => ({ ...prev, savestateResume: value }))
-  }, [])
-
-  const handleControllerNintendoConfirmChange = useCallback((value: string) => {
-    setConfigState((prev) => ({ ...prev, controllerNintendoConfirm: value }))
-  }, [])
-
-  const handleEnableAll = useCallback(() => {
-    const newSystemEmulators = new Map<SystemID, EmulatorID[]>()
-    for (const sys of systems) {
-      newSystemEmulators.set(sys.id, [sys.defaultEmulatorId])
-    }
-    setConfigState((prev) => ({ ...prev, systemEmulators: newSystemEmulators }))
-
+  const handleEnableAll = () => {
+    enableAllSystems()
     showToast('All systems enabled. Use "Discard changes" to undo.', 'success')
-  }, [systems, showToast])
-
-  const handleDiscard = useCallback(async () => {
-    const [configResult, statusResult] = await Promise.all([daemon.getConfig(), daemon.getStatus()])
-
-    if (configResult.ok) {
-      setConfigState(parseConfigResponse(configResult.data))
-    }
-
-    if (statusResult.ok) {
-      setStatusResponse(statusResult.data)
-    }
-  }, [setStatusResponse])
-
-  const configChanges = (() => {
-    if (!configReady) return []
-    const changes: string[] = []
-
-    if (configState.collection !== savedConfigState.current.collection) {
-      changes.push('Collection')
-    }
-
-    if (configState.graphicsShaders !== savedConfigState.current.graphicsShaders) {
-      changes.push('Shader settings')
-    }
-
-    if (configState.savestateResume !== savedConfigState.current.savestateResume) {
-      changes.push('Savestate settings')
-    }
-
-    if (
-      configState.controllerNintendoConfirm !== savedConfigState.current.controllerNintendoConfirm
-    ) {
-      changes.push('Controller settings')
-    }
-
-    const systemEmulatorsChanged = (() => {
-      if (configState.systemEmulators.size !== savedConfigState.current.systemEmulators.size)
-        return true
-      for (const [sysId, emuIds] of configState.systemEmulators) {
-        const savedIds = savedConfigState.current.systemEmulators.get(sysId)
-        if (!savedIds || emuIds.length !== savedIds.length) return true
-        if (!emuIds.every((id, i) => savedIds[i] === id)) return true
-      }
-      for (const sysId of savedConfigState.current.systemEmulators.keys()) {
-        if (!configState.systemEmulators.has(sysId)) return true
-      }
-      return false
-    })()
-    if (systemEmulatorsChanged) {
-      changes.push('Enabled emulators')
-    }
-
-    const emulatorVersionsChanged = (() => {
-      for (const [emuId, version] of configState.emulatorVersions) {
-        const saved = savedConfigState.current.emulatorVersions.get(emuId) ?? VERSION_DEFAULT
-        if (saved !== version) return true
-      }
-      for (const [emuId, saved] of savedConfigState.current.emulatorVersions) {
-        const current = configState.emulatorVersions.get(emuId) ?? VERSION_DEFAULT
-        if (current !== saved) return true
-      }
-      return false
-    })()
-    if (emulatorVersionsChanged) {
-      changes.push('Emulator versions')
-    }
-
-    const emulatorShadersChanged = (() => {
-      for (const [emuId, shaders] of configState.emulatorShaders) {
-        const saved = savedConfigState.current.emulatorShaders.get(emuId) ?? null
-        if (saved !== shaders) return true
-      }
-      for (const [emuId, saved] of savedConfigState.current.emulatorShaders) {
-        const current = configState.emulatorShaders.get(emuId) ?? null
-        if (current !== saved) return true
-      }
-      return false
-    })()
-    if (emulatorShadersChanged) {
-      changes.push('Emulator shaders')
-    }
-
-    const emulatorResumeChanged = (() => {
-      for (const [emuId, resume] of configState.emulatorResume) {
-        const saved = savedConfigState.current.emulatorResume.get(emuId) ?? null
-        if (saved !== resume) return true
-      }
-      for (const [emuId, saved] of savedConfigState.current.emulatorResume) {
-        const current = configState.emulatorResume.get(emuId) ?? null
-        if (current !== saved) return true
-      }
-      return false
-    })()
-    if (emulatorResumeChanged) {
-      changes.push('Emulator resume')
-    }
-
-    const enabledFrontendsChanged = (() => {
-      if (configState.enabledFrontends.size !== savedConfigState.current.enabledFrontends.size)
-        return true
-      for (const [feId, enabled] of configState.enabledFrontends) {
-        if (savedConfigState.current.enabledFrontends.get(feId) !== enabled) return true
-      }
-      for (const feId of savedConfigState.current.enabledFrontends.keys()) {
-        if (!configState.enabledFrontends.has(feId)) return true
-      }
-      return false
-    })()
-    if (enabledFrontendsChanged) {
-      changes.push('Enabled frontends')
-    }
-
-    const frontendVersionsChanged = (() => {
-      for (const [feId, version] of configState.frontendVersions) {
-        const saved = savedConfigState.current.frontendVersions.get(feId) ?? VERSION_DEFAULT
-        if (saved !== version) return true
-      }
-      for (const [feId, saved] of savedConfigState.current.frontendVersions) {
-        const current = configState.frontendVersions.get(feId) ?? VERSION_DEFAULT
-        if (current !== saved) return true
-      }
-      return false
-    })()
-    if (frontendVersionsChanged) {
-      changes.push('Frontend versions')
-    }
-
-    return changes
-  })()
+  }
 
   const renderView = () => {
-    if (!configReady) {
+    if (!config.configReady) {
       return (
         <div className="h-full flex items-center justify-center text-on-surface-muted">
           <div className="flex items-center gap-3">
@@ -629,43 +302,13 @@ function AppContent() {
       case VIEW_CATALOG:
         return (
           <CatalogView
-            systems={systems}
-            frontends={frontends}
-            systemEmulators={configState.systemEmulators}
-            enabledEmulators={enabledEmulators}
-            enabledFrontends={configState.enabledFrontends}
-            emulatorVersions={configState.emulatorVersions}
-            emulatorShaders={configState.emulatorShaders}
-            emulatorResume={configState.emulatorResume}
-            graphics={{ shaders: configState.graphicsShaders }}
-            savestate={{ resume: configState.savestateResume }}
-            controller={{ nintendoConfirm: configState.controllerNintendoConfirm }}
-            frontendVersions={configState.frontendVersions}
-            installedVersions={installedVersions}
-            installedFrontendVersions={installedFrontendVersions}
-            installedFrontendExecLines={installedFrontendExecLines}
+            provisions={provisions}
             installedExecLines={installedExecLines}
+            installedFrontendExecLines={installedFrontendExecLines}
             managedConfigs={managedConfigs}
             installedPaths={installedPaths}
-            provisions={provisions}
-            collection={configState.collection}
-            configChanges={configChanges}
-            onCollectionChange={(value) =>
-              setConfigState((prev) => ({ ...prev, collection: value }))
-            }
-            onEmulatorToggle={handleEmulatorToggle}
-            onVersionChange={handleVersionChange}
-            onShaderChange={handleShaderChange}
-            onResumeChange={handleResumeChange}
-            onFrontendToggle={handleFrontendToggle}
-            onFrontendVersionChange={handleFrontendVersionChange}
-            onGraphicsShadersChange={handleGraphicsShadersChange}
-            onSavestateResumeChange={handleSavestateResumeChange}
-            onControllerNintendoConfirmChange={handleControllerNintendoConfirmChange}
-            onDiscard={handleDiscard}
+            onNavigateToPreferences={() => setCurrentView(VIEW_PREFERENCES)}
             onEnableAll={handleEnableAll}
-            upgradeAvailable={showApplyBanner && !applyBannerDismissed}
-            onReapply={handleReapply}
           />
         )
       case VIEW_INSTALLATION:
@@ -696,6 +339,8 @@ function AppContent() {
         )
       case VIEW_IMPORT:
         return <ImportView onNavigateToCatalog={() => setCurrentView(VIEW_CATALOG)} />
+      case VIEW_PREFERENCES:
+        return <PreferencesView />
       default:
         return null
     }
@@ -734,11 +379,7 @@ function AppContent() {
       </div>
 
       <BottomBarSlot />
-
-      <ApplyProgressBar
-        currentView={currentView}
-        onNavigateToCatalog={() => setCurrentView(VIEW_CATALOG)}
-      />
+      <ApplyBar />
     </div>
   )
 }
@@ -748,7 +389,9 @@ export function App() {
     <BottomBarSlotProvider>
       <ToastProvider>
         <ApplyProvider>
-          <AppContent />
+          <ConfigProvider>
+            <AppContent />
+          </ConfigProvider>
         </ApplyProvider>
       </ToastProvider>
     </BottomBarSlotProvider>
