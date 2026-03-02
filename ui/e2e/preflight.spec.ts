@@ -182,6 +182,9 @@ test.describe('UI-driven config change', () => {
     await page.getByRole('button', { name: 'Done' }).click()
     await expect(page.getByText('Collection')).toBeVisible()
 
+    await page.getByText('View preferences').click()
+    await expect(page.getByText('South button confirms')).toBeVisible()
+
     const southButton = page.getByText('South button confirms')
     await southButton.click()
 
@@ -194,7 +197,7 @@ test.describe('UI-driven config change', () => {
     await expect(page.getByRole('button', { name: 'Done' })).toBeVisible({ timeout: 30000 })
 
     await page.getByRole('button', { name: 'Done' }).click()
-    await expect(page.getByText('Collection')).toBeVisible()
+    await expect(page.getByText('Preferences')).toBeVisible()
   })
 })
 

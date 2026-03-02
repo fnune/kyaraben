@@ -75,7 +75,7 @@ interface ApplyContextValue {
   confirmSyncPending: () => Promise<boolean>
   cancel: () => Promise<void>
   reset: () => void
-  onCompleteRef: MutableRefObject<(() => void) | null>
+  onCompleteRef: MutableRefObject<(() => void | Promise<void>) | null>
 }
 
 const ApplyContext = createContext<ApplyContextValue | null>(null)
@@ -87,7 +87,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
   const [preflightData, setPreflightData] = useState<PreflightResponse | null>(null)
   const [syncPendingData, setSyncPendingData] = useState<SyncPendingResponse | null>(null)
   const [logPosition, setLogPosition] = useState<number | null>(null)
-  const onCompleteRef = useRef<(() => void) | null>(null)
+  const onCompleteRef = useRef<(() => void | Promise<void>) | null>(null)
   const summaryMessageRef = useRef<string | null>(null)
   const { showToast } = useToast()
 
@@ -196,8 +196,8 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
       }
 
       setProgressSteps((prev) => prev.map((s) => ({ ...s, status: 'completed' as const })))
+      await onCompleteRef.current?.()
       setStatus('success')
-      onCompleteRef.current?.()
 
       installApp().catch((err) => {
         console.error('Failed to install Kyaraben:', err)

@@ -565,6 +565,7 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
     const configResult = await daemon.getConfig()
     if (configResult.ok) {
       const parsed = parseConfigResponse(configResult.data)
+      setConfigState(parsed)
       savedConfigState.current = cloneConfigState(parsed)
     }
   }, [])
