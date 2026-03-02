@@ -97,7 +97,7 @@ test.describe('Systems enabled but not installed', () => {
     const snesCard = page.getByRole('article').filter({ hasText: 'Super Nintendo' })
     await expect(snesCard).toBeVisible()
 
-    const toggle = snesCard.getByText('bsnes', { exact: true }).locator('..').getByRole('switch')
+    const toggle = snesCard.getByText(/bsnes/).locator('..').getByRole('switch')
     const isChecked = await toggle.getAttribute('aria-checked')
     expect(isChecked).toBe('true')
   })
@@ -117,7 +117,7 @@ test.describe('Systems enabled but not installed', () => {
 
   test('shows download size for non-installed emulator', async () => {
     const snesCard = page.getByRole('article').filter({ hasText: 'Super Nintendo' })
-    await expect(snesCard.getByText(/\d+(\.\d+)?\s*(MB|GB|KB)/)).toBeVisible()
+    await expect(snesCard.getByText(/\d+(\.\d+)?\s*(MB|GB|KB)/).first()).toBeVisible()
   })
 })
 
@@ -241,7 +241,7 @@ test.describe('Version pinning', () => {
     const snesCard = page.getByRole('article').filter({ hasText: 'Super Nintendo' })
     await expect(snesCard).toBeVisible()
 
-    const versionSelect = snesCard.getByRole('combobox')
+    const versionSelect = snesCard.getByRole('combobox').first()
     await expect(versionSelect).toBeVisible()
   })
 })
@@ -286,7 +286,7 @@ test.describe('Apply flow', () => {
 
   test('shows download size for enabled emulator', async () => {
     const snesCard = page.getByRole('article').filter({ hasText: 'Super Nintendo' })
-    await expect(snesCard.getByText(/\d+(\.\d+)?\s*(MB|GB|KB)/)).toBeVisible()
+    await expect(snesCard.getByText(/\d+(\.\d+)?\s*(MB|GB|KB)/).first()).toBeVisible()
   })
 
   test('shows action bar with Apply button', async () => {

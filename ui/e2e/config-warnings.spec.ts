@@ -72,7 +72,7 @@ enabled = true
   test('valid system is still enabled after filtering invalid ones', async () => {
     const snesCard = page.getByRole('article').filter({ hasText: 'Super Nintendo' })
     await expect(snesCard).toBeVisible({ timeout: 10000 })
-    const toggle = snesCard.getByRole('switch').first()
+    const toggle = snesCard.getByText(/bsnes/).locator('..').getByRole('switch')
     await expect(toggle).toHaveAttribute('aria-checked', 'true')
   })
 })
