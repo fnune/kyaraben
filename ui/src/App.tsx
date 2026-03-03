@@ -11,6 +11,7 @@ import { ApplyProvider, useApply } from '@/lib/ApplyContext'
 import { BottomBarSlot, BottomBarSlotProvider } from '@/lib/BottomBarSlot'
 import { ConfigProvider, useConfig } from '@/lib/ConfigContext'
 import * as daemon from '@/lib/daemon'
+import { useApplyCompletionToast } from '@/lib/hooks/useApplyCompletionToast'
 import { useOnWindowFocus } from '@/lib/hooks/useOnWindowFocus'
 import { useSyncPairing } from '@/lib/hooks/useSyncPairing'
 import { useUpdateChecker } from '@/lib/hooks/useUpdateChecker'
@@ -20,11 +21,9 @@ import { ToastProvider, useToast } from '@/lib/ToastContext'
 import { useStatusData } from '@/lib/useStatusData'
 import type { DoctorResponse, EmulatorID, FrontendID } from '@/types/daemon'
 import {
-  type ApplyStatus,
   VIEW_CATALOG,
   VIEW_IMPORT,
   VIEW_INSTALLATION,
-  VIEW_LABELS,
   VIEW_PREFERENCES,
   VIEW_SYNC,
   type View,
@@ -62,7 +61,6 @@ function AppContent() {
   const { onCompleteRef } = useApply()
   const { showToast } = useToast()
   const { status: applyStatus } = useApply()
-  const lastApplyStatus = useRef<ApplyStatus | null>(null)
   const seenNotifications = useRef(new Set<string>())
 
   const {
@@ -247,30 +245,7 @@ function AppContent() {
     setUpgradeAvailable(showApplyBanner && !applyBannerDismissed)
   }, [showApplyBanner, applyBannerDismissed, setUpgradeAvailable])
 
-  useEffect(() => {
-    if (applyStatus === lastApplyStatus.current) return
-    if (applyStatus === 'success') {
-      if (currentView !== VIEW_CATALOG) {
-        showToast(
-          <span>
-            Installation complete.{' '}
-            <button
-              type="button"
-              className="underline hover:no-underline"
-              onClick={() => setCurrentView(VIEW_CATALOG)}
-            >
-              Go to {VIEW_LABELS[VIEW_CATALOG].toLowerCase()}
-            </button>
-          </span>,
-          'success',
-          8000,
-        )
-      } else {
-        showToast('Installation complete.', 'success')
-      }
-    }
-    lastApplyStatus.current = applyStatus
-  }, [applyStatus, currentView, showToast])
+  useApplyCompletionToast(applyStatus, currentView, () => setCurrentView(VIEW_CATALOG))
 
   useOnWindowFocus(async () => {
     const [doctorResult] = await Promise.all([daemon.runDoctor(), refreshSyncStatus()])

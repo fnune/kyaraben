@@ -196,8 +196,8 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
       }
 
       setProgressSteps((prev) => prev.map((s) => ({ ...s, status: 'completed' as const })))
+      await onCompleteRef.current?.()
       setStatus('success')
-      onCompleteRef.current?.()?.catch?.(console.error)
 
       installApp().catch((err) => {
         console.error('Failed to install Kyaraben:', err)

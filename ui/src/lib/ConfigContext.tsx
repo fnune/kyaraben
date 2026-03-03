@@ -1,12 +1,4 @@
-import {
-  createContext,
-  type ReactNode,
-  useCallback,
-  useContext,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from 'react'
 import * as daemon from '@/lib/daemon'
 import type {
   ConfigResponse,
@@ -185,7 +177,7 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
   >(new Map())
   const [upgradeAvailable, setUpgradeAvailable] = useState(false)
 
-  const savedConfigState = useRef<ConfigState>(emptyConfigState())
+  const [savedConfig, setSavedConfig] = useState<ConfigState>(emptyConfigState)
   const { apply: applyFromContext } = useApply()
 
   const enabledEmulators = useMemo(
@@ -197,30 +189,27 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
     if (!configReady) return []
     const changes: string[] = []
 
-    if (configState.collection !== savedConfigState.current.collection) {
+    if (configState.collection !== savedConfig.collection) {
       changes.push('Collection')
     }
-    if (configState.graphicsShaders !== savedConfigState.current.graphicsShaders) {
+    if (configState.graphicsShaders !== savedConfig.graphicsShaders) {
       changes.push('Shader settings')
     }
-    if (configState.savestateResume !== savedConfigState.current.savestateResume) {
+    if (configState.savestateResume !== savedConfig.savestateResume) {
       changes.push('Savestate settings')
     }
-    if (
-      configState.controllerNintendoConfirm !== savedConfigState.current.controllerNintendoConfirm
-    ) {
+    if (configState.controllerNintendoConfirm !== savedConfig.controllerNintendoConfirm) {
       changes.push('Controller settings')
     }
 
     const systemEmulatorsChanged = (() => {
-      if (configState.systemEmulators.size !== savedConfigState.current.systemEmulators.size)
-        return true
+      if (configState.systemEmulators.size !== savedConfig.systemEmulators.size) return true
       for (const [sysId, emuIds] of configState.systemEmulators) {
-        const savedIds = savedConfigState.current.systemEmulators.get(sysId)
+        const savedIds = savedConfig.systemEmulators.get(sysId)
         if (!savedIds || emuIds.length !== savedIds.length) return true
         if (!emuIds.every((id, i) => savedIds[i] === id)) return true
       }
-      for (const sysId of savedConfigState.current.systemEmulators.keys()) {
+      for (const sysId of savedConfig.systemEmulators.keys()) {
         if (!configState.systemEmulators.has(sysId)) return true
       }
       return false
@@ -231,10 +220,10 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
 
     const emulatorVersionsChanged = (() => {
       for (const [emuId, version] of configState.emulatorVersions) {
-        const saved = savedConfigState.current.emulatorVersions.get(emuId) ?? VERSION_DEFAULT
+        const saved = savedConfig.emulatorVersions.get(emuId) ?? VERSION_DEFAULT
         if (saved !== version) return true
       }
-      for (const [emuId, saved] of savedConfigState.current.emulatorVersions) {
+      for (const [emuId, saved] of savedConfig.emulatorVersions) {
         const current = configState.emulatorVersions.get(emuId) ?? VERSION_DEFAULT
         if (current !== saved) return true
       }
@@ -246,10 +235,10 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
 
     const emulatorShadersChanged = (() => {
       for (const [emuId, shaders] of configState.emulatorShaders) {
-        const saved = savedConfigState.current.emulatorShaders.get(emuId) ?? null
+        const saved = savedConfig.emulatorShaders.get(emuId) ?? null
         if (saved !== shaders) return true
       }
-      for (const [emuId, saved] of savedConfigState.current.emulatorShaders) {
+      for (const [emuId, saved] of savedConfig.emulatorShaders) {
         const current = configState.emulatorShaders.get(emuId) ?? null
         if (current !== saved) return true
       }
@@ -261,10 +250,10 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
 
     const emulatorResumeChanged = (() => {
       for (const [emuId, resume] of configState.emulatorResume) {
-        const saved = savedConfigState.current.emulatorResume.get(emuId) ?? null
+        const saved = savedConfig.emulatorResume.get(emuId) ?? null
         if (saved !== resume) return true
       }
-      for (const [emuId, saved] of savedConfigState.current.emulatorResume) {
+      for (const [emuId, saved] of savedConfig.emulatorResume) {
         const current = configState.emulatorResume.get(emuId) ?? null
         if (current !== saved) return true
       }
@@ -275,12 +264,11 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
     }
 
     const enabledFrontendsChanged = (() => {
-      if (configState.enabledFrontends.size !== savedConfigState.current.enabledFrontends.size)
-        return true
+      if (configState.enabledFrontends.size !== savedConfig.enabledFrontends.size) return true
       for (const [feId, enabled] of configState.enabledFrontends) {
-        if (savedConfigState.current.enabledFrontends.get(feId) !== enabled) return true
+        if (savedConfig.enabledFrontends.get(feId) !== enabled) return true
       }
-      for (const feId of savedConfigState.current.enabledFrontends.keys()) {
+      for (const feId of savedConfig.enabledFrontends.keys()) {
         if (!configState.enabledFrontends.has(feId)) return true
       }
       return false
@@ -291,10 +279,10 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
 
     const frontendVersionsChanged = (() => {
       for (const [feId, version] of configState.frontendVersions) {
-        const saved = savedConfigState.current.frontendVersions.get(feId) ?? VERSION_DEFAULT
+        const saved = savedConfig.frontendVersions.get(feId) ?? VERSION_DEFAULT
         if (saved !== version) return true
       }
-      for (const [feId, saved] of savedConfigState.current.frontendVersions) {
+      for (const [feId, saved] of savedConfig.frontendVersions) {
         const current = configState.frontendVersions.get(feId) ?? VERSION_DEFAULT
         if (current !== saved) return true
       }
@@ -305,7 +293,7 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
     }
 
     return changes
-  }, [configReady, configState])
+  }, [configReady, configState, savedConfig])
 
   const changes = useMemo(() => {
     let summary = emptyChangeSummary()
@@ -542,10 +530,9 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
   }, [applyFromContext, buildApplyPayload, configState, changes])
 
   const reapply = useCallback(async () => {
-    const saved = savedConfigState.current
-    const payload = buildApplyPayload(saved, emptyChangeSummary())
+    const payload = buildApplyPayload(savedConfig, emptyChangeSummary())
     await applyFromContext(payload)
-  }, [applyFromContext, buildApplyPayload])
+  }, [applyFromContext, buildApplyPayload, savedConfig])
 
   const discard = useCallback(async () => {
     const configResult = await daemon.getConfig()
@@ -557,7 +544,7 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
   const initFromResponse = useCallback((config: ConfigResponse) => {
     const parsed = parseConfigResponse(config)
     setConfigState(parsed)
-    savedConfigState.current = cloneConfigState(parsed)
+    setSavedConfig(cloneConfigState(parsed))
     setConfigReady(true)
   }, [])
 
@@ -565,8 +552,7 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
     const configResult = await daemon.getConfig()
     if (configResult.ok) {
       const parsed = parseConfigResponse(configResult.data)
-      setConfigState(parsed)
-      savedConfigState.current = cloneConfigState(parsed)
+      setSavedConfig(cloneConfigState(parsed))
     }
   }, [])
 

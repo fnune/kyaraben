@@ -183,10 +183,10 @@ test.describe('UI-driven config change', () => {
     await expect(page.getByText('Collection')).toBeVisible()
 
     await page.getByText('View preferences').click()
-    await expect(page.getByText('East button confirms')).toBeVisible()
 
-    const eastButton = page.getByText('East button confirms')
-    await eastButton.click()
+    const southButton = page.getByRole('button', { name: /South button confirms/ })
+    await expect(southButton).toBeVisible()
+    await southButton.click()
 
     await expect(page.getByRole('button', { name: 'Apply' })).toBeVisible()
     await page.getByRole('button', { name: 'Apply' }).click()
@@ -194,10 +194,8 @@ test.describe('UI-driven config change', () => {
     await expect(page.getByText('Config conflicts detected')).not.toBeVisible({ timeout: 2000 })
     await expect(page.getByText('Kyaraben has updated its defaults')).not.toBeVisible()
 
-    await expect(page.getByRole('button', { name: 'Done' })).toBeVisible({ timeout: 30000 })
-
-    await page.getByRole('button', { name: 'Done' }).click()
-    await expect(page.getByText('Preferences')).toBeVisible()
+    await expect(page.getByText('Installation complete')).toBeVisible({ timeout: 30000 })
+    await expect(page.getByRole('heading', { name: 'Display' })).toBeVisible()
   })
 })
 
