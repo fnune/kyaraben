@@ -183,10 +183,10 @@ test.describe('UI-driven config change', () => {
     await expect(page.getByText('Collection')).toBeVisible()
 
     await page.getByText('View preferences').click()
-    await expect(page.getByText('South button confirms')).toBeVisible()
+    await expect(page.getByText('East button confirms')).toBeVisible()
 
-    const southButton = page.getByText('South button confirms')
-    await southButton.click()
+    const eastButton = page.getByText('East button confirms')
+    await eastButton.click()
 
     await expect(page.getByRole('button', { name: 'Apply' })).toBeVisible()
     await page.getByRole('button', { name: 'Apply' }).click()
