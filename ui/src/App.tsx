@@ -117,12 +117,31 @@ function AppContent() {
 
       if (statusResult.ok) {
         setStatusResponse(statusResult.data)
+
+        const emuVersions = new Map<EmulatorID, string>()
+        for (const emu of statusResult.data.installedEmulators) {
+          emuVersions.set(emu.id, emu.version)
+        }
+        setInstalledVersions(emuVersions)
+
+        const feVersions = new Map<FrontendID, string>()
+        for (const fe of statusResult.data.installedFrontends) {
+          feVersions.set(fe.id, fe.version)
+        }
+        setInstalledFrontendVersions(feVersions)
       }
 
       await refreshAfterApply()
       clearApplyBannerDismissal()
     }
-  }, [onCompleteRef, clearApplyBannerDismissal, setStatusResponse, refreshAfterApply])
+  }, [
+    onCompleteRef,
+    clearApplyBannerDismissal,
+    setStatusResponse,
+    refreshAfterApply,
+    setInstalledVersions,
+    setInstalledFrontendVersions,
+  ])
 
   useEffect(() => {
     async function init() {
