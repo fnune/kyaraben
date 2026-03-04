@@ -27,15 +27,20 @@
 
 ### Proper blocker
 
-- Options aren't surfaced in the UI
-  - Nintendo confirm button position
-  - Other upcoming options
-  - The options that are surfaced are surfaced per-emulator
-    - For example shaders
-    - Sometimes we want both per-emulator, and a way to enable or disable something globally, kind of like enabling and disabling emulators (with "Enable all systems")
-    - For example toggling shaders enabled/disabled/manual for all emulators should be possible
-- Per-emulator settings could also benefit from a global setting counterpart
-  - For example, even if we make it possible to enable all emulators, or shaders for all emulators, what happens when e.g. Kyaraben ships a new emulator? Or the user enables a new emulator? How do we decide what to default to? We currently would set e.g. 'nil' (manual) for shaders, or disabled for new emulators. Is this the right way to do things?
+- We are not surfacing controller hotkey options in the UI
+  - This is hard because the natural way to do this would be using a controller
+  - But that would need to happen within Steam because otherwise we don't have Steam Input
+  - The alternative is text selection with dropdown options for known keys
+- "Shaders" isn't at the right level
+  - See https://retrogamecorps.com/2024/09/01/guide-shaders-and-overlays-on-retro-handhelds/comment-page-1/
+  - Shaders is only one part of the thing, although this is what people search for
+  - There's filters, overlays, bezels, integer scaling...
+  - RGC go for three styles, each involving not only shaders but other things as well:
+    - Modern pixels
+    - Upscaled image
+    - Pseudo-authentic
+  - I think that level of abstraction is better
+  - Although the choice is deeply device-specific, so maybe this is hard
 - Documentation lives on the website too much
   - One goal of Kyaraben is to have its app be self-documenting
   - Users are expected to be able to figure things out just from what the app tells them
