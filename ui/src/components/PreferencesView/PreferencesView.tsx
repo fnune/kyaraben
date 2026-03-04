@@ -1,3 +1,4 @@
+import { HotkeySettings } from '@/components/Settings/HotkeySettings'
 import { useConfig } from '@/lib/ConfigContext'
 import { RadioCard } from '@/lib/RadioCard'
 
@@ -7,12 +8,20 @@ type ConfirmOption = 'east' | 'south'
 
 export function PreferencesView() {
   const config = useConfig()
-  const { configState, setGraphicsShaders, setSavestateResume, setControllerNintendoConfirm } =
-    config
+  const {
+    configState,
+    setGraphicsShaders,
+    setSavestateResume,
+    setControllerNintendoConfirm,
+    setHotkeyModifier,
+    setHotkeyAction,
+    resetHotkeys,
+  } = config
 
   const shaders = configState.graphicsShaders
   const resume = configState.savestateResume
   const nintendoConfirm = configState.controllerNintendoConfirm
+  const hotkeys = configState.hotkeys
 
   const selectedShaders: ShaderOption =
     shaders === 'recommended' || shaders === 'off' ? shaders : 'manual'
@@ -221,6 +230,53 @@ export function PreferencesView() {
               onSelect={() => setControllerNintendoConfirm('south')}
               className="w-full p-3"
               wrap
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="mb-10">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-on-surface-dim uppercase tracking-widest">
+            Hotkeys
+          </h2>
+          <button
+            type="button"
+            onClick={resetHotkeys}
+            className="text-sm text-accent hover:text-accent-hover"
+          >
+            Reset defaults
+          </button>
+        </div>
+
+        <div className="bg-surface-alt rounded-card border border-outline overflow-hidden">
+          <div className="p-4 border-b border-outline">
+            <p className="text-sm text-on-surface mb-3">
+              Controller hotkeys let you save states, load states, fast forward, and more without
+              leaving your game. Hold a modifier button and press an action button to trigger the
+              hotkey. Hotkeys use physical button positions and are not affected by the confirm
+              button setting above.
+            </p>
+            <div className="text-sm text-on-surface-muted space-y-1">
+              <p>
+                All hotkeys: RetroArch cores (NES, SNES, Genesis, N64, Saturn, PC Engine, Neo Geo
+                Pocket, GB, GBC, GBA, DS, 3DS, Arcade, Atari 2600, C64), PCSX2.
+              </p>
+              <p>
+                No fullscreen: DuckStation. No fullscreen or menu: PPSSPP. No rewind or menu:
+                Dolphin.
+              </p>
+              <p>Save, load, fast forward, screenshot, quit only: Flycast.</p>
+              <p>Pause, fast forward, screenshot, fullscreen, quit only: Eden.</p>
+              <p>Not configurable: Cemu, xemu, Xenia, Vita3K, RPCS3.</p>
+            </div>
+          </div>
+
+          <div className="p-4">
+            <HotkeySettings
+              hotkeys={hotkeys}
+              onModifierChange={setHotkeyModifier}
+              onActionChange={setHotkeyAction}
             />
           </div>
         </div>

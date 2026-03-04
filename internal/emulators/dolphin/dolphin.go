@@ -314,7 +314,7 @@ func dolphinHotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 			if m.toggle {
 				value = "toggle(" + value + ")"
 			}
-			entries = append(entries, model.Default(model.Nintendo, model.Path(section, m.key), value))
+			entries = append(entries, model.Default(model.Hotkeys, model.Path(section, m.key), value))
 		}
 	}
 	return entries

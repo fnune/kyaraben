@@ -22,6 +22,21 @@ export interface SavestateConfigRequest {
 }
 export interface ControllerConfigRequest {
   nintendoConfirm: string;
+  hotkeys?: HotkeyConfigRequest;
+}
+export interface HotkeyConfigRequest {
+  modifier?: string;
+  saveState?: string;
+  loadState?: string;
+  nextSlot?: string;
+  prevSlot?: string;
+  fastForward?: string;
+  rewind?: string;
+  pause?: string;
+  screenshot?: string;
+  quit?: string;
+  toggleFullscreen?: string;
+  openMenu?: string;
 }
 export interface FrontendConfRequest {
   enabled: boolean;
@@ -173,6 +188,21 @@ export interface SavestateConfigResponse {
 }
 export interface ControllerConfigResponse {
   nintendoConfirm: string;
+  hotkeys: HotkeyConfigResponse;
+}
+export interface HotkeyConfigResponse {
+  modifier: string;
+  saveState: string;
+  loadState: string;
+  nextSlot: string;
+  prevSlot: string;
+  fastForward: string;
+  rewind: string;
+  pause: string;
+  screenshot: string;
+  quit: string;
+  toggleFullscreen: string;
+  openMenu: string;
 }
 export interface EmulatorConfResponse {
   version?: string;

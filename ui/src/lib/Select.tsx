@@ -14,6 +14,7 @@ export interface SelectProps {
   readonly disabled?: boolean
   readonly className?: string
   readonly size?: 'sm' | 'md'
+  readonly error?: boolean
 }
 
 export function Select({
@@ -23,6 +24,7 @@ export function Select({
   disabled = false,
   className = '',
   size = 'md',
+  error = false,
 }: SelectProps) {
   const [open, setOpen] = useState(false)
   const [focusedIndex, setFocusedIndex] = useState(-1)
@@ -209,6 +211,7 @@ export function Select({
           flex items-center gap-1.5 tabular-nums font-mono text-on-surface-secondary
           ${size === 'sm' ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm'}
           ${INPUT_BASE_CLASSES}
+          ${error ? 'border-status-error' : ''}
           ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
         `}
       >

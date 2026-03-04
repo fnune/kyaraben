@@ -1563,6 +1563,8 @@ func collectConfigInputs(entries []model.ConfigEntry, cfg *model.KyarabenConfig,
 		switch dep {
 		case model.ConfigInputNintendoConfirm:
 			inputs[key] = string(controllerConfig.NintendoConfirm)
+		case model.ConfigInputHotkeys:
+			inputs[key] = controllerConfig.Hotkeys.Fingerprint()
 		case model.ConfigInputCollection:
 			inputs[key] = collectionRoot
 		case model.ConfigInputShaders:

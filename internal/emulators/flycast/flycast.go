@@ -198,7 +198,7 @@ func hotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 			}
 			// Format: button1,button2:action:sequential (0=simultaneous, 1=sequential)
 			value := fmt.Sprintf("%s:%s:0", join(buttonIndices, ","), m.action)
-			entries = append(entries, model.Entry(model.Nintendo, model.Path("combo", fmt.Sprintf("bind%d", bindNum)), value))
+			entries = append(entries, model.Entry(model.Hotkeys, model.Path("combo", fmt.Sprintf("bind%d", bindNum)), value))
 			bindNum++
 		}
 	}

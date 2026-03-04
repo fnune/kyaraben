@@ -153,11 +153,11 @@ func controllerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 		}
 		if !enableBtnSet {
 			enableBtn := m.binding.Buttons[0]
-			entries = append(entries, model.Entry(model.Nintendo, model.Path("input_enable_hotkey_btn"), fmt.Sprintf("%d", cc.SDLIndex(enableBtn))))
+			entries = append(entries, model.Entry(model.Hotkeys, model.Path("input_enable_hotkey_btn"), fmt.Sprintf("%d", cc.SDLIndex(enableBtn))))
 			enableBtnSet = true
 		}
 		actionBtn := m.binding.Buttons[len(m.binding.Buttons)-1]
-		entries = append(entries, model.Entry(model.Nintendo, model.Path(m.key), fmt.Sprintf("%d", cc.SDLIndex(actionBtn))))
+		entries = append(entries, model.Entry(model.Hotkeys, model.Path(m.key), fmt.Sprintf("%d", cc.SDLIndex(actionBtn))))
 	}
 
 	return entries

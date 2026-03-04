@@ -109,6 +109,23 @@ type HotkeyConfig struct {
 	OpenMenu         HotkeyBinding
 }
 
+// Fingerprint returns a string representation of the hotkey configuration for change detection.
+func (hc HotkeyConfig) Fingerprint() string {
+	return strings.Join([]string{
+		hc.SaveState.String(),
+		hc.LoadState.String(),
+		hc.NextSlot.String(),
+		hc.PrevSlot.String(),
+		hc.FastForward.String(),
+		hc.Rewind.String(),
+		hc.Pause.String(),
+		hc.Screenshot.String(),
+		hc.Quit.String(),
+		hc.ToggleFullscreen.String(),
+		hc.OpenMenu.String(),
+	}, ",")
+}
+
 // ControllerConfig holds the resolved controller configuration passed to generators.
 type ControllerConfig struct {
 	NintendoConfirm NintendoConfirmButton

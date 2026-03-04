@@ -193,7 +193,7 @@ func padEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	}
 	for _, m := range mappings {
 		if len(m.binding.Buttons) > 0 {
-			entries = append(entries, model.Entry(model.None, model.Path(section, m.key), ppssppHotkeyRef(m.binding)))
+			entries = append(entries, model.Entry(model.Hotkeys, model.Path(section, m.key), ppssppHotkeyRef(m.binding)))
 		}
 	}
 

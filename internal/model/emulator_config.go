@@ -193,6 +193,7 @@ var (
 	None     = []ConfigInput{ConfigInputNone}
 	Store    = []ConfigInput{ConfigInputCollection}
 	Nintendo = []ConfigInput{ConfigInputNintendoConfirm}
+	Hotkeys  = []ConfigInput{ConfigInputHotkeys}
 	Shaders  = []ConfigInput{ConfigInputShaders}
 	Resume   = []ConfigInput{ConfigInputResume}
 )

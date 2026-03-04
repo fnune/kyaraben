@@ -219,7 +219,7 @@ func hotkeyEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	var entries []model.ConfigEntry
 	for _, m := range mappings {
 		if len(m.binding.Buttons) > 0 {
-			entries = append(entries, model.Entry(model.Nintendo, model.Path(section, m.key), hotkeyRef(m.binding)))
+			entries = append(entries, model.Entry(model.Hotkeys, model.Path(section, m.key), hotkeyRef(m.binding)))
 		}
 	}
 	return entries

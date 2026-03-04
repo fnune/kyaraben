@@ -638,6 +638,7 @@ func (d *Daemon) handlePreflight() []Event {
 	diffCtx := &emulators.DiffContext{
 		CurrentConfigInputs: map[string]string{
 			string(model.ConfigInputNintendoConfirm): string(controllerConfig.NintendoConfirm),
+			string(model.ConfigInputHotkeys):         controllerConfig.Hotkeys.Fingerprint(),
 			string(model.ConfigInputCollection):      collection.Root(),
 			string(model.ConfigInputShaders):         cfg.Graphics.Shaders,
 			string(model.ConfigInputResume):          cfg.Savestate.Resume,
@@ -942,17 +943,72 @@ func (d *Daemon) handleGetConfig() []Event {
 		})
 	}
 
+	hk := cfg.Controller.Hotkeys
+	hotkeyResp := HotkeyConfigResponse{
+		Modifier:         hk.Modifier,
+		SaveState:        hk.SaveState,
+		LoadState:        hk.LoadState,
+		NextSlot:         hk.NextSlot,
+		PrevSlot:         hk.PrevSlot,
+		FastForward:      hk.FastForward,
+		Rewind:           hk.Rewind,
+		Pause:            hk.Pause,
+		Screenshot:       hk.Screenshot,
+		Quit:             hk.Quit,
+		ToggleFullscreen: hk.ToggleFullscreen,
+		OpenMenu:         hk.OpenMenu,
+	}
+	if hotkeyResp.Modifier == "" {
+		hotkeyResp.Modifier = string(model.ButtonBack)
+	}
+	if hotkeyResp.SaveState == "" {
+		hotkeyResp.SaveState = string(model.ButtonRightShoulder)
+	}
+	if hotkeyResp.LoadState == "" {
+		hotkeyResp.LoadState = string(model.ButtonLeftShoulder)
+	}
+	if hotkeyResp.NextSlot == "" {
+		hotkeyResp.NextSlot = string(model.ButtonDPadRight)
+	}
+	if hotkeyResp.PrevSlot == "" {
+		hotkeyResp.PrevSlot = string(model.ButtonDPadLeft)
+	}
+	if hotkeyResp.FastForward == "" {
+		hotkeyResp.FastForward = string(model.ButtonY)
+	}
+	if hotkeyResp.Rewind == "" {
+		hotkeyResp.Rewind = string(model.ButtonX)
+	}
+	if hotkeyResp.Pause == "" {
+		hotkeyResp.Pause = string(model.ButtonA)
+	}
+	if hotkeyResp.Screenshot == "" {
+		hotkeyResp.Screenshot = string(model.ButtonB)
+	}
+	if hotkeyResp.Quit == "" {
+		hotkeyResp.Quit = string(model.ButtonStart)
+	}
+	if hotkeyResp.ToggleFullscreen == "" {
+		hotkeyResp.ToggleFullscreen = string(model.ButtonLeftStick)
+	}
+	if hotkeyResp.OpenMenu == "" {
+		hotkeyResp.OpenMenu = string(model.ButtonRightStick)
+	}
+
 	return []Event{{
 		Type: EventTypeResult,
 		Data: ConfigResponse{
 			Collection: cfg.Global.Collection,
 			Graphics:   GraphicsConfigResponse{Shaders: cfg.Graphics.Shaders},
 			Savestate:  SavestateConfigResponse{Resume: cfg.Savestate.Resume},
-			Controller: ControllerConfigResponse{NintendoConfirm: cfg.Controller.NintendoConfirm},
-			Systems:    systems,
-			Emulators:  emulators,
-			Frontends:  frontends,
-			Warnings:   warnings,
+			Controller: ControllerConfigResponse{
+				NintendoConfirm: cfg.Controller.NintendoConfirm,
+				Hotkeys:         hotkeyResp,
+			},
+			Systems:   systems,
+			Emulators: emulators,
+			Frontends: frontends,
+			Warnings:  warnings,
 		},
 	}}
 }
@@ -978,6 +1034,45 @@ func (d *Daemon) handleSetConfig(data *SetConfigRequest) []Event {
 
 		if data.Controller != nil {
 			cfg.Controller.NintendoConfirm = data.Controller.NintendoConfirm
+			if data.Controller.Hotkeys != nil {
+				hk := data.Controller.Hotkeys
+				if hk.Modifier != "" {
+					cfg.Controller.Hotkeys.Modifier = hk.Modifier
+				}
+				if hk.SaveState != "" {
+					cfg.Controller.Hotkeys.SaveState = hk.SaveState
+				}
+				if hk.LoadState != "" {
+					cfg.Controller.Hotkeys.LoadState = hk.LoadState
+				}
+				if hk.NextSlot != "" {
+					cfg.Controller.Hotkeys.NextSlot = hk.NextSlot
+				}
+				if hk.PrevSlot != "" {
+					cfg.Controller.Hotkeys.PrevSlot = hk.PrevSlot
+				}
+				if hk.FastForward != "" {
+					cfg.Controller.Hotkeys.FastForward = hk.FastForward
+				}
+				if hk.Rewind != "" {
+					cfg.Controller.Hotkeys.Rewind = hk.Rewind
+				}
+				if hk.Pause != "" {
+					cfg.Controller.Hotkeys.Pause = hk.Pause
+				}
+				if hk.Screenshot != "" {
+					cfg.Controller.Hotkeys.Screenshot = hk.Screenshot
+				}
+				if hk.Quit != "" {
+					cfg.Controller.Hotkeys.Quit = hk.Quit
+				}
+				if hk.ToggleFullscreen != "" {
+					cfg.Controller.Hotkeys.ToggleFullscreen = hk.ToggleFullscreen
+				}
+				if hk.OpenMenu != "" {
+					cfg.Controller.Hotkeys.OpenMenu = hk.OpenMenu
+				}
+			}
 		}
 
 		if data.Systems != nil {

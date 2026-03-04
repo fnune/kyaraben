@@ -1,5 +1,6 @@
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from 'react'
 import * as daemon from '@/lib/daemon'
+import type { HotkeyActionKey } from '@/types/controller'
 import type {
   ConfigResponse,
   EmulatorID,
@@ -21,11 +22,27 @@ import {
   withConfigChanges,
 } from './changeUtils'
 
+interface HotkeyConfig {
+  modifier: string
+  saveState: string
+  loadState: string
+  nextSlot: string
+  prevSlot: string
+  fastForward: string
+  rewind: string
+  pause: string
+  screenshot: string
+  quit: string
+  toggleFullscreen: string
+  openMenu: string
+}
+
 interface ConfigState {
   collection: string
   graphicsShaders: string
   savestateResume: string
   controllerNintendoConfirm: string
+  hotkeys: HotkeyConfig
   systemEmulators: Map<SystemID, EmulatorID[]>
   emulatorVersions: Map<EmulatorID, string>
   emulatorShaders: Map<EmulatorID, string | null>
@@ -34,12 +51,30 @@ interface ConfigState {
   frontendVersions: Map<FrontendID, string>
 }
 
+function defaultHotkeys(): HotkeyConfig {
+  return {
+    modifier: 'Back',
+    saveState: 'RightShoulder',
+    loadState: 'LeftShoulder',
+    nextSlot: 'DPadRight',
+    prevSlot: 'DPadLeft',
+    fastForward: 'Y',
+    rewind: 'X',
+    pause: 'A',
+    screenshot: 'B',
+    quit: 'Start',
+    toggleFullscreen: 'LeftStick',
+    openMenu: 'RightStick',
+  }
+}
+
 function emptyConfigState(): ConfigState {
   return {
     collection: '',
     graphicsShaders: '',
     savestateResume: '',
     controllerNintendoConfirm: '',
+    hotkeys: defaultHotkeys(),
     systemEmulators: new Map(),
     emulatorVersions: new Map(),
     emulatorShaders: new Map(),
@@ -55,6 +90,7 @@ function cloneConfigState(state: ConfigState): ConfigState {
     graphicsShaders: state.graphicsShaders,
     savestateResume: state.savestateResume,
     controllerNintendoConfirm: state.controllerNintendoConfirm,
+    hotkeys: { ...state.hotkeys },
     systemEmulators: new Map(state.systemEmulators),
     emulatorVersions: new Map(state.emulatorVersions),
     emulatorShaders: new Map(state.emulatorShaders),
@@ -106,6 +142,7 @@ function parseConfigResponse(data: ConfigResponse): ConfigState {
     graphicsShaders: data.graphics?.shaders ?? '',
     savestateResume: data.savestate?.resume ?? '',
     controllerNintendoConfirm: data.controller?.nintendoConfirm ?? 'east',
+    hotkeys: data.controller?.hotkeys ?? defaultHotkeys(),
     systemEmulators,
     emulatorVersions,
     emulatorShaders,
@@ -131,6 +168,9 @@ interface ConfigContextValue {
   setGraphicsShaders: (value: string) => void
   setSavestateResume: (value: string) => void
   setControllerNintendoConfirm: (value: string) => void
+  setHotkeyModifier: (value: string) => void
+  setHotkeyAction: (key: HotkeyActionKey, value: string) => void
+  resetHotkeys: () => void
   toggleEmulator: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
   setEmulatorVersion: (emulatorId: EmulatorID, version: string) => void
   setEmulatorShaders: (emulatorId: EmulatorID, shaders: string | null) => void
@@ -200,6 +240,15 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
     }
     if (configState.controllerNintendoConfirm !== savedConfig.controllerNintendoConfirm) {
       changes.push('Controller settings')
+    }
+
+    const hotkeysChanged = Object.keys(configState.hotkeys).some(
+      (key) =>
+        configState.hotkeys[key as keyof HotkeyConfig] !==
+        savedConfig.hotkeys[key as keyof HotkeyConfig],
+    )
+    if (hotkeysChanged) {
+      changes.push('Hotkey settings')
     }
 
     const systemEmulatorsChanged = (() => {
@@ -393,6 +442,27 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
     setConfigState((prev) => ({ ...prev, controllerNintendoConfirm: value }))
   }, [])
 
+  const setHotkeyModifier = useCallback((value: string) => {
+    setConfigState((prev) => ({
+      ...prev,
+      hotkeys: { ...prev.hotkeys, modifier: value },
+    }))
+  }, [])
+
+  const setHotkeyAction = useCallback((key: HotkeyActionKey, value: string) => {
+    setConfigState((prev) => ({
+      ...prev,
+      hotkeys: { ...prev.hotkeys, [key]: value },
+    }))
+  }, [])
+
+  const resetHotkeys = useCallback(() => {
+    setConfigState((prev) => ({
+      ...prev,
+      hotkeys: defaultHotkeys(),
+    }))
+  }, [])
+
   const toggleEmulator = useCallback(
     (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => {
       setConfigState((prev) => {
@@ -517,9 +587,10 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
       frontends: frontendsConfig,
       ...(state.graphicsShaders && { graphics: { shaders: state.graphicsShaders } }),
       ...(state.savestateResume && { savestate: { resume: state.savestateResume } }),
-      ...(state.controllerNintendoConfirm && {
-        controller: { nintendoConfirm: state.controllerNintendoConfirm },
-      }),
+      controller: {
+        nintendoConfirm: state.controllerNintendoConfirm,
+        hotkeys: state.hotkeys,
+      },
       ...(summaryMessage && { summaryMessage }),
     }
   }, [])
@@ -573,6 +644,9 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
       setGraphicsShaders,
       setSavestateResume,
       setControllerNintendoConfirm,
+      setHotkeyModifier,
+      setHotkeyAction,
+      resetHotkeys,
       toggleEmulator,
       setEmulatorVersion,
       setEmulatorShaders,
@@ -608,6 +682,9 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
       setGraphicsShaders,
       setSavestateResume,
       setControllerNintendoConfirm,
+      setHotkeyModifier,
+      setHotkeyAction,
+      resetHotkeys,
       toggleEmulator,
       setEmulatorVersion,
       setEmulatorShaders,

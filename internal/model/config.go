@@ -110,6 +110,9 @@ type ControllerTomlConfig struct {
 // ConfigInput for ControllerTomlConfig.NintendoConfirm
 const ConfigInputNintendoConfirm ConfigInput = "controller.nintendo_confirm"
 
+// ConfigInput for ControllerTomlConfig.Hotkeys
+const ConfigInputHotkeys ConfigInput = "controller.hotkeys"
+
 // ConfigInput for GlobalConfig.Collection
 const ConfigInputCollection ConfigInput = "global.collection"
 

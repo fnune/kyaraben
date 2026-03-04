@@ -26,7 +26,23 @@ type SavestateConfigRequest struct {
 }
 
 type ControllerConfigRequest struct {
-	NintendoConfirm string `json:"nintendoConfirm"`
+	NintendoConfirm string               `json:"nintendoConfirm"`
+	Hotkeys         *HotkeyConfigRequest `json:"hotkeys,omitempty"`
+}
+
+type HotkeyConfigRequest struct {
+	Modifier         string `json:"modifier,omitempty"`
+	SaveState        string `json:"saveState,omitempty"`
+	LoadState        string `json:"loadState,omitempty"`
+	NextSlot         string `json:"nextSlot,omitempty"`
+	PrevSlot         string `json:"prevSlot,omitempty"`
+	FastForward      string `json:"fastForward,omitempty"`
+	Rewind           string `json:"rewind,omitempty"`
+	Pause            string `json:"pause,omitempty"`
+	Screenshot       string `json:"screenshot,omitempty"`
+	Quit             string `json:"quit,omitempty"`
+	ToggleFullscreen string `json:"toggleFullscreen,omitempty"`
+	OpenMenu         string `json:"openMenu,omitempty"`
 }
 
 type FrontendConfRequest struct {
@@ -202,7 +218,23 @@ type SavestateConfigResponse struct {
 }
 
 type ControllerConfigResponse struct {
-	NintendoConfirm string `json:"nintendoConfirm"`
+	NintendoConfirm string               `json:"nintendoConfirm"`
+	Hotkeys         HotkeyConfigResponse `json:"hotkeys"`
+}
+
+type HotkeyConfigResponse struct {
+	Modifier         string `json:"modifier"`
+	SaveState        string `json:"saveState"`
+	LoadState        string `json:"loadState"`
+	NextSlot         string `json:"nextSlot"`
+	PrevSlot         string `json:"prevSlot"`
+	FastForward      string `json:"fastForward"`
+	Rewind           string `json:"rewind"`
+	Pause            string `json:"pause"`
+	Screenshot       string `json:"screenshot"`
+	Quit             string `json:"quit"`
+	ToggleFullscreen string `json:"toggleFullscreen"`
+	OpenMenu         string `json:"openMenu"`
 }
 
 type EmulatorConfResponse struct {
