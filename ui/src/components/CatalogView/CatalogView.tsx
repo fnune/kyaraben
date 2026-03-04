@@ -7,11 +7,8 @@ import { SearchInput } from '@/components/SearchInput/SearchInput'
 import { Settings } from '@/components/Settings/Settings'
 import { SYSTEM_YEARS, SystemCard } from '@/components/SystemCard/SystemCard'
 import { useApply } from '@/lib/ApplyContext'
-import { BottomBar } from '@/lib/BottomBar'
-import { Button } from '@/lib/Button'
 import { useConfig } from '@/lib/ConfigContext'
 import { ProgressSteps } from '@/lib/ProgressSteps'
-import { useOpenLog } from '@/lib/useOpenLog'
 import type {
   DoctorResponse,
   EmulatorID,
@@ -118,12 +115,9 @@ export function CatalogView({
     error,
     preflightData,
     syncPendingData,
-    confirmApply,
     confirmSyncPending,
     reset,
-    logPosition,
   } = useApply()
-  const openLog = useOpenLog()
 
   const showProgress =
     applyStatus !== 'idle' && applyStatus !== 'reviewing' && applyStatus !== 'confirming_sync'
@@ -199,7 +193,7 @@ export function CatalogView({
   }, [])
 
   if (applyStatus === 'reviewing' && preflightData) {
-    return <ConfigDiffReview data={preflightData} onConfirm={confirmApply} onCancel={reset} />
+    return <ConfigDiffReview data={preflightData} />
   }
 
   if (applyStatus === 'confirming_sync' && syncPendingData) {
@@ -238,8 +232,6 @@ export function CatalogView({
 
   if (showProgress) {
     const errorMessage = applyStatus === 'error' && error ? error : undefined
-    const isDone =
-      applyStatus === 'success' || applyStatus === 'error' || applyStatus === 'cancelled'
 
     return (
       <div className="p-6 pb-24">
@@ -248,21 +240,6 @@ export function CatalogView({
           {...(errorMessage && { error: errorMessage })}
           {...(applyStatus === 'cancelled' && { cancelled: true })}
         />
-        {isDone && (
-          <BottomBar>
-            <span />
-            <div className="flex items-center gap-4">
-              <button
-                type="button"
-                onClick={() => openLog(logPosition ?? undefined)}
-                className="text-on-surface-muted hover:text-on-surface-secondary hover:underline text-sm"
-              >
-                Open log in terminal
-              </button>
-              <Button onClick={reset}>Done</Button>
-            </div>
-          </BottomBar>
-        )}
       </div>
     )
   }

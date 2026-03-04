@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { ToastProvider } from '@/lib/ToastContext'
 import type { ApplyStatus, View } from '@/types/ui'
 import { VIEW_CATALOG, VIEW_PREFERENCES } from '@/types/ui'
-import { useApplyCompletionToast } from './useApplyCompletionToast'
+import { useApplyStatusHandler } from './useApplyStatusHandler'
 
 function TestComponent({
   initialStatus,
@@ -17,7 +17,7 @@ function TestComponent({
   onNavigateToCatalog: () => void
 }) {
   const [status, setStatus] = useState<ApplyStatus>(initialStatus)
-  useApplyCompletionToast(status, currentView, onNavigateToCatalog)
+  useApplyStatusHandler(status, currentView, onNavigateToCatalog)
 
   return (
     <div>
@@ -29,6 +29,12 @@ function TestComponent({
       </button>
       <button type="button" onClick={() => setStatus('applying')}>
         Set applying
+      </button>
+      <button type="button" onClick={() => setStatus('reviewing')}>
+        Set reviewing
+      </button>
+      <button type="button" onClick={() => setStatus('confirming_sync')}>
+        Set confirming_sync
       </button>
     </div>
   )
@@ -53,7 +59,7 @@ function renderWithProviders(
   }
 }
 
-describe('useApplyCompletionToast', () => {
+describe('useApplyStatusHandler', () => {
   it('shows persistent toast with navigation link when not in catalog view', async () => {
     const user = userEvent.setup()
     renderWithProviders('applying', VIEW_PREFERENCES)
@@ -106,5 +112,45 @@ describe('useApplyCompletionToast', () => {
     await user.click(screen.getByRole('button', { name: 'Set success' }))
 
     expect(screen.getAllByText(/Installation complete/)).toHaveLength(2)
+  })
+
+  it('navigates to catalog when status changes to reviewing and not in catalog', async () => {
+    const user = userEvent.setup()
+    const onNavigateToCatalog = vi.fn()
+    renderWithProviders('applying', VIEW_PREFERENCES, onNavigateToCatalog)
+
+    await user.click(screen.getByRole('button', { name: 'Set reviewing' }))
+
+    expect(onNavigateToCatalog).toHaveBeenCalled()
+  })
+
+  it('does not navigate when status changes to reviewing and already in catalog', async () => {
+    const user = userEvent.setup()
+    const onNavigateToCatalog = vi.fn()
+    renderWithProviders('applying', VIEW_CATALOG, onNavigateToCatalog)
+
+    await user.click(screen.getByRole('button', { name: 'Set reviewing' }))
+
+    expect(onNavigateToCatalog).not.toHaveBeenCalled()
+  })
+
+  it('navigates to catalog when status changes to confirming_sync and not in catalog', async () => {
+    const user = userEvent.setup()
+    const onNavigateToCatalog = vi.fn()
+    renderWithProviders('applying', VIEW_PREFERENCES, onNavigateToCatalog)
+
+    await user.click(screen.getByRole('button', { name: 'Set confirming_sync' }))
+
+    expect(onNavigateToCatalog).toHaveBeenCalled()
+  })
+
+  it('does not navigate when status changes to confirming_sync and already in catalog', async () => {
+    const user = userEvent.setup()
+    const onNavigateToCatalog = vi.fn()
+    renderWithProviders('applying', VIEW_CATALOG, onNavigateToCatalog)
+
+    await user.click(screen.getByRole('button', { name: 'Set confirming_sync' }))
+
+    expect(onNavigateToCatalog).not.toHaveBeenCalled()
   })
 })

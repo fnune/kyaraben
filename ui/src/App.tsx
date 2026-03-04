@@ -11,7 +11,7 @@ import { ApplyProvider, useApply } from '@/lib/ApplyContext'
 import { BottomBarSlot, BottomBarSlotProvider } from '@/lib/BottomBarSlot'
 import { ConfigProvider, useConfig } from '@/lib/ConfigContext'
 import * as daemon from '@/lib/daemon'
-import { useApplyCompletionToast } from '@/lib/hooks/useApplyCompletionToast'
+import { useApplyStatusHandler } from '@/lib/hooks/useApplyStatusHandler'
 import { useOnWindowFocus } from '@/lib/hooks/useOnWindowFocus'
 import { useSyncPairing } from '@/lib/hooks/useSyncPairing'
 import { useUpdateChecker } from '@/lib/hooks/useUpdateChecker'
@@ -245,7 +245,7 @@ function AppContent() {
     setUpgradeAvailable(showApplyBanner && !applyBannerDismissed)
   }, [showApplyBanner, applyBannerDismissed, setUpgradeAvailable])
 
-  useApplyCompletionToast(applyStatus, currentView, () => setCurrentView(VIEW_CATALOG))
+  useApplyStatusHandler(applyStatus, currentView, () => setCurrentView(VIEW_CATALOG))
 
   useOnWindowFocus(async () => {
     const [doctorResult] = await Promise.all([daemon.runDoctor(), refreshSyncStatus()])

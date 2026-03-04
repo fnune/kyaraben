@@ -12,6 +12,16 @@ import { getDownloadSpeedBytes, getStepSubtitle } from '@/lib/progressUtils'
 import { ProgressBar, ProgressRail, Shimmer } from '@/lib/progressWidgets'
 import { useOpenLog } from '@/lib/useOpenLog'
 
+function hasUserConflicts(
+  diffs: readonly {
+    userModified?: boolean
+    hasChanges?: boolean
+    userChanges?: readonly unknown[]
+  }[],
+): boolean {
+  return diffs.some((d) => d.userModified && d.hasChanges && (d.userChanges?.length ?? 0) > 0)
+}
+
 function formatConfigChanges(changes: readonly string[]): string {
   if (changes.length === 0) return ''
   const lower = changes.map((c) => c.toLowerCase())
@@ -27,7 +37,8 @@ function capitalize(s: string): string {
 }
 
 export function ApplyBar() {
-  const { status, progressSteps, cancel, logPosition } = useApply()
+  const { status, progressSteps, cancel, logPosition, preflightData, confirmApply, reset } =
+    useApply()
   const { changes, apply, reapply, discard, upgradeAvailable } = useConfig()
   const homeDir = useHomeDir()
   const openLog = useOpenLog()
@@ -77,6 +88,47 @@ export function ApplyBar() {
     } else {
       setConfirmingCancel(true)
     }
+  }
+
+  if (status === 'reviewing' && preflightData) {
+    const showOverride = hasUserConflicts(preflightData.diffs ?? [])
+    return (
+      <BottomBar>
+        <button
+          type="button"
+          onClick={reset}
+          className="text-accent hover:text-accent-hover hover:underline"
+        >
+          Cancel
+        </button>
+        <Button onClick={confirmApply}>
+          {showOverride ? 'Continue and override' : 'Continue'}
+        </Button>
+      </BottomBar>
+    )
+  }
+
+  if (status === 'confirming_sync') {
+    return null
+  }
+
+  const isDone = status === 'success' || status === 'error' || status === 'cancelled'
+  if (isDone) {
+    return (
+      <BottomBar>
+        <span />
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => openLog(logPosition ?? undefined)}
+            className="text-on-surface-muted hover:text-on-surface-secondary hover:underline text-sm"
+          >
+            Open log in terminal
+          </button>
+          <Button onClick={reset}>Done</Button>
+        </div>
+      </BottomBar>
+    )
   }
 
   if (!hasChanges && !upgradeAvailable && !isApplying) {

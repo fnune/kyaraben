@@ -1,5 +1,3 @@
-import { BottomBar } from '@/lib/BottomBar'
-import { Button } from '@/lib/Button'
 import { useOpenPath } from '@/lib/hooks/useOpenPath'
 import { PathText } from '@/lib/PathText'
 import { useScrollToTop } from '@/lib/useScrollToTop'
@@ -13,8 +11,6 @@ import type {
 
 export interface ConfigDiffReviewProps {
   readonly data: PreflightResponse
-  readonly onConfirm: () => void
-  readonly onCancel: () => void
 }
 
 function changeLabel(type: string): string {
@@ -162,7 +158,7 @@ function FileDiff({ diff }: { readonly diff: ConfigFileDiff }) {
   )
 }
 
-export function ConfigDiffReview({ data, onConfirm, onCancel }: ConfigDiffReviewProps) {
+export function ConfigDiffReview({ data }: ConfigDiffReviewProps) {
   useScrollToTop()
 
   const userConflictDiffs = data.diffs.filter(
@@ -225,19 +221,6 @@ export function ConfigDiffReview({ data, onConfirm, onCancel }: ConfigDiffReview
           ))}
         </div>
       )}
-
-      <BottomBar>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="text-accent hover:text-accent-hover hover:underline"
-        >
-          Cancel
-        </button>
-        <Button onClick={onConfirm}>
-          {hasUserConflicts ? 'Continue and override' : 'Continue'}
-        </Button>
-      </BottomBar>
     </div>
   )
 }

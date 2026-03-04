@@ -3,7 +3,7 @@ import { useToast } from '@/lib/ToastContext'
 import type { ApplyStatus, View } from '@/types/ui'
 import { VIEW_CATALOG, VIEW_LABELS } from '@/types/ui'
 
-export function useApplyCompletionToast(
+export function useApplyStatusHandler(
   applyStatus: ApplyStatus,
   currentView: View,
   onNavigateToCatalog: () => void,
@@ -13,7 +13,12 @@ export function useApplyCompletionToast(
 
   useEffect(() => {
     if (applyStatus === lastApplyStatus.current) return
-    if (applyStatus === 'success') {
+
+    if (applyStatus === 'reviewing' || applyStatus === 'confirming_sync') {
+      if (currentView !== VIEW_CATALOG) {
+        onNavigateToCatalog()
+      }
+    } else if (applyStatus === 'success') {
       if (currentView !== VIEW_CATALOG) {
         showToast(
           <span>
@@ -33,6 +38,7 @@ export function useApplyCompletionToast(
         showToast('Installation complete.', 'success')
       }
     }
+
     lastApplyStatus.current = applyStatus
   }, [applyStatus, currentView, showToast, onNavigateToCatalog])
 }
