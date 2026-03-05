@@ -471,25 +471,30 @@ and manual. A separate bezels toggle adds decorative borders.
 modern display settings regardless of the preset selection. CRT and LCD shaders
 only apply to 5th generation and earlier systems.
 
-Shader and overlay assets come from the
-[RGC Overlay Pack](https://github.com/retrogamecorps/RGC-Overlay-Pack/releases/tag/v1.0).
-This pack includes:
+Shader selection follows recommendations from the
+[RGC Overlay Pack](https://github.com/retrogamecorps/RGC-Overlay-Pack) and
+[RGC Shaders Guide](https://retrogamecorps.com/2024/09/01/guide-shaders-and-overlays-on-retro-handhelds/).
 
-- CRT shaders tuned for different screen sizes and resolutions
-- LCD shaders for handheld systems
-- Bezels/overlays for various systems
-- Per-system recommendations for shader selection
+Current shader assignments for pseudo-authentic preset:
 
-The pack needs analysis to understand:
+- CRT systems (home consoles): `crt-1tap.slang` - lightweight dynamic scanline
+  shader with subtle CRT effect, good performance on handhelds
+- LCD systems (Game Boy, GBA, etc.): `lcd-grid-v2.slang` - LCD pixel grid effect
 
-- Directory structure and file organization
-- Which shaders map to which systems
-- How to integrate overlays with RetroArch and standalone emulators
-- Resolution and device-specific recommendations (desktop vs Steam Deck)
+Shaders are downloaded from the
+[libretro slang-shaders](https://github.com/libretro/slang-shaders) repository
+at a pinned commit to ensure reproducibility. They are stored in
+`~/.config/retroarch/shaders/kyaraben/`.
 
 Target device detection (`internal/hardware/detect.go`) identifies Steam Deck
 (Jupiter for LCD, Galileo for OLED) and other devices via DMI product name.
-This enables device-appropriate shader selection.
+This enables device-appropriate shader selection in the future.
+
+Planned improvements:
+
+- Bezels/overlays for systems with non-standard aspect ratios
+- Per-device shader parameter tuning (Steam Deck vs desktop)
+- Additional LCD shader options for different handheld aesthetics
 
 ## Commit messages
 

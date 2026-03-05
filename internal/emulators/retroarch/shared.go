@@ -14,8 +14,8 @@ import (
 
 const (
 	slangShadersCommit = "09c7468812414b682703719c1726bb6263ec5530"
-	crtShaderFile      = "crt-mattias.slang"
-	crtShaderSHA256    = "8219c0dcadfec5db9fb4b9c53cb695cecaa8e1b0fb5993fe3d5a7a7584fe4fed"
+	crtShaderFile      = "crt-1tap.slang"
+	crtShaderSHA256    = "b77ec93a9edc00a485bb8d99fdf7222c9e6bd10fde50fc321a197a3616d08a99"
 	lcdShaderFile      = "lcd-grid-v2.slang"
 	lcdShaderSHA256    = "dc77b29530e5b771f12a5a2dd68c390805139bc25d84a30dead021fd38e581c5"
 )
@@ -408,7 +408,7 @@ func CoreShaderDownloads(emuID model.EmulatorID, resolver model.BaseDirResolver,
 	}
 
 	return []model.InitialDownload{{
-		URL:      "https://raw.githubusercontent.com/libretro/slang-shaders/" + slangShadersCommit + "/crt/shaders/crt-mattias.slang",
+		URL:      "https://raw.githubusercontent.com/libretro/slang-shaders/" + slangShadersCommit + "/crt/shaders/crt-1tap.slang",
 		SHA256:   crtShaderSHA256,
 		DestPath: filepath.Join(shaderDir, crtShaderFile),
 	}}, nil
