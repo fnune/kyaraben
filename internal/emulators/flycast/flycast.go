@@ -12,6 +12,14 @@ import (
 
 type Definition struct{}
 
+var hotkeyMappings = model.HotkeyMappings{
+	SaveState:   &model.HotkeyKey{Key: "btn_quick_save"},
+	LoadState:   &model.HotkeyKey{Key: "btn_jump_state"},
+	FastForward: &model.HotkeyKey{Key: "btn_fforward"},
+	Screenshot:  &model.HotkeyKey{Key: "btn_screenshot"},
+	Quit:        &model.HotkeyKey{Key: "btn_escape"},
+}
+
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
 		ID:      model.EmulatorIDFlycast,
@@ -43,6 +51,7 @@ func (Definition) Emulator() model.Emulator {
 		},
 		PathUsage:         model.StandardPathUsage(),
 		SupportedSettings: []string{model.SettingResumeAutosave, model.SettingResumeAutoload},
+		SupportedHotkeys:  hotkeyMappings.SupportedHotkeys(),
 		ResumeRecommended: true,
 	}
 }

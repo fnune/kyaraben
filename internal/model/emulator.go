@@ -33,6 +33,7 @@ type Emulator struct {
 	Launcher           LauncherInfo
 	PathUsage          PathUsage
 	SupportedSettings  []string
+	SupportedHotkeys   []HotkeyID
 	ShadersRecommended bool
 	ResumeRecommended  bool
 }

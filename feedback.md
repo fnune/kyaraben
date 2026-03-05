@@ -27,10 +27,6 @@
 
 ### Proper blocker
 
-- We are not surfacing controller hotkey options in the UI
-  - This is hard because the natural way to do this would be using a controller
-  - But that would need to happen within Steam because otherwise we don't have Steam Input
-  - The alternative is text selection with dropdown options for known keys
 - "Shaders" isn't at the right level
   - See https://retrogamecorps.com/2024/09/01/guide-shaders-and-overlays-on-retro-handhelds/comment-page-1/
   - Shaders is only one part of the thing, although this is what people search for

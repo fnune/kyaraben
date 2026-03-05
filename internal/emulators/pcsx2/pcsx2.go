@@ -13,6 +13,20 @@ import (
 
 type Definition struct{}
 
+var hotkeyMappings = model.HotkeyMappings{
+	SaveState:        &model.HotkeyKey{Key: "SaveStateToSlot"},
+	LoadState:        &model.HotkeyKey{Key: "LoadStateFromSlot"},
+	NextSlot:         &model.HotkeyKey{Key: "NextSaveStateSlot"},
+	PrevSlot:         &model.HotkeyKey{Key: "PreviousSaveStateSlot"},
+	FastForward:      &model.HotkeyKey{Key: "ToggleTurbo"},
+	Rewind:           &model.HotkeyKey{Key: "ToggleSlowMotion"},
+	Pause:            &model.HotkeyKey{Key: "TogglePause"},
+	Screenshot:       &model.HotkeyKey{Key: "Screenshot"},
+	Quit:             &model.HotkeyKey{Key: "ShutdownVM"},
+	ToggleFullscreen: &model.HotkeyKey{Key: "ToggleFullscreen"},
+	OpenMenu:         &model.HotkeyKey{Key: "OpenPauseMenu"},
+}
+
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
 		ID:      model.EmulatorIDPCSX2,
@@ -44,6 +58,7 @@ func (Definition) Emulator() model.Emulator {
 		},
 		PathUsage:         model.StandardPathUsage(),
 		SupportedSettings: []string{model.SettingShaders, model.SettingResumeAutosave},
+		SupportedHotkeys:  hotkeyMappings.SupportedHotkeys(),
 		ResumeRecommended: false,
 	}
 }

@@ -10,6 +10,18 @@ import (
 
 type Definition struct{}
 
+var hotkeyMappings = model.HotkeyMappings{
+	SaveState:   &model.HotkeyKey{Key: "Save State"},
+	LoadState:   &model.HotkeyKey{Key: "Load State"},
+	NextSlot:    &model.HotkeyKey{Key: "Next Slot"},
+	PrevSlot:    &model.HotkeyKey{Key: "Previous Slot"},
+	FastForward: &model.HotkeyKey{Key: "SpeedToggle"},
+	Rewind:      &model.HotkeyKey{Key: "Rewind"},
+	Pause:       &model.HotkeyKey{Key: "Pause"},
+	Screenshot:  &model.HotkeyKey{Key: "Screenshot"},
+	Quit:        &model.HotkeyKey{Key: "Exit App"},
+}
+
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
 		ID:              model.EmulatorIDPPSSPP,
@@ -41,6 +53,7 @@ func (Definition) Emulator() model.Emulator {
 			UsesScreenshotsDir: true,
 		},
 		SupportedSettings: []string{model.SettingShaders, model.SettingResumeAutoload},
+		SupportedHotkeys:  hotkeyMappings.SupportedHotkeys(),
 		ResumeRecommended: false,
 	}
 }

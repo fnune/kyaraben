@@ -5,6 +5,7 @@ packages:
       - system.go
       - emulator_id.go
       - frontend_id.go
+      - hotkey_mapping.go
     enum_style: union
 
   - path: github.com/fnune/kyaraben/internal/logging
@@ -24,7 +25,8 @@ packages:
       model.EmulatorID: EmulatorID
       model.FrontendID: FrontendID
       model.Manufacturer: Manufacturer
+      model.HotkeyID: HotkeyID
       logging.LogEntry: LogEntry
     frontmatter: |
-      import type { SystemID, EmulatorID, FrontendID, Manufacturer } from './model.gen'
+      import type { SystemID, EmulatorID, FrontendID, Manufacturer, HotkeyID } from './model.gen'
       import type { LogEntry } from './logging.gen'

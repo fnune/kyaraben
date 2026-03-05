@@ -801,6 +801,8 @@ func (d *Daemon) handleGetSystems() []Event {
 				Name:              emu.Name,
 				PackageName:       emu.Package.PackageName(),
 				SupportedSettings: emu.SupportedSettings,
+				SupportedHotkeys:  emu.SupportedHotkeys,
+				ResumeRecommended: emu.ResumeRecommended,
 			}
 
 			if vers != nil {
@@ -857,6 +859,7 @@ func (d *Daemon) handleGetSystems() []Event {
 			Label:             sys.Label,
 			DefaultEmulatorID: defaultEmuID,
 			Emulators:         emuList,
+			NintendoDiamond:   model.NintendoDiamondSystems[sys.ID],
 		})
 	}
 

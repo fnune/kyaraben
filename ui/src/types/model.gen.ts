@@ -48,6 +48,50 @@ export type FrontendID = string;
 export const FrontendIDESDE: FrontendID = "esde";
 
 //////////
+// source: hotkey_mapping.go
+
+/**
+ * HotkeyID identifies a hotkey action.
+ * Constants use the full type name as prefix (HotkeyID*) because tygo's
+ * enum_style: union requires the prefix to match the type name exactly.
+ */
+export const HotkeyIDSaveState = "savestate";
+export const HotkeyIDLoadState = "loadstate";
+export const HotkeyIDNextSlot = "nextslot";
+export const HotkeyIDPrevSlot = "prevslot";
+export const HotkeyIDFastForward = "fastforward";
+export const HotkeyIDRewind = "rewind";
+export const HotkeyIDPause = "pause";
+export const HotkeyIDScreenshot = "screenshot";
+export const HotkeyIDQuit = "quit";
+export const HotkeyIDToggleFullscreen = "fullscreen";
+export const HotkeyIDOpenMenu = "menu";
+export type HotkeyID = typeof HotkeyIDSaveState | typeof HotkeyIDLoadState | typeof HotkeyIDNextSlot | typeof HotkeyIDPrevSlot | typeof HotkeyIDFastForward | typeof HotkeyIDRewind | typeof HotkeyIDPause | typeof HotkeyIDScreenshot | typeof HotkeyIDQuit | typeof HotkeyIDToggleFullscreen | typeof HotkeyIDOpenMenu;
+/**
+ * HotkeyMappings declares which hotkeys an emulator supports.
+ * Each non-nil field indicates the emulator supports that hotkey.
+ */
+export interface HotkeyMappings {
+  SaveState?: HotkeyKey;
+  LoadState?: HotkeyKey;
+  NextSlot?: HotkeyKey;
+  PrevSlot?: HotkeyKey;
+  FastForward?: HotkeyKey;
+  Rewind?: HotkeyKey;
+  Pause?: HotkeyKey;
+  Screenshot?: HotkeyKey;
+  Quit?: HotkeyKey;
+  ToggleFullscreen?: HotkeyKey;
+  OpenMenu?: HotkeyKey;
+}
+/**
+ * HotkeyKey holds the emulator-specific config key for a hotkey.
+ */
+export interface HotkeyKey {
+  Key: string;
+}
+
+//////////
 // source: system.go
 
 /**

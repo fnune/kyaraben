@@ -20,6 +20,20 @@ const (
 	lcdShaderSHA256    = "dc77b29530e5b771f12a5a2dd68c390805139bc25d84a30dead021fd38e581c5"
 )
 
+var HotkeyMappings = model.HotkeyMappings{
+	SaveState:        &model.HotkeyKey{Key: "input_save_state_btn"},
+	LoadState:        &model.HotkeyKey{Key: "input_load_state_btn"},
+	NextSlot:         &model.HotkeyKey{Key: "input_state_slot_increase_btn"},
+	PrevSlot:         &model.HotkeyKey{Key: "input_state_slot_decrease_btn"},
+	FastForward:      &model.HotkeyKey{Key: "input_toggle_fast_forward_btn"},
+	Rewind:           &model.HotkeyKey{Key: "input_rewind_btn"},
+	Pause:            &model.HotkeyKey{Key: "input_pause_toggle_btn"},
+	Screenshot:       &model.HotkeyKey{Key: "input_screenshot_btn"},
+	Quit:             &model.HotkeyKey{Key: "input_exit_emulator_btn"},
+	ToggleFullscreen: &model.HotkeyKey{Key: "input_toggle_fullscreen_btn"},
+	OpenMenu:         &model.HotkeyKey{Key: "input_menu_toggle_btn"},
+}
+
 var SharedLauncher = model.LauncherInfo{
 	Binary:      "retroarch",
 	DisplayName: "RetroArch",

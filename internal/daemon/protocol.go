@@ -185,6 +185,7 @@ type SystemWithEmulators struct {
 	Label             string             `json:"label"`
 	DefaultEmulatorID model.EmulatorID   `json:"defaultEmulatorId"`
 	Emulators         []EmulatorRef      `json:"emulators"`
+	NintendoDiamond   bool               `json:"nintendoDiamond,omitempty"`
 }
 
 type EmulatorRef struct {
@@ -196,6 +197,8 @@ type EmulatorRef struct {
 	CoreBytes         int64            `json:"coreBytes,omitempty"`
 	PackageName       string           `json:"packageName,omitempty"`
 	SupportedSettings []string         `json:"supportedSettings,omitempty"`
+	SupportedHotkeys  []model.HotkeyID `json:"supportedHotkeys,omitempty"`
+	ResumeRecommended bool             `json:"resumeRecommended,omitempty"`
 }
 
 type ConfigResponse struct {

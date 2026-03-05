@@ -27,6 +27,7 @@ func (Definition) Emulator() model.Emulator {
 			UsesScreenshotsDir: true,
 		},
 		SupportedSettings:  []string{model.SettingShaders, model.SettingResumeAutosave, model.SettingResumeAutoload},
+		SupportedHotkeys:   retroarch.HotkeyMappings.SupportedHotkeys(),
 		ShadersRecommended: true,
 		ResumeRecommended:  true,
 	}

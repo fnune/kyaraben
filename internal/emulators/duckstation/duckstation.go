@@ -13,6 +13,19 @@ import (
 
 type Definition struct{}
 
+var hotkeyMappings = model.HotkeyMappings{
+	SaveState:   &model.HotkeyKey{Key: "SaveSelectedSaveState"},
+	LoadState:   &model.HotkeyKey{Key: "LoadSelectedSaveState"},
+	NextSlot:    &model.HotkeyKey{Key: "SelectNextSaveStateSlot"},
+	PrevSlot:    &model.HotkeyKey{Key: "SelectPreviousSaveStateSlot"},
+	FastForward: &model.HotkeyKey{Key: "ToggleFastForward"},
+	Rewind:      &model.HotkeyKey{Key: "Rewind"},
+	Pause:       &model.HotkeyKey{Key: "TogglePause"},
+	Screenshot:  &model.HotkeyKey{Key: "Screenshot"},
+	OpenMenu:    &model.HotkeyKey{Key: "OpenPauseMenu"},
+	Quit:        &model.HotkeyKey{Key: "PowerOff"},
+}
+
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
 		ID:      model.EmulatorIDDuckStation,
@@ -47,6 +60,7 @@ func (Definition) Emulator() model.Emulator {
 		},
 		PathUsage:          model.StandardPathUsage(),
 		SupportedSettings:  []string{model.SettingShaders, model.SettingResumeAutosave, model.SettingResumeAutoload},
+		SupportedHotkeys:   hotkeyMappings.SupportedHotkeys(),
 		ShadersRecommended: true,
 		ResumeRecommended:  true,
 	}

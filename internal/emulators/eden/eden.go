@@ -11,6 +11,14 @@ import (
 
 type Definition struct{}
 
+var hotkeyMappings = model.HotkeyMappings{
+	FastForward:      &model.HotkeyKey{Key: "Toggle Framerate Limit"},
+	Pause:            &model.HotkeyKey{Key: "Continue/Pause Emulation"},
+	Screenshot:       &model.HotkeyKey{Key: "Capture Screenshot"},
+	Quit:             &model.HotkeyKey{Key: "Exit Eden"},
+	ToggleFullscreen: &model.HotkeyKey{Key: "Fullscreen"},
+}
+
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
 		ID:      model.EmulatorIDEden,
@@ -69,6 +77,7 @@ func (Definition) Emulator() model.Emulator {
 			UsesSavesDir:       true,
 			UsesScreenshotsDir: true,
 		},
+		SupportedHotkeys: hotkeyMappings.SupportedHotkeys(),
 	}
 }
 

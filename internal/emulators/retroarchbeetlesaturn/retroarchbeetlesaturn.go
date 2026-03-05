@@ -30,6 +30,7 @@ func (Definition) Emulator() model.Emulator {
 		Launcher:          retroarch.LauncherWithCore(libretroCoreName),
 		PathUsage:         model.StandardPathUsage(),
 		SupportedSettings: []string{model.SettingResumeAutosave, model.SettingResumeAutoload},
+		SupportedHotkeys:  retroarch.HotkeyMappings.SupportedHotkeys(),
 		ResumeRecommended: true,
 	}
 }

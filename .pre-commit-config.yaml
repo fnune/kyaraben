@@ -36,6 +36,7 @@ repos:
         language: system
         entry: sh -c 'cd ui && biome check --write "${@#ui/}"' --
         files: ^ui/.*\.(ts|tsx|js|jsx|json|css)$
+        exclude: \.gen\.(ts|js)$
         pass_filenames: true
 
       - id: prettier

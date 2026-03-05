@@ -23,6 +23,65 @@ const crtShaderFile = "crt_lottes_fast.glsl"
 
 type Definition struct{}
 
+type dolphinHotkey struct {
+	key        string
+	wrapToggle bool
+}
+
+var hotkeyDefs = struct {
+	SaveState        *dolphinHotkey
+	LoadState        *dolphinHotkey
+	NextSlot         *dolphinHotkey
+	PrevSlot         *dolphinHotkey
+	FastForward      *dolphinHotkey
+	Pause            *dolphinHotkey
+	Screenshot       *dolphinHotkey
+	Quit             *dolphinHotkey
+	ToggleFullscreen *dolphinHotkey
+}{
+	SaveState:        &dolphinHotkey{key: "Save State/Save to Selected Slot"},
+	LoadState:        &dolphinHotkey{key: "Load State/Load from Selected Slot"},
+	NextSlot:         &dolphinHotkey{key: "Other State Hotkeys/Increase Selected State Slot"},
+	PrevSlot:         &dolphinHotkey{key: "Other State Hotkeys/Decrease Selected State Slot"},
+	FastForward:      &dolphinHotkey{key: "Emulation Speed/Disable Emulation Speed Limit", wrapToggle: true},
+	Pause:            &dolphinHotkey{key: "General/Toggle Pause"},
+	Screenshot:       &dolphinHotkey{key: "General/Take Screenshot"},
+	Quit:             &dolphinHotkey{key: "General/Exit"},
+	ToggleFullscreen: &dolphinHotkey{key: "General/Toggle Fullscreen"},
+}
+
+func supportedHotkeys() []model.HotkeyID {
+	var ids []model.HotkeyID
+	if hotkeyDefs.SaveState != nil {
+		ids = append(ids, model.HotkeyIDSaveState)
+	}
+	if hotkeyDefs.LoadState != nil {
+		ids = append(ids, model.HotkeyIDLoadState)
+	}
+	if hotkeyDefs.NextSlot != nil {
+		ids = append(ids, model.HotkeyIDNextSlot)
+	}
+	if hotkeyDefs.PrevSlot != nil {
+		ids = append(ids, model.HotkeyIDPrevSlot)
+	}
+	if hotkeyDefs.FastForward != nil {
+		ids = append(ids, model.HotkeyIDFastForward)
+	}
+	if hotkeyDefs.Pause != nil {
+		ids = append(ids, model.HotkeyIDPause)
+	}
+	if hotkeyDefs.Screenshot != nil {
+		ids = append(ids, model.HotkeyIDScreenshot)
+	}
+	if hotkeyDefs.Quit != nil {
+		ids = append(ids, model.HotkeyIDQuit)
+	}
+	if hotkeyDefs.ToggleFullscreen != nil {
+		ids = append(ids, model.HotkeyIDToggleFullscreen)
+	}
+	return ids
+}
+
 func (Definition) Emulator() model.Emulator {
 	return model.Emulator{
 		ID:              model.EmulatorIDDolphin,
@@ -57,6 +116,7 @@ func (Definition) Emulator() model.Emulator {
 			UsesScreenshotsDir: true,
 		},
 		SupportedSettings:  []string{model.SettingShaders},
+		SupportedHotkeys:   supportedHotkeys(),
 		ShadersRecommended: true,
 	}
 }

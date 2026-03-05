@@ -91,8 +91,12 @@ export function HotkeySettings({ hotkeys, onModifierChange, onActionChange }: Ho
                   size="sm"
                   error={hasError}
                 />
-                {isSameAsModifier && <span className="text-xs text-status-error">Same as modifier</span>}
-                {isDuplicate && !isSameAsModifier && <span className="text-xs text-status-error">Duplicate</span>}
+                {isSameAsModifier && (
+                  <span className="text-xs text-status-error">Same as modifier</span>
+                )}
+                {isDuplicate && !isSameAsModifier && (
+                  <span className="text-xs text-status-error">Duplicate</span>
+                )}
               </div>
             )
           })}

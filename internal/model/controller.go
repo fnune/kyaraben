@@ -163,10 +163,10 @@ func ValidateNintendoConfirmButton(s string) (NintendoConfirmButton, error) {
 // controller (Xbox, PlayStation, etc.) appears with this GUID.
 const SteamDeckGUID = "03000000de280000ff11000001000000"
 
-// nintendoDiamondSystems lists Nintendo systems with diamond-layout face buttons
+// NintendoDiamondSystems lists Nintendo systems with diamond-layout face buttons
 // where the NintendoConfirmButton setting applies. N64 is excluded because its
 // controller has a unique layout where A/B aren't in a standard diamond.
-var nintendoDiamondSystems = map[SystemID]bool{
+var NintendoDiamondSystems = map[SystemID]bool{
 	SystemIDNES:      true,
 	SystemIDSNES:     true,
 	SystemIDGB:       true,
@@ -194,7 +194,7 @@ type FaceButtonMapping struct {
 // NintendoConfirmSouth is set so that physical south triggers Nintendo A.
 // For all other systems (including N64), positional mapping is used.
 func (cc *ControllerConfig) FaceButtons(sys SystemID) FaceButtonMapping {
-	if nintendoDiamondSystems[sys] && cc.NintendoConfirm == NintendoConfirmSouth {
+	if NintendoDiamondSystems[sys] && cc.NintendoConfirm == NintendoConfirmSouth {
 		return FaceButtonMapping{
 			South: ButtonB, // Nintendo A (originally east) now at south
 			East:  ButtonA, // Nintendo B (originally south) now at east
