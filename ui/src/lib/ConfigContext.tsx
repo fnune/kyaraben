@@ -39,13 +39,15 @@ interface HotkeyConfig {
 
 interface ConfigState {
   collection: string
-  graphicsShaders: string
+  graphicsPreset: string
+  graphicsBezels: boolean
+  graphicsTarget: string
   savestateResume: string
   controllerNintendoConfirm: string
   hotkeys: HotkeyConfig
   systemEmulators: Map<SystemID, EmulatorID[]>
   emulatorVersions: Map<EmulatorID, string>
-  emulatorShaders: Map<EmulatorID, string | null>
+  emulatorPresets: Map<EmulatorID, string | null>
   emulatorResume: Map<EmulatorID, string | null>
   enabledFrontends: Map<FrontendID, boolean>
   frontendVersions: Map<FrontendID, string>
@@ -71,13 +73,15 @@ function defaultHotkeys(): HotkeyConfig {
 function emptyConfigState(): ConfigState {
   return {
     collection: '',
-    graphicsShaders: '',
+    graphicsPreset: '',
+    graphicsBezels: true,
+    graphicsTarget: '',
     savestateResume: '',
     controllerNintendoConfirm: '',
     hotkeys: defaultHotkeys(),
     systemEmulators: new Map(),
     emulatorVersions: new Map(),
-    emulatorShaders: new Map(),
+    emulatorPresets: new Map(),
     emulatorResume: new Map(),
     enabledFrontends: new Map(),
     frontendVersions: new Map(),
@@ -87,13 +91,15 @@ function emptyConfigState(): ConfigState {
 function cloneConfigState(state: ConfigState): ConfigState {
   return {
     collection: state.collection,
-    graphicsShaders: state.graphicsShaders,
+    graphicsPreset: state.graphicsPreset,
+    graphicsBezels: state.graphicsBezels,
+    graphicsTarget: state.graphicsTarget,
     savestateResume: state.savestateResume,
     controllerNintendoConfirm: state.controllerNintendoConfirm,
     hotkeys: { ...state.hotkeys },
     systemEmulators: new Map(state.systemEmulators),
     emulatorVersions: new Map(state.emulatorVersions),
-    emulatorShaders: new Map(state.emulatorShaders),
+    emulatorPresets: new Map(state.emulatorPresets),
     emulatorResume: new Map(state.emulatorResume),
     enabledFrontends: new Map(state.enabledFrontends),
     frontendVersions: new Map(state.frontendVersions),
@@ -103,7 +109,7 @@ function cloneConfigState(state: ConfigState): ConfigState {
 function parseConfigResponse(data: ConfigResponse): ConfigState {
   const systemEmulators = new Map<SystemID, EmulatorID[]>()
   const emulatorVersions = new Map<EmulatorID, string>()
-  const emulatorShaders = new Map<EmulatorID, string | null>()
+  const emulatorPresets = new Map<EmulatorID, string | null>()
   const emulatorResume = new Map<EmulatorID, string | null>()
   const enabledFrontends = new Map<FrontendID, boolean>()
   const frontendVersions = new Map<FrontendID, string>()
@@ -119,8 +125,8 @@ function parseConfigResponse(data: ConfigResponse): ConfigState {
       if (conf.version) {
         emulatorVersions.set(emuId as EmulatorID, conf.version)
       }
-      if (conf.shaders !== undefined) {
-        emulatorShaders.set(emuId as EmulatorID, conf.shaders ?? null)
+      if (conf.preset !== undefined) {
+        emulatorPresets.set(emuId as EmulatorID, conf.preset ?? null)
       }
       if (conf.resume !== undefined) {
         emulatorResume.set(emuId as EmulatorID, conf.resume ?? null)
@@ -139,13 +145,15 @@ function parseConfigResponse(data: ConfigResponse): ConfigState {
 
   return {
     collection: data.collection,
-    graphicsShaders: data.graphics?.shaders ?? '',
+    graphicsPreset: data.graphics?.preset ?? '',
+    graphicsBezels: data.graphics?.bezels ?? true,
+    graphicsTarget: data.graphics?.target ?? '',
     savestateResume: data.savestate?.resume ?? '',
     controllerNintendoConfirm: data.controller?.nintendoConfirm ?? 'east',
     hotkeys: data.controller?.hotkeys ?? defaultHotkeys(),
     systemEmulators,
     emulatorVersions,
-    emulatorShaders,
+    emulatorPresets,
     emulatorResume,
     enabledFrontends,
     frontendVersions,
@@ -165,7 +173,9 @@ interface ConfigContextValue {
   upgradeAvailable: boolean
 
   setCollection: (value: string) => void
-  setGraphicsShaders: (value: string) => void
+  setGraphicsPreset: (value: string) => void
+  setGraphicsBezels: (value: boolean) => void
+  setGraphicsTarget: (value: string) => void
   setSavestateResume: (value: string) => void
   setControllerNintendoConfirm: (value: string) => void
   setHotkeyModifier: (value: string) => void
@@ -173,7 +183,7 @@ interface ConfigContextValue {
   resetHotkeys: () => void
   toggleEmulator: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
   setEmulatorVersion: (emulatorId: EmulatorID, version: string) => void
-  setEmulatorShaders: (emulatorId: EmulatorID, shaders: string | null) => void
+  setEmulatorPreset: (emulatorId: EmulatorID, preset: string | null) => void
   setEmulatorResume: (emulatorId: EmulatorID, resume: string | null) => void
   toggleFrontend: (frontendId: FrontendID, enabled: boolean) => void
   setFrontendVersion: (frontendId: FrontendID, version: string) => void
@@ -232,8 +242,12 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
     if (configState.collection !== savedConfig.collection) {
       changes.push('Collection')
     }
-    if (configState.graphicsShaders !== savedConfig.graphicsShaders) {
-      changes.push('Shader settings')
+    if (
+      configState.graphicsPreset !== savedConfig.graphicsPreset ||
+      configState.graphicsBezels !== savedConfig.graphicsBezels ||
+      configState.graphicsTarget !== savedConfig.graphicsTarget
+    ) {
+      changes.push('Graphics settings')
     }
     if (configState.savestateResume !== savedConfig.savestateResume) {
       changes.push('Savestate settings')
@@ -282,19 +296,19 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
       changes.push('Emulator versions')
     }
 
-    const emulatorShadersChanged = (() => {
-      for (const [emuId, shaders] of configState.emulatorShaders) {
-        const saved = savedConfig.emulatorShaders.get(emuId) ?? null
-        if (saved !== shaders) return true
+    const emulatorPresetsChanged = (() => {
+      for (const [emuId, preset] of configState.emulatorPresets) {
+        const saved = savedConfig.emulatorPresets.get(emuId) ?? null
+        if (saved !== preset) return true
       }
-      for (const [emuId, saved] of savedConfig.emulatorShaders) {
-        const current = configState.emulatorShaders.get(emuId) ?? null
+      for (const [emuId, saved] of savedConfig.emulatorPresets) {
+        const current = configState.emulatorPresets.get(emuId) ?? null
         if (current !== saved) return true
       }
       return false
     })()
-    if (emulatorShadersChanged) {
-      changes.push('Emulator shaders')
+    if (emulatorPresetsChanged) {
+      changes.push('Emulator presets')
     }
 
     const emulatorResumeChanged = (() => {
@@ -430,8 +444,16 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
     setConfigState((prev) => ({ ...prev, collection: value }))
   }, [])
 
-  const setGraphicsShaders = useCallback((value: string) => {
-    setConfigState((prev) => ({ ...prev, graphicsShaders: value }))
+  const setGraphicsPreset = useCallback((value: string) => {
+    setConfigState((prev) => ({ ...prev, graphicsPreset: value }))
+  }, [])
+
+  const setGraphicsBezels = useCallback((value: boolean) => {
+    setConfigState((prev) => ({ ...prev, graphicsBezels: value }))
+  }, [])
+
+  const setGraphicsTarget = useCallback((value: string) => {
+    setConfigState((prev) => ({ ...prev, graphicsTarget: value }))
   }, [])
 
   const setSavestateResume = useCallback((value: string) => {
@@ -495,15 +517,15 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
     })
   }, [])
 
-  const setEmulatorShaders = useCallback((emulatorId: EmulatorID, shaders: string | null) => {
+  const setEmulatorPreset = useCallback((emulatorId: EmulatorID, preset: string | null) => {
     setConfigState((prev) => {
-      const next = new Map(prev.emulatorShaders)
-      if (shaders === null) {
+      const next = new Map(prev.emulatorPresets)
+      if (preset === null) {
         next.delete(emulatorId)
       } else {
-        next.set(emulatorId, shaders)
+        next.set(emulatorId, preset)
       }
-      return { ...prev, emulatorShaders: next }
+      return { ...prev, emulatorPresets: next }
     })
   }, [])
 
@@ -551,7 +573,7 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
 
     const emulatorsConfig: Record<
       string,
-      { version?: string; shaders?: string | null; resume?: string | null }
+      { version?: string; preset?: string | null; resume?: string | null }
     > = {}
     for (const [emuId, version] of state.emulatorVersions) {
       if (version === VERSION_DEFAULT) {
@@ -560,8 +582,8 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
         emulatorsConfig[emuId] = { version }
       }
     }
-    for (const [emuId, shaders] of state.emulatorShaders) {
-      emulatorsConfig[emuId] = { ...emulatorsConfig[emuId], shaders }
+    for (const [emuId, preset] of state.emulatorPresets) {
+      emulatorsConfig[emuId] = { ...emulatorsConfig[emuId], preset }
     }
     for (const [emuId, resume] of state.emulatorResume) {
       emulatorsConfig[emuId] = { ...emulatorsConfig[emuId], resume }
@@ -585,7 +607,13 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
       systems: systemsConfig,
       emulators: emulatorsConfig,
       frontends: frontendsConfig,
-      ...(state.graphicsShaders && { graphics: { shaders: state.graphicsShaders } }),
+      ...(state.graphicsPreset && {
+        graphics: {
+          preset: state.graphicsPreset,
+          bezels: state.graphicsBezels,
+          ...(state.graphicsTarget && { target: state.graphicsTarget }),
+        },
+      }),
       ...(state.savestateResume && { savestate: { resume: state.savestateResume } }),
       controller: {
         nintendoConfirm: state.controllerNintendoConfirm,
@@ -641,7 +669,9 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
       upgradeAvailable,
 
       setCollection,
-      setGraphicsShaders,
+      setGraphicsPreset,
+      setGraphicsBezels,
+      setGraphicsTarget,
       setSavestateResume,
       setControllerNintendoConfirm,
       setHotkeyModifier,
@@ -649,7 +679,7 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
       resetHotkeys,
       toggleEmulator,
       setEmulatorVersion,
-      setEmulatorShaders,
+      setEmulatorPreset,
       setEmulatorResume,
       toggleFrontend,
       setFrontendVersion,
@@ -679,7 +709,9 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
       configChanges,
       upgradeAvailable,
       setCollection,
-      setGraphicsShaders,
+      setGraphicsPreset,
+      setGraphicsBezels,
+      setGraphicsTarget,
       setSavestateResume,
       setControllerNintendoConfirm,
       setHotkeyModifier,
@@ -687,7 +719,7 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
       resetHotkeys,
       toggleEmulator,
       setEmulatorVersion,
-      setEmulatorShaders,
+      setEmulatorPreset,
       setEmulatorResume,
       toggleFrontend,
       setFrontendVersion,

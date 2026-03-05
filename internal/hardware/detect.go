@@ -21,7 +21,7 @@ func DetectTarget() Target {
 	productName := readDMI("/sys/devices/virtual/dmi/id/product_name")
 
 	switch {
-	case strings.Contains(productName, "Jupiter"):
+	case strings.Contains(productName, "Jupiter"), strings.Contains(productName, "Galileo"):
 		return Target{Name: "steamdeck", Arch: "x86_64"}
 	case strings.Contains(productName, "ROG Ally"):
 		return Target{Name: "rog-ally", Arch: "x86_64"}

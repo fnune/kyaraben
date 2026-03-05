@@ -5,7 +5,7 @@ import { RadioCard } from '@/lib/RadioCard'
 import type { EmulatorRef, System } from '@/types/daemon'
 import { PreferenceSection } from './PreferenceSection'
 
-type ShaderOption = 'recommended' | 'off' | 'manual'
+type PresetOption = 'modern-pixels' | 'upscaled' | 'pseudo-authentic' | 'manual'
 type ResumeOption = 'recommended' | 'off' | 'manual'
 type ConfirmOption = 'east' | 'south'
 
@@ -141,7 +141,8 @@ export function PreferencesView() {
   const {
     configState,
     systems,
-    setGraphicsShaders,
+    setGraphicsPreset,
+    setGraphicsBezels,
     setSavestateResume,
     setControllerNintendoConfirm,
     setHotkeyModifier,
@@ -149,7 +150,8 @@ export function PreferencesView() {
     resetHotkeys,
   } = config
 
-  const shaders = configState.graphicsShaders
+  const preset = configState.graphicsPreset
+  const bezels = configState.graphicsBezels
   const resume = configState.savestateResume
   const nintendoConfirm = configState.controllerNintendoConfirm
   const hotkeys = configState.hotkeys
@@ -162,8 +164,10 @@ export function PreferencesView() {
   )
   const sortedHotkeys = useMemo(() => getSortedHotkeys(emulatorHotkeyInfo), [emulatorHotkeyInfo])
 
-  const selectedShaders: ShaderOption =
-    shaders === 'recommended' || shaders === 'off' ? shaders : 'manual'
+  const selectedPreset: PresetOption =
+    preset === 'modern-pixels' || preset === 'upscaled' || preset === 'pseudo-authentic'
+      ? preset
+      : 'manual'
   const selectedResume: ResumeOption =
     resume === 'recommended' || resume === 'off' ? resume : 'manual'
   const selectedConfirm: ConfirmOption = nintendoConfirm === 'south' ? 'south' : 'east'
@@ -173,69 +177,67 @@ export function PreferencesView() {
       <PreferenceSection
         title="Display"
         intro={
-          <>
-            <p className="text-sm text-on-surface mb-4">
-              Shaders add visual effects that mimic original display hardware. Without shaders, you
-              see raw pixels scaled up, which can look harsh on modern screens.
-            </p>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="text-center">
-                <img
-                  src="https://placehold.co/200x150?text=No+shader"
-                  alt="Game without shaders showing raw pixels"
-                  className="w-full rounded border border-outline mb-2"
-                />
-                <span className="text-xs text-on-surface-muted">No shader</span>
-              </div>
-              <div className="text-center">
-                <img
-                  src="https://placehold.co/200x150?text=CRT+shader"
-                  alt="Game with CRT shader showing scanlines and bloom"
-                  className="w-full rounded border border-outline mb-2"
-                />
-                <span className="text-xs text-on-surface-muted">CRT shader</span>
-              </div>
-              <div className="text-center">
-                <img
-                  src="https://placehold.co/200x150?text=LCD+shader"
-                  alt="Game with LCD shader showing smoothed pixels"
-                  className="w-full rounded border border-outline mb-2"
-                />
-                <span className="text-xs text-on-surface-muted">LCD shader</span>
-              </div>
-            </div>
-          </>
+          <p className="text-sm text-on-surface">
+            Choose how games look on your screen. Modern pixels preserves the original pixel art
+            with integer scaling. Upscaled smooths pixels for a cleaner image. Pseudo-authentic adds
+            CRT and LCD shaders that mimic original display hardware.
+          </p>
         }
         controls={
           <>
             <RadioCard
-              title="Recommended"
-              description="CRT shaders for home consoles. LCD shaders for handhelds. Kyaraben picks the right shader for each system."
-              selected={selectedShaders === 'recommended'}
-              onSelect={() => setGraphicsShaders('recommended')}
+              title="Modern pixels"
+              description="Integer scaling preserves pixel art. No shaders or smoothing."
+              selected={selectedPreset === 'modern-pixels'}
+              onSelect={() => setGraphicsPreset('modern-pixels')}
               className="w-full p-3"
               wrap
             />
             <RadioCard
-              title="Off"
-              description="No shaders. Games display with raw pixels scaled to your screen."
-              selected={selectedShaders === 'off'}
-              onSelect={() => setGraphicsShaders('off')}
+              title="Upscaled"
+              description="Bilinear filtering smooths pixels. Good for large screens."
+              selected={selectedPreset === 'upscaled'}
+              onSelect={() => setGraphicsPreset('upscaled')}
+              className="w-full p-3"
+              wrap
+            />
+            <RadioCard
+              title="Pseudo-authentic"
+              description="CRT shaders for consoles, LCD shaders for handhelds. Mimics original displays."
+              selected={selectedPreset === 'pseudo-authentic'}
+              onSelect={() => setGraphicsPreset('pseudo-authentic')}
               className="w-full p-3"
               wrap
             />
             <RadioCard
               title="Manual"
-              description="Kyaraben won't configure shaders. Set them up yourself in each emulator."
-              selected={selectedShaders === 'manual'}
-              onSelect={() => setGraphicsShaders('manual')}
+              description="Kyaraben won't configure display settings. Set them up yourself in each emulator."
+              selected={selectedPreset === 'manual'}
+              onSelect={() => setGraphicsPreset('manual')}
               className="w-full p-3"
               wrap
             />
+            <label className="flex items-center gap-3 mt-4 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={bezels}
+                onChange={(e) => setGraphicsBezels(e.target.checked)}
+                className="w-4 h-4 accent-accent"
+              />
+              <div>
+                <span className="text-sm text-on-surface">Show bezels</span>
+                <p className="text-xs text-on-surface-muted">
+                  Decorative borders that fill empty screen space around games.
+                </p>
+              </div>
+            </label>
           </>
         }
         support={
-          <p className="text-xs text-on-surface-muted">Emulator support details coming soon.</p>
+          <p className="text-xs text-on-surface-muted">
+            6th generation and newer consoles (GameCube, PS2, PSP, Dreamcast) always use modern
+            display settings. Shaders are applied to 5th generation and earlier systems only.
+          </p>
         }
       />
 

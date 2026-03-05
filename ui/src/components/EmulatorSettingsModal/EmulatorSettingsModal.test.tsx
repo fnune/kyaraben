@@ -10,10 +10,10 @@ describe('EmulatorSettingsModal', () => {
     emulatorId: 'retroarch:bsnes' as const,
     emulatorName: 'RetroArch (bsnes)',
     systemId: 'snes' as const,
-    supportsShaders: true,
-    shaders: null as string | null,
-    graphics: { shaders: '' },
-    onShaderChange: vi.fn(),
+    supportsPreset: true,
+    preset: null as string | null,
+    graphics: { preset: '' },
+    onPresetChange: vi.fn(),
     supportsResume: false,
     resume: null as string | null,
     savestate: { resume: '' },
@@ -22,148 +22,141 @@ describe('EmulatorSettingsModal', () => {
 
   it('renders modal with emulator name in title', () => {
     render(<EmulatorSettingsModal {...defaultProps} />)
-    expect(screen.getByText('RetroArch (bsnes) Settings')).toBeInTheDocument()
+    expect(screen.getByText('RetroArch (bsnes) settings')).toBeInTheDocument()
   })
 
-  it('shows shader controls when supportsShaders is true', () => {
+  it('shows preset controls when supportsPreset is true', () => {
     render(<EmulatorSettingsModal {...defaultProps} />)
-    expect(screen.getByText('Shaders')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'On' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Off' })).toBeInTheDocument()
+    expect(screen.getByText('Display preset')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Modern pixels' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Upscaled' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Pseudo-authentic' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Manual' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Default' })).toBeInTheDocument()
   })
 
-  it('does not show shader controls when supportsShaders is false', () => {
-    render(<EmulatorSettingsModal {...defaultProps} supportsShaders={false} />)
-    expect(screen.queryByText('Shaders')).not.toBeInTheDocument()
+  it('does not show preset controls when supportsPreset is false', () => {
+    render(<EmulatorSettingsModal {...defaultProps} supportsPreset={false} />)
+    expect(screen.queryByText('Display preset')).not.toBeInTheDocument()
   })
 
-  it('shows Default as selected when shaders is null', () => {
-    render(<EmulatorSettingsModal {...defaultProps} shaders={null} />)
+  it('shows Default as selected when preset is null', () => {
+    render(<EmulatorSettingsModal {...defaultProps} preset={null} />)
     const defaultButton = screen.getByRole('button', { name: 'Default' })
     expect(defaultButton).toHaveClass('bg-accent')
   })
 
-  it('shows On as selected when shaders is "on"', () => {
-    render(<EmulatorSettingsModal {...defaultProps} shaders="on" />)
-    const onButton = screen.getByRole('button', { name: 'On' })
-    expect(onButton).toHaveClass('bg-accent')
+  it('shows Modern pixels as selected when preset is "modern-pixels"', () => {
+    render(<EmulatorSettingsModal {...defaultProps} preset="modern-pixels" />)
+    const button = screen.getByRole('button', { name: 'Modern pixels' })
+    expect(button).toHaveClass('bg-accent')
   })
 
-  it('shows Off as selected when shaders is "off"', () => {
-    render(<EmulatorSettingsModal {...defaultProps} shaders="off" />)
-    const offButton = screen.getByRole('button', { name: 'Off' })
-    expect(offButton).toHaveClass('bg-accent')
+  it('shows Upscaled as selected when preset is "upscaled"', () => {
+    render(<EmulatorSettingsModal {...defaultProps} preset="upscaled" />)
+    const button = screen.getByRole('button', { name: 'Upscaled' })
+    expect(button).toHaveClass('bg-accent')
   })
 
-  it('shows Manual as selected when shaders is "manual"', () => {
-    render(<EmulatorSettingsModal {...defaultProps} shaders="manual" />)
+  it('shows Pseudo-authentic as selected when preset is "pseudo-authentic"', () => {
+    render(<EmulatorSettingsModal {...defaultProps} preset="pseudo-authentic" />)
+    const button = screen.getByRole('button', { name: 'Pseudo-authentic' })
+    expect(button).toHaveClass('bg-accent')
+  })
+
+  it('shows Manual as selected when preset is "manual"', () => {
+    render(<EmulatorSettingsModal {...defaultProps} preset="manual" />)
     const manualButton = screen.getByRole('button', { name: 'Manual' })
     expect(manualButton).toHaveClass('bg-accent')
   })
 
-  it('calls onShaderChange with "on" when On is clicked', async () => {
-    const onShaderChange = vi.fn()
+  it('calls onPresetChange with "modern-pixels" when Modern pixels is clicked', async () => {
+    const onPresetChange = vi.fn()
     const user = userEvent.setup()
 
     render(
-      <EmulatorSettingsModal {...defaultProps} shaders={null} onShaderChange={onShaderChange} />,
+      <EmulatorSettingsModal {...defaultProps} preset={null} onPresetChange={onPresetChange} />,
     )
-    await user.click(screen.getByRole('button', { name: 'On' }))
+    await user.click(screen.getByRole('button', { name: 'Modern pixels' }))
 
-    expect(onShaderChange).toHaveBeenCalledWith('on')
+    expect(onPresetChange).toHaveBeenCalledWith('modern-pixels')
   })
 
-  it('calls onShaderChange with "off" when Off is clicked', async () => {
-    const onShaderChange = vi.fn()
+  it('calls onPresetChange with "upscaled" when Upscaled is clicked', async () => {
+    const onPresetChange = vi.fn()
     const user = userEvent.setup()
 
     render(
-      <EmulatorSettingsModal {...defaultProps} shaders={null} onShaderChange={onShaderChange} />,
+      <EmulatorSettingsModal {...defaultProps} preset={null} onPresetChange={onPresetChange} />,
     )
-    await user.click(screen.getByRole('button', { name: 'Off' }))
+    await user.click(screen.getByRole('button', { name: 'Upscaled' }))
 
-    expect(onShaderChange).toHaveBeenCalledWith('off')
+    expect(onPresetChange).toHaveBeenCalledWith('upscaled')
   })
 
-  it('calls onShaderChange with null when Default is clicked', async () => {
-    const onShaderChange = vi.fn()
+  it('calls onPresetChange with null when Default is clicked', async () => {
+    const onPresetChange = vi.fn()
     const user = userEvent.setup()
 
-    render(<EmulatorSettingsModal {...defaultProps} shaders="on" onShaderChange={onShaderChange} />)
+    render(
+      <EmulatorSettingsModal
+        {...defaultProps}
+        preset="modern-pixels"
+        onPresetChange={onPresetChange}
+      />,
+    )
     await user.click(screen.getByRole('button', { name: 'Default' }))
 
-    expect(onShaderChange).toHaveBeenCalledWith(null)
+    expect(onPresetChange).toHaveBeenCalledWith(null)
   })
 
-  it('calls onShaderChange with "manual" when Manual is clicked', async () => {
-    const onShaderChange = vi.fn()
+  it('calls onPresetChange with "manual" when Manual is clicked', async () => {
+    const onPresetChange = vi.fn()
     const user = userEvent.setup()
 
     render(
-      <EmulatorSettingsModal {...defaultProps} shaders={null} onShaderChange={onShaderChange} />,
+      <EmulatorSettingsModal {...defaultProps} preset={null} onPresetChange={onPresetChange} />,
     )
     await user.click(screen.getByRole('button', { name: 'Manual' }))
 
-    expect(onShaderChange).toHaveBeenCalledWith('manual')
-  })
-
-  it('shows CRT shader info for CRT systems when On is selected', () => {
-    render(<EmulatorSettingsModal {...defaultProps} systemId="snes" shaders="on" />)
-    expect(screen.getByText(/CRT shader \(crt-mattias\)\./)).toBeInTheDocument()
-  })
-
-  it('shows LCD shader info for LCD systems when On is selected', () => {
-    render(<EmulatorSettingsModal {...defaultProps} systemId="gba" shaders="on" />)
-    expect(screen.getByText(/LCD shader \(lcd-grid-v2\)\./)).toBeInTheDocument()
-  })
-
-  it('shows Dolphin-specific shader info when Dolphin emulator', () => {
-    render(<EmulatorSettingsModal {...defaultProps} emulatorId="dolphin" shaders="on" />)
-    expect(screen.getByText(/CRT shader \(crt-lottes-fast\)\./)).toBeInTheDocument()
+    expect(onPresetChange).toHaveBeenCalledWith('manual')
   })
 
   it('shows manual message when Manual is explicitly selected', () => {
     render(
       <EmulatorSettingsModal
         {...defaultProps}
-        shaders="manual"
-        graphics={{ shaders: 'recommended' }}
+        preset="manual"
+        graphics={{ preset: 'modern-pixels' }}
       />,
     )
-    expect(screen.getByText('Kyaraben will not modify shader settings.')).toBeInTheDocument()
+    expect(screen.getByText('Kyaraben will not modify display settings.')).toBeInTheDocument()
   })
 
   it('shows manual message when Default is selected with no global default', () => {
-    render(<EmulatorSettingsModal {...defaultProps} shaders={null} graphics={{ shaders: '' }} />)
-    expect(screen.getByText('Kyaraben will not modify shader settings.')).toBeInTheDocument()
+    render(<EmulatorSettingsModal {...defaultProps} preset={null} graphics={{ preset: '' }} />)
+    expect(screen.getByText('Kyaraben will not modify display settings.')).toBeInTheDocument()
   })
 
-  it('shows resolved shader info when Default is selected with global recommended', () => {
+  it('shows preset info when Default is selected with global preset', () => {
     render(
       <EmulatorSettingsModal
         {...defaultProps}
-        shaders={null}
-        graphics={{ shaders: 'recommended' }}
+        preset={null}
+        graphics={{ preset: 'modern-pixels' }}
       />,
     )
-    expect(screen.getByText(/CRT shader \(crt-mattias\)\./)).toBeInTheDocument()
+    expect(screen.getByText('Kyaraben will apply the modern pixels preset.')).toBeInTheDocument()
   })
 
-  it('shows Default (recommended) label when global default is recommended', () => {
+  it('shows Default (modern pixels) label when global default is modern-pixels', () => {
     render(
       <EmulatorSettingsModal
         {...defaultProps}
-        shaders={null}
-        graphics={{ shaders: 'recommended' }}
+        preset={null}
+        graphics={{ preset: 'modern-pixels' }}
       />,
     )
-    expect(screen.getByRole('button', { name: 'Default (recommended)' })).toBeInTheDocument()
-  })
-
-  it('shows disable message when Off is selected', () => {
-    render(<EmulatorSettingsModal {...defaultProps} shaders="off" />)
-    expect(screen.getByText('Kyaraben will disable shaders.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Default (modern pixels)' })).toBeInTheDocument()
   })
 })

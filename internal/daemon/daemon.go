@@ -640,7 +640,7 @@ func (d *Daemon) handlePreflight() []Event {
 			string(model.ConfigInputNintendoConfirm): string(controllerConfig.NintendoConfirm),
 			string(model.ConfigInputHotkeys):         controllerConfig.Hotkeys.Fingerprint(),
 			string(model.ConfigInputCollection):      collection.Root(),
-			string(model.ConfigInputShaders):         cfg.Graphics.Shaders,
+			string(model.ConfigInputPreset):          cfg.Graphics.Preset,
 			string(model.ConfigInputResume):          cfg.Savestate.Resume,
 		},
 	}
@@ -921,10 +921,10 @@ func (d *Daemon) handleGetConfig() []Event {
 
 	emulators := make(map[string]EmulatorConfResponse)
 	for emuID, emuConf := range cfg.Emulators {
-		if emuConf.Version != "" || emuConf.Shaders != nil || emuConf.Resume != nil {
+		if emuConf.Version != "" || emuConf.Preset != nil || emuConf.Resume != nil {
 			emulators[string(emuID)] = EmulatorConfResponse{
 				Version: emuConf.Version,
-				Shaders: emuConf.Shaders,
+				Preset:  emuConf.Preset,
 				Resume:  emuConf.Resume,
 			}
 		}
@@ -998,12 +998,19 @@ func (d *Daemon) handleGetConfig() []Event {
 		hotkeyResp.OpenMenu = string(model.ButtonRightStick)
 	}
 
+	detectedTarget := hardware.DetectTarget()
+
 	return []Event{{
 		Type: EventTypeResult,
 		Data: ConfigResponse{
 			Collection: cfg.Global.Collection,
-			Graphics:   GraphicsConfigResponse{Shaders: cfg.Graphics.Shaders},
-			Savestate:  SavestateConfigResponse{Resume: cfg.Savestate.Resume},
+			Graphics: GraphicsConfigResponse{
+				Preset:         cfg.Graphics.Preset,
+				Bezels:         cfg.GraphicsBezels(),
+				Target:         cfg.GraphicsTarget(),
+				DetectedTarget: detectedTarget.Name,
+			},
+			Savestate: SavestateConfigResponse{Resume: cfg.Savestate.Resume},
 			Controller: ControllerConfigResponse{
 				NintendoConfirm: cfg.Controller.NintendoConfirm,
 				Hotkeys:         hotkeyResp,
@@ -1028,7 +1035,15 @@ func (d *Daemon) handleSetConfig(data *SetConfigRequest) []Event {
 		}
 
 		if data.Graphics != nil {
-			cfg.Graphics.Shaders = data.Graphics.Shaders
+			if data.Graphics.Preset != "" {
+				cfg.Graphics.Preset = data.Graphics.Preset
+			}
+			if data.Graphics.Bezels != nil {
+				cfg.Graphics.Bezels = data.Graphics.Bezels
+			}
+			if data.Graphics.Target != "" {
+				cfg.Graphics.Target = data.Graphics.Target
+			}
 		}
 
 		if data.Savestate != nil {
@@ -1099,13 +1114,13 @@ func (d *Daemon) handleSetConfig(data *SetConfigRequest) []Event {
 				if emuConf.Version != nil {
 					existing.Version = *emuConf.Version
 				}
-				if emuConf.Shaders != nil {
-					existing.Shaders = emuConf.Shaders
+				if emuConf.Preset != nil {
+					existing.Preset = emuConf.Preset
 				}
 				if emuConf.Resume != nil {
 					existing.Resume = emuConf.Resume
 				}
-				if existing.Version == "" && existing.Shaders == nil && existing.Resume == nil {
+				if existing.Version == "" && existing.Preset == nil && existing.Resume == nil {
 					delete(cfg.Emulators, emuID)
 				} else {
 					cfg.Emulators[emuID] = existing

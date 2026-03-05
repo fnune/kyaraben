@@ -99,16 +99,23 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		model.Entry(model.Store, model.Path("GameList", "RecursivePaths"), store.SystemRomsDir(model.SystemIDPSX)),
 	}
 
-	switch ctx.Shaders {
-	case model.EmulatorShadersOn:
+	switch ctx.Preset {
+	case model.PresetPseudoAuthentic:
 		entries = append(entries,
-			model.Entry(model.Shaders, model.Path("PostProcessing", "Enabled"), "true"),
-			model.Entry(model.Shaders, model.Path("PostProcessing", "StageCount"), "1"),
-			model.Entry(model.Shaders, model.Path("PostProcessing/Stage1", "ShaderName"), "crt-lottes"),
+			model.Entry(model.Preset, model.Path("PostProcessing", "Enabled"), "true"),
+			model.Entry(model.Preset, model.Path("PostProcessing", "StageCount"), "1"),
+			model.Entry(model.Preset, model.Path("PostProcessing/Stage1", "ShaderName"), "crt-lottes"),
 		)
-	case model.EmulatorShadersOff:
+	case model.PresetModernPixels:
 		entries = append(entries,
-			model.Entry(model.Shaders, model.Path("PostProcessing", "Enabled"), "false"),
+			model.Entry(model.Preset, model.Path("PostProcessing", "Enabled"), "false"),
+			model.Entry(model.Preset, model.Path("Display", "IntegerScaling"), "true"),
+		)
+	case model.PresetUpscaled:
+		entries = append(entries,
+			model.Entry(model.Preset, model.Path("PostProcessing", "Enabled"), "false"),
+			model.Entry(model.Preset, model.Path("Display", "IntegerScaling"), "false"),
+			model.Entry(model.Preset, model.Path("Display", "LinearFiltering"), "true"),
 		)
 	}
 

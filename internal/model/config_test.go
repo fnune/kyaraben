@@ -192,97 +192,60 @@ func TestEmulatorVersion(t *testing.T) {
 	}
 }
 
-func TestEmulatorShaders(t *testing.T) {
+func TestEmulatorPreset(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name               string
-		cfg                *KyarabenConfig
-		emulator           EmulatorID
-		shadersRecommended bool
-		want               string
+		name     string
+		cfg      *KyarabenConfig
+		emulator EmulatorID
+		want     string
 	}{
 		{
-			name: "emulator override takes precedence over recommended",
+			name: "emulator override takes precedence",
 			cfg: &KyarabenConfig{
-				Graphics: GraphicsConfig{Shaders: ShadersRecommended},
+				Graphics: GraphicsConfig{Preset: PresetPseudoAuthentic},
 				Emulators: map[EmulatorID]EmulatorConf{
-					EmulatorIDDuckStation: {Shaders: ptrString(EmulatorShadersOff)},
+					EmulatorIDDuckStation: {Preset: ptrString(PresetModernPixels)},
 				},
 			},
-			emulator:           EmulatorIDDuckStation,
-			shadersRecommended: true,
-			want:               EmulatorShadersOff,
+			emulator: EmulatorIDDuckStation,
+			want:     PresetModernPixels,
 		},
 		{
-			name: "recommended global with recommended emulator enables shaders",
+			name: "global preset used when no override",
 			cfg: &KyarabenConfig{
-				Graphics:  GraphicsConfig{Shaders: ShadersRecommended},
+				Graphics:  GraphicsConfig{Preset: PresetUpscaled},
 				Emulators: map[EmulatorID]EmulatorConf{},
 			},
-			emulator:           EmulatorIDDuckStation,
-			shadersRecommended: true,
-			want:               EmulatorShadersOn,
+			emulator: EmulatorIDDuckStation,
+			want:     PresetUpscaled,
 		},
 		{
-			name: "recommended global with non-recommended emulator returns manual",
-			cfg: &KyarabenConfig{
-				Graphics:  GraphicsConfig{Shaders: ShadersRecommended},
-				Emulators: map[EmulatorID]EmulatorConf{},
-			},
-			emulator:           EmulatorIDPCSX2,
-			shadersRecommended: false,
-			want:               EmulatorShadersManual,
-		},
-		{
-			name: "off global returns off regardless of recommendation",
-			cfg: &KyarabenConfig{
-				Graphics:  GraphicsConfig{Shaders: ShadersOff},
-				Emulators: map[EmulatorID]EmulatorConf{},
-			},
-			emulator:           EmulatorIDDuckStation,
-			shadersRecommended: true,
-			want:               EmulatorShadersOff,
-		},
-		{
-			name: "manual fallback when nothing configured",
+			name: "default to pseudo-authentic when nothing configured",
 			cfg: &KyarabenConfig{
 				Graphics:  GraphicsConfig{},
 				Emulators: map[EmulatorID]EmulatorConf{},
 			},
-			emulator:           EmulatorIDDuckStation,
-			shadersRecommended: true,
-			want:               EmulatorShadersManual,
+			emulator: EmulatorIDDuckStation,
+			want:     PresetPseudoAuthentic,
 		},
 		{
-			name: "nil emulators map with recommended",
+			name: "nil emulators map uses global",
 			cfg: &KyarabenConfig{
-				Graphics:  GraphicsConfig{Shaders: ShadersRecommended},
+				Graphics:  GraphicsConfig{Preset: PresetModernPixels},
 				Emulators: nil,
 			},
-			emulator:           EmulatorIDDuckStation,
-			shadersRecommended: true,
-			want:               EmulatorShadersOn,
-		},
-		{
-			name: "emulator override to on for non-recommended emulator",
-			cfg: &KyarabenConfig{
-				Graphics: GraphicsConfig{Shaders: ShadersManual},
-				Emulators: map[EmulatorID]EmulatorConf{
-					EmulatorIDPCSX2: {Shaders: ptrString(EmulatorShadersOn)},
-				},
-			},
-			emulator:           EmulatorIDPCSX2,
-			shadersRecommended: false,
-			want:               EmulatorShadersOn,
+			emulator: EmulatorIDDuckStation,
+			want:     PresetModernPixels,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := tt.cfg.EmulatorShaders(tt.emulator, tt.shadersRecommended)
+			got := tt.cfg.EmulatorPreset(tt.emulator)
 			if got != tt.want {
-				t.Errorf("EmulatorShaders(%q, %v) = %q, want %q", tt.emulator, tt.shadersRecommended, got, tt.want)
+				t.Errorf("EmulatorPreset(%q) = %q, want %q", tt.emulator, got, tt.want)
 			}
 		})
 	}

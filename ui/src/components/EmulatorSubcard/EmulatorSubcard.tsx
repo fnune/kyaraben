@@ -40,13 +40,13 @@ export interface EmulatorSubcardProps {
   readonly paths?: EmulatorPaths
   readonly execLine?: string
   readonly sharedPackage?: boolean
-  readonly shaders?: string | null
-  readonly graphics: { shaders: string }
+  readonly preset?: string | null
+  readonly graphics: { preset: string }
   readonly resume?: string | null
   readonly savestate: { resume: string }
   readonly onToggle: (enabled: boolean) => void
   readonly onVersionChange: (version: string) => void
-  readonly onShaderChange?: (value: string | null) => void
+  readonly onPresetChange?: (value: string | null) => void
   readonly onResumeChange?: (value: string | null) => void
   readonly onLaunch?: () => void
 }
@@ -128,13 +128,13 @@ export function EmulatorSubcard({
   paths,
   execLine,
   sharedPackage,
-  shaders,
+  preset,
   graphics,
   resume,
   savestate,
   onToggle,
   onVersionChange,
-  onShaderChange,
+  onPresetChange,
   onResumeChange,
   onLaunch,
 }: EmulatorSubcardProps) {
@@ -144,7 +144,7 @@ export function EmulatorSubcard({
   const { showToast } = useToast()
 
   const hasSettings = (emulator.supportedSettings?.length ?? 0) > 0
-  const supportsShaders = emulator.supportedSettings?.includes('shaders') ?? false
+  const supportsPreset = emulator.supportedSettings?.includes('preset') ?? false
   const supportsResume = emulator.supportedSettings?.some((s) => s.startsWith('resume:')) ?? false
 
   const changeType = useChangeType(
@@ -309,10 +309,10 @@ export function EmulatorSubcard({
           emulatorId={emulator.id}
           emulatorName={emulator.name}
           systemId={systemId}
-          supportsShaders={supportsShaders}
-          shaders={shaders ?? null}
+          supportsPreset={supportsPreset}
+          preset={preset ?? null}
           graphics={graphics}
-          onShaderChange={onShaderChange ?? (() => undefined)}
+          onPresetChange={onPresetChange ?? (() => undefined)}
           supportsResume={supportsResume}
           resume={resume ?? null}
           savestate={savestate}

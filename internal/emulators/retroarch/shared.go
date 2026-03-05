@@ -63,9 +63,11 @@ var MainConfigTarget = model.ConfigTarget{
 	BaseDir: model.ConfigBaseDirUserConfig,
 }
 
-// ShaderConfig holds shader and resume settings for config generation.
-type ShaderConfig struct {
-	Shaders            string
+// PresetConfig holds graphics preset and resume settings for config generation.
+type PresetConfig struct {
+	Preset             string
+	Bezels             bool
+	TargetDevice       string
 	Resume             string
 	SystemDisplayTypes map[model.SystemID]model.DisplayType
 }
@@ -75,7 +77,7 @@ type ShaderConfig struct {
 // We symlink these sorted directories to kyaraben's store locations.
 // Screenshots go directly to a shared retroarch directory (no per-core sorting).
 // See: https://docs.libretro.com/guides/change-directories/
-func SharedConfig(store model.StoreReader, cc *model.ControllerConfig, sc *ShaderConfig) model.ConfigPatch {
+func SharedConfig(store model.StoreReader, cc *model.ControllerConfig, pc *PresetConfig) model.ConfigPatch {
 	entries := []model.ConfigEntry{
 		model.Entry(model.Store, model.Path("libretro_directory"), store.CoresDir()),
 		model.Entry(model.Store, model.Path("screenshot_directory"), store.EmulatorScreenshotsDir(model.EmulatorIDRetroArchBsnes)),
@@ -101,16 +103,16 @@ func SharedConfig(store model.StoreReader, cc *model.ControllerConfig, sc *Shade
 		entries = append(entries, controllerEntries(cc)...)
 	}
 
-	if sc != nil && sc.Shaders == model.EmulatorShadersOn {
-		entries = append(entries, model.Entry(model.Shaders, model.Path("video_shader_enable"), "true"))
+	if pc != nil {
+		entries = append(entries, presetEntries(pc)...)
 	}
 
-	if sc != nil && sc.Resume == model.EmulatorResumeOn {
+	if pc != nil && pc.Resume == model.EmulatorResumeOn {
 		entries = append(entries,
 			model.Entry(model.Resume, model.Path("savestate_auto_save"), "true"),
 			model.Entry(model.Resume, model.Path("savestate_auto_load"), "true"),
 		)
-	} else if sc != nil && sc.Resume == model.EmulatorResumeOff {
+	} else if pc != nil && pc.Resume == model.EmulatorResumeOff {
 		entries = append(entries,
 			model.Entry(model.Resume, model.Path("savestate_auto_save"), "false"),
 			model.Entry(model.Resume, model.Path("savestate_auto_load"), "false"),
@@ -118,6 +120,33 @@ func SharedConfig(store model.StoreReader, cc *model.ControllerConfig, sc *Shade
 	}
 
 	return model.ConfigPatch{Target: MainConfigTarget, Entries: entries}
+}
+
+func presetEntries(pc *PresetConfig) []model.ConfigEntry {
+	var entries []model.ConfigEntry
+
+	switch pc.Preset {
+	case model.PresetModernPixels:
+		entries = append(entries,
+			model.Entry(model.Preset, model.Path("video_scale_integer"), "true"),
+			model.Entry(model.Preset, model.Path("video_shader_enable"), "false"),
+			model.Entry(model.Preset, model.Path("video_smooth"), "false"),
+		)
+	case model.PresetUpscaled:
+		entries = append(entries,
+			model.Entry(model.Preset, model.Path("video_scale_integer"), "false"),
+			model.Entry(model.Preset, model.Path("video_shader_enable"), "false"),
+			model.Entry(model.Preset, model.Path("video_smooth"), "true"),
+		)
+	case model.PresetPseudoAuthentic:
+		entries = append(entries,
+			model.Entry(model.Preset, model.Path("video_scale_integer"), "false"),
+			model.Entry(model.Preset, model.Path("video_shader_enable"), "true"),
+			model.Entry(model.Preset, model.Path("video_smooth"), "false"),
+		)
+	}
+
+	return entries
 }
 
 func controllerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
@@ -249,8 +278,8 @@ func CoreShortName(emuID model.EmulatorID) string {
 
 // CorePatches returns the base RetroArch config plus a per-core override for
 // cores that need additional settings like system_directory for BIOS files.
-func CorePatches(emuID model.EmulatorID, store model.StoreReader, cc *model.ControllerConfig, sc *ShaderConfig, resolver model.BaseDirResolver) []model.ConfigPatch {
-	patches := []model.ConfigPatch{SharedConfig(store, cc, sc)}
+func CorePatches(emuID model.EmulatorID, store model.StoreReader, cc *model.ControllerConfig, pc *PresetConfig, resolver model.BaseDirResolver) []model.ConfigPatch {
+	patches := []model.ConfigPatch{SharedConfig(store, cc, pc)}
 
 	shortName := CoreShortName(emuID)
 	if shortName == "" {
@@ -263,24 +292,24 @@ func CorePatches(emuID model.EmulatorID, store model.StoreReader, cc *model.Cont
 		entries = append(entries, model.Entry(model.Store, model.Path("system_directory"), store.SystemBiosDir(systemID)))
 	}
 
-	if sc != nil && sc.Shaders != model.EmulatorShadersManual && sc.Shaders != "" {
+	if pc != nil && pc.Preset != model.PresetManual && pc.Preset != "" {
 		configDirName := shortName
 		if displayName, ok := coreConfigDirNames[shortName]; ok {
 			configDirName = displayName
 		}
-		if sc.Shaders == model.EmulatorShadersOn {
+		if pc.Preset == model.PresetPseudoAuthentic {
 			configDir, err := resolver.UserConfigDir()
 			if err == nil {
 				presetPath := filepath.Join(configDir, "retroarch", "config", configDirName, configDirName+".slangp")
 				entries = append(entries,
-					model.Entry(model.Shaders, model.Path("video_shader_enable"), "true"),
-					model.Entry(model.Shaders, model.Path("video_shader"), presetPath),
+					model.Entry(model.Preset, model.Path("video_shader_enable"), "true"),
+					model.Entry(model.Preset, model.Path("video_shader"), presetPath),
 				)
 			}
 		} else {
 			entries = append(entries,
-				model.Entry(model.Shaders, model.Path("video_shader_enable"), "false"),
-				model.Entry(model.Shaders, model.Path("video_shader"), ""),
+				model.Entry(model.Preset, model.Path("video_shader_enable"), "false"),
+				model.Entry(model.Preset, model.Path("video_shader"), ""),
 			)
 		}
 	}
@@ -292,8 +321,8 @@ func CorePatches(emuID model.EmulatorID, store model.StoreReader, cc *model.Cont
 		})
 	}
 
-	if sc != nil && sc.Shaders == model.EmulatorShadersOn {
-		shaderPatch := coreShaderPatch(emuID, sc.SystemDisplayTypes, resolver)
+	if pc != nil && pc.Preset == model.PresetPseudoAuthentic {
+		shaderPatch := coreShaderPatch(emuID, pc.SystemDisplayTypes, resolver)
 		if shaderPatch != nil {
 			patches = append(patches, *shaderPatch)
 		}
@@ -332,16 +361,16 @@ func coreShaderPatch(emuID model.EmulatorID, displayTypes map[model.SystemID]mod
 
 	if displayType == model.DisplayTypeLCD {
 		entries = []model.ConfigEntry{
-			model.Entry(model.Shaders, model.Path("shaders"), "1"),
-			model.Entry(model.Shaders, model.Path("shader0"), filepath.Join(shaderDir, lcdShaderFile)),
-			model.Entry(model.Shaders, model.Path("scale_type0"), "viewport"),
-			model.Entry(model.Shaders, model.Path("filter_linear0"), "true"),
+			model.Entry(model.Preset, model.Path("shaders"), "1"),
+			model.Entry(model.Preset, model.Path("shader0"), filepath.Join(shaderDir, lcdShaderFile)),
+			model.Entry(model.Preset, model.Path("scale_type0"), "viewport"),
+			model.Entry(model.Preset, model.Path("filter_linear0"), "true"),
 		}
 	} else {
 		entries = []model.ConfigEntry{
-			model.Entry(model.Shaders, model.Path("shaders"), "1"),
-			model.Entry(model.Shaders, model.Path("shader0"), filepath.Join(shaderDir, crtShaderFile)),
-			model.Entry(model.Shaders, model.Path("filter_linear0"), "false"),
+			model.Entry(model.Preset, model.Path("shaders"), "1"),
+			model.Entry(model.Preset, model.Path("shader0"), filepath.Join(shaderDir, crtShaderFile)),
+			model.Entry(model.Preset, model.Path("filter_linear0"), "false"),
 		}
 	}
 
@@ -352,8 +381,8 @@ func coreShaderPatch(emuID model.EmulatorID, displayTypes map[model.SystemID]mod
 	}
 }
 
-func CoreShaderDownloads(emuID model.EmulatorID, resolver model.BaseDirResolver, sc *ShaderConfig) ([]model.InitialDownload, error) {
-	if sc == nil || sc.Shaders != model.EmulatorShadersOn {
+func CoreShaderDownloads(emuID model.EmulatorID, resolver model.BaseDirResolver, pc *PresetConfig) ([]model.InitialDownload, error) {
+	if pc == nil || pc.Preset != model.PresetPseudoAuthentic {
 		return nil, nil
 	}
 
@@ -368,7 +397,7 @@ func CoreShaderDownloads(emuID model.EmulatorID, resolver model.BaseDirResolver,
 	}
 
 	shaderDir := filepath.Join(configDir, "retroarch", "shaders", "kyaraben")
-	displayType := sc.SystemDisplayTypes[systemID]
+	displayType := pc.SystemDisplayTypes[systemID]
 
 	if displayType == model.DisplayTypeLCD {
 		return []model.InitialDownload{{

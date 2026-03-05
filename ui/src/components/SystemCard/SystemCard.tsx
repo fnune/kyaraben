@@ -59,9 +59,9 @@ export interface SystemCardProps {
   readonly systemEnabledEmulators: ReadonlySet<EmulatorID>
   readonly globalEnabledEmulators: ReadonlySet<EmulatorID>
   readonly emulatorVersions: ReadonlyMap<EmulatorID, string>
-  readonly emulatorShaders: ReadonlyMap<EmulatorID, string | null>
+  readonly emulatorPresets: ReadonlyMap<EmulatorID, string | null>
   readonly emulatorResume: ReadonlyMap<EmulatorID, string | null>
-  readonly graphics: { shaders: string }
+  readonly graphics: { preset: string }
   readonly savestate: { resume: string }
   readonly installedVersions: ReadonlyMap<EmulatorID, string>
   readonly installedExecLines: ReadonlyMap<EmulatorID, string>
@@ -71,7 +71,7 @@ export interface SystemCardProps {
   readonly sharedPackages: ReadonlySet<string>
   readonly onEmulatorToggle: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
   readonly onVersionChange: (emulatorId: EmulatorID, version: string) => void
-  readonly onShaderChange: (emulatorId: EmulatorID, shaders: string | null) => void
+  readonly onPresetChange: (emulatorId: EmulatorID, preset: string | null) => void
   readonly onResumeChange: (emulatorId: EmulatorID, resume: string | null) => void
 }
 
@@ -81,7 +81,7 @@ export const SystemCard = forwardRef<HTMLElement, SystemCardProps>(function Syst
     systemEnabledEmulators,
     globalEnabledEmulators,
     emulatorVersions,
-    emulatorShaders,
+    emulatorPresets,
     emulatorResume,
     graphics,
     savestate,
@@ -93,7 +93,7 @@ export const SystemCard = forwardRef<HTMLElement, SystemCardProps>(function Syst
     sharedPackages,
     onEmulatorToggle,
     onVersionChange,
-    onShaderChange,
+    onPresetChange,
     onResumeChange,
   },
   ref,
@@ -145,13 +145,13 @@ export const SystemCard = forwardRef<HTMLElement, SystemCardProps>(function Syst
               installedVersion={installedVersions.get(emulator.id) ?? null}
               provisions={provisions[`${system.id}:${emulator.id}`] ?? []}
               sharedPackage={isSharedPackage}
-              shaders={emulatorShaders.get(emulator.id) ?? null}
+              preset={emulatorPresets.get(emulator.id) ?? null}
               graphics={graphics}
               resume={emulatorResume.get(emulator.id) ?? null}
               savestate={savestate}
               onToggle={(enabled) => onEmulatorToggle(system.id, emulator.id, enabled)}
               onVersionChange={(version) => onVersionChange(emulator.id, version)}
-              onShaderChange={(shaders) => onShaderChange(emulator.id, shaders)}
+              onPresetChange={(preset) => onPresetChange(emulator.id, preset)}
               onResumeChange={(resume) => onResumeChange(emulator.id, resume)}
               {...(emuManagedConfigs && { managedConfigs: emuManagedConfigs })}
               {...(emuPaths && { paths: emuPaths })}

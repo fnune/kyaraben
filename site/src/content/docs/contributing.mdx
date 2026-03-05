@@ -461,6 +461,36 @@ neutral description suffices. Instead of "3 files need attention", say "3 local
 files" or "3 files only on this device". State facts; let the user decide if
 action is needed.
 
+## Graphics presets implementation notes
+
+The graphics preset system offers four display modes: modern-pixels (integer
+scaling), upscaled (bilinear filtering), pseudo-authentic (CRT/LCD shaders),
+and manual. A separate bezels toggle adds decorative borders.
+
+6th generation and newer systems (GameCube, PS2, PSP, Dreamcast) always use
+modern display settings regardless of the preset selection. CRT and LCD shaders
+only apply to 5th generation and earlier systems.
+
+Shader and overlay assets come from the
+[RGC Overlay Pack](https://github.com/retrogamecorps/RGC-Overlay-Pack/releases/tag/v1.0).
+This pack includes:
+
+- CRT shaders tuned for different screen sizes and resolutions
+- LCD shaders for handheld systems
+- Bezels/overlays for various systems
+- Per-system recommendations for shader selection
+
+The pack needs analysis to understand:
+
+- Directory structure and file organization
+- Which shaders map to which systems
+- How to integrate overlays with RetroArch and standalone emulators
+- Resolution and device-specific recommendations (desktop vs Steam Deck)
+
+Target device detection (`internal/hardware/detect.go`) identifies Steam Deck
+(Jupiter for LCD, Galileo for OLED) and other devices via DMI product name.
+This enables device-appropriate shader selection.
+
 ## Commit messages
 
 The format is a brief actionable title in imperative mood, followed by a body

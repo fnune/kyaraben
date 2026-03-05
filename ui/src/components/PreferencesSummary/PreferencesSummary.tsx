@@ -1,13 +1,14 @@
 export interface PreferencesSummaryProps {
-  readonly shaders: string
+  readonly preset: string
   readonly resume: string
   readonly nintendoConfirm: string
   readonly onNavigate: () => void
 }
 
-function formatShaders(value: string): string {
-  if (value === 'recommended') return 'Recommended'
-  if (value === 'off') return 'Off'
+function formatPreset(value: string): string {
+  if (value === 'modern-pixels') return 'Modern pixels'
+  if (value === 'upscaled') return 'Upscaled'
+  if (value === 'pseudo-authentic') return 'Pseudo-authentic'
   return 'Manual'
 }
 
@@ -22,7 +23,7 @@ function formatConfirm(value: string): string {
 }
 
 export function PreferencesSummary({
-  shaders,
+  preset,
   resume,
   nintendoConfirm,
   onNavigate,
@@ -43,7 +44,7 @@ export function PreferencesSummary({
       </div>
       <div className="flex flex-wrap items-center gap-x-6 gap-y-1 px-4 py-3 bg-surface-alt rounded-card border border-outline text-sm">
         <span className="text-on-surface-muted">
-          Shaders: <span className="text-on-surface">{formatShaders(shaders)}</span>
+          Display: <span className="text-on-surface">{formatPreset(preset)}</span>
         </span>
         <span className="text-on-surface-muted">
           Resume: <span className="text-on-surface">{formatResume(resume)}</span>

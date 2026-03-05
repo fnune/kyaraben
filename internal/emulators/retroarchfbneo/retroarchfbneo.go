@@ -136,17 +136,19 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	if err != nil {
 		return model.GenerateResult{}, err
 	}
-	sc := &retroarch.ShaderConfig{
-		Shaders:            ctx.Shaders,
+	pc := &retroarch.PresetConfig{
+		Preset:             ctx.Preset,
+		Bezels:             ctx.Bezels,
+		TargetDevice:       ctx.TargetDevice,
 		Resume:             ctx.Resume,
 		SystemDisplayTypes: ctx.SystemDisplayTypes,
 	}
-	downloads, err := retroarch.CoreShaderDownloads(model.EmulatorIDRetroArchFBNeo, ctx.BaseDirResolver, sc)
+	downloads, err := retroarch.CoreShaderDownloads(model.EmulatorIDRetroArchFBNeo, ctx.BaseDirResolver, pc)
 	if err != nil {
 		return model.GenerateResult{}, err
 	}
 
-	patches := retroarch.CorePatches(model.EmulatorIDRetroArchFBNeo, ctx.Store, ctx.ControllerConfig, sc, ctx.BaseDirResolver)
+	patches := retroarch.CorePatches(model.EmulatorIDRetroArchFBNeo, ctx.Store, ctx.ControllerConfig, pc, ctx.BaseDirResolver)
 	patches = append(patches, model.ConfigPatch{
 		Target: coreOptionsTarget,
 		Entries: []model.ConfigEntry{

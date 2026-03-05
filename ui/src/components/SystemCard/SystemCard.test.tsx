@@ -16,7 +16,7 @@ const mockSystem: System = {
   manufacturer: 'Nintendo',
   label: 'SNES',
   defaultEmulatorId: 'retroarch:bsnes',
-  emulators: [{ id: 'retroarch:bsnes', name: 'RetroArch (bsnes)', supportedSettings: ['shaders'] }],
+  emulators: [{ id: 'retroarch:bsnes', name: 'RetroArch (bsnes)', supportedSettings: ['preset'] }],
 }
 
 describe('SystemCard', () => {
@@ -27,9 +27,9 @@ describe('SystemCard', () => {
         systemEnabledEmulators={new Set<EmulatorID>()}
         globalEnabledEmulators={new Set<EmulatorID>()}
         emulatorVersions={new Map()}
-        emulatorShaders={new Map()}
+        emulatorPresets={new Map()}
         emulatorResume={new Map()}
-        graphics={{ shaders: '' }}
+        graphics={{ preset: '' }}
         savestate={{ resume: '' }}
         installedVersions={new Map()}
         installedExecLines={new Map()}
@@ -39,7 +39,7 @@ describe('SystemCard', () => {
         sharedPackages={new Set()}
         onEmulatorToggle={vi.fn()}
         onVersionChange={vi.fn()}
-        onShaderChange={vi.fn()}
+        onPresetChange={vi.fn()}
         onResumeChange={vi.fn()}
       />,
     )
@@ -55,9 +55,9 @@ describe('SystemCard', () => {
         systemEnabledEmulators={new Set<EmulatorID>(['retroarch:bsnes'])}
         globalEnabledEmulators={new Set<EmulatorID>(['retroarch:bsnes'])}
         emulatorVersions={new Map()}
-        emulatorShaders={new Map()}
+        emulatorPresets={new Map()}
         emulatorResume={new Map()}
-        graphics={{ shaders: '' }}
+        graphics={{ preset: '' }}
         savestate={{ resume: '' }}
         installedVersions={new Map()}
         installedExecLines={new Map()}
@@ -67,7 +67,7 @@ describe('SystemCard', () => {
         sharedPackages={new Set()}
         onEmulatorToggle={vi.fn()}
         onVersionChange={vi.fn()}
-        onShaderChange={vi.fn()}
+        onPresetChange={vi.fn()}
         onResumeChange={vi.fn()}
       />,
     )
@@ -86,9 +86,9 @@ describe('SystemCard', () => {
         systemEnabledEmulators={new Set<EmulatorID>()}
         globalEnabledEmulators={new Set<EmulatorID>()}
         emulatorVersions={new Map()}
-        emulatorShaders={new Map()}
+        emulatorPresets={new Map()}
         emulatorResume={new Map()}
-        graphics={{ shaders: '' }}
+        graphics={{ preset: '' }}
         savestate={{ resume: '' }}
         installedVersions={new Map()}
         installedExecLines={new Map()}
@@ -98,7 +98,7 @@ describe('SystemCard', () => {
         sharedPackages={new Set()}
         onEmulatorToggle={onEmulatorToggle}
         onVersionChange={vi.fn()}
-        onShaderChange={vi.fn()}
+        onPresetChange={vi.fn()}
         onResumeChange={vi.fn()}
       />,
     )
@@ -130,9 +130,9 @@ describe('SystemCard', () => {
         systemEnabledEmulators={new Set<EmulatorID>()}
         globalEnabledEmulators={new Set<EmulatorID>()}
         emulatorVersions={new Map()}
-        emulatorShaders={new Map()}
+        emulatorPresets={new Map()}
         emulatorResume={new Map()}
-        graphics={{ shaders: '' }}
+        graphics={{ preset: '' }}
         savestate={{ resume: '' }}
         installedVersions={new Map()}
         installedExecLines={new Map()}
@@ -142,7 +142,7 @@ describe('SystemCard', () => {
         sharedPackages={new Set()}
         onEmulatorToggle={vi.fn()}
         onVersionChange={vi.fn()}
-        onShaderChange={vi.fn()}
+        onPresetChange={vi.fn()}
         onResumeChange={vi.fn()}
       />,
     )
@@ -157,9 +157,9 @@ describe('SystemCard', () => {
         systemEnabledEmulators={new Set<EmulatorID>()}
         globalEnabledEmulators={new Set<EmulatorID>()}
         emulatorVersions={new Map()}
-        emulatorShaders={new Map()}
+        emulatorPresets={new Map()}
         emulatorResume={new Map()}
-        graphics={{ shaders: '' }}
+        graphics={{ preset: '' }}
         savestate={{ resume: '' }}
         installedVersions={new Map()}
         installedExecLines={new Map()}
@@ -169,7 +169,7 @@ describe('SystemCard', () => {
         sharedPackages={new Set()}
         onEmulatorToggle={vi.fn()}
         onVersionChange={vi.fn()}
-        onShaderChange={vi.fn()}
+        onPresetChange={vi.fn()}
         onResumeChange={vi.fn()}
       />,
     )

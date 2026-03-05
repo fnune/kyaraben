@@ -1580,125 +1580,45 @@ func TestNoControllerConfigWhenNil(t *testing.T) {
 	}
 }
 
-func TestDolphinShaderConfig(t *testing.T) {
+func TestDolphinPresetConfig(t *testing.T) {
 	t.Parallel()
 
 	store := &fakeStoreReader{root: "/emulation"}
 	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
 	gen := dolphin.Definition{}.ConfigGenerator()
 
-	t.Run("shaders enabled", func(t *testing.T) {
+	t.Run("all presets disable shaders for 6th gen", func(t *testing.T) {
 		t.Parallel()
 
-		result, err := gen.Generate(model.GenerateContext{
-			Store:           store,
-			BaseDirResolver: resolver,
-			Shaders:         model.EmulatorShadersOn,
-		})
-		if err != nil {
-			t.Fatalf("Generate() error = %v", err)
-		}
-
-		var gfxPatch model.ConfigPatch
-		for _, p := range result.Patches {
-			if strings.Contains(p.Target.RelPath, "GFX.ini") {
-				gfxPatch = p
-				break
+		for _, preset := range []string{model.PresetModernPixels, model.PresetUpscaled, model.PresetPseudoAuthentic} {
+			result, err := gen.Generate(model.GenerateContext{
+				Store:           store,
+				BaseDirResolver: resolver,
+				Preset:          preset,
+			})
+			if err != nil {
+				t.Fatalf("Generate() error = %v", err)
 			}
-		}
 
-		found := false
-		for _, entry := range gfxPatch.Entries {
-			if entry.Key() == "PostProcessingShader" {
-				found = true
-				if entry.Value != "crt_lottes_fast" {
-					t.Errorf("PostProcessingShader = %q, want %q", entry.Value, "crt_lottes_fast")
-				}
-				if len(entry.Path) != 2 || entry.Path[0] != "Enhancements" {
-					t.Errorf("PostProcessingShader should be in [Enhancements] section, got %v", entry.Path)
+			var gfxPatch model.ConfigPatch
+			for _, p := range result.Patches {
+				if strings.Contains(p.Target.RelPath, "GFX.ini") {
+					gfxPatch = p
+					break
 				}
 			}
-		}
-		if !found {
-			t.Error("PostProcessingShader entry not found")
-		}
 
-		if len(result.EmbeddedFiles) != 1 {
-			t.Fatalf("expected 1 embedded file, got %d", len(result.EmbeddedFiles))
-		}
-		embeddedFile := result.EmbeddedFiles[0]
-		if !strings.HasSuffix(embeddedFile.DestPath, "crt_lottes_fast.glsl") {
-			t.Errorf("embedded file path = %q, want suffix crt_lottes_fast.glsl", embeddedFile.DestPath)
-		}
-		if !strings.Contains(embeddedFile.DestPath, "dolphin-emu/Shaders") {
-			t.Errorf("embedded file should be in dolphin-emu/Shaders, got %s", embeddedFile.DestPath)
-		}
-		if len(embeddedFile.Content) == 0 {
-			t.Error("embedded shader content is empty")
-		}
-	})
-
-	t.Run("shaders disabled", func(t *testing.T) {
-		t.Parallel()
-
-		result, err := gen.Generate(model.GenerateContext{
-			Store:           store,
-			BaseDirResolver: resolver,
-			Shaders:         model.EmulatorShadersOff,
-		})
-		if err != nil {
-			t.Fatalf("Generate() error = %v", err)
-		}
-
-		var gfxPatch model.ConfigPatch
-		for _, p := range result.Patches {
-			if strings.Contains(p.Target.RelPath, "GFX.ini") {
-				gfxPatch = p
-				break
-			}
-		}
-
-		for _, entry := range gfxPatch.Entries {
-			if entry.Key() == "PostProcessingShader" {
-				if entry.Value != "" {
-					t.Errorf("PostProcessingShader should be empty when disabled, got %q", entry.Value)
+			for _, entry := range gfxPatch.Entries {
+				if entry.Key() == "PostProcessingShader" {
+					if entry.Value != "" {
+						t.Errorf("preset %s: PostProcessingShader should be empty, got %q", preset, entry.Value)
+					}
 				}
 			}
-		}
 
-		if len(result.EmbeddedFiles) != 0 {
-			t.Errorf("expected no embedded files when shaders disabled, got %d", len(result.EmbeddedFiles))
-		}
-	})
-
-	t.Run("shaders unmanaged", func(t *testing.T) {
-		t.Parallel()
-
-		result, err := gen.Generate(model.GenerateContext{
-			Store:           store,
-			BaseDirResolver: resolver,
-			Shaders:         model.EmulatorShadersManual,
-		})
-		if err != nil {
-			t.Fatalf("Generate() error = %v", err)
-		}
-
-		var gfxPatch model.ConfigPatch
-		for _, p := range result.Patches {
-			if strings.Contains(p.Target.RelPath, "GFX.ini") {
-				gfxPatch = p
-				break
+			if len(result.EmbeddedFiles) != 0 {
+				t.Errorf("preset %s: expected no embedded files for 6th gen, got %d", preset, len(result.EmbeddedFiles))
 			}
-		}
-
-		for _, entry := range gfxPatch.Entries {
-			if entry.Key() == "PostProcessingShader" {
-				t.Error("PostProcessingShader should not be present when shaders is nil (unmanaged)")
-			}
-		}
-
-		if len(result.EmbeddedFiles) != 0 {
-			t.Errorf("expected no embedded files when shaders unmanaged, got %d", len(result.EmbeddedFiles))
 		}
 	})
 }
@@ -1736,13 +1656,13 @@ func TestRetroArchShaderConfig(t *testing.T) {
 		}
 	})
 
-	t.Run("shaders enabled creates per-core config", func(t *testing.T) {
+	t.Run("pseudo-authentic preset creates per-core shader config", func(t *testing.T) {
 		t.Parallel()
 
 		result, err := gen.Generate(model.GenerateContext{
 			Store:              store,
 			BaseDirResolver:    resolver,
-			Shaders:            model.EmulatorShadersOn,
+			Preset:             model.PresetPseudoAuthentic,
 			SystemDisplayTypes: map[model.SystemID]model.DisplayType{model.SystemIDSNES: model.DisplayTypeCRT},
 		})
 		if err != nil {

@@ -85,14 +85,10 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		model.Default(model.None, model.Path("General", "FirstRun"), "False"),
 	}
 
-	switch ctx.Shaders {
-	case model.EmulatorShadersOn:
+	switch ctx.Preset {
+	case model.PresetModernPixels, model.PresetUpscaled, model.PresetPseudoAuthentic:
 		entries = append(entries,
-			model.Entry(model.None, model.Path("Graphics", "PostShaderNames"), "LCDPersistence"),
-		)
-	case model.EmulatorShadersOff:
-		entries = append(entries,
-			model.Entry(model.None, model.Path("Graphics", "PostShaderNames"), "Off"),
+			model.Entry(model.Preset, model.Path("Graphics", "PostShaderNames"), "Off"),
 		)
 	}
 

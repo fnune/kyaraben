@@ -57,26 +57,40 @@ type KyarabenConfig struct {
 
 // GraphicsConfig holds graphics-related default settings.
 type GraphicsConfig struct {
-	Shaders string `toml:"shaders,omitempty"`
+	Preset string `toml:"preset,omitempty"`
+	Bezels *bool  `toml:"bezels,omitempty"`
+	Target string `toml:"target,omitempty"`
 }
 
-// Shader setting values for graphics.shaders (global setting).
-// "recommended" enables shaders only on emulators that recommend them.
+// DisplayPreset values for graphics.preset.
 const (
-	ShadersRecommended = "recommended"
-	ShadersOff         = "off"
-	ShadersManual      = "manual"
+	PresetModernPixels    = "modern-pixels"
+	PresetUpscaled        = "upscaled"
+	PresetPseudoAuthentic = "pseudo-authentic"
+	PresetManual          = "manual"
 )
 
-// Per-emulator shader override values.
+// TargetDevice values for graphics.target.
 const (
-	EmulatorShadersOn     = "on"
-	EmulatorShadersOff    = "off"
-	EmulatorShadersManual = "manual"
+	TargetAuto      = "auto"
+	TargetDesktop   = "desktop"
+	TargetSteamDeck = "steam-deck"
 )
 
-// ConfigInput for GraphicsConfig.Shaders
-const ConfigInputShaders ConfigInput = "graphics.shaders"
+// Per-emulator preset override values.
+const (
+	EmulatorPresetModernPixels    = "modern-pixels"
+	EmulatorPresetUpscaled        = "upscaled"
+	EmulatorPresetPseudoAuthentic = "pseudo-authentic"
+	EmulatorPresetManual          = "manual"
+)
+
+// ConfigInput for GraphicsConfig fields
+const (
+	ConfigInputPreset ConfigInput = "graphics.preset"
+	ConfigInputBezels ConfigInput = "graphics.bezels"
+	ConfigInputTarget ConfigInput = "graphics.target"
+)
 
 // SavestateConfig holds savestate/resume-related settings.
 type SavestateConfig struct {
@@ -236,7 +250,7 @@ type GlobalConfig struct {
 // EmulatorConf holds per-emulator configuration.
 type EmulatorConf struct {
 	Version string  `toml:"version,omitempty"`
-	Shaders *string `toml:"shaders,omitempty"`
+	Preset  *string `toml:"preset,omitempty"`
 	Resume  *string `toml:"resume,omitempty"`
 }
 
@@ -251,40 +265,48 @@ func (c *KyarabenConfig) EmulatorVersion(id EmulatorID) string {
 	return ""
 }
 
-// EmulatorShaders returns the resolved shader setting for an emulator.
+// EmulatorPreset returns the resolved preset for an emulator.
 // Resolution order:
-//  1. Per-emulator override (on/off/manual)
-//  2. If global = "recommended" and emulator recommends shaders -> "on"
-//  3. If global = "off" -> "off"
-//  4. Otherwise -> "manual"
-func (c *KyarabenConfig) EmulatorShaders(id EmulatorID, shadersRecommended bool) string {
+//  1. Per-emulator override
+//  2. Global preset setting
+//  3. Default: pseudo-authentic
+func (c *KyarabenConfig) EmulatorPreset(id EmulatorID) string {
 	if c.Emulators != nil {
-		if conf, ok := c.Emulators[id]; ok && conf.Shaders != nil {
-			return *conf.Shaders
+		if conf, ok := c.Emulators[id]; ok && conf.Preset != nil {
+			return *conf.Preset
 		}
 	}
-	switch c.Graphics.Shaders {
-	case ShadersRecommended:
-		if shadersRecommended {
-			return EmulatorShadersOn
-		}
-		return EmulatorShadersManual
-	case ShadersOff:
-		return EmulatorShadersOff
-	default:
-		return EmulatorShadersManual
+	if c.Graphics.Preset != "" {
+		return c.Graphics.Preset
 	}
+	return PresetPseudoAuthentic
 }
 
-// EmulatorShadersOverride returns the per-emulator shader override, or nil if using default.
-func (c *KyarabenConfig) EmulatorShadersOverride(id EmulatorID) *string {
+// EmulatorPresetOverride returns the per-emulator preset override, or nil if using default.
+func (c *KyarabenConfig) EmulatorPresetOverride(id EmulatorID) *string {
 	if c.Emulators == nil {
 		return nil
 	}
 	if conf, ok := c.Emulators[id]; ok {
-		return conf.Shaders
+		return conf.Preset
 	}
 	return nil
+}
+
+// GraphicsBezels returns whether bezels are enabled.
+func (c *KyarabenConfig) GraphicsBezels() bool {
+	if c.Graphics.Bezels != nil {
+		return *c.Graphics.Bezels
+	}
+	return true
+}
+
+// GraphicsTarget returns the target device setting.
+func (c *KyarabenConfig) GraphicsTarget() string {
+	if c.Graphics.Target != "" {
+		return c.Graphics.Target
+	}
+	return TargetAuto
 }
 
 // EmulatorResume returns the resolved resume setting for an emulator.

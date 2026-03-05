@@ -26,11 +26,11 @@ const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
 
 interface ApplyConfig {
   collection: string
-  graphics?: { shaders: string }
+  graphics?: { preset: string; bezels: boolean; target?: string }
   savestate?: { resume: string }
   controller?: { nintendoConfirm: string }
   systems: Record<string, string[]>
-  emulators: Record<string, { version?: string; shaders?: string | null; resume?: string | null }>
+  emulators: Record<string, { version?: string; preset?: string | null; resume?: string | null }>
   frontends?: Record<string, { enabled: boolean; version?: string }>
   summaryMessage?: string
 }
@@ -42,13 +42,13 @@ function hasUserConflicts(data: PreflightResponse): boolean {
 }
 
 function toEmulatorConfRequest(
-  emulators: Record<string, { version?: string; shaders?: string | null; resume?: string | null }>,
-): Record<string, { version?: string; shaders?: string; resume?: string }> {
-  const result: Record<string, { version?: string; shaders?: string; resume?: string }> = {}
+  emulators: Record<string, { version?: string; preset?: string | null; resume?: string | null }>,
+): Record<string, { version?: string; preset?: string; resume?: string }> {
+  const result: Record<string, { version?: string; preset?: string; resume?: string }> = {}
   for (const [id, conf] of Object.entries(emulators)) {
     result[id] = {
       ...(conf.version !== undefined && { version: conf.version }),
-      ...(conf.shaders !== null && conf.shaders !== undefined && { shaders: conf.shaders }),
+      ...(conf.preset !== null && conf.preset !== undefined && { preset: conf.preset }),
       ...(conf.resume !== null && conf.resume !== undefined && { resume: conf.resume }),
     }
   }

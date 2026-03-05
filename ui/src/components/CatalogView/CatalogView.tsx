@@ -253,7 +253,7 @@ export function CatalogView({
 
         <div className="mt-6">
           <PreferencesSummary
-            shaders={configState.graphicsShaders}
+            preset={configState.graphicsPreset}
             resume={configState.savestateResume}
             nintendoConfirm={configState.controllerNintendoConfirm}
             onNavigate={onNavigateToPreferences}
@@ -347,9 +347,9 @@ export function CatalogView({
                         systemEnabledEmulators={new Set(systemEmuIds)}
                         globalEnabledEmulators={enabledEmulators}
                         emulatorVersions={configState.emulatorVersions}
-                        emulatorShaders={configState.emulatorShaders}
+                        emulatorPresets={configState.emulatorPresets}
                         emulatorResume={configState.emulatorResume}
-                        graphics={{ shaders: configState.graphicsShaders }}
+                        graphics={{ preset: configState.graphicsPreset }}
                         savestate={{ resume: configState.savestateResume }}
                         installedVersions={installedVersions}
                         installedExecLines={installedExecLines}
@@ -359,7 +359,7 @@ export function CatalogView({
                         sharedPackages={sharedPackages}
                         onEmulatorToggle={config.toggleEmulator}
                         onVersionChange={config.setEmulatorVersion}
-                        onShaderChange={config.setEmulatorShaders}
+                        onPresetChange={config.setEmulatorPreset}
                         onResumeChange={config.setEmulatorResume}
                       />
                     )

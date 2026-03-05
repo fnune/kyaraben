@@ -15,7 +15,9 @@ export interface SetConfigRequest {
   frontends?: { [key: string]: FrontendConfRequest};
 }
 export interface GraphicsConfigRequest {
-  shaders: string;
+  preset: string;
+  bezels?: boolean;
+  target?: string;
 }
 export interface SavestateConfigRequest {
   resume: string;
@@ -44,7 +46,7 @@ export interface FrontendConfRequest {
 }
 export interface EmulatorConfRequest {
   version?: string;
-  shaders?: string;
+  preset?: string;
   resume?: string;
 }
 export interface SyncRemoveDeviceRequest {
@@ -184,7 +186,10 @@ export interface ConfigResponse {
   warnings?: ConfigWarning[];
 }
 export interface GraphicsConfigResponse {
-  shaders: string;
+  preset: string;
+  bezels: boolean;
+  target: string;
+  detectedTarget: string;
 }
 export interface SavestateConfigResponse {
   resume: string;
@@ -209,7 +214,7 @@ export interface HotkeyConfigResponse {
 }
 export interface EmulatorConfResponse {
   version?: string;
-  shaders?: string;
+  preset?: string;
   resume?: string;
 }
 export interface FrontendConfResponse {

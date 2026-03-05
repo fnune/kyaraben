@@ -21,7 +21,9 @@ type GenerateContext struct {
 	Store              StoreReader
 	BaseDirResolver    BaseDirResolver
 	ControllerConfig   *ControllerConfig
-	Shaders            string
+	Preset             string
+	Bezels             bool
+	TargetDevice       string
 	Resume             string
 	SystemDisplayTypes map[SystemID]DisplayType
 }

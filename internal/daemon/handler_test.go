@@ -825,7 +825,7 @@ func TestHandleSyncStatus_DisabledWithSyncthingInstalled(t *testing.T) {
 }
 
 func TestHandleSetConfig_MergesEmulatorSettings(t *testing.T) {
-	shaderOn := model.EmulatorShadersOn
+	presetModern := model.PresetModernPixels
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
 			Collection: "~/Emulation",
@@ -835,8 +835,8 @@ func TestHandleSetConfig_MergesEmulatorSettings(t *testing.T) {
 			model.SystemIDGBA:  {model.EmulatorIDRetroArchMGBA},
 		},
 		Emulators: map[model.EmulatorID]model.EmulatorConf{
-			model.EmulatorIDRetroArchBsnes: {Shaders: &shaderOn},
-			model.EmulatorIDRetroArchMGBA:  {Shaders: &shaderOn, Version: "0.10.0"},
+			model.EmulatorIDRetroArchBsnes: {Preset: &presetModern},
+			model.EmulatorIDRetroArchMGBA:  {Preset: &presetModern, Version: "0.10.0"},
 		},
 		Frontends: map[model.FrontendID]model.FrontendConfig{},
 	}
@@ -844,7 +844,7 @@ func TestHandleSetConfig_MergesEmulatorSettings(t *testing.T) {
 	defer env.cleanup()
 	d := env.newDaemon()
 
-	shaderOff := model.EmulatorShadersOff
+	presetUpscaled := model.PresetUpscaled
 	setCmd := SetConfigCommand{
 		Type: CommandTypeSetConfig,
 		Data: SetConfigRequest{
@@ -854,7 +854,7 @@ func TestHandleSetConfig_MergesEmulatorSettings(t *testing.T) {
 				"gba":  {"retroarch:mgba"},
 			},
 			Emulators: map[string]EmulatorConfRequest{
-				"retroarch:mgba": {Shaders: &shaderOff},
+				"retroarch:mgba": {Preset: &presetUpscaled},
 			},
 		},
 	}
@@ -871,13 +871,13 @@ func TestHandleSetConfig_MergesEmulatorSettings(t *testing.T) {
 	}
 
 	bsnesConf := resp.Emulators["retroarch:bsnes"]
-	if bsnesConf.Shaders == nil || *bsnesConf.Shaders != model.EmulatorShadersOn {
-		t.Errorf("expected bsnes shaders to be preserved as on, got %v", bsnesConf.Shaders)
+	if bsnesConf.Preset == nil || *bsnesConf.Preset != model.PresetModernPixels {
+		t.Errorf("expected bsnes preset to be preserved as modern-pixels, got %v", bsnesConf.Preset)
 	}
 
 	mgbaConf := resp.Emulators["retroarch:mgba"]
-	if mgbaConf.Shaders == nil || *mgbaConf.Shaders != model.EmulatorShadersOff {
-		t.Errorf("expected mgba shaders to be updated to off, got %v", mgbaConf.Shaders)
+	if mgbaConf.Preset == nil || *mgbaConf.Preset != model.PresetUpscaled {
+		t.Errorf("expected mgba preset to be updated to upscaled, got %v", mgbaConf.Preset)
 	}
 	if mgbaConf.Version != "0.10.0" {
 		t.Errorf("expected mgba version to be preserved as 0.10.0, got %s", mgbaConf.Version)

@@ -95,11 +95,17 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		model.Entry(model.Store, model.Path("GameList", "RecursivePaths"), store.SystemRomsDir(model.SystemIDPS2)),
 	}
 
-	switch ctx.Shaders {
-	case model.EmulatorShadersOn:
-		entries = append(entries, model.Entry(model.Shaders, model.Path("EmuCore/GS", "TVShader"), "5"))
-	case model.EmulatorShadersOff:
-		entries = append(entries, model.Entry(model.Shaders, model.Path("EmuCore/GS", "TVShader"), "0"))
+	switch ctx.Preset {
+	case model.PresetModernPixels:
+		entries = append(entries,
+			model.Entry(model.Preset, model.Path("EmuCore/GS", "TVShader"), "0"),
+			model.Entry(model.Preset, model.Path("EmuCore/GS", "IntegerScaling"), "true"),
+		)
+	case model.PresetUpscaled, model.PresetPseudoAuthentic:
+		entries = append(entries,
+			model.Entry(model.Preset, model.Path("EmuCore/GS", "TVShader"), "0"),
+			model.Entry(model.Preset, model.Path("EmuCore/GS", "IntegerScaling"), "false"),
+		)
 	}
 
 	switch ctx.Resume {

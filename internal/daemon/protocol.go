@@ -18,7 +18,9 @@ type SetConfigRequest struct {
 }
 
 type GraphicsConfigRequest struct {
-	Shaders string `json:"shaders"`
+	Preset string `json:"preset"`
+	Bezels *bool  `json:"bezels,omitempty"`
+	Target string `json:"target,omitempty"`
 }
 
 type SavestateConfigRequest struct {
@@ -52,7 +54,7 @@ type FrontendConfRequest struct {
 
 type EmulatorConfRequest struct {
 	Version *string `json:"version"`
-	Shaders *string `json:"shaders"`
+	Preset  *string `json:"preset"`
 	Resume  *string `json:"resume"`
 }
 
@@ -213,7 +215,10 @@ type ConfigResponse struct {
 }
 
 type GraphicsConfigResponse struct {
-	Shaders string `json:"shaders"`
+	Preset         string `json:"preset"`
+	Bezels         bool   `json:"bezels"`
+	Target         string `json:"target"`
+	DetectedTarget string `json:"detectedTarget"`
 }
 
 type SavestateConfigResponse struct {
@@ -242,7 +247,7 @@ type HotkeyConfigResponse struct {
 
 type EmulatorConfResponse struct {
 	Version string  `json:"version,omitempty"`
-	Shaders *string `json:"shaders"`
+	Preset  *string `json:"preset"`
 	Resume  *string `json:"resume"`
 }
 

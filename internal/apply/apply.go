@@ -80,6 +80,8 @@ func (a *Applier) Preflight(ctx context.Context, cfg *model.KyarabenConfig, coll
 		BaseDirResolver:    a.BaseDirResolver,
 		ControllerConfig:   controllerConfig,
 		SystemDisplayTypes: systemDisplayTypes,
+		Bezels:             cfg.GraphicsBezels(),
+		TargetDevice:       cfg.GraphicsTarget(),
 	}
 
 	for emuID := range a.collectEnabledEmulators(cfg) {
@@ -89,7 +91,7 @@ func (a *Applier) Preflight(ctx context.Context, cfg *model.KyarabenConfig, coll
 		}
 
 		emu, _ := a.Registry.GetEmulator(emuID)
-		genCtx.Shaders = cfg.EmulatorShaders(emuID, emu.ShadersRecommended)
+		genCtx.Preset = cfg.EmulatorPreset(emuID)
 		genCtx.Resume = cfg.EmulatorResume(emuID, emu.ResumeRecommended)
 		result, err := gen.Generate(genCtx)
 		if err != nil {
@@ -189,6 +191,8 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, collecti
 		BaseDirResolver:    a.BaseDirResolver,
 		ControllerConfig:   controllerConfig,
 		SystemDisplayTypes: systemDisplayTypes,
+		Bezels:             cfg.GraphicsBezels(),
+		TargetDevice:       cfg.GraphicsTarget(),
 	}
 
 	enabledEmulators := a.collectEnabledEmulators(cfg)
@@ -214,7 +218,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, collecti
 		}
 
 		emu, _ := a.Registry.GetEmulator(emuID)
-		genCtx.Shaders = cfg.EmulatorShaders(emuID, emu.ShadersRecommended)
+		genCtx.Preset = cfg.EmulatorPreset(emuID)
 		genCtx.Resume = cfg.EmulatorResume(emuID, emu.ResumeRecommended)
 		result, err := gen.Generate(genCtx)
 		if err != nil {
@@ -1567,8 +1571,8 @@ func collectConfigInputs(entries []model.ConfigEntry, cfg *model.KyarabenConfig,
 			inputs[key] = controllerConfig.Hotkeys.Fingerprint()
 		case model.ConfigInputCollection:
 			inputs[key] = collectionRoot
-		case model.ConfigInputShaders:
-			inputs[key] = cfg.Graphics.Shaders
+		case model.ConfigInputPreset:
+			inputs[key] = cfg.Graphics.Preset
 		case model.ConfigInputResume:
 			inputs[key] = cfg.Savestate.Resume
 		}

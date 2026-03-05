@@ -194,7 +194,7 @@ var (
 	Store    = []ConfigInput{ConfigInputCollection}
 	Nintendo = []ConfigInput{ConfigInputNintendoConfirm}
 	Hotkeys  = []ConfigInput{ConfigInputHotkeys}
-	Shaders  = []ConfigInput{ConfigInputShaders}
+	Preset   = []ConfigInput{ConfigInputPreset}
 	Resume   = []ConfigInput{ConfigInputResume}
 )
 
