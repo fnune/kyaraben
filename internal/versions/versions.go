@@ -95,8 +95,11 @@ func (v *VersionEntry) Target(name string) *TargetBuild {
 }
 
 // TargetFallback maps detected hardware names to canonical target names.
+// x86_64 devices fall back to x64 when no device-specific build exists.
 var TargetFallback = map[string]TargetName{
-	"amd64": TargetX64,
+	"amd64":     TargetX64,
+	"steamdeck": TargetX64,
+	"rog-ally":  TargetX64,
 }
 
 // SelectTarget returns the best matching target for the given detected target name.
