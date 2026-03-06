@@ -6,18 +6,12 @@ import (
 	"io/fs"
 )
 
-//go:embed overlays/*.png overlays/*.cfg palettes/*.pal
+//go:embed overlays/*.png overlays/*.cfg
 var embedded embed.FS
 
 // OverlayFS returns the embedded overlay filesystem.
 func OverlayFS() fs.FS {
 	sub, _ := fs.Sub(embedded, "overlays")
-	return sub
-}
-
-// PaletteFS returns the embedded palette filesystem.
-func PaletteFS() fs.FS {
-	sub, _ := fs.Sub(embedded, "palettes")
 	return sub
 }
 
