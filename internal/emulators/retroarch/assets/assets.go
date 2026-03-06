@@ -30,6 +30,8 @@ func OverlayFiles(systemType string) (pngFile, cfgFile string) {
 		return "Perfect_GBC.png", "Perfect_GBC.cfg"
 	case "gba":
 		return "Perfect_GBA.png", "Perfect_GBA.cfg"
+	case "crt":
+		return "Jeltron_CRT.png", "Jeltron_CRT.cfg"
 	default:
 		return "", ""
 	}

@@ -113,7 +113,7 @@ func (Definition) Emulator() model.Emulator {
 		},
 		Launcher:          retroarch.LauncherWithCore(libretroCoreName),
 		PathUsage:         model.StandardPathUsage(),
-		SupportedSettings: []string{model.SettingResumeAutosave, model.SettingResumeAutoload},
+		SupportedSettings: []string{model.SettingPreset, model.SettingResumeAutosave, model.SettingResumeAutoload},
 		SupportedHotkeys:  retroarch.HotkeyMappings.SupportedHotkeys(),
 		ResumeRecommended: true,
 	}
@@ -147,6 +147,10 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	if err != nil {
 		return model.GenerateResult{}, err
 	}
+	embeddedFiles, err := retroarch.CoreEmbeddedFiles(model.EmulatorIDRetroArchFBNeo, pc, ctx.BaseDirResolver)
+	if err != nil {
+		return model.GenerateResult{}, err
+	}
 
 	patches := retroarch.CorePatches(model.EmulatorIDRetroArchFBNeo, ctx.Store, ctx.ControllerConfig, pc, ctx.BaseDirResolver)
 	patches = append(patches, model.ConfigPatch{
@@ -156,11 +160,15 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 			model.Default(model.None, model.Path("fbneo-allow-depth-32"), "enabled"),
 		},
 	})
+	if overlayPatch := retroarch.OverlayPatch(model.EmulatorIDRetroArchFBNeo, pc, ctx.BaseDirResolver); overlayPatch != nil {
+		patches = append(patches, *overlayPatch)
+	}
 
 	return model.GenerateResult{
 		Patches:          patches,
 		Symlinks:         symlinks,
 		InitialDownloads: downloads,
+		EmbeddedFiles:    embeddedFiles,
 	}, nil
 }
 

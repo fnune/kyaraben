@@ -55,10 +55,21 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	if err != nil {
 		return model.GenerateResult{}, err
 	}
+	embeddedFiles, err := retroarch.CoreEmbeddedFiles(model.EmulatorIDRetroArchBsnes, pc, ctx.BaseDirResolver)
+	if err != nil {
+		return model.GenerateResult{}, err
+	}
+
+	patches := retroarch.CorePatches(model.EmulatorIDRetroArchBsnes, ctx.Store, ctx.ControllerConfig, pc, ctx.BaseDirResolver)
+	if overlayPatch := retroarch.OverlayPatch(model.EmulatorIDRetroArchBsnes, pc, ctx.BaseDirResolver); overlayPatch != nil {
+		patches = append(patches, *overlayPatch)
+	}
+
 	return model.GenerateResult{
-		Patches:          retroarch.CorePatches(model.EmulatorIDRetroArchBsnes, ctx.Store, ctx.ControllerConfig, pc, ctx.BaseDirResolver),
+		Patches:          patches,
 		Symlinks:         symlinks,
 		InitialDownloads: downloads,
+		EmbeddedFiles:    embeddedFiles,
 	}, nil
 }
 

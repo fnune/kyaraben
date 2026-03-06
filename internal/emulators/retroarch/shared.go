@@ -474,6 +474,14 @@ func CoreOptionsPatch(emuID model.EmulatorID, pc *PresetConfig) *model.ConfigPat
 			model.Entry(model.Preset, model.Path("mgba_color_correction"), "Auto"),
 			model.Entry(model.Preset, model.Path("mgba_interframe_blending"), "mix_smart"),
 		}
+	case model.EmulatorIDRetroArchGenesisPlusGX:
+		entries = []model.ConfigEntry{
+			model.Entry(model.Preset, model.Path("genesis_plus_gx_blargg_ntsc_filter"), "S-Video"),
+		}
+	case model.EmulatorIDRetroArchMesen:
+		entries = []model.ConfigEntry{
+			model.Entry(model.Preset, model.Path("mesen_palette"), "PVM Style (by FirebrandX)"),
+		}
 	}
 
 	if len(entries) == 0 {
@@ -498,7 +506,8 @@ func OverlayPatch(emuID model.EmulatorID, pc *PresetConfig, resolver model.BaseD
 	}
 
 	systemID := coreToSystem[emuID]
-	overlayType := systemToOverlayType(systemID)
+	displayType := pc.SystemDisplayTypes[systemID]
+	overlayType := systemToOverlayType(systemID, displayType)
 	if overlayType == "" {
 		return nil
 	}
@@ -534,7 +543,8 @@ func CoreEmbeddedFiles(emuID model.EmulatorID, pc *PresetConfig, resolver model.
 	}
 
 	systemID := coreToSystem[emuID]
-	overlayType := systemToOverlayType(systemID)
+	displayType := pc.SystemDisplayTypes[systemID]
+	overlayType := systemToOverlayType(systemID, displayType)
 	if overlayType == "" {
 		return nil, nil
 	}
@@ -574,7 +584,7 @@ func CoreEmbeddedFiles(emuID model.EmulatorID, pc *PresetConfig, resolver model.
 	return files, nil
 }
 
-func systemToOverlayType(systemID model.SystemID) string {
+func systemToOverlayType(systemID model.SystemID, displayType model.DisplayType) string {
 	switch systemID {
 	case model.SystemIDGB:
 		return "gb"
@@ -583,6 +593,9 @@ func systemToOverlayType(systemID model.SystemID) string {
 	case model.SystemIDGBA:
 		return "gba"
 	default:
+		if displayType == model.DisplayTypeCRT {
+			return "crt"
+		}
 		return ""
 	}
 }

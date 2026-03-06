@@ -26,7 +26,7 @@ func (Definition) Emulator() model.Emulator {
 			UsesStatesDir:      true,
 			UsesScreenshotsDir: true,
 		},
-		SupportedSettings: []string{model.SettingResumeAutosave, model.SettingResumeAutoload},
+		SupportedSettings: []string{model.SettingPreset, model.SettingResumeAutosave, model.SettingResumeAutoload},
 		SupportedHotkeys:  retroarch.HotkeyMappings.SupportedHotkeys(),
 		ResumeRecommended: true,
 	}
@@ -60,6 +60,10 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	if err != nil {
 		return model.GenerateResult{}, err
 	}
+	embeddedFiles, err := retroarch.CoreEmbeddedFiles(model.EmulatorIDRetroArchMupen64Plus, pc, ctx.BaseDirResolver)
+	if err != nil {
+		return model.GenerateResult{}, err
+	}
 
 	patches := retroarch.CorePatches(model.EmulatorIDRetroArchMupen64Plus, ctx.Store, ctx.ControllerConfig, pc, ctx.BaseDirResolver)
 	patches = append(patches, model.ConfigPatch{
@@ -69,11 +73,15 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 			model.Default(model.None, model.Path("mupen64plus-169screensize"), "1920x1080"),
 		},
 	})
+	if overlayPatch := retroarch.OverlayPatch(model.EmulatorIDRetroArchMupen64Plus, pc, ctx.BaseDirResolver); overlayPatch != nil {
+		patches = append(patches, *overlayPatch)
+	}
 
 	return model.GenerateResult{
 		Patches:          patches,
 		Symlinks:         symlinks,
 		InitialDownloads: downloads,
+		EmbeddedFiles:    embeddedFiles,
 	}, nil
 }
 

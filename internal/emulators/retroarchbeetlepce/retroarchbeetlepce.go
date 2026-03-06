@@ -29,7 +29,7 @@ func (Definition) Emulator() model.Emulator {
 		},
 		Launcher:          retroarch.LauncherWithCore(libretroCoreName),
 		PathUsage:         model.StandardPathUsage(),
-		SupportedSettings: []string{model.SettingResumeAutosave, model.SettingResumeAutoload},
+		SupportedSettings: []string{model.SettingPreset, model.SettingResumeAutosave, model.SettingResumeAutoload},
 		SupportedHotkeys:  retroarch.HotkeyMappings.SupportedHotkeys(),
 		ResumeRecommended: true,
 	}
@@ -57,10 +57,21 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	if err != nil {
 		return model.GenerateResult{}, err
 	}
+	embeddedFiles, err := retroarch.CoreEmbeddedFiles(model.EmulatorIDRetroArchBeetlePCE, pc, ctx.BaseDirResolver)
+	if err != nil {
+		return model.GenerateResult{}, err
+	}
+
+	patches := retroarch.CorePatches(model.EmulatorIDRetroArchBeetlePCE, ctx.Store, ctx.ControllerConfig, pc, ctx.BaseDirResolver)
+	if overlayPatch := retroarch.OverlayPatch(model.EmulatorIDRetroArchBeetlePCE, pc, ctx.BaseDirResolver); overlayPatch != nil {
+		patches = append(patches, *overlayPatch)
+	}
+
 	return model.GenerateResult{
-		Patches:          retroarch.CorePatches(model.EmulatorIDRetroArchBeetlePCE, ctx.Store, ctx.ControllerConfig, pc, ctx.BaseDirResolver),
+		Patches:          patches,
 		Symlinks:         symlinks,
 		InitialDownloads: downloads,
+		EmbeddedFiles:    embeddedFiles,
 	}, nil
 }
 
