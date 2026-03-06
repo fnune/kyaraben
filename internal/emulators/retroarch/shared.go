@@ -7,8 +7,10 @@ package retroarch
 
 import (
 	"fmt"
+	"io/fs"
 	"path/filepath"
 
+	"github.com/fnune/kyaraben/internal/emulators/retroarch/assets"
 	"github.com/fnune/kyaraben/internal/model"
 )
 
@@ -436,4 +438,151 @@ func CoreSymlinks(emuID model.EmulatorID, store model.StoreReader, resolver mode
 			Target: store.EmulatorStatesDir(emuID),
 		},
 	}, nil
+}
+
+// CoreOptionsTarget returns the config target for a core's .opt file.
+func CoreOptionsTarget(shortName string) model.ConfigTarget {
+	configDirName := shortName
+	if displayName, ok := coreConfigDirNames[shortName]; ok {
+		configDirName = displayName
+	}
+	return model.ConfigTarget{
+		RelPath: "retroarch/config/" + configDirName + "/" + configDirName + ".opt",
+		Format:  model.ConfigFormatCFG,
+		BaseDir: model.ConfigBaseDirUserConfig,
+	}
+}
+
+// CoreOptionsPatch returns a config patch for core-specific options.
+// This configures features like color correction and interframe blending
+// per RGC recommendations for authentic display emulation.
+func CoreOptionsPatch(emuID model.EmulatorID, pc *PresetConfig) *model.ConfigPatch {
+	if pc == nil || pc.Preset != model.PresetPseudoAuthentic {
+		return nil
+	}
+
+	shortName := CoreShortName(emuID)
+	if shortName == "" {
+		return nil
+	}
+
+	var entries []model.ConfigEntry
+
+	switch emuID {
+	case model.EmulatorIDRetroArchMGBA:
+		entries = []model.ConfigEntry{
+			model.Entry(model.Preset, model.Path("mgba_color_correction"), "Auto"),
+			model.Entry(model.Preset, model.Path("mgba_interframe_blending"), "mix_smart"),
+		}
+	}
+
+	if len(entries) == 0 {
+		return nil
+	}
+
+	return &model.ConfigPatch{
+		Target:  CoreOptionsTarget(shortName),
+		Entries: entries,
+	}
+}
+
+// OverlayPatch returns a config patch that enables overlays (bezels) for a core.
+func OverlayPatch(emuID model.EmulatorID, pc *PresetConfig, resolver model.BaseDirResolver) *model.ConfigPatch {
+	if pc == nil || !pc.Bezels {
+		return nil
+	}
+
+	shortName := CoreShortName(emuID)
+	if shortName == "" {
+		return nil
+	}
+
+	systemID := coreToSystem[emuID]
+	overlayType := systemToOverlayType(systemID)
+	if overlayType == "" {
+		return nil
+	}
+
+	configDir, err := resolver.UserConfigDir()
+	if err != nil {
+		return nil
+	}
+
+	_, cfgFile := assets.OverlayFiles(overlayType)
+	if cfgFile == "" {
+		return nil
+	}
+
+	overlayPath := filepath.Join(configDir, "retroarch", "overlays", "kyaraben", cfgFile)
+
+	entries := []model.ConfigEntry{
+		model.Entry(model.Preset, model.Path("input_overlay_enable"), "true"),
+		model.Entry(model.Preset, model.Path("input_overlay"), overlayPath),
+		model.Entry(model.Preset, model.Path("input_overlay_hide_in_menu"), "true"),
+	}
+
+	return &model.ConfigPatch{
+		Target:  CoreOverrideTarget(shortName),
+		Entries: entries,
+	}
+}
+
+// CoreEmbeddedFiles returns embedded overlay files for a core.
+func CoreEmbeddedFiles(emuID model.EmulatorID, pc *PresetConfig, resolver model.BaseDirResolver) ([]model.EmbeddedFile, error) {
+	if pc == nil || !pc.Bezels {
+		return nil, nil
+	}
+
+	systemID := coreToSystem[emuID]
+	overlayType := systemToOverlayType(systemID)
+	if overlayType == "" {
+		return nil, nil
+	}
+
+	configDir, err := resolver.UserConfigDir()
+	if err != nil {
+		return nil, fmt.Errorf("getting config dir: %w", err)
+	}
+
+	overlayDir := filepath.Join(configDir, "retroarch", "overlays", "kyaraben")
+	pngFile, cfgFile := assets.OverlayFiles(overlayType)
+	if pngFile == "" || cfgFile == "" {
+		return nil, nil
+	}
+
+	overlayFS := assets.OverlayFS()
+	var files []model.EmbeddedFile
+
+	pngContent, err := fs.ReadFile(overlayFS, pngFile)
+	if err != nil {
+		return nil, fmt.Errorf("reading overlay png: %w", err)
+	}
+	files = append(files, model.EmbeddedFile{
+		Content:  pngContent,
+		DestPath: filepath.Join(overlayDir, pngFile),
+	})
+
+	cfgContent, err := fs.ReadFile(overlayFS, cfgFile)
+	if err != nil {
+		return nil, fmt.Errorf("reading overlay cfg: %w", err)
+	}
+	files = append(files, model.EmbeddedFile{
+		Content:  cfgContent,
+		DestPath: filepath.Join(overlayDir, cfgFile),
+	})
+
+	return files, nil
+}
+
+func systemToOverlayType(systemID model.SystemID) string {
+	switch systemID {
+	case model.SystemIDGB:
+		return "gb"
+	case model.SystemIDGBC:
+		return "gbc"
+	case model.SystemIDGBA:
+		return "gba"
+	default:
+		return ""
+	}
 }

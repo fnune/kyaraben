@@ -38,7 +38,7 @@ type Emulator struct {
 	ResumeRecommended  bool
 }
 
-const SettingShaders = "shaders"
+const SettingPreset = "preset"
 const SettingResumeAutosave = "resume:autosave"
 const SettingResumeAutoload = "resume:autoload"
 

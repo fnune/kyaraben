@@ -52,7 +52,7 @@ func (Definition) Emulator() model.Emulator {
 			UsesStatesDir:      true,
 			UsesScreenshotsDir: true,
 		},
-		SupportedSettings: []string{model.SettingShaders, model.SettingResumeAutoload},
+		SupportedSettings: []string{model.SettingPreset, model.SettingResumeAutoload},
 		SupportedHotkeys:  hotkeyMappings.SupportedHotkeys(),
 		ResumeRecommended: false,
 	}

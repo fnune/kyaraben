@@ -26,7 +26,7 @@ func (Definition) Emulator() model.Emulator {
 			UsesStatesDir:      true,
 			UsesScreenshotsDir: true,
 		},
-		SupportedSettings: []string{model.SettingResumeAutosave, model.SettingResumeAutoload},
+		SupportedSettings: []string{model.SettingPreset, model.SettingResumeAutosave, model.SettingResumeAutoload},
 		SupportedHotkeys:  retroarch.HotkeyMappings.SupportedHotkeys(),
 		ResumeRecommended: true,
 	}
@@ -54,10 +54,24 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	if err != nil {
 		return model.GenerateResult{}, err
 	}
+	embeddedFiles, err := retroarch.CoreEmbeddedFiles(model.EmulatorIDRetroArchMGBA, pc, ctx.BaseDirResolver)
+	if err != nil {
+		return model.GenerateResult{}, err
+	}
+
+	patches := retroarch.CorePatches(model.EmulatorIDRetroArchMGBA, ctx.Store, ctx.ControllerConfig, pc, ctx.BaseDirResolver)
+	if optionsPatch := retroarch.CoreOptionsPatch(model.EmulatorIDRetroArchMGBA, pc); optionsPatch != nil {
+		patches = append(patches, *optionsPatch)
+	}
+	if overlayPatch := retroarch.OverlayPatch(model.EmulatorIDRetroArchMGBA, pc, ctx.BaseDirResolver); overlayPatch != nil {
+		patches = append(patches, *overlayPatch)
+	}
+
 	return model.GenerateResult{
-		Patches:          retroarch.CorePatches(model.EmulatorIDRetroArchMGBA, ctx.Store, ctx.ControllerConfig, pc, ctx.BaseDirResolver),
+		Patches:          patches,
 		Symlinks:         symlinks,
 		InitialDownloads: downloads,
+		EmbeddedFiles:    embeddedFiles,
 	}, nil
 }
 

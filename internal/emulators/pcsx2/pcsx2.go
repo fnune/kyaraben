@@ -57,7 +57,7 @@ func (Definition) Emulator() model.Emulator {
 			},
 		},
 		PathUsage:         model.StandardPathUsage(),
-		SupportedSettings: []string{model.SettingShaders, model.SettingResumeAutosave},
+		SupportedSettings: []string{model.SettingPreset, model.SettingResumeAutosave},
 		SupportedHotkeys:  hotkeyMappings.SupportedHotkeys(),
 		ResumeRecommended: false,
 	}

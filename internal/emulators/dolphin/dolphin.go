@@ -106,7 +106,7 @@ func (Definition) Emulator() model.Emulator {
 			UsesStatesDir:      true,
 			UsesScreenshotsDir: true,
 		},
-		SupportedSettings:  []string{model.SettingShaders},
+		SupportedSettings:  []string{model.SettingPreset},
 		SupportedHotkeys:   supportedHotkeys(),
 		ShadersRecommended: true,
 	}

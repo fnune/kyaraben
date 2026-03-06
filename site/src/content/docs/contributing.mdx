@@ -471,31 +471,42 @@ and manual. A separate bezels toggle adds decorative borders.
 modern display settings regardless of the preset selection. CRT and LCD shaders
 only apply to 5th generation and earlier systems.
 
-Shader selection follows recommendations from the
+Graphics preset implementation follows recommendations from the
 [RGC Overlay Pack](https://github.com/retrogamecorps/RGC-Overlay-Pack) and
 [RGC Shaders Guide](https://retrogamecorps.com/2024/09/01/guide-shaders-and-overlays-on-retro-handhelds/).
 
-Current shader assignments for pseudo-authentic preset:
+Current pseudo-authentic preset configuration:
+
+Shaders:
 
 - CRT systems (home consoles): `crt-1tap.slang` - lightweight dynamic scanline
-  shader with subtle CRT effect, good performance on handhelds
-- LCD systems (Game Boy, GBA, etc.): `lcd3x.slang` - LCD subpixel effect that
-  mimics handheld screens
+  shader with subtle CRT effect
+- LCD systems (Game Boy, GBA, etc.): `lcd3x.slang` - LCD subpixel effect
+
+Core options (mGBA):
+
+- `mgba_color_correction = "Auto"` - auto-detect GB/GBC/GBA color profile
+- `mgba_interframe_blending = "mix_smart"` - smart LCD ghosting simulation
+
+Bezels/overlays (when enabled):
+
+- Game Boy: `Perfect_GB-DMG.png` - DMG-style bezel
+- Game Boy Color: `Perfect_GBC.png` - GBC-style bezel
+- Game Boy Advance: `Perfect_GBA.png` - GBA-style bezel
 
 Shaders are downloaded from the
 [libretro slang-shaders](https://github.com/libretro/slang-shaders) repository
-at a pinned commit to ensure reproducibility. They are stored in
-`~/.config/retroarch/shaders/kyaraben/`.
+at a pinned commit. Overlays are embedded from the RGC Overlay Pack. Both are
+stored in `~/.config/retroarch/`.
 
 Target device detection (`internal/hardware/detect.go`) identifies Steam Deck
 (Jupiter for LCD, Galileo for OLED) and other devices via DMI product name.
-This enables device-appropriate shader selection in the future.
 
 Planned improvements:
 
-- Bezels/overlays for systems with non-standard aspect ratios
 - Per-device shader parameter tuning (Steam Deck vs desktop)
-- Additional LCD shader options for different handheld aesthetics
+- Additional core options for other RetroArch cores
+- CRT bezels for home console systems
 
 ## Commit messages
 
