@@ -35,7 +35,7 @@ func NewClient(config model.SyncConfig) *Client {
 	return &Client{
 		config: config,
 		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout: 30 * time.Second,
 		},
 	}
 }
@@ -511,19 +511,14 @@ func (c *Client) ShareFoldersWithDevice(ctx context.Context, deviceID string) er
 		return fmt.Errorf("unexpected status getting folders: %d", resp.StatusCode)
 	}
 
-	var folders []json.RawMessage
+	var folders []map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&folders); err != nil {
 		return fmt.Errorf("decoding folders: %w", err)
 	}
 
 	sharedCount := 0
-	for _, raw := range folders {
-		var folder map[string]any
-		if err := json.Unmarshal(raw, &folder); err != nil {
-			continue
-		}
-
-		devices, ok := folder["devices"].([]any)
+	for i := range folders {
+		devices, ok := folders[i]["devices"].([]any)
 		if !ok {
 			continue
 		}
@@ -543,16 +538,25 @@ func (c *Client) ShareFoldersWithDevice(ctx context.Context, deviceID string) er
 		}
 
 		devices = append(devices, map[string]any{"deviceID": deviceID})
-		folder["devices"] = devices
-
-		folderID, _ := folder["id"].(string)
-		patchResp, err := c.doRequest(ctx, http.MethodPut, "/rest/config/folders/"+folderID, folder)
-		if err != nil {
-			stLog.Error("PUT /rest/config/folders/%s failed: %v", folderID, err)
-			return fmt.Errorf("updating folder %s: %w", folderID, err)
-		}
-		_ = patchResp.Body.Close()
+		folders[i]["devices"] = devices
 		sharedCount++
+	}
+
+	if sharedCount == 0 {
+		stLog.Info("All folders already shared with device %s", truncateID(deviceID))
+		return nil
+	}
+
+	putResp, err := c.doRequest(ctx, http.MethodPut, "/rest/config/folders", folders)
+	if err != nil {
+		stLog.Error("PUT /rest/config/folders failed: %v", err)
+		return fmt.Errorf("updating folders: %w", err)
+	}
+	_ = putResp.Body.Close()
+
+	if putResp.StatusCode != http.StatusOK {
+		stLog.Error("PUT /rest/config/folders returned status %d", putResp.StatusCode)
+		return fmt.Errorf("unexpected status updating folders: %d", putResp.StatusCode)
 	}
 
 	stLog.Info("Shared %d folders with device %s", sharedCount, truncateID(deviceID))
@@ -620,9 +624,10 @@ func (c *Client) DismissPendingFolder(ctx context.Context, folderID, deviceID st
 }
 
 type FolderConfig struct {
-	ID   string `json:"id"`
-	Path string `json:"path"`
-	Type string `json:"type"`
+	ID      string   `json:"id"`
+	Path    string   `json:"path"`
+	Type    string   `json:"type"`
+	Devices []string `json:"-"`
 }
 
 func (c *Client) GetFolderConfigs(ctx context.Context) ([]FolderConfig, error) {
@@ -642,6 +647,105 @@ func (c *Client) GetFolderConfigs(ctx context.Context) ([]FolderConfig, error) {
 	}
 
 	return folders, nil
+}
+
+func (c *Client) GetFoldersWithDevices(ctx context.Context) ([]FolderConfig, error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/config/folders", nil)
+	if err != nil {
+		return nil, fmt.Errorf("getting folders: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+
+	var rawFolders []struct {
+		ID      string `json:"id"`
+		Path    string `json:"path"`
+		Type    string `json:"type"`
+		Devices []struct {
+			DeviceID string `json:"deviceID"`
+		} `json:"devices"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&rawFolders); err != nil {
+		return nil, fmt.Errorf("decoding folders: %w", err)
+	}
+
+	folders := make([]FolderConfig, len(rawFolders))
+	for i, raw := range rawFolders {
+		devices := make([]string, len(raw.Devices))
+		for j, d := range raw.Devices {
+			devices[j] = d.DeviceID
+		}
+		folders[i] = FolderConfig{
+			ID:      raw.ID,
+			Path:    raw.Path,
+			Type:    raw.Type,
+			Devices: devices,
+		}
+	}
+
+	return folders, nil
+}
+
+func (c *Client) ReconcileFolderSharing(ctx context.Context, drift []FolderSharingDrift) error {
+	if len(drift) == 0 {
+		return nil
+	}
+
+	driftMap := make(map[string][]string)
+	for _, d := range drift {
+		driftMap[d.FolderID] = d.MissingDeviceIDs
+	}
+
+	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/config/folders", nil)
+	if err != nil {
+		return fmt.Errorf("getting folders: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status getting folders: %d", resp.StatusCode)
+	}
+
+	var folders []map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&folders); err != nil {
+		return fmt.Errorf("decoding folders: %w", err)
+	}
+
+	modified := false
+	for i := range folders {
+		folderID, _ := folders[i]["id"].(string)
+		missingDevices, needsFix := driftMap[folderID]
+		if !needsFix {
+			continue
+		}
+
+		devices, _ := folders[i]["devices"].([]any)
+		for _, deviceID := range missingDevices {
+			devices = append(devices, map[string]any{"deviceID": deviceID})
+			stLog.Info("Reconciling: adding device %s to folder %s", truncateID(deviceID), folderID)
+		}
+		folders[i]["devices"] = devices
+		modified = true
+	}
+
+	if !modified {
+		return nil
+	}
+
+	putResp, err := c.doRequest(ctx, http.MethodPut, "/rest/config/folders", folders)
+	if err != nil {
+		return fmt.Errorf("updating folders: %w", err)
+	}
+	_ = putResp.Body.Close()
+
+	if putResp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status updating folders: %d", putResp.StatusCode)
+	}
+
+	return nil
 }
 
 type PendingStatus struct {

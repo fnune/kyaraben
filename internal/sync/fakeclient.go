@@ -17,9 +17,11 @@ type FakeClient struct {
 	sharedWith        []string
 	config            model.SyncConfig
 	folders           map[string]FolderStatusSummary
+	folderDevices     map[string][]string
 	discoveredDevs    []DiscoveredDevice
 	pendingDevs       []PendingDevice
 	deviceCompletions map[string]CompletionResponse
+	reconciledDrift   []FolderSharingDrift
 }
 
 func NewFakeClient(config model.SyncConfig) *FakeClient {
@@ -27,6 +29,7 @@ func NewFakeClient(config model.SyncConfig) *FakeClient {
 		running:           true,
 		connections:       make(map[string]ConnectionInfo),
 		folders:           make(map[string]FolderStatusSummary),
+		folderDevices:     make(map[string][]string),
 		deviceCompletions: make(map[string]CompletionResponse),
 		config:            config,
 	}
@@ -211,6 +214,42 @@ func (c *FakeClient) GetFolderConfigs(_ context.Context) ([]FolderConfig, error)
 		})
 	}
 	return configs, nil
+}
+
+func (c *FakeClient) SetFolderDevices(folderID string, devices []string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.folderDevices[folderID] = devices
+}
+
+func (c *FakeClient) GetFoldersWithDevices(_ context.Context) ([]FolderConfig, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	var configs []FolderConfig
+	for _, f := range c.folders {
+		configs = append(configs, FolderConfig{
+			ID:      f.ID,
+			Path:    f.Path,
+			Type:    f.Type,
+			Devices: c.folderDevices[f.ID],
+		})
+	}
+	return configs, nil
+}
+
+func (c *FakeClient) ReconcileFolderSharing(_ context.Context, drift []FolderSharingDrift) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.reconciledDrift = append(c.reconciledDrift, drift...)
+	return nil
+}
+
+func (c *FakeClient) ReconciledDrift() []FolderSharingDrift {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	result := make([]FolderSharingDrift, len(c.reconciledDrift))
+	copy(result, c.reconciledDrift)
+	return result
 }
 
 func (c *FakeClient) GetPendingFolders(_ context.Context) ([]PendingFolder, error) {
