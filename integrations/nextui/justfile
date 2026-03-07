@@ -21,14 +21,7 @@ build platform:
     pak_dir="{{ build_dir }}/Tools/{{ platform }}/Kyaraben.pak"
     mkdir -p "$pak_dir"
 
-    # Build Go binary for ARM64
-    echo "Building kyaraben-nextui for linux/arm64..."
-    CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build \
-        -ldflags="-s -w" \
-        -o "$pak_dir/kyaraben-nextui" \
-        ./cmd/kyaraben-nextui
-
-    # Download dependencies
+    just _fetch-kyaraben-nextui "$pak_dir"
     just _fetch-syncthing "$pak_dir"
     just _fetch-minui-list "{{ platform }}" "$pak_dir"
     just _fetch-minui-keyboard "{{ platform }}" "$pak_dir"
@@ -67,6 +60,23 @@ e2e:
     CGO_ENABLED=0 go test ./test/e2e/... -v
 
 # --- Internal targets ---
+
+_fetch-kyaraben-nextui dest:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    cache="{{ cache_dir }}/kyaraben-nextui"
+    if [ ! -f "$cache" ]; then
+        echo "Building kyaraben-nextui for linux/arm64..."
+        mkdir -p "{{ cache_dir }}"
+        CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build \
+            -ldflags="-s -w" \
+            -o "$cache" \
+            ./cmd/kyaraben-nextui
+    fi
+
+    cp "$cache" "{{ dest }}/kyaraben-nextui"
+    chmod +x "{{ dest }}/kyaraben-nextui"
 
 _fetch-syncthing dest:
     #!/usr/bin/env bash
