@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fnune/kyaraben/internal/folders"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/testutil"
 )
@@ -22,8 +23,11 @@ func TestConfigGenerator_GenerateFolders(t *testing.T) {
 	fs := testutil.NewTestFS(t, nil)
 
 	systems := []model.SystemID{"snes", "psx"}
-	emulators := []model.EmulatorID{"retroarch:bsnes", "duckstation"}
-	gen := NewConfigGenerator(fs, cfg, "/home/user/Emulation", systems, emulators)
+	emulators := []folders.EmulatorInfo{
+		{ID: "retroarch:bsnes", UsesStatesDir: true},
+		{ID: "duckstation", UsesStatesDir: true},
+	}
+	gen := NewConfigGenerator(fs, cfg, "/home/user/Emulation", systems, emulators, nil)
 	gen.SetDeviceID("TEST-DEVICE-ID")
 	gen.SetAPIKey("test-api-key")
 
@@ -75,7 +79,10 @@ func TestConfigGenerator_Versioning(t *testing.T) {
 
 	fs := testutil.NewTestFS(t, nil)
 
-	gen := NewConfigGenerator(fs, cfg, "/tmp", []model.SystemID{"snes"}, []model.EmulatorID{"retroarch:bsnes"})
+	emulators := []folders.EmulatorInfo{
+		{ID: "retroarch:bsnes", UsesStatesDir: true},
+	}
+	gen := NewConfigGenerator(fs, cfg, "/tmp", []model.SystemID{"snes"}, emulators, nil)
 
 	xmlCfg, err := gen.Generate()
 	if err != nil {
@@ -120,7 +127,10 @@ func TestConfigGenerator_WriteConfig_WritesIgnoreFiles(t *testing.T) {
 
 	fs := testutil.NewTestFS(t, nil)
 
-	gen := NewConfigGenerator(fs, cfg, "/emulation", []model.SystemID{"snes"}, []model.EmulatorID{"retroarch:bsnes"})
+	emulators := []folders.EmulatorInfo{
+		{ID: "retroarch:bsnes", UsesStatesDir: true},
+	}
+	gen := NewConfigGenerator(fs, cfg, "/emulation", []model.SystemID{"snes"}, emulators, nil)
 	gen.SetAPIKey("test-key")
 
 	if err := gen.WriteConfig("/config"); err != nil {
@@ -161,7 +171,10 @@ func TestConfigGenerator_WriteConfig_NoIgnoreFilesWhenNoPatterns(t *testing.T) {
 
 	fs := testutil.NewTestFS(t, nil)
 
-	gen := NewConfigGenerator(fs, cfg, "/emulation", []model.SystemID{"snes"}, []model.EmulatorID{"retroarch:bsnes"})
+	emulators := []folders.EmulatorInfo{
+		{ID: "retroarch:bsnes", UsesStatesDir: true},
+	}
+	gen := NewConfigGenerator(fs, cfg, "/emulation", []model.SystemID{"snes"}, emulators, nil)
 	gen.SetAPIKey("test-key")
 
 	if err := gen.WriteConfig("/config"); err != nil {
@@ -194,7 +207,10 @@ func TestConfigGenerator_WriteConfig_PreservesExistingDevices(t *testing.T) {
 		},
 	}
 
-	gen := NewConfigGenerator(fs, cfg, "/emulation", []model.SystemID{"snes"}, []model.EmulatorID{"retroarch:bsnes"})
+	emulators := []folders.EmulatorInfo{
+		{ID: "retroarch:bsnes", UsesStatesDir: true},
+	}
+	gen := NewConfigGenerator(fs, cfg, "/emulation", []model.SystemID{"snes"}, emulators, nil)
 	gen.SetDeviceID("LOCAL-DEVICE-ID")
 	gen.SetAPIKey("test-key")
 
@@ -213,5 +229,80 @@ func TestConfigGenerator_WriteConfig_PreservesExistingDevices(t *testing.T) {
 	}
 	if !strings.Contains(configStr, `name="steamdeck"`) {
 		t.Errorf("config should preserve paired device name")
+	}
+}
+
+func TestConfigGenerator_FiltersEmulatorsByUsesStatesDir(t *testing.T) {
+	cfg := model.SyncConfig{
+		Enabled:   true,
+		Syncthing: model.SyncthingConfig{GUIPort: 8385},
+	}
+
+	fs := testutil.NewTestFS(t, nil)
+
+	emulators := []folders.EmulatorInfo{
+		{ID: "duckstation", UsesStatesDir: true},
+		{ID: "eden", UsesStatesDir: false},
+	}
+	gen := NewConfigGenerator(fs, cfg, "/emulation", []model.SystemID{"psx", "switch"}, emulators, nil)
+
+	xmlCfg, err := gen.Generate()
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	var hasDuckstationStates, hasEdenStates bool
+	for _, f := range xmlCfg.Folders {
+		if f.ID == "kyaraben-states-duckstation" {
+			hasDuckstationStates = true
+		}
+		if f.ID == "kyaraben-states-eden" {
+			hasEdenStates = true
+		}
+	}
+
+	if !hasDuckstationStates {
+		t.Error("should have states folder for duckstation (UsesStatesDir=true)")
+	}
+	if hasEdenStates {
+		t.Error("should not have states folder for eden (UsesStatesDir=false)")
+	}
+}
+
+func TestConfigGenerator_FrontendFolders(t *testing.T) {
+	cfg := model.SyncConfig{
+		Enabled:   true,
+		Syncthing: model.SyncthingConfig{GUIPort: 8385},
+	}
+
+	fs := testutil.NewTestFS(t, nil)
+
+	emulators := []folders.EmulatorInfo{
+		{ID: "retroarch:bsnes", UsesStatesDir: true},
+	}
+	frontends := []model.FrontendID{"esde"}
+	gen := NewConfigGenerator(fs, cfg, "/emulation", []model.SystemID{"snes", "psx"}, emulators, frontends)
+
+	xmlCfg, err := gen.Generate()
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	wantFrontendFolders := []string{
+		"kyaraben-frontends-esde-gamelists-snes",
+		"kyaraben-frontends-esde-gamelists-psx",
+		"kyaraben-frontends-esde-media-snes",
+		"kyaraben-frontends-esde-media-psx",
+	}
+
+	foldersByID := make(map[string]XMLFolder)
+	for _, f := range xmlCfg.Folders {
+		foldersByID[f.ID] = f
+	}
+
+	for _, wantID := range wantFrontendFolders {
+		if _, ok := foldersByID[wantID]; !ok {
+			t.Errorf("missing expected frontend folder: %s", wantID)
+		}
 	}
 }

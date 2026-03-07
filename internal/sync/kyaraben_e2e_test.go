@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fnune/kyaraben/internal/folders"
 	"github.com/fnune/kyaraben/internal/model"
 )
 
@@ -176,7 +177,7 @@ type kyarabenInstance struct {
 	*testInstance
 	collection string
 	systems    []model.SystemID
-	emulators  []model.EmulatorID
+	emulators  []folders.EmulatorInfo
 }
 
 func newKyarabenInstance(t *testing.T, name string, guiPort, listenPort int) *kyarabenInstance {
@@ -186,7 +187,10 @@ func newKyarabenInstance(t *testing.T, name string, guiPort, listenPort int) *ky
 	collection := filepath.Join(filepath.Dir(inst.configDir), "emulation")
 
 	systems := []model.SystemID{"snes", "psx"}
-	emulators := []model.EmulatorID{"retroarch:bsnes", "duckstation"}
+	emulators := []folders.EmulatorInfo{
+		{ID: "retroarch:bsnes", UsesStatesDir: true},
+		{ID: "duckstation", UsesStatesDir: true},
+	}
 	for _, sys := range systems {
 		for _, category := range []string{"roms", "saves", "bios"} {
 			dir := filepath.Join(collection, category, string(sys))
@@ -196,9 +200,11 @@ func newKyarabenInstance(t *testing.T, name string, guiPort, listenPort int) *ky
 		}
 	}
 	for _, emu := range emulators {
-		dir := filepath.Join(collection, "states", string(emu))
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			t.Fatalf("creating %s: %v", dir, err)
+		if emu.UsesStatesDir {
+			dir := filepath.Join(collection, "states", string(emu.ID))
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				t.Fatalf("creating %s: %v", dir, err)
+			}
 		}
 	}
 	if err := os.MkdirAll(filepath.Join(collection, "screenshots"), 0755); err != nil {
@@ -239,7 +245,7 @@ func (k *kyarabenInstance) writeKyarabenConfig(peer *kyarabenInstance) error {
 		},
 	}
 
-	gen := NewDefaultConfigGenerator(cfg, k.collection, k.systems, k.emulators)
+	gen := NewDefaultConfigGenerator(cfg, k.collection, k.systems, k.emulators, nil)
 	gen.SetDeviceID(k.deviceID)
 	gen.SetAPIKey(k.apiKey)
 

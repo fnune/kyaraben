@@ -19,6 +19,7 @@ import (
 	"github.com/fnune/kyaraben/internal/doctor"
 	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/emulators/symlink"
+	"github.com/fnune/kyaraben/internal/folders"
 	"github.com/fnune/kyaraben/internal/hardware"
 	"github.com/fnune/kyaraben/internal/importscanner"
 	"github.com/fnune/kyaraben/internal/launcher"
@@ -1665,6 +1666,7 @@ func (d *Daemon) handleSyncEnable(emit func(Event)) []Event {
 
 	allSystems := d.syncSystems(cfg)
 	allEmulators := d.syncEmulators(cfg)
+	allFrontends := d.syncFrontends(cfg)
 
 	emitProgress := func(phase, message string, percent int) {
 		if emit != nil {
@@ -1683,7 +1685,7 @@ func (d *Daemon) handleSyncEnable(emit func(Event)) []Event {
 		emitProgress("installing", "Installing syncthing...", 0)
 
 		setup := syncpkg.NewSetup(d.deps.FS, d.deps.Paths, d.deps.Installer, d.deps.StateDir, d.deps.Service)
-		result, err := setup.Install(context.Background(), cfg.Sync, collection.Root(), allSystems, allEmulators, func(p packages.InstallProgress) {
+		result, err := setup.Install(context.Background(), cfg.Sync, collection.Root(), allSystems, allEmulators, allFrontends, func(p packages.InstallProgress) {
 			percent := 0
 			if p.BytesTotal > 0 {
 				percent = int(p.BytesDownloaded * 80 / p.BytesTotal)
@@ -1816,8 +1818,9 @@ func (d *Daemon) handleSyncSetSettings(data *SyncSetSettingsRequest) []Event {
 
 		allSystems := d.syncSystems(cfg)
 		allEmulators := d.syncEmulators(cfg)
+		allFrontends := d.syncFrontends(cfg)
 		setup := syncpkg.NewSetup(d.deps.FS, d.deps.Paths, d.deps.Installer, d.deps.StateDir, d.deps.Service)
-		if err := setup.UpdateConfig(cfg.Sync, collection.Root(), allSystems, allEmulators); err != nil {
+		if err := setup.UpdateConfig(cfg.Sync, collection.Root(), allSystems, allEmulators, allFrontends); err != nil {
 			return d.errorResponse(fmt.Sprintf("updating syncthing config: %v", err))
 		}
 
@@ -1960,8 +1963,21 @@ func (d *Daemon) syncSystems(cfg *model.KyarabenConfig) []model.SystemID {
 	return cfg.EnabledSystems()
 }
 
-func (d *Daemon) syncEmulators(cfg *model.KyarabenConfig) []model.EmulatorID {
-	return cfg.EnabledEmulators()
+func (d *Daemon) syncEmulators(cfg *model.KyarabenConfig) []folders.EmulatorInfo {
+	emuIDs := cfg.EnabledEmulators()
+	result := make([]folders.EmulatorInfo, 0, len(emuIDs))
+	for _, id := range emuIDs {
+		info := folders.EmulatorInfo{ID: id}
+		if emu, err := d.deps.Registry.GetEmulator(id); err == nil {
+			info.UsesStatesDir = emu.PathUsage.UsesStatesDir
+		}
+		result = append(result, info)
+	}
+	return result
+}
+
+func (d *Daemon) syncFrontends(cfg *model.KyarabenConfig) []model.FrontendID {
+	return cfg.EnabledFrontends()
 }
 
 func (d *Daemon) dismissUnwantedPendingFolders(client syncpkg.SyncClient) {
@@ -2032,9 +2048,10 @@ func (d *Daemon) ensureSyncthingManaged(cfg *model.KyarabenConfig) {
 
 	allSystems := d.syncSystems(cfg)
 	allEmulators := d.syncEmulators(cfg)
+	allFrontends := d.syncFrontends(cfg)
 
 	setup := syncpkg.NewSetup(d.deps.FS, d.deps.Paths, d.deps.Installer, d.deps.StateDir, d.deps.Service)
-	result, err := setup.Install(context.Background(), cfg.Sync, collection.Root(), allSystems, allEmulators, nil)
+	result, err := setup.Install(context.Background(), cfg.Sync, collection.Root(), allSystems, allEmulators, allFrontends, nil)
 	if err != nil {
 		log.Error("Syncthing setup failed: %v", err)
 		d.recordSyncSetupFailure()
@@ -2203,6 +2220,7 @@ func (d *Daemon) resetReconcileBackoff() {
 func (d *Daemon) updateSyncConfig(cfg *model.KyarabenConfig, collectionPath string) error {
 	allSystems := d.syncSystems(cfg)
 	allEmulators := d.syncEmulators(cfg)
+	allFrontends := d.syncFrontends(cfg)
 
 	manifest, err := d.loadManifest()
 	if err != nil {
@@ -2210,7 +2228,7 @@ func (d *Daemon) updateSyncConfig(cfg *model.KyarabenConfig, collectionPath stri
 	}
 
 	setup := syncpkg.NewSetup(d.deps.FS, d.deps.Paths, d.deps.Installer, d.deps.StateDir, d.deps.Service)
-	result, installErr := setup.Install(context.Background(), cfg.Sync, collectionPath, allSystems, allEmulators, nil)
+	result, installErr := setup.Install(context.Background(), cfg.Sync, collectionPath, allSystems, allEmulators, allFrontends, nil)
 	if installErr != nil {
 		return fmt.Errorf("updating syncthing: %w", installErr)
 	}

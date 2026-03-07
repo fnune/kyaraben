@@ -1,20 +1,11 @@
 package mapping
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"github.com/fnune/kyaraben/integrations/nextui/internal/config"
+	"github.com/fnune/kyaraben/internal/folders"
 	"github.com/fnune/kyaraben/internal/syncguest"
-)
-
-type Category string
-
-const (
-	CategoryROMs        Category = "roms"
-	CategorySaves       Category = "saves"
-	CategoryBIOS        Category = "bios"
-	CategoryScreenshots Category = "screenshots"
 )
 
 type Mapper struct {
@@ -29,24 +20,21 @@ func NewMapper(sdcardPath string, cfg config.Config) *Mapper {
 	}
 }
 
-func (m *Mapper) KyarabenFolderID(category Category, system string) string {
-	if category == CategoryScreenshots {
-		return "kyaraben-screenshots"
-	}
-	return fmt.Sprintf("kyaraben-%s-%s", category, system)
+func (m *Mapper) KyarabenFolderID(category folders.Category, system string) string {
+	return folders.ID(category, system)
 }
 
-func (m *Mapper) DevicePath(category Category, system string) string {
+func (m *Mapper) DevicePath(category folders.Category, system string) string {
 	var relativePath string
 
 	switch category {
-	case CategorySaves:
+	case folders.CategorySaves:
 		relativePath = m.cfg.Saves[system]
-	case CategoryROMs:
+	case folders.CategoryROMs:
 		relativePath = m.cfg.ROMs[system]
-	case CategoryBIOS:
+	case folders.CategoryBIOS:
 		relativePath = m.cfg.BIOS[system]
-	case CategoryScreenshots:
+	case folders.CategoryScreenshots:
 		relativePath = m.cfg.Screenshots
 	}
 
@@ -77,17 +65,17 @@ func (m *Mapper) AllSystems() []string {
 	return systems
 }
 
-func (m *Mapper) SystemsForCategory(category Category) []string {
+func (m *Mapper) SystemsForCategory(category folders.Category) []string {
 	var mapping map[string]string
 
 	switch category {
-	case CategorySaves:
+	case folders.CategorySaves:
 		mapping = m.cfg.Saves
-	case CategoryROMs:
+	case folders.CategoryROMs:
 		mapping = m.cfg.ROMs
-	case CategoryBIOS:
+	case folders.CategoryBIOS:
 		mapping = m.cfg.BIOS
-	case CategoryScreenshots:
+	case folders.CategoryScreenshots:
 		return nil
 	}
 
@@ -103,36 +91,36 @@ func (m *Mapper) FolderMappings() []FolderMapping {
 
 	for system, path := range m.cfg.Saves {
 		mappings = append(mappings, FolderMapping{
-			FolderID:   m.KyarabenFolderID(CategorySaves, system),
+			FolderID:   folders.ID(folders.CategorySaves, system),
 			DevicePath: filepath.Join(m.sdcardPath, path),
-			Category:   CategorySaves,
+			Category:   folders.CategorySaves,
 			System:     system,
 		})
 	}
 
 	for system, path := range m.cfg.ROMs {
 		mappings = append(mappings, FolderMapping{
-			FolderID:   m.KyarabenFolderID(CategoryROMs, system),
+			FolderID:   folders.ID(folders.CategoryROMs, system),
 			DevicePath: filepath.Join(m.sdcardPath, path),
-			Category:   CategoryROMs,
+			Category:   folders.CategoryROMs,
 			System:     system,
 		})
 	}
 
 	for system, path := range m.cfg.BIOS {
 		mappings = append(mappings, FolderMapping{
-			FolderID:   m.KyarabenFolderID(CategoryBIOS, system),
+			FolderID:   folders.ID(folders.CategoryBIOS, system),
 			DevicePath: filepath.Join(m.sdcardPath, path),
-			Category:   CategoryBIOS,
+			Category:   folders.CategoryBIOS,
 			System:     system,
 		})
 	}
 
 	if m.cfg.Screenshots != "" {
 		mappings = append(mappings, FolderMapping{
-			FolderID:   "kyaraben-screenshots",
+			FolderID:   folders.ID(folders.CategoryScreenshots, ""),
 			DevicePath: filepath.Join(m.sdcardPath, m.cfg.Screenshots),
-			Category:   CategoryScreenshots,
+			Category:   folders.CategoryScreenshots,
 		})
 	}
 
@@ -142,7 +130,7 @@ func (m *Mapper) FolderMappings() []FolderMapping {
 type FolderMapping struct {
 	FolderID   string
 	DevicePath string
-	Category   Category
+	Category   folders.Category
 	System     string
 }
 

@@ -4,20 +4,21 @@ import (
 	"testing"
 
 	"github.com/fnune/kyaraben/integrations/nextui/internal/config"
+	"github.com/fnune/kyaraben/internal/folders"
 )
 
 func TestKyarabenFolderID(t *testing.T) {
 	m := NewMapper("/mnt/SDCARD", config.DefaultConfig())
 
 	tests := []struct {
-		category Category
+		category folders.Category
 		system   string
 		expected string
 	}{
-		{CategorySaves, "gb", "kyaraben-saves-gb"},
-		{CategoryROMs, "snes", "kyaraben-roms-snes"},
-		{CategoryBIOS, "psx", "kyaraben-bios-psx"},
-		{CategoryScreenshots, "", "kyaraben-screenshots"},
+		{folders.CategorySaves, "gb", "kyaraben-saves-gb"},
+		{folders.CategoryROMs, "snes", "kyaraben-roms-snes"},
+		{folders.CategoryBIOS, "psx", "kyaraben-bios-psx"},
+		{folders.CategoryScreenshots, "", "kyaraben-screenshots"},
 	}
 
 	for _, tt := range tests {
@@ -32,16 +33,16 @@ func TestDevicePath(t *testing.T) {
 	m := NewMapper("/mnt/SDCARD", config.DefaultConfig())
 
 	tests := []struct {
-		category Category
+		category folders.Category
 		system   string
 		expected string
 	}{
-		{CategorySaves, "gb", "/mnt/SDCARD/Saves/GB"},
-		{CategorySaves, "snes", "/mnt/SDCARD/Saves/SFC"},
-		{CategoryBIOS, "psx", "/mnt/SDCARD/Bios/PS"},
-		{CategoryROMs, "gb", "/mnt/SDCARD/Roms/Game Boy (GB)"},
-		{CategoryROMs, "unknown", ""},
-		{CategoryScreenshots, "", "/mnt/SDCARD/Screenshots"},
+		{folders.CategorySaves, "gb", "/mnt/SDCARD/Saves/GB"},
+		{folders.CategorySaves, "snes", "/mnt/SDCARD/Saves/SFC"},
+		{folders.CategoryBIOS, "psx", "/mnt/SDCARD/Bios/PS"},
+		{folders.CategoryROMs, "gb", "/mnt/SDCARD/Roms/Game Boy (GB)"},
+		{folders.CategoryROMs, "unknown", ""},
+		{folders.CategoryScreenshots, "", "/mnt/SDCARD/Screenshots"},
 	}
 
 	for _, tt := range tests {
@@ -58,7 +59,7 @@ func TestDevicePathWithCustomConfig(t *testing.T) {
 
 	m := NewMapper("/mnt/SDCARD", cfg)
 
-	got := m.DevicePath(CategorySaves, "gba")
+	got := m.DevicePath(folders.CategorySaves, "gba")
 	expected := "/mnt/SDCARD/Saves/MGBA"
 	if got != expected {
 		t.Errorf("DevicePath with custom config = %q, want %q", got, expected)
