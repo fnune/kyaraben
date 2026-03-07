@@ -6,6 +6,15 @@
 
 ### Would be really nice
 
+- Single source of truth for Kyaraben folder IDs
+  - Currently scattered: `internal/model/system.go` (SystemID constants), `internal/sync/config.go` (constructs folder IDs), and now duplicated in `integrations/nextui/internal/config/config.go`
+  - Problem: if Kyaraben adds a new system, guest integrations don't know about it
+  - Idea: one package that exports all Kyaraben folder IDs; guests just provide path mappings
+- Unify folder configuration logic
+  - Kyaraben configures Syncthing folders two ways: `internal/sync/config.go` writes config.xml (before Syncthing starts), `internal/syncthing/client.go` uses REST API (after Syncthing running)
+  - `syncguest` does the config.xml approach
+  - Both need same input: folder mappings (ID -> path) + device list; output format differs
+  - Could unify into one abstraction that outputs to config.xml OR REST API; both Kyaraben and guests use same code
 - Use HTTPS with self-signed certificates for Syncthing's UI
   - This is what Syncthing ships by default
   - Can we do this without sacrificing UX?
