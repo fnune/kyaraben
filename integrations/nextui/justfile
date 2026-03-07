@@ -13,7 +13,7 @@ cache_dir := ".cache"
 default:
     @just --list
 
-# Build PAK for a specific platform (tg5040 or tg5050)
+# Build PAK for a specific platform (tg5040, trimuismart, rg35xxplus, rg35xx, miyoomini, rgb30)
 build platform:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -41,10 +41,14 @@ build platform:
 
     echo "PAK built: $pak_dir"
 
-# Build PAKs for all platforms
+# Build PAKs for all supported platforms
 build-all:
     just build tg5040
-    just build tg5050
+    just build trimuismart
+    just build rg35xxplus
+    just build rg35xx
+    just build miyoomini
+    just build rgb30
 
 # Clean build artifacts
 clean:
