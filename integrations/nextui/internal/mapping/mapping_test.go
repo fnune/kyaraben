@@ -2,10 +2,12 @@ package mapping
 
 import (
 	"testing"
+
+	"github.com/fnune/kyaraben/integrations/nextui/internal/config"
 )
 
 func TestKyarabenFolderID(t *testing.T) {
-	m := NewMapper("/mnt/SDCARD", nil)
+	m := NewMapper("/mnt/SDCARD", config.DefaultConfig())
 
 	tests := []struct {
 		category Category
@@ -26,116 +28,106 @@ func TestKyarabenFolderID(t *testing.T) {
 	}
 }
 
-func TestNextUIPath(t *testing.T) {
-	m := NewMapper("/mnt/SDCARD", nil)
+func TestDevicePath(t *testing.T) {
+	m := NewMapper("/mnt/SDCARD", config.DefaultConfig())
 
 	tests := []struct {
 		category Category
-		tag      string
+		system   string
 		expected string
 	}{
-		{CategorySaves, "GB", "/mnt/SDCARD/Saves/GB"},
-		{CategorySaves, "SFC", "/mnt/SDCARD/Saves/SFC"},
-		{CategoryBIOS, "PS", "/mnt/SDCARD/Bios/PS"},
-		{CategoryROMs, "GB", "/mnt/SDCARD/Roms/Game Boy (GB)"},
-		{CategoryROMs, "UNKNOWN", "/mnt/SDCARD/Roms/UNKNOWN"},
+		{CategorySaves, "gb", "/mnt/SDCARD/Saves/GB"},
+		{CategorySaves, "snes", "/mnt/SDCARD/Saves/SFC"},
+		{CategoryBIOS, "psx", "/mnt/SDCARD/Bios/PS"},
+		{CategoryROMs, "gb", "/mnt/SDCARD/Roms/Game Boy (GB)"},
+		{CategoryROMs, "unknown", ""},
 		{CategoryScreenshots, "", "/mnt/SDCARD/Screenshots"},
 	}
 
 	for _, tt := range tests {
-		got := m.NextUIPath(tt.category, tt.tag)
+		got := m.DevicePath(tt.category, tt.system)
 		if got != tt.expected {
-			t.Errorf("NextUIPath(%s, %s) = %q, want %q", tt.category, tt.tag, got, tt.expected)
+			t.Errorf("DevicePath(%s, %s) = %q, want %q", tt.category, tt.system, got, tt.expected)
 		}
 	}
 }
 
-func TestTagToSystem(t *testing.T) {
-	m := NewMapper("/mnt/SDCARD", nil)
+func TestDevicePathWithCustomConfig(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.Saves["gba"] = "Saves/MGBA"
 
-	tests := []struct {
-		tag      string
-		expected string
-		ok       bool
-	}{
-		{"GB", "gb", true},
-		{"SFC", "snes", true},
-		{"FC", "nes", true},
-		{"PS", "psx", true},
-		{"UNKNOWN", "", false},
-	}
+	m := NewMapper("/mnt/SDCARD", cfg)
 
-	for _, tt := range tests {
-		got, ok := m.TagToSystem(tt.tag)
-		if ok != tt.ok || got != tt.expected {
-			t.Errorf("TagToSystem(%s) = (%q, %v), want (%q, %v)", tt.tag, got, ok, tt.expected, tt.ok)
-		}
+	got := m.DevicePath(CategorySaves, "gba")
+	expected := "/mnt/SDCARD/Saves/MGBA"
+	if got != expected {
+		t.Errorf("DevicePath with custom config = %q, want %q", got, expected)
 	}
 }
 
-func TestTagToSystemWithOverrides(t *testing.T) {
-	overrides := map[string]string{
-		"MGBA": "gba",
-		"SUPA": "snes",
-	}
-	m := NewMapper("/mnt/SDCARD", overrides)
-
-	tests := []struct {
-		tag      string
-		expected string
-		ok       bool
-	}{
-		{"MGBA", "gba", true},
-		{"SUPA", "snes", true},
-		{"GBA", "gba", true},
+func TestFolderMappings(t *testing.T) {
+	cfg := config.Config{
+		Saves: map[string]string{
+			"gb": "Saves/GB",
+		},
+		ROMs: map[string]string{
+			"gb": "Roms/Game Boy (GB)",
+		},
+		Screenshots: "Screenshots",
 	}
 
-	for _, tt := range tests {
-		got, ok := m.TagToSystem(tt.tag)
-		if ok != tt.ok || got != tt.expected {
-			t.Errorf("TagToSystem(%s) = (%q, %v), want (%q, %v)", tt.tag, got, ok, tt.expected, tt.ok)
+	m := NewMapper("/mnt/SDCARD", cfg)
+	mappings := m.FolderMappings()
+
+	if len(mappings) != 3 {
+		t.Errorf("expected 3 mappings, got %d", len(mappings))
+	}
+
+	foundSaves := false
+	foundROMs := false
+	foundScreenshots := false
+
+	for _, mapping := range mappings {
+		switch mapping.FolderID {
+		case "kyaraben-saves-gb":
+			foundSaves = true
+			if mapping.DevicePath != "/mnt/SDCARD/Saves/GB" {
+				t.Errorf("saves path = %q, want /mnt/SDCARD/Saves/GB", mapping.DevicePath)
+			}
+		case "kyaraben-roms-gb":
+			foundROMs = true
+		case "kyaraben-screenshots":
+			foundScreenshots = true
 		}
+	}
+
+	if !foundSaves {
+		t.Error("saves mapping not found")
+	}
+	if !foundROMs {
+		t.Error("roms mapping not found")
+	}
+	if !foundScreenshots {
+		t.Error("screenshots mapping not found")
 	}
 }
 
-func TestSystemToTag(t *testing.T) {
-	m := NewMapper("/mnt/SDCARD", nil)
-
-	tests := []struct {
-		system   string
-		expected string
-		ok       bool
-	}{
-		{"gb", "GB", true},
-		{"snes", "SFC", true},
-		{"nes", "FC", true},
-		{"psx", "PS", true},
-		{"unknown", "", false},
+func TestAllSystems(t *testing.T) {
+	cfg := config.Config{
+		Saves: map[string]string{
+			"gb":  "Saves/GB",
+			"gba": "Saves/GBA",
+		},
+		ROMs: map[string]string{
+			"gb":   "Roms/Game Boy (GB)",
+			"snes": "Roms/Super Nintendo (SFC)",
+		},
 	}
 
-	for _, tt := range tests {
-		got, ok := m.SystemToTag(tt.system)
-		if ok != tt.ok || got != tt.expected {
-			t.Errorf("SystemToTag(%s) = (%q, %v), want (%q, %v)", tt.system, got, ok, tt.expected, tt.ok)
-		}
-	}
-}
+	m := NewMapper("/mnt/SDCARD", cfg)
+	systems := m.AllSystems()
 
-func TestExtractTagFromPath(t *testing.T) {
-	tests := []struct {
-		path     string
-		expected string
-	}{
-		{"/mnt/SDCARD/Roms/Game Boy (GB)", "GB"},
-		{"/mnt/SDCARD/Roms/Super Nintendo (SFC)", "SFC"},
-		{"/mnt/SDCARD/Saves/GB", "GB"},
-		{"/mnt/SDCARD/Roms/NoTag", "NoTag"},
-	}
-
-	for _, tt := range tests {
-		got := ExtractTagFromPath(tt.path)
-		if got != tt.expected {
-			t.Errorf("ExtractTagFromPath(%s) = %q, want %q", tt.path, got, tt.expected)
-		}
+	if len(systems) != 3 {
+		t.Errorf("expected 3 systems (gb, gba, snes), got %d", len(systems))
 	}
 }

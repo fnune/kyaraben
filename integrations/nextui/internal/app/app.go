@@ -52,7 +52,7 @@ func New(env Env, cfg config.Config, mgr *syncguest.Manager, appUI ui.UI) *App {
 	return &App{
 		env:    env,
 		cfg:    cfg,
-		mapper: mapping.NewMapper(env.SDCardPath, cfg.TagOverrides),
+		mapper: mapping.NewMapper(env.SDCardPath, cfg),
 		mgr:    mgr,
 		ui:     appUI,
 	}

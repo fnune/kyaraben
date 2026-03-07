@@ -18,12 +18,14 @@ Target: all devices supported by NextUI, testing on TrimUI Brick.
 - [x] Updated `internal/sync/` to use `internal/syncthing/` (removed ~900 lines of duplication)
 - [x] Created `integrations/nextui/` directory structure:
   - `cmd/kyaraben-nextui/main.go`: Main binary entry point
-  - `internal/mapping/`: Kyaraben system <-> NextUI TAG mapping with tests
+  - `internal/mapping/`: Config-driven folder mapping (system ID -> device path)
   - `internal/ui/interface.go`: UI abstraction interfaces (MenuUI, KeyboardUI, PresenterUI)
   - `internal/ui/minui/`: minui-list/keyboard/presenter wrappers
   - `internal/ui/fake/`: Fake UI for testing
-  - `internal/config/`: TOML config with tag_overrides support
+  - `internal/config/`: TOML config with saves/roms/bios/screenshots sections
   - `internal/app/`: Main application loop (uses syncguest)
+  - `build/`: launch.sh, justfile, config.toml.example
+  - `test/e2e/`: E2E tests with fake UI
 - [x] Created `internal/syncguest/` package - generic sync management for guest devices:
   - Manages Syncthing process lifecycle (start/stop/wait for ready)
   - Pairing flow (create session, join session, wait for peer)
@@ -42,8 +44,29 @@ The core sync functionality is not NextUI-specific. `internal/syncguest` provide
 
 The NextUI PAK is a thin wrapper:
 - Provides minui-based UI
-- Handles TAG -> Kyaraben system mapping
+- Provides default path config for NextUI
 - Bundles platform-specific binaries
+
+### Future: move folder mapping to syncguest
+
+Folder mapping answers the question every guest device needs: "Kyaraben offers `kyaraben-saves-gb`, `kyaraben-roms-snes`, etc. Where do those go on YOUR device?"
+
+This belongs in `syncguest`, not in integration-specific code. The config format can be shared:
+
+```toml
+[saves]
+gb = "Saves/GB"
+gba = "Saves/GBA"
+
+[roms]
+gb = "Roms/Game Boy (GB)"
+
+# Integration-specific sections reserved
+[nextui]
+# ...
+```
+
+Each integration provides default values for its platform. Users can override.
 
 ## Scope
 
@@ -96,19 +119,31 @@ Kyaraben uses folder IDs like `kyaraben-{category}-{system}`. NextUI uses TAGs.
 | BIOS | kyaraben-bios-{system} | ~/Emulation/bios/{system}/ | /Bios/{TAG}/ |
 | Screenshots | kyaraben-screenshots | ~/Emulation/screenshots/ | /Screenshots/ |
 
-### Alternative cores (power user config)
+### Config format
 
-Users with alternative core PAKs (MGBA.pak, SUPA.pak) can configure overrides:
+Paths are relative to SD card root. Kyaraben system ID on left, device path on right:
 
 ```toml
 # /.userdata/{platform}/kyaraben/config.toml
-[tag_overrides]
-MGBA = "gba"   # /Saves/MGBA/ syncs to kyaraben-saves-gba
-SUPA = "snes"  # /Saves/SUPA/ syncs to kyaraben-saves-snes
-SGB = "gba"    # Super Game Boy saves to GBA folder
+
+[saves]
+gb = "Saves/GB"
+gba = "Saves/GBA"
+# Users with MGBA.pak change to:
+# gba = "Saves/MGBA"
+
+[roms]
+gb = "Roms/Game Boy (GB)"
+gba = "Roms/Game Boy Advance (GBA)"
+
+[bios]
+gba = "Bios/GBA"
+psx = "Bios/PS"
+
+screenshots = "Screenshots"
 ```
 
-Default: only base TAGs sync. Overrides let alternative TAGs map to the same Kyaraben folder.
+Defaults are shipped with the PAK. Users only need to edit if using non-standard paths.
 
 ## Features
 
