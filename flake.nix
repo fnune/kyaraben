@@ -40,6 +40,10 @@
             golangci-lint
             delve
 
+            # Node.js development
+            nodejs_22
+            nodePackages.npm
+
             # Nix tools
             nil
             nixpkgs-fmt

@@ -144,8 +144,13 @@ func (Definition) Emulator() model.Emulator {
             model.StateSavestates,
             model.StateScreenshots,
         },
-        Launcher:  retroarch.LauncherWithCore(libretroCoreName),
-        PathUsage: model.StandardPathUsage(),
+        Launcher:         retroarch.LauncherWithCore(libretroCoreName),
+        PathUsage:        model.StandardPathUsage(),
+        SupportedSettings: []string{
+            model.SettingPreset,         // Graphics presets (clean/retro)
+            model.SettingResumeAutosave, // Auto-save on exit
+            model.SettingResumeAutoload, // Auto-load on start
+        },
     }
 }
 
@@ -156,13 +161,33 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 type Config struct{}
 
 func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
+    pc := &retroarch.PresetConfig{
+        Preset:             ctx.Preset,
+        TargetDevice:       ctx.TargetDevice,
+        Resume:             ctx.Resume,
+        SystemDisplayTypes: ctx.SystemDisplayTypes,
+    }
+
     symlinks, err := retroarch.CoreSymlinks(model.EmulatorIDRetroArchNewCore, ctx.Store, ctx.BaseDirResolver)
     if err != nil {
         return model.GenerateResult{}, err
     }
+
+    downloads, err := retroarch.CoreShaderDownloads(model.EmulatorIDRetroArchNewCore, ctx.BaseDirResolver, pc)
+    if err != nil {
+        return model.GenerateResult{}, err
+    }
+
+    embedded, err := retroarch.CoreEmbeddedFiles(model.EmulatorIDRetroArchNewCore, []model.SystemID{model.SystemIDNewSystem}, pc, ctx.BaseDirResolver)
+    if err != nil {
+        return model.GenerateResult{}, err
+    }
+
     return model.GenerateResult{
-        Patches:  retroarch.CorePatches(model.EmulatorIDRetroArchNewCore, ctx.Store, ctx.ControllerConfig),
-        Symlinks: symlinks,
+        Patches:          retroarch.CorePatches(model.EmulatorIDRetroArchNewCore, ctx.Store, ctx.ControllerConfig, pc, ctx.BaseDirResolver),
+        Symlinks:         symlinks,
+        InitialDownloads: downloads,
+        EmbeddedFiles:    embedded,
     }, nil
 }
 
@@ -247,27 +272,21 @@ For RetroArch cores from the buildbot bundle:
 File: `internal/versions/versions.toml`
 
 ```toml
-[retroarch-cores.files]
-# ... existing cores ...
-newcore = "newcore_libretro.so"
+[newcore]
+releases_url = "github:libretro/RetroArch"
+url_template = "https://buildbot.libretro.com/stable/{version}/linux/{variant}/RetroArch_cores.7z"
+default = "1.22.2"
+binary_path = "newcore_libretro.so"
+install_type = "retroarch-core"
+bundle_size = 274237400
 
-[retroarch-cores.sizes]
-# Get actual size from the bundle
-newcore = 1234567
+[newcore."1.22.2".targets.x64]
+variant = "x86_64"
+sha256 = "sha256-..."  # Same as other cores using the bundle
+size = 1234567  # Get from: 7z l RetroArch_cores.7z | grep newcore
 ```
 
-For standalone cores (downloaded separately):
-
-```toml
-[retroarch-cores.standalone.newcore]
-releases_url = "github:author/repo"
-filename = "newcore_libretro.so"
-url = "https://github.com/.../newcore.zip"
-sha256 = "sha256hashhere"
-size = 1234567
-```
-
-For standalone emulators, add a new section following the existing pattern.
+For standalone emulators, add a new section following existing patterns (duckstation, dolphin, etc.).
 
 ## Step 6: Update registry
 
@@ -429,7 +448,7 @@ Column definitions:
 
 ```bash
 # Generate TypeScript types from Go models
-just generate
+just generate-types
 
 # Run checks
 just check
@@ -472,6 +491,112 @@ Each standalone emulator needs custom controller mapping in its `ConfigGenerator
 - INI format: `internal/emulators/duckstation/duckstation.go`
 - Custom format: `internal/emulators/dolphin/dolphin.go`
 - YAML format: `internal/emulators/rpcs3/rpcs3.go`
+
+## SupportedSettings introspection
+
+Each emulator declares which user-configurable features it supports via `SupportedSettings`. The UI uses this to show or hide settings per emulator.
+
+Available settings:
+
+| Constant                      | UI effect                                  |
+| ----------------------------- | ------------------------------------------ |
+| `model.SettingPreset`         | Show graphics preset selector (clean/retro)|
+| `model.SettingResumeAutosave` | Show "auto-save on exit" toggle            |
+| `model.SettingResumeAutoload` | Show "auto-load on start" toggle           |
+
+Example:
+
+```go
+SupportedSettings: []string{
+    model.SettingPreset,
+    model.SettingResumeAutosave,
+    model.SettingResumeAutoload,
+},
+```
+
+Not all emulators support all features:
+
+- RetroArch cores: typically all three
+- DuckStation/PCSX2: preset + autosave (no autoload)
+- PPSSPP: preset + autoload (no autosave)
+- Flycast: autosave + autoload (no preset - 6th gen system)
+- RPCS3/Vita3K/Cemu: none (limited config integration)
+
+## ConfigInput and DependsOn
+
+Config entries must declare their dependencies for proper diff detection. When a dependency changes, entries depending on it are reapplied.
+
+### Dependency constants
+
+```go
+model.None     // Static value, never changes
+model.Store    // Depends on collection path
+model.Nintendo // Depends on controller layout (Standard vs Nintendo)
+model.Hotkeys  // Depends on hotkey configuration
+model.Preset   // Depends on graphics preset
+model.Resume   // Depends on resume settings
+```
+
+### Usage
+
+```go
+// Static entry (never needs reapply)
+model.Entry(model.None, model.Path("video_driver"), "vulkan")
+
+// Depends on collection path
+model.Entry(model.Store, model.Path("savefile_directory"), store.SavesDir())
+
+// Depends on graphics preset
+model.Entry(model.Preset, model.Path("video_shader_enable"), "true")
+
+// Depends on controller layout
+model.Entry(model.Nintendo, model.Path("input_b_btn"), southButton)
+
+// DefaultOnly with dependency
+model.Default(model.None, model.Path("menu_driver"), "ozone")
+```
+
+The diff system tracks `ConfigInputsWhenWritten` in the manifest. If the input value changes (e.g., user switches from Standard to Nintendo layout), entries with that dependency are flagged for reapply.
+
+## PresetConfig for graphics
+
+RetroArch cores use `PresetConfig` to handle graphics presets and resume settings.
+
+### PresetConfig fields
+
+```go
+type PresetConfig struct {
+    Preset             string                           // "clean" or "retro"
+    TargetDevice       string                           // e.g., "steamdeck-lcd"
+    Resume             string                           // "on" or "off"
+    SystemDisplayTypes map[model.SystemID]model.DisplayType // CRT vs LCD per system
+}
+```
+
+### Graphics presets
+
+- `model.PresetClean`: no shaders, bilinear filtering off
+- `model.PresetRetro`: CRT/LCD shaders based on system type
+
+### Display types
+
+5th gen and earlier systems have display type metadata:
+
+- `model.DisplayTypeCRT`: home consoles (NES, SNES, Genesis) - use CRT shader
+- `model.DisplayTypeLCD`: handhelds (Game Boy, GBA) - use LCD shader
+
+6th gen and newer (GameCube, PS2, Dreamcast) always use clean display regardless of preset.
+
+### Shader downloads
+
+RetroArch cores that support presets need shader downloads:
+
+```go
+downloads, err := retroarch.CoreShaderDownloads(emuID, resolver, pc)
+embedded, err := retroarch.CoreEmbeddedFiles(emuID, systems, pc, resolver)
+```
+
+These download shaders from libretro's slang-shaders repo and generate preset files.
 
 ## Common patterns
 
@@ -543,7 +668,7 @@ Study these for patterns:
 
 ### System not appearing in UI
 
-- Check `just generate` ran successfully
+- Check `just generate-types` ran successfully
 - Verify registry imports and registration
 - Check ESDE system mapping exists
 

@@ -12,7 +12,7 @@ installed:
 nix develop
 ```
 
-This provides Go, Node.js, golangci-lint, and all other development tools.
+This provides Go, Node.js, golangci-lint, and other development tools.
 
 Alternatively, install these manually:
 
@@ -84,49 +84,6 @@ The core entities and their relationships:
 - `Collection`: where the user's emulation data lives (~/Emulation)
 - `Manifest`: tracks what Kyaraben has installed and managed
 
-### Storage model
-
-Two distinct storage areas:
-
-```
-KyarabenState (XDG)
-├── ~/.config/kyaraben/          # KyarabenConfig
-└── ~/.local/state/kyaraben/     # Emulator binaries, manifest, runtime state
-
-Collection (e.g., ~/Emulation)
-├── roms/
-├── bios/
-├── saves/           # Structured by system
-├── states/          # Structured by emulator
-└── screenshots/
-```
-
-### Package structure
-
-```
-cmd/kyaraben/        # CLI entry point
-internal/
-├── model/           # Domain types
-├── registry/        # System and emulator registry
-├── emulators/       # Per-emulator config generators
-├── systems/         # Per-system definitions
-├── apply/           # Apply orchestration
-├── daemon/          # Daemon protocol and handlers
-├── cli/             # CLI commands
-├── store/           # Collection management
-├── sync/            # Syncthing integration
-├── frontends/       # Frontend integrations (EmulationStation DE)
-├── launcher/        # Desktop launcher management
-├── doctor/          # BIOS/provision checking
-├── status/          # Status reporting
-├── paths/           # XDG path management
-├── hardware/        # CPU architecture detection
-├── fileutil/        # File utilities
-├── logging/         # Unified logging
-└── versions/        # Version management
-ui/                  # Electron + React frontend
-```
-
 ### Daemon protocol
 
 The UI and CLI communicate through a daemon that handles long-running
@@ -137,45 +94,11 @@ Commands: `apply`, `status`, `doctor`, `get_config`, `set_config`,
 
 Events: `ready`, `result`, `progress`, `error`, `cancelled`.
 
-## Adding systems
+## Adding systems and emulators
 
-1. Add the `SystemID` constant to `internal/model/system.go`
-2. Create `internal/systems/<name>/<name>.go` implementing
-   `model.SystemDefinition`
-3. Add the system to `internal/registry/all.go`
-4. Add the ES-DE mapping to `internal/frontends/esde/systems.go` (use ES-DE's
-   naming conventions for `Name` and `Platform`)
-5. Add system logo SVG to `ui/src/assets/systems/<name>.svg`
-6. Add ES-DE logo SVG to `ui/src/assets/esde/logos/<name>.svg`
-7. Add entries to UI components:
-   - `ui/src/assets/esde/index.ts`: add to `ESDE_LOGOS`
-   - `ui/src/components/SystemLogo/SystemLogo.tsx`: add to `SYSTEM_LOGOS`
-   - `ui/src/components/SystemCard/SystemCard.tsx`: add to `SYSTEM_YEARS`
-
-## Adding emulators
-
-1. Add the `EmulatorID` constant to `internal/model/emulator.go`
-2. Create `internal/emulators/<name>/<name>.go` implementing
-   `model.EmulatorDefinition` (includes both the emulator metadata and the
-   config generator)
-3. Add the emulator to `internal/registry/all.go`
-4. Add an entry to `internal/versions/versions.toml` with the download URL
-   and SHA256 hash
-5. Add a field to `internal/versions/versions.go`
-6. Implement `ConfigGenerator` for the emulator
-7. Add emulator logo mapping to `ui/src/components/EmulatorLogo/EmulatorLogo.tsx`
-8. Test installation and configuration
-
-For RetroArch cores, also add the core size to `[retroarch-cores.sizes]` in
-`internal/versions/versions.toml`. This enables download progress indication.
-Get the size by extracting the core from the buildbot archive:
-
-```bash
-7z l RetroArch_cores.7z | grep <core_name>
-```
-
-The `TestAllDefinitions` test in `internal/registry/registry_test.go` validates
-that all definitions have required fields and that cross-references are valid.
+See `.claude/skills/adding-emulator-support/SKILL.md` for the complete process,
+including decision frameworks, code examples, provision strategies, and
+troubleshooting.
 
 ### Integration principles
 
@@ -287,47 +210,6 @@ file contains:
 - `ProvisionGroups`: BIOS/firmware requirements
 - `ConfigGenerator.Generate()`: config patches, symlinks, and controller bindings
 
-### Emulator-specific notes
-
-**Cemu** (`cemu/cemu.go`): No savestate support. No hotkey support (upstream
-limitation, see https://github.com/cemu-project/Cemu/issues/721). Single Wii U
-GamePad only. Symlinks for saves and screenshots.
-
-**Dolphin** (`dolphin/dolphin.go`): 4 GameCube controllers configured. Hotkeys
-use toggle syntax for fast-forward. Kyaraben profile (`Profiles/GCPad/Kyaraben.ini`)
-can be reloaded from Dolphin's UI. Symlinks for GC saves, Wii saves, savestates,
-screenshots.
-
-**DuckStation** (`duckstation/duckstation.go`): 4 analog controllers with rumble.
-Profile preset at `inputprofiles/kyaraben-steamdeck.ini`. No symlinks; all paths
-configured via `settings.ini`.
-
-**Eden** (`eden/eden.go`): No savestate support (Switch emulation limitation).
-Uses raw SDL joystick API, not GameController. Bindings include controller GUID.
-Symlinks for keys, firmware, screenshots, user saves, system saves.
-
-**Flycast** (`flycast/flycast.go`): Uses raw joystick indices for buttons. HAT
-values (256-259) for D-pad. Hotkeys require 2+ buttons and use combo system.
-Single player only.
-
-**PCSX2** (`pcsx2/pcsx2.go`): 4 DualShock2 controllers with rumble. Profile at
-`inputprofiles/Kyaraben.ini`. Extensive BIOS support (60+ variants).
-
-**PPSSPP** (`ppsspp/ppsspp.go`): Uses device-keycode format (device 10 = gamepad).
-Symlinks for saves, savestates, screenshots. No BIOS required.
-
-**RPCS3** (`rpcs3/rpcs3.go`): No kyaraben controller or hotkey config. Controller
-handled by RPCS3's internal system. Firmware installed via File > Install Firmware.
-Uses YAML config format.
-
-**Vita3K** (`vita3k/vita3k.go`): No savestate support. No kyaraben controller or
-hotkey config. Firmware installed via UI. Generates hardcoded user profile.
-
-**RetroArch cores** (`retroarch/shared.go`): All cores share `retroarch.cfg`.
-Hotkey system: first button in chord = enable_hotkey, last button = action.
-Per-core symlinks redirect sorted save/state directories. BIOS requirements
-vary by core (Saturn requires BIOS; most others do not).
-
 ### Path configuration testing
 
 Verify paths by checking where files actually land after gameplay:
@@ -359,33 +241,6 @@ each slot binds correctly.
 
 Skip controller testing for emulators with `Controller: auto` (RPCS3, Vita3K);
 these emulators handle controller detection internally.
-
-### Hotkey testing
-
-For emulators with `Hotkeys: full` or `Hotkeys: partial` in the support table,
-test the supported hotkeys. Default bindings use Back (Select) as the modifier:
-
-| Action        | Chord        |
-| ------------- | ------------ |
-| Save state    | Back + RB    |
-| Load state    | Back + LB    |
-| Next slot     | Start + RB   |
-| Previous slot | Start + LB   |
-| Fast forward  | Back + RT    |
-| Rewind        | Back + LT    |
-| Pause         | Back + A     |
-| Screenshot    | Back + B     |
-| Quit          | Back + Start |
-
-Not all emulators support all hotkeys. Check the hotkey entries in each
-emulator's config generator to see which are implemented:
-
-- `Hotkeys: full`: all hotkeys above should work
-- `Hotkeys: partial`: only some hotkeys work (check source)
-- `Hotkeys: none`: skip hotkey testing (Cemu, RPCS3, Vita3K)
-
-For detailed per-emulator hotkey checklists, see
-`docs/plans/controller-config-testing.md`.
 
 ### First-run behavior testing
 
@@ -438,10 +293,6 @@ func DoSomething() {
 Log levels: `Debug` (detailed debugging info), `Info` (significant events),
 `Error` (error conditions).
 
-The UI writes to two destinations: through the daemon (for the unified log)
-and directly to `~/.local/state/kyaraben/kyaraben-ui.log` (for UI-specific
-debugging).
-
 ## Code style
 
 Make code self-evident. Do not write comments explaining what code does; if
@@ -460,44 +311,6 @@ Avoid phrases like "needs attention", "action required", or "warning" when a
 neutral description suffices. Instead of "3 files need attention", say "3 local
 files" or "3 files only on this device". State facts; let the user decide if
 action is needed.
-
-## Graphics presets implementation notes
-
-The graphics preset system offers two display modes: clean (no shaders) and
-retro (CRT/LCD shaders), plus manual mode for custom configuration.
-
-6th generation and newer systems (GameCube, PS2, PSP, Dreamcast) always use
-modern display settings regardless of the preset selection. CRT and LCD shaders
-only apply to 5th generation and earlier systems.
-
-Graphics preset implementation follows recommendations from the
-[RGC Overlay Pack](https://github.com/retrogamecorps/RGC-Overlay-Pack) and
-[RGC Shaders Guide](https://retrogamecorps.com/2024/09/01/guide-shaders-and-overlays-on-retro-handhelds/).
-
-Current pseudo-authentic preset configuration:
-
-Shaders:
-
-- CRT systems (home consoles): `crt-1tap.slang` - lightweight dynamic scanline
-  shader with subtle CRT effect
-- LCD systems (Game Boy, GBA, etc.): `lcd3x.slang` - LCD subpixel effect
-
-Core options (mGBA):
-
-- `mgba_color_correction = "Auto"` - auto-detect GB/GBC/GBA color profile
-- `mgba_interframe_blending = "mix_smart"` - smart LCD ghosting simulation
-
-Shaders are downloaded from the
-[libretro slang-shaders](https://github.com/libretro/slang-shaders) repository
-at a pinned commit and stored in `~/.config/retroarch/`.
-
-Target device detection (`internal/hardware/detect.go`) identifies Steam Deck
-(Jupiter for LCD, Galileo for OLED) and other devices via DMI product name.
-
-Planned improvements:
-
-- Per-device shader parameter tuning (Steam Deck vs desktop)
-- Additional core options for other RetroArch cores
 
 ## Commit messages
 

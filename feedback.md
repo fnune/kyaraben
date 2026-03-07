@@ -27,16 +27,6 @@
 
 ### Proper blocker
 
-- "Shaders" isn't at the right level
-  - See https://retrogamecorps.com/2024/09/01/guide-shaders-and-overlays-on-retro-handhelds/comment-page-1/
-  - Shaders is only one part of the thing, although this is what people search for
-  - There's filters, overlays, bezels, integer scaling...
-  - RGC go for three styles, each involving not only shaders but other things as well:
-    - Modern pixels
-    - Upscaled image
-    - Pseudo-authentic
-  - I think that level of abstraction is better
-  - Although the choice is deeply device-specific, so maybe this is hard
 - Documentation lives on the website too much
   - One goal of Kyaraben is to have its app be self-documenting
   - Users are expected to be able to figure things out just from what the app tells them
