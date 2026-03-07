@@ -6,12 +6,13 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"github.com/fnune/kyaraben/integrations/nextui/internal/app"
 	"github.com/fnune/kyaraben/integrations/nextui/internal/config"
 	"github.com/fnune/kyaraben/integrations/nextui/internal/ui/minui"
-	"github.com/fnune/kyaraben/internal/syncthing"
+	"github.com/fnune/kyaraben/internal/syncguest"
 )
 
 func main() {
@@ -28,24 +29,14 @@ func run() error {
 		return fmt.Errorf("load config: %w", err)
 	}
 
-	stConfig := syncthing.Config{
-		ListenPort:             22100,
-		DiscoveryPort:          21127,
-		GUIPort:                8484,
-		RelayEnabled:           true,
-		GlobalDiscoveryEnabled: true,
-		BaseURL:                fmt.Sprintf("http://localhost:%d", 8484),
-	}
-	stClient := syncthing.NewClient(stConfig)
-
-	relayClient, err := syncthing.NewRelayClient(syncthing.ProductionRelayURLs)
-	if err != nil {
-		return fmt.Errorf("create relay client: %w", err)
-	}
+	dataDir := filepath.Join(env.UserdataPath, env.Platform, "kyaraben")
+	syncConfig := syncguest.DefaultConfig(dataDir)
+	syncConfig.SyncthingPath = filepath.Join(env.PakPath, "syncthing")
+	mgr := syncguest.New(syncConfig)
 
 	appUI := minui.New(env.PakPath)
 
-	application := app.New(env, cfg, stClient, relayClient, appUI)
+	application := app.New(env, cfg, mgr, appUI)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

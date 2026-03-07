@@ -8,9 +8,8 @@ import (
 
 	"github.com/fnune/kyaraben/integrations/nextui/internal/config"
 	"github.com/fnune/kyaraben/integrations/nextui/internal/mapping"
-	"github.com/fnune/kyaraben/integrations/nextui/internal/pairing"
 	"github.com/fnune/kyaraben/integrations/nextui/internal/ui"
-	"github.com/fnune/kyaraben/internal/syncthing"
+	"github.com/fnune/kyaraben/internal/syncguest"
 )
 
 type Env struct {
@@ -42,22 +41,20 @@ func EnvFromOS() Env {
 }
 
 type App struct {
-	env         Env
-	cfg         config.Config
-	mapper      *mapping.Mapper
-	client      syncthing.SyncClient
-	relayClient *syncthing.RelayClient
-	ui          ui.UI
+	env    Env
+	cfg    config.Config
+	mapper *mapping.Mapper
+	mgr    *syncguest.Manager
+	ui     ui.UI
 }
 
-func New(env Env, cfg config.Config, stClient syncthing.SyncClient, relayClient *syncthing.RelayClient, appUI ui.UI) *App {
+func New(env Env, cfg config.Config, mgr *syncguest.Manager, appUI ui.UI) *App {
 	return &App{
-		env:         env,
-		cfg:         cfg,
-		mapper:      mapping.NewMapper(env.SDCardPath, cfg.TagOverrides),
-		client:      stClient,
-		relayClient: relayClient,
-		ui:          appUI,
+		env:    env,
+		cfg:    cfg,
+		mapper: mapping.NewMapper(env.SDCardPath, cfg.TagOverrides),
+		mgr:    mgr,
+		ui:     appUI,
 	}
 }
 
@@ -76,11 +73,12 @@ func (a *App) Run(ctx context.Context) error {
 func (a *App) showMainMenu(ctx context.Context) (string, error) {
 	status := a.getSyncStatus(ctx)
 
+	guiPort := a.mgr.Client().Config().GUIPort
 	items := []ui.MenuItem{
 		{Label: fmt.Sprintf("Status: %s", status), Value: "status"},
 		{Label: "Pair new device", Value: "pair"},
 		{Label: "View paired devices", Value: "devices"},
-		{Label: fmt.Sprintf("Syncthing UI: http://localhost:%d", a.client.Config().GUIPort), Value: "url"},
+		{Label: fmt.Sprintf("Syncthing UI: http://localhost:%d", guiPort), Value: "url"},
 	}
 
 	idx, action, err := a.ui.Menu().Show(items, ui.MenuOptions{
@@ -96,8 +94,7 @@ func (a *App) showMainMenu(ctx context.Context) (string, error) {
 
 	switch items[idx].Value {
 	case "pair":
-		flow := pairing.NewFlow(a.client, a.relayClient, a.ui)
-		if err := flow.Run(ctx); err != nil {
+		if err := a.runPairing(ctx); err != nil {
 			a.showError(err)
 		}
 	case "devices":
@@ -110,69 +107,129 @@ func (a *App) showMainMenu(ctx context.Context) (string, error) {
 }
 
 func (a *App) getSyncStatus(ctx context.Context) string {
-	if !a.client.IsRunning(ctx) {
+	status, err := a.mgr.GetStatus(ctx)
+	if err != nil {
+		return "Error"
+	}
+
+	if !status.Running {
 		return "Syncthing not running"
 	}
 
-	progress, err := a.client.GetSyncProgress(ctx)
-	if err != nil {
-		return "Error"
+	if status.Syncing {
+		return fmt.Sprintf("Syncing %d%%", status.Progress)
 	}
 
-	if progress.Percent < 100 {
-		return fmt.Sprintf("Syncing %d%%", progress.Percent)
-	}
-
-	conns, err := a.client.GetConnections(ctx)
-	if err != nil {
-		return "Error"
-	}
-
-	connected := 0
-	for _, c := range conns {
-		if c.Connected {
-			connected++
-		}
-	}
-
-	if connected == 0 {
+	if status.ConnectedPeers == 0 {
 		return "Disconnected"
 	}
 
-	return fmt.Sprintf("Synced (%d devices)", connected)
+	return fmt.Sprintf("Synced (%d devices)", status.ConnectedPeers)
+}
+
+func (a *App) runPairing(ctx context.Context) error {
+	items := []ui.MenuItem{
+		{Label: "Generate pairing code", Value: "generate"},
+		{Label: "Enter pairing code", Value: "enter"},
+	}
+
+	idx, action, err := a.ui.Menu().Show(items, ui.MenuOptions{
+		Title:    "Pair new device",
+		ShowBack: true,
+	})
+	if err != nil {
+		return err
+	}
+	if action == ui.ActionBack {
+		return nil
+	}
+
+	switch items[idx].Value {
+	case "generate":
+		return a.generateCode(ctx)
+	case "enter":
+		return a.enterCode(ctx)
+	}
+
+	return nil
+}
+
+func (a *App) generateCode(ctx context.Context) error {
+	session, err := a.mgr.CreatePairingSession(ctx)
+	if err != nil {
+		return fmt.Errorf("create pairing session: %w", err)
+	}
+
+	if err := a.ui.Presenter().ShowMessage("Pairing code", session.Code); err != nil {
+		return err
+	}
+
+	peerID, err := a.mgr.WaitForPeer(ctx, session.Code)
+	_ = a.ui.Presenter().Close()
+	if err != nil {
+		return fmt.Errorf("waiting for peer: %w", err)
+	}
+
+	if err := a.mgr.AddPeer(ctx, peerID); err != nil {
+		return fmt.Errorf("add peer: %w", err)
+	}
+
+	_ = a.ui.Presenter().ShowMessage("Paired", "Device paired successfully")
+	return nil
+}
+
+func (a *App) enterCode(ctx context.Context) error {
+	code, err := a.ui.Keyboard().GetInput(ui.KeyboardOptions{
+		Title:     "Enter pairing code",
+		MaxLength: 6,
+		Uppercase: true,
+	})
+	if err != nil {
+		return err
+	}
+	if code == "" {
+		return nil
+	}
+
+	peerID, err := a.mgr.JoinPairingSession(ctx, code)
+	if err != nil {
+		return fmt.Errorf("join session: %w", err)
+	}
+
+	if err := a.mgr.AddPeer(ctx, peerID); err != nil {
+		return fmt.Errorf("add peer: %w", err)
+	}
+
+	_ = a.ui.Presenter().ShowMessage("Paired", "Device paired successfully")
+	return nil
 }
 
 func (a *App) showDevices(ctx context.Context) error {
-	devices, err := a.client.GetConfiguredDevices(ctx)
+	status, err := a.mgr.GetStatus(ctx)
 	if err != nil {
 		return err
 	}
 
-	conns, err := a.client.GetConnections(ctx)
-	if err != nil {
-		return err
-	}
-
-	if len(devices) == 0 {
+	if len(status.Peers) == 0 {
 		_ = a.ui.Presenter().ShowMessage("Devices", "No paired devices")
 		return nil
 	}
 
 	var items []ui.MenuItem
-	for _, d := range devices {
-		status := "offline"
-		if conn, ok := conns[d.ID]; ok && conn.Connected {
-			status = "connected"
+	for _, p := range status.Peers {
+		state := "offline"
+		if p.Connected {
+			state = "connected"
 		}
 
-		name := d.Name
+		name := p.Name
 		if name == "" {
-			name = d.ID[:8] + "..."
+			name = p.ID[:8] + "..."
 		}
 
 		items = append(items, ui.MenuItem{
-			Label: fmt.Sprintf("%s (%s)", name, status),
-			Value: d.ID,
+			Label: fmt.Sprintf("%s (%s)", name, state),
+			Value: p.ID,
 		})
 	}
 
