@@ -19,7 +19,7 @@ type SyncClient interface {
 	AddDeviceAutoName(ctx context.Context, deviceID string) error
 	RemoveDevice(ctx context.Context, deviceID string) error
 	ShareFoldersWithDevice(ctx context.Context, deviceID string) error
-	ReconcileFolderSharing(ctx context.Context, drift []FolderSharingDrift) error
+	EnsureDevicesOnFolders(ctx context.Context, deviceIDs []string) error
 	RevertFolder(ctx context.Context, folderID string) error
 	GetLocalChanges(ctx context.Context, folderID string) ([]LocalChange, error)
 	GetPendingFolders(ctx context.Context) ([]PendingFolder, error)

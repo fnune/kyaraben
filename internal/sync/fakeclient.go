@@ -21,7 +21,7 @@ type FakeClient struct {
 	discoveredDevs    []DiscoveredDevice
 	pendingDevs       []PendingDevice
 	deviceCompletions map[string]CompletionResponse
-	reconciledDrift   []FolderSharingDrift
+	ensuredDeviceIDs  []string
 }
 
 func NewFakeClient(config model.SyncConfig) *FakeClient {
@@ -237,18 +237,18 @@ func (c *FakeClient) GetFoldersWithDevices(_ context.Context) ([]FolderConfig, e
 	return configs, nil
 }
 
-func (c *FakeClient) ReconcileFolderSharing(_ context.Context, drift []FolderSharingDrift) error {
+func (c *FakeClient) EnsureDevicesOnFolders(_ context.Context, deviceIDs []string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.reconciledDrift = append(c.reconciledDrift, drift...)
+	c.ensuredDeviceIDs = append(c.ensuredDeviceIDs, deviceIDs...)
 	return nil
 }
 
-func (c *FakeClient) ReconciledDrift() []FolderSharingDrift {
+func (c *FakeClient) EnsuredDeviceIDs() []string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	result := make([]FolderSharingDrift, len(c.reconciledDrift))
-	copy(result, c.reconciledDrift)
+	result := make([]string, len(c.ensuredDeviceIDs))
+	copy(result, c.ensuredDeviceIDs)
 	return result
 }
 
