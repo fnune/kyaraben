@@ -1452,10 +1452,9 @@ func (d *Daemon) handleSyncStartPairing(emit func(Event)) []Event {
 		client.SetAPIKey(loadedKey)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	deviceID, err := client.GetDeviceID(ctx)
+	deviceCtx, deviceCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	deviceID, err := client.GetDeviceID(deviceCtx)
+	deviceCancel()
 	if err != nil {
 		log.Error("Failed to get device ID: %v", err)
 		return d.errorResponse(fmt.Sprintf("getting device ID: %v", err))
@@ -1471,7 +1470,9 @@ func (d *Daemon) handleSyncStartPairing(emit func(Event)) []Event {
 		}}
 	}
 
-	relayResp, err := relayClient.CreateSession(ctx, deviceID)
+	createCtx, createCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer createCancel()
+	relayResp, err := relayClient.CreateSession(createCtx, deviceID)
 	if err != nil {
 		log.Info("Failed to create relay session, falling back to device ID only: %v", err)
 		d.startAutoAcceptLoop(cfg)
