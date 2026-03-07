@@ -267,7 +267,7 @@ func (c *KyarabenConfig) EmulatorVersion(id EmulatorID) string {
 // Resolution order:
 //  1. Per-emulator override
 //  2. Global preset setting
-//  3. Default: pseudo-authentic
+//  3. Default: retro
 func (c *KyarabenConfig) EmulatorPreset(id EmulatorID) string {
 	if c.Emulators != nil {
 		if conf, ok := c.Emulators[id]; ok && conf.Preset != nil {
@@ -277,7 +277,7 @@ func (c *KyarabenConfig) EmulatorPreset(id EmulatorID) string {
 	if c.Graphics.Preset != "" {
 		return c.Graphics.Preset
 	}
-	return PresetClean
+	return PresetRetro
 }
 
 // EmulatorPresetOverride returns the per-emulator preset override, or nil if using default.

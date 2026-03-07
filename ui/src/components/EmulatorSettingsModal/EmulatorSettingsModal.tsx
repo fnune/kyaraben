@@ -94,7 +94,7 @@ export function EmulatorSettingsModal({
 
   const getPresetDescription = () => {
     if (resolvedPreset === 'manual') {
-      return 'Kyaraben will not modify display settings.'
+      return 'Your display settings will be preserved.'
     }
     return `Kyaraben will apply the ${formatPresetLabel(resolvedPreset).toLowerCase()} preset.`
   }
@@ -123,14 +123,14 @@ export function EmulatorSettingsModal({
             <p className="text-sm text-on-surface-muted mb-2">Display preset</p>
             <div className="flex flex-wrap gap-2">
               <PresetButton
-                label="Clean"
-                selected={currentPresetOption === 'clean'}
-                onClick={() => handlePresetOptionChange('clean')}
-              />
-              <PresetButton
                 label="Retro"
                 selected={currentPresetOption === 'retro'}
                 onClick={() => handlePresetOptionChange('retro')}
+              />
+              <PresetButton
+                label="Clean"
+                selected={currentPresetOption === 'clean'}
+                onClick={() => handlePresetOptionChange('clean')}
               />
               <PresetButton
                 label="Manual"

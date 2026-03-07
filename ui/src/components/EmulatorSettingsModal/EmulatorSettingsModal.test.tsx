@@ -115,12 +115,12 @@ describe('EmulatorSettingsModal', () => {
     render(
       <EmulatorSettingsModal {...defaultProps} preset="manual" graphics={{ preset: 'clean' }} />,
     )
-    expect(screen.getByText('Kyaraben will not modify display settings.')).toBeInTheDocument()
+    expect(screen.getByText('Your display settings will be preserved.')).toBeInTheDocument()
   })
 
   it('shows manual message when Default is selected with no global default', () => {
     render(<EmulatorSettingsModal {...defaultProps} preset={null} graphics={{ preset: '' }} />)
-    expect(screen.getByText('Kyaraben will not modify display settings.')).toBeInTheDocument()
+    expect(screen.getByText('Your display settings will be preserved.')).toBeInTheDocument()
   })
 
   it('shows preset info when Default is selected with global preset', () => {

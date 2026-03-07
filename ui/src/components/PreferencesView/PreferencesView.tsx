@@ -183,14 +183,6 @@ export function PreferencesView() {
         controls={
           <>
             <RadioCard
-              title="Clean"
-              description="Original aspect ratio, no shaders. Just the game."
-              selected={selectedPreset === 'clean'}
-              onSelect={() => setGraphicsPreset('clean')}
-              className="w-full p-3"
-              wrap
-            />
-            <RadioCard
               title="Retro"
               description="CRT shaders for consoles, LCD shaders for handhelds. Mimics original displays."
               selected={selectedPreset === 'retro'}
@@ -199,8 +191,16 @@ export function PreferencesView() {
               wrap
             />
             <RadioCard
+              title="Clean"
+              description="No shaders or filters."
+              selected={selectedPreset === 'clean'}
+              onSelect={() => setGraphicsPreset('clean')}
+              className="w-full p-3"
+              wrap
+            />
+            <RadioCard
               title="Manual"
-              description="Kyaraben won't configure display settings. Set them up yourself in each emulator."
+              description="Keep your emulator settings as-is. Apply a preset first to get a starting point, then switch to manual after customizing."
               selected={selectedPreset === 'manual'}
               onSelect={() => setGraphicsPreset('manual')}
               className="w-full p-3"

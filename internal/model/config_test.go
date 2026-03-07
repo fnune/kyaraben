@@ -222,13 +222,13 @@ func TestEmulatorPreset(t *testing.T) {
 			want:     PresetRetro,
 		},
 		{
-			name: "default to clean when nothing configured",
+			name: "default to retro when nothing configured",
 			cfg: &KyarabenConfig{
 				Graphics:  GraphicsConfig{},
 				Emulators: map[EmulatorID]EmulatorConf{},
 			},
 			emulator: EmulatorIDDuckStation,
-			want:     PresetClean,
+			want:     PresetRetro,
 		},
 		{
 			name: "nil emulators map uses global",
