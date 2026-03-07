@@ -1,4 +1,4 @@
-package sync
+package guestapp
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"github.com/fnune/kyaraben/internal/syncguest"
 )
 
-type FakeManager struct {
+type FakeSyncManager struct {
 	GUIPortValue int
 	StatusValue  *syncguest.Status
 	StatusErr    error
@@ -28,8 +28,8 @@ type FakeManager struct {
 	JoinPairingSessionCalls   []string
 }
 
-func NewFakeManager() *FakeManager {
-	return &FakeManager{
+func NewFakeSyncManager() *FakeSyncManager {
+	return &FakeSyncManager{
 		GUIPortValue: 8484,
 		StatusValue:  &syncguest.Status{Running: true},
 		PairingCode:  "ABC123",
@@ -38,20 +38,20 @@ func NewFakeManager() *FakeManager {
 	}
 }
 
-func (f *FakeManager) GUIPort() int {
+func (f *FakeSyncManager) GUIPort() int {
 	return f.GUIPortValue
 }
 
-func (f *FakeManager) ConfigureFolders(folders []syncguest.FolderMapping) error {
+func (f *FakeSyncManager) ConfigureFolders(folders []syncguest.FolderMapping) error {
 	f.ConfigureFoldersCalls = append(f.ConfigureFoldersCalls, folders)
 	return f.ConfigErr
 }
 
-func (f *FakeManager) GetStatus(ctx context.Context) (*syncguest.Status, error) {
+func (f *FakeSyncManager) GetStatus(ctx context.Context) (*syncguest.Status, error) {
 	return f.StatusValue, f.StatusErr
 }
 
-func (f *FakeManager) CreatePairingSession(ctx context.Context) (*syncguest.PairingSession, error) {
+func (f *FakeSyncManager) CreatePairingSession(ctx context.Context) (*syncguest.PairingSession, error) {
 	f.CreatePairingSessionCalls++
 	if f.PairingErr != nil {
 		return nil, f.PairingErr
@@ -62,24 +62,24 @@ func (f *FakeManager) CreatePairingSession(ctx context.Context) (*syncguest.Pair
 	}, nil
 }
 
-func (f *FakeManager) WaitForPeer(ctx context.Context, code string) (string, error) {
+func (f *FakeSyncManager) WaitForPeer(ctx context.Context, code string) (string, error) {
 	f.WaitForPeerCalls = append(f.WaitForPeerCalls, code)
 	return f.WaitPeerID, f.WaitPeerErr
 }
 
-func (f *FakeManager) JoinPairingSession(ctx context.Context, code string) (string, error) {
+func (f *FakeSyncManager) JoinPairingSession(ctx context.Context, code string) (string, error) {
 	f.JoinPairingSessionCalls = append(f.JoinPairingSessionCalls, code)
 	return f.JoinPeerID, f.JoinErr
 }
 
-func (f *FakeManager) AddPeer(ctx context.Context, deviceID string) error {
+func (f *FakeSyncManager) AddPeer(ctx context.Context, deviceID string) error {
 	f.AddPeerCalls = append(f.AddPeerCalls, deviceID)
 	return f.AddPeerErr
 }
 
-func (f *FakeManager) ShareFoldersWithAllDevices(ctx context.Context) error {
+func (f *FakeSyncManager) ShareFoldersWithAllDevices(ctx context.Context) error {
 	f.ShareFoldersWithAllCalls++
 	return f.ShareErr
 }
 
-var _ Manager = (*FakeManager)(nil)
+var _ SyncManager = (*FakeSyncManager)(nil)

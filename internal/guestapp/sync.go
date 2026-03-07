@@ -1,4 +1,4 @@
-package sync
+package guestapp
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"github.com/fnune/kyaraben/internal/syncguest"
 )
 
-type Manager interface {
+type SyncManager interface {
 	GUIPort() int
 	ConfigureFolders(folders []syncguest.FolderMapping) error
 	GetStatus(ctx context.Context) (*syncguest.Status, error)

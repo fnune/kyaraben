@@ -12,9 +12,7 @@ import (
 
 	"github.com/fnune/kyaraben/integrations/nextui/internal/config"
 	"github.com/fnune/kyaraben/integrations/nextui/internal/mapping"
-	"github.com/fnune/kyaraben/integrations/nextui/internal/service"
-	"github.com/fnune/kyaraben/integrations/nextui/internal/sync"
-	"github.com/fnune/kyaraben/integrations/nextui/internal/ui"
+	"github.com/fnune/kyaraben/internal/guestapp"
 )
 
 type Env struct {
@@ -50,12 +48,12 @@ type App struct {
 	cfg      *config.Config
 	cfgStore *config.ConfigStore
 	mapper   *mapping.Mapper
-	syncMgr  sync.Manager
-	svcMgr   service.ServiceManager
-	ui       ui.UI
+	syncMgr  guestapp.SyncManager
+	svcMgr   guestapp.ServiceManager
+	ui       guestapp.UI
 }
 
-func New(env Env, cfg *config.Config, cfgStore *config.ConfigStore, syncMgr sync.Manager, svcMgr service.ServiceManager, appUI ui.UI) *App {
+func New(env Env, cfg *config.Config, cfgStore *config.ConfigStore, syncMgr guestapp.SyncManager, svcMgr guestapp.ServiceManager, appUI guestapp.UI) *App {
 	return &App{
 		env:      env,
 		cfg:      cfg,
@@ -152,7 +150,7 @@ func (a *App) showMainMenu(ctx context.Context) (string, error) {
 		syncStatesSelected = 1
 	}
 
-	items := []ui.MenuItem{
+	items := []guestapp.MenuItem{
 		{Label: "Status", Value: "status", Options: statusOpts, Selected: statusIdx, Unselectable: true, BackgroundColor: statusColor},
 		{Label: "Syncing", Value: "toggle_sync", Options: []string{"Enabled", "Disabled"}, Selected: syncSelected, ConfirmText: "Confirm"},
 		{Label: "Autostart", Value: "toggle_autostart", Options: []string{"Enabled", "Disabled"}, Selected: autostartSelected, ConfirmText: "Confirm"},
@@ -162,14 +160,14 @@ func (a *App) showMainMenu(ctx context.Context) (string, error) {
 		{Label: fmt.Sprintf("Syncthing UI: http://%s:%d", getLocalIP(), guiPort), Value: "url", Unselectable: true},
 	}
 
-	idx, action, err := a.ui.Menu().Show(items, ui.MenuOptions{
+	idx, action, err := a.ui.Menu().Show(items, guestapp.MenuOptions{
 		Title:    "Kyaraben",
 		ShowBack: true,
 	})
 	if err != nil {
 		return "", err
 	}
-	if action == ui.ActionBack {
+	if action == guestapp.ActionBack {
 		return "exit", nil
 	}
 
@@ -265,19 +263,19 @@ func (a *App) toggleSyncStates(ctx context.Context) error {
 }
 
 func (a *App) confirmSyncStates() (bool, error) {
-	items := []ui.MenuItem{
+	items := []guestapp.MenuItem{
 		{Label: "Enable (states may not be compatible)", Value: "yes"},
 		{Label: "Cancel", Value: "no"},
 	}
 
-	idx, action, err := a.ui.Menu().Show(items, ui.MenuOptions{
+	idx, action, err := a.ui.Menu().Show(items, guestapp.MenuOptions{
 		Title:    "Sync states?",
 		ShowBack: true,
 	})
 	if err != nil {
 		return false, err
 	}
-	if action == ui.ActionBack {
+	if action == guestapp.ActionBack {
 		return false, nil
 	}
 
@@ -349,13 +347,13 @@ func (a *App) runPairing(ctx context.Context) error {
 		return errSyncNotRunning
 	}
 
-	items := []ui.MenuItem{
+	items := []guestapp.MenuItem{
 		{Label: "Generate pairing code", Value: "generate"},
 		{Label: "Enter pairing code", Value: "enter"},
 	}
 
 	fmt.Fprintf(os.Stderr, "runPairing: showing pairing menu\n")
-	idx, action, err := a.ui.Menu().Show(items, ui.MenuOptions{
+	idx, action, err := a.ui.Menu().Show(items, guestapp.MenuOptions{
 		Title:    "Pair new device",
 		ShowBack: true,
 	})
@@ -363,7 +361,7 @@ func (a *App) runPairing(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if action == ui.ActionBack {
+	if action == guestapp.ActionBack {
 		return nil
 	}
 
@@ -404,7 +402,7 @@ func (a *App) generateCode(ctx context.Context) error {
 }
 
 func (a *App) enterCode(ctx context.Context) error {
-	code, err := a.ui.Keyboard().GetInput(ui.KeyboardOptions{
+	code, err := a.ui.Keyboard().GetInput(guestapp.KeyboardOptions{
 		Title: "Enter pairing code",
 	})
 	if err != nil {
@@ -442,7 +440,7 @@ func (a *App) showDevices(ctx context.Context) error {
 		return nil
 	}
 
-	var items []ui.MenuItem
+	var items []guestapp.MenuItem
 	for _, p := range status.Peers {
 		state := "offline"
 		if p.Connected {
@@ -454,20 +452,20 @@ func (a *App) showDevices(ctx context.Context) error {
 			name = p.ID[:8] + "..."
 		}
 
-		items = append(items, ui.MenuItem{
+		items = append(items, guestapp.MenuItem{
 			Label: fmt.Sprintf("%s (%s)", name, state),
 			Value: p.ID,
 		})
 	}
 
-	_, action, err := a.ui.Menu().Show(items, ui.MenuOptions{
+	_, action, err := a.ui.Menu().Show(items, guestapp.MenuOptions{
 		Title:    "Paired devices",
 		ShowBack: true,
 	})
 	if err != nil {
 		return err
 	}
-	if action == ui.ActionBack {
+	if action == guestapp.ActionBack {
 		return nil
 	}
 

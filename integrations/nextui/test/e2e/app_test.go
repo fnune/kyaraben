@@ -6,10 +6,7 @@ import (
 
 	"github.com/fnune/kyaraben/integrations/nextui/internal/app"
 	"github.com/fnune/kyaraben/integrations/nextui/internal/config"
-	"github.com/fnune/kyaraben/integrations/nextui/internal/service"
-	"github.com/fnune/kyaraben/integrations/nextui/internal/sync"
-	"github.com/fnune/kyaraben/integrations/nextui/internal/ui"
-	"github.com/fnune/kyaraben/integrations/nextui/internal/ui/fake"
+	"github.com/fnune/kyaraben/internal/guestapp"
 	"github.com/fnune/kyaraben/internal/syncguest"
 	"github.com/twpayne/go-vfs/v5/vfst"
 )
@@ -18,9 +15,9 @@ type testHarness struct {
 	env      app.Env
 	cfg      *config.Config
 	cfgStore *config.ConfigStore
-	syncMgr  *sync.FakeManager
-	svcMgr   *service.FakeManager
-	fakeUI   *fake.UI
+	syncMgr  *guestapp.FakeSyncManager
+	svcMgr   *guestapp.FakeServiceManager
+	fakeUI   *guestapp.FakeUI
 }
 
 func setupTest(t *testing.T) *testHarness {
@@ -50,9 +47,9 @@ func setupTest(t *testing.T) *testHarness {
 		env:      env,
 		cfg:      &cfg,
 		cfgStore: cfgStore,
-		syncMgr:  sync.NewFakeManager(),
-		svcMgr:   service.NewFakeManager(),
-		fakeUI:   fake.New(),
+		syncMgr:  guestapp.NewFakeSyncManager(),
+		svcMgr:   guestapp.NewFakeServiceManager(),
+		fakeUI:   guestapp.NewFakeUI(),
 	}
 }
 
@@ -62,7 +59,7 @@ func (h *testHarness) newApp() *app.App {
 
 func TestAppShowsMainMenu(t *testing.T) {
 	h := setupTest(t)
-	h.fakeUI.MenuUI.SelectAction = ui.ActionBack
+	h.fakeUI.MenuUI.SelectAction = guestapp.ActionBack
 
 	application := h.newApp()
 
@@ -87,7 +84,7 @@ func TestAppShowsMainMenu(t *testing.T) {
 
 func TestAppMenuHasExpectedItems(t *testing.T) {
 	h := setupTest(t)
-	h.fakeUI.MenuUI.SelectAction = ui.ActionBack
+	h.fakeUI.MenuUI.SelectAction = guestapp.ActionBack
 
 	application := h.newApp()
 	_ = application.Run(context.Background())
@@ -120,7 +117,7 @@ func TestAppMenuHasExpectedItems(t *testing.T) {
 func TestMappingWithCustomConfig(t *testing.T) {
 	h := setupTest(t)
 	h.cfg.Saves["gba"] = "Saves/MGBA"
-	h.fakeUI.MenuUI.SelectAction = ui.ActionBack
+	h.fakeUI.MenuUI.SelectAction = guestapp.ActionBack
 
 	application := h.newApp()
 
@@ -134,16 +131,16 @@ func TestToggleAutostartSavesConfig(t *testing.T) {
 	h := setupTest(t)
 
 	callCount := 0
-	h.fakeUI.MenuUI.SelectFunc = func(items []ui.MenuItem) (int, ui.Action) {
+	h.fakeUI.MenuUI.SelectFunc = func(items []guestapp.MenuItem) (int, guestapp.Action) {
 		callCount++
 		if callCount == 1 {
 			for i, item := range items {
 				if item.Value == "toggle_autostart" {
-					return i, ui.ActionSelect
+					return i, guestapp.ActionSelect
 				}
 			}
 		}
-		return 0, ui.ActionBack
+		return 0, guestapp.ActionBack
 	}
 
 	application := h.newApp()
@@ -163,23 +160,23 @@ func TestToggleSyncStatesConfiguresFoldersAndShares(t *testing.T) {
 	h.svcMgr.Running = true
 
 	callCount := 0
-	h.fakeUI.MenuUI.SelectFunc = func(items []ui.MenuItem) (int, ui.Action) {
+	h.fakeUI.MenuUI.SelectFunc = func(items []guestapp.MenuItem) (int, guestapp.Action) {
 		callCount++
 		switch callCount {
 		case 1:
 			for i, item := range items {
 				if item.Value == "toggle_sync_states" {
-					return i, ui.ActionSelect
+					return i, guestapp.ActionSelect
 				}
 			}
 		case 2:
 			for i, item := range items {
 				if item.Value == "yes" {
-					return i, ui.ActionSelect
+					return i, guestapp.ActionSelect
 				}
 			}
 		}
-		return 0, ui.ActionBack
+		return 0, guestapp.ActionBack
 	}
 
 	application := h.newApp()
@@ -215,16 +212,16 @@ func TestToggleSyncStartsSyncthing(t *testing.T) {
 	h.svcMgr.Running = false
 
 	callCount := 0
-	h.fakeUI.MenuUI.SelectFunc = func(items []ui.MenuItem) (int, ui.Action) {
+	h.fakeUI.MenuUI.SelectFunc = func(items []guestapp.MenuItem) (int, guestapp.Action) {
 		callCount++
 		if callCount == 1 {
 			for i, item := range items {
 				if item.Value == "toggle_sync" {
-					return i, ui.ActionSelect
+					return i, guestapp.ActionSelect
 				}
 			}
 		}
-		return 0, ui.ActionBack
+		return 0, guestapp.ActionBack
 	}
 
 	application := h.newApp()
@@ -240,16 +237,16 @@ func TestToggleSyncStopsSyncthing(t *testing.T) {
 	h.svcMgr.Running = true
 
 	callCount := 0
-	h.fakeUI.MenuUI.SelectFunc = func(items []ui.MenuItem) (int, ui.Action) {
+	h.fakeUI.MenuUI.SelectFunc = func(items []guestapp.MenuItem) (int, guestapp.Action) {
 		callCount++
 		if callCount == 1 {
 			for i, item := range items {
 				if item.Value == "toggle_sync" {
-					return i, ui.ActionSelect
+					return i, guestapp.ActionSelect
 				}
 			}
 		}
-		return 0, ui.ActionBack
+		return 0, guestapp.ActionBack
 	}
 
 	application := h.newApp()
@@ -265,19 +262,19 @@ func TestGeneratePairingCode(t *testing.T) {
 	h.svcMgr.Running = true
 
 	callCount := 0
-	h.fakeUI.MenuUI.SelectFunc = func(items []ui.MenuItem) (int, ui.Action) {
+	h.fakeUI.MenuUI.SelectFunc = func(items []guestapp.MenuItem) (int, guestapp.Action) {
 		callCount++
 		switch callCount {
 		case 1:
 			for i, item := range items {
 				if item.Value == "pair" {
-					return i, ui.ActionSelect
+					return i, guestapp.ActionSelect
 				}
 			}
 		case 2:
-			return 0, ui.ActionSelect
+			return 0, guestapp.ActionSelect
 		}
-		return 0, ui.ActionBack
+		return 0, guestapp.ActionBack
 	}
 
 	application := h.newApp()
@@ -310,19 +307,19 @@ func TestEnterPairingCode(t *testing.T) {
 	h.fakeUI.KeyboardUI.Input = "XYZ789"
 
 	callCount := 0
-	h.fakeUI.MenuUI.SelectFunc = func(items []ui.MenuItem) (int, ui.Action) {
+	h.fakeUI.MenuUI.SelectFunc = func(items []guestapp.MenuItem) (int, guestapp.Action) {
 		callCount++
 		switch callCount {
 		case 1:
 			for i, item := range items {
 				if item.Value == "pair" {
-					return i, ui.ActionSelect
+					return i, guestapp.ActionSelect
 				}
 			}
 		case 2:
-			return 1, ui.ActionSelect
+			return 1, guestapp.ActionSelect
 		}
-		return 0, ui.ActionBack
+		return 0, guestapp.ActionBack
 	}
 
 	application := h.newApp()
@@ -346,16 +343,16 @@ func TestPairingRequiresSyncRunning(t *testing.T) {
 	h.svcMgr.Running = false
 
 	callCount := 0
-	h.fakeUI.MenuUI.SelectFunc = func(items []ui.MenuItem) (int, ui.Action) {
+	h.fakeUI.MenuUI.SelectFunc = func(items []guestapp.MenuItem) (int, guestapp.Action) {
 		callCount++
 		if callCount == 1 {
 			for i, item := range items {
 				if item.Value == "pair" {
-					return i, ui.ActionSelect
+					return i, guestapp.ActionSelect
 				}
 			}
 		}
-		return 0, ui.ActionBack
+		return 0, guestapp.ActionBack
 	}
 
 	application := h.newApp()
@@ -389,16 +386,16 @@ func TestShowDevices(t *testing.T) {
 	}
 
 	callCount := 0
-	h.fakeUI.MenuUI.SelectFunc = func(items []ui.MenuItem) (int, ui.Action) {
+	h.fakeUI.MenuUI.SelectFunc = func(items []guestapp.MenuItem) (int, guestapp.Action) {
 		callCount++
 		if callCount == 1 {
 			for i, item := range items {
 				if item.Value == "devices" {
-					return i, ui.ActionSelect
+					return i, guestapp.ActionSelect
 				}
 			}
 		}
-		return 0, ui.ActionBack
+		return 0, guestapp.ActionBack
 	}
 
 	application := h.newApp()
@@ -441,7 +438,7 @@ func TestStatusDisplayPluralization(t *testing.T) {
 				ConnectedPeers: tt.connectedPeers,
 				Peers:          peers,
 			}
-			h.fakeUI.MenuUI.SelectAction = ui.ActionBack
+			h.fakeUI.MenuUI.SelectAction = guestapp.ActionBack
 
 			application := h.newApp()
 			_ = application.Run(context.Background())
@@ -466,7 +463,7 @@ func TestStatusDisplayPluralization(t *testing.T) {
 func TestAutostartEnablesSyncOnRun(t *testing.T) {
 	h := setupTest(t)
 	h.cfg.Service.Autostart = true
-	h.fakeUI.MenuUI.SelectAction = ui.ActionBack
+	h.fakeUI.MenuUI.SelectAction = guestapp.ActionBack
 
 	application := h.newApp()
 	_ = application.Run(context.Background())

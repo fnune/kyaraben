@@ -68,6 +68,10 @@ func (m *Manager) Client() syncthing.SyncClient {
 	return m.client
 }
 
+func (m *Manager) GUIPort() int {
+	return m.config.Syncthing.GUIPort
+}
+
 func (m *Manager) Start(ctx context.Context) error {
 	if m.IsRunning(ctx) {
 		return nil

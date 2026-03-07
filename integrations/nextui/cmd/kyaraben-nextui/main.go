@@ -12,7 +12,6 @@ import (
 	"github.com/fnune/kyaraben/integrations/nextui/internal/app"
 	"github.com/fnune/kyaraben/integrations/nextui/internal/config"
 	"github.com/fnune/kyaraben/integrations/nextui/internal/service"
-	"github.com/fnune/kyaraben/integrations/nextui/internal/sync"
 	"github.com/fnune/kyaraben/integrations/nextui/internal/ui/minui"
 	"github.com/fnune/kyaraben/internal/syncguest"
 	"github.com/fnune/kyaraben/internal/syncthing"
@@ -46,7 +45,7 @@ func run() error {
 	syncConfig := syncguest.DefaultConfig(dataDir)
 	syncConfig.SyncthingPath = filepath.Join(env.PakPath, "syncthing")
 	syncConfig.Syncthing.GUIPort = guiPort
-	syncMgr := sync.NewManagerAdapter(syncguest.NewWithClient(syncConfig, client))
+	syncMgr := syncguest.NewWithClient(syncConfig, client)
 
 	svcCfg := service.Config{
 		DataDir:       dataDir,

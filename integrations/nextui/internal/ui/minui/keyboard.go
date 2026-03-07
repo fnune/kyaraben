@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fnune/kyaraben/integrations/nextui/internal/ui"
+	"github.com/fnune/kyaraben/internal/guestapp"
 )
 
 type KeyboardUI struct {
@@ -20,7 +20,7 @@ func NewKeyboardUI(pakPath string) *KeyboardUI {
 	}
 }
 
-func (k *KeyboardUI) GetInput(options ui.KeyboardOptions) (string, error) {
+func (k *KeyboardUI) GetInput(options guestapp.KeyboardOptions) (string, error) {
 	outputFile, err := os.CreateTemp("", "minui-keyboard-*.txt")
 	if err != nil {
 		return "", fmt.Errorf("create temp file: %w", err)

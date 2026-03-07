@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fnune/kyaraben/integrations/nextui/internal/ui"
+	"github.com/fnune/kyaraben/internal/guestapp"
 )
 
 type MenuUI struct {
@@ -35,14 +35,14 @@ type jsonFeatures struct {
 	ConfirmText     string `json:"confirm_text,omitempty"`
 }
 
-func (m *MenuUI) Show(items []ui.MenuItem, options ui.MenuOptions) (int, ui.Action, error) {
+func (m *MenuUI) Show(items []guestapp.MenuItem, options guestapp.MenuOptions) (int, guestapp.Action, error) {
 	if len(items) == 0 {
-		return -1, ui.ActionBack, nil
+		return -1, guestapp.ActionBack, nil
 	}
 
 	outputFile, err := os.CreateTemp("", "minui-list-output-*.txt")
 	if err != nil {
-		return -1, ui.ActionBack, fmt.Errorf("create temp file: %w", err)
+		return -1, guestapp.ActionBack, fmt.Errorf("create temp file: %w", err)
 	}
 	outputPath := outputFile.Name()
 	_ = outputFile.Close()
@@ -81,20 +81,20 @@ func (m *MenuUI) Show(items []ui.MenuItem, options ui.MenuOptions) (int, ui.Acti
 
 	inputData, err := json.Marshal(wrapper)
 	if err != nil {
-		return -1, ui.ActionBack, fmt.Errorf("marshal json: %w", err)
+		return -1, guestapp.ActionBack, fmt.Errorf("marshal json: %w", err)
 	}
 
 	fmt.Fprintf(os.Stderr, "minui-list JSON input: %s\n", string(inputData))
 
 	inputFile, err := os.CreateTemp("", "minui-list-input-*.json")
 	if err != nil {
-		return -1, ui.ActionBack, fmt.Errorf("create input file: %w", err)
+		return -1, guestapp.ActionBack, fmt.Errorf("create input file: %w", err)
 	}
 	inputPath := inputFile.Name()
 	if _, err := inputFile.Write(inputData); err != nil {
 		_ = inputFile.Close()
 		_ = os.Remove(inputPath)
-		return -1, ui.ActionBack, fmt.Errorf("write input file: %w", err)
+		return -1, guestapp.ActionBack, fmt.Errorf("write input file: %w", err)
 	}
 	_ = inputFile.Close()
 	defer func() { _ = os.Remove(inputPath) }()
@@ -110,25 +110,25 @@ func (m *MenuUI) Show(items []ui.MenuItem, options ui.MenuOptions) (int, ui.Acti
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			switch exitErr.ExitCode() {
 			case 2:
-				return -1, ui.ActionBack, nil
+				return -1, guestapp.ActionBack, nil
 			case 3:
-				return -1, ui.ActionMenu, nil
+				return -1, guestapp.ActionMenu, nil
 			}
 		}
-		return -1, ui.ActionBack, fmt.Errorf("minui-list failed: %w", err)
+		return -1, guestapp.ActionBack, fmt.Errorf("minui-list failed: %w", err)
 	}
 
 	output, err := os.ReadFile(outputPath)
 	if err != nil {
-		return -1, ui.ActionBack, fmt.Errorf("read output file: %w", err)
+		return -1, guestapp.ActionBack, fmt.Errorf("read output file: %w", err)
 	}
 
 	selected := strings.TrimSpace(string(output))
 	for i, item := range items {
 		if item.Label == selected {
-			return i, ui.ActionSelect, nil
+			return i, guestapp.ActionSelect, nil
 		}
 	}
 
-	return -1, ui.ActionBack, nil
+	return -1, guestapp.ActionBack, nil
 }

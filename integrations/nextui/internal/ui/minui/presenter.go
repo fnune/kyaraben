@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/fnune/kyaraben/integrations/nextui/internal/ui"
+	"github.com/fnune/kyaraben/internal/guestapp"
 )
 
 type PresenterUI struct {
@@ -86,4 +86,4 @@ func (p *PresenterUI) Close() error {
 	return nil
 }
 
-var _ ui.PresenterUI = (*PresenterUI)(nil)
+var _ guestapp.PresenterUI = (*PresenterUI)(nil)

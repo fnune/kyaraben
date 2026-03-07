@@ -1,6 +1,6 @@
 package minui
 
-import "github.com/fnune/kyaraben/integrations/nextui/internal/ui"
+import "github.com/fnune/kyaraben/internal/guestapp"
 
 type UI struct {
 	menu      *MenuUI
@@ -16,16 +16,16 @@ func New(pakPath string) *UI {
 	}
 }
 
-func (u *UI) Menu() ui.MenuUI {
+func (u *UI) Menu() guestapp.MenuUI {
 	return u.menu
 }
 
-func (u *UI) Keyboard() ui.KeyboardUI {
+func (u *UI) Keyboard() guestapp.KeyboardUI {
 	return u.keyboard
 }
 
-func (u *UI) Presenter() ui.PresenterUI {
+func (u *UI) Presenter() guestapp.PresenterUI {
 	return u.presenter
 }
 
-var _ ui.UI = (*UI)(nil)
+var _ guestapp.UI = (*UI)(nil)

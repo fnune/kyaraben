@@ -1,8 +1,8 @@
-package service
+package guestapp
 
 import "context"
 
-type FakeManager struct {
+type FakeServiceManager struct {
 	Running          bool
 	AutostartEnabled bool
 	StartErr         error
@@ -16,11 +16,11 @@ type FakeManager struct {
 	DisableCalls int
 }
 
-func NewFakeManager() *FakeManager {
-	return &FakeManager{}
+func NewFakeServiceManager() *FakeServiceManager {
+	return &FakeServiceManager{}
 }
 
-func (f *FakeManager) Start(ctx context.Context) error {
+func (f *FakeServiceManager) Start(ctx context.Context) error {
 	f.StartCalls++
 	if f.StartErr != nil {
 		return f.StartErr
@@ -29,7 +29,7 @@ func (f *FakeManager) Start(ctx context.Context) error {
 	return nil
 }
 
-func (f *FakeManager) Stop() error {
+func (f *FakeServiceManager) Stop() error {
 	f.StopCalls++
 	if f.StopErr != nil {
 		return f.StopErr
@@ -38,11 +38,11 @@ func (f *FakeManager) Stop() error {
 	return nil
 }
 
-func (f *FakeManager) IsRunning(ctx context.Context) bool {
+func (f *FakeServiceManager) IsRunning(ctx context.Context) bool {
 	return f.Running
 }
 
-func (f *FakeManager) EnableAutostart() error {
+func (f *FakeServiceManager) EnableAutostart() error {
 	f.EnableCalls++
 	if f.EnableErr != nil {
 		return f.EnableErr
@@ -51,7 +51,7 @@ func (f *FakeManager) EnableAutostart() error {
 	return nil
 }
 
-func (f *FakeManager) DisableAutostart() error {
+func (f *FakeServiceManager) DisableAutostart() error {
 	f.DisableCalls++
 	if f.DisableErr != nil {
 		return f.DisableErr
@@ -60,8 +60,8 @@ func (f *FakeManager) DisableAutostart() error {
 	return nil
 }
 
-func (f *FakeManager) IsAutostartEnabled() bool {
+func (f *FakeServiceManager) IsAutostartEnabled() bool {
 	return f.AutostartEnabled
 }
 
-var _ ServiceManager = (*FakeManager)(nil)
+var _ ServiceManager = (*FakeServiceManager)(nil)

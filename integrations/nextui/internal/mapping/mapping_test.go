@@ -4,70 +4,9 @@ import (
 	"testing"
 
 	"github.com/fnune/kyaraben/integrations/nextui/internal/config"
-	"github.com/fnune/kyaraben/internal/folders"
 )
 
-func TestKyarabenFolderID(t *testing.T) {
-	m := NewMapper("/mnt/SDCARD", config.DefaultConfig())
-
-	tests := []struct {
-		category folders.Category
-		system   string
-		expected string
-	}{
-		{folders.CategorySaves, "gb", "kyaraben-saves-gb"},
-		{folders.CategoryROMs, "snes", "kyaraben-roms-snes"},
-		{folders.CategoryBIOS, "psx", "kyaraben-bios-psx"},
-		{folders.CategoryScreenshots, "retroarch", "kyaraben-screenshots-retroarch"},
-	}
-
-	for _, tt := range tests {
-		got := m.KyarabenFolderID(tt.category, tt.system)
-		if got != tt.expected {
-			t.Errorf("KyarabenFolderID(%s, %s) = %q, want %q", tt.category, tt.system, got, tt.expected)
-		}
-	}
-}
-
-func TestDevicePath(t *testing.T) {
-	m := NewMapper("/mnt/SDCARD", config.DefaultConfig())
-
-	tests := []struct {
-		category folders.Category
-		system   string
-		expected string
-	}{
-		{folders.CategorySaves, "gb", "/mnt/SDCARD/Saves/GB"},
-		{folders.CategorySaves, "snes", "/mnt/SDCARD/Saves/SFC"},
-		{folders.CategoryBIOS, "psx", "/mnt/SDCARD/Bios/PS"},
-		{folders.CategoryROMs, "gb", "/mnt/SDCARD/Roms/Game Boy (GB)"},
-		{folders.CategoryROMs, "unknown", ""},
-		{folders.CategoryScreenshots, "retroarch", "/mnt/SDCARD/Screenshots"},
-		{folders.CategoryScreenshots, "duckstation", ""},
-	}
-
-	for _, tt := range tests {
-		got := m.DevicePath(tt.category, tt.system)
-		if got != tt.expected {
-			t.Errorf("DevicePath(%s, %s) = %q, want %q", tt.category, tt.system, got, tt.expected)
-		}
-	}
-}
-
-func TestDevicePathWithCustomConfig(t *testing.T) {
-	cfg := config.DefaultConfig()
-	cfg.Saves["gba"] = "Saves/MGBA"
-
-	m := NewMapper("/mnt/SDCARD", cfg)
-
-	got := m.DevicePath(folders.CategorySaves, "gba")
-	expected := "/mnt/SDCARD/Saves/MGBA"
-	if got != expected {
-		t.Errorf("DevicePath with custom config = %q, want %q", got, expected)
-	}
-}
-
-func TestFolderMappings(t *testing.T) {
+func TestSyncguestFolderMappings(t *testing.T) {
 	cfg := config.Config{
 		PathMappings: config.PathMappings{
 			Saves: map[string]string{
@@ -83,62 +22,101 @@ func TestFolderMappings(t *testing.T) {
 	}
 
 	m := NewMapper("/mnt/SDCARD", cfg)
-	mappings := m.FolderMappings()
+	mappings := m.SyncguestFolderMappings()
 
 	if len(mappings) != 3 {
 		t.Errorf("expected 3 mappings, got %d", len(mappings))
 	}
 
-	foundSaves := false
-	foundROMs := false
-	foundRetroarchScreenshots := false
+	found := map[string]bool{
+		"kyaraben-saves-gb":              false,
+		"kyaraben-roms-gb":               false,
+		"kyaraben-screenshots-retroarch": false,
+	}
 
 	for _, mapping := range mappings {
-		switch mapping.FolderID {
+		found[mapping.ID] = true
+		switch mapping.ID {
 		case "kyaraben-saves-gb":
-			foundSaves = true
-			if mapping.DevicePath != "/mnt/SDCARD/Saves/GB" {
-				t.Errorf("saves path = %q, want /mnt/SDCARD/Saves/GB", mapping.DevicePath)
+			if mapping.Path != "/mnt/SDCARD/Saves/GB" {
+				t.Errorf("saves path = %q, want /mnt/SDCARD/Saves/GB", mapping.Path)
 			}
-		case "kyaraben-roms-gb":
-			foundROMs = true
 		case "kyaraben-screenshots-retroarch":
-			foundRetroarchScreenshots = true
-			if mapping.DevicePath != "/mnt/SDCARD/Screenshots" {
-				t.Errorf("retroarch screenshots path = %q, want /mnt/SDCARD/Screenshots", mapping.DevicePath)
+			if mapping.Path != "/mnt/SDCARD/Screenshots" {
+				t.Errorf("screenshots path = %q, want /mnt/SDCARD/Screenshots", mapping.Path)
 			}
 		}
 	}
 
-	if !foundSaves {
-		t.Error("saves mapping not found")
-	}
-	if !foundROMs {
-		t.Error("roms mapping not found")
-	}
-	if !foundRetroarchScreenshots {
-		t.Error("retroarch screenshots mapping not found")
+	for id, ok := range found {
+		if !ok {
+			t.Errorf("mapping %s not found", id)
+		}
 	}
 }
 
-func TestAllSystems(t *testing.T) {
+func TestSyncguestFolderMappingsWithStates(t *testing.T) {
 	cfg := config.Config{
+		Service: config.ServiceConfig{
+			SyncStates: true,
+		},
 		PathMappings: config.PathMappings{
 			Saves: map[string]string{
-				"gb":  "Saves/GB",
-				"gba": "Saves/GBA",
+				"gb": "Saves/GB",
 			},
-			ROMs: map[string]string{
-				"gb":   "Roms/Game Boy (GB)",
-				"snes": "Roms/Super Nintendo (SFC)",
+			States: map[string]string{
+				"retroarch:snes9x": ".userdata/shared/SFC-snes9x",
 			},
 		},
 	}
 
 	m := NewMapper("/mnt/SDCARD", cfg)
-	systems := m.AllSystems()
+	mappings := m.SyncguestFolderMappings()
 
-	if len(systems) != 3 {
-		t.Errorf("expected 3 systems (gb, gba, snes), got %d", len(systems))
+	if len(mappings) != 2 {
+		t.Errorf("expected 2 mappings, got %d", len(mappings))
+	}
+
+	foundStates := false
+	for _, mapping := range mappings {
+		if mapping.ID == "kyaraben-states-retroarch:snes9x" {
+			foundStates = true
+			if mapping.Path != "/mnt/SDCARD/.userdata/shared/SFC-snes9x" {
+				t.Errorf("states path = %q, want /mnt/SDCARD/.userdata/shared/SFC-snes9x", mapping.Path)
+			}
+		}
+	}
+
+	if !foundStates {
+		t.Error("states mapping not found")
+	}
+}
+
+func TestSyncguestFolderMappingsStatesDisabled(t *testing.T) {
+	cfg := config.Config{
+		Service: config.ServiceConfig{
+			SyncStates: false,
+		},
+		PathMappings: config.PathMappings{
+			Saves: map[string]string{
+				"gb": "Saves/GB",
+			},
+			States: map[string]string{
+				"retroarch:snes9x": ".userdata/shared/SFC-snes9x",
+			},
+		},
+	}
+
+	m := NewMapper("/mnt/SDCARD", cfg)
+	mappings := m.SyncguestFolderMappings()
+
+	if len(mappings) != 1 {
+		t.Errorf("expected 1 mapping (states disabled), got %d", len(mappings))
+	}
+
+	for _, mapping := range mappings {
+		if mapping.ID == "kyaraben-states-retroarch:snes9x" {
+			t.Error("states should not be included when SyncStates is false")
+		}
 	}
 }

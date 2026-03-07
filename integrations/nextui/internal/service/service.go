@@ -225,14 +225,6 @@ func (m *Manager) IsAutostartEnabled() bool {
 	return m.autostart.IsEnabled()
 }
 
-func (m *Manager) Client() syncthing.SyncClient {
-	return m.client
-}
-
-func (m *Manager) ProcessManager() *ProcessManager {
-	return m.process
-}
-
 func (m *Manager) loadAPIKey() (string, error) {
 	configPath := filepath.Join(m.process.HomePath(), "config.xml")
 	data, err := os.ReadFile(configPath)
