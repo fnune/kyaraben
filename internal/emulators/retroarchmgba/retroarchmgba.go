@@ -64,6 +64,8 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		patches = append(patches, *optionsPatch)
 	}
 	patches = append(patches, retroarch.OverlayPatches(model.EmulatorIDRetroArchMGBA, systems, pc, ctx.BaseDirResolver)...)
+	patches = append(patches, retroarch.ContentDirShaderPatches(model.EmulatorIDRetroArchMGBA, systems, pc, ctx.BaseDirResolver)...)
+	patches = append(patches, retroarch.ContentDirOptionsPatches(model.EmulatorIDRetroArchMGBA, systems, pc)...)
 
 	return model.GenerateResult{
 		Patches:          patches,

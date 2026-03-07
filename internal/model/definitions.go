@@ -41,10 +41,14 @@ type GenerateResult struct {
 // InitialDownload describes a file that should be downloaded once if missing.
 // Unlike provisions, these are user data files (e.g., HDD images) that get
 // modified during use and should never be re-downloaded or validated.
+// For archives, set ArchiveType and ExtractDir to extract contents.
 type InitialDownload struct {
-	URL      string
-	SHA256   string
-	DestPath string
+	URL         string
+	SHA256      string
+	DestPath    string
+	ArchiveType string // Optional: "tar.gz", "zip", etc. If set, extracts to ExtractDir.
+	ExtractDir  string // Directory to extract archive contents to. Required if ArchiveType is set.
+	StripPrefix string // Optional: strip this prefix from paths when extracting (e.g., "koko-aio-slang-NG-1.9.85/").
 }
 
 // EmbeddedFile describes a file with content embedded in the binary.

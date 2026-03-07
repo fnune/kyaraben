@@ -775,29 +775,83 @@ func (a *Applier) downloadInitialFiles(ctx context.Context, downloads []model.In
 	}
 
 	downloader := packages.NewDownloader(a.fs)
+	extractor := packages.NewExtractor(a.fs)
 
 	for _, dl := range downloads {
-		if _, err := a.fs.Stat(dl.DestPath); err == nil {
-			continue
+		if dl.ArchiveType != "" {
+			if _, err := a.fs.Stat(dl.ExtractDir); err == nil {
+				continue
+			}
+			if err := a.downloadAndExtract(ctx, dl, downloader, extractor); err != nil {
+				return err
+			}
+		} else {
+			if _, err := a.fs.Stat(dl.DestPath); err == nil {
+				continue
+			}
+			if err := a.downloadFile(ctx, dl, downloader); err != nil {
+				return err
+			}
 		}
+	}
 
-		destDir := filepath.Dir(dl.DestPath)
-		if err := vfs.MkdirAll(a.fs, destDir, 0o755); err != nil {
-			return fmt.Errorf("creating directory %s: %w", destDir, err)
-		}
+	return nil
+}
 
-		tmpPath := dl.DestPath + ".download"
-		if err := downloader.Download(ctx, packages.DownloadRequest{
-			URLs:     []string{dl.URL},
-			SHA256:   dl.SHA256,
-			DestPath: tmpPath,
-		}); err != nil {
-			return fmt.Errorf("downloading %s: %w", filepath.Base(dl.DestPath), err)
-		}
+func (a *Applier) downloadFile(ctx context.Context, dl model.InitialDownload, downloader *packages.HTTPDownloader) error {
+	destDir := filepath.Dir(dl.DestPath)
+	if err := vfs.MkdirAll(a.fs, destDir, 0o755); err != nil {
+		return fmt.Errorf("creating directory %s: %w", destDir, err)
+	}
 
-		if err := a.fs.Rename(tmpPath, dl.DestPath); err != nil {
-			return fmt.Errorf("moving %s: %w", filepath.Base(dl.DestPath), err)
-		}
+	tmpPath := dl.DestPath + ".download"
+	if err := downloader.Download(ctx, packages.DownloadRequest{
+		URLs:     []string{dl.URL},
+		SHA256:   dl.SHA256,
+		DestPath: tmpPath,
+	}); err != nil {
+		return fmt.Errorf("downloading %s: %w", filepath.Base(dl.DestPath), err)
+	}
+
+	if err := a.fs.Rename(tmpPath, dl.DestPath); err != nil {
+		return fmt.Errorf("moving %s: %w", filepath.Base(dl.DestPath), err)
+	}
+	return nil
+}
+
+func (a *Applier) downloadAndExtract(ctx context.Context, dl model.InitialDownload, downloader *packages.HTTPDownloader, extractor *packages.OSExtractor) error {
+	parentDir := filepath.Dir(dl.ExtractDir)
+	if err := vfs.MkdirAll(a.fs, parentDir, 0o755); err != nil {
+		return fmt.Errorf("creating directory %s: %w", parentDir, err)
+	}
+
+	tmpDir := dl.ExtractDir + ".download-tmp"
+	if err := vfs.MkdirAll(a.fs, tmpDir, 0o755); err != nil {
+		return fmt.Errorf("creating temp dir: %w", err)
+	}
+	defer func() { _ = a.fs.RemoveAll(tmpDir) }()
+
+	archivePath := filepath.Join(tmpDir, "archive")
+	if err := downloader.Download(ctx, packages.DownloadRequest{
+		URLs:     []string{dl.URL},
+		SHA256:   dl.SHA256,
+		DestPath: archivePath,
+	}); err != nil {
+		return fmt.Errorf("downloading %s: %w", filepath.Base(dl.URL), err)
+	}
+
+	extractDir := filepath.Join(tmpDir, "extracted")
+	if err := extractor.Extract(archivePath, extractDir, dl.ArchiveType); err != nil {
+		return fmt.Errorf("extracting %s: %w", filepath.Base(dl.URL), err)
+	}
+
+	srcDir := extractDir
+	if dl.StripPrefix != "" {
+		srcDir = filepath.Join(extractDir, dl.StripPrefix)
+	}
+
+	if err := a.fs.Rename(srcDir, dl.ExtractDir); err != nil {
+		return fmt.Errorf("moving extracted files: %w", err)
 	}
 
 	return nil
