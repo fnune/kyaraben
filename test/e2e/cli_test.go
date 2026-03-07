@@ -17,8 +17,10 @@ type cliTest struct {
 }
 
 func TestMain(m *testing.M) {
-	if testing.Short() {
-		os.Exit(0)
+	for _, arg := range os.Args[1:] {
+		if arg == "-test.short" || arg == "--test.short" {
+			os.Exit(0)
+		}
 	}
 
 	root, err := os.Getwd()
