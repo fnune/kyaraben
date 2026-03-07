@@ -15,11 +15,11 @@ Target: all devices supported by NextUI, testing on TrimUI Brick.
   - `config.go`: Config types with defaults
   - `interface.go`: SyncClient interface
   - `logger.go`: Injectable logger interface (no dependency on internal/logging)
+- [x] Updated `internal/sync/` to use `internal/syncthing/` (removed ~900 lines of duplication)
 
 ### Next steps
 
-1. Update `internal/sync/` to use `internal/syncthing/` (avoid duplication)
-2. Add fake client to `internal/syncthing/` for testing
+1. Add fake client to `internal/syncthing/` for testing (optional, FakeClient stays in sync for now)
 3. Create `integrations/nextui/` directory structure
 4. Build folder mapping logic (Kyaraben system -> NextUI TAG)
 5. Create UI abstraction interfaces (MenuUI, KeyboardUI, PresenterUI)
