@@ -47,7 +47,7 @@ type SetupResult struct {
 	SystemdUnitPath string
 }
 
-func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, collectionPath string, allSystems []model.SystemID, onProgress func(packages.InstallProgress)) (*SetupResult, error) {
+func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, collectionPath string, allSystems []model.SystemID, allEmulators []model.EmulatorID, onProgress func(packages.InstallProgress)) (*SetupResult, error) {
 	if !cfg.Enabled {
 		return nil, nil
 	}
@@ -73,7 +73,7 @@ func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, collectionPat
 		return nil, fmt.Errorf("generating API key: %w", err)
 	}
 
-	configGen := NewConfigGenerator(s.fs, cfg, collectionPath, allSystems)
+	configGen := NewConfigGenerator(s.fs, cfg, collectionPath, allSystems, allEmulators)
 	configGen.SetAPIKey(apiKey)
 
 	if err := configGen.WriteConfig(configDir); err != nil {
@@ -107,7 +107,7 @@ func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, collectionPat
 	}, nil
 }
 
-func (s *Setup) UpdateConfig(cfg model.SyncConfig, collectionPath string, allSystems []model.SystemID) error {
+func (s *Setup) UpdateConfig(cfg model.SyncConfig, collectionPath string, allSystems []model.SystemID, allEmulators []model.EmulatorID) error {
 	if !cfg.Enabled {
 		return nil
 	}
@@ -119,14 +119,14 @@ func (s *Setup) UpdateConfig(cfg model.SyncConfig, collectionPath string, allSys
 		return fmt.Errorf("loading API key: %w", err)
 	}
 
-	configGen := NewConfigGenerator(s.fs, cfg, collectionPath, allSystems)
+	configGen := NewConfigGenerator(s.fs, cfg, collectionPath, allSystems, allEmulators)
 	configGen.SetAPIKey(apiKey)
 
 	if err := configGen.WriteConfig(configDir); err != nil {
 		return fmt.Errorf("writing syncthing config: %w", err)
 	}
 
-	log.Info("Updated syncthing config with %d systems", len(allSystems))
+	log.Info("Updated syncthing config with %d systems, %d emulators", len(allSystems), len(allEmulators))
 	return nil
 }
 

@@ -176,6 +176,7 @@ type kyarabenInstance struct {
 	*testInstance
 	collection string
 	systems    []model.SystemID
+	emulators  []model.EmulatorID
 }
 
 func newKyarabenInstance(t *testing.T, name string, guiPort, listenPort int) *kyarabenInstance {
@@ -185,12 +186,19 @@ func newKyarabenInstance(t *testing.T, name string, guiPort, listenPort int) *ky
 	collection := filepath.Join(filepath.Dir(inst.configDir), "emulation")
 
 	systems := []model.SystemID{"snes", "psx"}
+	emulators := []model.EmulatorID{"retroarch:bsnes", "duckstation"}
 	for _, sys := range systems {
-		for _, category := range []string{"roms", "saves", "states", "bios"} {
+		for _, category := range []string{"roms", "saves", "bios"} {
 			dir := filepath.Join(collection, category, string(sys))
 			if err := os.MkdirAll(dir, 0755); err != nil {
 				t.Fatalf("creating %s: %v", dir, err)
 			}
+		}
+	}
+	for _, emu := range emulators {
+		dir := filepath.Join(collection, "states", string(emu))
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			t.Fatalf("creating %s: %v", dir, err)
 		}
 	}
 	if err := os.MkdirAll(filepath.Join(collection, "screenshots"), 0755); err != nil {
@@ -201,6 +209,7 @@ func newKyarabenInstance(t *testing.T, name string, guiPort, listenPort int) *ky
 		testInstance: inst,
 		collection:   collection,
 		systems:      systems,
+		emulators:    emulators,
 	}
 }
 
@@ -230,7 +239,7 @@ func (k *kyarabenInstance) writeKyarabenConfig(peer *kyarabenInstance) error {
 		},
 	}
 
-	gen := NewDefaultConfigGenerator(cfg, k.collection, k.systems)
+	gen := NewDefaultConfigGenerator(cfg, k.collection, k.systems, k.emulators)
 	gen.SetDeviceID(k.deviceID)
 	gen.SetAPIKey(k.apiKey)
 

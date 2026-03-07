@@ -1712,3 +1712,32 @@ func TestRetroArchShaderConfig(t *testing.T) {
 		}
 	})
 }
+
+func TestRetroArchCoreSymlinksUseLibraryNames(t *testing.T) {
+	t.Parallel()
+
+	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+
+	symlinks, err := retroarch.CoreSymlinks(model.EmulatorIDRetroArchGenesisPlusGX, store, resolver)
+	if err != nil {
+		t.Fatalf("CoreSymlinks() error = %v", err)
+	}
+
+	if len(symlinks) != 2 {
+		t.Fatalf("expected 2 symlinks, got %d", len(symlinks))
+	}
+
+	savesSymlink := symlinks[0]
+	statesSymlink := symlinks[1]
+
+	expectedSavesSource := "/home/user/.config/retroarch/saves/Genesis Plus GX"
+	if savesSymlink.Source != expectedSavesSource {
+		t.Errorf("saves symlink source = %q, want %q", savesSymlink.Source, expectedSavesSource)
+	}
+
+	expectedStatesSource := "/home/user/.config/retroarch/states/Genesis Plus GX"
+	if statesSymlink.Source != expectedStatesSource {
+		t.Errorf("states symlink source = %q, want %q", statesSymlink.Source, expectedStatesSource)
+	}
+}

@@ -99,20 +99,22 @@ type ConfigGenerator struct {
 	deviceID        string
 	apiKey          string
 	allSystems      []model.SystemID
+	allEmulators    []model.EmulatorID
 	existingDevices []XMLDevice
 }
 
-func NewConfigGenerator(fs vfs.FS, syncConfig model.SyncConfig, collection string, allSystems []model.SystemID) *ConfigGenerator {
+func NewConfigGenerator(fs vfs.FS, syncConfig model.SyncConfig, collection string, allSystems []model.SystemID, allEmulators []model.EmulatorID) *ConfigGenerator {
 	return &ConfigGenerator{
-		fs:         fs,
-		syncConfig: syncConfig,
-		collection: collection,
-		allSystems: allSystems,
+		fs:           fs,
+		syncConfig:   syncConfig,
+		collection:   collection,
+		allSystems:   allSystems,
+		allEmulators: allEmulators,
 	}
 }
 
-func NewDefaultConfigGenerator(syncConfig model.SyncConfig, collection string, allSystems []model.SystemID) *ConfigGenerator {
-	return NewConfigGenerator(vfs.OSFS, syncConfig, collection, allSystems)
+func NewDefaultConfigGenerator(syncConfig model.SyncConfig, collection string, allSystems []model.SystemID, allEmulators []model.EmulatorID) *ConfigGenerator {
+	return NewConfigGenerator(vfs.OSFS, syncConfig, collection, allSystems, allEmulators)
 }
 
 func (g *ConfigGenerator) SetDeviceID(id string) {
@@ -201,7 +203,7 @@ func (g *ConfigGenerator) generateFolders() ([]XMLFolder, error) {
 		"roms":        {subdirs: g.systemSubdirs(), versioning: false},
 		"bios":        {subdirs: g.systemSubdirs(), versioning: false},
 		"saves":       {subdirs: g.systemSubdirs(), versioning: true},
-		"states":      {subdirs: g.systemSubdirs(), versioning: true},
+		"states":      {subdirs: g.emulatorSubdirs(), versioning: true},
 		"screenshots": {subdirs: nil, versioning: false},
 	}
 
@@ -290,6 +292,14 @@ func (g *ConfigGenerator) systemSubdirs() []string {
 	subdirs := make([]string, len(g.allSystems))
 	for i, sys := range g.allSystems {
 		subdirs[i] = string(sys)
+	}
+	return subdirs
+}
+
+func (g *ConfigGenerator) emulatorSubdirs() []string {
+	subdirs := make([]string, len(g.allEmulators))
+	for i, emu := range g.allEmulators {
+		subdirs[i] = string(emu)
 	}
 	return subdirs
 }

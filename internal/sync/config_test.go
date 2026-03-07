@@ -22,7 +22,8 @@ func TestConfigGenerator_GenerateFolders(t *testing.T) {
 	fs := testutil.NewTestFS(t, nil)
 
 	systems := []model.SystemID{"snes", "psx"}
-	gen := NewConfigGenerator(fs, cfg, "/home/user/Emulation", systems)
+	emulators := []model.EmulatorID{"retroarch:bsnes", "duckstation"}
+	gen := NewConfigGenerator(fs, cfg, "/home/user/Emulation", systems, emulators)
 	gen.SetDeviceID("TEST-DEVICE-ID")
 	gen.SetAPIKey("test-api-key")
 
@@ -74,7 +75,7 @@ func TestConfigGenerator_Versioning(t *testing.T) {
 
 	fs := testutil.NewTestFS(t, nil)
 
-	gen := NewConfigGenerator(fs, cfg, "/tmp", []model.SystemID{"snes"})
+	gen := NewConfigGenerator(fs, cfg, "/tmp", []model.SystemID{"snes"}, []model.EmulatorID{"retroarch:bsnes"})
 
 	xmlCfg, err := gen.Generate()
 	if err != nil {
@@ -119,7 +120,7 @@ func TestConfigGenerator_WriteConfig_WritesIgnoreFiles(t *testing.T) {
 
 	fs := testutil.NewTestFS(t, nil)
 
-	gen := NewConfigGenerator(fs, cfg, "/emulation", []model.SystemID{"snes"})
+	gen := NewConfigGenerator(fs, cfg, "/emulation", []model.SystemID{"snes"}, []model.EmulatorID{"retroarch:bsnes"})
 	gen.SetAPIKey("test-key")
 
 	if err := gen.WriteConfig("/config"); err != nil {
@@ -129,7 +130,7 @@ func TestConfigGenerator_WriteConfig_WritesIgnoreFiles(t *testing.T) {
 	ignoreFiles := []string{
 		"/emulation/roms/snes/.stignore",
 		"/emulation/saves/snes/.stignore",
-		"/emulation/states/snes/.stignore",
+		"/emulation/states/retroarch:bsnes/.stignore",
 		"/emulation/bios/snes/.stignore",
 		"/emulation/screenshots/.stignore",
 	}
@@ -160,7 +161,7 @@ func TestConfigGenerator_WriteConfig_NoIgnoreFilesWhenNoPatterns(t *testing.T) {
 
 	fs := testutil.NewTestFS(t, nil)
 
-	gen := NewConfigGenerator(fs, cfg, "/emulation", []model.SystemID{"snes"})
+	gen := NewConfigGenerator(fs, cfg, "/emulation", []model.SystemID{"snes"}, []model.EmulatorID{"retroarch:bsnes"})
 	gen.SetAPIKey("test-key")
 
 	if err := gen.WriteConfig("/config"); err != nil {
@@ -193,7 +194,7 @@ func TestConfigGenerator_WriteConfig_PreservesExistingDevices(t *testing.T) {
 		},
 	}
 
-	gen := NewConfigGenerator(fs, cfg, "/emulation", []model.SystemID{"snes"})
+	gen := NewConfigGenerator(fs, cfg, "/emulation", []model.SystemID{"snes"}, []model.EmulatorID{"retroarch:bsnes"})
 	gen.SetDeviceID("LOCAL-DEVICE-ID")
 	gen.SetAPIKey("test-key")
 
