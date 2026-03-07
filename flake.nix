@@ -68,7 +68,8 @@
 
           CGO_ENABLED = "1";
           CC = "musl-gcc";
-          CGO_LDFLAGS = "-static";
+          GOFLAGS = "-tags=netgo";
+          CGO_LDFLAGS = "-static -Wl,--no-as-needed";
         };
 
         # Emulator packages that kyaraben manages
