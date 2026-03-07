@@ -8,6 +8,7 @@ import (
 
 	"github.com/twpayne/go-vfs/v5"
 
+	"github.com/fnune/kyaraben/internal/folders"
 	"github.com/fnune/kyaraben/internal/model"
 )
 
@@ -99,22 +100,24 @@ type ConfigGenerator struct {
 	deviceID        string
 	apiKey          string
 	allSystems      []model.SystemID
-	allEmulators    []model.EmulatorID
+	allEmulators    []folders.EmulatorInfo
+	allFrontends    []model.FrontendID
 	existingDevices []XMLDevice
 }
 
-func NewConfigGenerator(fs vfs.FS, syncConfig model.SyncConfig, collection string, allSystems []model.SystemID, allEmulators []model.EmulatorID) *ConfigGenerator {
+func NewConfigGenerator(fs vfs.FS, syncConfig model.SyncConfig, collection string, allSystems []model.SystemID, allEmulators []folders.EmulatorInfo, allFrontends []model.FrontendID) *ConfigGenerator {
 	return &ConfigGenerator{
 		fs:           fs,
 		syncConfig:   syncConfig,
 		collection:   collection,
 		allSystems:   allSystems,
 		allEmulators: allEmulators,
+		allFrontends: allFrontends,
 	}
 }
 
-func NewDefaultConfigGenerator(syncConfig model.SyncConfig, collection string, allSystems []model.SystemID, allEmulators []model.EmulatorID) *ConfigGenerator {
-	return NewConfigGenerator(vfs.OSFS, syncConfig, collection, allSystems, allEmulators)
+func NewDefaultConfigGenerator(syncConfig model.SyncConfig, collection string, allSystems []model.SystemID, allEmulators []folders.EmulatorInfo, allFrontends []model.FrontendID) *ConfigGenerator {
+	return NewConfigGenerator(vfs.OSFS, syncConfig, collection, allSystems, allEmulators, allFrontends)
 }
 
 func (g *ConfigGenerator) SetDeviceID(id string) {
@@ -192,116 +195,76 @@ func (g *ConfigGenerator) Generate() (*SyncthingXMLConfig, error) {
 }
 
 func (g *ConfigGenerator) generateFolders() ([]XMLFolder, error) {
-	var folders []XMLFolder
-
 	deviceRefs := g.folderDeviceRefs()
 
-	folderTypes := map[string]struct {
-		subdirs    []string
-		versioning bool
-	}{
-		"roms":        {subdirs: g.systemSubdirs(), versioning: false},
-		"bios":        {subdirs: g.systemSubdirs(), versioning: false},
-		"saves":       {subdirs: g.systemSubdirs(), versioning: true},
-		"states":      {subdirs: g.emulatorSubdirs(), versioning: true},
-		"screenshots": {subdirs: nil, versioning: false},
-	}
+	specs := folders.GenerateSpecs(folders.HostInput{
+		Systems:          g.allSystems,
+		Emulators:        g.allEmulators,
+		Frontends:        g.allFrontends,
+		FrontendSuffixes: g.frontendSuffixes,
+	})
 
-	frontendFolders, err := g.generateFrontendFolders(deviceRefs)
-	if err != nil {
-		return nil, fmt.Errorf("generating frontend folders: %w", err)
-	}
+	xmlFolders := make([]XMLFolder, 0, len(specs))
+	for _, spec := range specs {
+		path := g.folderPath(spec)
 
-	for category, spec := range folderTypes {
-		if spec.subdirs != nil {
-			for _, subdir := range spec.subdirs {
-				folderID := fmt.Sprintf("kyaraben-%s-%s", category, subdir)
-				path := filepath.Join(g.collection, category, subdir)
-
-				folder := XMLFolder{
-					ID:               folderID,
-					Label:            folderID,
-					Path:             path,
-					Type:             FolderTypeSendReceive,
-					Devices:          deviceRefs,
-					FSWatcherEnabled: true,
-					IgnorePerms:      true,
-				}
-
-				if spec.versioning {
-					folder.Versioning = g.versioningConfig()
-				}
-
-				folders = append(folders, folder)
-			}
-		} else {
-			folderID := fmt.Sprintf("kyaraben-%s", category)
-			path := filepath.Join(g.collection, category)
-
-			folder := XMLFolder{
-				ID:               folderID,
-				Label:            folderID,
-				Path:             path,
-				Type:             FolderTypeSendReceive,
-				Devices:          deviceRefs,
-				FSWatcherEnabled: true,
-				IgnorePerms:      true,
-			}
-
-			if spec.versioning {
-				folder.Versioning = g.versioningConfig()
-			}
-
-			folders = append(folders, folder)
+		folder := XMLFolder{
+			ID:               spec.ID,
+			Label:            spec.ID,
+			Path:             path,
+			Type:             FolderTypeSendReceive,
+			Devices:          deviceRefs,
+			FSWatcherEnabled: true,
+			IgnorePerms:      true,
 		}
+
+		if spec.Versioning {
+			folder.Versioning = g.versioningConfig()
+		}
+
+		xmlFolders = append(xmlFolders, folder)
 	}
 
-	folders = append(folders, frontendFolders...)
-
-	return folders, nil
+	return xmlFolders, nil
 }
 
-func (g *ConfigGenerator) generateFrontendFolders(deviceRefs []XMLFolderDevice) ([]XMLFolder, error) {
-	var folders []XMLFolder
+func (g *ConfigGenerator) folderPath(spec folders.Spec) string {
+	switch spec.Category {
+	case folders.CategoryROMs:
+		return filepath.Join(g.collection, "roms", string(spec.System))
+	case folders.CategoryBIOS:
+		return filepath.Join(g.collection, "bios", string(spec.System))
+	case folders.CategorySaves:
+		return filepath.Join(g.collection, "saves", string(spec.System))
+	case folders.CategoryStates:
+		return filepath.Join(g.collection, "states", string(spec.Emulator))
+	case folders.CategoryScreenshots:
+		return filepath.Join(g.collection, "screenshots", string(spec.Emulator))
+	default:
+		if spec.Frontend != "" {
+			return g.frontendPath(spec)
+		}
+		return g.collection
+	}
+}
 
-	folderType := FolderTypeSendReceive
+func (g *ConfigGenerator) frontendPath(spec folders.Spec) string {
+	suffix := strings.TrimPrefix(spec.ID, fmt.Sprintf("kyaraben-frontends-%s-", spec.Frontend))
+	parts := strings.SplitN(suffix, "-", 2)
+	if len(parts) == 2 {
+		return filepath.Join(g.collection, "frontends", string(spec.Frontend), parts[0], parts[1])
+	}
+	return filepath.Join(g.collection, "frontends", string(spec.Frontend), suffix)
+}
 
+func (g *ConfigGenerator) frontendSuffixes(fe model.FrontendID, systems []model.SystemID) []string {
+	var suffixes []string
 	for _, subType := range []string{"gamelists", "media"} {
-		for _, sys := range g.allSystems {
-			folderID := fmt.Sprintf("kyaraben-frontends-esde-%s-%s", subType, sys)
-			path := filepath.Join(g.collection, "frontends", "esde", subType, string(sys))
-
-			folder := XMLFolder{
-				ID:               folderID,
-				Label:            folderID,
-				Path:             path,
-				Type:             folderType,
-				Devices:          deviceRefs,
-				FSWatcherEnabled: true,
-				IgnorePerms:      true,
-			}
-
-			folders = append(folders, folder)
+		for _, sys := range systems {
+			suffixes = append(suffixes, fmt.Sprintf("%s-%s", subType, sys))
 		}
 	}
-
-	return folders, nil
-}
-
-func (g *ConfigGenerator) systemSubdirs() []string {
-	subdirs := make([]string, len(g.allSystems))
-	for i, sys := range g.allSystems {
-		subdirs[i] = string(sys)
-	}
-	return subdirs
-}
-
-func (g *ConfigGenerator) emulatorSubdirs() []string {
-	subdirs := make([]string, len(g.allEmulators))
-	for i, emu := range g.allEmulators {
-		subdirs[i] = string(emu)
-	}
-	return subdirs
+	return suffixes
 }
 
 func (g *ConfigGenerator) generateDevices() []XMLDevice {

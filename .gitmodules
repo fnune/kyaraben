@@ -1,3 +1,0 @@
-[submodule "integrations/nextui/upstream"]
-	path = integrations/nextui/upstream
-	url = https://github.com/josegonzalez/minui-syncthing-pak.git

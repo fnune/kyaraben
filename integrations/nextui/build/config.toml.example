@@ -1,0 +1,53 @@
+# Kyaraben configuration for NextUI
+# Place at: /.userdata/{platform}/kyaraben/config.toml
+#
+# Paths are relative to SD card root.
+# Kyaraben system ID on left, device path on right.
+# Defaults are shown below - only edit if using non-standard paths.
+
+[service]
+enabled = true       # start syncing when app launches
+start_on_boot = true # start syncthing automatically on device boot
+
+[saves]
+nes = "Saves/FC"
+snes = "Saves/SFC"
+gb = "Saves/GB"
+gbc = "Saves/GBC"
+gba = "Saves/GBA"
+psx = "Saves/PS"
+genesis = "Saves/MD"
+gamegear = "Saves/GG"
+mastersystem = "Saves/SMS"
+pcengine = "Saves/PCE"
+ngp = "Saves/NGP"
+atari2600 = "Saves/A2600"
+c64 = "Saves/C64"
+arcade = "Saves/FBN"
+
+# Example: if using MGBA.pak instead of default GBA core:
+# gba = "Saves/MGBA"
+
+[roms]
+nes = "Roms/Nintendo (FC)"
+snes = "Roms/Super Nintendo (SFC)"
+gb = "Roms/Game Boy (GB)"
+gbc = "Roms/Game Boy Color (GBC)"
+gba = "Roms/Game Boy Advance (GBA)"
+psx = "Roms/PlayStation (PS)"
+genesis = "Roms/Mega Drive (MD)"
+gamegear = "Roms/Game Gear (GG)"
+mastersystem = "Roms/Master System (SMS)"
+pcengine = "Roms/PC Engine (PCE)"
+ngp = "Roms/Neo Geo Pocket (NGP)"
+atari2600 = "Roms/Atari 2600 (A2600)"
+c64 = "Roms/Commodore 64 (C64)"
+arcade = "Roms/Arcade (FBN)"
+
+[bios]
+gba = "Bios/GBA"
+psx = "Bios/PS"
+
+[screenshots]
+retroarch = "Screenshots"
+duckstation = "Screenshots"

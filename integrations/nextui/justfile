@@ -1,0 +1,126 @@
+# NextUI PAK build system
+
+# Versions
+syncthing_version := "2.0.14"
+minui_list_version := "0.12.0"
+minui_keyboard_version := "0.7.0"
+minui_presenter_version := "0.10.0"
+
+# Directories
+build_dir := "dist"
+cache_dir := ".cache"
+
+default:
+    @just --list
+
+# Build PAK for a specific platform (tg5040 or tg5050)
+build platform:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    pak_dir="{{ build_dir }}/Tools/{{ platform }}/Kyaraben.pak"
+    mkdir -p "$pak_dir"
+
+    # Build Go binary for ARM64
+    echo "Building kyaraben-nextui for linux/arm64..."
+    CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build \
+        -ldflags="-s -w" \
+        -o "$pak_dir/kyaraben-nextui" \
+        ./cmd/kyaraben-nextui
+
+    # Download dependencies
+    just _fetch-syncthing "$pak_dir"
+    just _fetch-minui-list "{{ platform }}" "$pak_dir"
+    just _fetch-minui-keyboard "{{ platform }}" "$pak_dir"
+    just _fetch-minui-presenter "{{ platform }}" "$pak_dir"
+
+    # Copy static files
+    cp build/launch.sh "$pak_dir/"
+    chmod +x "$pak_dir/launch.sh"
+    cp build/config.toml.example "$pak_dir/"
+
+    echo "PAK built: $pak_dir"
+
+# Build PAKs for all platforms
+build-all:
+    just build tg5040
+    just build tg5050
+
+# Clean build artifacts
+clean:
+    rm -rf {{ build_dir }}
+
+# Clean everything including cache
+clean-all:
+    rm -rf {{ build_dir }} {{ cache_dir }}
+
+# Run tests
+test:
+    CGO_ENABLED=0 go test ./...
+
+# Run E2E tests with fake UI
+e2e:
+    CGO_ENABLED=0 go test ./test/e2e/... -v
+
+# --- Internal targets ---
+
+_fetch-syncthing dest:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    cache="{{ cache_dir }}/syncthing-{{ syncthing_version }}"
+    if [ ! -f "$cache" ]; then
+        echo "Downloading Syncthing {{ syncthing_version }}..."
+        mkdir -p "{{ cache_dir }}"
+        url="https://github.com/syncthing/syncthing/releases/download/v{{ syncthing_version }}/syncthing-linux-arm64-v{{ syncthing_version }}.tar.gz"
+        curl -fsSL "$url" | tar -xzf - --strip-components=1 -C "{{ cache_dir }}" "syncthing-linux-arm64-v{{ syncthing_version }}/syncthing"
+        mv "{{ cache_dir }}/syncthing" "$cache"
+    fi
+
+    cp "$cache" "{{ dest }}/syncthing"
+    chmod +x "{{ dest }}/syncthing"
+
+_fetch-minui-list platform dest:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    cache="{{ cache_dir }}/minui-list-{{ minui_list_version }}-{{ platform }}"
+    if [ ! -f "$cache" ]; then
+        echo "Downloading minui-list {{ minui_list_version }} for {{ platform }}..."
+        mkdir -p "{{ cache_dir }}"
+        url="https://github.com/josegonzalez/minui-list/releases/download/{{ minui_list_version }}/minui-list-{{ platform }}"
+        curl -fsSL -o "$cache" "$url"
+    fi
+
+    cp "$cache" "{{ dest }}/minui-list"
+    chmod +x "{{ dest }}/minui-list"
+
+_fetch-minui-keyboard platform dest:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    cache="{{ cache_dir }}/minui-keyboard-{{ minui_keyboard_version }}-{{ platform }}"
+    if [ ! -f "$cache" ]; then
+        echo "Downloading minui-keyboard {{ minui_keyboard_version }} for {{ platform }}..."
+        mkdir -p "{{ cache_dir }}"
+        url="https://github.com/josegonzalez/minui-keyboard/releases/download/{{ minui_keyboard_version }}/minui-keyboard-{{ platform }}"
+        curl -fsSL -o "$cache" "$url"
+    fi
+
+    cp "$cache" "{{ dest }}/minui-keyboard"
+    chmod +x "{{ dest }}/minui-keyboard"
+
+_fetch-minui-presenter platform dest:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    cache="{{ cache_dir }}/minui-presenter-{{ minui_presenter_version }}-{{ platform }}"
+    if [ ! -f "$cache" ]; then
+        echo "Downloading minui-presenter {{ minui_presenter_version }} for {{ platform }}..."
+        mkdir -p "{{ cache_dir }}"
+        url="https://github.com/josegonzalez/minui-presenter/releases/download/{{ minui_presenter_version }}/minui-presenter-{{ platform }}"
+        curl -fsSL -o "$cache" "$url"
+    fi
+
+    cp "$cache" "{{ dest }}/minui-presenter"
+    chmod +x "{{ dest }}/minui-presenter"
