@@ -27,6 +27,10 @@
 
 ### Proper blocker
 
+- Sync pairing UI issues
+  - Pairing UI hides prematurely: when showing a pairing code, the UI hides as soon as a device connects, even if it's not the device that redeemed our code. Should confirm the specific code was redeemed before hiding.
+  - Zombie devices reappear: after removing a device (e.g. "TinaLinux"), it reappeared later while the pairing UI was open. Unclear why - possibly Syncthing re-adding it from cached state or the other device re-initiating connection.
+
 - Documentation lives on the website too much
   - One goal of Kyaraben is to have its app be self-documenting
   - Users are expected to be able to figure things out just from what the app tells them
