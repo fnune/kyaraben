@@ -1970,6 +1970,7 @@ func (d *Daemon) syncEmulators(cfg *model.KyarabenConfig) []folders.EmulatorInfo
 		info := folders.EmulatorInfo{ID: id}
 		if emu, err := d.deps.Registry.GetEmulator(id); err == nil {
 			info.UsesStatesDir = emu.PathUsage.UsesStatesDir
+			info.UsesScreenshotsDir = emu.PathUsage.UsesScreenshotsDir
 		}
 		result = append(result, info)
 	}

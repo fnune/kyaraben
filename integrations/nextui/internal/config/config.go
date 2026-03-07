@@ -11,7 +11,7 @@ type Config struct {
 	Saves       map[string]string `toml:"saves"`
 	ROMs        map[string]string `toml:"roms"`
 	BIOS        map[string]string `toml:"bios"`
-	Screenshots string            `toml:"screenshots"`
+	Screenshots map[string]string `toml:"screenshots"`
 }
 
 func DefaultConfig() Config {
@@ -52,7 +52,10 @@ func DefaultConfig() Config {
 			"gba": "Bios/GBA",
 			"psx": "Bios/PS",
 		},
-		Screenshots: "Screenshots",
+		Screenshots: map[string]string{
+			"retroarch":   "Screenshots",
+			"duckstation": "Screenshots",
+		},
 	}
 }
 

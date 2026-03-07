@@ -18,7 +18,7 @@ func TestKyarabenFolderID(t *testing.T) {
 		{folders.CategorySaves, "gb", "kyaraben-saves-gb"},
 		{folders.CategoryROMs, "snes", "kyaraben-roms-snes"},
 		{folders.CategoryBIOS, "psx", "kyaraben-bios-psx"},
-		{folders.CategoryScreenshots, "", "kyaraben-screenshots"},
+		{folders.CategoryScreenshots, "retroarch", "kyaraben-screenshots-retroarch"},
 	}
 
 	for _, tt := range tests {
@@ -42,7 +42,8 @@ func TestDevicePath(t *testing.T) {
 		{folders.CategoryBIOS, "psx", "/mnt/SDCARD/Bios/PS"},
 		{folders.CategoryROMs, "gb", "/mnt/SDCARD/Roms/Game Boy (GB)"},
 		{folders.CategoryROMs, "unknown", ""},
-		{folders.CategoryScreenshots, "", "/mnt/SDCARD/Screenshots"},
+		{folders.CategoryScreenshots, "retroarch", "/mnt/SDCARD/Screenshots"},
+		{folders.CategoryScreenshots, "duckstation", "/mnt/SDCARD/Screenshots"},
 	}
 
 	for _, tt := range tests {
@@ -74,19 +75,23 @@ func TestFolderMappings(t *testing.T) {
 		ROMs: map[string]string{
 			"gb": "Roms/Game Boy (GB)",
 		},
-		Screenshots: "Screenshots",
+		Screenshots: map[string]string{
+			"retroarch":   "Screenshots",
+			"duckstation": "Screenshots",
+		},
 	}
 
 	m := NewMapper("/mnt/SDCARD", cfg)
 	mappings := m.FolderMappings()
 
-	if len(mappings) != 3 {
-		t.Errorf("expected 3 mappings, got %d", len(mappings))
+	if len(mappings) != 4 {
+		t.Errorf("expected 4 mappings, got %d", len(mappings))
 	}
 
 	foundSaves := false
 	foundROMs := false
-	foundScreenshots := false
+	foundRetroarchScreenshots := false
+	foundDuckstationScreenshots := false
 
 	for _, mapping := range mappings {
 		switch mapping.FolderID {
@@ -97,8 +102,16 @@ func TestFolderMappings(t *testing.T) {
 			}
 		case "kyaraben-roms-gb":
 			foundROMs = true
-		case "kyaraben-screenshots":
-			foundScreenshots = true
+		case "kyaraben-screenshots-retroarch":
+			foundRetroarchScreenshots = true
+			if mapping.DevicePath != "/mnt/SDCARD/Screenshots" {
+				t.Errorf("retroarch screenshots path = %q, want /mnt/SDCARD/Screenshots", mapping.DevicePath)
+			}
+		case "kyaraben-screenshots-duckstation":
+			foundDuckstationScreenshots = true
+			if mapping.DevicePath != "/mnt/SDCARD/Screenshots" {
+				t.Errorf("duckstation screenshots path = %q, want /mnt/SDCARD/Screenshots", mapping.DevicePath)
+			}
 		}
 	}
 
@@ -108,8 +121,11 @@ func TestFolderMappings(t *testing.T) {
 	if !foundROMs {
 		t.Error("roms mapping not found")
 	}
-	if !foundScreenshots {
-		t.Error("screenshots mapping not found")
+	if !foundRetroarchScreenshots {
+		t.Error("retroarch screenshots mapping not found")
+	}
+	if !foundDuckstationScreenshots {
+		t.Error("duckstation screenshots mapping not found")
 	}
 }
 

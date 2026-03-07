@@ -239,7 +239,7 @@ func (g *ConfigGenerator) folderPath(spec folders.Spec) string {
 	case folders.CategoryStates:
 		return filepath.Join(g.collection, "states", string(spec.Emulator))
 	case folders.CategoryScreenshots:
-		return filepath.Join(g.collection, "screenshots")
+		return filepath.Join(g.collection, "screenshots", string(spec.Emulator))
 	default:
 		if spec.Frontend != "" {
 			return g.frontendPath(spec)

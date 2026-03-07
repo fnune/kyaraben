@@ -28,10 +28,8 @@ func (c Category) SubdirType() SubdirType {
 	switch c {
 	case CategoryROMs, CategoryBIOS, CategorySaves:
 		return SubdirSystem
-	case CategoryStates:
+	case CategoryStates, CategoryScreenshots:
 		return SubdirEmulator
-	case CategoryScreenshots:
-		return SubdirNone
 	default:
 		return SubdirNone
 	}
@@ -74,8 +72,9 @@ type HostInput struct {
 }
 
 type EmulatorInfo struct {
-	ID            model.EmulatorID
-	UsesStatesDir bool
+	ID                 model.EmulatorID
+	UsesStatesDir      bool
+	UsesScreenshotsDir bool
 }
 
 func GenerateSpecs(input HostInput) []Spec {
@@ -101,13 +100,15 @@ func GenerateSpecs(input HostInput) []Spec {
 				Emulator:   emu.ID,
 			})
 		}
+		if emu.UsesScreenshotsDir {
+			specs = append(specs, Spec{
+				ID:         ID(CategoryScreenshots, string(emu.ID)),
+				Category:   CategoryScreenshots,
+				Versioning: CategoryScreenshots.Versioning(),
+				Emulator:   emu.ID,
+			})
+		}
 	}
-
-	specs = append(specs, Spec{
-		ID:         ID(CategoryScreenshots, ""),
-		Category:   CategoryScreenshots,
-		Versioning: CategoryScreenshots.Versioning(),
-	})
 
 	for _, fe := range input.Frontends {
 		if input.FrontendSuffixes != nil {

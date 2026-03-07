@@ -35,7 +35,7 @@ func (m *Mapper) DevicePath(category folders.Category, system string) string {
 	case folders.CategoryBIOS:
 		relativePath = m.cfg.BIOS[system]
 	case folders.CategoryScreenshots:
-		relativePath = m.cfg.Screenshots
+		relativePath = m.cfg.Screenshots[system]
 	}
 
 	if relativePath == "" {
@@ -76,7 +76,7 @@ func (m *Mapper) SystemsForCategory(category folders.Category) []string {
 	case folders.CategoryBIOS:
 		mapping = m.cfg.BIOS
 	case folders.CategoryScreenshots:
-		return nil
+		mapping = m.cfg.Screenshots
 	}
 
 	systems := make([]string, 0, len(mapping))
@@ -116,11 +116,12 @@ func (m *Mapper) FolderMappings() []FolderMapping {
 		})
 	}
 
-	if m.cfg.Screenshots != "" {
+	for emulator, path := range m.cfg.Screenshots {
 		mappings = append(mappings, FolderMapping{
-			FolderID:   folders.ID(folders.CategoryScreenshots, ""),
-			DevicePath: filepath.Join(m.sdcardPath, m.cfg.Screenshots),
+			FolderID:   folders.ID(folders.CategoryScreenshots, emulator),
+			DevicePath: filepath.Join(m.sdcardPath, path),
 			Category:   folders.CategoryScreenshots,
+			System:     emulator,
 		})
 	}
 
