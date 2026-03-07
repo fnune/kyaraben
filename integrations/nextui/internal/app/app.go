@@ -59,6 +59,10 @@ func New(env Env, cfg config.Config, mgr *syncguest.Manager, appUI ui.UI) *App {
 }
 
 func (a *App) Run(ctx context.Context) error {
+	if err := a.mgr.ConfigureFolders(a.mapper.SyncguestFolderMappings()); err != nil {
+		return fmt.Errorf("configure folders: %w", err)
+	}
+
 	for {
 		action, err := a.showMainMenu(ctx)
 		if err != nil {

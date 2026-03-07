@@ -34,9 +34,9 @@ Target: all devices supported by NextUI, testing on TrimUI Brick.
 
 ### Next steps
 
-1. Add build system for ARM64 targets
-2. Create launch.sh and PAK packaging
-3. E2E tests with fakes
+1. Move folder mapping logic into syncguest (shared config format)
+2. Test on real device
+3. Consider renaming syncguest -> syncpeer (Kyaraben could use it too)
 
 ### Architectural note
 

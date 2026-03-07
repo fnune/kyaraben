@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/fnune/kyaraben/integrations/nextui/internal/config"
+	"github.com/fnune/kyaraben/internal/syncguest"
 )
 
 type Category string
@@ -143,4 +144,16 @@ type FolderMapping struct {
 	DevicePath string
 	Category   Category
 	System     string
+}
+
+func (m *Mapper) SyncguestFolderMappings() []syncguest.FolderMapping {
+	mappings := m.FolderMappings()
+	result := make([]syncguest.FolderMapping, len(mappings))
+	for i, fm := range mappings {
+		result[i] = syncguest.FolderMapping{
+			ID:   fm.FolderID,
+			Path: fm.DevicePath,
+		}
+	}
+	return result
 }
