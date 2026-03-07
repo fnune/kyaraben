@@ -29,11 +29,6 @@ Target: all devices supported by NextUI, testing on TrimUI Brick.
   - Pairing flow (create session, join session, wait for peer)
   - Peer management (add peer, share folders)
   - Status reporting
-- [x] Created `cmd/kyaraben-guest/` CLI:
-  - `status`: Show sync status and connected peers
-  - `pair`: Generate pairing code and wait for peer
-  - `join <code>`: Join using a pairing code
-  - `start`: Start Syncthing and keep running
 
 ### Next steps
 
@@ -43,10 +38,7 @@ Target: all devices supported by NextUI, testing on TrimUI Brick.
 
 ### Architectural note
 
-The core sync functionality is not NextUI-specific. `kyaraben-guest` is the generic CLI for any device joining a Kyaraben cluster:
-- Android, other handhelds (OnionOS, GarlicOS), desktop testing
-- Manages Syncthing with Kyaraben ports/relay
-- Simple CLI for pairing and status
+The core sync functionality is not NextUI-specific. `internal/syncguest` provides reusable sync management for any device joining a Kyaraben cluster. Future integrations (Android, OnionOS, GarlicOS) can import this package.
 
 The NextUI PAK is a thin wrapper:
 - Provides minui-based UI
