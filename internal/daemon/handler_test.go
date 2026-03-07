@@ -462,13 +462,13 @@ func TestHandlePreflight_EmptyConfig(t *testing.T) {
 
 func TestHandlePreflight_DetectsVersionUpgrade(t *testing.T) {
 	fs, cleanup, err := vfst.NewTestFS(map[string]any{
-		"/state/build":                           &vfst.Dir{Perm: 0755},
-		"/Emulation":                             &vfst.Dir{Perm: 0755},
-		"/Emulation/roms":                        &vfst.Dir{Perm: 0755},
-		"/Emulation/bios":                        &vfst.Dir{Perm: 0755},
-		"/Emulation/saves":                       &vfst.Dir{Perm: 0755},
-		"/Emulation/states":                      &vfst.Dir{Perm: 0755},
-		"/.local/share/duckstation/settings.ini": "[Main]\nSettingsVersion = 3\n[AutoUpdater]\nCheckAtStartup = true\n",
+		"/state/build":                      &vfst.Dir{Perm: 0755},
+		"/Emulation":                        &vfst.Dir{Perm: 0755},
+		"/Emulation/roms":                   &vfst.Dir{Perm: 0755},
+		"/Emulation/bios":                   &vfst.Dir{Perm: 0755},
+		"/Emulation/saves":                  &vfst.Dir{Perm: 0755},
+		"/Emulation/states":                 &vfst.Dir{Perm: 0755},
+		"/.config/duckstation/settings.ini": "[Main]\nSettingsVersion = 3\n[AutoUpdater]\nCheckAtStartup = true\n",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -503,7 +503,7 @@ func TestHandlePreflight_DetectsVersionUpgrade(t *testing.T) {
 		Target: model.ConfigTarget{
 			RelPath: "duckstation/settings.ini",
 			Format:  model.ConfigFormatINI,
-			BaseDir: model.ConfigBaseDirUserData,
+			BaseDir: model.ConfigBaseDirUserConfig,
 		},
 		WrittenEntries: map[string]string{
 			"AutoUpdater.CheckAtStartup": "true",
@@ -543,7 +543,7 @@ func TestHandlePreflight_DetectsVersionUpgrade(t *testing.T) {
 
 	var duckstationDiff *ConfigFileDiff
 	for i := range resp.Diffs {
-		if resp.Diffs[i].Path == "/.local/share/duckstation/settings.ini" {
+		if resp.Diffs[i].Path == "/.config/duckstation/settings.ini" {
 			duckstationDiff = &resp.Diffs[i]
 			break
 		}

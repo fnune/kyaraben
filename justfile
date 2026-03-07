@@ -5,9 +5,9 @@ test_dir := ".test"
 default:
     @just --list
 
-# Generate TypeScript types from Go
+# Generate TypeScript types from Go (disable CGO - tygo doesn't need it)
 generate-types: ensure
-    go run github.com/gzuidhof/tygo@v0.2.20 generate
+    CGO_ENABLED=0 go run github.com/gzuidhof/tygo@v0.2.20 generate
 
 # Install project dependencies
 ensure:
