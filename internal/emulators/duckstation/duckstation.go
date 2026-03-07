@@ -90,6 +90,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	store := ctx.Store
 	entries := []model.ConfigEntry{
 		model.Entry(model.None, model.Path("Main", "SettingsVersion"), "3"),
+		model.Entry(model.None, model.Path("Main", "SetupWizardIncomplete"), "false"),
 		model.Entry(model.None, model.Path("Main", "ConfirmPowerOff"), "false"),
 		model.Entry(model.None, model.Path("AutoUpdater", "CheckAtStartup"), "false"),
 		model.Entry(model.Store, model.Path("BIOS", "SearchDirectory"), store.SystemBiosDir(model.SystemIDPSX)),
