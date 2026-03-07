@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/bodgit/sevenzip"
+	"github.com/gen2brain/go-unarr"
 	"github.com/klauspost/compress/zstd"
 	"github.com/twpayne/go-vfs/v5"
 	"github.com/ulikunitz/xz"
@@ -262,71 +262,45 @@ func (e *OSExtractor) writeFile(path string, r io.Reader, mode os.FileMode) erro
 }
 
 func (e *OSExtractor) extract7z(archivePath, destDir string) error {
-	f, err := e.fs.Open(archivePath)
+	a, err := unarr.NewArchive(archivePath)
 	if err != nil {
 		return fmt.Errorf("opening 7z: %w", err)
 	}
-	defer func() { _ = f.Close() }()
+	defer func() { _ = a.Close() }()
 
-	readerAt, ok := f.(io.ReaderAt)
-	if !ok {
-		return fmt.Errorf("7z extraction requires ReaderAt support")
-	}
+	for {
+		err := a.Entry()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return fmt.Errorf("reading 7z entry: %w", err)
+		}
 
-	stat, err := f.Stat()
-	if err != nil {
-		return fmt.Errorf("stat 7z: %w", err)
-	}
-
-	r, err := sevenzip.NewReader(readerAt, stat.Size())
-	if err != nil {
-		return fmt.Errorf("reading 7z: %w", err)
-	}
-
-	for _, sf := range r.File {
-		target, err := e.sanitizePath(destDir, sf.Name)
+		name := a.Name()
+		target, err := e.sanitizePath(destDir, name)
 		if err != nil {
 			return err
 		}
 
-		mode := sf.FileInfo().Mode()
-
-		if mode&os.ModeSymlink != 0 {
-			rc, err := sf.Open()
-			if err != nil {
-				return fmt.Errorf("opening 7z symlink %s: %w", sf.Name, err)
-			}
-			linkTarget, err := io.ReadAll(rc)
-			_ = rc.Close()
-			if err != nil {
-				return fmt.Errorf("reading 7z symlink %s: %w", sf.Name, err)
-			}
-			if err := e.createSafeSymlink(destDir, target, string(linkTarget)); err != nil {
-				return err
-			}
-			continue
-		}
-
-		if sf.FileInfo().IsDir() {
+		if strings.HasSuffix(name, "/") {
 			if err := vfs.MkdirAll(e.fs, target, 0755); err != nil {
 				return fmt.Errorf("creating directory %s: %w", target, err)
 			}
 			continue
 		}
 
+		data, err := a.ReadAll()
+		if err != nil {
+			return fmt.Errorf("reading 7z entry %s: %w", name, err)
+		}
+
 		if err := vfs.MkdirAll(e.fs, filepath.Dir(target), 0755); err != nil {
 			return fmt.Errorf("creating parent dir for %s: %w", target, err)
 		}
 
-		rc, err := sf.Open()
-		if err != nil {
-			return fmt.Errorf("opening 7z entry %s: %w", sf.Name, err)
-		}
-
-		err = e.writeFile(target, rc, mode)
-		_ = rc.Close()
-		if err != nil {
-			return err
+		if err := e.fs.WriteFile(target, data, 0644); err != nil {
+			return fmt.Errorf("writing file %s: %w", target, err)
 		}
 	}
 
