@@ -91,13 +91,23 @@ describe('useApplyStatusHandler', () => {
     expect(screen.queryByRole('button', { name: /Go to catalog/ })).not.toBeInTheDocument()
   })
 
-  it('does not show toast for non-success status changes', async () => {
+  it('shows error toast with navigation link when error occurs outside catalog view', async () => {
     const user = userEvent.setup()
     renderWithProviders('idle', VIEW_PREFERENCES)
 
     await user.click(screen.getByRole('button', { name: 'Set error' }))
 
-    expect(screen.queryByText(/Installation complete/)).not.toBeInTheDocument()
+    expect(screen.getByText(/Installation failed/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Go to catalog/ })).toBeInTheDocument()
+  })
+
+  it('does not show error toast when error occurs in catalog view', async () => {
+    const user = userEvent.setup()
+    renderWithProviders('idle', VIEW_CATALOG)
+
+    await user.click(screen.getByRole('button', { name: 'Set error' }))
+
+    expect(screen.queryByText(/Installation failed/)).not.toBeInTheDocument()
   })
 
   it('does not show duplicate toast when status unchanged', async () => {

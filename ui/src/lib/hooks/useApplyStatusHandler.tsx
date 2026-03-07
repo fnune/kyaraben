@@ -37,6 +37,23 @@ export function useApplyStatusHandler(
       } else {
         showToast('Installation complete.', 'success')
       }
+    } else if (applyStatus === 'error') {
+      if (currentView !== VIEW_CATALOG) {
+        showToast(
+          <span>
+            Installation failed.{' '}
+            <button
+              type="button"
+              className="underline hover:no-underline"
+              onClick={onNavigateToCatalog}
+            >
+              Go to {VIEW_LABELS[VIEW_CATALOG].toLowerCase()}
+            </button>
+          </span>,
+          'error',
+          Infinity,
+        )
+      }
     }
 
     lastApplyStatus.current = applyStatus
