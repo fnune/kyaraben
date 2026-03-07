@@ -62,8 +62,9 @@ func (m *Manager) iconThemeDir() string {
 }
 
 type GeneratedFiles struct {
-	DesktopFiles []string
-	IconFiles    []string
+	DesktopFiles       []string
+	IconFiles          []string
+	InstalledIconPaths map[string]string
 }
 
 func (m *Manager) GenerateDesktopFiles(entries []GeneratedDesktop, icons []InstalledIcon, previousFiles *GeneratedFiles) (*GeneratedFiles, error) {
@@ -91,26 +92,22 @@ func (m *Manager) GenerateDesktopFiles(entries []GeneratedDesktop, icons []Insta
 		return nil, fmt.Errorf("parsing desktop template: %w", err)
 	}
 
-	result := &GeneratedFiles{}
-
-	iconsByName := make(map[string]InstalledIcon, len(icons))
-	for _, icon := range icons {
-		iconsByName[icon.Name] = icon
+	result := &GeneratedFiles{
+		InstalledIconPaths: make(map[string]string),
 	}
 
-	installedIconPaths := make(map[string]string)
 	for _, icon := range icons {
 		iconPath, err := m.installIcon(icon)
 		if err != nil {
 			log.Debug("Failed to install icon for %s: %v", icon.Name, err)
 		} else {
-			installedIconPaths[icon.Name] = iconPath
+			result.InstalledIconPaths[icon.Name] = iconPath
 			result.IconFiles = append(result.IconFiles, iconPath)
 		}
 	}
 
 	for _, entry := range entries {
-		iconPath := installedIconPaths[entry.BinaryName]
+		iconPath := result.InstalledIconPaths[entry.BinaryName]
 		desktopPath, err := m.generateDesktopFile(tmpl, entry, iconPath)
 		if err != nil {
 			return nil, fmt.Errorf("generating desktop file for %s: %w", entry.BinaryName, err)

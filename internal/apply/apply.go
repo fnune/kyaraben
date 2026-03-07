@@ -363,6 +363,7 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, collecti
 
 	opts.OnProgress(Progress{Step: "finalize", Message: "Creating desktop entries and emulator configs"})
 
+	var installedIconPaths map[string]string
 	if a.LauncherManager != nil {
 		launcherBinaries := toLauncherBinaries(installedBinaries, binaryEnvs)
 		if err := a.LauncherManager.GenerateWrappers(launcherBinaries); err != nil {
@@ -386,9 +387,10 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, collecti
 		}
 		manifest.DesktopFiles = generatedFiles.DesktopFiles
 		manifest.IconFiles = generatedFiles.IconFiles
+		installedIconPaths = generatedFiles.InstalledIconPaths
 	}
 
-	steamShortcuts := a.syncSteamShortcuts(ctx, frontendsToInstall, binDir, manifest)
+	steamShortcuts := a.syncSteamShortcuts(ctx, frontendsToInstall, binDir, installedIconPaths, manifest)
 	manifest.SteamShortcuts = steamShortcuts
 
 	configResults := make([]emulators.ApplyResult, len(allPatches))
@@ -1462,7 +1464,7 @@ func toLauncherIcons(icons []packages.InstalledIcon) []launcher.InstalledIcon {
 	return result
 }
 
-func (a *Applier) syncSteamShortcuts(ctx context.Context, frontendIDs []model.FrontendID, binDir string, manifest *model.Manifest) []model.SteamShortcutRecord {
+func (a *Applier) syncSteamShortcuts(ctx context.Context, frontendIDs []model.FrontendID, binDir string, iconPaths map[string]string, manifest *model.Manifest) []model.SteamShortcutRecord {
 	if a.SteamManager == nil || !a.SteamManager.IsAvailable() {
 		return nil
 	}
@@ -1498,6 +1500,7 @@ func (a *Applier) syncSteamShortcuts(ctx context.Context, frontendIDs []model.Fr
 			AppName:       info.AppName,
 			Exe:           exe,
 			StartDir:      binDir,
+			Icon:          iconPaths[fe.Launcher.Binary],
 			ShortcutPath:  desktopPath,
 			LaunchOptions: info.LaunchOptions,
 			Tags:          info.Tags,
