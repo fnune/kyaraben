@@ -71,6 +71,11 @@ type Daemon struct {
 	syncReconfigRunning     bool
 	syncReconfigLastFailure time.Time
 	syncReconfigFailCount   int
+
+	reconcileMu          sync.Mutex
+	reconcileRunning     bool
+	reconcileLastFailure time.Time
+	reconcileFailCount   int
 }
 
 func New(deps Deps) *Daemon {
@@ -1235,6 +1240,10 @@ func (d *Daemon) handleSyncStatus() []Event {
 		return d.errorResponse(err.Error())
 	}
 
+	if len(syncStatus.Devices) > 0 {
+		go d.reconcileFolderSharing(cfg)
+	}
+
 	collection, err := store.NewCollection(d.deps.FS, d.deps.Paths, cfg.Global.Collection)
 	if err != nil {
 		return d.errorResponse(err.Error())
@@ -2087,6 +2096,109 @@ func (d *Daemon) resetSyncSetupBackoff() {
 	defer d.syncReconfigMu.Unlock()
 	d.syncReconfigFailCount = 0
 	d.syncReconfigLastFailure = time.Time{}
+}
+
+func (d *Daemon) reconcileFolderSharing(cfg *model.KyarabenConfig) {
+	d.reconcileMu.Lock()
+	if d.reconcileRunning {
+		d.reconcileMu.Unlock()
+		return
+	}
+	if !d.shouldRetryReconcile() {
+		d.reconcileMu.Unlock()
+		return
+	}
+	d.reconcileRunning = true
+	d.reconcileMu.Unlock()
+
+	defer func() {
+		d.reconcileMu.Lock()
+		d.reconcileRunning = false
+		d.reconcileMu.Unlock()
+	}()
+
+	client := syncpkg.NewClient(cfg.Sync)
+	loadedKey := d.loadSyncAPIKey()
+	if loadedKey != "" {
+		client.SetAPIKey(loadedKey)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	localDeviceID, err := client.GetDeviceID(ctx)
+	if err != nil {
+		log.Debug("Reconcile: failed to get local device ID: %v", err)
+		d.recordReconcileFailure()
+		return
+	}
+
+	devices, err := client.GetConfiguredDevices(ctx)
+	if err != nil {
+		log.Debug("Reconcile: failed to get configured devices: %v", err)
+		d.recordReconcileFailure()
+		return
+	}
+
+	if len(devices) == 0 {
+		return
+	}
+
+	deviceIDs := make([]string, len(devices))
+	for i, dev := range devices {
+		deviceIDs[i] = dev.ID
+	}
+
+	folders, err := client.GetFoldersWithDevices(ctx)
+	if err != nil {
+		log.Debug("Reconcile: failed to get folders with devices: %v", err)
+		d.recordReconcileFailure()
+		return
+	}
+
+	drift := syncpkg.ComputeFolderSharingDrift(folders, deviceIDs, localDeviceID)
+	if len(drift) == 0 {
+		d.resetReconcileBackoff()
+		return
+	}
+
+	log.Info("Reconcile: detected folder sharing drift, fixing %d folders", len(drift))
+	if err := client.ReconcileFolderSharing(ctx, drift); err != nil {
+		log.Error("Reconcile: failed to fix folder sharing: %v", err)
+		d.recordReconcileFailure()
+		return
+	}
+
+	d.resetReconcileBackoff()
+	log.Info("Reconcile: folder sharing drift fixed")
+}
+
+func (d *Daemon) shouldRetryReconcile() bool {
+	if d.reconcileFailCount == 0 {
+		return true
+	}
+
+	backoffSeconds := 5 << min(d.reconcileFailCount-1, 3)
+	if backoffSeconds > 60 {
+		backoffSeconds = 60
+	}
+
+	elapsed := time.Since(d.reconcileLastFailure)
+	return elapsed >= time.Duration(backoffSeconds)*time.Second
+}
+
+func (d *Daemon) recordReconcileFailure() {
+	d.reconcileMu.Lock()
+	defer d.reconcileMu.Unlock()
+	d.reconcileLastFailure = time.Now()
+	d.reconcileFailCount++
+}
+
+func (d *Daemon) resetReconcileBackoff() {
+	d.reconcileMu.Lock()
+	defer d.reconcileMu.Unlock()
+	d.reconcileFailCount = 0
+	d.reconcileLastFailure = time.Time{}
 }
 
 func (d *Daemon) updateSyncConfig(cfg *model.KyarabenConfig, collectionPath string) error {
