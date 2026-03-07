@@ -61,6 +61,10 @@
             echo "Kyaraben development environment"
             echo "Go version: $(go version)"
           '';
+
+          CGO_ENABLED = "1";
+          CC = "musl-gcc";
+          CGO_LDFLAGS = "-static";
         };
 
         # Emulator packages that kyaraben manages
