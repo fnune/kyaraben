@@ -207,82 +207,129 @@ func controllerEntries(cc *model.ControllerConfig) []model.ConfigEntry {
 	return entries
 }
 
-var coreConfigDirNames = map[string]string{
-	"bsnes":             "bsnes",
-	"mesen":             "Mesen",
-	"genesis_plus_gx":   "Genesis Plus GX",
-	"mupen64plus_next":  "Mupen64Plus-Next",
-	"mednafen_saturn":   "Beetle Saturn",
-	"mednafen_pce_fast": "Beetle PCE Fast",
-	"mednafen_ngp":      "Beetle NeoPop",
-	"mgba":              "mGBA",
-	"melondsds":         "melonDS DS",
-	"citra":             "Citra",
-	"fbneo":             "FinalBurn Neo",
-	"stella":            "Stella",
-	"vice_x64sc":        "VICE x64sc",
+// CoreInfo contains metadata for a RetroArch libretro core.
+type CoreInfo struct {
+	// ShortName is the core's filename stem (e.g., "genesis_plus_gx" for genesis_plus_gx_libretro.so).
+	ShortName string
+	// LibraryName is the value from retro_system_info.library_name that the core reports.
+	// RetroArch uses this for per-core save/state directories when sort_savefiles_enable is true.
+	// See: https://github.com/libretro/RetroArch/blob/master/runloop.c (runloop_path_set_redirect, ~line 8303)
+	// Values sourced from: https://github.com/libretro/libretro-core-info (corename field in .info files)
+	LibraryName     string
+	SystemID        model.SystemID
+	NeedsBiosDir    bool
+	UsesHWRendering bool
+}
+
+var coreRegistry = map[model.EmulatorID]CoreInfo{
+	model.EmulatorIDRetroArchBsnes: {
+		ShortName:   "bsnes",
+		LibraryName: "bsnes",
+		SystemID:    model.SystemIDSNES,
+	},
+	model.EmulatorIDRetroArchMesen: {
+		ShortName:   "mesen",
+		LibraryName: "Mesen",
+		SystemID:    model.SystemIDNES,
+	},
+	model.EmulatorIDRetroArchGenesisPlusGX: {
+		ShortName:    "genesis_plus_gx",
+		LibraryName:  "Genesis Plus GX",
+		SystemID:     model.SystemIDGenesis,
+		NeedsBiosDir: true,
+	},
+	model.EmulatorIDRetroArchMupen64Plus: {
+		ShortName:       "mupen64plus_next",
+		LibraryName:     "Mupen64Plus-Next",
+		SystemID:        model.SystemIDN64,
+		UsesHWRendering: true,
+	},
+	model.EmulatorIDRetroArchBeetleSaturn: {
+		ShortName:    "mednafen_saturn",
+		LibraryName:  "Beetle Saturn",
+		SystemID:     model.SystemIDSaturn,
+		NeedsBiosDir: true,
+	},
+	model.EmulatorIDRetroArchBeetlePCE: {
+		ShortName:    "mednafen_pce_fast",
+		LibraryName:  "Beetle PCE Fast",
+		SystemID:     model.SystemIDPCEngine,
+		NeedsBiosDir: true,
+	},
+	model.EmulatorIDRetroArchBeetleNGP: {
+		ShortName:   "mednafen_ngp",
+		LibraryName: "Beetle NeoPop",
+		SystemID:    model.SystemIDNGP,
+	},
+	model.EmulatorIDRetroArchMGBA: {
+		ShortName:   "mgba",
+		LibraryName: "mGBA",
+		SystemID:    model.SystemIDGBA,
+	},
+	model.EmulatorIDRetroArchMelonDS: {
+		ShortName:       "melondsds",
+		LibraryName:     "melonDS DS",
+		SystemID:        model.SystemIDNDS,
+		UsesHWRendering: true,
+	},
+	model.EmulatorIDRetroArchCitra: {
+		ShortName:       "citra",
+		LibraryName:     "Citra",
+		SystemID:        model.SystemIDN3DS,
+		UsesHWRendering: true,
+	},
+	model.EmulatorIDRetroArchFBNeo: {
+		ShortName:   "fbneo",
+		LibraryName: "FinalBurn Neo",
+		SystemID:    model.SystemIDArcade,
+	},
+	model.EmulatorIDRetroArchStella: {
+		ShortName:   "stella",
+		LibraryName: "Stella",
+		SystemID:    model.SystemIDAtari2600,
+	},
+	model.EmulatorIDRetroArchVICE: {
+		ShortName:   "vice_x64sc",
+		LibraryName: "VICE x64sc",
+		SystemID:    model.SystemIDC64,
+	},
+}
+
+// IsRetroArchCore returns true if the emulator ID is a registered RetroArch core.
+func IsRetroArchCore(emuID model.EmulatorID) bool {
+	_, ok := coreRegistry[emuID]
+	return ok
+}
+
+// MustGetCoreInfo returns the CoreInfo for a RetroArch core.
+// Panics if the emulator ID is not a registered RetroArch core.
+func MustGetCoreInfo(emuID model.EmulatorID) CoreInfo {
+	info, ok := coreRegistry[emuID]
+	if !ok {
+		panic(fmt.Sprintf("retroarch: no CoreInfo registered for %s", emuID))
+	}
+	return info
+}
+
+// CoreShortName returns the core's short name, or empty string if not a RetroArch core.
+func CoreShortName(emuID model.EmulatorID) string {
+	if info, ok := coreRegistry[emuID]; ok {
+		return info.ShortName
+	}
+	return ""
 }
 
 func CoreOverrideTarget(shortName string) model.ConfigTarget {
-	configDirName := shortName
-	if displayName, ok := coreConfigDirNames[shortName]; ok {
-		configDirName = displayName
+	for _, info := range coreRegistry {
+		if info.ShortName == shortName {
+			return model.ConfigTarget{
+				RelPath: "retroarch/config/" + info.LibraryName + "/" + info.LibraryName + ".cfg",
+				Format:  model.ConfigFormatCFG,
+				BaseDir: model.ConfigBaseDirUserConfig,
+			}
+		}
 	}
-	return model.ConfigTarget{
-		RelPath: "retroarch/config/" + configDirName + "/" + configDirName + ".cfg",
-		Format:  model.ConfigFormatCFG,
-		BaseDir: model.ConfigBaseDirUserConfig,
-	}
-}
-
-var coreShortNames = map[model.EmulatorID]string{
-	model.EmulatorIDRetroArchBsnes:         "bsnes",
-	model.EmulatorIDRetroArchMesen:         "mesen",
-	model.EmulatorIDRetroArchGenesisPlusGX: "genesis_plus_gx",
-	model.EmulatorIDRetroArchMupen64Plus:   "mupen64plus_next",
-	model.EmulatorIDRetroArchBeetleSaturn:  "mednafen_saturn",
-	model.EmulatorIDRetroArchBeetlePCE:     "mednafen_pce_fast",
-	model.EmulatorIDRetroArchBeetleNGP:     "mednafen_ngp",
-	model.EmulatorIDRetroArchMGBA:          "mgba",
-	model.EmulatorIDRetroArchMelonDS:       "melondsds",
-	model.EmulatorIDRetroArchCitra:         "citra",
-	model.EmulatorIDRetroArchFBNeo:         "fbneo",
-	model.EmulatorIDRetroArchStella:        "stella",
-	model.EmulatorIDRetroArchVICE:          "vice_x64sc",
-}
-
-var coreToSystem = map[model.EmulatorID]model.SystemID{
-	model.EmulatorIDRetroArchBsnes:         model.SystemIDSNES,
-	model.EmulatorIDRetroArchMesen:         model.SystemIDNES,
-	model.EmulatorIDRetroArchGenesisPlusGX: model.SystemIDGenesis,
-	model.EmulatorIDRetroArchMupen64Plus:   model.SystemIDN64,
-	model.EmulatorIDRetroArchBeetleSaturn:  model.SystemIDSaturn,
-	model.EmulatorIDRetroArchBeetlePCE:     model.SystemIDPCEngine,
-	model.EmulatorIDRetroArchBeetleNGP:     model.SystemIDNGP,
-	model.EmulatorIDRetroArchMGBA:          model.SystemIDGBA,
-	model.EmulatorIDRetroArchMelonDS:       model.SystemIDNDS,
-	model.EmulatorIDRetroArchCitra:         model.SystemIDN3DS,
-	model.EmulatorIDRetroArchFBNeo:         model.SystemIDArcade,
-	model.EmulatorIDRetroArchStella:        model.SystemIDAtari2600,
-	model.EmulatorIDRetroArchVICE:          model.SystemIDC64,
-}
-
-var coreNeedsBiosDir = map[model.EmulatorID]bool{
-	model.EmulatorIDRetroArchBeetleSaturn:  true,
-	model.EmulatorIDRetroArchBeetlePCE:     true,
-	model.EmulatorIDRetroArchGenesisPlusGX: true,
-}
-
-// coreUsesHWRendering lists cores that use hardware GPU rendering internally.
-// These cores are incompatible with koko-aio shaders which add additional GPU load.
-var coreUsesHWRendering = map[model.EmulatorID]bool{
-	model.EmulatorIDRetroArchMupen64Plus: true,
-	model.EmulatorIDRetroArchCitra:       true,
-	model.EmulatorIDRetroArchMelonDS:     true,
-}
-
-func CoreShortName(emuID model.EmulatorID) string {
-	return coreShortNames[emuID]
+	panic(fmt.Sprintf("retroarch: no CoreInfo registered for short name %q", shortName))
 }
 
 // CorePatches returns the base RetroArch config plus a per-core override for
@@ -290,26 +337,21 @@ func CoreShortName(emuID model.EmulatorID) string {
 func CorePatches(emuID model.EmulatorID, store model.StoreReader, cc *model.ControllerConfig, pc *PresetConfig, resolver model.BaseDirResolver) []model.ConfigPatch {
 	patches := []model.ConfigPatch{SharedConfig(store, cc, pc)}
 
-	shortName := CoreShortName(emuID)
-	if shortName == "" {
+	if !IsRetroArchCore(emuID) {
 		return patches
 	}
+	info := MustGetCoreInfo(emuID)
 
 	var entries []model.ConfigEntry
-	if coreNeedsBiosDir[emuID] {
-		systemID := coreToSystem[emuID]
-		entries = append(entries, model.Entry(model.Store, model.Path("system_directory"), store.SystemBiosDir(systemID)))
+	if info.NeedsBiosDir {
+		entries = append(entries, model.Entry(model.Store, model.Path("system_directory"), store.SystemBiosDir(info.SystemID)))
 	}
 
 	if pc != nil && pc.Preset != model.PresetManual && pc.Preset != "" {
-		configDirName := shortName
-		if displayName, ok := coreConfigDirNames[shortName]; ok {
-			configDirName = displayName
-		}
-		if pc.Preset == model.PresetPseudoAuthentic && !coreUsesHWRendering[emuID] {
+		if pc.Preset == model.PresetPseudoAuthentic && !info.UsesHWRendering {
 			configDir, err := resolver.UserConfigDir()
 			if err == nil {
-				presetPath := filepath.Join(configDir, "retroarch", "config", configDirName, configDirName+".slangp")
+				presetPath := filepath.Join(configDir, "retroarch", "config", info.LibraryName, info.LibraryName+".slangp")
 				entries = append(entries,
 					model.Entry(model.Preset, model.Path("video_shader_enable"), "true"),
 					model.Entry(model.Preset, model.Path("video_shader"), presetPath),
@@ -326,12 +368,12 @@ func CorePatches(emuID model.EmulatorID, store model.StoreReader, cc *model.Cont
 
 	if len(entries) > 0 {
 		patches = append(patches, model.ConfigPatch{
-			Target:  CoreOverrideTarget(shortName),
+			Target:  CoreOverrideTarget(info.ShortName),
 			Entries: entries,
 		})
 	}
 
-	if pc != nil && pc.Preset == model.PresetPseudoAuthentic && !coreUsesHWRendering[emuID] {
+	if pc != nil && pc.Preset == model.PresetPseudoAuthentic && !info.UsesHWRendering {
 		shaderPatch := coreShaderPatch(emuID, pc.SystemDisplayTypes, resolver)
 		if shaderPatch != nil {
 			patches = append(patches, *shaderPatch)
@@ -431,34 +473,28 @@ func shaderOverridesForSystem(systemID model.SystemID, displayType model.Display
 }
 
 func coreShaderPatch(emuID model.EmulatorID, displayTypes map[model.SystemID]model.DisplayType, resolver model.BaseDirResolver) *model.ConfigPatch {
-	shortName := CoreShortName(emuID)
-	if shortName == "" {
+	if !IsRetroArchCore(emuID) {
 		return nil
 	}
-
-	configDirName := shortName
-	if displayName, ok := coreConfigDirNames[shortName]; ok {
-		configDirName = displayName
-	}
+	info := MustGetCoreInfo(emuID)
 
 	configDir, err := resolver.UserConfigDir()
 	if err != nil {
 		return nil
 	}
 
-	systemID := coreToSystem[emuID]
-	displayType := displayTypes[systemID]
+	displayType := displayTypes[info.SystemID]
 	kokoAioPath := filepath.Join(configDir, "retroarch", "shaders", kokoAioDir)
 
-	presetFile := kokoAioPresets[systemID]
+	presetFile := kokoAioPresets[info.SystemID]
 	if presetFile == "" {
 		presetFile = kokoAioCRTPreset
 	}
 
-	overrides := shaderOverridesForSystem(systemID, displayType)
+	overrides := shaderOverridesForSystem(info.SystemID, displayType)
 
 	target := model.ConfigTarget{
-		RelPath: "retroarch/config/" + configDirName + "/" + configDirName + ".slangp",
+		RelPath: "retroarch/config/" + info.LibraryName + "/" + info.LibraryName + ".slangp",
 		Format:  model.ConfigFormatRaw,
 		BaseDir: model.ConfigBaseDirUserConfig,
 	}
@@ -481,8 +517,7 @@ func CoreShaderDownloads(emuID model.EmulatorID, resolver model.BaseDirResolver,
 		return nil, nil
 	}
 
-	systemID := coreToSystem[emuID]
-	if systemID == "" {
+	if !IsRetroArchCore(emuID) {
 		return nil, nil
 	}
 
@@ -503,37 +538,33 @@ func CoreShaderDownloads(emuID model.EmulatorID, resolver model.BaseDirResolver,
 }
 
 func CoreSymlinks(emuID model.EmulatorID, store model.StoreReader, resolver model.BaseDirResolver) ([]model.SymlinkSpec, error) {
-	shortName := CoreShortName(emuID)
-	if shortName == "" {
+	if !IsRetroArchCore(emuID) {
 		return nil, nil
 	}
+	info := MustGetCoreInfo(emuID)
 
 	configDir, err := resolver.UserConfigDir()
 	if err != nil {
 		return nil, fmt.Errorf("getting config dir: %w", err)
 	}
 
-	systemID := coreToSystem[emuID]
 	return []model.SymlinkSpec{
 		{
-			Source: filepath.Join(configDir, "retroarch", "saves", shortName),
-			Target: store.SystemSavesDir(systemID),
+			Source: filepath.Join(configDir, "retroarch", "saves", info.LibraryName),
+			Target: store.SystemSavesDir(info.SystemID),
 		},
 		{
-			Source: filepath.Join(configDir, "retroarch", "states", shortName),
+			Source: filepath.Join(configDir, "retroarch", "states", info.LibraryName),
 			Target: store.EmulatorStatesDir(emuID),
 		},
 	}, nil
 }
 
 // CoreOptionsTarget returns the config target for a core's .opt file.
-func CoreOptionsTarget(shortName string) model.ConfigTarget {
-	configDirName := shortName
-	if displayName, ok := coreConfigDirNames[shortName]; ok {
-		configDirName = displayName
-	}
+func CoreOptionsTarget(emuID model.EmulatorID) model.ConfigTarget {
+	info := MustGetCoreInfo(emuID)
 	return model.ConfigTarget{
-		RelPath: "retroarch/config/" + configDirName + "/" + configDirName + ".opt",
+		RelPath: "retroarch/config/" + info.LibraryName + "/" + info.LibraryName + ".opt",
 		Format:  model.ConfigFormatCFG,
 		BaseDir: model.ConfigBaseDirUserConfig,
 	}
@@ -543,12 +574,7 @@ func CoreOptionsTarget(shortName string) model.ConfigTarget {
 // This configures features like color correction and interframe blending
 // per RGC recommendations for authentic display emulation.
 func CoreOptionsPatch(emuID model.EmulatorID, pc *PresetConfig) *model.ConfigPatch {
-	if pc == nil {
-		return nil
-	}
-
-	shortName := CoreShortName(emuID)
-	if shortName == "" {
+	if pc == nil || !IsRetroArchCore(emuID) {
 		return nil
 	}
 
@@ -582,35 +608,27 @@ func CoreOptionsPatch(emuID model.EmulatorID, pc *PresetConfig) *model.ConfigPat
 	}
 
 	return &model.ConfigPatch{
-		Target:  CoreOptionsTarget(shortName),
+		Target:  CoreOptionsTarget(emuID),
 		Entries: entries,
 	}
 }
 
 // ContentDirOverrideTarget returns the config target for a per-content-directory override.
 // This allows different settings when loading ROMs from different system directories.
-func ContentDirOverrideTarget(shortName string, systemID model.SystemID) model.ConfigTarget {
-	configDirName := shortName
-	if displayName, ok := coreConfigDirNames[shortName]; ok {
-		configDirName = displayName
-	}
-	contentDir := string(systemID)
+func ContentDirOverrideTarget(emuID model.EmulatorID, systemID model.SystemID) model.ConfigTarget {
+	info := MustGetCoreInfo(emuID)
 	return model.ConfigTarget{
-		RelPath: "retroarch/config/" + configDirName + "/" + contentDir + ".cfg",
+		RelPath: "retroarch/config/" + info.LibraryName + "/" + string(systemID) + ".cfg",
 		Format:  model.ConfigFormatCFG,
 		BaseDir: model.ConfigBaseDirUserConfig,
 	}
 }
 
 // ContentDirOptionsTarget returns the config target for per-content-directory core options.
-func ContentDirOptionsTarget(shortName string, systemID model.SystemID) model.ConfigTarget {
-	configDirName := shortName
-	if displayName, ok := coreConfigDirNames[shortName]; ok {
-		configDirName = displayName
-	}
-	contentDir := string(systemID)
+func ContentDirOptionsTarget(emuID model.EmulatorID, systemID model.SystemID) model.ConfigTarget {
+	info := MustGetCoreInfo(emuID)
 	return model.ConfigTarget{
-		RelPath: "retroarch/config/" + configDirName + "/" + contentDir + ".opt",
+		RelPath: "retroarch/config/" + info.LibraryName + "/" + string(systemID) + ".opt",
 		Format:  model.ConfigFormatCFG,
 		BaseDir: model.ConfigBaseDirUserConfig,
 	}
@@ -619,12 +637,7 @@ func ContentDirOptionsTarget(shortName string, systemID model.SystemID) model.Co
 // ContentDirOptionsPatches creates per-content-directory core options.
 // This allows multi-system cores (like mGBA) to use different options for each system.
 func ContentDirOptionsPatches(emuID model.EmulatorID, systems []model.SystemID, pc *PresetConfig) []model.ConfigPatch {
-	if pc == nil || pc.Preset != model.PresetPseudoAuthentic {
-		return nil
-	}
-
-	shortName := CoreShortName(emuID)
-	if shortName == "" {
+	if pc == nil || pc.Preset != model.PresetPseudoAuthentic || !IsRetroArchCore(emuID) {
 		return nil
 	}
 
@@ -634,7 +647,7 @@ func ContentDirOptionsPatches(emuID model.EmulatorID, systems []model.SystemID, 
 		for _, systemID := range systems {
 			if systemID == model.SystemIDGBA {
 				patches = append(patches, model.ConfigPatch{
-					Target: ContentDirOptionsTarget(shortName, systemID),
+					Target: ContentDirOptionsTarget(emuID, systemID),
 					Entries: []model.ConfigEntry{
 						model.Entry(model.Preset, model.Path("mgba_color_correction"), "OFF"),
 					},
@@ -661,19 +674,11 @@ func CoreEmbeddedFiles(_ []model.SystemID, _ *PresetConfig, _ model.BaseDirResol
 // ContentDirShaderPatches creates per-content-directory shader presets.
 // This allows multi-system cores (like mGBA) to use different shaders for each system.
 func ContentDirShaderPatches(emuID model.EmulatorID, systems []model.SystemID, pc *PresetConfig, resolver model.BaseDirResolver) []model.ConfigPatch {
-	if pc == nil || pc.Preset != model.PresetPseudoAuthentic {
+	if pc == nil || pc.Preset != model.PresetPseudoAuthentic || !IsRetroArchCore(emuID) {
 		return nil
 	}
 
-	shortName := CoreShortName(emuID)
-	if shortName == "" {
-		return nil
-	}
-
-	configDirName := shortName
-	if displayName, ok := coreConfigDirNames[shortName]; ok {
-		configDirName = displayName
-	}
+	info := MustGetCoreInfo(emuID)
 
 	configDir, err := resolver.UserConfigDir()
 	if err != nil {
@@ -693,7 +698,7 @@ func ContentDirShaderPatches(emuID model.EmulatorID, systems []model.SystemID, p
 		overrides := shaderOverridesForSystem(systemID, displayType)
 
 		target := model.ConfigTarget{
-			RelPath: "retroarch/config/" + configDirName + "/" + string(systemID) + ".slangp",
+			RelPath: "retroarch/config/" + info.LibraryName + "/" + string(systemID) + ".slangp",
 			Format:  model.ConfigFormatRaw,
 			BaseDir: model.ConfigBaseDirUserConfig,
 		}
@@ -706,7 +711,7 @@ func ContentDirShaderPatches(emuID model.EmulatorID, systems []model.SystemID, p
 			ManagedRegions: []model.ManagedRegion{model.FileRegion{}},
 		})
 
-		overrideTarget := ContentDirOverrideTarget(shortName, systemID)
+		overrideTarget := ContentDirOverrideTarget(emuID, systemID)
 		overrideEntries := []model.ConfigEntry{
 			model.Entry(model.Preset, model.Path("video_shader_enable"), "true"),
 			model.Entry(model.Preset, model.Path("video_shader"), filepath.Join(configDir, target.RelPath)),
