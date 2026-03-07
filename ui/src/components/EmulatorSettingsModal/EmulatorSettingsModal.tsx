@@ -17,17 +17,11 @@ export interface EmulatorSettingsModalProps {
   readonly onResumeChange: (value: string | null) => void
 }
 
-type PresetOption = 'modern-pixels' | 'upscaled' | 'pseudo-authentic' | 'manual' | 'default'
+type PresetOption = 'clean' | 'retro' | 'manual' | 'default'
 type ResumeOption = 'on' | 'off' | 'manual' | 'default'
 
 function presetToOption(value: string | null): PresetOption {
-  if (
-    value === 'modern-pixels' ||
-    value === 'upscaled' ||
-    value === 'pseudo-authentic' ||
-    value === 'manual'
-  )
-    return value
+  if (value === 'clean' || value === 'retro' || value === 'manual') return value
   return 'default'
 }
 
@@ -58,12 +52,10 @@ function resolveResume(override: string | null, global: string): string {
 
 function formatPresetLabel(preset: string): string {
   switch (preset) {
-    case 'modern-pixels':
-      return 'Modern pixels'
-    case 'upscaled':
-      return 'Upscaled'
-    case 'pseudo-authentic':
-      return 'Pseudo-authentic'
+    case 'clean':
+      return 'Clean'
+    case 'retro':
+      return 'Retro'
     default:
       return 'Manual'
   }
@@ -131,19 +123,14 @@ export function EmulatorSettingsModal({
             <p className="text-sm text-on-surface-muted mb-2">Display preset</p>
             <div className="flex flex-wrap gap-2">
               <PresetButton
-                label="Modern pixels"
-                selected={currentPresetOption === 'modern-pixels'}
-                onClick={() => handlePresetOptionChange('modern-pixels')}
+                label="Clean"
+                selected={currentPresetOption === 'clean'}
+                onClick={() => handlePresetOptionChange('clean')}
               />
               <PresetButton
-                label="Upscaled"
-                selected={currentPresetOption === 'upscaled'}
-                onClick={() => handlePresetOptionChange('upscaled')}
-              />
-              <PresetButton
-                label="Pseudo-authentic"
-                selected={currentPresetOption === 'pseudo-authentic'}
-                onClick={() => handlePresetOptionChange('pseudo-authentic')}
+                label="Retro"
+                selected={currentPresetOption === 'retro'}
+                onClick={() => handlePresetOptionChange('retro')}
               />
               <PresetButton
                 label="Manual"

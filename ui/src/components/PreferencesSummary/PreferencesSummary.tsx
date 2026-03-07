@@ -6,9 +6,8 @@ export interface PreferencesSummaryProps {
 }
 
 function formatPreset(value: string): string {
-  if (value === 'modern-pixels') return 'Modern pixels'
-  if (value === 'upscaled') return 'Upscaled'
-  if (value === 'pseudo-authentic') return 'Pseudo-authentic'
+  if (value === 'clean') return 'Clean'
+  if (value === 'retro') return 'Retro'
   return 'Manual'
 }
 

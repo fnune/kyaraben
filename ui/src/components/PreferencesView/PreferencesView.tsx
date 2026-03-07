@@ -5,7 +5,7 @@ import { RadioCard } from '@/lib/RadioCard'
 import type { EmulatorRef, System } from '@/types/daemon'
 import { PreferenceSection } from './PreferenceSection'
 
-type PresetOption = 'modern-pixels' | 'upscaled' | 'pseudo-authentic' | 'manual'
+type PresetOption = 'clean' | 'retro' | 'manual'
 type ResumeOption = 'recommended' | 'off' | 'manual'
 type ConfirmOption = 'east' | 'south'
 
@@ -164,10 +164,7 @@ export function PreferencesView() {
   )
   const sortedHotkeys = useMemo(() => getSortedHotkeys(emulatorHotkeyInfo), [emulatorHotkeyInfo])
 
-  const selectedPreset: PresetOption =
-    preset === 'modern-pixels' || preset === 'upscaled' || preset === 'pseudo-authentic'
-      ? preset
-      : 'manual'
+  const selectedPreset: PresetOption = preset === 'clean' || preset === 'retro' ? preset : 'manual'
   const selectedResume: ResumeOption =
     resume === 'recommended' || resume === 'off' ? resume : 'manual'
   const selectedConfirm: ConfirmOption = nintendoConfirm === 'south' ? 'south' : 'east'
@@ -178,34 +175,26 @@ export function PreferencesView() {
         title="Display"
         intro={
           <p className="text-sm text-on-surface">
-            Choose how games look on your screen. Modern pixels preserves the original pixel art
-            with integer scaling. Upscaled smooths pixels for a cleaner image. Pseudo-authentic adds
-            CRT and LCD shaders that mimic original display hardware.
+            Choose how games look on your screen. Clean fills your screen with the original aspect
+            ratio and no processing. Retro adds CRT and LCD shaders that mimic original display
+            hardware.
           </p>
         }
         controls={
           <>
             <RadioCard
-              title="Modern pixels"
-              description="Integer scaling preserves pixel art. No shaders or smoothing."
-              selected={selectedPreset === 'modern-pixels'}
-              onSelect={() => setGraphicsPreset('modern-pixels')}
+              title="Clean"
+              description="Original aspect ratio, no shaders. Just the game."
+              selected={selectedPreset === 'clean'}
+              onSelect={() => setGraphicsPreset('clean')}
               className="w-full p-3"
               wrap
             />
             <RadioCard
-              title="Upscaled"
-              description="Bilinear filtering smooths pixels. Good for large screens."
-              selected={selectedPreset === 'upscaled'}
-              onSelect={() => setGraphicsPreset('upscaled')}
-              className="w-full p-3"
-              wrap
-            />
-            <RadioCard
-              title="Pseudo-authentic"
+              title="Retro"
               description="CRT shaders for consoles, LCD shaders for handhelds. Mimics original displays."
-              selected={selectedPreset === 'pseudo-authentic'}
-              onSelect={() => setGraphicsPreset('pseudo-authentic')}
+              selected={selectedPreset === 'retro'}
+              onSelect={() => setGraphicsPreset('retro')}
               className="w-full p-3"
               wrap
             />
@@ -235,7 +224,7 @@ export function PreferencesView() {
         }
         support={
           <p className="text-xs text-on-surface-muted">
-            6th generation and newer consoles (GameCube, PS2, PSP, Dreamcast) always use modern
+            6th generation and newer consoles (GameCube, PS2, PSP, Dreamcast) always use clean
             display settings. Shaders are applied to 5th generation and earlier systems only.
           </p>
         }

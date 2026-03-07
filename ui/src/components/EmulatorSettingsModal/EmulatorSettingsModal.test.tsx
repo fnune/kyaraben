@@ -28,9 +28,8 @@ describe('EmulatorSettingsModal', () => {
   it('shows preset controls when supportsPreset is true', () => {
     render(<EmulatorSettingsModal {...defaultProps} />)
     expect(screen.getByText('Display preset')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Modern pixels' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Upscaled' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Pseudo-authentic' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Clean' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Retro' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Manual' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Default' })).toBeInTheDocument()
   })
@@ -46,21 +45,15 @@ describe('EmulatorSettingsModal', () => {
     expect(defaultButton).toHaveClass('bg-accent')
   })
 
-  it('shows Modern pixels as selected when preset is "modern-pixels"', () => {
-    render(<EmulatorSettingsModal {...defaultProps} preset="modern-pixels" />)
-    const button = screen.getByRole('button', { name: 'Modern pixels' })
+  it('shows Clean as selected when preset is "clean"', () => {
+    render(<EmulatorSettingsModal {...defaultProps} preset="clean" />)
+    const button = screen.getByRole('button', { name: 'Clean' })
     expect(button).toHaveClass('bg-accent')
   })
 
-  it('shows Upscaled as selected when preset is "upscaled"', () => {
-    render(<EmulatorSettingsModal {...defaultProps} preset="upscaled" />)
-    const button = screen.getByRole('button', { name: 'Upscaled' })
-    expect(button).toHaveClass('bg-accent')
-  })
-
-  it('shows Pseudo-authentic as selected when preset is "pseudo-authentic"', () => {
-    render(<EmulatorSettingsModal {...defaultProps} preset="pseudo-authentic" />)
-    const button = screen.getByRole('button', { name: 'Pseudo-authentic' })
+  it('shows Retro as selected when preset is "retro"', () => {
+    render(<EmulatorSettingsModal {...defaultProps} preset="retro" />)
+    const button = screen.getByRole('button', { name: 'Retro' })
     expect(button).toHaveClass('bg-accent')
   })
 
@@ -70,28 +63,28 @@ describe('EmulatorSettingsModal', () => {
     expect(manualButton).toHaveClass('bg-accent')
   })
 
-  it('calls onPresetChange with "modern-pixels" when Modern pixels is clicked', async () => {
+  it('calls onPresetChange with "clean" when Clean is clicked', async () => {
     const onPresetChange = vi.fn()
     const user = userEvent.setup()
 
     render(
       <EmulatorSettingsModal {...defaultProps} preset={null} onPresetChange={onPresetChange} />,
     )
-    await user.click(screen.getByRole('button', { name: 'Modern pixels' }))
+    await user.click(screen.getByRole('button', { name: 'Clean' }))
 
-    expect(onPresetChange).toHaveBeenCalledWith('modern-pixels')
+    expect(onPresetChange).toHaveBeenCalledWith('clean')
   })
 
-  it('calls onPresetChange with "upscaled" when Upscaled is clicked', async () => {
+  it('calls onPresetChange with "retro" when Retro is clicked', async () => {
     const onPresetChange = vi.fn()
     const user = userEvent.setup()
 
     render(
       <EmulatorSettingsModal {...defaultProps} preset={null} onPresetChange={onPresetChange} />,
     )
-    await user.click(screen.getByRole('button', { name: 'Upscaled' }))
+    await user.click(screen.getByRole('button', { name: 'Retro' }))
 
-    expect(onPresetChange).toHaveBeenCalledWith('upscaled')
+    expect(onPresetChange).toHaveBeenCalledWith('retro')
   })
 
   it('calls onPresetChange with null when Default is clicked', async () => {
@@ -99,11 +92,7 @@ describe('EmulatorSettingsModal', () => {
     const user = userEvent.setup()
 
     render(
-      <EmulatorSettingsModal
-        {...defaultProps}
-        preset="modern-pixels"
-        onPresetChange={onPresetChange}
-      />,
+      <EmulatorSettingsModal {...defaultProps} preset="clean" onPresetChange={onPresetChange} />,
     )
     await user.click(screen.getByRole('button', { name: 'Default' }))
 
@@ -124,11 +113,7 @@ describe('EmulatorSettingsModal', () => {
 
   it('shows manual message when Manual is explicitly selected', () => {
     render(
-      <EmulatorSettingsModal
-        {...defaultProps}
-        preset="manual"
-        graphics={{ preset: 'modern-pixels' }}
-      />,
+      <EmulatorSettingsModal {...defaultProps} preset="manual" graphics={{ preset: 'clean' }} />,
     )
     expect(screen.getByText('Kyaraben will not modify display settings.')).toBeInTheDocument()
   })
@@ -139,24 +124,12 @@ describe('EmulatorSettingsModal', () => {
   })
 
   it('shows preset info when Default is selected with global preset', () => {
-    render(
-      <EmulatorSettingsModal
-        {...defaultProps}
-        preset={null}
-        graphics={{ preset: 'modern-pixels' }}
-      />,
-    )
-    expect(screen.getByText('Kyaraben will apply the modern pixels preset.')).toBeInTheDocument()
+    render(<EmulatorSettingsModal {...defaultProps} preset={null} graphics={{ preset: 'clean' }} />)
+    expect(screen.getByText('Kyaraben will apply the clean preset.')).toBeInTheDocument()
   })
 
-  it('shows Default (modern pixels) label when global default is modern-pixels', () => {
-    render(
-      <EmulatorSettingsModal
-        {...defaultProps}
-        preset={null}
-        graphics={{ preset: 'modern-pixels' }}
-      />,
-    )
-    expect(screen.getByRole('button', { name: 'Default (modern pixels)' })).toBeInTheDocument()
+  it('shows Default (clean) label when global default is clean', () => {
+    render(<EmulatorSettingsModal {...defaultProps} preset={null} graphics={{ preset: 'clean' }} />)
+    expect(screen.getByRole('button', { name: 'Default (clean)' })).toBeInTheDocument()
   })
 })
