@@ -14,11 +14,8 @@ func TestLoadCreatesDefaultConfig(t *testing.T) {
 		t.Fatalf("Load: %v", err)
 	}
 
-	if !cfg.Service.Enabled {
-		t.Error("expected Service.Enabled=true by default")
-	}
-	if !cfg.Service.StartOnBoot {
-		t.Error("expected Service.StartOnBoot=true by default")
+	if !cfg.Service.Autostart {
+		t.Error("expected Service.Autostart=true by default")
 	}
 
 	if _, err := os.Stat(filepath.Join(dir, "config.toml")); err != nil {
@@ -30,8 +27,7 @@ func TestLoadReadsExistingConfig(t *testing.T) {
 	dir := t.TempDir()
 
 	content := `[service]
-enabled = false
-start_on_boot = false
+autostart = false
 
 [saves]
 gba = "Saves/MGBA"
@@ -45,11 +41,8 @@ gba = "Saves/MGBA"
 		t.Fatalf("Load: %v", err)
 	}
 
-	if cfg.Service.Enabled {
-		t.Error("expected Service.Enabled=false from file")
-	}
-	if cfg.Service.StartOnBoot {
-		t.Error("expected Service.StartOnBoot=false from file")
+	if cfg.Service.Autostart {
+		t.Error("expected Service.Autostart=false from file")
 	}
 	if cfg.Saves["gba"] != "Saves/MGBA" {
 		t.Errorf("expected gba saves path 'Saves/MGBA', got %q", cfg.Saves["gba"])
@@ -60,7 +53,7 @@ func TestSaveConfig(t *testing.T) {
 	dir := t.TempDir()
 
 	cfg := DefaultConfig()
-	cfg.Service.Enabled = false
+	cfg.Service.Autostart = false
 	cfg.Saves["test"] = "Test/Path"
 
 	if err := cfg.Save(dir); err != nil {
@@ -72,8 +65,8 @@ func TestSaveConfig(t *testing.T) {
 		t.Fatalf("Load: %v", err)
 	}
 
-	if loaded.Service.Enabled {
-		t.Error("expected Service.Enabled=false after save")
+	if loaded.Service.Autostart {
+		t.Error("expected Service.Autostart=false after save")
 	}
 	if loaded.Saves["test"] != "Test/Path" {
 		t.Errorf("expected test saves path 'Test/Path', got %q", loaded.Saves["test"])
@@ -86,7 +79,7 @@ func TestLoadWithEmptyDataDir(t *testing.T) {
 		t.Fatalf("Load with empty dir: %v", err)
 	}
 
-	if !cfg.Service.Enabled {
+	if !cfg.Service.Autostart {
 		t.Error("expected defaults with empty dir")
 	}
 }

@@ -30,8 +30,7 @@ func setupTest(t *testing.T) (app.Env, *config.Config, string, *syncguest.Manage
 	}
 
 	cfg := config.DefaultConfig()
-	cfg.Service.Enabled = false
-	cfg.Service.StartOnBoot = false
+	cfg.Service.Autostart = false
 
 	syncMgr := syncguest.New(syncguest.DefaultConfig(dataDir))
 
@@ -119,7 +118,7 @@ func TestMappingWithCustomConfig(t *testing.T) {
 	}
 }
 
-func TestToggleSyncSavesConfig(t *testing.T) {
+func TestToggleAutostartSavesConfig(t *testing.T) {
 	env, cfg, dataDir, syncMgr, svcMgr, fakeUI := setupTest(t)
 
 	callCount := 0
@@ -127,7 +126,7 @@ func TestToggleSyncSavesConfig(t *testing.T) {
 		callCount++
 		if callCount == 1 {
 			for i, item := range items {
-				if item.Value == "toggle_sync" {
+				if item.Value == "toggle_autostart" {
 					return i, ui.ActionSelect
 				}
 			}
@@ -138,40 +137,8 @@ func TestToggleSyncSavesConfig(t *testing.T) {
 	application := app.New(env, cfg, dataDir, syncMgr, svcMgr, fakeUI)
 	_ = application.Run(context.Background())
 
-	if !cfg.Service.Enabled {
-		t.Error("expected Service.Enabled to be true after toggle")
-	}
-
-	loaded, err := config.Load(dataDir)
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
-	if !loaded.Service.Enabled {
-		t.Error("expected saved config to have Service.Enabled=true")
-	}
-}
-
-func TestToggleBootSavesConfig(t *testing.T) {
-	env, cfg, dataDir, syncMgr, svcMgr, fakeUI := setupTest(t)
-
-	callCount := 0
-	fakeUI.MenuUI.SelectFunc = func(items []ui.MenuItem) (int, ui.Action) {
-		callCount++
-		if callCount == 1 {
-			for i, item := range items {
-				if item.Value == "toggle_boot" {
-					return i, ui.ActionSelect
-				}
-			}
-		}
-		return 0, ui.ActionBack
-	}
-
-	application := app.New(env, cfg, dataDir, syncMgr, svcMgr, fakeUI)
-	_ = application.Run(context.Background())
-
-	if !cfg.Service.StartOnBoot {
-		t.Error("expected Service.StartOnBoot to be true after toggle")
+	if !cfg.Service.Autostart {
+		t.Error("expected Service.Autostart to be true after toggle")
 	}
 
 	if !svcMgr.IsAutostartEnabled() {

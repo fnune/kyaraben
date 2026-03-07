@@ -730,3 +730,161 @@ func (c *Client) GetPendingStatus(ctx context.Context) (*PendingStatus, error) {
 
 	return &pending, nil
 }
+
+func (c *Client) getFolderDefaults(ctx context.Context) (map[string]any, error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/config/defaults/folder", nil)
+	if err != nil {
+		return nil, fmt.Errorf("getting folder defaults: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+
+	var defaults map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&defaults); err != nil {
+		return nil, fmt.Errorf("decoding defaults: %w", err)
+	}
+
+	return defaults, nil
+}
+
+func (c *Client) AddFolders(ctx context.Context, folders []FolderCreateRequest) error {
+	if len(folders) == 0 {
+		return nil
+	}
+
+	deviceID, err := c.GetDeviceID(ctx)
+	if err != nil {
+		return fmt.Errorf("get device ID: %w", err)
+	}
+
+	defaults, err := c.getFolderDefaults(ctx)
+	if err != nil {
+		return fmt.Errorf("get folder defaults: %w", err)
+	}
+
+	existingFolders, err := c.GetFolderConfigs(ctx)
+	if err != nil {
+		return fmt.Errorf("get existing folders: %w", err)
+	}
+	existingIDs := make(map[string]bool)
+	for _, f := range existingFolders {
+		existingIDs[f.ID] = true
+	}
+
+	var newFolders []map[string]any
+	for _, req := range folders {
+		if existingIDs[req.ID] {
+			continue
+		}
+
+		folder := make(map[string]any)
+		for k, v := range defaults {
+			folder[k] = v
+		}
+
+		folder["id"] = req.ID
+		folder["label"] = req.Label
+		folder["path"] = req.Path
+		folder["type"] = req.Type
+		folder["devices"] = []map[string]any{
+			{"deviceID": deviceID},
+		}
+
+		newFolders = append(newFolders, folder)
+	}
+
+	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/config/folders", nil)
+	if err != nil {
+		return fmt.Errorf("getting existing folders: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	var existingFolderConfigs []map[string]any
+	if resp.StatusCode == http.StatusOK {
+		if err := json.NewDecoder(resp.Body).Decode(&existingFolderConfigs); err != nil {
+			return fmt.Errorf("decoding existing folders: %w", err)
+		}
+	}
+
+	allFolders := append(existingFolderConfigs, newFolders...)
+
+	putResp, err := c.doRequest(ctx, http.MethodPut, "/rest/config/folders", allFolders)
+	if err != nil {
+		return fmt.Errorf("putting folders: %w", err)
+	}
+	defer func() { _ = putResp.Body.Close() }()
+
+	if putResp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(putResp.Body)
+		return fmt.Errorf("unexpected status %d: %s", putResp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+func (c *Client) DisableUsageReporting(ctx context.Context) error {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/config/options", nil)
+	if err != nil {
+		return fmt.Errorf("getting options: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+
+	var options map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&options); err != nil {
+		return fmt.Errorf("decoding options: %w", err)
+	}
+
+	options["urAccepted"] = -1
+
+	putResp, err := c.doRequest(ctx, http.MethodPut, "/rest/config/options", options)
+	if err != nil {
+		return fmt.Errorf("putting options: %w", err)
+	}
+	defer func() { _ = putResp.Body.Close() }()
+
+	if putResp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(putResp.Body)
+		return fmt.Errorf("unexpected status %d: %s", putResp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+func (c *Client) AllowInsecureAdmin(ctx context.Context) error {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/config/gui", nil)
+	if err != nil {
+		return fmt.Errorf("getting gui config: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+
+	var gui map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&gui); err != nil {
+		return fmt.Errorf("decoding gui config: %w", err)
+	}
+
+	gui["insecureAdminAccess"] = true
+
+	putResp, err := c.doRequest(ctx, http.MethodPut, "/rest/config/gui", gui)
+	if err != nil {
+		return fmt.Errorf("putting gui config: %w", err)
+	}
+	defer func() { _ = putResp.Body.Close() }()
+
+	if putResp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(putResp.Body)
+		return fmt.Errorf("unexpected status %d: %s", putResp.StatusCode, string(body))
+	}
+
+	return nil
+}

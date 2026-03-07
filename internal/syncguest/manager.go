@@ -46,6 +46,14 @@ func New(config Config) *Manager {
 	}
 }
 
+func NewWithClient(config Config, client syncthing.SyncClient) *Manager {
+	return &Manager{
+		config: config,
+		client: client,
+		logger: noopLogger{},
+	}
+}
+
 type noopLogger struct{}
 
 func (noopLogger) Debug(format string, args ...any) {}

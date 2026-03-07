@@ -2,7 +2,6 @@ package pairing
 
 import (
 	"crypto/rand"
-	"encoding/base32"
 	"strings"
 	"sync"
 	"time"
@@ -168,11 +167,17 @@ func (s *Store) Len() int {
 	return len(s.sessions)
 }
 
+// Excludes visually ambiguous characters: 0, 1, I, L, O
+const codeAlphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+
 func generateCode() string {
-	b := make([]byte, 4)
+	b := make([]byte, CodeLength)
 	_, _ = rand.Read(b)
-	encoded := base32.StdEncoding.EncodeToString(b)
-	return encoded[:CodeLength]
+	code := make([]byte, CodeLength)
+	for i := 0; i < CodeLength; i++ {
+		code[i] = codeAlphabet[int(b[i])%len(codeAlphabet)]
+	}
+	return string(code)
 }
 
 func normalizeCode(code string) string {

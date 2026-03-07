@@ -26,9 +26,12 @@ type SyncClient interface {
 	GetDeviceCompletion(ctx context.Context, deviceID string) (*CompletionResponse, error)
 	GetSyncProgress(ctx context.Context) (*SyncProgressInfo, error)
 	GetPendingStatus(ctx context.Context) (*PendingStatus, error)
+	AddFolders(ctx context.Context, folders []FolderCreateRequest) error
 	Restart(ctx context.Context) error
 	SetAPIKey(key string)
 	Config() Config
+	DisableUsageReporting(ctx context.Context) error
+	AllowInsecureAdmin(ctx context.Context) error
 }
 
 var _ SyncClient = (*Client)(nil)

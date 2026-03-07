@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -13,6 +14,7 @@ import (
 	"github.com/fnune/kyaraben/integrations/nextui/internal/service"
 	"github.com/fnune/kyaraben/integrations/nextui/internal/ui/minui"
 	"github.com/fnune/kyaraben/internal/syncguest"
+	"github.com/fnune/kyaraben/internal/syncthing"
 )
 
 const guiPort = 8484
@@ -34,11 +36,16 @@ func run() error {
 		cfg = &defaultCfg
 	}
 
+	stConfig := syncthing.DefaultConfig()
+	stConfig.GUIPort = guiPort
+	stConfig.BaseURL = fmt.Sprintf("http://localhost:%d", guiPort)
+	client := syncthing.NewClient(stConfig)
+
 	syncConfig := syncguest.DefaultConfig(dataDir)
 	syncConfig.SyncthingPath = filepath.Join(env.PakPath, "syncthing")
-	syncMgr := syncguest.New(syncConfig)
+	syncMgr := syncguest.NewWithClient(syncConfig, client)
 
-	svcMgr := service.NewManager(service.Config{
+	svcMgr := service.NewManagerWithClient(service.Config{
 		DataDir:       dataDir,
 		PakPath:       env.PakPath,
 		UserdataPath:  env.UserdataPath,
@@ -46,7 +53,7 @@ func run() error {
 		LogsPath:      env.LogsPath,
 		SyncthingPath: filepath.Join(env.PakPath, "syncthing"),
 		GUIPort:       guiPort,
-	})
+	}, client)
 
 	appUI := minui.New(env.PakPath)
 

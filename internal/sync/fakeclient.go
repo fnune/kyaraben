@@ -381,4 +381,16 @@ func (c *FakeClient) Config() syncthing.Config {
 	}
 }
 
+func (c *FakeClient) AddFolders(ctx context.Context, folders []syncthing.FolderCreateRequest) error {
+	return nil
+}
+
+func (c *FakeClient) DisableUsageReporting(ctx context.Context) error {
+	return nil
+}
+
+func (c *FakeClient) AllowInsecureAdmin(ctx context.Context) error {
+	return nil
+}
+
 var _ SyncClient = (*FakeClient)(nil)

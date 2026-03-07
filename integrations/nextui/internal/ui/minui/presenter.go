@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 
 	"github.com/fnune/kyaraben/integrations/nextui/internal/ui"
 )
@@ -26,11 +25,23 @@ func (p *PresenterUI) ShowMessage(title, text string) error {
 		return err
 	}
 
-	args := []string{"-t", title, "-m", text}
-	p.cmd = exec.Command(p.binPath, args...)
-	p.cmd.Stderr = os.Stderr
+	message := title
+	if text != "" {
+		message = title + "\n\n" + text
+	}
 
-	return p.cmd.Start()
+	args := []string{"--message", message}
+	cmd := exec.Command(p.binPath, args...)
+	cmd.Stderr = os.Stderr
+
+	err := cmd.Run()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 2 {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 func (p *PresenterUI) ShowProgress(title string, percent int) error {
@@ -38,7 +49,8 @@ func (p *PresenterUI) ShowProgress(title string, percent int) error {
 		return err
 	}
 
-	args := []string{"-t", title, "-p", strconv.Itoa(percent)}
+	message := fmt.Sprintf("%s\n\n%d%%", title, percent)
+	args := []string{"--message", message}
 	p.cmd = exec.Command(p.binPath, args...)
 	p.cmd.Stderr = os.Stderr
 

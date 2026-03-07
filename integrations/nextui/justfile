@@ -1,9 +1,10 @@
 # NextUI PAK build system
 
 # Versions
-syncthing_version := "1.29.2"
+syncthing_version := "2.0.14"
 minui_list_version := "0.12.0"
 minui_keyboard_version := "0.7.0"
+minui_presenter_version := "0.10.0"
 
 # Directories
 build_dir := "dist"
@@ -31,6 +32,7 @@ build platform:
     just _fetch-syncthing "$pak_dir"
     just _fetch-minui-list "{{ platform }}" "$pak_dir"
     just _fetch-minui-keyboard "{{ platform }}" "$pak_dir"
+    just _fetch-minui-presenter "{{ platform }}" "$pak_dir"
 
     # Copy static files
     cp build/launch.sh "$pak_dir/"
@@ -107,3 +109,18 @@ _fetch-minui-keyboard platform dest:
 
     cp "$cache" "{{ dest }}/minui-keyboard"
     chmod +x "{{ dest }}/minui-keyboard"
+
+_fetch-minui-presenter platform dest:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    cache="{{ cache_dir }}/minui-presenter-{{ minui_presenter_version }}-{{ platform }}"
+    if [ ! -f "$cache" ]; then
+        echo "Downloading minui-presenter {{ minui_presenter_version }} for {{ platform }}..."
+        mkdir -p "{{ cache_dir }}"
+        url="https://github.com/josegonzalez/minui-presenter/releases/download/{{ minui_presenter_version }}/minui-presenter-{{ platform }}"
+        curl -fsSL -o "$cache" "$url"
+    fi
+
+    cp "$cache" "{{ dest }}/minui-presenter"
+    chmod +x "{{ dest }}/minui-presenter"

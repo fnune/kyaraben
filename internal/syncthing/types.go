@@ -78,6 +78,13 @@ type FolderConfig struct {
 	Devices []string `json:"-"`
 }
 
+type FolderCreateRequest struct {
+	ID    string `json:"id"`
+	Label string `json:"label"`
+	Path  string `json:"path"`
+	Type  string `json:"type"` // sendreceive, sendonly, receiveonly, receiveencrypted
+}
+
 type FolderSharingDrift struct {
 	FolderID         string
 	MissingDeviceIDs []string

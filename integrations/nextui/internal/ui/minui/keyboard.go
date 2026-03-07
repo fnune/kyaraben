@@ -21,28 +21,39 @@ func NewKeyboardUI(pakPath string) *KeyboardUI {
 }
 
 func (k *KeyboardUI) GetInput(options ui.KeyboardOptions) (string, error) {
-	args := []string{}
+	outputFile, err := os.CreateTemp("", "minui-keyboard-*.txt")
+	if err != nil {
+		return "", fmt.Errorf("create temp file: %w", err)
+	}
+	outputPath := outputFile.Name()
+	_ = outputFile.Close()
+	defer func() { _ = os.Remove(outputPath) }()
+
+	args := []string{"--write-location", outputPath}
 	if options.Title != "" {
-		args = append(args, "-t", options.Title)
+		args = append(args, "--title", options.Title)
 	}
-	if options.Placeholder != "" {
-		args = append(args, "-p", options.Placeholder)
-	}
-	if options.Uppercase {
-		args = append(args, "-u")
+	if options.InitialValue != "" {
+		args = append(args, "--initial-value", options.InitialValue)
 	}
 
 	cmd := exec.Command(k.binPath, args...)
+	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	output, err := cmd.Output()
+	err = cmd.Run()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
-			if exitErr.ExitCode() == 2 {
+			if exitErr.ExitCode() == 2 || exitErr.ExitCode() == 3 {
 				return "", nil
 			}
 		}
 		return "", fmt.Errorf("minui-keyboard failed: %w", err)
+	}
+
+	output, err := os.ReadFile(outputPath)
+	if err != nil {
+		return "", fmt.Errorf("read output: %w", err)
 	}
 
 	return strings.TrimSpace(string(output)), nil

@@ -103,8 +103,8 @@ kyaraben_start_syncthing() {
     "$SYNCTHING" \
         --home="$HOME_PATH" \
         --no-browser \
-        --no-default-folder \
-        --gui-address="127.0.0.1:8484" \
+        --no-upgrade \
+        --gui-address="0.0.0.0:8484" \
         > "$LOGFILE" 2>&1 &
     echo $! > "$PIDFILE"
 }

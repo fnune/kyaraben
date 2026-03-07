@@ -9,9 +9,13 @@ const (
 )
 
 type MenuItem struct {
-	Label   string
-	Value   string
-	Enabled bool
+	Label           string
+	Value           string
+	Options         []string
+	Selected        int
+	Unselectable    bool
+	BackgroundColor string
+	ConfirmText     string
 }
 
 type MenuOptions struct {
@@ -22,10 +26,8 @@ type MenuOptions struct {
 }
 
 type KeyboardOptions struct {
-	Title       string
-	Placeholder string
-	MaxLength   int
-	Uppercase   bool
+	Title        string
+	InitialValue string
 }
 
 type MenuUI interface {

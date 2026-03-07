@@ -1,10 +1,13 @@
 package syncguest
 
 import (
+	"context"
 	"encoding/xml"
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/fnune/kyaraben/internal/syncthing"
 )
 
 type FolderMapping struct {
@@ -58,6 +61,23 @@ type XMLOptions struct {
 }
 
 func (m *Manager) ConfigureFolders(folders []FolderMapping) error {
+	return m.ConfigureFoldersViaAPI(context.Background(), folders)
+}
+
+func (m *Manager) ConfigureFoldersViaAPI(ctx context.Context, folders []FolderMapping) error {
+	var requests []syncthing.FolderCreateRequest
+	for _, f := range folders {
+		requests = append(requests, syncthing.FolderCreateRequest{
+			ID:    f.ID,
+			Label: f.ID,
+			Path:  f.Path,
+			Type:  "sendreceive",
+		})
+	}
+	return m.client.AddFolders(ctx, requests)
+}
+
+func (m *Manager) ConfigureFoldersViaFile(folders []FolderMapping) error {
 	configDir := filepath.Join(m.config.DataDir, "syncthing")
 	if err := os.MkdirAll(configDir, 0700); err != nil {
 		return fmt.Errorf("create config dir: %w", err)

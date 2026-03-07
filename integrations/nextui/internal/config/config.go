@@ -16,15 +16,13 @@ type Config struct {
 }
 
 type ServiceConfig struct {
-	Enabled     bool `toml:"enabled"`
-	StartOnBoot bool `toml:"start_on_boot"`
+	Autostart bool `toml:"autostart"`
 }
 
 func DefaultConfig() Config {
 	return Config{
 		Service: ServiceConfig{
-			Enabled:     true,
-			StartOnBoot: true,
+			Autostart: true,
 		},
 		Saves: map[string]string{
 			"nes":          "Saves/FC",
