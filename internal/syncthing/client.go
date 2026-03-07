@@ -699,3 +699,34 @@ func (c *Client) GetSyncProgress(ctx context.Context) (*SyncProgressInfo, error)
 
 	return &progress, nil
 }
+
+func (c *Client) GetPendingStatus(ctx context.Context) (*PendingStatus, error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/config/folders", nil)
+	if err != nil {
+		return nil, fmt.Errorf("getting folders: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+
+	var folders []struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&folders); err != nil {
+		return nil, fmt.Errorf("decoding folders: %w", err)
+	}
+
+	var pending PendingStatus
+	for _, folder := range folders {
+		status, err := c.GetFolderStatus(ctx, folder.ID)
+		if err != nil {
+			continue
+		}
+		pending.TotalFiles += int64(status.NeedFiles)
+		pending.TotalBytes += status.NeedBytes
+	}
+
+	return &pending, nil
+}

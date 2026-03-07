@@ -1,10 +1,5 @@
 package sync
 
-type FolderSharingDrift struct {
-	FolderID         string
-	MissingDeviceIDs []string
-}
-
 func ComputeFolderSharingDrift(
 	folders []FolderConfig,
 	configuredDeviceIDs []string,

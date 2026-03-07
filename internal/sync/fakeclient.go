@@ -5,32 +5,33 @@ import (
 	gosync "sync"
 
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/syncthing"
 )
 
 type FakeClient struct {
 	mu                gosync.Mutex
 	running           bool
 	deviceID          string
-	connections       map[string]ConnectionInfo
-	addedPeers        []ConfiguredDevice
+	connections       map[string]syncthing.ConnectionInfo
+	addedPeers        []syncthing.ConfiguredDevice
 	removedIDs        []string
 	sharedWith        []string
 	config            model.SyncConfig
 	folders           map[string]FolderStatusSummary
 	folderDevices     map[string][]string
-	discoveredDevs    []DiscoveredDevice
-	pendingDevs       []PendingDevice
-	deviceCompletions map[string]CompletionResponse
-	reconciledDrift   []FolderSharingDrift
+	discoveredDevs    []syncthing.DiscoveredDevice
+	pendingDevs       []syncthing.PendingDevice
+	deviceCompletions map[string]syncthing.CompletionResponse
+	reconciledDrift   []syncthing.FolderSharingDrift
 }
 
 func NewFakeClient(config model.SyncConfig) *FakeClient {
 	return &FakeClient{
 		running:           true,
-		connections:       make(map[string]ConnectionInfo),
+		connections:       make(map[string]syncthing.ConnectionInfo),
 		folders:           make(map[string]FolderStatusSummary),
 		folderDevices:     make(map[string][]string),
-		deviceCompletions: make(map[string]CompletionResponse),
+		deviceCompletions: make(map[string]syncthing.CompletionResponse),
 		config:            config,
 	}
 }
@@ -47,16 +48,16 @@ func (c *FakeClient) SetRunning(running bool) {
 	c.running = running
 }
 
-func (c *FakeClient) SetConnection(deviceID string, info ConnectionInfo) {
+func (c *FakeClient) SetConnection(deviceID string, info syncthing.ConnectionInfo) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.connections[deviceID] = info
 }
 
-func (c *FakeClient) AddedPeers() []ConfiguredDevice {
+func (c *FakeClient) AddedPeers() []syncthing.ConfiguredDevice {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	result := make([]ConfiguredDevice, len(c.addedPeers))
+	result := make([]syncthing.ConfiguredDevice, len(c.addedPeers))
 	copy(result, c.addedPeers)
 	return result
 }
@@ -98,10 +99,10 @@ func (c *FakeClient) IsRunning(_ context.Context) bool {
 	return c.running
 }
 
-func (c *FakeClient) GetSystemStatus(_ context.Context) (*SystemStatus, error) {
+func (c *FakeClient) GetSystemStatus(_ context.Context) (*syncthing.SystemStatus, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return &SystemStatus{MyID: c.deviceID, Uptime: 60}, nil
+	return &syncthing.SystemStatus{MyID: c.deviceID, Uptime: 60}, nil
 }
 
 func (c *FakeClient) GetDeviceID(_ context.Context) (string, error) {
@@ -110,20 +111,20 @@ func (c *FakeClient) GetDeviceID(_ context.Context) (string, error) {
 	return c.deviceID, nil
 }
 
-func (c *FakeClient) GetConnections(_ context.Context) (map[string]ConnectionInfo, error) {
+func (c *FakeClient) GetConnections(_ context.Context) (map[string]syncthing.ConnectionInfo, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	result := make(map[string]ConnectionInfo)
+	result := make(map[string]syncthing.ConnectionInfo)
 	for k, v := range c.connections {
 		result[k] = v
 	}
 	return result, nil
 }
 
-func (c *FakeClient) GetConfiguredDevices(_ context.Context) ([]ConfiguredDevice, error) {
+func (c *FakeClient) GetConfiguredDevices(_ context.Context) ([]syncthing.ConfiguredDevice, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	result := make([]ConfiguredDevice, len(c.addedPeers))
+	result := make([]syncthing.ConfiguredDevice, len(c.addedPeers))
 	copy(result, c.addedPeers)
 	return result, nil
 }
@@ -137,7 +138,7 @@ func (c *FakeClient) SetConfiguredDevice(id, name string) {
 			return
 		}
 	}
-	c.addedPeers = append(c.addedPeers, ConfiguredDevice{ID: id, Name: name})
+	c.addedPeers = append(c.addedPeers, syncthing.ConfiguredDevice{ID: id, Name: name})
 }
 
 func (c *FakeClient) RemoveConfiguredDevice(id string) {
@@ -151,63 +152,62 @@ func (c *FakeClient) RemoveConfiguredDevice(id string) {
 	}
 }
 
-func (c *FakeClient) SetDiscoveredDevices(devs []DiscoveredDevice) {
+func (c *FakeClient) SetDiscoveredDevices(devs []syncthing.DiscoveredDevice) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.discoveredDevs = devs
 }
 
-func (c *FakeClient) GetDiscoveredDevices(_ context.Context) ([]DiscoveredDevice, error) {
+func (c *FakeClient) GetDiscoveredDevices(_ context.Context) ([]syncthing.DiscoveredDevice, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	result := make([]DiscoveredDevice, len(c.discoveredDevs))
+	result := make([]syncthing.DiscoveredDevice, len(c.discoveredDevs))
 	copy(result, c.discoveredDevs)
 	return result, nil
 }
 
-func (c *FakeClient) SetPendingDevices(devs []PendingDevice) {
+func (c *FakeClient) SetPendingDevices(devs []syncthing.PendingDevice) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.pendingDevs = devs
 }
 
-func (c *FakeClient) GetPendingDevices(_ context.Context) ([]PendingDevice, error) {
+func (c *FakeClient) GetPendingDevices(_ context.Context) ([]syncthing.PendingDevice, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	result := make([]PendingDevice, len(c.pendingDevs))
+	result := make([]syncthing.PendingDevice, len(c.pendingDevs))
 	copy(result, c.pendingDevs)
 	return result, nil
 }
 
-func (c *FakeClient) GetFolderStatus(_ context.Context, folderID string) (*FolderStatus, error) {
+func (c *FakeClient) GetFolderStatus(_ context.Context, folderID string) (*syncthing.FolderStatus, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if summary, ok := c.folders[folderID]; ok {
-		return &FolderStatus{
-			State:                 summary.State,
-			GlobalBytes:           summary.GlobalSize,
-			LocalBytes:            summary.LocalSize,
-			NeedBytes:             summary.NeedSize,
-			ReceiveOnlyTotalItems: summary.ReceiveOnlyChanges,
+		return &syncthing.FolderStatus{
+			State:       summary.State,
+			GlobalBytes: summary.GlobalSize,
+			LocalBytes:  summary.LocalSize,
+			NeedBytes:   summary.NeedSize,
 		}, nil
 	}
-	return &FolderStatus{State: "idle"}, nil
+	return &syncthing.FolderStatus{State: "idle"}, nil
 }
 
 func (c *FakeClient) RevertFolder(_ context.Context, _ string) error {
 	return nil
 }
 
-func (c *FakeClient) GetLocalChanges(_ context.Context, _ string) ([]LocalChange, error) {
+func (c *FakeClient) GetLocalChanges(_ context.Context, _ string) ([]syncthing.LocalChange, error) {
 	return nil, nil
 }
 
-func (c *FakeClient) GetFolderConfigs(_ context.Context) ([]FolderConfig, error) {
+func (c *FakeClient) GetFolderConfigs(_ context.Context) ([]syncthing.FolderConfig, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	var configs []FolderConfig
+	var configs []syncthing.FolderConfig
 	for _, f := range c.folders {
-		configs = append(configs, FolderConfig{
+		configs = append(configs, syncthing.FolderConfig{
 			ID:   f.ID,
 			Path: f.Path,
 			Type: f.Type,
@@ -222,12 +222,12 @@ func (c *FakeClient) SetFolderDevices(folderID string, devices []string) {
 	c.folderDevices[folderID] = devices
 }
 
-func (c *FakeClient) GetFoldersWithDevices(_ context.Context) ([]FolderConfig, error) {
+func (c *FakeClient) GetFoldersWithDevices(_ context.Context) ([]syncthing.FolderConfig, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	var configs []FolderConfig
+	var configs []syncthing.FolderConfig
 	for _, f := range c.folders {
-		configs = append(configs, FolderConfig{
+		configs = append(configs, syncthing.FolderConfig{
 			ID:      f.ID,
 			Path:    f.Path,
 			Type:    f.Type,
@@ -237,22 +237,22 @@ func (c *FakeClient) GetFoldersWithDevices(_ context.Context) ([]FolderConfig, e
 	return configs, nil
 }
 
-func (c *FakeClient) ReconcileFolderSharing(_ context.Context, drift []FolderSharingDrift) error {
+func (c *FakeClient) ReconcileFolderSharing(_ context.Context, drift []syncthing.FolderSharingDrift) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.reconciledDrift = append(c.reconciledDrift, drift...)
 	return nil
 }
 
-func (c *FakeClient) ReconciledDrift() []FolderSharingDrift {
+func (c *FakeClient) ReconciledDrift() []syncthing.FolderSharingDrift {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	result := make([]FolderSharingDrift, len(c.reconciledDrift))
+	result := make([]syncthing.FolderSharingDrift, len(c.reconciledDrift))
 	copy(result, c.reconciledDrift)
 	return result
 }
 
-func (c *FakeClient) GetPendingFolders(_ context.Context) ([]PendingFolder, error) {
+func (c *FakeClient) GetPendingFolders(_ context.Context) ([]syncthing.PendingFolder, error) {
 	return nil, nil
 }
 
@@ -295,7 +295,7 @@ func (c *FakeClient) AddDevice(ctx context.Context, deviceID, name string) error
 func (c *FakeClient) AddDeviceWithAddresses(_ context.Context, deviceID, name string, _ []string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.addedPeers = append(c.addedPeers, ConfiguredDevice{ID: deviceID, Name: name})
+	c.addedPeers = append(c.addedPeers, syncthing.ConfiguredDevice{ID: deviceID, Name: name})
 	return nil
 }
 
@@ -317,19 +317,68 @@ func (c *FakeClient) ShareFoldersWithDevice(_ context.Context, deviceID string) 
 	return nil
 }
 
-func (c *FakeClient) SetDeviceCompletion(deviceID string, completion CompletionResponse) {
+func (c *FakeClient) SetDeviceCompletion(deviceID string, completion syncthing.CompletionResponse) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.deviceCompletions[deviceID] = completion
 }
 
-func (c *FakeClient) GetDeviceCompletion(_ context.Context, deviceID string) (*CompletionResponse, error) {
+func (c *FakeClient) GetDeviceCompletion(_ context.Context, deviceID string) (*syncthing.CompletionResponse, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if comp, ok := c.deviceCompletions[deviceID]; ok {
 		return &comp, nil
 	}
-	return &CompletionResponse{Completion: 100}, nil
+	return &syncthing.CompletionResponse{Completion: 100}, nil
+}
+
+func (c *FakeClient) GetSyncProgress(_ context.Context) (*syncthing.SyncProgressInfo, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	var progress syncthing.SyncProgressInfo
+	for _, f := range c.folders {
+		progress.NeedBytes += f.NeedSize
+		progress.GlobalBytes += f.GlobalSize
+	}
+
+	if progress.GlobalBytes > 0 {
+		syncedBytes := progress.GlobalBytes - progress.NeedBytes
+		progress.Percent = int(syncedBytes * 100 / progress.GlobalBytes)
+	} else {
+		progress.Percent = 100
+	}
+
+	return &progress, nil
+}
+
+func (c *FakeClient) GetPendingStatus(_ context.Context) (*syncthing.PendingStatus, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	var pending syncthing.PendingStatus
+	for _, f := range c.folders {
+		pending.TotalBytes += f.NeedSize
+	}
+
+	return &pending, nil
+}
+
+func (c *FakeClient) Restart(_ context.Context) error {
+	return nil
+}
+
+func (c *FakeClient) SetAPIKey(_ string) {}
+
+func (c *FakeClient) Config() syncthing.Config {
+	return syncthing.Config{
+		ListenPort:             c.config.Syncthing.ListenPort,
+		DiscoveryPort:          c.config.Syncthing.DiscoveryPort,
+		GUIPort:                c.config.Syncthing.GUIPort,
+		RelayEnabled:           c.config.Syncthing.RelayEnabled,
+		GlobalDiscoveryEnabled: c.config.Syncthing.GlobalDiscoveryEnabled,
+		BaseURL:                c.config.Syncthing.BaseURL,
+	}
 }
 
 var _ SyncClient = (*FakeClient)(nil)

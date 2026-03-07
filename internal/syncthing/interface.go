@@ -25,6 +25,7 @@ type SyncClient interface {
 	DismissPendingFolder(ctx context.Context, folderID, deviceID string) error
 	GetDeviceCompletion(ctx context.Context, deviceID string) (*CompletionResponse, error)
 	GetSyncProgress(ctx context.Context) (*SyncProgressInfo, error)
+	GetPendingStatus(ctx context.Context) (*PendingStatus, error)
 	Restart(ctx context.Context) error
 	SetAPIKey(key string)
 	Config() Config

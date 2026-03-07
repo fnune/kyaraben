@@ -15,17 +15,19 @@ type ConnectionInfo struct {
 }
 
 type FolderStatus struct {
-	State       string `json:"state"`
-	Error       string `json:"error"`
-	GlobalFiles int    `json:"globalFiles"`
-	GlobalBytes int64  `json:"globalBytes"`
-	LocalFiles  int    `json:"localFiles"`
-	LocalBytes  int64  `json:"localBytes"`
-	NeedFiles   int    `json:"needFiles"`
-	NeedBytes   int64  `json:"needBytes"`
-	PullErrors  int    `json:"pullErrors"`
-	InSyncFiles int    `json:"inSyncFiles"`
-	InSyncBytes int64  `json:"inSyncBytes"`
+	State                  string `json:"state"`
+	Error                  string `json:"error"`
+	GlobalFiles            int    `json:"globalFiles"`
+	GlobalBytes            int64  `json:"globalBytes"`
+	LocalFiles             int    `json:"localFiles"`
+	LocalBytes             int64  `json:"localBytes"`
+	NeedFiles              int    `json:"needFiles"`
+	NeedBytes              int64  `json:"needBytes"`
+	PullErrors             int    `json:"pullErrors"`
+	InSyncFiles            int    `json:"inSyncFiles"`
+	InSyncBytes            int64  `json:"inSyncBytes"`
+	ReceiveOnlyTotalItems  int    `json:"receiveOnlyTotalItems"`
+	ReceiveOnlyChangedSize int64  `json:"receiveOnlyChangedBytes"`
 }
 
 type CompletionResponse struct {
@@ -86,4 +88,9 @@ type SyncProgressInfo struct {
 	NeedBytes   int64
 	GlobalBytes int64
 	Percent     int
+}
+
+type PendingStatus struct {
+	TotalFiles int64
+	TotalBytes int64
 }

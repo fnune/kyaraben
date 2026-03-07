@@ -135,10 +135,24 @@ Main menu:
 ```
 Tools/{platform}/Kyaraben.pak/
 ├── launch.sh           # Entry point, calls the Go binary
-├── kyaraben-nextui     # Go binary (ARM64)
+├── kyaraben-nextui     # Our Go binary (ARM64)
 ├── syncthing           # Syncthing binary (ARM64)
+├── minui-list          # minui-list binary (platform-specific)
+├── minui-keyboard      # minui-keyboard binary (platform-specific)
 └── config.toml.example # Example config for power users
 ```
+
+### Bundled binaries
+
+All binaries are downloaded at build time from official releases (same approach as minui-syncthing-pak):
+
+| Binary | Source | Architecture |
+|--------|--------|--------------|
+| syncthing | github.com/syncthing/syncthing/releases | linux-arm64 |
+| minui-list | github.com/josegonzalez/minui-list/releases | platform-specific (tg5040, tg5050) |
+| minui-keyboard | github.com/josegonzalez/minui-keyboard/releases | platform-specific |
+
+Build system will fetch these during `make build` or similar.
 
 ### Environment variables (provided by NextUI)
 
