@@ -12,11 +12,13 @@ type Config struct {
 	ROMs        map[string]string `toml:"roms"`
 	BIOS        map[string]string `toml:"bios"`
 	Screenshots map[string]string `toml:"screenshots"`
+	States      map[string]string `toml:"states"`
 	Service     ServiceConfig     `toml:"service"`
 }
 
 type ServiceConfig struct {
-	Autostart bool `toml:"autostart"`
+	Autostart  bool `toml:"autostart"`
+	SyncStates bool `toml:"sync_states"`
 }
 
 func DefaultConfig() Config {
@@ -61,8 +63,20 @@ func DefaultConfig() Config {
 			"psx": "Bios/PS",
 		},
 		Screenshots: map[string]string{
-			"retroarch":   "Screenshots",
-			"duckstation": "Screenshots",
+			"retroarch": "Screenshots",
+		},
+		States: map[string]string{
+			"retroarch:fceumm":            ".userdata/shared/FC-fceumm",
+			"retroarch:snes9x":            ".userdata/shared/SFC-snes9x",
+			"retroarch:gambatte":          ".userdata/shared/GB-gambatte",
+			"retroarch:mgba":              ".userdata/shared/GBA-mgba",
+			"retroarch:gpsp":              ".userdata/shared/GBA-gpsp",
+			"retroarch:pcsx_rearmed":      ".userdata/shared/PS-pcsx_rearmed",
+			"retroarch:picodrive":         ".userdata/shared/MD-picodrive",
+			"retroarch:fbneo":             ".userdata/shared/FBN-fbneo",
+			"retroarch:mednafen_pce_fast": ".userdata/shared/PCE-mednafen_pce_fast",
+			"retroarch:mednafen_ngp":      ".userdata/shared/NGP-race",
+			"retroarch:stella":            ".userdata/shared/A2600-stella2014",
 		},
 	}
 }

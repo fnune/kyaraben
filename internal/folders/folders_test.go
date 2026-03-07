@@ -114,7 +114,7 @@ func TestGenerateSpecs(t *testing.T) {
 		"kyaraben-saves-psx":                     true,
 		"kyaraben-states-retroarch:bsnes":        true,
 		"kyaraben-states-duckstation":            true,
-		"kyaraben-screenshots-retroarch:bsnes":   true,
+		"kyaraben-screenshots-retroarch":         true,
 		"kyaraben-screenshots-duckstation":       true,
 		"kyaraben-frontends-esde-gamelists-snes": true,
 		"kyaraben-frontends-esde-gamelists-psx":  true,
@@ -139,6 +139,55 @@ func TestGenerateSpecs(t *testing.T) {
 
 	if gotIDs["kyaraben-screenshots-eden"] {
 		t.Error("should not have screenshots folder for eden (UsesScreenshotsDir=false)")
+	}
+}
+
+func TestScreenshotEmulatorID(t *testing.T) {
+	tests := []struct {
+		input model.EmulatorID
+		want  model.EmulatorID
+	}{
+		{"retroarch:bsnes", "retroarch"},
+		{"retroarch:mgba", "retroarch"},
+		{"retroarch:mesen", "retroarch"},
+		{"duckstation", "duckstation"},
+		{"dolphin", "dolphin"},
+		{"retroarch", "retroarch"},
+	}
+
+	for _, tt := range tests {
+		got := ScreenshotEmulatorID(tt.input)
+		if got != tt.want {
+			t.Errorf("ScreenshotEmulatorID(%q) = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestGenerateSpecsScreenshotDeduplication(t *testing.T) {
+	input := HostInput{
+		Systems: []model.SystemID{"snes", "gba"},
+		Emulators: []EmulatorInfo{
+			{ID: "retroarch:bsnes", UsesStatesDir: true, UsesScreenshotsDir: true},
+			{ID: "retroarch:mgba", UsesStatesDir: true, UsesScreenshotsDir: true},
+			{ID: "retroarch:mesen", UsesStatesDir: true, UsesScreenshotsDir: true},
+		},
+	}
+
+	specs := GenerateSpecs(input)
+
+	var screenshotSpecs []Spec
+	for _, spec := range specs {
+		if spec.Category == CategoryScreenshots {
+			screenshotSpecs = append(screenshotSpecs, spec)
+		}
+	}
+
+	if len(screenshotSpecs) != 1 {
+		t.Errorf("expected 1 screenshot folder, got %d", len(screenshotSpecs))
+	}
+
+	if len(screenshotSpecs) > 0 && screenshotSpecs[0].ID != "kyaraben-screenshots-retroarch" {
+		t.Errorf("expected screenshot ID kyaraben-screenshots-retroarch, got %s", screenshotSpecs[0].ID)
 	}
 }
 

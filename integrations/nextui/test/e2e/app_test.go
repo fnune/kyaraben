@@ -84,12 +84,13 @@ func TestAppMenuHasExpectedItems(t *testing.T) {
 	call := fakeUI.MenuUI.ShowCalls[0]
 
 	expectedValues := map[string]bool{
-		"status":      false,
-		"toggle_sync": false,
-		"toggle_boot": false,
-		"pair":        false,
-		"devices":     false,
-		"url":         false,
+		"status":             false,
+		"toggle_sync":        false,
+		"toggle_autostart":   false,
+		"toggle_sync_states": false,
+		"pair":               false,
+		"devices":            false,
+		"url":                false,
 	}
 
 	for _, item := range call.Items {

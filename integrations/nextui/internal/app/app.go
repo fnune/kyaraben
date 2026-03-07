@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/fnune/kyaraben/integrations/nextui/internal/config"
 	"github.com/fnune/kyaraben/integrations/nextui/internal/mapping"
@@ -99,7 +100,7 @@ func (a *App) Run(ctx context.Context) error {
 func (a *App) startAndConfigureSyncthing(ctx context.Context) error {
 	if a.svcMgr.IsRunning(ctx) {
 		fmt.Fprintf(os.Stderr, "startAndConfigureSyncthing: already running, configuring folders\n")
-		if err := a.syncMgr.ConfigureFolders(a.mapper.SyncguestFolderMappings()); err != nil {
+		if err := a.configureFoldersWithRetry(ctx); err != nil {
 			return fmt.Errorf("configure folders: %w", err)
 		}
 		return nil
@@ -111,12 +112,26 @@ func (a *App) startAndConfigureSyncthing(ctx context.Context) error {
 	}
 
 	fmt.Fprintf(os.Stderr, "startAndConfigureSyncthing: configuring folders via API\n")
-	if err := a.syncMgr.ConfigureFolders(a.mapper.SyncguestFolderMappings()); err != nil {
+	if err := a.configureFoldersWithRetry(ctx); err != nil {
 		return fmt.Errorf("configure folders: %w", err)
 	}
 
 	fmt.Fprintf(os.Stderr, "startAndConfigureSyncthing: done\n")
 	return nil
+}
+
+func (a *App) configureFoldersWithRetry(ctx context.Context) error {
+	var lastErr error
+	for i := 0; i < 5; i++ {
+		if err := a.syncMgr.ConfigureFolders(a.mapper.SyncguestFolderMappings()); err != nil {
+			lastErr = err
+			fmt.Fprintf(os.Stderr, "configureFoldersWithRetry: attempt %d failed: %v\n", i+1, err)
+			time.Sleep(time.Second)
+			continue
+		}
+		return nil
+	}
+	return lastErr
 }
 
 func (a *App) showMainMenu(ctx context.Context) (string, error) {
@@ -132,11 +147,16 @@ func (a *App) showMainMenu(ctx context.Context) (string, error) {
 	if !a.cfg.Service.Autostart {
 		autostartSelected = 1
 	}
+	syncStatesSelected := 0
+	if !a.cfg.Service.SyncStates {
+		syncStatesSelected = 1
+	}
 
 	items := []ui.MenuItem{
 		{Label: "Status", Value: "status", Options: statusOpts, Selected: statusIdx, Unselectable: true, BackgroundColor: statusColor},
-		{Label: "Syncing", Value: "toggle_sync", Options: []string{"enabled", "disabled"}, Selected: syncSelected, ConfirmText: "Toggle"},
-		{Label: "Autostart", Value: "toggle_autostart", Options: []string{"enabled", "disabled"}, Selected: autostartSelected, ConfirmText: "Toggle"},
+		{Label: "Syncing", Value: "toggle_sync", Options: []string{"Enabled", "Disabled"}, Selected: syncSelected, ConfirmText: "Confirm"},
+		{Label: "Autostart", Value: "toggle_autostart", Options: []string{"Enabled", "Disabled"}, Selected: autostartSelected, ConfirmText: "Confirm"},
+		{Label: "Sync states", Value: "toggle_sync_states", Options: []string{"Enabled", "Disabled"}, Selected: syncStatesSelected, ConfirmText: "Confirm"},
 		{Label: "Pair new device", Value: "pair"},
 		{Label: "View paired devices", Value: "devices"},
 		{Label: fmt.Sprintf("Syncthing UI: http://%s:%d", getLocalIP(), guiPort), Value: "url", Unselectable: true},
@@ -160,6 +180,10 @@ func (a *App) showMainMenu(ctx context.Context) (string, error) {
 		}
 	case "toggle_autostart":
 		if err := a.toggleAutostart(); err != nil {
+			a.showError(err)
+		}
+	case "toggle_sync_states":
+		if err := a.toggleSyncStates(ctx); err != nil {
 			a.showError(err)
 		}
 	case "pair":
@@ -210,6 +234,56 @@ func (a *App) toggleAutostart() error {
 	return a.cfg.Save(a.dataDir)
 }
 
+func (a *App) toggleSyncStates(ctx context.Context) error {
+	if !a.cfg.Service.SyncStates {
+		confirmed, err := a.confirmSyncStates()
+		if err != nil {
+			return err
+		}
+		if !confirmed {
+			return nil
+		}
+	}
+
+	a.cfg.Service.SyncStates = !a.cfg.Service.SyncStates
+	if err := a.cfg.Save(a.dataDir); err != nil {
+		return fmt.Errorf("save config: %w", err)
+	}
+
+	a.mapper = mapping.NewMapper(a.env.SDCardPath, *a.cfg)
+
+	if a.svcMgr.IsRunning(ctx) {
+		if err := a.syncMgr.ConfigureFolders(a.mapper.SyncguestFolderMappings()); err != nil {
+			return fmt.Errorf("configure folders: %w", err)
+		}
+		if err := a.syncMgr.ShareFoldersWithAllDevices(ctx); err != nil {
+			return fmt.Errorf("share folders: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (a *App) confirmSyncStates() (bool, error) {
+	items := []ui.MenuItem{
+		{Label: "Enable (states may not be compatible)", Value: "yes"},
+		{Label: "Cancel", Value: "no"},
+	}
+
+	idx, action, err := a.ui.Menu().Show(items, ui.MenuOptions{
+		Title:    "Sync states?",
+		ShowBack: true,
+	})
+	if err != nil {
+		return false, err
+	}
+	if action == ui.ActionBack {
+		return false, nil
+	}
+
+	return items[idx].Value == "yes", nil
+}
+
 const (
 	colorSecondaryText = "#484949"
 	colorLink          = "#1a65a6"
@@ -217,13 +291,13 @@ const (
 	colorSuccess       = "#0f7a52"
 )
 
-var statusOptions = []string{"not running", "error", "syncing", "no peers", "synced"}
+var statusOptions = []string{"Not running", "Error", "Syncing", "Idle", "Synced"}
 
 const (
 	statusNotRunning = 0
 	statusError      = 1
 	statusSyncing    = 2
-	statusNoPeers    = 3
+	statusIdle       = 3
 	statusSynced     = 4
 )
 
@@ -244,13 +318,27 @@ func (a *App) getSyncStatus(ctx context.Context) ([]string, int, string) {
 		return opts, statusSyncing, colorLink
 	}
 
+	if len(status.Peers) == 0 {
+		opts := make([]string, len(statusOptions))
+		copy(opts, statusOptions)
+		opts[statusIdle] = "No devices paired"
+		return opts, statusIdle, colorSecondaryText
+	}
+
 	if status.ConnectedPeers == 0 {
-		return statusOptions, statusNoPeers, colorError
+		opts := make([]string, len(statusOptions))
+		copy(opts, statusOptions)
+		opts[statusIdle] = "No online devices"
+		return opts, statusIdle, colorError
 	}
 
 	opts := make([]string, len(statusOptions))
 	copy(opts, statusOptions)
-	opts[statusSynced] = fmt.Sprintf("Synced (%d peers)", status.ConnectedPeers)
+	if status.ConnectedPeers == 1 {
+		opts[statusSynced] = "Synced (1 device)"
+	} else {
+		opts[statusSynced] = fmt.Sprintf("Synced (%d devices)", status.ConnectedPeers)
+	}
 	return opts, statusSynced, colorSuccess
 }
 
@@ -297,7 +385,7 @@ func (a *App) generateCode(ctx context.Context) error {
 		return friendlyError(err)
 	}
 
-	if err := a.ui.Presenter().ShowMessage(fmt.Sprintf("Pairing code: %s", session.Code), ""); err != nil {
+	if err := a.ui.Presenter().ShowMessageAsync(fmt.Sprintf("Pairing code: %s", session.Code), ""); err != nil {
 		return err
 	}
 

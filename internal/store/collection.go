@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/twpayne/go-vfs/v5"
 
+	"github.com/fnune/kyaraben/internal/folders"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/paths"
 )
@@ -76,11 +76,7 @@ func (s *Collection) EmulatorStatesDir(emu model.EmulatorID) string {
 	return filepath.Join(s.StatesDir(), string(emu))
 }
 func (s *Collection) EmulatorScreenshotsDir(emu model.EmulatorID) string {
-	name := string(emu)
-	if strings.HasPrefix(name, "retroarch:") {
-		name = "retroarch"
-	}
-	return filepath.Join(s.ScreenshotsDir(), name)
+	return filepath.Join(s.ScreenshotsDir(), string(folders.ScreenshotEmulatorID(emu)))
 }
 
 func (s *Collection) CoresDir() string {

@@ -52,7 +52,7 @@ func TestConfigGenerator_GenerateFolders(t *testing.T) {
 		{"kyaraben-bios-psx", FolderTypeSendReceive, "/home/user/Emulation/bios/psx"},
 		{"kyaraben-saves-snes", FolderTypeSendReceive, "/home/user/Emulation/saves/snes"},
 		{"kyaraben-saves-psx", FolderTypeSendReceive, "/home/user/Emulation/saves/psx"},
-		{"kyaraben-screenshots-retroarch:bsnes", FolderTypeSendReceive, "/home/user/Emulation/screenshots/retroarch:bsnes"},
+		{"kyaraben-screenshots-retroarch", FolderTypeSendReceive, "/home/user/Emulation/screenshots/retroarch"},
 		{"kyaraben-screenshots-duckstation", FolderTypeSendReceive, "/home/user/Emulation/screenshots/duckstation"},
 	}
 
@@ -143,7 +143,7 @@ func TestConfigGenerator_WriteConfig_WritesIgnoreFiles(t *testing.T) {
 		"/emulation/saves/snes/.stignore",
 		"/emulation/states/retroarch:bsnes/.stignore",
 		"/emulation/bios/snes/.stignore",
-		"/emulation/screenshots/retroarch:bsnes/.stignore",
+		"/emulation/screenshots/retroarch/.stignore",
 	}
 
 	for _, path := range ignoreFiles {

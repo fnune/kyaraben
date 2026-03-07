@@ -59,6 +59,11 @@ func (p *PresenterUI) ShowMessage(title, text string) error {
 	return p.Err
 }
 
+func (p *PresenterUI) ShowMessageAsync(title, text string) error {
+	p.Messages = append(p.Messages, MessageCall{Title: title, Text: text})
+	return p.Err
+}
+
 func (p *PresenterUI) ShowProgress(title string, percent int) error {
 	p.Progress = append(p.Progress, ProgressCall{Title: title, Percent: percent})
 	return p.Err

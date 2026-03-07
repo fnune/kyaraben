@@ -40,6 +40,7 @@ type KeyboardUI interface {
 
 type PresenterUI interface {
 	ShowMessage(title, text string) error
+	ShowMessageAsync(title, text string) error
 	ShowProgress(title string, percent int) error
 	Close() error
 }

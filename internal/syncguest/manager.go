@@ -250,6 +250,21 @@ func (m *Manager) AddPeer(ctx context.Context, deviceID string) error {
 	return nil
 }
 
+func (m *Manager) ShareFoldersWithAllDevices(ctx context.Context) error {
+	devices, err := m.client.GetConfiguredDevices(ctx)
+	if err != nil {
+		return fmt.Errorf("get devices: %w", err)
+	}
+
+	for _, d := range devices {
+		if err := m.client.ShareFoldersWithDevice(ctx, d.ID); err != nil {
+			return fmt.Errorf("share with %s: %w", d.ID, err)
+		}
+	}
+
+	return nil
+}
+
 func (m *Manager) GetStatus(ctx context.Context) (*Status, error) {
 	if !m.IsRunning(ctx) {
 		return &Status{Running: false}, nil

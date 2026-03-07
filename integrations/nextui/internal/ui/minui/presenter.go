@@ -44,6 +44,23 @@ func (p *PresenterUI) ShowMessage(title, text string) error {
 	return nil
 }
 
+func (p *PresenterUI) ShowMessageAsync(title, text string) error {
+	if err := p.Close(); err != nil {
+		return err
+	}
+
+	message := title
+	if text != "" {
+		message = title + "\n\n" + text
+	}
+
+	args := []string{"--message", message}
+	p.cmd = exec.Command(p.binPath, args...)
+	p.cmd.Stderr = os.Stderr
+
+	return p.cmd.Start()
+}
+
 func (p *PresenterUI) ShowProgress(title string, percent int) error {
 	if err := p.Close(); err != nil {
 		return err

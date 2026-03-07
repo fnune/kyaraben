@@ -10,7 +10,7 @@ echo "Building..."
 CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o dist/kyaraben-nextui ./cmd/kyaraben-nextui
 
 echo "Killing processes and clearing config..."
-ssh -o StrictHostKeyChecking=no "$HOST" "pkill -9 kyaraben-nextui 2>/dev/null || true; pkill -9 syncthing 2>/dev/null || true; rm -rf $SYNCTHING_PATH $KYARABEN_PATH/kyaraben.json; sleep 1"
+ssh -o StrictHostKeyChecking=no "$HOST" "pkill -9 kyaraben-nextui 2>/dev/null || true; pkill -9 syncthing 2>/dev/null || true; rm -rf $SYNCTHING_PATH $KYARABEN_PATH/kyaraben.json $KYARABEN_PATH/syncthing.pid $KYARABEN_PATH/config.toml; sleep 1"
 
 echo "Deploying..."
 scp -o StrictHostKeyChecking=no dist/kyaraben-nextui "$HOST:$PAK_PATH/kyaraben-nextui"

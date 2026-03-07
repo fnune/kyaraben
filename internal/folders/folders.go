@@ -6,6 +6,15 @@ import (
 	"github.com/fnune/kyaraben/internal/model"
 )
 
+// ScreenshotEmulatorID returns the emulator ID to use for screenshot folders.
+// RetroArch cores share a single screenshot directory, so all cores map to "retroarch".
+func ScreenshotEmulatorID(emu model.EmulatorID) model.EmulatorID {
+	if emu.IsRetroArchCore() {
+		return model.EmulatorIDRetroArch
+	}
+	return emu
+}
+
 type Category string
 
 const (
@@ -91,6 +100,7 @@ func GenerateSpecs(input HostInput) []Spec {
 		}
 	}
 
+	seenScreenshotEmulators := make(map[model.EmulatorID]bool)
 	for _, emu := range input.Emulators {
 		if emu.UsesStatesDir {
 			specs = append(specs, Spec{
@@ -101,12 +111,16 @@ func GenerateSpecs(input HostInput) []Spec {
 			})
 		}
 		if emu.UsesScreenshotsDir {
-			specs = append(specs, Spec{
-				ID:         ID(CategoryScreenshots, string(emu.ID)),
-				Category:   CategoryScreenshots,
-				Versioning: CategoryScreenshots.Versioning(),
-				Emulator:   emu.ID,
-			})
+			screenshotEmu := ScreenshotEmulatorID(emu.ID)
+			if !seenScreenshotEmulators[screenshotEmu] {
+				seenScreenshotEmulators[screenshotEmu] = true
+				specs = append(specs, Spec{
+					ID:         ID(CategoryScreenshots, string(screenshotEmu)),
+					Category:   CategoryScreenshots,
+					Versioning: CategoryScreenshots.Versioning(),
+					Emulator:   screenshotEmu,
+				})
+			}
 		}
 	}
 
