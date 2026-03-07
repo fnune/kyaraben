@@ -11,43 +11,53 @@ import (
 	"github.com/fnune/kyaraben/integrations/nextui/internal/ui"
 	"github.com/fnune/kyaraben/integrations/nextui/internal/ui/fake"
 	"github.com/fnune/kyaraben/internal/syncguest"
+	"github.com/twpayne/go-vfs/v5/vfst"
 )
 
 type testHarness struct {
-	env     app.Env
-	cfg     *config.Config
-	dataDir string
-	syncMgr *sync.FakeManager
-	svcMgr  *service.FakeManager
-	fakeUI  *fake.UI
+	env      app.Env
+	cfg      *config.Config
+	cfgStore *config.ConfigStore
+	syncMgr  *sync.FakeManager
+	svcMgr   *service.FakeManager
+	fakeUI   *fake.UI
 }
 
 func setupTest(t *testing.T) *testHarness {
 	t.Helper()
 
-	dataDir := t.TempDir()
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/data":   &vfst.Dir{Perm: 0755},
+		"/sdcard": &vfst.Dir{Perm: 0755},
+		"/pak":    &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(cleanup)
 
 	env := app.Env{
-		SDCardPath: "/mnt/SDCARD",
+		SDCardPath: "/sdcard",
 		Platform:   "tg5040",
-		PakPath:    t.TempDir(),
+		PakPath:    "/pak",
 	}
 
+	cfgStore := config.NewConfigStore(fs, "/data")
 	cfg := config.DefaultConfig()
 	cfg.Service.Autostart = false
 
 	return &testHarness{
-		env:     env,
-		cfg:     &cfg,
-		dataDir: dataDir,
-		syncMgr: sync.NewFakeManager(),
-		svcMgr:  service.NewFakeManager(),
-		fakeUI:  fake.New(),
+		env:      env,
+		cfg:      &cfg,
+		cfgStore: cfgStore,
+		syncMgr:  sync.NewFakeManager(),
+		svcMgr:   service.NewFakeManager(),
+		fakeUI:   fake.New(),
 	}
 }
 
 func (h *testHarness) newApp() *app.App {
-	return app.New(h.env, h.cfg, h.dataDir, h.syncMgr, h.svcMgr, h.fakeUI)
+	return app.New(h.env, h.cfg, h.cfgStore, h.syncMgr, h.svcMgr, h.fakeUI)
 }
 
 func TestAppShowsMainMenu(t *testing.T) {

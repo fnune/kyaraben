@@ -46,24 +46,24 @@ func EnvFromOS() Env {
 }
 
 type App struct {
-	env     Env
-	cfg     *config.Config
-	dataDir string
-	mapper  *mapping.Mapper
-	syncMgr sync.Manager
-	svcMgr  service.ServiceManager
-	ui      ui.UI
+	env      Env
+	cfg      *config.Config
+	cfgStore *config.ConfigStore
+	mapper   *mapping.Mapper
+	syncMgr  sync.Manager
+	svcMgr   service.ServiceManager
+	ui       ui.UI
 }
 
-func New(env Env, cfg *config.Config, dataDir string, syncMgr sync.Manager, svcMgr service.ServiceManager, appUI ui.UI) *App {
+func New(env Env, cfg *config.Config, cfgStore *config.ConfigStore, syncMgr sync.Manager, svcMgr service.ServiceManager, appUI ui.UI) *App {
 	return &App{
-		env:     env,
-		cfg:     cfg,
-		dataDir: dataDir,
-		mapper:  mapping.NewMapper(env.SDCardPath, *cfg),
-		syncMgr: syncMgr,
-		svcMgr:  svcMgr,
-		ui:      appUI,
+		env:      env,
+		cfg:      cfg,
+		cfgStore: cfgStore,
+		mapper:   mapping.NewMapper(env.SDCardPath, *cfg),
+		syncMgr:  syncMgr,
+		svcMgr:   svcMgr,
+		ui:       appUI,
 	}
 }
 
@@ -231,7 +231,7 @@ func (a *App) toggleAutostart() error {
 			return fmt.Errorf("disable autostart: %w", err)
 		}
 	}
-	return a.cfg.Save(a.dataDir)
+	return a.cfgStore.Save(a.cfg)
 }
 
 func (a *App) toggleSyncStates(ctx context.Context) error {
@@ -246,7 +246,7 @@ func (a *App) toggleSyncStates(ctx context.Context) error {
 	}
 
 	a.cfg.Service.SyncStates = !a.cfg.Service.SyncStates
-	if err := a.cfg.Save(a.dataDir); err != nil {
+	if err := a.cfgStore.Save(a.cfg); err != nil {
 		return fmt.Errorf("save config: %w", err)
 	}
 

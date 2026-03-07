@@ -1,52 +1,19 @@
 package ui
 
-type Action int
+import "github.com/fnune/kyaraben/internal/guestapp"
+
+type Action = guestapp.Action
 
 const (
-	ActionSelect Action = iota
-	ActionBack
-	ActionMenu
+	ActionSelect = guestapp.ActionSelect
+	ActionBack   = guestapp.ActionBack
+	ActionMenu   = guestapp.ActionMenu
 )
 
-type MenuItem struct {
-	Label           string
-	Value           string
-	Options         []string
-	Selected        int
-	Unselectable    bool
-	BackgroundColor string
-	ConfirmText     string
-}
-
-type MenuOptions struct {
-	Title      string
-	ShowBack   bool
-	ShowMenu   bool
-	StartIndex int
-}
-
-type KeyboardOptions struct {
-	Title        string
-	InitialValue string
-}
-
-type MenuUI interface {
-	Show(items []MenuItem, options MenuOptions) (selected int, action Action, err error)
-}
-
-type KeyboardUI interface {
-	GetInput(options KeyboardOptions) (string, error)
-}
-
-type PresenterUI interface {
-	ShowMessage(title, text string) error
-	ShowMessageAsync(title, text string) error
-	ShowProgress(title string, percent int) error
-	Close() error
-}
-
-type UI interface {
-	Menu() MenuUI
-	Keyboard() KeyboardUI
-	Presenter() PresenterUI
-}
+type MenuItem = guestapp.MenuItem
+type MenuOptions = guestapp.MenuOptions
+type KeyboardOptions = guestapp.KeyboardOptions
+type MenuUI = guestapp.MenuUI
+type KeyboardUI = guestapp.KeyboardUI
+type PresenterUI = guestapp.PresenterUI
+type UI = guestapp.UI

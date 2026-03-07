@@ -1,14 +1,7 @@
 package service
 
-import "context"
+import "github.com/fnune/kyaraben/internal/guestapp"
 
-type ServiceManager interface {
-	Start(ctx context.Context) error
-	Stop() error
-	IsRunning(ctx context.Context) bool
-	EnableAutostart() error
-	DisableAutostart() error
-	IsAutostartEnabled() bool
-}
+type ServiceManager = guestapp.ServiceManager
 
 var _ ServiceManager = (*Manager)(nil)

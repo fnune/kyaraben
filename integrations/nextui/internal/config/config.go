@@ -1,24 +1,22 @@
 package config
 
 import (
-	"os"
-	"path/filepath"
+	"github.com/twpayne/go-vfs/v5"
 
-	"github.com/BurntSushi/toml"
+	"github.com/fnune/kyaraben/internal/guestapp"
 )
 
-type Config struct {
-	Saves       map[string]string `toml:"saves"`
-	ROMs        map[string]string `toml:"roms"`
-	BIOS        map[string]string `toml:"bios"`
-	Screenshots map[string]string `toml:"screenshots"`
-	States      map[string]string `toml:"states"`
-	Service     ServiceConfig     `toml:"service"`
+type Config = guestapp.Config
+type ServiceConfig = guestapp.ServiceConfig
+type PathMappings = guestapp.PathMappings
+type ConfigStore = guestapp.ConfigStore
+
+func NewConfigStore(fs vfs.FS, dataDir string) *ConfigStore {
+	return guestapp.NewConfigStore(fs, dataDir)
 }
 
-type ServiceConfig struct {
-	Autostart  bool `toml:"autostart"`
-	SyncStates bool `toml:"sync_states"`
+func NewDefaultConfigStore(dataDir string) *ConfigStore {
+	return guestapp.NewDefaultConfigStore(dataDir)
 }
 
 func DefaultConfig() Config {
@@ -26,102 +24,63 @@ func DefaultConfig() Config {
 		Service: ServiceConfig{
 			Autostart: true,
 		},
-		Saves: map[string]string{
-			"nes":          "Saves/FC",
-			"snes":         "Saves/SFC",
-			"gb":           "Saves/GB",
-			"gbc":          "Saves/GBC",
-			"gba":          "Saves/GBA",
-			"psx":          "Saves/PS",
-			"genesis":      "Saves/MD",
-			"gamegear":     "Saves/GG",
-			"mastersystem": "Saves/SMS",
-			"pcengine":     "Saves/PCE",
-			"ngp":          "Saves/NGP",
-			"atari2600":    "Saves/A2600",
-			"c64":          "Saves/C64",
-			"arcade":       "Saves/FBN",
-		},
-		ROMs: map[string]string{
-			"nes":          "Roms/Nintendo (FC)",
-			"snes":         "Roms/Super Nintendo (SFC)",
-			"gb":           "Roms/Game Boy (GB)",
-			"gbc":          "Roms/Game Boy Color (GBC)",
-			"gba":          "Roms/Game Boy Advance (GBA)",
-			"psx":          "Roms/PlayStation (PS)",
-			"genesis":      "Roms/Mega Drive (MD)",
-			"gamegear":     "Roms/Game Gear (GG)",
-			"mastersystem": "Roms/Master System (SMS)",
-			"pcengine":     "Roms/PC Engine (PCE)",
-			"ngp":          "Roms/Neo Geo Pocket (NGP)",
-			"atari2600":    "Roms/Atari 2600 (A2600)",
-			"c64":          "Roms/Commodore 64 (C64)",
-			"arcade":       "Roms/Arcade (FBN)",
-		},
-		BIOS: map[string]string{
-			"gba": "Bios/GBA",
-			"psx": "Bios/PS",
-		},
-		Screenshots: map[string]string{
-			"retroarch": "Screenshots",
-		},
-		States: map[string]string{
-			"retroarch:fceumm":            ".userdata/shared/FC-fceumm",
-			"retroarch:snes9x":            ".userdata/shared/SFC-snes9x",
-			"retroarch:gambatte":          ".userdata/shared/GB-gambatte",
-			"retroarch:mgba":              ".userdata/shared/GBA-mgba",
-			"retroarch:gpsp":              ".userdata/shared/GBA-gpsp",
-			"retroarch:pcsx_rearmed":      ".userdata/shared/PS-pcsx_rearmed",
-			"retroarch:picodrive":         ".userdata/shared/MD-picodrive",
-			"retroarch:fbneo":             ".userdata/shared/FBN-fbneo",
-			"retroarch:mednafen_pce_fast": ".userdata/shared/PCE-mednafen_pce_fast",
-			"retroarch:mednafen_ngp":      ".userdata/shared/NGP-race",
-			"retroarch:stella":            ".userdata/shared/A2600-stella2014",
+		PathMappings: PathMappings{
+			Saves: map[string]string{
+				"nes":          "Saves/FC",
+				"snes":         "Saves/SFC",
+				"gb":           "Saves/GB",
+				"gbc":          "Saves/GBC",
+				"gba":          "Saves/GBA",
+				"psx":          "Saves/PS",
+				"genesis":      "Saves/MD",
+				"gamegear":     "Saves/GG",
+				"mastersystem": "Saves/SMS",
+				"pcengine":     "Saves/PCE",
+				"ngp":          "Saves/NGP",
+				"atari2600":    "Saves/A2600",
+				"c64":          "Saves/C64",
+				"arcade":       "Saves/FBN",
+			},
+			ROMs: map[string]string{
+				"nes":          "Roms/Nintendo (FC)",
+				"snes":         "Roms/Super Nintendo (SFC)",
+				"gb":           "Roms/Game Boy (GB)",
+				"gbc":          "Roms/Game Boy Color (GBC)",
+				"gba":          "Roms/Game Boy Advance (GBA)",
+				"psx":          "Roms/PlayStation (PS)",
+				"genesis":      "Roms/Mega Drive (MD)",
+				"gamegear":     "Roms/Game Gear (GG)",
+				"mastersystem": "Roms/Master System (SMS)",
+				"pcengine":     "Roms/PC Engine (PCE)",
+				"ngp":          "Roms/Neo Geo Pocket (NGP)",
+				"atari2600":    "Roms/Atari 2600 (A2600)",
+				"c64":          "Roms/Commodore 64 (C64)",
+				"arcade":       "Roms/Arcade (FBN)",
+			},
+			BIOS: map[string]string{
+				"gba": "Bios/GBA",
+				"psx": "Bios/PS",
+			},
+			Screenshots: map[string]string{
+				"retroarch": "Screenshots",
+			},
+			States: map[string]string{
+				"retroarch:fceumm":            ".userdata/shared/FC-fceumm",
+				"retroarch:snes9x":            ".userdata/shared/SFC-snes9x",
+				"retroarch:gambatte":          ".userdata/shared/GB-gambatte",
+				"retroarch:mgba":              ".userdata/shared/GBA-mgba",
+				"retroarch:gpsp":              ".userdata/shared/GBA-gpsp",
+				"retroarch:pcsx_rearmed":      ".userdata/shared/PS-pcsx_rearmed",
+				"retroarch:picodrive":         ".userdata/shared/MD-picodrive",
+				"retroarch:fbneo":             ".userdata/shared/FBN-fbneo",
+				"retroarch:mednafen_pce_fast": ".userdata/shared/PCE-mednafen_pce_fast",
+				"retroarch:mednafen_ngp":      ".userdata/shared/NGP-race",
+				"retroarch:stella":            ".userdata/shared/A2600-stella2014",
+			},
 		},
 	}
 }
 
 func Load(dataDir string) (*Config, error) {
-	cfg := DefaultConfig()
-
-	if dataDir == "" {
-		return &cfg, nil
-	}
-
-	configPath := filepath.Join(dataDir, "config.toml")
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			if err := cfg.save(dataDir); err != nil {
-				return &cfg, err
-			}
-			return &cfg, nil
-		}
-		return &cfg, err
-	}
-
-	if err := toml.Unmarshal(data, &cfg); err != nil {
-		return &cfg, err
-	}
-
-	return &cfg, nil
-}
-
-func (c *Config) Save(dataDir string) error {
-	return c.save(dataDir)
-}
-
-func (c *Config) save(dataDir string) error {
-	if err := os.MkdirAll(dataDir, 0755); err != nil {
-		return err
-	}
-
-	configPath := filepath.Join(dataDir, "config.toml")
-	f, err := os.Create(configPath)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = f.Close() }()
-
-	return toml.NewEncoder(f).Encode(c)
+	return NewDefaultConfigStore(dataDir).Load(DefaultConfig())
 }

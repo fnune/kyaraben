@@ -69,14 +69,16 @@ func TestDevicePathWithCustomConfig(t *testing.T) {
 
 func TestFolderMappings(t *testing.T) {
 	cfg := config.Config{
-		Saves: map[string]string{
-			"gb": "Saves/GB",
-		},
-		ROMs: map[string]string{
-			"gb": "Roms/Game Boy (GB)",
-		},
-		Screenshots: map[string]string{
-			"retroarch": "Screenshots",
+		PathMappings: config.PathMappings{
+			Saves: map[string]string{
+				"gb": "Saves/GB",
+			},
+			ROMs: map[string]string{
+				"gb": "Roms/Game Boy (GB)",
+			},
+			Screenshots: map[string]string{
+				"retroarch": "Screenshots",
+			},
 		},
 	}
 
@@ -121,13 +123,15 @@ func TestFolderMappings(t *testing.T) {
 
 func TestAllSystems(t *testing.T) {
 	cfg := config.Config{
-		Saves: map[string]string{
-			"gb":  "Saves/GB",
-			"gba": "Saves/GBA",
-		},
-		ROMs: map[string]string{
-			"gb":   "Roms/Game Boy (GB)",
-			"snes": "Roms/Super Nintendo (SFC)",
+		PathMappings: config.PathMappings{
+			Saves: map[string]string{
+				"gb":  "Saves/GB",
+				"gba": "Saves/GBA",
+			},
+			ROMs: map[string]string{
+				"gb":   "Roms/Game Boy (GB)",
+				"snes": "Roms/Super Nintendo (SFC)",
+			},
 		},
 	}
 

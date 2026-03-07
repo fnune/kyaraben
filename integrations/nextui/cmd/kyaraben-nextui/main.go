@@ -30,7 +30,8 @@ func run() error {
 	env := app.EnvFromOS()
 	dataDir := filepath.Join(env.UserdataPath, "kyaraben")
 
-	cfg, err := config.Load(dataDir)
+	cfgStore := config.NewDefaultConfigStore(dataDir)
+	cfg, err := cfgStore.Load(config.DefaultConfig())
 	if err != nil {
 		log.Printf("load config: %v (using defaults)", err)
 		defaultCfg := config.DefaultConfig()
@@ -47,7 +48,7 @@ func run() error {
 	syncConfig.Syncthing.GUIPort = guiPort
 	syncMgr := sync.NewManagerAdapter(syncguest.NewWithClient(syncConfig, client))
 
-	svcMgr := service.NewManagerWithClient(service.Config{
+	svcCfg := service.Config{
 		DataDir:       dataDir,
 		PakPath:       env.PakPath,
 		UserdataPath:  env.UserdataPath,
@@ -55,11 +56,17 @@ func run() error {
 		LogsPath:      env.LogsPath,
 		SyncthingPath: filepath.Join(env.PakPath, "syncthing"),
 		GUIPort:       guiPort,
-	}, client)
+	}
+	svcMgr := service.NewManager(
+		svcCfg,
+		service.NewProcessManager(dataDir),
+		service.NewAutostartManager(env.UserdataPath, env.Platform, env.PakPath, env.LogsPath),
+		client,
+	)
 
 	appUI := minui.New(env.PakPath)
 
-	application := app.New(env, cfg, dataDir, syncMgr, svcMgr, appUI)
+	application := app.New(env, cfg, cfgStore, syncMgr, svcMgr, appUI)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

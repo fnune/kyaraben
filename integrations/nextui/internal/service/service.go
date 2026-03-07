@@ -29,26 +29,26 @@ type Config struct {
 	GUIPort       int
 }
 
-func NewManager(cfg Config) *Manager {
-	stConfig := syncthing.DefaultConfig()
-	stConfig.GUIPort = cfg.GUIPort
-	stConfig.BaseURL = fmt.Sprintf("http://localhost:%d", cfg.GUIPort)
-
+func NewManager(cfg Config, process *ProcessManager, autostart *AutostartManager, client syncthing.SyncClient) *Manager {
 	return &Manager{
-		process:   NewProcessManager(cfg.DataDir),
-		autostart: NewAutostartManager(cfg.UserdataPath, cfg.Platform, cfg.PakPath, cfg.LogsPath),
-		client:    syncthing.NewClient(stConfig),
+		process:   process,
+		autostart: autostart,
+		client:    client,
 		config:    cfg,
 	}
 }
 
-func NewManagerWithClient(cfg Config, client syncthing.SyncClient) *Manager {
-	return &Manager{
-		process:   NewProcessManager(cfg.DataDir),
-		autostart: NewAutostartManager(cfg.UserdataPath, cfg.Platform, cfg.PakPath, cfg.LogsPath),
-		client:    client,
-		config:    cfg,
-	}
+func NewDefaultManager(cfg Config) *Manager {
+	stConfig := syncthing.DefaultConfig()
+	stConfig.GUIPort = cfg.GUIPort
+	stConfig.BaseURL = fmt.Sprintf("http://localhost:%d", cfg.GUIPort)
+
+	return NewManager(
+		cfg,
+		NewProcessManager(cfg.DataDir),
+		NewAutostartManager(cfg.UserdataPath, cfg.Platform, cfg.PakPath, cfg.LogsPath),
+		syncthing.NewClient(stConfig),
+	)
 }
 
 func (m *Manager) Start(ctx context.Context) error {

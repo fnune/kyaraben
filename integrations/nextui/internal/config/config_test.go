@@ -1,15 +1,22 @@
 package config
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
+
+	"github.com/twpayne/go-vfs/v5/vfst"
 )
 
 func TestLoadCreatesDefaultConfig(t *testing.T) {
-	dir := t.TempDir()
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/data": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
 
-	cfg, err := Load(dir)
+	store := NewConfigStore(fs, "/data")
+	cfg, err := store.Load(DefaultConfig())
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
@@ -18,25 +25,27 @@ func TestLoadCreatesDefaultConfig(t *testing.T) {
 		t.Error("expected Service.Autostart=true by default")
 	}
 
-	if _, err := os.Stat(filepath.Join(dir, "config.toml")); err != nil {
+	if _, err := fs.Stat("/data/config.toml"); err != nil {
 		t.Errorf("config file should be created: %v", err)
 	}
 }
 
 func TestLoadReadsExistingConfig(t *testing.T) {
-	dir := t.TempDir()
-
-	content := `[service]
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/data/config.toml": `[service]
 autostart = false
 
 [saves]
 gba = "Saves/MGBA"
-`
-	if err := os.WriteFile(filepath.Join(dir, "config.toml"), []byte(content), 0644); err != nil {
+`,
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
+	defer cleanup()
 
-	cfg, err := Load(dir)
+	store := NewConfigStore(fs, "/data")
+	cfg, err := store.Load(DefaultConfig())
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
@@ -50,17 +59,25 @@ gba = "Saves/MGBA"
 }
 
 func TestSaveConfig(t *testing.T) {
-	dir := t.TempDir()
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/data": &vfst.Dir{Perm: 0755},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	store := NewConfigStore(fs, "/data")
 
 	cfg := DefaultConfig()
 	cfg.Service.Autostart = false
 	cfg.Saves["test"] = "Test/Path"
 
-	if err := cfg.Save(dir); err != nil {
+	if err := store.Save(&cfg); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
 
-	loaded, err := Load(dir)
+	loaded, err := store.Load(DefaultConfig())
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
@@ -74,7 +91,14 @@ func TestSaveConfig(t *testing.T) {
 }
 
 func TestLoadWithEmptyDataDir(t *testing.T) {
-	cfg, err := Load("")
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	store := NewConfigStore(fs, "")
+	cfg, err := store.Load(DefaultConfig())
 	if err != nil {
 		t.Fatalf("Load with empty dir: %v", err)
 	}

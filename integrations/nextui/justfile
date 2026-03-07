@@ -30,7 +30,6 @@ build platform:
     # Copy static files
     cp build/launch.sh "$pak_dir/"
     chmod +x "$pak_dir/launch.sh"
-    cp build/config.toml.example "$pak_dir/"
 
     echo "PAK built: $pak_dir"
 
