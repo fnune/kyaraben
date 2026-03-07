@@ -13,8 +13,8 @@ import (
 	"github.com/fnune/kyaraben/integrations/nextui/internal/config"
 	"github.com/fnune/kyaraben/integrations/nextui/internal/mapping"
 	"github.com/fnune/kyaraben/integrations/nextui/internal/service"
+	"github.com/fnune/kyaraben/integrations/nextui/internal/sync"
 	"github.com/fnune/kyaraben/integrations/nextui/internal/ui"
-	"github.com/fnune/kyaraben/internal/syncguest"
 )
 
 type Env struct {
@@ -50,12 +50,12 @@ type App struct {
 	cfg     *config.Config
 	dataDir string
 	mapper  *mapping.Mapper
-	syncMgr *syncguest.Manager
-	svcMgr  *service.Manager
+	syncMgr sync.Manager
+	svcMgr  service.ServiceManager
 	ui      ui.UI
 }
 
-func New(env Env, cfg *config.Config, dataDir string, syncMgr *syncguest.Manager, svcMgr *service.Manager, appUI ui.UI) *App {
+func New(env Env, cfg *config.Config, dataDir string, syncMgr sync.Manager, svcMgr service.ServiceManager, appUI ui.UI) *App {
 	return &App{
 		env:     env,
 		cfg:     cfg,
@@ -136,7 +136,7 @@ func (a *App) configureFoldersWithRetry(ctx context.Context) error {
 
 func (a *App) showMainMenu(ctx context.Context) (string, error) {
 	statusOpts, statusIdx, statusColor := a.getSyncStatus(ctx)
-	guiPort := a.syncMgr.Client().Config().GUIPort
+	guiPort := a.syncMgr.GUIPort()
 	isRunning := a.svcMgr.IsRunning(ctx)
 
 	syncSelected := 0
