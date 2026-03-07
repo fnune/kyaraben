@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/shaders"
 )
 
 type Definition struct{}
@@ -102,10 +103,16 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 
 	switch ctx.Preset {
 	case model.PresetPseudoAuthentic:
+		crt := shaders.CRTLottes
 		entries = append(entries,
 			model.Entry(model.Preset, model.Path("PostProcessing", "Enabled"), "true"),
 			model.Entry(model.Preset, model.Path("PostProcessing", "StageCount"), "1"),
 			model.Entry(model.Preset, model.Path("PostProcessing/Stage1", "ShaderName"), "crt-lottes"),
+			model.Entry(model.Preset, model.Path("PostProcessing/Stage1", "shadowMask"), fmt.Sprintf("%g", crt.ShadowMask)),
+			model.Entry(model.Preset, model.Path("PostProcessing/Stage1", "warpX"), fmt.Sprintf("%g", crt.WarpX)),
+			model.Entry(model.Preset, model.Path("PostProcessing/Stage1", "warpY"), fmt.Sprintf("%g", crt.WarpY)),
+			model.Entry(model.Preset, model.Path("PostProcessing/Stage1", "bloomAmount"), fmt.Sprintf("%g", crt.BloomAmount)),
+			model.Entry(model.Preset, model.Path("PostProcessing/Stage1", "brightBoost"), fmt.Sprintf("%g", crt.BrightBoost)),
 		)
 	case model.PresetModernPixels:
 		entries = append(entries,

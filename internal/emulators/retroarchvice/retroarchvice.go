@@ -56,7 +56,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		return model.GenerateResult{}, err
 	}
 	systems := []model.SystemID{model.SystemIDC64}
-	embeddedFiles, err := retroarch.CoreEmbeddedFiles(systems, pc, ctx.BaseDirResolver)
+	embeddedFiles, err := retroarch.CoreEmbeddedFiles(model.EmulatorIDRetroArchVICE, systems, pc, ctx.BaseDirResolver)
 	if err != nil {
 		return model.GenerateResult{}, err
 	}

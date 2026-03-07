@@ -10,14 +10,10 @@ import (
 	"path/filepath"
 
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/shaders"
 )
 
-const (
-	kokoAioVersion     = "NG-1.9.85"
-	kokoAioSHA256      = "c9aefcdc47156c1ed89f203ccf1628a370c64337195b78e48ab80738776f4cdb"
-	kokoAioDir         = "koko-aio-slang"
-	kokoAioStripPrefix = "koko-aio-slang-" + kokoAioVersion
-)
+const shadersDir = "retroarch/shaders/kyaraben"
 
 var HotkeyMappings = model.HotkeyMappings{
 	SaveState:        &model.HotkeyKey{Key: "input_save_state_btn"},
@@ -130,12 +126,14 @@ func presetEntries(pc *PresetConfig) []model.ConfigEntry {
 			model.Entry(model.Preset, model.Path("video_scale_integer"), "true"),
 			model.Entry(model.Preset, model.Path("video_shader_enable"), "false"),
 			model.Entry(model.Preset, model.Path("video_smooth"), "false"),
+			model.Entry(model.Preset, model.Path("aspect_ratio_index"), "22"),
 		)
 	case model.PresetUpscaled:
 		entries = append(entries,
 			model.Entry(model.Preset, model.Path("video_scale_integer"), "false"),
 			model.Entry(model.Preset, model.Path("video_shader_enable"), "false"),
 			model.Entry(model.Preset, model.Path("video_smooth"), "true"),
+			model.Entry(model.Preset, model.Path("aspect_ratio_index"), "22"),
 		)
 	case model.PresetPseudoAuthentic:
 		entries = append(entries,
@@ -143,7 +141,7 @@ func presetEntries(pc *PresetConfig) []model.ConfigEntry {
 			model.Entry(model.Preset, model.Path("video_shader_enable"), "true"),
 			model.Entry(model.Preset, model.Path("video_smooth"), "false"),
 			model.Entry(model.Preset, model.Path("video_allow_rotate"), "true"),
-			model.Entry(model.Preset, model.Path("aspect_ratio_index"), "24"),
+			model.Entry(model.Preset, model.Path("aspect_ratio_index"), "22"),
 		)
 	}
 
@@ -225,6 +223,11 @@ var coreRegistry = map[model.EmulatorID]CoreInfo{
 	model.EmulatorIDRetroArchBsnes: {
 		ShortName:   "bsnes",
 		LibraryName: "bsnes",
+		SystemID:    model.SystemIDSNES,
+	},
+	model.EmulatorIDRetroArchSnes9x: {
+		ShortName:   "snes9x",
+		LibraryName: "Snes9x",
 		SystemID:    model.SystemIDSNES,
 	},
 	model.EmulatorIDRetroArchMesen: {
@@ -347,25 +350,6 @@ func CorePatches(emuID model.EmulatorID, store model.StoreReader, cc *model.Cont
 		entries = append(entries, model.Entry(model.Store, model.Path("system_directory"), store.SystemBiosDir(info.SystemID)))
 	}
 
-	if pc != nil && pc.Preset != model.PresetManual && pc.Preset != "" {
-		if pc.Preset == model.PresetPseudoAuthentic && !info.UsesHWRendering {
-			configDir, err := resolver.UserConfigDir()
-			if err == nil {
-				presetPath := filepath.Join(configDir, "retroarch", "config", info.LibraryName, info.LibraryName+".slangp")
-				entries = append(entries,
-					model.Entry(model.Preset, model.Path("video_shader_enable"), "true"),
-					model.Entry(model.Preset, model.Path("video_shader"), presetPath),
-				)
-			}
-		} else {
-			entries = append(entries,
-				model.Entry(model.Preset, model.Path("video_shader_enable"), "false"),
-				model.Entry(model.Preset, model.Path("video_shader"), ""),
-				model.Entry(model.Preset, model.Path("aspect_ratio_index"), "22"),
-			)
-		}
-	}
-
 	if len(entries) > 0 {
 		patches = append(patches, model.ConfigPatch{
 			Target:  CoreOverrideTarget(info.ShortName),
@@ -373,142 +357,25 @@ func CorePatches(emuID model.EmulatorID, store model.StoreReader, cc *model.Cont
 		})
 	}
 
-	if pc != nil && pc.Preset == model.PresetPseudoAuthentic && !info.UsesHWRendering {
-		shaderPatch := coreShaderPatch(emuID, pc.SystemDisplayTypes, resolver)
-		if shaderPatch != nil {
-			patches = append(patches, *shaderPatch)
-		}
-	}
-
 	return patches
 }
 
-var kokoAioPresets = map[model.SystemID]string{
-	model.SystemIDGB:       "Presets_Handhelds-ng/GameboyMono.slangp",
-	model.SystemIDGBC:      "Presets_Handhelds-ng/GameboyColor.slangp",
-	model.SystemIDGBA:      "Presets_Handhelds-ng/GameboyAdvance.slangp",
-	model.SystemIDNGP:      "Presets_Handhelds-ng/Generic-Handheld-RGB.slangp",
-	model.SystemIDGameGear: "Presets_Handhelds-ng/GameGear.slangp",
-	model.SystemIDNDS:      "Presets_Handhelds-ng/Generic-Handheld-RGB.slangp",
-	model.SystemIDN3DS:     "Presets_Handhelds-ng/Generic-Handheld-RGB.slangp",
-	model.SystemIDPSP:      "Presets_Handhelds-ng/PSP.slangp",
-}
-
-const kokoAioCRTPreset = "Presets-ng/Base.slangp"
-
-const kyarabenShaderOverridesBase = `
-DO_IN_GLOW = "0.0"
-DO_HALO = "0.0"
-DO_BLOOM = "0.0"
-DO_CURVATURE = "0.0"
-DO_BG_IMAGE = "0.0"
-DO_VIGNETTE = "0.0"
-DO_SPOT = "0.0"
-DO_DYNZOOM = "0.0"
-DO_GLOBAL_SHZO = "0.0"
-PIXELGRID_BASAL_GRID = "0.0"
-DO_BEZEL = "0.0"
-`
-
-const kyarabenShaderOverridesCRT = kyarabenShaderOverridesBase + `
-DO_AMBILIGHT = "1.0"
-AMBI_STEPS = "5.0"
-AMBI_FALLOFF = "0.2"
-AMBI_STRETCH = "0.12"
-AMBI_POWER = "0.2"
-`
-
-const kyarabenShaderOverridesLCD = kyarabenShaderOverridesBase + `
-DO_AMBILIGHT = "1.0"
-AMBI_FALLOFF = "0.2"
-AMBI_STRETCH = "0.12"
-AMBI_POWER = "0.15"
-`
-
-const kyarabenShaderOverridesGB = kyarabenShaderOverridesBase + `
-DO_AMBILIGHT = "1.0"
-AMBI_FALLOFF = "0.2"
-AMBI_STRETCH = "0.12"
-AMBI_POWER = "0.15"
-COLOR_MONO_HUE1 = "0.12"
-ADAPTIVE_BLACK = "0.3"
-`
-
-const kyarabenShaderOverridesGBC = kyarabenShaderOverridesBase + `
-DO_AMBILIGHT = "1.0"
-AMBI_FALLOFF = "0.3"
-AMBI_STRETCH = "0.25"
-AMBI_POWER = "0.6"
-`
-
-const kyarabenShaderOverridesGBA = kyarabenShaderOverridesBase + `
-DO_AMBILIGHT = "0.0"
-`
-
-const kyarabenShaderOverridesNGP = kyarabenShaderOverridesBase + `
-DO_AMBILIGHT = "1.0"
-AMBI_FALLOFF = "0.2"
-AMBI_STRETCH = "0.5"
-AMBI_POWER = "0.3"
-ASPECT_X = "20.0"
-ASPECT_Y = "19.0"
-`
-
-func shaderOverridesForSystem(systemID model.SystemID, displayType model.DisplayType) string {
-	switch systemID {
-	case model.SystemIDGB:
-		return kyarabenShaderOverridesGB
-	case model.SystemIDGBC:
-		return kyarabenShaderOverridesGBC
-	case model.SystemIDGBA:
-		return kyarabenShaderOverridesGBA
-	case model.SystemIDNGP:
-		return kyarabenShaderOverridesNGP
+func isMultiSystemCore(emuID model.EmulatorID) bool {
+	switch emuID {
+	case model.EmulatorIDRetroArchMGBA:
+		return true
 	default:
-		if displayType == model.DisplayTypeLCD {
-			return kyarabenShaderOverridesLCD
-		}
-		return kyarabenShaderOverridesCRT
+		return false
 	}
 }
 
-func coreShaderPatch(emuID model.EmulatorID, displayTypes map[model.SystemID]model.DisplayType, resolver model.BaseDirResolver) *model.ConfigPatch {
-	if !IsRetroArchCore(emuID) {
+// multiSystemCoreSystems returns the systems a multi-system core supports.
+func multiSystemCoreSystems(emuID model.EmulatorID) []model.SystemID {
+	switch emuID {
+	case model.EmulatorIDRetroArchMGBA:
+		return []model.SystemID{model.SystemIDGB, model.SystemIDGBC, model.SystemIDGBA}
+	default:
 		return nil
-	}
-	info := MustGetCoreInfo(emuID)
-
-	configDir, err := resolver.UserConfigDir()
-	if err != nil {
-		return nil
-	}
-
-	displayType := displayTypes[info.SystemID]
-	kokoAioPath := filepath.Join(configDir, "retroarch", "shaders", kokoAioDir)
-
-	presetFile := kokoAioPresets[info.SystemID]
-	if presetFile == "" {
-		presetFile = kokoAioCRTPreset
-	}
-
-	overrides := shaderOverridesForSystem(info.SystemID, displayType)
-
-	target := model.ConfigTarget{
-		RelPath: "retroarch/config/" + info.LibraryName + "/" + info.LibraryName + ".slangp",
-		Format:  model.ConfigFormatRaw,
-		BaseDir: model.ConfigBaseDirUserConfig,
-	}
-
-	slangpContent := fmt.Sprintf("#reference \"%s\"\n%s", filepath.Join(kokoAioPath, presetFile), overrides)
-
-	entries := []model.ConfigEntry{
-		{Value: slangpContent},
-	}
-
-	return &model.ConfigPatch{
-		Target:         target,
-		Entries:        entries,
-		ManagedRegions: []model.ManagedRegion{model.FileRegion{}},
 	}
 }
 
@@ -521,20 +388,49 @@ func CoreShaderDownloads(emuID model.EmulatorID, resolver model.BaseDirResolver,
 		return nil, nil
 	}
 
+	var systems []model.SystemID
+	if isMultiSystemCore(emuID) {
+		systems = multiSystemCoreSystems(emuID)
+	} else {
+		info := MustGetCoreInfo(emuID)
+		systems = []model.SystemID{info.SystemID}
+	}
+
+	shaderTypesNeeded := make(map[shaders.Type]bool)
+	for _, systemID := range systems {
+		shaderTypesNeeded[shaders.TypeForSystem(systemID)] = true
+	}
+
 	configDir, err := resolver.UserConfigDir()
 	if err != nil {
 		return nil, fmt.Errorf("getting config dir: %w", err)
 	}
 
-	shaderDir := filepath.Join(configDir, "retroarch", "shaders")
+	downloaded := make(map[string]bool)
+	var downloads []model.InitialDownload
+	for shaderType := range shaderTypesNeeded {
+		files := shaders.DownloadFiles(shaderType)
+		for _, f := range files {
+			if downloaded[f.Path] {
+				continue
+			}
+			downloaded[f.Path] = true
 
-	return []model.InitialDownload{{
-		URL:         "https://github.com/kokoko3k/koko-aio-slang/archive/refs/tags/" + kokoAioVersion + ".tar.gz",
-		SHA256:      kokoAioSHA256,
-		ArchiveType: "tar.gz",
-		ExtractDir:  filepath.Join(shaderDir, kokoAioDir),
-		StripPrefix: kokoAioStripPrefix,
-	}}, nil
+			var destPath string
+			if shaderType == shaders.TypeGameboy {
+				destPath = filepath.Join(configDir, shadersDir, f.Path[len("handheld/shaders/"):])
+			} else {
+				destPath = filepath.Join(configDir, shadersDir, filepath.Base(f.Path))
+			}
+			downloads = append(downloads, model.InitialDownload{
+				URL:      shaders.SlangShadersBaseURL + "/" + f.Path,
+				SHA256:   f.SHA256,
+				DestPath: destPath,
+			})
+		}
+	}
+
+	return downloads, nil
 }
 
 func CoreSymlinks(emuID model.EmulatorID, store model.StoreReader, resolver model.BaseDirResolver) ([]model.SymlinkSpec, error) {
@@ -573,6 +469,8 @@ func CoreOptionsTarget(emuID model.EmulatorID) model.ConfigTarget {
 // CoreOptionsPatch returns a config patch for core-specific options.
 // This configures features like color correction and interframe blending
 // per RGC recommendations for authentic display emulation.
+// For multi-system cores like mGBA, base options are set here and per-system
+// overrides are handled by ContentDirOptionsPatches.
 func CoreOptionsPatch(emuID model.EmulatorID, pc *PresetConfig) *model.ConfigPatch {
 	if pc == nil || !IsRetroArchCore(emuID) {
 		return nil
@@ -584,9 +482,7 @@ func CoreOptionsPatch(emuID model.EmulatorID, pc *PresetConfig) *model.ConfigPat
 		switch emuID {
 		case model.EmulatorIDRetroArchMGBA:
 			entries = append(entries,
-				model.Entry(model.Preset, model.Path("mgba_color_correction"), "Auto"),
 				model.Entry(model.Preset, model.Path("mgba_interframe_blending"), "mix_smart"),
-				model.Entry(model.Preset, model.Path("mgba_gb_colors"), "GB Pocket"),
 			)
 		case model.EmulatorIDRetroArchGenesisPlusGX:
 			entries = append(entries,
@@ -645,12 +541,25 @@ func ContentDirOptionsPatches(emuID model.EmulatorID, systems []model.SystemID, 
 
 	if emuID == model.EmulatorIDRetroArchMGBA {
 		for _, systemID := range systems {
-			if systemID == model.SystemIDGBA {
+			var entries []model.ConfigEntry
+			switch systemID {
+			case model.SystemIDGB:
+				entries = append(entries,
+					model.Entry(model.Preset, model.Path("mgba_gb_colors"), "Grayscale"),
+				)
+			case model.SystemIDGBC:
+				entries = append(entries,
+					model.Entry(model.Preset, model.Path("mgba_color_correction"), "Game Boy Color"),
+				)
+			case model.SystemIDGBA:
+				entries = append(entries,
+					model.Entry(model.Preset, model.Path("mgba_color_correction"), "OFF"),
+				)
+			}
+			if len(entries) > 0 {
 				patches = append(patches, model.ConfigPatch{
-					Target: ContentDirOptionsTarget(emuID, systemID),
-					Entries: []model.ConfigEntry{
-						model.Entry(model.Preset, model.Path("mgba_color_correction"), "OFF"),
-					},
+					Target:  ContentDirOptionsTarget(emuID, systemID),
+					Entries: entries,
 				})
 			}
 		}
@@ -665,62 +574,69 @@ func OverlayPatches(_ model.EmulatorID, _ []model.SystemID, _ *PresetConfig, _ m
 	return nil
 }
 
-// CoreEmbeddedFiles is deprecated - koko-aio shader handles bezels internally.
-// Kept for API compatibility with existing emulator generators.
-func CoreEmbeddedFiles(_ []model.SystemID, _ *PresetConfig, _ model.BaseDirResolver) ([]model.EmbeddedFile, error) {
-	return nil, nil
-}
-
-// ContentDirShaderPatches creates per-content-directory shader presets.
-// This allows multi-system cores (like mGBA) to use different shaders for each system.
-func ContentDirShaderPatches(emuID model.EmulatorID, systems []model.SystemID, pc *PresetConfig, resolver model.BaseDirResolver) []model.ConfigPatch {
-	if pc == nil || pc.Preset != model.PresetPseudoAuthentic || !IsRetroArchCore(emuID) {
-		return nil
+// CoreEmbeddedFiles returns shader preset files for embedded installation.
+// Creates the main .slangp presets in the shaders directory, plus reference
+// presets in the core config directory for auto-loading.
+func CoreEmbeddedFiles(emuID model.EmulatorID, systems []model.SystemID, pc *PresetConfig, resolver model.BaseDirResolver) ([]model.EmbeddedFile, error) {
+	if pc == nil || pc.Preset != model.PresetPseudoAuthentic {
+		return nil, nil
 	}
 
-	info := MustGetCoreInfo(emuID)
+	if !IsRetroArchCore(emuID) {
+		return nil, nil
+	}
 
 	configDir, err := resolver.UserConfigDir()
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("getting config dir: %w", err)
 	}
 
-	kokoAioPath := filepath.Join(configDir, "retroarch", "shaders", kokoAioDir)
+	info := MustGetCoreInfo(emuID)
+	var files []model.EmbeddedFile
 
-	var patches []model.ConfigPatch
+	shaderTypesNeeded := make(map[shaders.Type]bool)
 	for _, systemID := range systems {
-		presetFile := kokoAioPresets[systemID]
-		if presetFile == "" {
-			presetFile = kokoAioCRTPreset
+		shaderTypesNeeded[shaders.TypeForSystem(systemID)] = true
+	}
+
+	for shaderType := range shaderTypesNeeded {
+		content := shaders.PresetContent(shaderType)
+		if content == "" {
+			continue
 		}
-
-		displayType := pc.SystemDisplayTypes[systemID]
-		overrides := shaderOverridesForSystem(systemID, displayType)
-
-		target := model.ConfigTarget{
-			RelPath: "retroarch/config/" + info.LibraryName + "/" + string(systemID) + ".slangp",
-			Format:  model.ConfigFormatRaw,
-			BaseDir: model.ConfigBaseDirUserConfig,
-		}
-
-		slangpContent := fmt.Sprintf("#reference \"%s\"\n%s", filepath.Join(kokoAioPath, presetFile), overrides)
-
-		patches = append(patches, model.ConfigPatch{
-			Target:         target,
-			Entries:        []model.ConfigEntry{{Value: slangpContent}},
-			ManagedRegions: []model.ManagedRegion{model.FileRegion{}},
-		})
-
-		overrideTarget := ContentDirOverrideTarget(emuID, systemID)
-		overrideEntries := []model.ConfigEntry{
-			model.Entry(model.Preset, model.Path("video_shader_enable"), "true"),
-			model.Entry(model.Preset, model.Path("video_shader"), filepath.Join(configDir, target.RelPath)),
-		}
-		patches = append(patches, model.ConfigPatch{
-			Target:  overrideTarget,
-			Entries: overrideEntries,
+		presetPath := filepath.Join(configDir, shadersDir, string(shaderType)+".slangp")
+		files = append(files, model.EmbeddedFile{
+			Content:  []byte(content),
+			DestPath: presetPath,
 		})
 	}
 
-	return patches
+	if isMultiSystemCore(emuID) {
+		for _, systemID := range systems {
+			shaderType := shaders.TypeForSystem(systemID)
+			refContent := fmt.Sprintf(`#reference "../../shaders/kyaraben/%s.slangp"`, shaderType)
+			refPath := filepath.Join(configDir, "retroarch/config", info.LibraryName, string(systemID)+".slangp")
+			files = append(files, model.EmbeddedFile{
+				Content:  []byte(refContent),
+				DestPath: refPath,
+			})
+		}
+	} else {
+		shaderType := shaders.TypeForSystem(info.SystemID)
+		refContent := fmt.Sprintf(`#reference "../../shaders/kyaraben/%s.slangp"`, shaderType)
+		refPath := filepath.Join(configDir, "retroarch/config", info.LibraryName, info.LibraryName+".slangp")
+		files = append(files, model.EmbeddedFile{
+			Content:  []byte(refContent),
+			DestPath: refPath,
+		})
+	}
+
+	return files, nil
+}
+
+// ContentDirShaderPatches is deprecated - shader presets are now created via
+// CoreEmbeddedFiles using RetroArch's #reference directive.
+// Kept for API compatibility with existing emulator generators.
+func ContentDirShaderPatches(_ model.EmulatorID, _ []model.SystemID, _ *PresetConfig, _ model.BaseDirResolver) []model.ConfigPatch {
+	return nil
 }
