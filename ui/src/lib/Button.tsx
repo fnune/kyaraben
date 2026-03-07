@@ -11,9 +11,12 @@ export interface ButtonProps {
 }
 
 const VARIANT_CLASSES: Record<NonNullable<ButtonProps['variant']>, string> = {
-  primary: 'bg-accent text-white hover:bg-accent-hover',
-  secondary: 'bg-surface-raised text-on-surface-secondary hover:bg-outline-strong',
-  danger: 'bg-transparent text-status-error hover:text-status-error hover:bg-status-error/10',
+  primary:
+    'bg-accent text-white hover:bg-accent-hover disabled:bg-outline disabled:text-on-surface-dim',
+  secondary:
+    'bg-surface-raised text-on-surface-secondary hover:bg-outline-strong disabled:bg-surface disabled:text-on-surface-dim',
+  danger:
+    'bg-transparent text-status-error hover:text-status-error hover:bg-status-error/10 disabled:text-on-surface-dim disabled:bg-transparent',
 }
 
 const SIZE_CLASSES: Record<NonNullable<ButtonProps['size']>, string> = {
@@ -30,8 +33,7 @@ export function Button({
   onClick,
   className,
 }: ButtonProps) {
-  const baseClasses =
-    'rounded-control disabled:opacity-50 disabled:cursor-not-allowed tracking-wide'
+  const baseClasses = 'rounded-control disabled:cursor-not-allowed tracking-wide'
   const variantClasses = VARIANT_CLASSES[variant]
   const sizeClasses = SIZE_CLASSES[size]
   const allClasses = [baseClasses, variantClasses, sizeClasses, className].filter(Boolean).join(' ')

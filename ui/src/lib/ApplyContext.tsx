@@ -65,6 +65,7 @@ function needsReview(data: PreflightResponse): boolean {
 
 interface ApplyContextValue {
   status: ApplyStatus
+  loading: boolean
   progressSteps: readonly ProgressStep[]
   error: string | null
   preflightData: PreflightResponse | null
@@ -82,6 +83,7 @@ const ApplyContext = createContext<ApplyContextValue | null>(null)
 
 export function ApplyProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<ApplyStatus>('idle')
+  const [loading, setLoading] = useState(false)
   const [progressSteps, setProgressSteps] = useState<readonly ProgressStep[]>([])
   const [error, setError] = useState<string | null>(null)
   const [preflightData, setPreflightData] = useState<PreflightResponse | null>(null)
@@ -221,6 +223,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
 
   const apply = useCallback(
     async (config: ApplyConfig): Promise<boolean> => {
+      setLoading(true)
       setError(null)
       setPreflightData(null)
       summaryMessageRef.current = config.summaryMessage ?? null
@@ -238,6 +241,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
       if (!configResult.ok) {
         setError(configResult.error.message)
         setStatus('error')
+        setLoading(false)
         return false
       }
 
@@ -246,12 +250,14 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
       if (!preflightResult.ok) {
         setError(preflightResult.error.message)
         setStatus('error')
+        setLoading(false)
         return false
       }
 
       if (needsReview(preflightResult.data)) {
         setPreflightData(preflightResult.data)
         setStatus('reviewing')
+        setLoading(false)
         return false
       }
 
@@ -259,6 +265,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
       if (syncPendingResult.ok && syncPendingResult.data.pending) {
         setSyncPendingData(syncPendingResult.data)
         setStatus('confirming_sync')
+        setLoading(false)
         return false
       }
 
@@ -268,12 +275,14 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
   )
 
   const confirmApply = useCallback(async (): Promise<boolean> => {
+    setLoading(true)
     setPreflightData(null)
 
     const syncPendingResult = await daemon.getSyncPending()
     if (syncPendingResult.ok && syncPendingResult.data.pending) {
       setSyncPendingData(syncPendingResult.data)
       setStatus('confirming_sync')
+      setLoading(false)
       return false
     }
 
@@ -281,6 +290,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
   }, [runApply])
 
   const confirmSyncPending = useCallback(async (): Promise<boolean> => {
+    setLoading(true)
     setSyncPendingData(null)
     return runApply()
   }, [runApply])
@@ -291,6 +301,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
 
   const reset = useCallback(() => {
     setStatus('idle')
+    setLoading(false)
     setProgressSteps([])
     setError(null)
     setPreflightData(null)
@@ -302,6 +313,7 @@ export function ApplyProvider({ children }: { children: ReactNode }) {
     <ApplyContext.Provider
       value={{
         status,
+        loading,
         progressSteps,
         error,
         preflightData,

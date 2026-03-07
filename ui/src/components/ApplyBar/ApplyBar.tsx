@@ -37,8 +37,16 @@ function capitalize(s: string): string {
 }
 
 export function ApplyBar() {
-  const { status, progressSteps, cancel, logPosition, preflightData, confirmApply, reset } =
-    useApply()
+  const {
+    status,
+    loading,
+    progressSteps,
+    cancel,
+    logPosition,
+    preflightData,
+    confirmApply,
+    reset,
+  } = useApply()
   const { changes, apply, reapply, discard, upgradeAvailable } = useConfig()
   const homeDir = useHomeDir()
   const openLog = useOpenLog()
@@ -92,17 +100,23 @@ export function ApplyBar() {
 
   if (status === 'reviewing' && preflightData) {
     const showOverride = hasUserConflicts(preflightData.diffs ?? [])
+    const buttonLabel = loading
+      ? 'Applying...'
+      : showOverride
+        ? 'Continue and override'
+        : 'Continue'
     return (
       <BottomBar>
         <button
           type="button"
           onClick={reset}
-          className="text-accent hover:text-accent-hover hover:underline"
+          disabled={loading}
+          className="text-accent hover:text-accent-hover hover:underline disabled:text-on-surface-dim disabled:cursor-not-allowed disabled:no-underline"
         >
           Cancel
         </button>
-        <Button onClick={confirmApply}>
-          {showOverride ? 'Continue and override' : 'Continue'}
+        <Button onClick={confirmApply} disabled={loading}>
+          {buttonLabel}
         </Button>
       </BottomBar>
     )
@@ -255,12 +269,15 @@ export function ApplyBar() {
           <button
             type="button"
             onClick={handleDiscard}
-            className="text-sm text-accent hover:text-accent-hover hover:underline"
+            disabled={loading}
+            className="text-sm text-accent hover:text-accent-hover hover:underline disabled:text-on-surface-dim disabled:cursor-not-allowed disabled:no-underline"
           >
             {confirmingDiscard ? 'Click again to confirm' : 'Discard changes'}
           </button>
         )}
-        <Button onClick={upgradeOnly ? reapply : apply}>Apply</Button>
+        <Button onClick={upgradeOnly ? reapply : apply} disabled={loading}>
+          {loading ? 'Applying...' : 'Apply'}
+        </Button>
       </div>
     </BottomBar>
   )

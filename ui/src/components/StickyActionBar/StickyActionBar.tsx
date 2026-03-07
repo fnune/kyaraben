@@ -116,7 +116,7 @@ export function StickyActionBar({
             type="button"
             onClick={handleDiscard}
             disabled={applying}
-            className="text-sm text-accent hover:text-accent-hover hover:underline disabled:opacity-50"
+            className="text-sm text-accent hover:text-accent-hover hover:underline disabled:text-on-surface-dim disabled:cursor-not-allowed disabled:no-underline"
           >
             {confirmingDiscard ? 'Click again to confirm' : 'Discard changes'}
           </button>

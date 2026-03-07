@@ -111,6 +111,7 @@ export function CatalogView({
   const config = useConfig()
   const {
     status: applyStatus,
+    loading: applyLoading,
     progressSteps,
     error,
     preflightData,
@@ -213,16 +214,18 @@ export function CatalogView({
             <button
               type="button"
               onClick={reset}
-              className="flex-1 px-4 py-2 text-sm font-medium text-on-surface bg-surface rounded-card hover:bg-outline"
+              disabled={applyLoading}
+              className="flex-1 px-4 py-2 text-sm font-medium text-on-surface bg-surface rounded-card hover:bg-outline disabled:bg-surface disabled:text-on-surface-dim disabled:cursor-not-allowed"
             >
               Wait for synchronization
             </button>
             <button
               type="button"
               onClick={confirmSyncPending}
-              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-accent rounded-card hover:bg-accent-hover"
+              disabled={applyLoading}
+              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-accent rounded-card hover:bg-accent-hover disabled:bg-outline disabled:text-on-surface-dim disabled:cursor-not-allowed"
             >
-              Apply anyway
+              {applyLoading ? 'Applying...' : 'Apply anyway'}
             </button>
           </div>
         </div>
