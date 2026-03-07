@@ -229,6 +229,93 @@ clean-emu-configs:
 deploy-deck:
     scp ui/release/Kyaraben-*-x86_64.AppImage deck@steamdeck:/run/media/Emulation/External/
 
+# --- NextUI integration pak ---
+
+# Initialize NextUI submodule
+nextui-init:
+    git submodule update --init integrations/nextui/upstream
+
+# Update NextUI upstream to latest
+nextui-update:
+    git submodule update --remote integrations/nextui/upstream
+
+# Fetch binaries using upstream Makefile
+nextui-fetch: nextui-init
+    make -C integrations/nextui/upstream build
+
+# Build NextUI pak
+nextui-build: nextui-fetch _nextui-keyboard-cache
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    pak_dir="integrations/nextui/dist/Kyaraben.pak"
+    rm -rf "$pak_dir"
+    mkdir -p "$pak_dir"
+
+    # Copy from upstream (binaries and certs only)
+    cp -r integrations/nextui/upstream/bin "$pak_dir/"
+    cp -r integrations/nextui/upstream/certs "$pak_dir/"
+
+    # Copy cached minui-keyboard binaries
+    for platform in miyoomini my282 my355 rg35xxplus tg5040; do
+        cp "integrations/nextui/cache/minui-keyboard-$platform" "$pak_dir/bin/$platform/minui-keyboard"
+        chmod +x "$pak_dir/bin/$platform/minui-keyboard"
+    done
+
+    # Copy kyaraben scripts and use our launch.sh
+    cp -r integrations/nextui/kyaraben "$pak_dir/"
+    cp integrations/nextui/kyaraben/launch.sh "$pak_dir/"
+    cp integrations/nextui/pak.json "$pak_dir/"
+
+    # Make scripts executable
+    chmod +x "$pak_dir/launch.sh"
+    chmod +x "$pak_dir/kyaraben/"*.sh
+
+    echo "Built: $pak_dir"
+
+# Create NextUI pak release zip
+nextui-release version: nextui-build
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd integrations/nextui
+
+    # Update version in pak.json
+    jq '.version = "{{ version }}"' pak.json > pak.json.tmp
+    mv pak.json.tmp pak.json
+    cp pak.json dist/Kyaraben.pak/
+
+    # Create zip
+    cd dist
+    rm -f Kyaraben.pak.zip
+    zip -r Kyaraben.pak.zip Kyaraben.pak
+    echo "Created: integrations/nextui/dist/Kyaraben.pak.zip"
+
+# Test NextUI pak in container with fake minui binaries
+nextui-test: nextui-build
+    podman build -t kyaraben-nextui-test -f integrations/nextui/Containerfile.test integrations/nextui/
+    podman run --rm kyaraben-nextui-test
+
+# Clean NextUI build artifacts
+nextui-clean:
+    rm -rf integrations/nextui/dist
+    make -C integrations/nextui/upstream clean || true
+
+# Cache minui-keyboard binaries (downloaded once)
+_nextui-keyboard-cache:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cache_dir="integrations/nextui/cache"
+    if [ -f "$cache_dir/minui-keyboard-tg5040" ] && [ -s "$cache_dir/minui-keyboard-tg5040" ]; then
+        exit 0
+    fi
+    mkdir -p "$cache_dir"
+    keyboard_version="0.7.0"
+    for platform in miyoomini my282 my355 rg35xxplus tg5040; do
+        curl -fL -o "$cache_dir/minui-keyboard-$platform" \
+            "https://github.com/josegonzalez/minui-keyboard/releases/download/${keyboard_version}/minui-keyboard-$platform"
+        chmod +x "$cache_dir/minui-keyboard-$platform"
+    done
+
 # Run an additional kyaraben instance for local sync testing
 # Usage: just instance secondary
 instance name: _sidecar

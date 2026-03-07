@@ -1,0 +1,17 @@
+{
+  "name": "Kyaraben",
+  "type": "TOOL",
+  "description": "Sync ROMs, saves, and BIOS with Kyaraben devices",
+  "author": "fnune",
+  "repo_url": "https://github.com/fnune/kyaraben",
+  "release_filename": "Kyaraben.pak.zip",
+  "platforms": [
+    "miyoomini",
+    "my282",
+    "my355",
+    "rg35xxplus",
+    "tg5040"
+  ],
+  "launch": "launch.sh",
+  "version": "0.1.0"
+}

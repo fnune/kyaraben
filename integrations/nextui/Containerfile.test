@@ -1,0 +1,32 @@
+FROM docker.io/alpine:3.19
+
+RUN apk add --no-cache \
+    bash \
+    curl \
+    jq \
+    python3
+
+WORKDIR /pak
+
+# Mock NextUI environment
+ENV PLATFORM=tg5040
+ENV SDCARD_PATH=/mnt/SDCARD
+RUN mkdir -p "$SDCARD_PATH"
+
+# Mock minui binaries
+RUN mkdir -p /usr/local/bin && \
+    printf '#!/bin/sh\necho "[minui-list] $*" >&2\necho "${MOCK_SELECTION:-Pair with device}"\n' > /usr/local/bin/minui-list && \
+    printf '#!/bin/sh\necho "[minui-presenter] $*" >&2\n' > /usr/local/bin/minui-presenter && \
+    printf '#!/bin/sh\necho "[minui-keyboard] $*" >&2\necho "${MOCK_INPUT:-ABC123}"\n' > /usr/local/bin/minui-keyboard && \
+    printf '#!/bin/sh\necho "FAKE-DEVICE-ID-1234567890"\n' > /usr/local/bin/syncthing && \
+    chmod +x /usr/local/bin/minui-* /usr/local/bin/syncthing
+
+# Copy pak contents
+COPY dist/Kyaraben.pak /pak/
+
+# Copy test files
+COPY test/test-pak.sh /test-pak.sh
+COPY test/fake-syncthing-api.py /test/fake-syncthing-api.py
+RUN chmod +x /test-pak.sh /test/fake-syncthing-api.py
+
+CMD ["/test-pak.sh"]
