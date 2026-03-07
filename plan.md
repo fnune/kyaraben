@@ -16,18 +16,43 @@ Target: all devices supported by NextUI, testing on TrimUI Brick.
   - `interface.go`: SyncClient interface
   - `logger.go`: Injectable logger interface (no dependency on internal/logging)
 - [x] Updated `internal/sync/` to use `internal/syncthing/` (removed ~900 lines of duplication)
+- [x] Created `integrations/nextui/` directory structure:
+  - `cmd/kyaraben-nextui/main.go`: Main binary entry point
+  - `internal/mapping/`: Kyaraben system <-> NextUI TAG mapping with tests
+  - `internal/ui/interface.go`: UI abstraction interfaces (MenuUI, KeyboardUI, PresenterUI)
+  - `internal/ui/minui/`: minui-list/keyboard/presenter wrappers
+  - `internal/ui/fake/`: Fake UI for testing
+  - `internal/pairing/`: Pairing flow using relay client
+  - `internal/config/`: TOML config with tag_overrides support
+  - `internal/app/`: Main application loop
 
 ### Next steps
 
-1. Add fake client to `internal/syncthing/` for testing (optional, FakeClient stays in sync for now)
-3. Create `integrations/nextui/` directory structure
-4. Build folder mapping logic (Kyaraben system -> NextUI TAG)
-5. Create UI abstraction interfaces (MenuUI, KeyboardUI, PresenterUI)
-6. Implement minui-list/keyboard wrappers
-7. Build main binary with pairing flow
-8. Add build system for ARM64 targets
-9. Create launch.sh and PAK packaging
-10. E2E tests with fakes
+1. Extract generic sync client package (see architectural note below)
+2. Add build system for ARM64 targets
+3. Create launch.sh and PAK packaging
+4. E2E tests with fakes
+5. Syncthing process management (start/stop/monitor)
+
+### Architectural note
+
+The core functionality (Syncthing management, pairing flow, folder sync) is not NextUI-specific. Any device that wants to join a Kyaraben sync cluster needs the same capabilities: Android devices, other handhelds, even desktop systems without the full Kyaraben app.
+
+Plan to extract a generic `cmd/kyaraben-sync` binary that:
+- Manages a Syncthing instance with Kyaraben ports/config
+- Implements the pairing flow via relay server
+- Syncs configured folders
+- Provides a simple CLI/API for status and pairing
+
+The NextUI PAK then becomes a thin wrapper:
+- Provides minui-based UI for the device
+- Handles NextUI-specific path mapping (TAG -> Kyaraben system)
+- Bundles platform-specific binaries
+
+This separation enables:
+- Android app that wraps the same sync logic
+- Other handheld firmwares (OnionOS, GarlicOS, etc.)
+- Desktop CLI for testing/debugging sync clusters
 
 ## Scope
 
