@@ -86,7 +86,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	}
 
 	switch ctx.Preset {
-	case model.PresetModernPixels, model.PresetUpscaled, model.PresetPseudoAuthentic:
+	case model.PresetClean, model.PresetRetro:
 		entries = append(entries,
 			model.Entry(model.Preset, model.Path("Graphics", "PostShaderNames"), "Off"),
 		)

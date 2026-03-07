@@ -825,7 +825,7 @@ func TestHandleSyncStatus_DisabledWithSyncthingInstalled(t *testing.T) {
 }
 
 func TestHandleSetConfig_MergesEmulatorSettings(t *testing.T) {
-	presetModern := model.PresetModernPixels
+	presetDefault := model.PresetClean
 	cfg := &model.KyarabenConfig{
 		Global: model.GlobalConfig{
 			Collection: "~/Emulation",
@@ -835,8 +835,8 @@ func TestHandleSetConfig_MergesEmulatorSettings(t *testing.T) {
 			model.SystemIDGBA:  {model.EmulatorIDRetroArchMGBA},
 		},
 		Emulators: map[model.EmulatorID]model.EmulatorConf{
-			model.EmulatorIDRetroArchBsnes: {Preset: &presetModern},
-			model.EmulatorIDRetroArchMGBA:  {Preset: &presetModern, Version: "0.10.0"},
+			model.EmulatorIDRetroArchBsnes: {Preset: &presetDefault},
+			model.EmulatorIDRetroArchMGBA:  {Preset: &presetDefault, Version: "0.10.0"},
 		},
 		Frontends: map[model.FrontendID]model.FrontendConfig{},
 	}
@@ -844,7 +844,7 @@ func TestHandleSetConfig_MergesEmulatorSettings(t *testing.T) {
 	defer env.cleanup()
 	d := env.newDaemon()
 
-	presetUpscaled := model.PresetUpscaled
+	presetRetro := model.PresetRetro
 	setCmd := SetConfigCommand{
 		Type: CommandTypeSetConfig,
 		Data: SetConfigRequest{
@@ -854,7 +854,7 @@ func TestHandleSetConfig_MergesEmulatorSettings(t *testing.T) {
 				"gba":  {"retroarch:mgba"},
 			},
 			Emulators: map[string]EmulatorConfRequest{
-				"retroarch:mgba": {Preset: &presetUpscaled},
+				"retroarch:mgba": {Preset: &presetRetro},
 			},
 		},
 	}
@@ -871,13 +871,13 @@ func TestHandleSetConfig_MergesEmulatorSettings(t *testing.T) {
 	}
 
 	bsnesConf := resp.Emulators["retroarch:bsnes"]
-	if bsnesConf.Preset == nil || *bsnesConf.Preset != model.PresetModernPixels {
-		t.Errorf("expected bsnes preset to be preserved as modern-pixels, got %v", bsnesConf.Preset)
+	if bsnesConf.Preset == nil || *bsnesConf.Preset != model.PresetClean {
+		t.Errorf("expected bsnes preset to be preserved as clean, got %v", bsnesConf.Preset)
 	}
 
 	mgbaConf := resp.Emulators["retroarch:mgba"]
-	if mgbaConf.Preset == nil || *mgbaConf.Preset != model.PresetUpscaled {
-		t.Errorf("expected mgba preset to be updated to upscaled, got %v", mgbaConf.Preset)
+	if mgbaConf.Preset == nil || *mgbaConf.Preset != model.PresetRetro {
+		t.Errorf("expected mgba preset to be updated to retro, got %v", mgbaConf.Preset)
 	}
 	if mgbaConf.Version != "0.10.0" {
 		t.Errorf("expected mgba version to be preserved as 0.10.0, got %s", mgbaConf.Version)

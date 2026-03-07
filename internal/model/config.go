@@ -64,10 +64,9 @@ type GraphicsConfig struct {
 
 // DisplayPreset values for graphics.preset.
 const (
-	PresetModernPixels    = "modern-pixels"
-	PresetUpscaled        = "upscaled"
-	PresetPseudoAuthentic = "pseudo-authentic"
-	PresetManual          = "manual"
+	PresetClean  = "clean"
+	PresetRetro  = "retro"
+	PresetManual = "manual"
 )
 
 // TargetDevice values for graphics.target.
@@ -79,10 +78,9 @@ const (
 
 // Per-emulator preset override values.
 const (
-	EmulatorPresetModernPixels    = "modern-pixels"
-	EmulatorPresetUpscaled        = "upscaled"
-	EmulatorPresetPseudoAuthentic = "pseudo-authentic"
-	EmulatorPresetManual          = "manual"
+	EmulatorPresetClean  = "clean"
+	EmulatorPresetRetro  = "retro"
+	EmulatorPresetManual = "manual"
 )
 
 // ConfigInput for GraphicsConfig fields
@@ -279,7 +277,7 @@ func (c *KyarabenConfig) EmulatorPreset(id EmulatorID) string {
 	if c.Graphics.Preset != "" {
 		return c.Graphics.Preset
 	}
-	return PresetPseudoAuthentic
+	return PresetClean
 }
 
 // EmulatorPresetOverride returns the per-emulator preset override, or nil if using default.

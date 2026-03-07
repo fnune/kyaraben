@@ -204,40 +204,40 @@ func TestEmulatorPreset(t *testing.T) {
 		{
 			name: "emulator override takes precedence",
 			cfg: &KyarabenConfig{
-				Graphics: GraphicsConfig{Preset: PresetPseudoAuthentic},
+				Graphics: GraphicsConfig{Preset: PresetRetro},
 				Emulators: map[EmulatorID]EmulatorConf{
-					EmulatorIDDuckStation: {Preset: ptrString(PresetModernPixels)},
+					EmulatorIDDuckStation: {Preset: ptrString(PresetClean)},
 				},
 			},
 			emulator: EmulatorIDDuckStation,
-			want:     PresetModernPixels,
+			want:     PresetClean,
 		},
 		{
 			name: "global preset used when no override",
 			cfg: &KyarabenConfig{
-				Graphics:  GraphicsConfig{Preset: PresetUpscaled},
+				Graphics:  GraphicsConfig{Preset: PresetRetro},
 				Emulators: map[EmulatorID]EmulatorConf{},
 			},
 			emulator: EmulatorIDDuckStation,
-			want:     PresetUpscaled,
+			want:     PresetRetro,
 		},
 		{
-			name: "default to pseudo-authentic when nothing configured",
+			name: "default to clean when nothing configured",
 			cfg: &KyarabenConfig{
 				Graphics:  GraphicsConfig{},
 				Emulators: map[EmulatorID]EmulatorConf{},
 			},
 			emulator: EmulatorIDDuckStation,
-			want:     PresetPseudoAuthentic,
+			want:     PresetClean,
 		},
 		{
 			name: "nil emulators map uses global",
 			cfg: &KyarabenConfig{
-				Graphics:  GraphicsConfig{Preset: PresetModernPixels},
+				Graphics:  GraphicsConfig{Preset: PresetRetro},
 				Emulators: nil,
 			},
 			emulator: EmulatorIDDuckStation,
-			want:     PresetModernPixels,
+			want:     PresetRetro,
 		},
 	}
 

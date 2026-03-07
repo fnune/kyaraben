@@ -121,26 +121,18 @@ func presetEntries(pc *PresetConfig) []model.ConfigEntry {
 	var entries []model.ConfigEntry
 
 	switch pc.Preset {
-	case model.PresetModernPixels:
+	case model.PresetClean:
 		entries = append(entries,
-			model.Entry(model.Preset, model.Path("video_scale_integer"), "true"),
+			model.Entry(model.Preset, model.Path("video_scale_integer"), "false"),
 			model.Entry(model.Preset, model.Path("video_shader_enable"), "false"),
 			model.Entry(model.Preset, model.Path("video_smooth"), "false"),
 			model.Entry(model.Preset, model.Path("aspect_ratio_index"), "22"),
 		)
-	case model.PresetUpscaled:
-		entries = append(entries,
-			model.Entry(model.Preset, model.Path("video_scale_integer"), "false"),
-			model.Entry(model.Preset, model.Path("video_shader_enable"), "false"),
-			model.Entry(model.Preset, model.Path("video_smooth"), "true"),
-			model.Entry(model.Preset, model.Path("aspect_ratio_index"), "22"),
-		)
-	case model.PresetPseudoAuthentic:
+	case model.PresetRetro:
 		entries = append(entries,
 			model.Entry(model.Preset, model.Path("video_scale_integer"), "false"),
 			model.Entry(model.Preset, model.Path("video_shader_enable"), "true"),
 			model.Entry(model.Preset, model.Path("video_smooth"), "false"),
-			model.Entry(model.Preset, model.Path("video_allow_rotate"), "true"),
 			model.Entry(model.Preset, model.Path("aspect_ratio_index"), "22"),
 		)
 	}
@@ -380,7 +372,7 @@ func multiSystemCoreSystems(emuID model.EmulatorID) []model.SystemID {
 }
 
 func CoreShaderDownloads(emuID model.EmulatorID, resolver model.BaseDirResolver, pc *PresetConfig) ([]model.InitialDownload, error) {
-	if pc == nil || pc.Preset != model.PresetPseudoAuthentic {
+	if pc == nil || pc.Preset != model.PresetRetro {
 		return nil, nil
 	}
 
@@ -467,8 +459,6 @@ func CoreOptionsTarget(emuID model.EmulatorID) model.ConfigTarget {
 }
 
 // CoreOptionsPatch returns a config patch for core-specific options.
-// This configures features like color correction and interframe blending
-// per RGC recommendations for authentic display emulation.
 // For multi-system cores like mGBA, base options are set here and per-system
 // overrides are handled by ContentDirOptionsPatches.
 func CoreOptionsPatch(emuID model.EmulatorID, pc *PresetConfig) *model.ConfigPatch {
@@ -477,23 +467,6 @@ func CoreOptionsPatch(emuID model.EmulatorID, pc *PresetConfig) *model.ConfigPat
 	}
 
 	var entries []model.ConfigEntry
-
-	if pc.Preset == model.PresetPseudoAuthentic {
-		switch emuID {
-		case model.EmulatorIDRetroArchMGBA:
-			entries = append(entries,
-				model.Entry(model.Preset, model.Path("mgba_interframe_blending"), "mix_smart"),
-			)
-		case model.EmulatorIDRetroArchGenesisPlusGX:
-			entries = append(entries,
-				model.Entry(model.Preset, model.Path("genesis_plus_gx_blargg_ntsc_filter"), "S-Video"),
-			)
-		case model.EmulatorIDRetroArchMesen:
-			entries = append(entries,
-				model.Entry(model.Preset, model.Path("mesen_palette"), "PVM Style (by FirebrandX)"),
-			)
-		}
-	}
 
 	if pc.Bezels && emuID == model.EmulatorIDRetroArchMGBA {
 		entries = append(entries, model.Entry(model.Preset, model.Path("mgba_sgb_borders"), "OFF"))
@@ -532,8 +505,9 @@ func ContentDirOptionsTarget(emuID model.EmulatorID, systemID model.SystemID) mo
 
 // ContentDirOptionsPatches creates per-content-directory core options.
 // This allows multi-system cores (like mGBA) to use different options for each system.
+// Color correction settings are applied regardless of preset for accurate colors.
 func ContentDirOptionsPatches(emuID model.EmulatorID, systems []model.SystemID, pc *PresetConfig) []model.ConfigPatch {
-	if pc == nil || pc.Preset != model.PresetPseudoAuthentic || !IsRetroArchCore(emuID) {
+	if pc == nil || !IsRetroArchCore(emuID) {
 		return nil
 	}
 
@@ -544,16 +518,18 @@ func ContentDirOptionsPatches(emuID model.EmulatorID, systems []model.SystemID, 
 			var entries []model.ConfigEntry
 			switch systemID {
 			case model.SystemIDGB:
-				entries = append(entries,
-					model.Entry(model.Preset, model.Path("mgba_gb_colors"), "Grayscale"),
-				)
+				if pc.Preset == model.PresetRetro {
+					entries = append(entries,
+						model.Entry(model.Preset, model.Path("mgba_gb_colors"), "Grayscale"),
+					)
+				}
 			case model.SystemIDGBC:
 				entries = append(entries,
-					model.Entry(model.Preset, model.Path("mgba_color_correction"), "Game Boy Color"),
+					model.Entry(model.None, model.Path("mgba_color_correction"), "Game Boy Color"),
 				)
 			case model.SystemIDGBA:
 				entries = append(entries,
-					model.Entry(model.Preset, model.Path("mgba_color_correction"), "OFF"),
+					model.Entry(model.None, model.Path("mgba_color_correction"), "OFF"),
 				)
 			}
 			if len(entries) > 0 {
@@ -578,7 +554,7 @@ func OverlayPatches(_ model.EmulatorID, _ []model.SystemID, _ *PresetConfig, _ m
 // Creates the main .slangp presets in the shaders directory, plus reference
 // presets in the core config directory for auto-loading.
 func CoreEmbeddedFiles(emuID model.EmulatorID, systems []model.SystemID, pc *PresetConfig, resolver model.BaseDirResolver) ([]model.EmbeddedFile, error) {
-	if pc == nil || pc.Preset != model.PresetPseudoAuthentic {
+	if pc == nil || pc.Preset != model.PresetRetro {
 		return nil, nil
 	}
 

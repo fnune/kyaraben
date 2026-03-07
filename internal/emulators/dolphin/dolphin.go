@@ -434,7 +434,7 @@ func gfxEntries(preset string) []model.ConfigEntry {
 		model.Default(model.None, model.Path("Settings", "InternalResolution"), "2"),
 	}
 	switch preset {
-	case model.PresetModernPixels, model.PresetUpscaled, model.PresetPseudoAuthentic:
+	case model.PresetClean, model.PresetRetro:
 		entries = append(entries, model.Entry(model.Preset, model.Path("Enhancements", "PostProcessingShader"), ""))
 	}
 	return entries

@@ -1590,7 +1590,7 @@ func TestDolphinPresetConfig(t *testing.T) {
 	t.Run("all presets disable shaders for 6th gen", func(t *testing.T) {
 		t.Parallel()
 
-		for _, preset := range []string{model.PresetModernPixels, model.PresetUpscaled, model.PresetPseudoAuthentic} {
+		for _, preset := range []string{model.PresetClean, model.PresetRetro} {
 			result, err := gen.Generate(model.GenerateContext{
 				Store:           store,
 				BaseDirResolver: resolver,
@@ -1656,21 +1656,17 @@ func TestRetroArchShaderConfig(t *testing.T) {
 		}
 	})
 
-	t.Run("pseudo-authentic preset creates per-core shader config", func(t *testing.T) {
+	t.Run("retro preset enables shaders and creates embedded files", func(t *testing.T) {
 		t.Parallel()
 
 		result, err := gen.Generate(model.GenerateContext{
 			Store:              store,
 			BaseDirResolver:    resolver,
-			Preset:             model.PresetPseudoAuthentic,
+			Preset:             model.PresetRetro,
 			SystemDisplayTypes: map[model.SystemID]model.DisplayType{model.SystemIDSNES: model.DisplayTypeCRT},
 		})
 		if err != nil {
 			t.Fatalf("Generate() error = %v", err)
-		}
-
-		if len(result.Patches) < 2 {
-			t.Fatalf("expected at least 2 patches (shared + per-core), got %d", len(result.Patches))
 		}
 
 		shared := result.Patches[0]
@@ -1687,28 +1683,25 @@ func TestRetroArchShaderConfig(t *testing.T) {
 			t.Error("video_shader_enable not found in shared config")
 		}
 
-		override := result.Patches[1]
-		foundVideoShader := false
-		foundShaderEnableOverride := false
-		for _, entry := range override.Entries {
-			if entry.Key() == "video_shader" {
-				foundVideoShader = true
-				if !strings.HasSuffix(entry.Value, ".slangp") {
-					t.Errorf("video_shader should end with .slangp, got %q", entry.Value)
-				}
+		if len(result.EmbeddedFiles) == 0 {
+			t.Error("expected embedded shader preset files for retro preset")
+		}
+
+		foundMainPreset := false
+		foundRefPreset := false
+		for _, ef := range result.EmbeddedFiles {
+			if strings.Contains(ef.DestPath, "shaders/kyaraben/crt.slangp") {
+				foundMainPreset = true
 			}
-			if entry.Key() == "video_shader_enable" {
-				foundShaderEnableOverride = true
-				if entry.Value != "true" {
-					t.Errorf("per-core video_shader_enable = %q, want %q", entry.Value, "true")
-				}
+			if strings.Contains(ef.DestPath, "config/bsnes/bsnes.slangp") {
+				foundRefPreset = true
 			}
 		}
-		if !foundVideoShader {
-			t.Error("video_shader not found in per-core override")
+		if !foundMainPreset {
+			t.Error("main CRT preset not found in embedded files")
 		}
-		if !foundShaderEnableOverride {
-			t.Error("video_shader_enable not found in per-core override")
+		if !foundRefPreset {
+			t.Error("reference preset for bsnes not found in embedded files")
 		}
 	})
 }

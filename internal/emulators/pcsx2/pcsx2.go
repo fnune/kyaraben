@@ -96,15 +96,9 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	}
 
 	switch ctx.Preset {
-	case model.PresetModernPixels:
+	case model.PresetClean, model.PresetRetro:
 		entries = append(entries,
 			model.Entry(model.Preset, model.Path("EmuCore/GS", "TVShader"), "0"),
-			model.Entry(model.Preset, model.Path("EmuCore/GS", "IntegerScaling"), "true"),
-		)
-	case model.PresetUpscaled, model.PresetPseudoAuthentic:
-		entries = append(entries,
-			model.Entry(model.Preset, model.Path("EmuCore/GS", "TVShader"), "0"),
-			model.Entry(model.Preset, model.Path("EmuCore/GS", "IntegerScaling"), "false"),
 		)
 	}
 
