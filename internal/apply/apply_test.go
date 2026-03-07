@@ -653,7 +653,7 @@ func TestCoreDownloadSizeUsesBundleSize(t *testing.T) {
 	v := versions.MustGet()
 	installer := packages.NewFakeInstaller(nil, "/packages")
 
-	size := coreDownloadSize([]string{"bsnes", "snes9x", "mesen"}, "x64", v, installer)
+	size := coreDownloadSize([]string{"bsnes", "snes9x", "mesen"}, "x64", "x86_64", v, installer)
 
 	bsnesSpec, _ := v.GetPackage("bsnes")
 	if bsnesSpec.BundleSize == 0 {
@@ -671,7 +671,7 @@ func TestCoreDownloadSizeFallsBackToIndividualSize(t *testing.T) {
 	v := versions.MustGet()
 	installer := packages.NewFakeInstaller(nil, "/packages")
 
-	size := coreDownloadSize([]string{"melondsds"}, "x64", v, installer)
+	size := coreDownloadSize([]string{"melondsds"}, "x64", "x86_64", v, installer)
 
 	spec, _ := v.GetPackage("melondsds")
 	entry := spec.GetDefault()
@@ -690,7 +690,7 @@ func TestCoreDownloadSizeCountsMultipleBundles(t *testing.T) {
 	installer.Versions["bsnes"] = "1.22.2"
 	installer.Versions["snes9x"] = "1.19.1"
 
-	size := coreDownloadSize([]string{"bsnes", "snes9x"}, "x64", v, installer)
+	size := coreDownloadSize([]string{"bsnes", "snes9x"}, "x64", "x86_64", v, installer)
 
 	bsnesSpec, _ := v.GetPackage("bsnes")
 	snes9xSpec, _ := v.GetPackage("snes9x")
@@ -708,7 +708,7 @@ func TestCoreDownloadSizeUsesResolvedVersion(t *testing.T) {
 	installer := packages.NewFakeInstaller(nil, "/packages")
 	installer.Versions["bsnes"] = "1.19.1"
 
-	size := coreDownloadSize([]string{"bsnes"}, "x64", v, installer)
+	size := coreDownloadSize([]string{"bsnes"}, "x64", "x86_64", v, installer)
 
 	spec, _ := v.GetPackage("bsnes")
 	if size != spec.BundleSize {
@@ -723,7 +723,7 @@ func TestCoreArchiveTypeUsesResolvedVersion(t *testing.T) {
 	installer := packages.NewFakeInstaller(nil, "/packages")
 	installer.Versions["bsnes"] = "1.22.2"
 
-	archiveType := coreArchiveType([]string{"bsnes"}, "x64", v, installer)
+	archiveType := coreArchiveType([]string{"bsnes"}, "x64", "x86_64", v, installer)
 
 	if archiveType != "7z" {
 		t.Errorf("coreArchiveType = %q, want 7z", archiveType)

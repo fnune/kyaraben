@@ -54,7 +54,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	if err != nil {
 		return model.GenerateResult{}, err
 	}
-	embeddedFiles, err := retroarch.CoreEmbeddedFiles(model.EmulatorIDRetroArchMGBA, pc, ctx.BaseDirResolver)
+	embeddedFiles, err := retroarch.CoreEmbeddedFiles(systems, pc, ctx.BaseDirResolver)
 	if err != nil {
 		return model.GenerateResult{}, err
 	}
@@ -63,9 +63,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	if optionsPatch := retroarch.CoreOptionsPatch(model.EmulatorIDRetroArchMGBA, pc); optionsPatch != nil {
 		patches = append(patches, *optionsPatch)
 	}
-	if overlayPatch := retroarch.OverlayPatch(model.EmulatorIDRetroArchMGBA, pc, ctx.BaseDirResolver); overlayPatch != nil {
-		patches = append(patches, *overlayPatch)
-	}
+	patches = append(patches, retroarch.OverlayPatches(model.EmulatorIDRetroArchMGBA, systems, pc, ctx.BaseDirResolver)...)
 
 	return model.GenerateResult{
 		Patches:          patches,
@@ -74,5 +72,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		EmbeddedFiles:    embeddedFiles,
 	}, nil
 }
+
+var systems = []model.SystemID{model.SystemIDGB, model.SystemIDGBC, model.SystemIDGBA}
 
 const libretroCoreName = "mgba_libretro"

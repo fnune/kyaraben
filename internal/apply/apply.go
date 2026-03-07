@@ -873,7 +873,7 @@ func (a *Applier) buildInstallPlan(emulatorIDs []model.EmulatorID, frontendIDs [
 
 func (a *Applier) buildPackageSizes(plan installPlan) (map[string]int64, map[string]int64, int64, map[string]string) {
 	v := versions.MustGet()
-	targetName := hardware.DetectTarget().Name
+	target := hardware.DetectTarget()
 
 	installed := make(map[string]bool)
 	packageDownloadSizes := make(map[string]int64)
@@ -884,16 +884,16 @@ func (a *Applier) buildPackageSizes(plan installPlan) (map[string]int64, map[str
 	for _, pkgName := range plan.packageNames {
 		installList = append(installList, pkgName)
 		installed[pkgName] = a.Installer.IsEmulatorInstalled(pkgName)
-		downloadSize := packageDownloadSize(pkgName, targetName, v, a.Installer)
+		downloadSize := packageDownloadSize(pkgName, target.Name, target.Arch, v, a.Installer)
 		packageDownloadSizes[pkgName] = downloadSize
-		packageArchiveTypes[pkgName] = packageArchiveType(pkgName, targetName, v, a.Installer)
+		packageArchiveTypes[pkgName] = packageArchiveType(pkgName, target.Name, target.Arch, v, a.Installer)
 	}
 
 	if len(plan.coreNames) > 0 {
 		installList = append(installList, "retroarch-cores")
 		installed["retroarch-cores"] = packages.RetroArchCoresInstalled(a.Installer, plan.coreNames, v)
-		packageDownloadSizes["retroarch-cores"] = coreDownloadSize(plan.coreNames, targetName, v, a.Installer)
-		packageArchiveTypes["retroarch-cores"] = coreArchiveType(plan.coreNames, targetName, v, a.Installer)
+		packageDownloadSizes["retroarch-cores"] = coreDownloadSize(plan.coreNames, target.Name, target.Arch, v, a.Installer)
+		packageArchiveTypes["retroarch-cores"] = coreArchiveType(plan.coreNames, target.Name, target.Arch, v, a.Installer)
 	}
 
 	summary := packages.CalculateChangeSummary(installList, nil, installed, func(pkgName string) int64 {
@@ -917,7 +917,7 @@ func (a *Applier) buildPackageSizes(plan installPlan) (map[string]int64, map[str
 	return downloadSizes, packageTotals, totalBytes, packageArchiveTypes
 }
 
-func packageDownloadSize(pkgName string, targetName string, v *versions.Versions, installer packages.Installer) int64 {
+func packageDownloadSize(pkgName string, targetName string, arch string, v *versions.Versions, installer packages.Installer) int64 {
 	spec, ok := v.GetPackage(pkgName)
 	if !ok {
 		return 0
@@ -930,7 +930,7 @@ func packageDownloadSize(pkgName string, targetName string, v *versions.Versions
 	if entry == nil {
 		return 0
 	}
-	target := entry.SelectTarget(targetName)
+	target := entry.SelectTarget(targetName, arch)
 	if target == "" {
 		return 0
 	}
@@ -941,7 +941,7 @@ func packageDownloadSize(pkgName string, targetName string, v *versions.Versions
 	return build.Size
 }
 
-func coreDownloadSize(coreNames []string, targetName string, v *versions.Versions, installer packages.Installer) int64 {
+func coreDownloadSize(coreNames []string, targetName string, arch string, v *versions.Versions, installer packages.Installer) int64 {
 	if len(coreNames) == 0 {
 		return 0
 	}
@@ -961,7 +961,7 @@ func coreDownloadSize(coreNames []string, targetName string, v *versions.Version
 		if entry == nil {
 			continue
 		}
-		target := entry.SelectTarget(targetName)
+		target := entry.SelectTarget(targetName, arch)
 		if target == "" {
 			continue
 		}
@@ -982,7 +982,7 @@ func coreDownloadSize(coreNames []string, targetName string, v *versions.Version
 	return total
 }
 
-func packageArchiveType(pkgName string, targetName string, v *versions.Versions, installer packages.Installer) string {
+func packageArchiveType(pkgName string, targetName string, arch string, v *versions.Versions, installer packages.Installer) string {
 	spec, ok := v.GetPackage(pkgName)
 	if !ok {
 		return ""
@@ -995,14 +995,14 @@ func packageArchiveType(pkgName string, targetName string, v *versions.Versions,
 	if entry == nil {
 		return ""
 	}
-	target := entry.SelectTarget(targetName)
+	target := entry.SelectTarget(targetName, arch)
 	if target == "" {
 		return ""
 	}
 	return entry.ArchiveType(target, spec)
 }
 
-func coreArchiveType(coreNames []string, targetName string, v *versions.Versions, installer packages.Installer) string {
+func coreArchiveType(coreNames []string, targetName string, arch string, v *versions.Versions, installer packages.Installer) string {
 	if len(coreNames) == 0 {
 		return ""
 	}
@@ -1019,7 +1019,7 @@ func coreArchiveType(coreNames []string, targetName string, v *versions.Versions
 	if entry == nil {
 		return ""
 	}
-	target := entry.SelectTarget(targetName)
+	target := entry.SelectTarget(targetName, arch)
 	if target == "" {
 		return ""
 	}

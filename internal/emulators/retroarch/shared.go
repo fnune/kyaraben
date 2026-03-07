@@ -16,8 +16,8 @@ import (
 
 const (
 	slangShadersCommit = "09c7468812414b682703719c1726bb6263ec5530"
-	crtShaderFile      = "crt-1tap.slang"
-	crtShaderSHA256    = "b77ec93a9edc00a485bb8d99fdf7222c9e6bd10fde50fc321a197a3616d08a99"
+	crtShaderFile      = "crt-gdv-mini-ultra.slang"
+	crtShaderSHA256    = "e01f5d88bdf51ce72ace502d7c90997c2ddf7d5a492ee070a51df5d1c1b6a970"
 	lcdShaderFile      = "lcd3x.slang"
 	lcdShaderSHA256    = "58cb684d42d3ab336aefedb7f961bf551428d21d7371d2fa9eae64cbdaafcdec"
 )
@@ -373,6 +373,9 @@ func coreShaderPatch(emuID model.EmulatorID, displayTypes map[model.SystemID]mod
 			model.Entry(model.Preset, model.Path("shaders"), "1"),
 			model.Entry(model.Preset, model.Path("shader0"), filepath.Join(shaderDir, crtShaderFile)),
 			model.Entry(model.Preset, model.Path("filter_linear0"), "false"),
+			model.Entry(model.Preset, model.Path("warpX"), "0.010000"),
+			model.Entry(model.Preset, model.Path("warpY"), "0.010000"),
+			model.Entry(model.Preset, model.Path("glow"), "0.200000"),
 		}
 	}
 
@@ -410,7 +413,7 @@ func CoreShaderDownloads(emuID model.EmulatorID, resolver model.BaseDirResolver,
 	}
 
 	return []model.InitialDownload{{
-		URL:      "https://raw.githubusercontent.com/libretro/slang-shaders/" + slangShadersCommit + "/crt/shaders/crt-1tap.slang",
+		URL:      "https://raw.githubusercontent.com/libretro/slang-shaders/" + slangShadersCommit + "/crt/shaders/" + crtShaderFile,
 		SHA256:   crtShaderSHA256,
 		DestPath: filepath.Join(shaderDir, crtShaderFile),
 	}}, nil
@@ -457,7 +460,7 @@ func CoreOptionsTarget(shortName string) model.ConfigTarget {
 // This configures features like color correction and interframe blending
 // per RGC recommendations for authentic display emulation.
 func CoreOptionsPatch(emuID model.EmulatorID, pc *PresetConfig) *model.ConfigPatch {
-	if pc == nil || pc.Preset != model.PresetPseudoAuthentic {
+	if pc == nil {
 		return nil
 	}
 
@@ -468,20 +471,27 @@ func CoreOptionsPatch(emuID model.EmulatorID, pc *PresetConfig) *model.ConfigPat
 
 	var entries []model.ConfigEntry
 
-	switch emuID {
-	case model.EmulatorIDRetroArchMGBA:
-		entries = []model.ConfigEntry{
-			model.Entry(model.Preset, model.Path("mgba_color_correction"), "Auto"),
-			model.Entry(model.Preset, model.Path("mgba_interframe_blending"), "mix_smart"),
+	if pc.Preset == model.PresetPseudoAuthentic {
+		switch emuID {
+		case model.EmulatorIDRetroArchMGBA:
+			entries = append(entries,
+				model.Entry(model.Preset, model.Path("mgba_color_correction"), "Auto"),
+				model.Entry(model.Preset, model.Path("mgba_interframe_blending"), "mix_smart"),
+				model.Entry(model.Preset, model.Path("mgba_gb_colors"), "GB Pocket"),
+			)
+		case model.EmulatorIDRetroArchGenesisPlusGX:
+			entries = append(entries,
+				model.Entry(model.Preset, model.Path("genesis_plus_gx_blargg_ntsc_filter"), "S-Video"),
+			)
+		case model.EmulatorIDRetroArchMesen:
+			entries = append(entries,
+				model.Entry(model.Preset, model.Path("mesen_palette"), "PVM Style (by FirebrandX)"),
+			)
 		}
-	case model.EmulatorIDRetroArchGenesisPlusGX:
-		entries = []model.ConfigEntry{
-			model.Entry(model.Preset, model.Path("genesis_plus_gx_blargg_ntsc_filter"), "S-Video"),
-		}
-	case model.EmulatorIDRetroArchMesen:
-		entries = []model.ConfigEntry{
-			model.Entry(model.Preset, model.Path("mesen_palette"), "PVM Style (by FirebrandX)"),
-		}
+	}
+
+	if pc.Bezels && emuID == model.EmulatorIDRetroArchMGBA {
+		entries = append(entries, model.Entry(model.Preset, model.Path("mgba_sgb_borders"), "OFF"))
 	}
 
 	if len(entries) == 0 {
@@ -494,8 +504,24 @@ func CoreOptionsPatch(emuID model.EmulatorID, pc *PresetConfig) *model.ConfigPat
 	}
 }
 
-// OverlayPatch returns a config patch that enables overlays (bezels) for a core.
-func OverlayPatch(emuID model.EmulatorID, pc *PresetConfig, resolver model.BaseDirResolver) *model.ConfigPatch {
+// ContentDirOverrideTarget returns the config target for a per-content-directory override.
+// This allows different settings when loading ROMs from different system directories.
+func ContentDirOverrideTarget(shortName string, systemID model.SystemID) model.ConfigTarget {
+	configDirName := shortName
+	if displayName, ok := coreConfigDirNames[shortName]; ok {
+		configDirName = displayName
+	}
+	contentDir := string(systemID)
+	return model.ConfigTarget{
+		RelPath: "retroarch/config/" + configDirName + "/" + contentDir + ".cfg",
+		Format:  model.ConfigFormatCFG,
+		BaseDir: model.ConfigBaseDirUserConfig,
+	}
+}
+
+// OverlayPatches returns config patches that enable overlays (bezels) for each system.
+// Uses per-content-directory overrides so multi-system emulators get correct overlays.
+func OverlayPatches(emuID model.EmulatorID, systems []model.SystemID, pc *PresetConfig, resolver model.BaseDirResolver) []model.ConfigPatch {
 	if pc == nil || !pc.Bezels {
 		return nil
 	}
@@ -505,47 +531,46 @@ func OverlayPatch(emuID model.EmulatorID, pc *PresetConfig, resolver model.BaseD
 		return nil
 	}
 
-	systemID := coreToSystem[emuID]
-	displayType := pc.SystemDisplayTypes[systemID]
-	overlayType := systemToOverlayType(systemID, displayType)
-	if overlayType == "" {
-		return nil
-	}
-
 	configDir, err := resolver.UserConfigDir()
 	if err != nil {
 		return nil
 	}
 
-	_, cfgFile := assets.OverlayFiles(overlayType)
-	if cfgFile == "" {
-		return nil
+	var patches []model.ConfigPatch
+	for _, systemID := range systems {
+		overlayType := systemToOverlayType(systemID)
+		if overlayType == "" {
+			continue
+		}
+
+		_, cfgFile := assets.OverlayFiles(overlayType)
+		if cfgFile == "" {
+			continue
+		}
+
+		overlayPath := filepath.Join(configDir, "retroarch", "overlays", "kyaraben", cfgFile)
+
+		entries := []model.ConfigEntry{
+			model.Entry(model.Preset, model.Path("input_overlay_enable"), "true"),
+			model.Entry(model.Preset, model.Path("input_overlay"), overlayPath),
+			model.Entry(model.Preset, model.Path("input_overlay_hide_in_menu"), "true"),
+			model.Entry(model.Preset, model.Path("aspect_ratio_index"), "22"),
+			model.Entry(model.Preset, model.Path("video_scale_integer"), "true"),
+			model.Entry(model.Preset, model.Path("video_scale_integer_axis"), "1"),
+		}
+
+		patches = append(patches, model.ConfigPatch{
+			Target:  ContentDirOverrideTarget(shortName, systemID),
+			Entries: entries,
+		})
 	}
 
-	overlayPath := filepath.Join(configDir, "retroarch", "overlays", "kyaraben", cfgFile)
-
-	entries := []model.ConfigEntry{
-		model.Entry(model.Preset, model.Path("input_overlay_enable"), "true"),
-		model.Entry(model.Preset, model.Path("input_overlay"), overlayPath),
-		model.Entry(model.Preset, model.Path("input_overlay_hide_in_menu"), "true"),
-	}
-
-	return &model.ConfigPatch{
-		Target:  CoreOverrideTarget(shortName),
-		Entries: entries,
-	}
+	return patches
 }
 
-// CoreEmbeddedFiles returns embedded overlay files for a core.
-func CoreEmbeddedFiles(emuID model.EmulatorID, pc *PresetConfig, resolver model.BaseDirResolver) ([]model.EmbeddedFile, error) {
+// CoreEmbeddedFiles returns embedded overlay files for all systems the emulator supports.
+func CoreEmbeddedFiles(systems []model.SystemID, pc *PresetConfig, resolver model.BaseDirResolver) ([]model.EmbeddedFile, error) {
 	if pc == nil || !pc.Bezels {
-		return nil, nil
-	}
-
-	systemID := coreToSystem[emuID]
-	displayType := pc.SystemDisplayTypes[systemID]
-	overlayType := systemToOverlayType(systemID, displayType)
-	if overlayType == "" {
 		return nil, nil
 	}
 
@@ -555,36 +580,50 @@ func CoreEmbeddedFiles(emuID model.EmulatorID, pc *PresetConfig, resolver model.
 	}
 
 	overlayDir := filepath.Join(configDir, "retroarch", "overlays", "kyaraben")
-	pngFile, cfgFile := assets.OverlayFiles(overlayType)
-	if pngFile == "" || cfgFile == "" {
-		return nil, nil
-	}
-
 	overlayFS := assets.OverlayFS()
 	var files []model.EmbeddedFile
+	seen := make(map[string]bool)
 
-	pngContent, err := fs.ReadFile(overlayFS, pngFile)
-	if err != nil {
-		return nil, fmt.Errorf("reading overlay png: %w", err)
-	}
-	files = append(files, model.EmbeddedFile{
-		Content:  pngContent,
-		DestPath: filepath.Join(overlayDir, pngFile),
-	})
+	for _, systemID := range systems {
+		overlayType := systemToOverlayType(systemID)
+		if overlayType == "" {
+			continue
+		}
 
-	cfgContent, err := fs.ReadFile(overlayFS, cfgFile)
-	if err != nil {
-		return nil, fmt.Errorf("reading overlay cfg: %w", err)
+		pngFile, cfgFile := assets.OverlayFiles(overlayType)
+		if pngFile == "" || cfgFile == "" {
+			continue
+		}
+
+		if !seen[pngFile] {
+			seen[pngFile] = true
+			pngContent, err := fs.ReadFile(overlayFS, pngFile)
+			if err != nil {
+				return nil, fmt.Errorf("reading overlay png %s: %w", pngFile, err)
+			}
+			files = append(files, model.EmbeddedFile{
+				Content:  pngContent,
+				DestPath: filepath.Join(overlayDir, pngFile),
+			})
+		}
+
+		if !seen[cfgFile] {
+			seen[cfgFile] = true
+			cfgContent, err := fs.ReadFile(overlayFS, cfgFile)
+			if err != nil {
+				return nil, fmt.Errorf("reading overlay cfg %s: %w", cfgFile, err)
+			}
+			files = append(files, model.EmbeddedFile{
+				Content:  cfgContent,
+				DestPath: filepath.Join(overlayDir, cfgFile),
+			})
+		}
 	}
-	files = append(files, model.EmbeddedFile{
-		Content:  cfgContent,
-		DestPath: filepath.Join(overlayDir, cfgFile),
-	})
 
 	return files, nil
 }
 
-func systemToOverlayType(systemID model.SystemID, displayType model.DisplayType) string {
+func systemToOverlayType(systemID model.SystemID) string {
 	switch systemID {
 	case model.SystemIDGB:
 		return "gb"
@@ -592,10 +631,9 @@ func systemToOverlayType(systemID model.SystemID, displayType model.DisplayType)
 		return "gbc"
 	case model.SystemIDGBA:
 		return "gba"
+	case model.SystemIDNGP:
+		return "ngp"
 	default:
-		if displayType == model.DisplayTypeCRT {
-			return "crt"
-		}
 		return ""
 	}
 }

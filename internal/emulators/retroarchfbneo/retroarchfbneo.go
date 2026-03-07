@@ -147,7 +147,8 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	if err != nil {
 		return model.GenerateResult{}, err
 	}
-	embeddedFiles, err := retroarch.CoreEmbeddedFiles(model.EmulatorIDRetroArchFBNeo, pc, ctx.BaseDirResolver)
+	systems := []model.SystemID{model.SystemIDArcade}
+	embeddedFiles, err := retroarch.CoreEmbeddedFiles(systems, pc, ctx.BaseDirResolver)
 	if err != nil {
 		return model.GenerateResult{}, err
 	}
@@ -160,9 +161,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 			model.Default(model.None, model.Path("fbneo-allow-depth-32"), "enabled"),
 		},
 	})
-	if overlayPatch := retroarch.OverlayPatch(model.EmulatorIDRetroArchFBNeo, pc, ctx.BaseDirResolver); overlayPatch != nil {
-		patches = append(patches, *overlayPatch)
-	}
+	patches = append(patches, retroarch.OverlayPatches(model.EmulatorIDRetroArchFBNeo, systems, pc, ctx.BaseDirResolver)...)
 
 	return model.GenerateResult{
 		Patches:          patches,

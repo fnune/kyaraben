@@ -572,7 +572,8 @@ func (i *PackageInstaller) GarbageCollect(keep map[string]string) error {
 }
 
 func (i *PackageInstaller) selectTarget(entry *versions.VersionEntry) string {
-	return entry.SelectTarget(hardware.DetectTarget().Name)
+	t := hardware.DetectTarget()
+	return entry.SelectTarget(t.Name, t.Arch)
 }
 
 func (i *PackageInstaller) findFile(root, filename string) (string, error) {

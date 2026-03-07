@@ -55,7 +55,8 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	if err != nil {
 		return model.GenerateResult{}, err
 	}
-	embeddedFiles, err := retroarch.CoreEmbeddedFiles(model.EmulatorIDRetroArchVICE, pc, ctx.BaseDirResolver)
+	systems := []model.SystemID{model.SystemIDC64}
+	embeddedFiles, err := retroarch.CoreEmbeddedFiles(systems, pc, ctx.BaseDirResolver)
 	if err != nil {
 		return model.GenerateResult{}, err
 	}
@@ -68,9 +69,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 			model.Default(model.None, model.Path("vice_autoloadwarp"), "enabled"),
 		},
 	})
-	if overlayPatch := retroarch.OverlayPatch(model.EmulatorIDRetroArchVICE, pc, ctx.BaseDirResolver); overlayPatch != nil {
-		patches = append(patches, *overlayPatch)
-	}
+	patches = append(patches, retroarch.OverlayPatches(model.EmulatorIDRetroArchVICE, systems, pc, ctx.BaseDirResolver)...)
 
 	return model.GenerateResult{
 		Patches:          patches,

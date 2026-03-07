@@ -56,20 +56,23 @@ func TestSelectTarget(t *testing.T) {
 	}
 
 	tests := []struct {
-		detected string
+		name     string
+		arch     string
 		expected string
 	}{
-		{"steamdeck", "steamdeck"},
-		{"rog-ally", "rog-ally"},
-		{"aarch64", "aarch64"},
-		{"amd64", "x64"},
-		{"unknown", ""},
+		{"steamdeck", "x86_64", "steamdeck"},
+		{"rog-ally", "x86_64", "rog-ally"},
+		{"aarch64", "aarch64", "aarch64"},
+		{"x64", "x86_64", "x64"},
+		{"unknown", "x86_64", "x64"},
+		{"unknown", "aarch64", "aarch64"},
+		{"unknown", "unknown", ""},
 	}
 
 	for _, tt := range tests {
-		got := entry.SelectTarget(tt.detected)
+		got := entry.SelectTarget(tt.name, tt.arch)
 		if got != tt.expected {
-			t.Errorf("SelectTarget(%s) = %q, want %q", tt.detected, got, tt.expected)
+			t.Errorf("SelectTarget(%s, %s) = %q, want %q", tt.name, tt.arch, got, tt.expected)
 		}
 	}
 }
@@ -289,12 +292,9 @@ func TestCoresArePackages(t *testing.T) {
 			t.Errorf("core %s has no default version", core)
 			continue
 		}
-		target := entry.SelectTarget("x64")
+		target := entry.SelectTarget("x64", "x86_64")
 		if target == "" {
-			target = entry.SelectTarget("amd64")
-		}
-		if target == "" {
-			t.Errorf("core %s has no x64/amd64 target", core)
+			t.Errorf("core %s has no x64 target", core)
 			continue
 		}
 		build := entry.Target(target)
@@ -321,17 +321,14 @@ func TestVersionsTomlIntegrity(t *testing.T) {
 				t.Fatal("no targets defined")
 			}
 
-			target := entry.SelectTarget("x64")
+			target := entry.SelectTarget("x64", "x86_64")
 			if target == "" {
-				target = entry.SelectTarget("amd64")
-			}
-			if target == "" {
-				t.Errorf("no target for x64/amd64")
+				t.Errorf("no target for x64")
 			}
 
-			first := entry.SelectTarget("amd64")
+			first := entry.SelectTarget("x64", "x86_64")
 			for i := 0; i < 10; i++ {
-				if entry.SelectTarget("amd64") != first {
+				if entry.SelectTarget("x64", "x86_64") != first {
 					t.Error("SelectTarget is non-deterministic")
 					break
 				}

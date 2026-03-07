@@ -55,15 +55,14 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	if err != nil {
 		return model.GenerateResult{}, err
 	}
-	embeddedFiles, err := retroarch.CoreEmbeddedFiles(model.EmulatorIDRetroArchBsnes, pc, ctx.BaseDirResolver)
+	systems := []model.SystemID{model.SystemIDSNES}
+	embeddedFiles, err := retroarch.CoreEmbeddedFiles(systems, pc, ctx.BaseDirResolver)
 	if err != nil {
 		return model.GenerateResult{}, err
 	}
 
 	patches := retroarch.CorePatches(model.EmulatorIDRetroArchBsnes, ctx.Store, ctx.ControllerConfig, pc, ctx.BaseDirResolver)
-	if overlayPatch := retroarch.OverlayPatch(model.EmulatorIDRetroArchBsnes, pc, ctx.BaseDirResolver); overlayPatch != nil {
-		patches = append(patches, *overlayPatch)
-	}
+	patches = append(patches, retroarch.OverlayPatches(model.EmulatorIDRetroArchBsnes, systems, pc, ctx.BaseDirResolver)...)
 
 	return model.GenerateResult{
 		Patches:          patches,

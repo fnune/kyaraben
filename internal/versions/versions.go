@@ -94,21 +94,19 @@ func (v *VersionEntry) Target(name string) *TargetBuild {
 	return nil
 }
 
-// TargetFallback maps detected hardware names to canonical target names.
-// x86_64 devices fall back to x64 when no device-specific build exists.
-var TargetFallback = map[string]TargetName{
-	"amd64":     TargetX64,
-	"steamdeck": TargetX64,
-	"rog-ally":  TargetX64,
+// archFallback maps architectures to their canonical target names.
+var archFallback = map[string]TargetName{
+	"x86_64":  TargetX64,
+	"aarch64": TargetAarch64,
 }
 
-// SelectTarget returns the best matching target for the given detected target name.
-// It tries exact match first, then falls back to x64 for x86_64-compatible targets.
-func (v *VersionEntry) SelectTarget(detectedName string) string {
-	if v.Target(detectedName) != nil {
-		return detectedName
+// SelectTarget returns the best matching target for the given detected hardware.
+// It tries exact match first, then falls back to the canonical target for the architecture.
+func (v *VersionEntry) SelectTarget(name, arch string) string {
+	if v.Target(name) != nil {
+		return name
 	}
-	if fallback, ok := TargetFallback[detectedName]; ok {
+	if fallback, ok := archFallback[arch]; ok {
 		if v.Target(fallback.String()) != nil {
 			return fallback.String()
 		}

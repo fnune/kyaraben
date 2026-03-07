@@ -794,7 +794,7 @@ func (d *Daemon) handleCancelApply() []Event {
 func (d *Daemon) handleGetSystems() []Event {
 	systems := d.deps.Registry.AllSystems()
 	vers, _ := versions.Get()
-	detectedTarget := hardware.DetectTarget().Name
+	detectedTarget := hardware.DetectTarget()
 
 	result := make(GetSystemsResponse, 0, len(systems))
 	for _, sys := range systems {
@@ -823,7 +823,7 @@ func (d *Daemon) handleGetSystems() []Event {
 					ref.AvailableVersions = availableVersions
 
 					if entry := spec.GetDefault(); entry != nil {
-						if target := entry.SelectTarget(detectedTarget); target != "" {
+						if target := entry.SelectTarget(detectedTarget.Name, detectedTarget.Arch); target != "" {
 							if build := entry.Target(target); build != nil {
 								if spec.IsRetroArchCore() {
 									ref.CoreBytes = build.Size
@@ -838,7 +838,7 @@ func (d *Daemon) handleGetSystems() []Event {
 				if coreName != "" {
 					if raSpec, ok := vers.GetPackage("retroarch"); ok {
 						if entry := raSpec.GetDefault(); entry != nil {
-							if target := entry.SelectTarget(detectedTarget); target != "" {
+							if target := entry.SelectTarget(detectedTarget.Name, detectedTarget.Arch); target != "" {
 								if build := entry.Target(target); build != nil && build.Size > 0 {
 									ref.DownloadBytes = build.Size
 								}
@@ -877,7 +877,7 @@ func (d *Daemon) handleGetSystems() []Event {
 func (d *Daemon) handleGetFrontends() []Event {
 	frontends := d.deps.Registry.AllFrontends()
 	vers, _ := versions.Get()
-	detectedTarget := hardware.DetectTarget().Name
+	detectedTarget := hardware.DetectTarget()
 
 	result := make(GetFrontendsResponse, 0, len(frontends))
 	for _, fe := range frontends {
@@ -894,7 +894,7 @@ func (d *Daemon) handleGetFrontends() []Event {
 				ref.AvailableVersions = availableVersions
 
 				if entry := spec.GetDefault(); entry != nil {
-					if target := entry.SelectTarget(detectedTarget); target != "" {
+					if target := entry.SelectTarget(detectedTarget.Name, detectedTarget.Arch); target != "" {
 						if build := entry.Target(target); build != nil && build.Size > 0 {
 							ref.DownloadBytes = build.Size
 						}

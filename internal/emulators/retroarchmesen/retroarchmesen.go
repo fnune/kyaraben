@@ -54,7 +54,8 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	if err != nil {
 		return model.GenerateResult{}, err
 	}
-	embeddedFiles, err := retroarch.CoreEmbeddedFiles(model.EmulatorIDRetroArchMesen, pc, ctx.BaseDirResolver)
+	systems := []model.SystemID{model.SystemIDNES}
+	embeddedFiles, err := retroarch.CoreEmbeddedFiles(systems, pc, ctx.BaseDirResolver)
 	if err != nil {
 		return model.GenerateResult{}, err
 	}
@@ -63,9 +64,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	if optionsPatch := retroarch.CoreOptionsPatch(model.EmulatorIDRetroArchMesen, pc); optionsPatch != nil {
 		patches = append(patches, *optionsPatch)
 	}
-	if overlayPatch := retroarch.OverlayPatch(model.EmulatorIDRetroArchMesen, pc, ctx.BaseDirResolver); overlayPatch != nil {
-		patches = append(patches, *overlayPatch)
-	}
+	patches = append(patches, retroarch.OverlayPatches(model.EmulatorIDRetroArchMesen, systems, pc, ctx.BaseDirResolver)...)
 
 	return model.GenerateResult{
 		Patches:          patches,

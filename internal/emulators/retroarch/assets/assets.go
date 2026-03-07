@@ -16,16 +16,17 @@ func OverlayFS() fs.FS {
 }
 
 // OverlayFiles returns the list of overlay file names for a system.
+// These are 5x integer-scaled placeholder overlays for 1280x800 (Steam Deck).
 func OverlayFiles(systemType string) (pngFile, cfgFile string) {
 	switch systemType {
 	case "gb":
-		return "Perfect_GB-DMG.png", "Perfect_GB-DMG.cfg"
+		return "placeholder_gb_5x.png", "placeholder_gb_5x.cfg"
 	case "gbc":
-		return "Perfect_GBC.png", "Perfect_GBC.cfg"
+		return "placeholder_gbc_5x.png", "placeholder_gbc_5x.cfg"
 	case "gba":
-		return "Perfect_GBA.png", "Perfect_GBA.cfg"
-	case "crt":
-		return "Jeltron_CRT.png", "Jeltron_CRT.cfg"
+		return "placeholder_gba_5x.png", "placeholder_gba_5x.cfg"
+	case "ngp":
+		return "placeholder_ngp_5x.png", "placeholder_ngp_5x.cfg"
 	default:
 		return "", ""
 	}
