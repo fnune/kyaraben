@@ -7,6 +7,7 @@ import (
 type MenuUI struct {
 	SelectIndex  int
 	SelectAction ui.Action
+	SelectFunc   func(items []ui.MenuItem) (int, ui.Action)
 	Err          error
 	ShowCalls    []ShowCall
 }
@@ -18,6 +19,10 @@ type ShowCall struct {
 
 func (m *MenuUI) Show(items []ui.MenuItem, options ui.MenuOptions) (int, ui.Action, error) {
 	m.ShowCalls = append(m.ShowCalls, ShowCall{Items: items, Options: options})
+	if m.SelectFunc != nil {
+		idx, action := m.SelectFunc(items)
+		return idx, action, m.Err
+	}
 	return m.SelectIndex, m.SelectAction, m.Err
 }
 

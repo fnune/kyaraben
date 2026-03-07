@@ -8,6 +8,7 @@ import (
 
 	"github.com/fnune/kyaraben/integrations/nextui/internal/config"
 	"github.com/fnune/kyaraben/integrations/nextui/internal/mapping"
+	"github.com/fnune/kyaraben/integrations/nextui/internal/service"
 	"github.com/fnune/kyaraben/integrations/nextui/internal/ui"
 	"github.com/fnune/kyaraben/internal/syncguest"
 )
@@ -41,25 +42,41 @@ func EnvFromOS() Env {
 }
 
 type App struct {
-	env    Env
-	cfg    config.Config
-	mapper *mapping.Mapper
-	mgr    *syncguest.Manager
-	ui     ui.UI
+	env     Env
+	cfg     *config.Config
+	dataDir string
+	mapper  *mapping.Mapper
+	syncMgr *syncguest.Manager
+	svcMgr  *service.Manager
+	ui      ui.UI
 }
 
-func New(env Env, cfg config.Config, mgr *syncguest.Manager, appUI ui.UI) *App {
+func New(env Env, cfg *config.Config, dataDir string, syncMgr *syncguest.Manager, svcMgr *service.Manager, appUI ui.UI) *App {
 	return &App{
-		env:    env,
-		cfg:    cfg,
-		mapper: mapping.NewMapper(env.SDCardPath, cfg),
-		mgr:    mgr,
-		ui:     appUI,
+		env:     env,
+		cfg:     cfg,
+		dataDir: dataDir,
+		mapper:  mapping.NewMapper(env.SDCardPath, *cfg),
+		syncMgr: syncMgr,
+		svcMgr:  svcMgr,
+		ui:      appUI,
 	}
 }
 
 func (a *App) Run(ctx context.Context) error {
-	if err := a.mgr.ConfigureFolders(a.mapper.SyncguestFolderMappings()); err != nil {
+	if a.cfg.Service.Enabled {
+		if err := a.startSyncthing(ctx); err != nil {
+			a.showError(fmt.Errorf("start syncthing: %w", err))
+		}
+	}
+
+	if a.cfg.Service.StartOnBoot {
+		if err := a.svcMgr.EnableAutostart(); err != nil {
+			a.showError(fmt.Errorf("enable autostart: %w", err))
+		}
+	}
+
+	if err := a.syncMgr.ConfigureFolders(a.mapper.SyncguestFolderMappings()); err != nil {
 		return fmt.Errorf("configure folders: %w", err)
 	}
 
@@ -74,12 +91,23 @@ func (a *App) Run(ctx context.Context) error {
 	}
 }
 
+func (a *App) startSyncthing(ctx context.Context) error {
+	if a.svcMgr.IsRunning(ctx) {
+		return nil
+	}
+	return a.svcMgr.Start(ctx)
+}
+
 func (a *App) showMainMenu(ctx context.Context) (string, error) {
 	status := a.getSyncStatus(ctx)
+	syncToggle := a.syncToggleLabel()
+	bootToggle := a.bootToggleLabel()
 
-	guiPort := a.mgr.Client().Config().GUIPort
+	guiPort := a.syncMgr.Client().Config().GUIPort
 	items := []ui.MenuItem{
 		{Label: fmt.Sprintf("Status: %s", status), Value: "status"},
+		{Label: syncToggle, Value: "toggle_sync"},
+		{Label: bootToggle, Value: "toggle_boot"},
 		{Label: "Pair new device", Value: "pair"},
 		{Label: "View paired devices", Value: "devices"},
 		{Label: fmt.Sprintf("Syncthing UI: http://localhost:%d", guiPort), Value: "url"},
@@ -97,6 +125,14 @@ func (a *App) showMainMenu(ctx context.Context) (string, error) {
 	}
 
 	switch items[idx].Value {
+	case "toggle_sync":
+		if err := a.toggleSync(ctx); err != nil {
+			a.showError(err)
+		}
+	case "toggle_boot":
+		if err := a.toggleBoot(); err != nil {
+			a.showError(err)
+		}
 	case "pair":
 		if err := a.runPairing(ctx); err != nil {
 			a.showError(err)
@@ -110,14 +146,62 @@ func (a *App) showMainMenu(ctx context.Context) (string, error) {
 	return "", nil
 }
 
+func (a *App) syncToggleLabel() string {
+	if a.cfg.Service.Enabled {
+		return "Syncing: enabled"
+	}
+	return "Syncing: disabled"
+}
+
+func (a *App) bootToggleLabel() string {
+	if a.cfg.Service.StartOnBoot {
+		return "Start on boot: enabled"
+	}
+	return "Start on boot: disabled"
+}
+
+func (a *App) toggleSync(ctx context.Context) error {
+	if a.cfg.Service.Enabled {
+		a.cfg.Service.Enabled = false
+		if err := a.svcMgr.Stop(); err != nil {
+			return fmt.Errorf("stop syncthing: %w", err)
+		}
+	} else {
+		a.cfg.Service.Enabled = true
+		if err := a.svcMgr.Start(ctx); err != nil {
+			return fmt.Errorf("start syncthing: %w", err)
+		}
+	}
+	return a.cfg.Save(a.dataDir)
+}
+
+func (a *App) toggleBoot() error {
+	if a.cfg.Service.StartOnBoot {
+		a.cfg.Service.StartOnBoot = false
+		if err := a.svcMgr.DisableAutostart(); err != nil {
+			return fmt.Errorf("disable autostart: %w", err)
+		}
+	} else {
+		a.cfg.Service.StartOnBoot = true
+		if err := a.svcMgr.EnableAutostart(); err != nil {
+			return fmt.Errorf("enable autostart: %w", err)
+		}
+	}
+	return a.cfg.Save(a.dataDir)
+}
+
 func (a *App) getSyncStatus(ctx context.Context) string {
-	status, err := a.mgr.GetStatus(ctx)
+	if !a.cfg.Service.Enabled {
+		return "Disabled"
+	}
+
+	status, err := a.syncMgr.GetStatus(ctx)
 	if err != nil {
 		return "Error"
 	}
 
 	if !status.Running {
-		return "Syncthing not running"
+		return "Not running"
 	}
 
 	if status.Syncing {
@@ -159,7 +243,7 @@ func (a *App) runPairing(ctx context.Context) error {
 }
 
 func (a *App) generateCode(ctx context.Context) error {
-	session, err := a.mgr.CreatePairingSession(ctx)
+	session, err := a.syncMgr.CreatePairingSession(ctx)
 	if err != nil {
 		return fmt.Errorf("create pairing session: %w", err)
 	}
@@ -168,13 +252,13 @@ func (a *App) generateCode(ctx context.Context) error {
 		return err
 	}
 
-	peerID, err := a.mgr.WaitForPeer(ctx, session.Code)
+	peerID, err := a.syncMgr.WaitForPeer(ctx, session.Code)
 	_ = a.ui.Presenter().Close()
 	if err != nil {
 		return fmt.Errorf("waiting for peer: %w", err)
 	}
 
-	if err := a.mgr.AddPeer(ctx, peerID); err != nil {
+	if err := a.syncMgr.AddPeer(ctx, peerID); err != nil {
 		return fmt.Errorf("add peer: %w", err)
 	}
 
@@ -195,12 +279,12 @@ func (a *App) enterCode(ctx context.Context) error {
 		return nil
 	}
 
-	peerID, err := a.mgr.JoinPairingSession(ctx, code)
+	peerID, err := a.syncMgr.JoinPairingSession(ctx, code)
 	if err != nil {
 		return fmt.Errorf("join session: %w", err)
 	}
 
-	if err := a.mgr.AddPeer(ctx, peerID); err != nil {
+	if err := a.syncMgr.AddPeer(ctx, peerID); err != nil {
 		return fmt.Errorf("add peer: %w", err)
 	}
 
@@ -209,7 +293,7 @@ func (a *App) enterCode(ctx context.Context) error {
 }
 
 func (a *App) showDevices(ctx context.Context) error {
-	status, err := a.mgr.GetStatus(ctx)
+	status, err := a.syncMgr.GetStatus(ctx)
 	if err != nil {
 		return err
 	}

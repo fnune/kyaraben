@@ -12,10 +12,20 @@ type Config struct {
 	ROMs        map[string]string `toml:"roms"`
 	BIOS        map[string]string `toml:"bios"`
 	Screenshots map[string]string `toml:"screenshots"`
+	Service     ServiceConfig     `toml:"service"`
+}
+
+type ServiceConfig struct {
+	Enabled     bool `toml:"enabled"`
+	StartOnBoot bool `toml:"start_on_boot"`
 }
 
 func DefaultConfig() Config {
 	return Config{
+		Service: ServiceConfig{
+			Enabled:     true,
+			StartOnBoot: true,
+		},
 		Saves: map[string]string{
 			"nes":          "Saves/FC",
 			"snes":         "Saves/SFC",
@@ -59,36 +69,42 @@ func DefaultConfig() Config {
 	}
 }
 
-func Load(userdataPath, platform string) (Config, error) {
+func Load(dataDir string) (*Config, error) {
 	cfg := DefaultConfig()
 
-	if userdataPath == "" || platform == "" {
-		return cfg, nil
+	if dataDir == "" {
+		return &cfg, nil
 	}
 
-	configPath := filepath.Join(userdataPath, platform, "kyaraben", "config.toml")
+	configPath := filepath.Join(dataDir, "config.toml")
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return cfg, nil
+			if err := cfg.save(dataDir); err != nil {
+				return &cfg, err
+			}
+			return &cfg, nil
 		}
-		return cfg, err
+		return &cfg, err
 	}
 
 	if err := toml.Unmarshal(data, &cfg); err != nil {
-		return cfg, err
+		return &cfg, err
 	}
 
-	return cfg, nil
+	return &cfg, nil
 }
 
-func (c *Config) Save(userdataPath, platform string) error {
-	configDir := filepath.Join(userdataPath, platform, "kyaraben")
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+func (c *Config) Save(dataDir string) error {
+	return c.save(dataDir)
+}
+
+func (c *Config) save(dataDir string) error {
+	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		return err
 	}
 
-	configPath := filepath.Join(configDir, "config.toml")
+	configPath := filepath.Join(dataDir, "config.toml")
 	f, err := os.Create(configPath)
 	if err != nil {
 		return err

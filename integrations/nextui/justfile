@@ -2,8 +2,8 @@
 
 # Versions
 syncthing_version := "1.29.2"
-minui_list_version := "0.3.0"
-minui_keyboard_version := "0.2.0"
+minui_list_version := "0.12.0"
+minui_keyboard_version := "0.7.0"
 
 # Directories
 build_dir := "dist"
@@ -86,7 +86,7 @@ _fetch-minui-list platform dest:
     if [ ! -f "$cache" ]; then
         echo "Downloading minui-list {{ minui_list_version }} for {{ platform }}..."
         mkdir -p "{{ cache_dir }}"
-        url="https://github.com/josegonzalez/minui-list/releases/download/{{ minui_list_version }}/minui-list.{{ platform }}"
+        url="https://github.com/josegonzalez/minui-list/releases/download/{{ minui_list_version }}/minui-list-{{ platform }}"
         curl -fsSL -o "$cache" "$url"
     fi
 
@@ -101,7 +101,7 @@ _fetch-minui-keyboard platform dest:
     if [ ! -f "$cache" ]; then
         echo "Downloading minui-keyboard {{ minui_keyboard_version }} for {{ platform }}..."
         mkdir -p "{{ cache_dir }}"
-        url="https://github.com/josegonzalez/minui-keyboard/releases/download/{{ minui_keyboard_version }}/minui-keyboard.{{ platform }}"
+        url="https://github.com/josegonzalez/minui-keyboard/releases/download/{{ minui_keyboard_version }}/minui-keyboard-{{ platform }}"
         curl -fsSL -o "$cache" "$url"
     fi
 
