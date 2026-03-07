@@ -44,6 +44,9 @@
             nil
             nixpkgs-fmt
 
+            # Static linking for portable CGO binaries
+            musl
+
             # General tools
             git
             goreleaser

@@ -56,6 +56,9 @@ fi
 
 mkdir -p "$BINARIES_DIR"
 cd "$PROJECT_ROOT"
-CGO_ENABLED=1 go build -ldflags="-X github.com/fnune/kyaraben/internal/version.Version=$VERSION" -o "$BINARIES_DIR/$OUTPUT_NAME" ./cmd/kyaraben
+
+CC=musl-gcc CGO_ENABLED=1 go build \
+    -ldflags="-X github.com/fnune/kyaraben/internal/version.Version=$VERSION -linkmode external -extldflags '-static'" \
+    -o "$BINARIES_DIR/$OUTPUT_NAME" ./cmd/kyaraben
 
 echo "Built: $BINARIES_DIR/$OUTPUT_NAME"
