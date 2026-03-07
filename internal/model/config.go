@@ -58,7 +58,6 @@ type KyarabenConfig struct {
 // GraphicsConfig holds graphics-related default settings.
 type GraphicsConfig struct {
 	Preset string `toml:"preset,omitempty"`
-	Bezels *bool  `toml:"bezels,omitempty"`
 	Target string `toml:"target,omitempty"`
 }
 
@@ -86,7 +85,6 @@ const (
 // ConfigInput for GraphicsConfig fields
 const (
 	ConfigInputPreset ConfigInput = "graphics.preset"
-	ConfigInputBezels ConfigInput = "graphics.bezels"
 	ConfigInputTarget ConfigInput = "graphics.target"
 )
 
@@ -289,14 +287,6 @@ func (c *KyarabenConfig) EmulatorPresetOverride(id EmulatorID) *string {
 		return conf.Preset
 	}
 	return nil
-}
-
-// GraphicsBezels returns whether bezels are enabled.
-func (c *KyarabenConfig) GraphicsBezels() bool {
-	if c.Graphics.Bezels != nil {
-		return *c.Graphics.Bezels
-	}
-	return true
 }
 
 // GraphicsTarget returns the target device setting.

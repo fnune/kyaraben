@@ -45,7 +45,6 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	}
 	pc := &retroarch.PresetConfig{
 		Preset:             ctx.Preset,
-		Bezels:             ctx.Bezels,
 		TargetDevice:       ctx.TargetDevice,
 		Resume:             ctx.Resume,
 		SystemDisplayTypes: ctx.SystemDisplayTypes,

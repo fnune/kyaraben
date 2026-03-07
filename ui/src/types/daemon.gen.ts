@@ -16,7 +16,6 @@ export interface SetConfigRequest {
 }
 export interface GraphicsConfigRequest {
   preset: string;
-  bezels?: boolean;
   target?: string;
 }
 export interface SavestateConfigRequest {
@@ -187,7 +186,6 @@ export interface ConfigResponse {
 }
 export interface GraphicsConfigResponse {
   preset: string;
-  bezels: boolean;
   target: string;
   detectedTarget: string;
 }

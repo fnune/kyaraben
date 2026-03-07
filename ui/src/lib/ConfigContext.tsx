@@ -40,7 +40,6 @@ interface HotkeyConfig {
 interface ConfigState {
   collection: string
   graphicsPreset: string
-  graphicsBezels: boolean
   graphicsTarget: string
   savestateResume: string
   controllerNintendoConfirm: string
@@ -74,7 +73,6 @@ function emptyConfigState(): ConfigState {
   return {
     collection: '',
     graphicsPreset: '',
-    graphicsBezels: true,
     graphicsTarget: '',
     savestateResume: '',
     controllerNintendoConfirm: '',
@@ -92,7 +90,6 @@ function cloneConfigState(state: ConfigState): ConfigState {
   return {
     collection: state.collection,
     graphicsPreset: state.graphicsPreset,
-    graphicsBezels: state.graphicsBezels,
     graphicsTarget: state.graphicsTarget,
     savestateResume: state.savestateResume,
     controllerNintendoConfirm: state.controllerNintendoConfirm,
@@ -146,7 +143,6 @@ function parseConfigResponse(data: ConfigResponse): ConfigState {
   return {
     collection: data.collection,
     graphicsPreset: data.graphics?.preset ?? '',
-    graphicsBezels: data.graphics?.bezels ?? true,
     graphicsTarget: data.graphics?.target ?? '',
     savestateResume: data.savestate?.resume ?? '',
     controllerNintendoConfirm: data.controller?.nintendoConfirm ?? 'east',
@@ -174,7 +170,6 @@ interface ConfigContextValue {
 
   setCollection: (value: string) => void
   setGraphicsPreset: (value: string) => void
-  setGraphicsBezels: (value: boolean) => void
   setGraphicsTarget: (value: string) => void
   setSavestateResume: (value: string) => void
   setControllerNintendoConfirm: (value: string) => void
@@ -244,7 +239,6 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
     }
     if (
       configState.graphicsPreset !== savedConfig.graphicsPreset ||
-      configState.graphicsBezels !== savedConfig.graphicsBezels ||
       configState.graphicsTarget !== savedConfig.graphicsTarget
     ) {
       changes.push('Graphics settings')
@@ -448,10 +442,6 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
     setConfigState((prev) => ({ ...prev, graphicsPreset: value }))
   }, [])
 
-  const setGraphicsBezels = useCallback((value: boolean) => {
-    setConfigState((prev) => ({ ...prev, graphicsBezels: value }))
-  }, [])
-
   const setGraphicsTarget = useCallback((value: string) => {
     setConfigState((prev) => ({ ...prev, graphicsTarget: value }))
   }, [])
@@ -610,7 +600,6 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
       ...(state.graphicsPreset && {
         graphics: {
           preset: state.graphicsPreset,
-          bezels: state.graphicsBezels,
           ...(state.graphicsTarget && { target: state.graphicsTarget }),
         },
       }),
@@ -670,7 +659,6 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
 
       setCollection,
       setGraphicsPreset,
-      setGraphicsBezels,
       setGraphicsTarget,
       setSavestateResume,
       setControllerNintendoConfirm,
@@ -710,7 +698,6 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
       upgradeAvailable,
       setCollection,
       setGraphicsPreset,
-      setGraphicsBezels,
       setGraphicsTarget,
       setSavestateResume,
       setControllerNintendoConfirm,

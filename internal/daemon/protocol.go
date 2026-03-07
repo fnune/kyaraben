@@ -19,7 +19,6 @@ type SetConfigRequest struct {
 
 type GraphicsConfigRequest struct {
 	Preset string `json:"preset"`
-	Bezels *bool  `json:"bezels,omitempty"`
 	Target string `json:"target,omitempty"`
 }
 
@@ -216,7 +215,6 @@ type ConfigResponse struct {
 
 type GraphicsConfigResponse struct {
 	Preset         string `json:"preset"`
-	Bezels         bool   `json:"bezels"`
 	Target         string `json:"target"`
 	DetectedTarget string `json:"detectedTarget"`
 }

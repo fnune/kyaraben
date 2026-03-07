@@ -80,7 +80,6 @@ func (a *Applier) Preflight(ctx context.Context, cfg *model.KyarabenConfig, coll
 		BaseDirResolver:    a.BaseDirResolver,
 		ControllerConfig:   controllerConfig,
 		SystemDisplayTypes: systemDisplayTypes,
-		Bezels:             cfg.GraphicsBezels(),
 		TargetDevice:       cfg.GraphicsTarget(),
 	}
 
@@ -191,7 +190,6 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, collecti
 		BaseDirResolver:    a.BaseDirResolver,
 		ControllerConfig:   controllerConfig,
 		SystemDisplayTypes: systemDisplayTypes,
-		Bezels:             cfg.GraphicsBezels(),
 		TargetDevice:       cfg.GraphicsTarget(),
 	}
 

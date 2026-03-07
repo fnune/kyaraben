@@ -61,7 +61,6 @@ var MainConfigTarget = model.ConfigTarget{
 // PresetConfig holds graphics preset and resume settings for config generation.
 type PresetConfig struct {
 	Preset             string
-	Bezels             bool
 	TargetDevice       string
 	Resume             string
 	SystemDisplayTypes map[model.SystemID]model.DisplayType
@@ -466,20 +465,7 @@ func CoreOptionsPatch(emuID model.EmulatorID, pc *PresetConfig) *model.ConfigPat
 		return nil
 	}
 
-	var entries []model.ConfigEntry
-
-	if pc.Bezels && emuID == model.EmulatorIDRetroArchMGBA {
-		entries = append(entries, model.Entry(model.Preset, model.Path("mgba_sgb_borders"), "OFF"))
-	}
-
-	if len(entries) == 0 {
-		return nil
-	}
-
-	return &model.ConfigPatch{
-		Target:  CoreOptionsTarget(emuID),
-		Entries: entries,
-	}
+	return nil
 }
 
 // ContentDirOverrideTarget returns the config target for a per-content-directory override.
@@ -544,7 +530,7 @@ func ContentDirOptionsPatches(emuID model.EmulatorID, systems []model.SystemID, 
 	return patches
 }
 
-// OverlayPatches is deprecated - koko-aio shader handles bezels internally.
+// OverlayPatches is deprecated.
 // Kept for API compatibility with existing emulator generators.
 func OverlayPatches(_ model.EmulatorID, _ []model.SystemID, _ *PresetConfig, _ model.BaseDirResolver) []model.ConfigPatch {
 	return nil

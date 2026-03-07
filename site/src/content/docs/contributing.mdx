@@ -463,9 +463,8 @@ action is needed.
 
 ## Graphics presets implementation notes
 
-The graphics preset system offers four display modes: modern-pixels (integer
-scaling), upscaled (bilinear filtering), pseudo-authentic (CRT/LCD shaders),
-and manual. A separate bezels toggle adds decorative borders.
+The graphics preset system offers two display modes: clean (no shaders) and
+retro (CRT/LCD shaders), plus manual mode for custom configuration.
 
 6th generation and newer systems (GameCube, PS2, PSP, Dreamcast) always use
 modern display settings regardless of the preset selection. CRT and LCD shaders
@@ -488,16 +487,9 @@ Core options (mGBA):
 - `mgba_color_correction = "Auto"` - auto-detect GB/GBC/GBA color profile
 - `mgba_interframe_blending = "mix_smart"` - smart LCD ghosting simulation
 
-Bezels/overlays (when enabled):
-
-- Game Boy: `Perfect_GB-DMG.png` - DMG-style bezel
-- Game Boy Color: `Perfect_GBC.png` - GBC-style bezel
-- Game Boy Advance: `Perfect_GBA.png` - GBA-style bezel
-
 Shaders are downloaded from the
 [libretro slang-shaders](https://github.com/libretro/slang-shaders) repository
-at a pinned commit. Overlays are embedded from the RGC Overlay Pack. Both are
-stored in `~/.config/retroarch/`.
+at a pinned commit and stored in `~/.config/retroarch/`.
 
 Target device detection (`internal/hardware/detect.go`) identifies Steam Deck
 (Jupiter for LCD, Galileo for OLED) and other devices via DMI product name.
@@ -506,7 +498,6 @@ Planned improvements:
 
 - Per-device shader parameter tuning (Steam Deck vs desktop)
 - Additional core options for other RetroArch cores
-- CRT bezels for home console systems
 
 ## Commit messages
 

@@ -26,7 +26,7 @@ const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
 
 interface ApplyConfig {
   collection: string
-  graphics?: { preset: string; bezels: boolean; target?: string }
+  graphics?: { preset: string; target?: string }
   savestate?: { resume: string }
   controller?: { nintendoConfirm: string }
   systems: Record<string, string[]>

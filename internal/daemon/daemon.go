@@ -1011,7 +1011,6 @@ func (d *Daemon) handleGetConfig() []Event {
 			Collection: cfg.Global.Collection,
 			Graphics: GraphicsConfigResponse{
 				Preset:         cfg.Graphics.Preset,
-				Bezels:         cfg.GraphicsBezels(),
 				Target:         cfg.GraphicsTarget(),
 				DetectedTarget: detectedTarget.Name,
 			},
@@ -1042,9 +1041,6 @@ func (d *Daemon) handleSetConfig(data *SetConfigRequest) []Event {
 		if data.Graphics != nil {
 			if data.Graphics.Preset != "" {
 				cfg.Graphics.Preset = data.Graphics.Preset
-			}
-			if data.Graphics.Bezels != nil {
-				cfg.Graphics.Bezels = data.Graphics.Bezels
 			}
 			if data.Graphics.Target != "" {
 				cfg.Graphics.Target = data.Graphics.Target

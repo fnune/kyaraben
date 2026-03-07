@@ -142,7 +142,6 @@ export function PreferencesView() {
     configState,
     systems,
     setGraphicsPreset,
-    setGraphicsBezels,
     setSavestateResume,
     setControllerNintendoConfirm,
     setHotkeyModifier,
@@ -151,7 +150,6 @@ export function PreferencesView() {
   } = config
 
   const preset = configState.graphicsPreset
-  const bezels = configState.graphicsBezels
   const resume = configState.savestateResume
   const nintendoConfirm = configState.controllerNintendoConfirm
   const hotkeys = configState.hotkeys
@@ -206,20 +204,6 @@ export function PreferencesView() {
               className="w-full p-3"
               wrap
             />
-            <label className="flex items-center gap-3 mt-4 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={bezels}
-                onChange={(e) => setGraphicsBezels(e.target.checked)}
-                className="w-4 h-4 accent-accent"
-              />
-              <div>
-                <span className="text-sm text-on-surface">Show bezels</span>
-                <p className="text-xs text-on-surface-muted">
-                  Decorative borders that fill empty screen space around games.
-                </p>
-              </div>
-            </label>
           </>
         }
         support={

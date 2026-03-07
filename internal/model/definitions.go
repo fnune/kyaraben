@@ -22,7 +22,6 @@ type GenerateContext struct {
 	BaseDirResolver    BaseDirResolver
 	ControllerConfig   *ControllerConfig
 	Preset             string
-	Bezels             bool
 	TargetDevice       string
 	Resume             string
 	SystemDisplayTypes map[SystemID]DisplayType
