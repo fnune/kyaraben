@@ -10,6 +10,10 @@
   - Currently scattered: `internal/model/system.go` (SystemID constants), `internal/sync/config.go` (constructs folder IDs), and now duplicated in `integrations/nextui/internal/config/config.go`
   - Problem: if Kyaraben adds a new system, guest integrations don't know about it
   - Idea: one package that exports all Kyaraben folder IDs; guests just provide path mappings
+- Relay URL configurability and fallbacks
+  - Currently the relay URL is hardcoded
+  - Users should be able to configure their own relay server
+  - Should have fallback URLs if the primary relay is unreachable
 - Unify folder configuration logic
   - Kyaraben configures Syncthing folders two ways: `internal/sync/config.go` writes config.xml (before Syncthing starts), `internal/syncthing/client.go` uses REST API (after Syncthing running)
   - `syncguest` does the config.xml approach
