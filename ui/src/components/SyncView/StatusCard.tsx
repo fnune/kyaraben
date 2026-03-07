@@ -209,7 +209,6 @@ function PairingContent({
   const [isStartingPairing, setIsStartingPairing] = useState(false)
   const [joinCode, setJoinCode] = useState('')
   const [otherDeviceId, setOtherDeviceId] = useState('')
-  const hasDevices = (status.devices?.length ?? 0) > 0
 
   const handleStartPairing = useCallback(async () => {
     setIsStartingPairing(true)
@@ -278,10 +277,6 @@ function PairingContent({
   const hasCode = isPairing && pairingCode
   const deviceId = pairingDeviceId || status.deviceId
   const isWaitingForPeer = isPairing || isStartingPairing
-
-  if (hasDevices) {
-    return null
-  }
 
   if (isConnecting) {
     return (
