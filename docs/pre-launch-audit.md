@@ -108,6 +108,8 @@ From feedback.md:
 - DLC, patches, and updates: figure out folder structure
 - Additional emulator paths: Flycast (BoxartPath, MappingsPath, TexturePath), PCSX2 (Cheats, Covers, Videos)
 
+Eden 0.2.0 adds directory config support for updates and DLCs. Once Kyaraben tracks these directories, use Eden 0.2.0's directory config for patches/DLCs/updates.
+
 ### Cross-emulator presets
 
 From feedback.md: toggle high-level features across all compatible emulators:
