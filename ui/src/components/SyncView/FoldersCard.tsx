@@ -38,6 +38,7 @@ function FolderRow({ folder, onRefresh, hasPairedDevices }: FolderRowProps) {
 
   const isSyncing = hasPairedDevices && (folder.state === 'syncing' || folder.needSize > 0)
   const hasLocalChanges = hasPairedDevices && folder.receiveOnlyChanges > 0
+  const hasConflicts = (folder.conflictCount ?? 0) > 0
   const isReceiveOnly = folder.type === 'receiveonly'
   const sizeDiffers = hasPairedDevices && isReceiveOnly && folder.localSize !== folder.globalSize
   const percent =
@@ -86,6 +87,7 @@ function FolderRow({ folder, onRefresh, hasPairedDevices }: FolderRowProps) {
 
   const getStatusIndicator = () => {
     if (isError) return 'bg-status-error'
+    if (hasConflicts) return 'bg-status-warning'
     if (hasLocalChanges) return 'bg-on-surface-muted'
     if (isSyncing) return 'bg-accent animate-pulse'
     return 'bg-status-ok'
@@ -128,6 +130,11 @@ function FolderRow({ folder, onRefresh, hasPairedDevices }: FolderRowProps) {
       </div>
       {isError && folder.error && (
         <div className="mt-2 ml-4 text-xs text-status-error">{folder.error}</div>
+      )}
+      {hasConflicts && (
+        <div className="mt-2 ml-4 text-xs text-status-warning">
+          {folder.conflictCount} conflict {folder.conflictCount === 1 ? 'file' : 'files'}
+        </div>
       )}
       {hasLocalChanges && (
         <div className="mt-2 ml-4">

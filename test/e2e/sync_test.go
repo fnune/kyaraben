@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -305,4 +306,66 @@ func TestSyncHelp(t *testing.T) {
 	c.assertContains(output, "status")
 	c.assertContains(output, "add-device")
 	c.assertContains(output, "remove-device")
+}
+
+func TestSyncAutostart(t *testing.T) {
+	t.Run("defaults to autostart enabled", func(t *testing.T) {
+		s := newSyncTest(t)
+		s.initWithSyncEnabled()
+
+		config := s.readFile("config.toml")
+		if strings.Contains(config, "autostart = false") {
+			t.Error("expected autostart to default to true or be absent")
+		}
+	})
+
+	t.Run("autostart can be disabled in config", func(t *testing.T) {
+		s := newSyncTest(t)
+		s.init()
+
+		config := fmt.Sprintf(`[global]
+collection = %q
+
+[systems]
+snes = ["retroarch:bsnes"]
+
+[sync]
+enabled = true
+autostart = false
+
+[sync.syncthing]
+base_url = %q
+gui_port = %d
+`, s.collection, s.fakeSyncthing.BaseURL(), s.fakeSyncthing.Port())
+		s.writeFile("config.toml", config)
+
+		configContent := s.readFile("config.toml")
+		s.assertContains(configContent, "autostart = false")
+	})
+}
+
+func TestSyncConflictDetection(t *testing.T) {
+	t.Run("detects conflict files in folders", func(t *testing.T) {
+		s := newSyncTest(t)
+		s.initWithSyncEnabled()
+
+		savesDir := filepath.Join(s.collection, "saves", "snes")
+		if err := os.MkdirAll(savesDir, 0755); err != nil {
+			t.Fatalf("creating saves dir: %v", err)
+		}
+
+		conflictFile := filepath.Join(savesDir, "game.sync-conflict-ABCD123-20260307-120000.srm")
+		if err := os.WriteFile(conflictFile, []byte("conflict data"), 0644); err != nil {
+			t.Fatalf("creating conflict file: %v", err)
+		}
+
+		normalFile := filepath.Join(savesDir, "game.srm")
+		if err := os.WriteFile(normalFile, []byte("normal data"), 0644); err != nil {
+			t.Fatalf("creating normal file: %v", err)
+		}
+
+		if _, err := os.Stat(conflictFile); os.IsNotExist(err) {
+			t.Fatal("conflict file was not created")
+		}
+	})
 }

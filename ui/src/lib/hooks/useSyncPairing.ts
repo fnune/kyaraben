@@ -31,6 +31,8 @@ export interface UseSyncPairingResult {
   handleStartPairing: () => Promise<void>
   handleStopPairing: () => Promise<void>
   handleToggleGlobalDiscovery: (enabled: boolean) => Promise<void>
+  handleToggleRunning: (running: boolean) => Promise<void>
+  handleToggleAutostart: (enabled: boolean) => Promise<void>
   handleAcceptDevice: (accept: boolean) => Promise<void>
   clearConnectionError: () => void
   refreshSyncStatus: () => Promise<void>
@@ -60,6 +62,7 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const discoveryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const previousStateRef = useRef<string | undefined>(undefined)
+  const devicesAtPairingStartRef = useRef<Set<string>>(new Set())
 
   const refreshSyncStatus = useCallback(async () => {
     const result = await daemon.getSyncStatus()
@@ -170,11 +173,18 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
   }, [])
 
   useEffect(() => {
-    if (!isPairing || !expectedPairedDevice) {
+    if (!isPairing) {
       return
     }
 
-    const pairedDevice = syncStatus?.devices?.find((d) => d.id === expectedPairedDevice)
+    const currentDevices = syncStatus?.devices ?? []
+    let pairedDevice = null
+
+    if (expectedPairedDevice) {
+      pairedDevice = currentDevices.find((d) => d.id === expectedPairedDevice)
+    } else {
+      pairedDevice = currentDevices.find((d) => !devicesAtPairingStartRef.current.has(d.id))
+    }
 
     if (pairedDevice) {
       const deviceName = pairedDevice.name || 'New device'
@@ -183,6 +193,7 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
       setPairingDeviceId(null)
       setPairingCode(null)
       setExpectedPairedDevice(null)
+      devicesAtPairingStartRef.current = new Set()
       daemon.cancelSyncPairing()
     }
   }, [syncStatus?.devices, isPairing, expectedPairedDevice, showToast])
@@ -256,6 +267,7 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
   }, [refreshSyncStatus, showToast])
 
   const handleStartPairing = useCallback(async () => {
+    devicesAtPairingStartRef.current = new Set(syncStatus?.devices?.map((d) => d.id) ?? [])
     const result = await daemon.startSyncPairing()
     if (result.ok) {
       setIsPairing(true)
@@ -263,11 +275,12 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
       setPairingCode(result.data.code ?? null)
       showToast('Pairing mode started.', 'info')
     } else {
+      devicesAtPairingStartRef.current = new Set()
       const errorMsg = result.error?.message ?? 'Failed to start pairing'
       setEnableError(errorMsg)
       showToast(errorMsg, 'error')
     }
-  }, [showToast])
+  }, [showToast, syncStatus?.devices])
 
   const handleStopPairing = useCallback(async () => {
     await daemon.cancelSyncPairing()
@@ -283,6 +296,30 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
         await refreshSyncStatus()
       } else {
         showToast('Failed to update global discovery setting.', 'error')
+      }
+    },
+    [refreshSyncStatus, showToast],
+  )
+
+  const handleToggleRunning = useCallback(
+    async (running: boolean) => {
+      const result = await daemon.setSyncSettings({ running })
+      if (result.ok) {
+        await refreshSyncStatus()
+      } else {
+        showToast(`Failed to ${running ? 'start' : 'stop'} syncthing.`, 'error')
+      }
+    },
+    [refreshSyncStatus, showToast],
+  )
+
+  const handleToggleAutostart = useCallback(
+    async (enabled: boolean) => {
+      const result = await daemon.setSyncSettings({ autostartEnabled: enabled })
+      if (result.ok) {
+        await refreshSyncStatus()
+      } else {
+        showToast('Failed to update autostart setting.', 'error')
       }
     },
     [refreshSyncStatus, showToast],
@@ -335,6 +372,8 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
     handleStartPairing,
     handleStopPairing,
     handleToggleGlobalDiscovery,
+    handleToggleRunning,
+    handleToggleAutostart,
     handleAcceptDevice,
     clearConnectionError,
     refreshSyncStatus,
