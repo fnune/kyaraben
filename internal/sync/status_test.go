@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"testing"
+	"time"
 
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/syncthing"
@@ -133,12 +134,13 @@ func TestFolderLabel(t *testing.T) {
 }
 
 func TestDiagnoseConnectivity_NoAddresses(t *testing.T) {
-	result := diagnoseConnectivity("device-1", map[string][]string{}, 22000)
+	recentTime := time.Now()
+	result := diagnoseConnectivity("device-1", map[string][]string{}, recentTime)
 	if result != "" {
 		t.Errorf("diagnoseConnectivity with no addresses = %q, want empty", result)
 	}
 
-	result = diagnoseConnectivity("device-1", map[string][]string{"other-device": {"192.168.1.1:22000"}}, 22000)
+	result = diagnoseConnectivity("device-1", map[string][]string{"other-device": {"192.168.1.1:22000"}}, recentTime)
 	if result != "" {
 		t.Errorf("diagnoseConnectivity with wrong device = %q, want empty", result)
 	}
@@ -156,7 +158,7 @@ func TestDiagnoseConnectivity_Reachable(t *testing.T) {
 		"device-1": {addr},
 	}
 
-	result := diagnoseConnectivity("device-1", discovered, 22000)
+	result := diagnoseConnectivity("device-1", discovered, time.Now())
 	if result != "" {
 		t.Errorf("diagnoseConnectivity with reachable port = %q, want empty", result)
 	}
@@ -174,9 +176,19 @@ func TestDiagnoseConnectivity_Unreachable(t *testing.T) {
 		"device-1": {addr},
 	}
 
-	result := diagnoseConnectivity("device-1", discovered, 22000)
+	result := diagnoseConnectivity("device-1", discovered, time.Now())
 	if result != "port_unreachable" {
-		t.Errorf("diagnoseConnectivity with closed port = %q, want port_unreachable", result)
+		t.Errorf("diagnoseConnectivity with closed port (recent) = %q, want port_unreachable", result)
+	}
+
+	result = diagnoseConnectivity("device-1", discovered, time.Time{})
+	if result != "port_unreachable" {
+		t.Errorf("diagnoseConnectivity with closed port (never seen) = %q, want port_unreachable", result)
+	}
+
+	result = diagnoseConnectivity("device-1", discovered, time.Now().Add(-10*time.Minute))
+	if result != "" {
+		t.Errorf("diagnoseConnectivity with closed port (old) = %q, want empty", result)
 	}
 }
 
@@ -200,7 +212,7 @@ func TestDiagnoseConnectivity_MultipleAddresses_OneReachable(t *testing.T) {
 		"device-1": {unreachableAddr, reachableAddr},
 	}
 
-	result := diagnoseConnectivity("device-1", discovered, 22000)
+	result := diagnoseConnectivity("device-1", discovered, time.Now())
 	if result != "" {
 		t.Errorf("diagnoseConnectivity with one reachable = %q, want empty", result)
 	}

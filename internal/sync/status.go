@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/twpayne/go-vfs/v5"
 
@@ -108,12 +109,14 @@ func (c *Client) GetStatus(ctx context.Context, fsys vfs.FS) (*Status, error) {
 			ds.IsLocal = conn.IsLocal
 		}
 
+		var lastSeen time.Time
 		if stats, ok := deviceStats[dev.ID]; ok && !stats.LastSeen.IsZero() && stats.LastSeen.Year() > 1970 {
+			lastSeen = stats.LastSeen
 			ds.LastSeen = stats.LastSeen.Format("2006-01-02T15:04:05Z07:00")
 		}
 
 		if !ds.Connected && !ds.Paused {
-			ds.ConnectivityIssue = diagnoseConnectivity(dev.ID, discoveredAddrs, c.config.Syncthing.ListenPort)
+			ds.ConnectivityIssue = diagnoseConnectivity(dev.ID, discoveredAddrs, lastSeen)
 		}
 
 		devices = append(devices, ds)
@@ -220,9 +223,15 @@ func connectionTypeLabel(t string) string {
 	}
 }
 
-func diagnoseConnectivity(deviceID string, discoveredAddrs map[string][]string, listenPort int) string {
+func diagnoseConnectivity(deviceID string, discoveredAddrs map[string][]string, lastSeen time.Time) string {
 	addrs, hasAddrs := discoveredAddrs[deviceID]
 	if !hasAddrs || len(addrs) == 0 {
+		return ""
+	}
+
+	seenBefore := !lastSeen.IsZero()
+	seenRecently := seenBefore && time.Since(lastSeen) <= 5*time.Minute
+	if seenBefore && !seenRecently {
 		return ""
 	}
 
