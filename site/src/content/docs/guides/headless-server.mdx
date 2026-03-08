@@ -109,6 +109,29 @@ Keep the CLI up to date:
 kyaraben update
 ```
 
+## Remote syncing
+
+By default, Kyaraben syncs devices on the same local network. For syncing across different networks (e.g., a cloud VPS or a home server accessed remotely), you need to enable global discovery.
+
+Global discovery announces your device to Syncthing's discovery servers, allowing devices to find each other's IP addresses across the internet. Without it, devices can only locate each other on the same LAN.
+
+Add to your config:
+
+```toml
+[sync.syncthing]
+global_discovery_enabled = true
+relay_enabled = true
+```
+
+With both settings enabled:
+
+- Global discovery lets devices find each other
+- Relays transfer data when direct connections aren't possible
+
+:::caution[Untested]
+Remote syncing with global discovery should work but hasn't been tested end-to-end. If you encounter issues, please [report them](https://github.com/fnune/kyaraben/issues).
+:::
+
 ## Troubleshooting
 
 ### Service not starting after reboot
