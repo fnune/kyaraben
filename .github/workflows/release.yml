@@ -119,9 +119,9 @@ jobs:
       - name: Create release zip
         run: |
           cd dist
-          zip -r Kyaraben-${{ steps.version.outputs.version }}-NextUI.zip Tools/
+          zip -r Kyaraben-NextUI.zip Tools/
 
       - name: Upload to release
-        run: gh release upload "v${{ steps.version.outputs.version }}" dist/Kyaraben-${{ steps.version.outputs.version }}-NextUI.zip
+        run: gh release upload "v${{ steps.version.outputs.version }}" dist/Kyaraben-NextUI.zip
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
