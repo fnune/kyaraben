@@ -1,0 +1,25 @@
+name: Deploy site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - ".github/workflows/deploy-site.yml"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Koyeb CLI
+        run: |
+          VERSION=$(curl -s https://api.github.com/repos/koyeb/koyeb-cli/releases/latest | jq -r .tag_name | sed 's/^v//')
+          curl -fsSL "https://github.com/koyeb/koyeb-cli/releases/download/v${VERSION}/koyeb-cli_${VERSION}_linux_amd64.tar.gz" | tar xz
+          sudo mv koyeb /usr/local/bin/
+
+      - name: Deploy to Koyeb
+        env:
+          KOYEB_TOKEN: ${{ secrets.KOYEB_TOKEN }}
+        run: ./site/scripts/deploy.sh
