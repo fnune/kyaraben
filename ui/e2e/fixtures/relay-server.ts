@@ -42,7 +42,7 @@ export async function startRelayServer(): Promise<RelayServer> {
         url: `http://localhost:${port}`,
         process: proc,
         close: () => {
-          proc.kill('SIGTERM')
+          proc.kill('SIGKILL')
         },
       }
     } catch {
