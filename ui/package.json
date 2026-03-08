@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "repository": "github:fnune/kyaraben",
-  "main": "dist-electron/main.js",
+  "main": "dist-electron/electron/main.js",
   "scripts": {
     "dev": "npm run build && npm run build:electron && electron .",
     "dev:vite": "vite",

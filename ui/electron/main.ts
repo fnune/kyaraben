@@ -104,8 +104,8 @@ function findSidecarPath(): string {
   searchPaths.push(path.join(appPath, '..', 'binaries', sidecarName))
   searchPaths.push(path.join(appPath, 'binaries', sidecarName))
 
-  // 4. Check relative to __dirname (dist-electron/)
-  searchPaths.push(path.join(__dirname, '..', 'binaries', sidecarName))
+  // 4. Check relative to __dirname (dist-electron/electron/)
+  searchPaths.push(path.join(__dirname, '..', '..', 'binaries', sidecarName))
 
   // 5. Check APPDIR for AppImage
   const appdir = process.env.APPDIR
@@ -960,7 +960,7 @@ function createWindow(): void {
   if (process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)
   } else {
-    mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'))
+    mainWindow.loadFile(path.join(__dirname, '..', '..', 'dist', 'index.html'))
   }
 
   // Log renderer crashes
