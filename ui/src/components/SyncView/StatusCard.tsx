@@ -122,7 +122,8 @@ function DeviceIdDisplay({
     <div className="flex items-center gap-2">
       <code className="bg-surface-raised px-3 py-2 rounded-sm font-mono text-sm tracking-wide">
         {groups.map((group, i) => (
-          <span key={`${i}-${group}`}>
+          // biome-ignore lint/suspicious/noArrayIndexKey: position is the identity for device ID segments
+          <span key={i}>
             {formatDeviceIdGroup(group, i)}
             {i < groups.length - 1 && <span className="text-outline mx-0.5">-</span>}
           </span>

@@ -79,9 +79,9 @@ export function PathsModal({
                   </span>
                   {config.managedRegions && config.managedRegions.length > 0 && (
                     <div className="mt-0.5 ml-2 space-y-0.5">
-                      {config.managedRegions.map((region, i) => (
+                      {config.managedRegions.map((region) => (
                         <code
-                          key={`${config.path}-${region.type}-${region.section ?? ''}-${i}`}
+                          key={`${config.path}-${region.type}-${region.section ?? ''}-${region.keyPrefix ?? ''}`}
                           className="block text-xs text-on-surface-dim/70"
                         >
                           {formatRegion(region)}

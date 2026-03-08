@@ -149,8 +149,11 @@ function FileDiff({ diff }: { readonly diff: ConfigFileDiff }) {
 
       {!hasUserConflict && !hasKyarabenUpdates && diff.changes && diff.changes.length > 0 && (
         <div className="space-y-0.5">
-          {diff.changes.map((change, i) => (
-            <ChangeRow key={`${change.key}-${i}`} change={change} />
+          {diff.changes.map((change) => (
+            <ChangeRow
+              key={`${change.type}-${change.key}-${change.section ?? ''}`}
+              change={change}
+            />
           ))}
         </div>
       )}

@@ -12,10 +12,19 @@ import (
 	"github.com/fnune/kyaraben/internal/syncthing"
 )
 
+type SyncClient interface {
+	IsRunning(ctx context.Context) bool
+	SetAPIKey(key string)
+	GetDeviceID(ctx context.Context) (string, error)
+	AddDeviceWithAddresses(ctx context.Context, deviceID, name string, addresses []string) error
+	DisableUsageReporting(ctx context.Context) error
+	AllowInsecureAdmin(ctx context.Context) error
+}
+
 type Manager struct {
 	process   *ProcessManager
 	autostart *AutostartManager
-	client    syncthing.SyncClient
+	client    SyncClient
 	config    Config
 }
 
@@ -29,7 +38,7 @@ type Config struct {
 	GUIPort       int
 }
 
-func NewManager(cfg Config, process *ProcessManager, autostart *AutostartManager, client syncthing.SyncClient) *Manager {
+func NewManager(cfg Config, process *ProcessManager, autostart *AutostartManager, client SyncClient) *Manager {
 	return &Manager{
 		process:   process,
 		autostart: autostart,
