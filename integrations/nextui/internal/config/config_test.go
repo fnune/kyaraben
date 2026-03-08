@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/twpayne/go-vfs/v5/vfst"
+
+	"github.com/fnune/kyaraben/internal/model"
 )
 
 func TestLoadCreatesDefaultConfig(t *testing.T) {
@@ -111,16 +113,32 @@ func TestLoadWithEmptyDataDir(t *testing.T) {
 func TestDefaultConfigHasAllSystems(t *testing.T) {
 	cfg := DefaultConfig()
 
-	expectedSaves := []string{"nes", "snes", "gb", "gbc", "gba", "psx", "genesis"}
+	expectedSaves := []model.SystemID{
+		model.SystemIDNES,
+		model.SystemIDSNES,
+		model.SystemIDGB,
+		model.SystemIDGBC,
+		model.SystemIDGBA,
+		model.SystemIDPSX,
+		model.SystemIDGenesis,
+	}
 	for _, sys := range expectedSaves {
-		if _, ok := cfg.Saves[sys]; !ok {
+		if _, ok := cfg.Saves[string(sys)]; !ok {
 			t.Errorf("missing saves entry for %s", sys)
 		}
 	}
 
-	expectedROMs := []string{"nes", "snes", "gb", "gbc", "gba", "psx", "genesis"}
+	expectedROMs := []model.SystemID{
+		model.SystemIDNES,
+		model.SystemIDSNES,
+		model.SystemIDGB,
+		model.SystemIDGBC,
+		model.SystemIDGBA,
+		model.SystemIDPSX,
+		model.SystemIDGenesis,
+	}
 	for _, sys := range expectedROMs {
-		if _, ok := cfg.ROMs[sys]; !ok {
+		if _, ok := cfg.ROMs[string(sys)]; !ok {
 			t.Errorf("missing roms entry for %s", sys)
 		}
 	}
