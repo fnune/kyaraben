@@ -14,9 +14,13 @@ import (
 	"github.com/fnune/kyaraben/internal/apply"
 	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/emulators/symlink"
+	"github.com/fnune/kyaraben/internal/folders"
 	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/packages"
 	"github.com/fnune/kyaraben/internal/steam"
+	"github.com/fnune/kyaraben/internal/store"
+	syncpkg "github.com/fnune/kyaraben/internal/sync"
 )
 
 func isTerminal() bool {
@@ -40,6 +44,10 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	collection, err := ctx.NewCollection(cfg)
 	if err != nil {
 		return err
+	}
+
+	if cfg.Global.Headless {
+		return cmd.runHeadless(ctx, cfg, collection)
 	}
 
 	registry := ctx.NewRegistry()
@@ -335,6 +343,126 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 	fmt.Println()
 	fmt.Printf("Your collection is ready at: %s\n", collection.Root())
 	fmt.Println("Place your ROMs in the appropriate subdirectories.")
+
+	return nil
+}
+
+func (cmd *ApplyCmd) runHeadless(ctx *Context, cfg *model.KyarabenConfig, collection *store.Collection) error {
+	if cmd.DryRun {
+		fmt.Println("Headless mode (sync hub only)")
+		fmt.Println()
+		fmt.Println("Would create directories for all systems and emulators.")
+		if cfg.Sync.Enabled {
+			fmt.Println("Would set up synchronization.")
+		}
+		fmt.Println()
+		fmt.Println("Dry run - no changes applied.")
+		return nil
+	}
+
+	fmt.Println("Setting up headless sync hub...")
+	fmt.Println()
+
+	if err := collection.Initialize(); err != nil {
+		return fmt.Errorf("initializing collection: %w", err)
+	}
+
+	registry := ctx.NewRegistry()
+	systemCount := 0
+	for _, sys := range registry.AllSystems() {
+		for _, emu := range registry.GetEmulatorsForSystem(sys.ID) {
+			if err := collection.InitializeForEmulator(sys.ID, emu.ID, emu.PathUsage); err != nil {
+				return fmt.Errorf("initializing %s for %s: %v", sys.ID, emu.ID, err)
+			}
+		}
+		systemCount++
+	}
+	fmt.Printf("Created directories for %d systems\n", systemCount)
+
+	if cfg.Sync.Enabled {
+		fmt.Println("Setting up synchronization...")
+
+		installer, err := ctx.NewInstaller()
+		if err != nil {
+			return fmt.Errorf("creating installer: %w", err)
+		}
+
+		stateDir, err := ctx.GetPaths().StateDir()
+		if err != nil {
+			return fmt.Errorf("getting state directory: %w", err)
+		}
+
+		allSystems := make([]model.SystemID, 0)
+		for _, sys := range registry.AllSystems() {
+			allSystems = append(allSystems, sys.ID)
+		}
+
+		allEmulators := make([]folders.EmulatorInfo, 0)
+		for _, emu := range registry.AllEmulators() {
+			allEmulators = append(allEmulators, folders.EmulatorInfo{
+				ID:                 emu.ID,
+				UsesStatesDir:      emu.PathUsage.UsesStatesDir,
+				UsesScreenshotsDir: emu.PathUsage.UsesScreenshotsDir,
+			})
+		}
+
+		defaultCfg := model.NewDefaultConfig()
+		allFrontends := defaultCfg.EnabledFrontends()
+
+		setup := syncpkg.NewDefaultSetup(installer, stateDir)
+		result, err := setup.Install(
+			context.Background(),
+			cfg.Sync,
+			collection.Root(),
+			allSystems,
+			allEmulators,
+			allFrontends,
+			func(p packages.InstallProgress) {
+				switch p.Phase {
+				case "downloading":
+					fmt.Printf("  Downloading %s...\n", p.PackageName)
+				case "extracting":
+					fmt.Printf("  Extracting %s...\n", p.PackageName)
+				}
+			},
+		)
+		if err != nil {
+			return fmt.Errorf("setting up sync: %w", err)
+		}
+
+		manifestPath, err := ctx.GetPaths().ManifestPath()
+		if err != nil {
+			return fmt.Errorf("getting manifest path: %w", err)
+		}
+
+		manifest, err := model.LoadManifest(manifestPath)
+		if err != nil {
+			return fmt.Errorf("loading manifest: %w", err)
+		}
+
+		manifest.SyncthingInstall = &model.SyncthingInstall{
+			Version:             installer.ResolveVersion("syncthing"),
+			ConfigSchemaVersion: syncpkg.ConfigSchemaVersion,
+			BinaryPath:          result.SyncthingBinary,
+			ConfigDir:           result.ConfigDir,
+			DataDir:             result.DataDir,
+			SystemdUnitPath:     result.SystemdUnitPath,
+		}
+		if err := manifest.SaveWithBackup(manifestPath); err != nil {
+			return fmt.Errorf("saving manifest: %w", err)
+		}
+
+		fmt.Println("Synchronization ready")
+	}
+
+	fmt.Println()
+	fmt.Println("Done!")
+	fmt.Println()
+	fmt.Printf("Your collection is ready at: %s\n", collection.Root())
+	fmt.Println("Place your ROMs in the appropriate subdirectories.")
+	fmt.Println()
+	fmt.Println("Other devices can sync with this hub using:")
+	fmt.Println("  kyaraben sync pair")
 
 	return nil
 }

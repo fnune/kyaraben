@@ -506,6 +506,10 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 		return d.errorResponse(err.Error())
 	}
 
+	if cfg.Global.Headless {
+		return d.handleApplyHeadless(cfg, collection, emit)
+	}
+
 	// Acquire exclusive lock to prevent concurrent Apply operations
 	lockDir := filepath.Dir(d.deps.ManifestPath)
 	if err := os.MkdirAll(lockDir, 0755); err != nil {
@@ -609,6 +613,46 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 		}
 		if err := d.updateSyncConfig(cfg, collection.Root()); err != nil {
 			log.Info("Failed to update sync config: %v", err)
+		}
+	}
+
+	return []Event{{
+		Type: EventTypeResult,
+		Data: ApplyResult{
+			Success: true,
+		},
+	}}
+}
+
+func (d *Daemon) handleApplyHeadless(cfg *model.KyarabenConfig, collection *store.Collection, emit func(Event)) []Event {
+	if emit != nil {
+		emit(Event{
+			Type: EventTypeProgress,
+			Data: ProgressEvent{Step: "headless", Message: "Setting up headless sync hub"},
+		})
+	}
+
+	if err := collection.Initialize(); err != nil {
+		return d.errorResponse(fmt.Sprintf("initializing collection: %v", err))
+	}
+
+	for _, sys := range d.deps.Registry.AllSystems() {
+		for _, emu := range d.deps.Registry.GetEmulatorsForSystem(sys.ID) {
+			if err := collection.InitializeForEmulator(sys.ID, emu.ID, emu.PathUsage); err != nil {
+				return d.errorResponse(fmt.Sprintf("initializing %s for %s: %v", sys.ID, emu.ID, err))
+			}
+		}
+	}
+
+	if cfg.Sync.Enabled {
+		if emit != nil {
+			emit(Event{
+				Type: EventTypeProgress,
+				Data: ProgressEvent{Step: "sync", Message: "Setting up synchronization"},
+			})
+		}
+		if err := d.updateSyncConfig(cfg, collection.Root()); err != nil {
+			return d.errorResponse(fmt.Sprintf("setting up sync: %v", err))
 		}
 	}
 
@@ -2071,10 +2115,31 @@ func (d *Daemon) stopSyncthing(cfg *model.KyarabenConfig) bool {
 }
 
 func (d *Daemon) syncSystems(cfg *model.KyarabenConfig) []model.SystemID {
+	if cfg.Global.Headless {
+		systems := d.deps.Registry.AllSystems()
+		result := make([]model.SystemID, len(systems))
+		for i, sys := range systems {
+			result[i] = sys.ID
+		}
+		return result
+	}
 	return cfg.EnabledSystems()
 }
 
 func (d *Daemon) syncEmulators(cfg *model.KyarabenConfig) []folders.EmulatorInfo {
+	if cfg.Global.Headless {
+		allEmulators := d.deps.Registry.AllEmulators()
+		result := make([]folders.EmulatorInfo, 0, len(allEmulators))
+		for _, emu := range allEmulators {
+			result = append(result, folders.EmulatorInfo{
+				ID:                 emu.ID,
+				UsesStatesDir:      emu.PathUsage.UsesStatesDir,
+				UsesScreenshotsDir: emu.PathUsage.UsesScreenshotsDir,
+			})
+		}
+		return result
+	}
+
 	emuIDs := cfg.EnabledEmulators()
 	result := make([]folders.EmulatorInfo, 0, len(emuIDs))
 	for _, id := range emuIDs {
@@ -2089,6 +2154,10 @@ func (d *Daemon) syncEmulators(cfg *model.KyarabenConfig) []folders.EmulatorInfo
 }
 
 func (d *Daemon) syncFrontends(cfg *model.KyarabenConfig) []model.FrontendID {
+	if cfg.Global.Headless {
+		defaultCfg := model.NewDefaultConfig()
+		return defaultCfg.EnabledFrontends()
+	}
 	return cfg.EnabledFrontends()
 }
 

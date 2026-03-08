@@ -11,6 +11,7 @@ import (
 type InitCmd struct {
 	Collection string `short:"d" help:"Path to collection." default:"~/Emulation"`
 	Force      bool   `short:"f" help:"Overwrite existing configuration."`
+	Headless   bool   `help:"Create a headless configuration for sync hubs (no emulators installed)."`
 }
 
 // Run executes the init command.
@@ -24,7 +25,14 @@ func (cmd *InitCmd) Run(ctx *Context) error {
 		return fmt.Errorf("config already exists at %s. Use --force to overwrite", configPath)
 	}
 
-	cfg := model.NewDefaultConfig()
+	var cfg *model.KyarabenConfig
+	if cmd.Headless {
+		cfg = &model.KyarabenConfig{}
+		cfg.Global.Headless = true
+		cfg.Sync.Enabled = true
+	} else {
+		cfg = model.NewDefaultConfig()
+	}
 	cfg.Global.Collection = cmd.Collection
 
 	if ctx.Paths.Instance != "" {
@@ -43,8 +51,13 @@ func (cmd *InitCmd) Run(ctx *Context) error {
 
 	fmt.Printf("Created configuration at %s\n", configPath)
 	fmt.Println()
-	fmt.Printf("Enabled %d systems with default emulators.\n", len(cfg.Systems))
-	fmt.Println("Run 'kyaraben apply' to install emulators and create directories.")
+	if cmd.Headless {
+		fmt.Println("Headless mode: will sync all systems without installing emulators.")
+		fmt.Println("Run 'kyaraben apply' to create directories and set up sync.")
+	} else {
+		fmt.Printf("Enabled %d systems with default emulators.\n", len(cfg.Systems))
+		fmt.Println("Run 'kyaraben apply' to install emulators and create directories.")
+	}
 
 	return nil
 }

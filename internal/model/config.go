@@ -241,6 +241,7 @@ type FrontendConfig struct {
 // GlobalConfig holds global settings.
 type GlobalConfig struct {
 	Collection string `toml:"collection"`
+	Headless   bool   `toml:"headless,omitempty"`
 }
 
 // EmulatorConf holds per-emulator configuration.

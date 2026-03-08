@@ -2,9 +2,7 @@ package cli
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/twpayne/go-vfs/v5"
 
@@ -16,26 +14,49 @@ import (
 	"github.com/fnune/kyaraben/internal/store"
 )
 
+type InstallerFactory func(stateDir string, fs vfs.FS) (packages.Installer, error)
+
 type Context struct {
-	FS          vfs.FS
-	Paths       *paths.Paths
-	Resolver    model.BaseDirResolver
-	ConfigStore *model.ConfigStore
-	ConfigPath  string
+	FS               vfs.FS
+	Paths            *paths.Paths
+	Resolver         model.BaseDirResolver
+	ConfigStore      *model.ConfigStore
+	ConfigPath       string
+	InstallerFactory InstallerFactory
 }
 
-func NewContext(fs vfs.FS, p *paths.Paths, resolver model.BaseDirResolver, configPath string) *Context {
+func NewContext(fs vfs.FS, p *paths.Paths, resolver model.BaseDirResolver, configPath string, installerFactory InstallerFactory) *Context {
 	return &Context{
-		FS:          fs,
-		Paths:       p,
-		Resolver:    resolver,
-		ConfigStore: model.NewConfigStore(fs),
-		ConfigPath:  configPath,
+		FS:               fs,
+		Paths:            p,
+		Resolver:         resolver,
+		ConfigStore:      model.NewConfigStore(fs),
+		ConfigPath:       configPath,
+		InstallerFactory: installerFactory,
 	}
 }
 
 func NewDefaultContext(instance, configPath string) *Context {
-	return NewContext(vfs.OSFS, paths.NewPaths(instance), model.NewDefaultResolver(), configPath)
+	return NewContext(vfs.OSFS, paths.NewPaths(instance), model.NewDefaultResolver(), configPath, DefaultInstallerFactory)
+}
+
+func DefaultInstallerFactory(stateDir string, fs vfs.FS) (packages.Installer, error) {
+	downloader := packages.NewHTTPDownloader()
+	extractor := packages.NewDefaultExtractor()
+	return packages.NewDefaultPackageInstaller(stateDir, downloader, extractor), nil
+}
+
+func FakeInstallerFactory(stateDir string, fs vfs.FS) (packages.Installer, error) {
+	packagesDir := filepath.Join(stateDir, "packages")
+	return packages.NewFakeInstaller(fs, packagesDir), nil
+}
+
+func DefaultFS() vfs.FS {
+	return vfs.OSFS
+}
+
+func DefaultResolver() model.BaseDirResolver {
+	return model.NewDefaultResolver()
 }
 
 func (c *Context) GetPaths() *paths.Paths {
@@ -88,13 +109,7 @@ func (c *Context) NewInstaller() (packages.Installer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("getting state directory: %w", err)
 	}
-	if useFakeInstaller() {
-		packagesDir := filepath.Join(stateDir, "packages")
-		return packages.NewFakeInstaller(c.FS, packagesDir), nil
-	}
-	downloader := packages.NewHTTPDownloader()
-	extractor := packages.NewDefaultExtractor()
-	return packages.NewDefaultPackageInstaller(stateDir, downloader, extractor), nil
+	return c.InstallerFactory(stateDir, c.FS)
 }
 
 func (c *Context) NewCollection(cfg *model.KyarabenConfig) (*store.Collection, error) {
@@ -107,9 +122,4 @@ func (c *Context) NewStatusGetter() *status.Getter {
 
 func (c *Context) stateDir() (string, error) {
 	return c.Paths.StateDir()
-}
-
-func useFakeInstaller() bool {
-	value := strings.TrimSpace(strings.ToLower(os.Getenv("KYARABEN_E2E_FAKE_INSTALLER")))
-	return value == "1" || value == "true" || value == "yes"
 }

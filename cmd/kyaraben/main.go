@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/alecthomas/kong"
 
@@ -19,6 +20,7 @@ var CLI struct {
 	Init           cli.InitCmd         `cmd:"" help:"Initialize a new kyaraben configuration."`
 	Import         cli.ImportCmd       `cmd:"" help:"Analyze existing collection for import."`
 	Uninstall      cli.UninstallCmd    `cmd:"" help:"Remove kyaraben-managed files."`
+	Update         cli.UpdateCmd       `cmd:"" help:"Check for and install CLI updates (does not update the desktop app)."`
 	Daemon         cli.DaemonCmd       `cmd:"" help:"Run in daemon mode for UI communication."`
 	Sync           cli.SyncCmd         `cmd:"" help:"Manage sync settings and status."`
 	CheckDownloads cli.ValidateURLsCmd `cmd:"" help:"Validate download URLs and show sizes (CI check)."`
@@ -43,9 +45,27 @@ func main() {
 		os.Exit(1)
 	}
 
-	err := ctx.Run(cli.NewDefaultContext(CLI.Instance, CLI.Config))
+	installerFactory := cli.DefaultInstallerFactory
+	if useFakeInstaller() {
+		installerFactory = cli.FakeInstallerFactory
+	}
+
+	cliCtx := cli.NewContext(
+		cli.DefaultFS(),
+		paths.NewPaths(CLI.Instance),
+		cli.DefaultResolver(),
+		CLI.Config,
+		installerFactory,
+	)
+
+	err := ctx.Run(cliCtx)
 	if err != nil {
 		logging.Error("command failed: %v", err)
 		ctx.FatalIfErrorf(err)
 	}
+}
+
+func useFakeInstaller() bool {
+	value := strings.TrimSpace(strings.ToLower(os.Getenv("KYARABEN_E2E_FAKE_INSTALLER")))
+	return value == "1" || value == "true" || value == "yes"
 }
