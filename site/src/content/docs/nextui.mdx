@@ -1,0 +1,95 @@
+---
+title: NextUI integration
+description: Synchronize with TrimUI Brick and other MinUI/NextUI handhelds
+---
+
+Kyaraben can synchronize saves and ROMs with handheld devices running MinUI or NextUI. This lets you play on your PC and continue on a portable device, or vice versa.
+
+## Supported devices
+
+The NextUI integration works with devices running MinUI or NextUI firmware:
+
+- TrimUI Brick (tested)
+- TrimUI Smart Pro
+- Anbernic RG35XX H, Plus, SP, 2024
+- Miyoo Mini, Mini+
+- RGB30
+
+Only the TrimUI Brick has been tested. Other devices should work but are untested.
+
+## Installation
+
+1. Download `Kyaraben.pak` from the [GitHub releases page](https://github.com/fnune/kyaraben/releases)
+2. Connect your device's SD card to your computer
+3. Extract `Kyaraben.pak` to the `Tools/` directory on the SD card (e.g. `Tools/tg5040/Kyaraben.pak/` for TrimUI Brick)
+4. Eject the SD card and insert it back into your device
+
+The Kyaraben app appears in the Tools menu on your device.
+
+## Configuration
+
+The default configuration maps Kyaraben system IDs to standard NextUI paths. If you use non-standard paths or different cores, create a config file.
+
+Configuration is stored at `/.userdata/<platform>/kyaraben/config.toml` on the SD card. For TrimUI Brick, this is `/.userdata/tg5040/kyaraben/config.toml`.
+
+Example configuration:
+
+```toml
+[service]
+autostart = true
+
+[saves]
+nes = "Saves/FC"
+snes = "Saves/SFC"
+gb = "Saves/GB"
+gbc = "Saves/GBC"
+gba = "Saves/GBA"
+psx = "Saves/PS"
+
+[roms]
+nes = "Roms/Nintendo (FC)"
+snes = "Roms/Super Nintendo (SFC)"
+gba = "Roms/Game Boy Advance (GBA)"
+psx = "Roms/PlayStation (PS)"
+
+[bios]
+gba = "Bios/GBA"
+psx = "Bios/PS"
+
+[screenshots]
+retroarch = "Screenshots"
+```
+
+All paths are relative to the SD card root. The left side of each mapping is a Kyaraben system ID (matching the folder names in your desktop collection). The right side is the path on the device.
+
+## Using the app
+
+Launch Kyaraben from the Tools menu on your device. The main screen shows:
+
+- Status: whether syncing is running and connected
+- Syncing: toggle synchronization on/off
+- Autostart: whether to start syncing automatically when the device boots
+- Sync states: whether to synchronize save states (disabled by default)
+- Pair new device: generate or enter a pairing code
+- View paired devices: see connected devices
+
+### Pairing
+
+To pair with your desktop:
+
+1. On your desktop, run `kyaraben sync pair` or use the UI to generate a pairing code
+2. On your device, select "Pair new device" > "Enter pairing code"
+3. Enter the 6-character code
+
+Or generate the code on the device and enter it on your desktop.
+
+### Sync states
+
+Save states are disabled by default because they are often not compatible between different emulator versions or platforms. RetroArch on your desktop may use different cores than NextUI. Enable this only if you know your setups use compatible cores.
+
+## What syncs
+
+See [collection reference](/collection/#what-syncs) for the full list. Differences for NextUI devices:
+
+- Save states are disabled by default since desktop and handheld cores may not be compatible
+- EmulationStation DE metadata and media do not sync since NextUI uses its own format

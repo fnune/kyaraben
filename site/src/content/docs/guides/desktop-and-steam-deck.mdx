@@ -1,0 +1,41 @@
+---
+title: Desktop and Steam Deck
+description: Set up Kyaraben on a Linux desktop or Steam Deck
+---
+
+This guide walks through setting up Kyaraben, adding games, and syncing between devices.
+
+[Download Kyaraben](/download/) if you haven't already.
+
+With sync enabled, ROMs and saves transfer automatically between devices. You can set up your collection on one device and sync handles the rest. For large collections, you may prefer copying files manually to avoid the network transfer.
+
+## First run
+
+1. Select the systems you want to emulate
+2. Click Apply
+
+Kyaraben downloads emulators, creates your collection folder structure, and adds desktop entries to your application menu.
+
+## Adding games
+
+Place ROM files in the appropriate `roms/` subdirectory of your collection (default `~/Emulation`). For systems that require BIOS files, check the provisions panel or run `kyaraben doctor` to see what's needed and where to place them.
+
+## Playing games
+
+Launch games through EmulationStation DE (enable it in settings) or open ROMs directly from individual emulators in your application menu.
+
+## Syncing between devices
+
+To play on both a desktop and Steam Deck and continue where you left off:
+
+1. On the first device, go to Settings > Synchronization and enable it
+2. Click "Generate pairing code"
+3. On the second device, enable synchronization and enter the code
+
+See [collection reference](/collection/#what-syncs) for what syncs. Changes sync whenever both devices are online; offline changes queue up until they reconnect.
+
+## Tips
+
+- If you have a large ROM collection, use [ignore patterns](/using-the-cli/#ignore-patterns) to skip syncing large disc images to the Steam Deck
+- EmulationStation DE media can be several gigabytes; skip videos with `frontends/esde/media/**/videos/**` in your ignore patterns
+- Play statistics (playtime, last played) are tracked per-device and do not sync

@@ -45,12 +45,33 @@ export default defineConfig({
         },
       ],
       sidebar: [
-        { label: "Getting started", slug: "getting-started" },
-        { label: "App reference", slug: "using-the-app" },
-        { label: "CLI reference", slug: "using-the-cli" },
-        { label: "Synchronization", slug: "sync" },
-        { label: "Contributing", slug: "contributing" },
-        { label: "Support the project", slug: "support" },
+        { label: "Download", slug: "download" },
+        {
+          label: "Guides",
+          items: [
+            { label: "Desktop and Steam Deck", slug: "guides/desktop-and-steam-deck" },
+            { label: "Adding a NextUI device", slug: "guides/nextui-device" },
+          ],
+        },
+        {
+          label: "Reference",
+          items: [
+            { label: "App", slug: "using-the-app" },
+            { label: "CLI", slug: "using-the-cli" },
+            { label: "Collection", slug: "collection" },
+          ],
+        },
+        {
+          label: "Integrations",
+          items: [{ label: "NextUI", slug: "nextui" }],
+        },
+        {
+          label: "Project",
+          items: [
+            { label: "Contributing", slug: "contributing" },
+            { label: "Support", slug: "support" },
+          ],
+        },
       ],
     }),
   ],

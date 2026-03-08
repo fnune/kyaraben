@@ -4,25 +4,22 @@ description: Declarative emulation manager for Linux
 template: splash
 hero:
   title: <img src="/kyaraben-logo.svg" alt="Kyaraben" style="max-width:400px" />
-  tagline: Declarative emulation manager for Linux. Pick your systems. Kyaraben handles the rest.
+  tagline: Emulation setup for Linux with automated Syncthing management. Runs on desktop, Steam Deck, and headless server. Guest integrations include NextUI handhelds, with more planned.
   actions:
-    - text: Get started
-      link: /getting-started/
+    - text: Download
+      link: /download/
       icon: right-arrow
     - text: View on GitHub
       link: https://github.com/fnune/kyaraben
       variant: minimal
 ---
 
-import { Aside, LinkCard, CardGrid } from "@astrojs/starlight/components";
+import { Aside } from "@astrojs/starlight/components";
 
 <Aside type="caution">
   Kyaraben is pre-alpha software. Feedback and bug reports are welcome on
   [GitHub](https://github.com/fnune/kyaraben/issues).
 </Aside>
-
-Kyaraben sets up emulators on Linux so you can play retro games. It works on
-any Linux distribution, including the Steam Deck.
 
 ## How it works
 
@@ -30,32 +27,20 @@ any Linux distribution, including the Steam Deck.
 2. Select the systems you want to emulate
 3. Click apply
 4. Drop your ROMs into the created folders and play
+5. Enable sync, **pair with a 6-digit code**, and your collection and saves follow you across devices
+
+Emulators are downloaded as **self-contained AppImages** and **Syncthing is configured automatically**, so no Flatpak, system packages, or manual setup is needed. [Download Kyaraben](/download/) or see the [guides](/guides/desktop-and-steam-deck/) to get started.
 
 {/* Screenshot: v0.1-index-system-picker.png - The system picker UI */}
 
-## Why Kyaraben
+## Supported systems and devices
 
-<CardGrid>
-  <LinkCard
-    title="Cross-device synchronization"
-    href="/sync/"
-    description="Synchronizes saves peer-to-peer with no cloud accounts. Pair devices with a 6-digit code from any network. Includes EmulationStation DE artwork and metadata."
-  />
-  <LinkCard
-    title="You stay in control"
-    href="/using-the-app/#configuration-management"
-    description="See diffs before anything is written. Three-way merge detects your manual changes and warns before overwriting. Kyaraben manages paths; your performance tuning stays untouched."
-  />
-  <LinkCard
-    title="Portable"
-    href="/using-the-app/#what-kyaraben-installs-and-where"
-    description="Works on any Linux distribution. Emulators run as AppImages with no Flatpak, no containers, no sandbox restrictions."
-  />
-  <LinkCard
-    title="Predictable"
-    href="/using-the-app/#guarantees"
-    description="Same config, same result, on any machine. No root access needed. Uninstall cleans up emulator configs and binaries, leaving your ROMs and saves."
-  />
-</CardGrid>
+Kyaraben supports consoles from Atari 2600 through PlayStation 3 and Nintendo Switch. See the [emulator support table](/using-the-app/#emulator-support) for the full list of systems and emulators.
 
-See [app reference](/using-the-app/) for guarantees and non-goals.
+Kyaraben runs on any x86_64 Linux distribution, including SteamOS on the Steam Deck. ARM64 is experimental and untested; help welcome. NextUI handhelds sync as guest devices, with more guest app integrations planned.
+
+## Configuration visibility
+
+Kyaraben manages specific config keys in emulator config files and shows diffs before each apply. You see exactly what Kyaraben writes, which keys it controls, and what changes across updates.
+
+See [app reference](/using-the-app/#configuration-management) for details.

@@ -1,0 +1,82 @@
+---
+title: Collection reference
+description: Structure and synchronization behavior of your Kyaraben collection
+---
+
+import Collection from "../../components/Collection.astro";
+
+Your <Collection /> (default `~/Emulation`) is the central location for all your emulation data. This page documents its structure and how synchronization works.
+
+## Folder structure
+
+```
+~/Emulation/
+├── roms/                 # ROM files, organized by system
+│   ├── snes/
+│   ├── psx/
+│   └── ...
+├── bios/                 # BIOS and firmware files, organized by system
+│   ├── psx/
+│   └── ...
+├── saves/                # Save files (memory cards, battery saves), by system
+│   ├── psx/
+│   ├── gba/
+│   └── ...
+├── states/               # Emulator save states, by emulator
+│   ├── duckstation/
+│   ├── dolphin/
+│   └── ...
+├── screenshots/          # Captured screenshots, by emulator
+│   ├── retroarch/
+│   ├── duckstation/
+│   └── ...
+└── frontends/            # Frontend metadata and media
+    └── esde/
+        ├── gamelists/    # Game lists per system
+        └── media/        # Scraped artwork per system
+```
+
+Saves are organized by system so that different emulators for the same system
+can share save files. States and screenshots are organized by emulator because
+their formats are emulator-specific. Kyaraben never reads, modifies, or deletes
+your ROMs, saves, or BIOS files.
+
+### Symlink strategy
+
+Kyaraben uses symlinks to redirect emulator data directories to your <Collection />.
+For example, Dolphin normally stores GameCube saves in `~/.local/share/dolphin-emu/GC/`.
+Kyaraben creates a symlink from that location to `~/Emulation/saves/gamecube/`.
+The emulator runs with its default settings; the symlink transparently redirects
+data to your managed location.
+
+## What syncs
+
+When synchronization is enabled, these folders synchronize between devices:
+
+| Content                     | Sync behavior |
+| --------------------------- | ------------- |
+| `roms/`                     | Bidirectional |
+| `bios/`                     | Bidirectional |
+| `saves/`                    | Bidirectional |
+| `states/`                   | Bidirectional |
+| `screenshots/`              | Bidirectional |
+| `frontends/esde/gamelists/` | Bidirectional |
+| `frontends/esde/media/`     | Bidirectional |
+
+All folders use standard bidirectional sync. Deletions propagate to all devices.
+
+### EmulationStation DE gamelists and media
+
+When using EmulationStation DE, scraped metadata (game descriptions, ratings, etc.) and media
+(screenshots, videos, box art) synchronize between devices. Kyaraben strips play
+statistics (playcount, playtime, last played) before syncing to avoid conflicts,
+then merges local stats back when importing. This means each device tracks its
+own play history while sharing metadata and artwork.
+
+Scraped videos can be large. See [CLI reference](/using-the-cli/#ignore-patterns)
+to exclude them from synchronization.
+
+## File versioning
+
+Syncthing keeps old versions of save and state files for 30 days. ROM and BIOS
+folders do not use versioning.

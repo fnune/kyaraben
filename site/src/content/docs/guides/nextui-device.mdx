@@ -1,0 +1,36 @@
+---
+title: Adding a NextUI device
+description: Add a NextUI handheld to an existing Kyaraben setup
+---
+
+This guide adds a NextUI handheld to an existing Kyaraben setup.
+
+Tested on NextUI, but any MinUI-based system should work: TrimUI Brick, TrimUI Smart Pro, Anbernic RG35XX H/Plus/SP/2024, Miyoo Mini/Mini+, RGB30.
+
+## Prerequisites
+
+- Kyaraben running on your desktop with synchronization enabled
+- A device running MinUI or NextUI firmware
+- `Kyaraben.pak` from the [download page](/download/)
+
+## Installation
+
+1. Power off your device and remove the SD card
+2. Insert the SD card into your computer
+3. Extract `Kyaraben.pak` to the `Tools/` directory (e.g. `Tools/tg5040/` for TrimUI Brick)
+4. Eject the SD card and insert it back into your device
+
+## Pairing
+
+1. On your desktop, run `kyaraben sync pair` or use the UI to generate a pairing code
+2. Power on the device and open the Kyaraben app from the Tools menu
+3. Select "Pair new device" > "Enter pairing code"
+4. Enter the 6-character code
+
+The status should change to "Synced" once connected.
+
+## Configuration
+
+The default paths work with standard NextUI folder layouts. If you use custom paths, see [NextUI integration](/nextui/#configuration) for configuration options.
+
+See [NextUI integration](/nextui/) for full documentation.

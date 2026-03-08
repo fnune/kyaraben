@@ -6,6 +6,10 @@ description: How to use the Kyaraben UI, what it does under the hood, and what i
 import Collection from "../../components/Collection.astro";
 import systemPickerScreenshot from "../../assets/screenshots/v0.1-app-system-picker.png";
 
+:::caution[Pre-alpha software]
+Kyaraben is in active development. Expect bugs and breaking changes between versions. Kyaraben does not modify your collection directory, but back up your saves and emulator configs before first use just in case. Report issues on [GitHub](https://github.com/fnune/kyaraben/issues).
+:::
+
 ## Selecting systems and emulators
 
 The main screen shows all available systems. Check a system to enable it,
@@ -39,6 +43,7 @@ configures for each emulator.
 | mGBA            | GB, GBC, GBA     | saves, states, screenshots | full    | full   | configured | 4       | none                          |
 | melonDS         | DS               | saves, states, screenshots | full    | full   | configured | 4       | none                          |
 | Citra           | 3DS              | saves, states, screenshots | full    | full   | configured | 4       | none                          |
+| Azahar          | 3DS              | saves, states, screenshots | full    | full   | configured | 4       | none                          |
 | Mupen64Plus     | N64              | saves, states, screenshots | full    | full   | configured | 4       | none                          |
 | Beetle Saturn   | Saturn           | saves, states, screenshots | full    | full   | configured | 4       | Saturn BIOS                   |
 | Beetle PCE      | PC Engine        | saves, states, screenshots | full    | full   | configured | 4       | CD System Card (for CD games) |
@@ -148,45 +153,7 @@ tool that writes to the same files will cause conflicts.
 
 ## The collection
 
-Your <Collection /> (default `~/Emulation`) has a consistent structure:
-
-```
-~/Emulation/
-├── roms/                 # ROM files, organized by system
-│   ├── snes/
-│   ├── psx/
-│   └── ...
-├── bios/                 # BIOS and firmware files, organized by system
-│   ├── psx/
-│   └── ...
-├── saves/                # Save files (memory cards, battery saves), by system
-│   ├── psx/
-│   ├── gba/
-│   └── ...
-├── states/               # Emulator save states, by emulator
-│   ├── duckstation/
-│   ├── dolphin/
-│   └── ...
-├── screenshots/          # Captured screenshots, by emulator
-│   ├── retroarch/
-│   ├── duckstation/
-│   └── ...
-└── frontends/            # Frontend metadata and media
-    └── esde/
-        ├── gamelists/    # Game lists per system
-        └── media/        # Scraped artwork per system
-```
-
-Saves are organized by system so that different emulators for the same system
-can share save files. States and screenshots are organized by emulator because
-their formats are emulator-specific. Kyaraben never reads, modifies, or deletes
-your ROMs, saves, or BIOS files.
-
-Kyaraben uses symlinks to redirect emulator data directories to your <Collection />.
-For example, Dolphin normally stores GameCube saves in `~/.local/share/dolphin-emu/GC/`.
-Kyaraben creates a symlink from that location to `~/Emulation/saves/gamecube/`.
-The emulator runs with its default settings; the symlink transparently redirects
-data to your managed location.
+See [collection reference](/collection/) for the folder structure, what syncs, and file versioning behavior.
 
 ## Guarantees
 
@@ -217,6 +184,42 @@ You can also check for updates manually via the settings icon in the sidebar.
 After updating, Kyaraben prompts you to run Apply to get any new emulator
 configurations included in the update. This is optional but recommended.
 
+## Hotkeys
+
+Kyaraben configures controller hotkeys for emulators that support them. The default bindings use a modifier button (Back/Select on most controllers) plus an action button.
+
+| Action        | RetroArch cores      | DuckStation          | PCSX2                |
+| ------------- | -------------------- | -------------------- | -------------------- |
+| Save state    | Select + R1          | Select + R1          | Select + R1          |
+| Load state    | Select + L1          | Select + L1          | Select + L1          |
+| Next slot     | Select + D-Pad Right | Select + D-Pad Right | Select + D-Pad Right |
+| Previous slot | Select + D-Pad Left  | Select + D-Pad Left  | Select + D-Pad Left  |
+| Fast forward  | Select + R2          | Select + R2          | Select + R2          |
+| Pause         | Select + A/Cross     | Select + A/Cross     | Select + A/Cross     |
+| Screenshot    | Select + B/Circle    | Select + B/Circle    | Select + B/Circle    |
+| Quit          | Select + Start       | Select + Start       | Select + Start       |
+| Open menu     | Select + Y/Square    | Select + Y/Square    | -                    |
+
+Emulators marked as `none` for hotkeys in the [emulator support table](#emulator-support) do not have Kyaraben-configured hotkeys. Use their native keyboard shortcuts or configure hotkeys manually.
+
+## Troubleshooting
+
+### Game won't launch
+
+If a game fails to launch or shows a black screen:
+
+1. Check BIOS files. Run `kyaraben doctor` or check the provisions panel in the UI. Many systems require specific BIOS versions.
+2. Verify the ROM format. Some emulators only support certain formats. For example, PCSX2 works best with `.iso` or `.chd` files, not `.bin/.cue`.
+3. Check the emulator logs. Emulators write logs to their config directories (e.g. `~/.config/duckstation/`).
+
+### Controller not detected
+
+Kyaraben uses SDL2 for controller input. If your controller is not detected:
+
+1. Check that the controller works in other applications
+2. For Bluetooth controllers, ensure the controller is paired and connected before launching the emulator
+3. On Steam Deck, if running from Desktop Mode, Steam's controller handling may interfere. Try disabling Steam Input for the emulator.
+
 ## Non-goals
 
 - Windows, macOS, iOS, or Android support
@@ -239,3 +242,52 @@ Kyaraben makes network requests in these situations:
 Kyaraben does not collect telemetry or analytics. The relay server stores
 pairing codes temporarily (until redeemed or expired) but does not log device
 identifiers or IP addresses beyond what is necessary for the pairing handshake.
+
+## Synchronization
+
+Kyaraben synchronizes your saves, states, screenshots, and scraped metadata across all your devices. Start a game on your desktop, pick up where you left off on your Steam Deck.
+
+Synchronization is peer-to-peer with no cloud accounts. Kyaraben uses Syncthing under the hood, which is installed automatically when you enable synchronization. Data transfers directly between your devices when they are online, and changes queue up when devices are offline.
+
+Synchronization requires systemd. Service management uses `systemctl --user`.
+
+### Enabling synchronization
+
+1. Go to Settings > Synchronization
+2. Click "Enable synchronization"
+
+### Pairing devices
+
+Pairing connects two devices so they can synchronize.
+
+import pairingScreenshot from "../../assets/screenshots/v0.1-sync-pairing.png";
+
+On the first device:
+
+1. Go to Settings > Synchronization
+2. Click "Generate pairing code"
+3. A 6-character code appears (e.g. K7X9M2)
+
+<img
+  src={pairingScreenshot.src}
+  alt="Pairing mode showing a 6-character code and the list of folders to sync"
+/>
+
+On the second device:
+
+1. Go to Settings > Synchronization
+2. Enter the code from the first device
+3. Click "Connect"
+
+The code works from any network. Devices do not need to be on the same local
+network.
+
+See [collection reference](/collection/#what-syncs) for what syncs and file versioning behavior.
+
+### Managing synchronization
+
+To add a new device, see [Pairing devices](#pairing-devices).
+
+To remove a device, click the trash icon next to the device in the synchronization settings.
+
+See [CLI reference](/using-the-cli/#kyaraben-sync) for command-line management including status checks, device removal, and configuration options.

@@ -100,7 +100,26 @@ enabled = true
 
 ### `[sync]`
 
-See [save synchronization](/sync/) for synchronization configuration.
+Synchronization configuration.
+
+```toml
+[sync]
+enabled = true
+
+[sync.syncthing]
+listen_port = 22100
+discovery_port = 21127
+gui_port = 8484
+relay_enabled = true
+
+[sync.ignore]
+patterns = [
+  "**/shader_cache/**",
+  "**/logs/**",
+]
+```
+
+See [`kyaraben sync`](#kyaraben-sync) for available commands.
 
 ## Commands
 
@@ -253,7 +272,18 @@ Proceed? [y/N]
 
 ### `kyaraben sync`
 
-Manage save synchronization. See [save synchronization](/sync/).
+Manage save synchronization. See [app reference](/using-the-app/#synchronization) for an overview.
+
+#### Enabling synchronization
+
+Edit `~/.config/kyaraben/config.toml`:
+
+```toml
+[sync]
+enabled = true
+```
+
+Then run `kyaraben apply` to install Syncthing.
 
 #### `kyaraben sync pair [CODE]`
 
@@ -271,6 +301,29 @@ Waiting for devices... (expires in 5 minutes)
 
 Paired with steamdeck-kyaraben
 ```
+
+On the second device:
+
+```
+$ kyaraben sync pair K7X9M2
+Connecting...
+Paired with desktop-kyaraben
+```
+
+#### `kyaraben sync pair --device-id`
+
+Show the full 56-character device ID instead of a pairing code. Use this when
+the relay server is unavailable:
+
+```
+$ kyaraben sync pair --device-id
+Device ID: LGFPDIT7-SKNNJVJZ-A4FC7QNC-...
+
+# On the other device, join using the full device ID
+$ kyaraben sync pair LGFPDIT7-SKNNJVJZ-A4FC7QNC-...
+```
+
+This works across any network via Syncthing's relay servers.
 
 #### `kyaraben sync status`
 
@@ -294,11 +347,6 @@ Synced folders:
   Screenshots          idle
 ```
 
-#### `kyaraben sync pair --device-id`
-
-Show the full 56-character device ID instead of a pairing code. Use this when
-the relay server is unavailable.
-
 #### `kyaraben sync add-device <DEVICE-ID>`
 
 Add a device by its 56-character Syncthing device ID. Use this for manual
@@ -307,3 +355,158 @@ pairing without the interactive flow.
 #### `kyaraben sync remove-device <ID-or-NAME>`
 
 Remove a paired device by its device ID or friendly name.
+
+### Sync configuration
+
+Syncthing runs as a systemd user service with its own configuration, separate
+from any existing Syncthing installation.
+
+| Setting          | Default                              |
+| ---------------- | ------------------------------------ |
+| Config directory | `~/.local/state/kyaraben/syncthing/` |
+| Listen port      | 22100                                |
+| Discovery port   | 21127                                |
+| GUI port         | 8484                                 |
+| Relay servers    | Enabled                              |
+| Device name      | `<hostname>-kyaraben`                |
+
+Override ports in `~/.config/kyaraben/config.toml`:
+
+```toml
+[sync.syncthing]
+listen_port = 22100
+discovery_port = 21127
+gui_port = 8484
+relay_enabled = true
+```
+
+### Ignore patterns
+
+Kyaraben ignores regenerable data by default:
+
+```
+**/shader_cache/**
+**/cache/**
+**/*.tmp
+.DS_Store
+Thumbs.db
+```
+
+Add custom patterns in `~/.config/kyaraben/config.toml`:
+
+```toml
+[sync.ignore]
+patterns = [
+  "**/shader_cache/**",
+  "**/logs/**",
+]
+```
+
+Patterns use Syncthing's ignore syntax. Prefix with `!` to un-ignore.
+
+Ignore patterns are local to each device:
+
+- Ignored on primary: files won't be sent to any secondary
+- Ignored on secondary: files won't be received on that device, but other
+  devices still synchronize them
+
+This lets you skip large files on a device with limited storage (like a Steam
+Deck) while keeping them on others.
+
+#### Example: exclude large ROM formats
+
+If you only want to synchronize smaller ROMs and skip disc-based games:
+
+```toml
+[sync.ignore]
+patterns = [
+  # Skip disc images (PS1, PS2, GameCube, Wii, etc.)
+  "roms/**/*.iso",
+  "roms/**/*.chd",
+  "roms/**/*.cso",
+  "roms/**/*.rvz",
+  "roms/**/*.wbfs",
+  # Skip optical formats
+  "roms/**/*.bin",
+  "roms/**/*.cue",
+]
+```
+
+#### Example: skip EmulationStation DE videos
+
+Scraped videos can be several gigabytes per system. To synchronize box art and
+screenshots but skip videos:
+
+```toml
+[sync.ignore]
+patterns = [
+  "frontends/esde/media/**/videos/**",
+]
+```
+
+Or skip all media and only synchronize gamelists (metadata):
+
+```toml
+[sync.ignore]
+patterns = [
+  "frontends/esde/media/**",
+]
+```
+
+### Sync troubleshooting
+
+#### Pairing code rejected
+
+Codes expire after 5 minutes. Cancel pairing on the primary and start a new
+session.
+
+#### Devices paired but not synchronizing
+
+1. Check `kyaraben sync status` shows "connected"
+2. If a firewall is blocking connections, see
+   [Syncthing's firewall documentation](https://docs.syncthing.net/users/firewall.html)
+
+### `kyaraben import scan`
+
+Analyzes an existing ROM collection and shows what can be imported into Kyaraben's structure. This is a read-only operation that does not move or modify any files.
+
+```
+$ kyaraben import scan ~/Games/Emulation
+
+Back up your collection before copying anything.
+
+Existing collection: /home/user/Games/Emulation
+Kyaraben collection: /home/user/Emulation
+
+Overall: +0 in Kyaraben, +2.3 GB to import
+
+===========================================================================
+PlayStation
+===========================================================================
+
+ROMs                                               +0  +1.8 GB
+
+  Found at:        /home/user/Games/Emulation/roms/psx
+                   47 files, 1.8 GB
+  Kyaraben expects: /home/user/Emulation/roms/psx
+                   (not found)
+
+  Missing from Kyaraben (47 files, 1.8 GB):
+    Final Fantasy VII (USA).chd
+    Metal Gear Solid (USA) (Disc 1).chd
+    ... and 45 more
+```
+
+Use this command when migrating from another emulation setup (like EmuDeck) or consolidating files from multiple locations.
+
+Options:
+
+- `--esde <PATH>`: specify the ES-DE data directory. Defaults to `~/ES-DE` if it exists.
+- `--format <text|json>`: output format. Defaults to `text`.
+
+The JSON format is useful for scripting:
+
+```
+$ kyaraben import scan ~/Games --format json | jq '.summary.totalOnlyInSource'
+2463187456
+```
