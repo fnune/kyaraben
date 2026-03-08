@@ -3,6 +3,8 @@ title: Contributing
 description: Development setup, architecture, and conventions
 ---
 
+This guide covers setting up a development environment, project architecture, and coding conventions.
+
 ## Development setup
 
 Kyaraben uses a Nix flake for its development environment. If you have Nix
@@ -69,6 +71,8 @@ For UI E2E tests, follow the
 user-facing selectors like `getByRole`, `getByLabel`, and `getByText`.
 
 ## Project architecture
+
+The backend is a Go daemon that communicates with the TypeScript UI via JSON over stdin/stdout.
 
 ### Domain model
 

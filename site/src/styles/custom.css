@@ -68,6 +68,10 @@ h6 {
   --hero-pad-y: 3rem;
 }
 
+.content-panel:has(h1#_top) {
+  padding-bottom: 0;
+}
+
 .content-panel:has(.hero) {
   padding-top: 0;
 }
@@ -126,6 +130,16 @@ h6 {
   max-width: none;
   box-shadow: 0 0 60px rgba(0, 0, 0, 0.8);
   border-radius: 6px;
+}
+
+@media (max-width: 50rem) {
+  .hero {
+    padding-block: 2.5rem;
+  }
+
+  .hero > img {
+    display: none;
+  }
 }
 
 .hero .tagline {

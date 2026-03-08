@@ -5,6 +5,8 @@ description: CLI commands and the config file
 
 import Collection from "../../components/Collection.astro";
 
+Kyaraben can be fully configured through its config file and controlled via command-line.
+
 ## The config file
 
 Kyaraben stores its configuration at `~/.config/kyaraben/config.toml`. The
@@ -330,13 +332,14 @@ This works across any network via Syncthing's relay servers.
 
 #### `kyaraben sync status`
 
-Shows synchronization state, connected devices, and per-folder progress.
+Shows synchronization state, connected devices, per-folder progress, and
+conflict counts.
 
 ```
 $ kyaraben sync status
 
 Sync: enabled
-Status: idle
+Status: synced
 Device ID: LGFPDIT7-SKNNJVJZ-A4FC7QNC-...
 UI: http://127.0.0.1:8484
 
@@ -346,9 +349,13 @@ Paired devices:
 Synced folders:
   ROMs                 idle
   Saves                idle
+    2 conflict file(s)
   States               idle
   Screenshots          idle
 ```
+
+When conflicts exist, the overall status shows `conflict` and each affected
+folder lists its conflict count. See [resolving conflicts](/collection/#resolving-conflicts) for how to handle them.
 
 #### `kyaraben sync add-device <DEVICE-ID>`
 
