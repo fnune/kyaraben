@@ -6,7 +6,7 @@ This directory contains device-side integrations for Kyaraben. Each integration 
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                         Desktop (host)                                  │
+│                    Host (desktop, Steam Deck, server)                   │
 │                                                                         │
 │  ┌─────────────┐    ┌─────────────┐    ┌─────────────────────────────┐  │
 │  │ Kyaraben UI │◄──►│  Syncthing  │◄──►│ ROMs / Saves / BIOS / ...   │  │
@@ -16,7 +16,7 @@ This directory contains device-side integrations for Kyaraben. Each integration 
                              │ sync via relay or LAN
                              │
 ┌────────────────────────────▼────────────────────────────────────────────┐
-│                      Device (guest)                                     │
+│                    Guest (retro handheld with CFW)                      │
 │                                                                         │
 │  ┌─────────────┐    ┌─────────────┐    ┌─────────────────────────────┐  │
 │  │ Integration │◄──►│  Syncthing  │◄──►│ CFW-specific paths          │  │

@@ -2,17 +2,15 @@ package app
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/fnune/kyaraben/integrations/nextui/internal/config"
 	"github.com/fnune/kyaraben/integrations/nextui/internal/mapping"
 	"github.com/fnune/kyaraben/internal/guestapp"
+	"github.com/fnune/kyaraben/internal/syncguest"
 )
 
 type Env struct {
@@ -157,7 +155,7 @@ func (a *App) showMainMenu(ctx context.Context) (string, error) {
 		{Label: "Sync states", Value: "toggle_sync_states", Options: []string{"Enabled", "Disabled"}, Selected: syncStatesSelected, ConfirmText: "Confirm"},
 		{Label: "Pair new device", Value: "pair"},
 		{Label: "View paired devices", Value: "devices"},
-		{Label: fmt.Sprintf("Syncthing UI: http://%s:%d", getLocalIP(), guiPort), Value: "url", Unselectable: true},
+		{Label: fmt.Sprintf("Syncthing UI: http://%s:%d", guestapp.GetLocalIP(), guiPort), Value: "url", Unselectable: true},
 	}
 
 	idx, action, err := a.ui.Menu().Show(items, guestapp.MenuOptions{
@@ -195,20 +193,6 @@ func (a *App) showMainMenu(ctx context.Context) (string, error) {
 	}
 
 	return "", nil
-}
-
-func getLocalIP() string {
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return "unknown"
-	}
-
-	for _, addr := range addrs {
-		if ipNet, ok := addr.(*net.IPNet); ok && !ipNet.IP.IsLoopback() && ipNet.IP.To4() != nil {
-			return ipNet.IP.String()
-		}
-	}
-	return "unknown"
 }
 
 func (a *App) toggleSync(ctx context.Context) error {
@@ -380,7 +364,7 @@ func (a *App) runPairing(ctx context.Context) error {
 func (a *App) generateCode(ctx context.Context) error {
 	session, err := a.syncMgr.CreatePairingSession(ctx)
 	if err != nil {
-		return friendlyError(err)
+		return syncguest.FriendlyPairingError(err)
 	}
 
 	if err := a.ui.Presenter().ShowMessageAsync(fmt.Sprintf("Pairing code: %s", session.Code), ""); err != nil {
@@ -390,11 +374,11 @@ func (a *App) generateCode(ctx context.Context) error {
 	peerID, err := a.syncMgr.WaitForPeer(ctx, session.Code)
 	_ = a.ui.Presenter().Close()
 	if err != nil {
-		return friendlyError(err)
+		return syncguest.FriendlyPairingError(err)
 	}
 
 	if err := a.syncMgr.AddPeer(ctx, peerID); err != nil {
-		return friendlyError(err)
+		return syncguest.FriendlyPairingError(err)
 	}
 
 	_ = a.ui.Presenter().ShowMessage("Device paired successfully", "")
@@ -414,11 +398,11 @@ func (a *App) enterCode(ctx context.Context) error {
 
 	peerID, err := a.syncMgr.JoinPairingSession(ctx, code)
 	if err != nil {
-		return friendlyError(err)
+		return syncguest.FriendlyPairingError(err)
 	}
 
 	if err := a.syncMgr.AddPeer(ctx, peerID); err != nil {
-		return friendlyError(err)
+		return syncguest.FriendlyPairingError(err)
 	}
 
 	_ = a.ui.Presenter().ShowMessage("Device paired successfully", "")
@@ -477,27 +461,4 @@ func (a *App) showError(err error) {
 	if presenterErr := a.ui.Presenter().ShowMessage(err.Error(), ""); presenterErr != nil {
 		fmt.Fprintf(os.Stderr, "presenter failed: %v\n", presenterErr)
 	}
-}
-
-var (
-	errInvalidCode    = errors.New("Invalid pairing code")       //nolint:staticcheck
-	errCodeExpired    = errors.New("Pairing code expired")       //nolint:staticcheck
-	errConnectionLost = errors.New("Connection lost, try again") //nolint:staticcheck
-)
-
-func friendlyError(err error) error {
-	msg := err.Error()
-
-	switch {
-	case strings.Contains(msg, "session not found"):
-		return errInvalidCode
-	case strings.Contains(msg, "session expired"):
-		return errCodeExpired
-	case strings.Contains(msg, "context deadline exceeded"):
-		return errConnectionLost
-	case strings.Contains(msg, "connection refused"):
-		return errConnectionLost
-	}
-
-	return err
 }
