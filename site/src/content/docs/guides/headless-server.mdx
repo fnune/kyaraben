@@ -15,7 +15,7 @@ Use cases:
 
 - x86_64 Linux (no GUI needed)
 - systemd user services support
-- Sync ports accessible (see [firewall](#firewall) below)
+- Sync ports accessible (see [Syncthing's firewall documentation](https://docs.syncthing.net/users/firewall.html))
 
 ## Installation
 
@@ -64,27 +64,6 @@ loginctl enable-linger $USER
 
 This allows Syncthing to keep running after you disconnect from SSH.
 
-## Firewall
-
-Open the required ports. For `ufw`:
-
-```bash
-sudo ufw allow 22100/tcp  # Sync connections
-sudo ufw allow 21127/udp  # Local discovery
-sudo ufw allow 8484/tcp   # Web UI (optional, can restrict to LAN)
-```
-
-For `firewalld`:
-
-```bash
-sudo firewall-cmd --permanent --add-port=22100/tcp
-sudo firewall-cmd --permanent --add-port=21127/udp
-sudo firewall-cmd --permanent --add-port=8484/tcp
-sudo firewall-cmd --reload
-```
-
-If the server is only reachable via relay (no direct connection), you only need outbound HTTPS.
-
 ## Pairing devices
 
 Generate a pairing code on the server:
@@ -95,7 +74,7 @@ kyaraben sync pair
 
 On your desktop or Steam Deck, enable synchronization and enter the code.
 
-For servers without relay access, use the device ID directly:
+If the pairing code doesn't work (requires Syncthing relay access), use the device ID directly:
 
 ```bash
 kyaraben sync pair --device-id
@@ -150,4 +129,4 @@ systemctl --user status kyaraben-syncthing
 
 1. Verify ports are open: `nc -zv server-ip 22100`
 2. Check firewall rules
-3. Try relay mode if direct connections fail (ensure `relay_enabled = true` in config)
+3. If direct connections fail, ensure Syncthing relays are enabled (`relay_enabled = true` in config)
