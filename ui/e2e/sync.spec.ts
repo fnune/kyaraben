@@ -1,17 +1,10 @@
+import { type ElectronApplication, expect, type Page, test } from '@playwright/test'
 import {
-  type ElectronApplication,
-  _electron as electron,
-  expect,
-  type Page,
-  test,
-} from '@playwright/test'
-import {
-  buildEnv,
-  getElectronArgs,
   type ConfigFixture,
   createFixture,
   EmulatorIDRetroArchBsnes,
   type FakeSyncthingOptions,
+  launchElectron,
   type ManifestFixture,
   type RelayServer,
   SystemIDSNES,
@@ -20,14 +13,6 @@ import {
   type TestFixture,
 } from './fixtures'
 import type { FakeSyncthingController } from './fixtures/fake-syncthing-server'
-
-function getAppImagePath(): string {
-  const appImagePath = process.env.KYARABEN_APPIMAGE
-  if (!appImagePath) {
-    throw new Error('KYARABEN_APPIMAGE environment variable must be set')
-  }
-  return appImagePath
-}
 
 interface SyncTestContext {
   app: ElectronApplication
@@ -45,16 +30,7 @@ async function setupSyncTest(options: {
   const fixture = createFixture(options.config, options.manifest)
   const controller = setupFakeSyncthingApi(fixture, options.syncthing)
   options.setup?.(controller)
-
-  const app = await electron.launch({
-    executablePath: getAppImagePath(),
-    args: getElectronArgs(),
-    env: buildEnv(fixture),
-  })
-
-  const page = await app.firstWindow()
-  await page.getByRole('img', { name: 'Kyaraben' }).waitFor({ timeout: 30000 })
-
+  const { app, page } = await launchElectron(fixture)
   return { app, page, fixture, controller }
 }
 

@@ -59,6 +59,7 @@
             podman
             pre-commit
             prek
+            xvfb-run
           ];
 
           shellHook = ''

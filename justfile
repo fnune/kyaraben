@@ -100,7 +100,8 @@ ui-e2e *args: _extract-appimage _relay-binary
         KYARABEN_APPIMAGE="$(pwd)/../{{ test_dir }}/app/kyaraben-ui" \
         APPDIR="$(pwd)/../{{ test_dir }}/app" \
         KYARABEN_RELAY_BINARY="$(pwd)/../{{ test_dir }}/relay/relay" \
-        ../scripts/run-ui-e2e.sh npx playwright test {{ args }}
+        ELECTRON_OZONE_PLATFORM_HINT=x11 \
+        xvfb-run --auto-servernum ../scripts/run-ui-e2e.sh npx playwright test {{ args }}
 
 # Run Playwright UI e2e tests with interactive UI (run 'just build' first)
 ui-e2e-ui *args: _extract-appimage
