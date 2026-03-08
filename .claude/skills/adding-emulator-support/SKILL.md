@@ -447,31 +447,9 @@ Update the following test cases to include the new system/emulator:
 
 ## Step 10: Update site documentation
 
-### Emulator support table
+Update `site/src/content/docs/using-the-app.mdx` to add a row to the emulator support table. See the existing table for column format.
 
-File: `site/src/content/docs/using-the-app.mdx`
-
-Add a row to the emulator support table:
-
-```markdown
-| Emulator | System | Syncs | Hotkeys | Controller | Players | Provisions |
-| ...existing rows... |
-| New Emulator | System Name | saves, states, screenshots | full | configured | 4 | none |
-```
-
-Column definitions:
-
-- **Syncs**: `saves` (in-game), `states` (savestates), `screenshots`
-- **Hotkeys**: `full` (all hotkeys), `partial` (subset), `none`
-- **Controller**: `configured` (Kyaraben generates bindings), `auto` (emulator handles)
-- **Players**: number of controller slots configured, or `-` if emulator handles
-- **Provisions**: BIOS/firmware needed, or `none`. Add `(optional)` if not required
-
-### Support page
-
-File: `site/src/content/docs/support.mdx`
-
-If the emulator has a donation page, add it to the appropriate table. Link to the project's official donation page, not directly to PayPal or similar.
+If the emulator project has a donation page, add it to `site/src/content/docs/support.mdx`.
 
 ## Step 11: Generate types and test
 
@@ -543,13 +521,7 @@ SupportedSettings: []string{
 },
 ```
 
-Not all emulators support all features:
-
-- RetroArch cores: typically all three
-- DuckStation/PCSX2: preset + autosave (no autoload)
-- PPSSPP: preset + autoload (no autosave)
-- Flycast: autosave + autoload (no preset - 6th gen system)
-- RPCS3/Vita3K/Cemu: none (limited config integration)
+Check existing emulator definitions in `internal/emulators/` to see which settings each supports.
 
 ## ConfigInput and DependsOn
 
@@ -684,6 +656,7 @@ Study these for patterns:
 | Simple RetroArch core | `retroarchbsnes`         | No BIOS, basic config          |
 | RetroArch with BIOS   | `retroarchbeetlesaturn`  | Multiple BIOS variants         |
 | Multi-system core     | `retroarchgenesisplusgx` | 3 systems, optional BIOS       |
+| Alternative core      | `retroarchazahar`        | Shares saves with citra core   |
 | Standalone simple     | `flycast`                | Basic standalone setup         |
 | Standalone with BIOS  | `duckstation`            | Many BIOS variants, INI config |
 | Complex standalone    | `rpcs3`                  | Import-based BIOS, YAML config |
@@ -880,9 +853,7 @@ model.Provision{
 }
 ```
 
-Example: Eden used to require ImportViaUI for firmware, but a directory-based approach was found and is now preferred (users place files in a symlinked directory).
-
-Used by: RPCS3 (firmware has no directory option)
+Used by: RPCS3, Vita3K, Cemu
 
 ### Custom provision BaseDir
 
@@ -997,8 +968,8 @@ model.ConfigEntry{
 | Dolphin     | INI           | Yes (4 files) | Symlinks  | Region BaseDir               |
 | PPSSPP      | INI           | No            | Symlinks  | Raw joystick                 |
 | Flycast     | INI           | No            | Config    | Combo hotkeys                |
-| Cemu        | XML + Raw     | Yes           | Symlinks  | GUID bindings                |
+| Cemu        | XML + Raw     | Yes           | Symlinks  | GUID bindings, ImportViaUI   |
 | Vita3K      | YAML + Raw    | Yes           | Symlinks  | ImportViaUI, manifest launch |
-| Eden        | INI           | Yes (profile) | Symlinks  | GUID bindings, ImportViaUI   |
+| Eden        | INI           | Yes (profile) | Symlinks  | GUID bindings                |
 | xemu        | TOML          | No            | Config    | InitialDownloads, env vars   |
-| Xenia       | TOML          | No            | Config    | env vars                     |
+| Xenia Edge  | TOML          | No            | Config    | env vars                     |
