@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/fnune/kyaraben/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://kyaraben-kyaraben-245b3f77.koyeb.app/download/">Download</a> · <a href="https://kyaraben-kyaraben-245b3f77.koyeb.app/">Documentation</a> · <a href="https://github.com/fnune/kyaraben/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
 </p>
 
 Emulation setup for Linux with automated Syncthing management. Runs on desktop, Steam Deck, and headless server. Guest integrations include NextUI handhelds, with more planned.
@@ -23,40 +23,37 @@ Emulation setup for Linux with automated Syncthing management. Runs on desktop, 
 4. Drop your ROMs into the created folders and play
 5. Enable sync, pair with a 6-digit code, and your collection and saves follow you across devices
 
-Emulators are downloaded as self-contained AppImages and Syncthing is configured automatically, so no Flatpak, system packages, or manual setup is needed. On Steam Deck, sync works in Game Mode. See the [guides](https://kyaraben.dev/guides/desktop-and-steam-deck/) to get started.
+Emulators are downloaded as self-contained AppImages and Syncthing is configured automatically, so no Flatpak, system packages, or manual setup is needed. On Steam Deck, sync works in Game Mode. See the [guides](https://kyaraben-kyaraben-245b3f77.koyeb.app/guides/desktop-and-steam-deck/) to get started.
 
 ## Supported systems and devices
 
-Kyaraben supports consoles from Atari 2600 through PlayStation 3 and Nintendo Switch. See the [emulator support table](https://kyaraben.dev/using-the-app/#emulator-support) for the full list of systems and emulators.
+Kyaraben supports consoles from Atari 2600 through PlayStation 3 and Nintendo Switch. See the [emulator support table](https://kyaraben-kyaraben-245b3f77.koyeb.app/using-the-app/#emulator-support) for the full list of systems and emulators.
 
 Kyaraben runs on any x86_64 Linux distribution, including SteamOS on the Steam Deck. ARM64 is experimental and untested. NextUI handhelds sync as guest devices, with more guest app integrations planned.
 
 ## Configuration visibility
 
-Kyaraben manages specific config keys in emulator config files and shows diffs before each apply. You see exactly what Kyaraben writes, which keys it controls, and what changes across updates. See [app reference](https://kyaraben.dev/using-the-app/#configuration-management) for details.
+Kyaraben manages specific config keys in emulator config files and shows diffs before each apply. You see exactly what Kyaraben writes, which keys it controls, and what changes across updates. See [app reference](https://kyaraben-kyaraben-245b3f77.koyeb.app/using-the-app/#configuration-management) for details.
 
 ## Installation
 
-Download the latest AppImage from the [releases page](https://github.com/fnune/kyaraben/releases) and run it:
+Download the AppImage from the [releases page](https://github.com/fnune/kyaraben/releases) and double-click to run. On Steam Deck, switch to Desktop Mode first.
 
-```bash
-chmod +x Kyaraben-*.AppImage
-./Kyaraben-*.AppImage
-```
+A CLI binary is also available for headless servers. See the [download page](https://kyaraben-kyaraben-245b3f77.koyeb.app/download/) for all options.
 
-## Requirements
+### Requirements
 
-- Linux (x86_64)
+- Linux x86_64 (ARM64 experimental)
 - systemd (for sync; emulators work without it)
 
 ## Documentation
 
-- [Getting started](https://kyaraben.dev/getting-started/)
-- [Setup guides](https://kyaraben.dev/guides/)
-- [App reference](https://kyaraben.dev/using-the-app/)
-- [CLI reference](https://kyaraben.dev/using-the-cli/)
-- [Synchronization](https://kyaraben.dev/sync/)
-- [NextUI integration](https://kyaraben.dev/nextui/)
+- [Getting started](https://kyaraben-kyaraben-245b3f77.koyeb.app/getting-started/)
+- [Setup guides](https://kyaraben-kyaraben-245b3f77.koyeb.app/guides/)
+- [App reference](https://kyaraben-kyaraben-245b3f77.koyeb.app/using-the-app/)
+- [CLI reference](https://kyaraben-kyaraben-245b3f77.koyeb.app/using-the-cli/)
+- [Synchronization](https://kyaraben-kyaraben-245b3f77.koyeb.app/sync/)
+- [NextUI integration](https://kyaraben-kyaraben-245b3f77.koyeb.app/nextui/)
 
 ## Contributing
 
