@@ -6,7 +6,9 @@
   <a href="https://github.com/fnune/kyaraben/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
 </p>
 
-Kyaraben is a declarative emulation manager for Linux. It handles the installation and configuration of emulators for various gaming systems.
+Emulation setup for Linux with automated Syncthing management.
+
+Runs on desktop, Steam Deck, and headless server. Guest integrations include NextUI handhelds, with more planned.
 
 <p align="center">
   <img src="assets/screenshots/catalog-idle.png" alt="Kyaraben screenshot" width="800">
@@ -21,26 +23,28 @@ chmod +x Kyaraben-*.AppImage
 ./Kyaraben-*.AppImage
 ```
 
-Works on most Linux distributions, including SteamOS on the Steam Deck.
-
 ## How it works
 
 1. Select the systems you want to emulate
-2. Click apply to install the emulators and configure them
-3. Kyaraben shows which BIOS or firmware files are required for each system
-4. Drop your ROMs into the created folders and play
+2. Click apply - Kyaraben downloads and configures emulators
+3. Drop your ROMs into the created folders
+4. Enable sync to synchronize saves across devices
+
+Kyaraben shows which BIOS or firmware files are required for each system.
 
 ## Requirements
 
 - Linux (x86_64)
-- systemd (for the sync feature; emulators work without it)
+- systemd (for sync; emulators work without it)
 
 ## Documentation
 
 - [Getting started](https://kyaraben.dev/getting-started/)
+- [Setup guides](https://kyaraben.dev/setups/)
 - [App reference](https://kyaraben.dev/using-the-app/)
 - [CLI reference](https://kyaraben.dev/using-the-cli/)
 - [Synchronization](https://kyaraben.dev/sync/)
+- [NextUI integration](https://kyaraben.dev/nextui/)
 
 ## Contributing
 
