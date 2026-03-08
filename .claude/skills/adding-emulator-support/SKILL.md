@@ -120,6 +120,27 @@ Check these sources for supported extensions:
 
 ### For RetroArch cores
 
+#### Add core to coreInfoMap
+
+File: `internal/emulators/retroarch/shared.go`
+
+Every RetroArch core must be added to `coreInfoMap` for `CoreSymlinks()` to work:
+
+```go
+var coreInfoMap = map[model.EmulatorID]CoreInfo{
+    // ... existing cores ...
+    model.EmulatorIDRetroArchNewCore: {
+        ShortName:   "newcore",   // Used for directory naming
+        LibraryName: "NewCore",   // Name RetroArch uses for save/state subdirs
+        SystemID:    model.SystemIDNewSystem,
+    },
+}
+```
+
+Without this entry, `CoreSymlinks()` returns empty and saves/states won't sync properly.
+
+#### Create emulator package
+
 Create: `internal/emulators/retroarchnewcore/retroarchnewcore.go`
 
 ```go

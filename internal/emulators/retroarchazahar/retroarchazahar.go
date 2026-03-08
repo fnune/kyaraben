@@ -1,6 +1,8 @@
 package retroarchazahar
 
 import (
+	"path/filepath"
+
 	"github.com/fnune/kyaraben/internal/emulators/retroarch"
 	"github.com/fnune/kyaraben/internal/model"
 )
@@ -43,6 +45,13 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	if err != nil {
 		return model.GenerateResult{}, err
 	}
+
+	savesDir := ctx.Store.SystemSavesDir(model.SystemIDN3DS)
+	symlinks = append(symlinks, model.SymlinkSpec{
+		Source: filepath.Join(savesDir, "Azahar", "sdmc"),
+		Target: filepath.Join(savesDir, "sdmc"),
+	})
+
 	pc := &retroarch.PresetConfig{
 		Preset:             ctx.Preset,
 		TargetDevice:       ctx.TargetDevice,

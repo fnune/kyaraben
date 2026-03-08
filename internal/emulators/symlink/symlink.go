@@ -66,6 +66,10 @@ func (c *Creator) create(source, target string) error {
 		return fmt.Errorf("creating parent directory for %s: %w", source, err)
 	}
 
+	if err := vfs.MkdirAll(c.fs, target, 0755); err != nil {
+		return fmt.Errorf("creating target directory %s: %w", target, err)
+	}
+
 	if err := c.fs.Symlink(target, source); err != nil {
 		return fmt.Errorf("creating symlink %s -> %s: %w", source, target, err)
 	}

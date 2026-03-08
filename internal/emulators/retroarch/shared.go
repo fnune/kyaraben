@@ -204,10 +204,9 @@ type CoreInfo struct {
 	// RetroArch uses this for per-core save/state directories when sort_savefiles_enable is true.
 	// See: https://github.com/libretro/RetroArch/blob/master/runloop.c (runloop_path_set_redirect, ~line 8303)
 	// Values sourced from: https://github.com/libretro/libretro-core-info (corename field in .info files)
-	LibraryName     string
-	SystemID        model.SystemID
-	NeedsBiosDir    bool
-	UsesHWRendering bool
+	LibraryName  string
+	SystemID     model.SystemID
+	NeedsBiosDir bool
 }
 
 var coreRegistry = map[model.EmulatorID]CoreInfo{
@@ -233,10 +232,9 @@ var coreRegistry = map[model.EmulatorID]CoreInfo{
 		NeedsBiosDir: true,
 	},
 	model.EmulatorIDRetroArchMupen64Plus: {
-		ShortName:       "mupen64plus_next",
-		LibraryName:     "Mupen64Plus-Next",
-		SystemID:        model.SystemIDN64,
-		UsesHWRendering: true,
+		ShortName:   "mupen64plus_next",
+		LibraryName: "Mupen64Plus-Next",
+		SystemID:    model.SystemIDN64,
 	},
 	model.EmulatorIDRetroArchBeetleSaturn: {
 		ShortName:    "mednafen_saturn",
@@ -261,16 +259,19 @@ var coreRegistry = map[model.EmulatorID]CoreInfo{
 		SystemID:    model.SystemIDGBA,
 	},
 	model.EmulatorIDRetroArchMelonDS: {
-		ShortName:       "melondsds",
-		LibraryName:     "melonDS DS",
-		SystemID:        model.SystemIDNDS,
-		UsesHWRendering: true,
+		ShortName:   "melondsds",
+		LibraryName: "melonDS DS",
+		SystemID:    model.SystemIDNDS,
 	},
 	model.EmulatorIDRetroArchCitra: {
-		ShortName:       "citra",
-		LibraryName:     "Citra",
-		SystemID:        model.SystemIDN3DS,
-		UsesHWRendering: true,
+		ShortName:   "citra",
+		LibraryName: "Citra",
+		SystemID:    model.SystemIDN3DS,
+	},
+	model.EmulatorIDRetroArchAzahar: {
+		ShortName:   "azahar",
+		LibraryName: "Azahar",
+		SystemID:    model.SystemIDN3DS,
 	},
 	model.EmulatorIDRetroArchFBNeo: {
 		ShortName:   "fbneo",
