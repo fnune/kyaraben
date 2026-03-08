@@ -177,6 +177,7 @@ interface ConfigContextValue {
   setHotkeyAction: (key: HotkeyActionKey, value: string) => void
   resetHotkeys: () => void
   toggleEmulator: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
+  setDefaultEmulator: (systemId: SystemID, emulatorId: EmulatorID) => void
   setEmulatorVersion: (emulatorId: EmulatorID, version: string) => void
   setEmulatorPreset: (emulatorId: EmulatorID, preset: string | null) => void
   setEmulatorResume: (emulatorId: EmulatorID, resume: string | null) => void
@@ -499,6 +500,17 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
     [],
   )
 
+  const setDefaultEmulator = useCallback((systemId: SystemID, emulatorId: EmulatorID) => {
+    setConfigState((prev) => {
+      const current = prev.systemEmulators.get(systemId) ?? []
+      if (!current.includes(emulatorId)) return prev
+      const filtered = current.filter((id) => id !== emulatorId)
+      const next = new Map(prev.systemEmulators)
+      next.set(systemId, [emulatorId, ...filtered])
+      return { ...prev, systemEmulators: next }
+    })
+  }, [])
+
   const setEmulatorVersion = useCallback((emulatorId: EmulatorID, version: string) => {
     setConfigState((prev) => {
       const next = new Map(prev.emulatorVersions)
@@ -666,6 +678,7 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
       setHotkeyAction,
       resetHotkeys,
       toggleEmulator,
+      setDefaultEmulator,
       setEmulatorVersion,
       setEmulatorPreset,
       setEmulatorResume,
@@ -705,6 +718,7 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
       setHotkeyAction,
       resetHotkeys,
       toggleEmulator,
+      setDefaultEmulator,
       setEmulatorVersion,
       setEmulatorPreset,
       setEmulatorResume,

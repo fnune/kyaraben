@@ -19,30 +19,32 @@ const mockSystem: System = {
   emulators: [{ id: 'retroarch:bsnes', name: 'RetroArch (bsnes)', supportedSettings: ['preset'] }],
 }
 
+const defaultProps = {
+  system: mockSystem,
+  systemEnabledEmulators: new Set<EmulatorID>(),
+  globalEnabledEmulators: new Set<EmulatorID>(),
+  defaultEmulatorId: null,
+  emulatorVersions: new Map(),
+  emulatorPresets: new Map(),
+  emulatorResume: new Map(),
+  graphics: { preset: '' },
+  savestate: { resume: '' },
+  installedVersions: new Map(),
+  installedExecLines: new Map(),
+  managedConfigs: new Map(),
+  installedPaths: new Map(),
+  provisions: {},
+  sharedPackages: new Set<string>(),
+  onEmulatorToggle: vi.fn(),
+  onSetDefaultEmulator: vi.fn(),
+  onVersionChange: vi.fn(),
+  onPresetChange: vi.fn(),
+  onResumeChange: vi.fn(),
+}
+
 describe('SystemCard', () => {
   it('renders system name and emulator', () => {
-    renderWithProviders(
-      <SystemCard
-        system={mockSystem}
-        systemEnabledEmulators={new Set<EmulatorID>()}
-        globalEnabledEmulators={new Set<EmulatorID>()}
-        emulatorVersions={new Map()}
-        emulatorPresets={new Map()}
-        emulatorResume={new Map()}
-        graphics={{ preset: '' }}
-        savestate={{ resume: '' }}
-        installedVersions={new Map()}
-        installedExecLines={new Map()}
-        managedConfigs={new Map()}
-        installedPaths={new Map()}
-        provisions={{}}
-        sharedPackages={new Set()}
-        onEmulatorToggle={vi.fn()}
-        onVersionChange={vi.fn()}
-        onPresetChange={vi.fn()}
-        onResumeChange={vi.fn()}
-      />,
-    )
+    renderWithProviders(<SystemCard {...defaultProps} />)
 
     expect(screen.getByText('Super Nintendo')).toBeInTheDocument()
     expect(screen.getByText('RetroArch (bsnes)')).toBeInTheDocument()
@@ -51,24 +53,10 @@ describe('SystemCard', () => {
   it('shows toggle as enabled when emulator is enabled', () => {
     renderWithProviders(
       <SystemCard
-        system={mockSystem}
+        {...defaultProps}
         systemEnabledEmulators={new Set<EmulatorID>(['retroarch:bsnes'])}
         globalEnabledEmulators={new Set<EmulatorID>(['retroarch:bsnes'])}
-        emulatorVersions={new Map()}
-        emulatorPresets={new Map()}
-        emulatorResume={new Map()}
-        graphics={{ preset: '' }}
-        savestate={{ resume: '' }}
-        installedVersions={new Map()}
-        installedExecLines={new Map()}
-        managedConfigs={new Map()}
-        installedPaths={new Map()}
-        provisions={{}}
-        sharedPackages={new Set()}
-        onEmulatorToggle={vi.fn()}
-        onVersionChange={vi.fn()}
-        onPresetChange={vi.fn()}
-        onResumeChange={vi.fn()}
+        defaultEmulatorId={'retroarch:bsnes'}
       />,
     )
 
@@ -80,28 +68,7 @@ describe('SystemCard', () => {
     const user = userEvent.setup()
     const onEmulatorToggle = vi.fn()
 
-    renderWithProviders(
-      <SystemCard
-        system={mockSystem}
-        systemEnabledEmulators={new Set<EmulatorID>()}
-        globalEnabledEmulators={new Set<EmulatorID>()}
-        emulatorVersions={new Map()}
-        emulatorPresets={new Map()}
-        emulatorResume={new Map()}
-        graphics={{ preset: '' }}
-        savestate={{ resume: '' }}
-        installedVersions={new Map()}
-        installedExecLines={new Map()}
-        managedConfigs={new Map()}
-        installedPaths={new Map()}
-        provisions={{}}
-        sharedPackages={new Set()}
-        onEmulatorToggle={onEmulatorToggle}
-        onVersionChange={vi.fn()}
-        onPresetChange={vi.fn()}
-        onResumeChange={vi.fn()}
-      />,
-    )
+    renderWithProviders(<SystemCard {...defaultProps} onEmulatorToggle={onEmulatorToggle} />)
 
     await user.click(screen.getByRole('switch'))
     expect(onEmulatorToggle).toHaveBeenCalledWith('snes', 'retroarch:bsnes', true)
@@ -124,55 +91,13 @@ describe('SystemCard', () => {
       ],
     }
 
-    renderWithProviders(
-      <SystemCard
-        system={mockSystem}
-        systemEnabledEmulators={new Set<EmulatorID>()}
-        globalEnabledEmulators={new Set<EmulatorID>()}
-        emulatorVersions={new Map()}
-        emulatorPresets={new Map()}
-        emulatorResume={new Map()}
-        graphics={{ preset: '' }}
-        savestate={{ resume: '' }}
-        installedVersions={new Map()}
-        installedExecLines={new Map()}
-        managedConfigs={new Map()}
-        installedPaths={new Map()}
-        provisions={provisions}
-        sharedPackages={new Set()}
-        onEmulatorToggle={vi.fn()}
-        onVersionChange={vi.fn()}
-        onPresetChange={vi.fn()}
-        onResumeChange={vi.fn()}
-      />,
-    )
+    renderWithProviders(<SystemCard {...defaultProps} provisions={provisions} />)
 
     expect(screen.getByText(/BIOS \(USA\)/)).toBeInTheDocument()
   })
 
   it('shows manufacturer and year in header', () => {
-    renderWithProviders(
-      <SystemCard
-        system={mockSystem}
-        systemEnabledEmulators={new Set<EmulatorID>()}
-        globalEnabledEmulators={new Set<EmulatorID>()}
-        emulatorVersions={new Map()}
-        emulatorPresets={new Map()}
-        emulatorResume={new Map()}
-        graphics={{ preset: '' }}
-        savestate={{ resume: '' }}
-        installedVersions={new Map()}
-        installedExecLines={new Map()}
-        managedConfigs={new Map()}
-        installedPaths={new Map()}
-        provisions={{}}
-        sharedPackages={new Set()}
-        onEmulatorToggle={vi.fn()}
-        onVersionChange={vi.fn()}
-        onPresetChange={vi.fn()}
-        onResumeChange={vi.fn()}
-      />,
-    )
+    renderWithProviders(<SystemCard {...defaultProps} />)
 
     expect(screen.getByText(/Nintendo · 1990/)).toBeInTheDocument()
   })

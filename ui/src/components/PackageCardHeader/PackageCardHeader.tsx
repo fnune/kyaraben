@@ -43,6 +43,7 @@ export interface PackageCardHeaderProps {
   readonly onToggle: (enabled: boolean) => void
   readonly onVersionChange: (version: string) => void
   readonly secondaryContent?: ReactNode
+  readonly nameAction?: ReactNode
 }
 
 export function PackageCardHeader({
@@ -55,6 +56,7 @@ export function PackageCardHeader({
   onToggle,
   onVersionChange,
   secondaryContent,
+  nameAction,
 }: PackageCardHeaderProps) {
   return (
     <div className="flex items-center gap-4 p-3">
@@ -65,7 +67,10 @@ export function PackageCardHeader({
       )}
       <div className="flex-1 space-y-0.5">
         <div className="flex flex-col gap-2 min-[400px]:flex-row min-[400px]:items-center">
-          <span className="text-on-surface font-medium text-sm">{name}</span>
+          <span className="text-on-surface font-medium text-sm flex items-center gap-1.5">
+            {name}
+            {nameAction}
+          </span>
           <div className="flex items-center gap-3 min-[400px]:ml-auto">
             <VersionSelect
               defaultVersion={defaultVersion}

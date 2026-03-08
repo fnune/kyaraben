@@ -349,6 +349,7 @@ export function CatalogView({
                         system={system}
                         systemEnabledEmulators={new Set(systemEmuIds)}
                         globalEnabledEmulators={enabledEmulators}
+                        defaultEmulatorId={systemEmuIds[0] ?? null}
                         emulatorVersions={configState.emulatorVersions}
                         emulatorPresets={configState.emulatorPresets}
                         emulatorResume={configState.emulatorResume}
@@ -361,6 +362,7 @@ export function CatalogView({
                         provisions={provisions}
                         sharedPackages={sharedPackages}
                         onEmulatorToggle={config.toggleEmulator}
+                        onSetDefaultEmulator={config.setDefaultEmulator}
                         onVersionChange={config.setEmulatorVersion}
                         onPresetChange={config.setEmulatorPreset}
                         onResumeChange={config.setEmulatorResume}

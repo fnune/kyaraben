@@ -33,6 +33,8 @@ export interface EmulatorSubcardProps {
   readonly systemId: SystemID
   readonly enabled: boolean
   readonly enabledElsewhere?: boolean
+  readonly isDefault: boolean
+  readonly hasAlternatives: boolean
   readonly selectedVersion: string
   readonly installedVersion: string | null
   readonly provisions: readonly ProvisionResult[]
@@ -45,6 +47,7 @@ export interface EmulatorSubcardProps {
   readonly resume?: string | null
   readonly savestate: { resume: string }
   readonly onToggle: (enabled: boolean) => void
+  readonly onSetDefault: () => void
   readonly onVersionChange: (version: string) => void
   readonly onPresetChange?: (value: string | null) => void
   readonly onResumeChange?: (value: string | null) => void
@@ -121,6 +124,8 @@ export function EmulatorSubcard({
   systemId,
   enabled,
   enabledElsewhere,
+  isDefault,
+  hasAlternatives,
   selectedVersion,
   installedVersion,
   provisions,
@@ -133,6 +138,7 @@ export function EmulatorSubcard({
   resume,
   savestate,
   onToggle,
+  onSetDefault,
   onVersionChange,
   onPresetChange,
   onResumeChange,
@@ -255,6 +261,30 @@ export function EmulatorSubcard({
     </div>
   )
 
+  const defaultStarButton =
+    enabled && hasAlternatives ? (
+      <button
+        type="button"
+        onClick={onSetDefault}
+        className="text-on-surface-muted hover:text-accent transition-colors"
+        title={
+          isDefault
+            ? 'Default for this system (used by frontends like ES-DE)'
+            : 'Set as default for this system'
+        }
+        aria-label={isDefault ? 'Default emulator' : 'Set as default'}
+      >
+        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+            fill={isDefault ? 'currentColor' : 'none'}
+            stroke="currentColor"
+            strokeWidth="1.5"
+          />
+        </svg>
+      </button>
+    ) : null
+
   return (
     <PackageCard changeType={changeType} installed={!!installedVersion} enabled={enabled}>
       <PackageCardHeader
@@ -267,6 +297,7 @@ export function EmulatorSubcard({
         onToggle={onToggle}
         onVersionChange={onVersionChange}
         secondaryContent={secondaryContent}
+        nameAction={defaultStarButton}
       />
 
       {isNonEmpty(provisions) && (

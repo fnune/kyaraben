@@ -58,6 +58,7 @@ export interface SystemCardProps {
   readonly system: System
   readonly systemEnabledEmulators: ReadonlySet<EmulatorID>
   readonly globalEnabledEmulators: ReadonlySet<EmulatorID>
+  readonly defaultEmulatorId: EmulatorID | null
   readonly emulatorVersions: ReadonlyMap<EmulatorID, string>
   readonly emulatorPresets: ReadonlyMap<EmulatorID, string | null>
   readonly emulatorResume: ReadonlyMap<EmulatorID, string | null>
@@ -70,6 +71,7 @@ export interface SystemCardProps {
   readonly provisions: DoctorResponse
   readonly sharedPackages: ReadonlySet<string>
   readonly onEmulatorToggle: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
+  readonly onSetDefaultEmulator: (systemId: SystemID, emulatorId: EmulatorID) => void
   readonly onVersionChange: (emulatorId: EmulatorID, version: string) => void
   readonly onPresetChange: (emulatorId: EmulatorID, preset: string | null) => void
   readonly onResumeChange: (emulatorId: EmulatorID, resume: string | null) => void
@@ -80,6 +82,7 @@ export const SystemCard = forwardRef<HTMLElement, SystemCardProps>(function Syst
     system,
     systemEnabledEmulators,
     globalEnabledEmulators,
+    defaultEmulatorId,
     emulatorVersions,
     emulatorPresets,
     emulatorResume,
@@ -92,6 +95,7 @@ export const SystemCard = forwardRef<HTMLElement, SystemCardProps>(function Syst
     provisions,
     sharedPackages,
     onEmulatorToggle,
+    onSetDefaultEmulator,
     onVersionChange,
     onPresetChange,
     onResumeChange,
@@ -102,6 +106,7 @@ export const SystemCard = forwardRef<HTMLElement, SystemCardProps>(function Syst
   const year = SYSTEM_YEARS[system.id]
   const logoOpacity = LOGO_OPACITIES[system.id] ?? 0.1
   const hasInstalledEmulator = system.emulators.some((emu) => installedVersions.has(emu.id))
+  const hasAlternatives = systemEnabledEmulators.size > 1
 
   return (
     <article
@@ -141,6 +146,8 @@ export const SystemCard = forwardRef<HTMLElement, SystemCardProps>(function Syst
               systemId={system.id}
               enabled={isEnabled}
               enabledElsewhere={isEnabledElsewhere}
+              isDefault={emulator.id === defaultEmulatorId}
+              hasAlternatives={hasAlternatives}
               selectedVersion={emulatorVersions.get(emulator.id) ?? VERSION_DEFAULT}
               installedVersion={installedVersions.get(emulator.id) ?? null}
               provisions={provisions[`${system.id}:${emulator.id}`] ?? []}
@@ -150,6 +157,7 @@ export const SystemCard = forwardRef<HTMLElement, SystemCardProps>(function Syst
               resume={emulatorResume.get(emulator.id) ?? null}
               savestate={savestate}
               onToggle={(enabled) => onEmulatorToggle(system.id, emulator.id, enabled)}
+              onSetDefault={() => onSetDefaultEmulator(system.id, emulator.id)}
               onVersionChange={(version) => onVersionChange(emulator.id, version)}
               onPresetChange={(preset) => onPresetChange(emulator.id, preset)}
               onResumeChange={(resume) => onResumeChange(emulator.id, resume)}
