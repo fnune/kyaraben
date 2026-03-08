@@ -40,9 +40,10 @@ enabled = true
 
 ### `[global]`
 
-| Key          | Type   | Default       | Description            |
-| ------------ | ------ | ------------- | ---------------------- |
-| `collection` | string | `~/Emulation` | Path to the collection |
+| Key          | Type   | Default       | Description                                          |
+| ------------ | ------ | ------------- | ---------------------------------------------------- |
+| `collection` | string | `~/Emulation` | Path to the collection                               |
+| `headless`   | bool   | `false`       | Sync-only mode: creates directories, skips emulators |
 
 ### `[graphics]`
 
@@ -237,6 +238,14 @@ Enabled 13 systems with default emulators.
 Run 'kyaraben apply' to install emulators and create directories.
 ```
 
+Options:
+
+- `-d, --collection <PATH>`: set the collection path (default: `~/Emulation`)
+- `-f, --force`: overwrite existing configuration
+- `--headless`: create a headless configuration for sync hubs (no emulators)
+
+With `--headless`, `kyaraben apply` creates directories for all systems but does not install emulators. See [headless server guide](/guides/headless-server/) for setup instructions.
+
 ### `kyaraben uninstall`
 
 Removes Kyaraben-managed files. Never touches the <Collection />.
@@ -273,6 +282,31 @@ This will NOT remove:
   ~/.config/kyaraben (your kyaraben config)
 
 Proceed? [y/N]
+```
+
+### `kyaraben update`
+
+Checks for and installs CLI updates. The desktop app updates separately through its own mechanism.
+
+```
+$ kyaraben update
+
+Current version: v0.9.0
+Checking for updates...
+
+New version available: v0.9.1
+Downloading...
+Updated to v0.9.1
+```
+
+If already up to date:
+
+```
+$ kyaraben update
+
+Current version: v0.9.1
+Checking for updates...
+Already up to date.
 ```
 
 ### `kyaraben sync`

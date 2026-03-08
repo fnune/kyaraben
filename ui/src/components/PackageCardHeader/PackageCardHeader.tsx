@@ -40,6 +40,7 @@ export interface PackageCardHeaderProps {
   readonly availableVersions: string[] | undefined
   readonly selectedVersion: string
   readonly enabled: boolean
+  readonly readOnly?: boolean
   readonly onToggle: (enabled: boolean) => void
   readonly onVersionChange: (version: string) => void
   readonly secondaryContent?: ReactNode
@@ -53,6 +54,7 @@ export function PackageCardHeader({
   availableVersions,
   selectedVersion,
   enabled,
+  readOnly,
   onToggle,
   onVersionChange,
   secondaryContent,
@@ -77,10 +79,10 @@ export function PackageCardHeader({
               availableVersions={availableVersions}
               selectedVersion={selectedVersion}
               onChange={onVersionChange}
-              disabled={!enabled}
+              disabled={!enabled || !!readOnly}
               size="sm"
             />
-            <ToggleSwitch enabled={enabled} onChange={onToggle} />
+            <ToggleSwitch enabled={enabled} onChange={onToggle} disabled={!!readOnly} />
           </div>
         </div>
         {secondaryContent}

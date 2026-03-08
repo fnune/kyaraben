@@ -70,6 +70,7 @@ export interface SystemCardProps {
   readonly installedPaths: ReadonlyMap<EmulatorID, Record<string, EmulatorPaths>>
   readonly provisions: DoctorResponse
   readonly sharedPackages: ReadonlySet<string>
+  readonly readOnly?: boolean
   readonly onEmulatorToggle: (systemId: SystemID, emulatorId: EmulatorID, enabled: boolean) => void
   readonly onSetDefaultEmulator: (systemId: SystemID, emulatorId: EmulatorID) => void
   readonly onVersionChange: (emulatorId: EmulatorID, version: string) => void
@@ -94,6 +95,7 @@ export const SystemCard = forwardRef<HTMLElement, SystemCardProps>(function Syst
     installedPaths,
     provisions,
     sharedPackages,
+    readOnly,
     onEmulatorToggle,
     onSetDefaultEmulator,
     onVersionChange,
@@ -156,6 +158,7 @@ export const SystemCard = forwardRef<HTMLElement, SystemCardProps>(function Syst
               graphics={graphics}
               resume={emulatorResume.get(emulator.id) ?? null}
               savestate={savestate}
+              readOnly={!!readOnly}
               onToggle={(enabled) => onEmulatorToggle(system.id, emulator.id, enabled)}
               onSetDefault={() => onSetDefaultEmulator(system.id, emulator.id)}
               onVersionChange={(version) => onVersionChange(emulator.id, version)}

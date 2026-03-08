@@ -16,6 +16,18 @@ x86_64 is fully supported. ARM64 is experimental and untested.
 [Report issues](https://github.com/fnune/kyaraben/issues) or help test.
 :::
 
+## Headless server (CLI only)
+
+For servers without a display, download the CLI binary directly:
+
+```bash
+curl -fsSL https://github.com/fnune/kyaraben/releases/latest/download/kyaraben-linux-x86_64 -o kyaraben
+chmod +x kyaraben
+sudo mv kyaraben /usr/local/bin/
+```
+
+See the [headless server guide](/guides/headless-server/) for setup instructions.
+
 ## Integrations
 
 Kyaraben syncs with guest devices that run their own emulators. More integrations are planned.

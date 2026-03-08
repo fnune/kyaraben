@@ -661,3 +661,62 @@ func (c *KyarabenConfig) BuildFrontendVersionOverrides(getFrontend func(Frontend
 	}
 	return overrides, nil
 }
+
+type SyncRegistry interface {
+	AllSystems() []System
+	AllEmulators() []Emulator
+	GetEmulator(EmulatorID) (Emulator, error)
+}
+
+type SyncEmulatorInfo struct {
+	ID                 EmulatorID
+	UsesStatesDir      bool
+	UsesScreenshotsDir bool
+}
+
+func (c *KyarabenConfig) EffectiveSyncSystems(reg SyncRegistry) []SystemID {
+	if c.Global.Headless {
+		systems := reg.AllSystems()
+		result := make([]SystemID, len(systems))
+		for i, sys := range systems {
+			result[i] = sys.ID
+		}
+		return result
+	}
+	return c.EnabledSystems()
+}
+
+func (c *KyarabenConfig) EffectiveSyncEmulators(reg SyncRegistry) []SyncEmulatorInfo {
+	if c.Global.Headless {
+		allEmulators := reg.AllEmulators()
+		result := make([]SyncEmulatorInfo, 0, len(allEmulators))
+		for _, emu := range allEmulators {
+			result = append(result, SyncEmulatorInfo{
+				ID:                 emu.ID,
+				UsesStatesDir:      emu.PathUsage.UsesStatesDir,
+				UsesScreenshotsDir: emu.PathUsage.UsesScreenshotsDir,
+			})
+		}
+		return result
+	}
+
+	emuIDs := c.EnabledEmulators()
+	result := make([]SyncEmulatorInfo, 0, len(emuIDs))
+	for _, id := range emuIDs {
+		info := SyncEmulatorInfo{ID: id}
+		if emu, err := reg.GetEmulator(id); err == nil {
+			info.UsesStatesDir = emu.PathUsage.UsesStatesDir
+			info.UsesScreenshotsDir = emu.PathUsage.UsesScreenshotsDir
+		}
+		result = append(result, info)
+	}
+	return result
+}
+
+func (c *KyarabenConfig) EffectiveSyncFrontends() []FrontendID {
+	if c.Global.Headless {
+		defaultCfg := NewDefaultConfig()
+		return defaultCfg.EnabledFrontends()
+	}
+	return c.EnabledFrontends()
+}

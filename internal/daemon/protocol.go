@@ -204,6 +204,7 @@ type EmulatorRef struct {
 
 type ConfigResponse struct {
 	Collection string                          `json:"collection"`
+	Headless   bool                            `json:"headless"`
 	Graphics   GraphicsConfigResponse          `json:"graphics"`
 	Savestate  SavestateConfigResponse         `json:"savestate"`
 	Controller ControllerConfigResponse        `json:"controller"`

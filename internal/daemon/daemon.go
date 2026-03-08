@@ -1067,6 +1067,7 @@ func (d *Daemon) handleGetConfig() []Event {
 		Type: EventTypeResult,
 		Data: ConfigResponse{
 			Collection: cfg.Global.Collection,
+			Headless:   cfg.Global.Headless,
 			Graphics: GraphicsConfigResponse{
 				Preset:         cfg.Graphics.Preset,
 				Target:         cfg.GraphicsTarget(),
@@ -2115,50 +2116,24 @@ func (d *Daemon) stopSyncthing(cfg *model.KyarabenConfig) bool {
 }
 
 func (d *Daemon) syncSystems(cfg *model.KyarabenConfig) []model.SystemID {
-	if cfg.Global.Headless {
-		systems := d.deps.Registry.AllSystems()
-		result := make([]model.SystemID, len(systems))
-		for i, sys := range systems {
-			result[i] = sys.ID
-		}
-		return result
-	}
-	return cfg.EnabledSystems()
+	return cfg.EffectiveSyncSystems(d.deps.Registry)
 }
 
 func (d *Daemon) syncEmulators(cfg *model.KyarabenConfig) []folders.EmulatorInfo {
-	if cfg.Global.Headless {
-		allEmulators := d.deps.Registry.AllEmulators()
-		result := make([]folders.EmulatorInfo, 0, len(allEmulators))
-		for _, emu := range allEmulators {
-			result = append(result, folders.EmulatorInfo{
-				ID:                 emu.ID,
-				UsesStatesDir:      emu.PathUsage.UsesStatesDir,
-				UsesScreenshotsDir: emu.PathUsage.UsesScreenshotsDir,
-			})
+	syncInfos := cfg.EffectiveSyncEmulators(d.deps.Registry)
+	result := make([]folders.EmulatorInfo, len(syncInfos))
+	for i, info := range syncInfos {
+		result[i] = folders.EmulatorInfo{
+			ID:                 info.ID,
+			UsesStatesDir:      info.UsesStatesDir,
+			UsesScreenshotsDir: info.UsesScreenshotsDir,
 		}
-		return result
-	}
-
-	emuIDs := cfg.EnabledEmulators()
-	result := make([]folders.EmulatorInfo, 0, len(emuIDs))
-	for _, id := range emuIDs {
-		info := folders.EmulatorInfo{ID: id}
-		if emu, err := d.deps.Registry.GetEmulator(id); err == nil {
-			info.UsesStatesDir = emu.PathUsage.UsesStatesDir
-			info.UsesScreenshotsDir = emu.PathUsage.UsesScreenshotsDir
-		}
-		result = append(result, info)
 	}
 	return result
 }
 
 func (d *Daemon) syncFrontends(cfg *model.KyarabenConfig) []model.FrontendID {
-	if cfg.Global.Headless {
-		defaultCfg := model.NewDefaultConfig()
-		return defaultCfg.EnabledFrontends()
-	}
-	return cfg.EnabledFrontends()
+	return cfg.EffectiveSyncFrontends()
 }
 
 func (d *Daemon) dismissUnwantedPendingFolders(client syncpkg.SyncClient) {

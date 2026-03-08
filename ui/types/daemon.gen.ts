@@ -176,6 +176,7 @@ export interface EmulatorRef {
 }
 export interface ConfigResponse {
   collection: string;
+  headless: boolean;
   graphics: GraphicsConfigResponse;
   savestate: SavestateConfigResponse;
   controller: ControllerConfigResponse;

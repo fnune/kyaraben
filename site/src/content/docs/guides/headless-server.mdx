@@ -1,0 +1,153 @@
+---
+title: Headless server
+description: Set up a sync-only hub on a headless Linux server
+---
+
+Run Kyaraben on a headless Linux server as a central sync hub. The server stores your collection and syncs with devices that run emulators locally.
+
+Use cases:
+
+- Home server as the primary storage for ROMs and saves
+- NAS device syncing to multiple gaming machines
+- Cloud VPS as a backup destination
+
+## Requirements
+
+- x86_64 Linux (no GUI needed)
+- systemd user services support
+- Sync ports accessible (see [firewall](#firewall) below)
+
+## Installation
+
+Download the CLI binary directly.
+
+```bash
+curl -fsSL https://github.com/fnune/kyaraben/releases/latest/download/kyaraben-linux-x86_64 -o kyaraben
+chmod +x kyaraben
+sudo mv kyaraben /usr/local/bin/
+```
+
+## Setup
+
+Initialize a headless configuration:
+
+```bash
+kyaraben init --headless --collection /path/to/emulation
+```
+
+This creates `~/.config/kyaraben/config.toml` with:
+
+```toml
+[global]
+collection = "/path/to/emulation"
+headless = true
+
+[sync]
+enabled = true
+```
+
+Apply the configuration:
+
+```bash
+kyaraben apply
+```
+
+This creates the full directory structure for all systems and installs Syncthing, but does not install any emulators.
+
+## Persistence
+
+Enable user services to run without an active login session:
+
+```bash
+loginctl enable-linger $USER
+```
+
+This allows Syncthing to keep running after you disconnect from SSH.
+
+## Firewall
+
+Open the required ports. For `ufw`:
+
+```bash
+sudo ufw allow 22100/tcp  # Sync connections
+sudo ufw allow 21127/udp  # Local discovery
+sudo ufw allow 8484/tcp   # Web UI (optional, can restrict to LAN)
+```
+
+For `firewalld`:
+
+```bash
+sudo firewall-cmd --permanent --add-port=22100/tcp
+sudo firewall-cmd --permanent --add-port=21127/udp
+sudo firewall-cmd --permanent --add-port=8484/tcp
+sudo firewall-cmd --reload
+```
+
+If the server is only reachable via relay (no direct connection), you only need outbound HTTPS.
+
+## Pairing devices
+
+Generate a pairing code on the server:
+
+```bash
+kyaraben sync pair
+```
+
+On your desktop or Steam Deck, enable synchronization and enter the code.
+
+For servers without relay access, use the device ID directly:
+
+```bash
+kyaraben sync pair --device-id
+# Copy the full ID and enter it on the other device
+```
+
+## Managing files
+
+Place ROMs directly in the collection:
+
+```bash
+cp game.chd /path/to/emulation/roms/psx/
+```
+
+The directory structure follows [Kyaraben's collection layout](/collection/). Files sync automatically to paired devices.
+
+## Monitoring
+
+Check sync status:
+
+```bash
+kyaraben sync status
+```
+
+Access the Syncthing web UI at `http://server-ip:8484` for detailed monitoring.
+
+## Updating
+
+Keep the CLI up to date:
+
+```bash
+kyaraben update
+```
+
+## Troubleshooting
+
+### Service not starting after reboot
+
+Verify linger is enabled:
+
+```bash
+loginctl show-user $USER | grep Linger
+```
+
+Check service status:
+
+```bash
+systemctl --user status kyaraben-syncthing
+```
+
+### Devices not connecting
+
+1. Verify ports are open: `nc -zv server-ip 22100`
+2. Check firewall rules
+3. Try relay mode if direct connections fail (ensure `relay_enabled = true` in config)

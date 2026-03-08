@@ -39,6 +39,7 @@ interface HotkeyConfig {
 
 interface ConfigState {
   collection: string
+  headless: boolean
   graphicsPreset: string
   graphicsTarget: string
   savestateResume: string
@@ -72,6 +73,7 @@ function defaultHotkeys(): HotkeyConfig {
 function emptyConfigState(): ConfigState {
   return {
     collection: '',
+    headless: false,
     graphicsPreset: '',
     graphicsTarget: '',
     savestateResume: '',
@@ -89,6 +91,7 @@ function emptyConfigState(): ConfigState {
 function cloneConfigState(state: ConfigState): ConfigState {
   return {
     collection: state.collection,
+    headless: state.headless,
     graphicsPreset: state.graphicsPreset,
     graphicsTarget: state.graphicsTarget,
     savestateResume: state.savestateResume,
@@ -142,6 +145,7 @@ function parseConfigResponse(data: ConfigResponse): ConfigState {
 
   return {
     collection: data.collection,
+    headless: data.headless ?? false,
     graphicsPreset: data.graphics?.preset ?? '',
     graphicsTarget: data.graphics?.target ?? '',
     savestateResume: data.savestate?.resume ?? '',

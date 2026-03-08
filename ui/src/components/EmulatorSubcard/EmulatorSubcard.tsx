@@ -46,6 +46,7 @@ export interface EmulatorSubcardProps {
   readonly graphics: { preset: string }
   readonly resume?: string | null
   readonly savestate: { resume: string }
+  readonly readOnly?: boolean
   readonly onToggle: (enabled: boolean) => void
   readonly onSetDefault: () => void
   readonly onVersionChange: (version: string) => void
@@ -137,6 +138,7 @@ export function EmulatorSubcard({
   graphics,
   resume,
   savestate,
+  readOnly,
   onToggle,
   onSetDefault,
   onVersionChange,
@@ -266,11 +268,14 @@ export function EmulatorSubcard({
       <button
         type="button"
         onClick={onSetDefault}
-        className="text-on-surface-muted hover:text-accent transition-colors"
+        disabled={readOnly}
+        className={`transition-colors ${readOnly ? 'text-on-surface-dim cursor-not-allowed' : 'text-on-surface-muted hover:text-accent'}`}
         title={
-          isDefault
-            ? 'Default for this system (used by frontends like ES-DE)'
-            : 'Set as default for this system'
+          readOnly
+            ? 'Disabled in headless mode'
+            : isDefault
+              ? 'Default for this system (used by frontends like ES-DE)'
+              : 'Set as default for this system'
         }
         aria-label={isDefault ? 'Default emulator' : 'Set as default'}
       >
@@ -294,6 +299,7 @@ export function EmulatorSubcard({
         availableVersions={emulator.availableVersions}
         selectedVersion={selectedVersion}
         enabled={enabled}
+        readOnly={!!readOnly}
         onToggle={onToggle}
         onVersionChange={onVersionChange}
         secondaryContent={secondaryContent}

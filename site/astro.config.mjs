@@ -53,6 +53,7 @@ export default defineConfig({
           label: "Guides",
           items: [
             { label: "Desktop and Steam Deck", slug: "guides/desktop-and-steam-deck" },
+            { label: "Headless server", slug: "guides/headless-server" },
             { label: "Adding a NextUI device", slug: "guides/nextui-device" },
             { label: "Migrating from EmuDeck", slug: "guides/migrating-from-emudeck" },
           ],

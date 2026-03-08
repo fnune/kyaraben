@@ -15,6 +15,7 @@ export interface FrontendCardProps {
   readonly selectedVersion: string
   readonly installedVersion: string | null
   readonly execLine?: string | undefined
+  readonly readOnly?: boolean
   readonly onToggle: (enabled: boolean) => void
   readonly onVersionChange: (version: string) => void
 }
@@ -25,6 +26,7 @@ export function FrontendCard({
   selectedVersion,
   installedVersion,
   execLine,
+  readOnly,
   onToggle,
   onVersionChange,
 }: FrontendCardProps) {
@@ -77,6 +79,7 @@ export function FrontendCard({
         availableVersions={frontend.availableVersions}
         selectedVersion={selectedVersion}
         enabled={enabled}
+        readOnly={!!readOnly}
         onToggle={onToggle}
         onVersionChange={onVersionChange}
         secondaryContent={secondaryContent}

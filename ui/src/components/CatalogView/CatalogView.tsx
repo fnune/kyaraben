@@ -136,6 +136,8 @@ export function CatalogView({
     installedFrontendVersions,
   } = config
 
+  const headless = configState.headless
+
   const filteredSystems = useMemo(() => {
     if (searchQuery) {
       return systems.filter((system) => matchesSearch(system, searchQuery))
@@ -254,6 +256,16 @@ export function CatalogView({
       <div className="p-6 pb-0">
         <Settings collection={configState.collection} onCollectionChange={config.setCollection} />
 
+        {headless && (
+          <div className="mt-4 p-4 bg-accent-muted border border-accent/30 rounded-card">
+            <p className="text-sm text-accent font-medium">Headless mode</p>
+            <p className="text-sm text-on-surface-muted mt-1">
+              This instance creates sync folders for all systems without installing emulators.
+              System and emulator settings below are read-only.
+            </p>
+          </div>
+        )}
+
         <div className="mt-6">
           <PreferencesSummary
             preset={configState.graphicsPreset}
@@ -279,6 +291,7 @@ export function CatalogView({
                   selectedVersion={configState.frontendVersions.get(frontend.id) ?? VERSION_DEFAULT}
                   installedVersion={installedFrontendVersions.get(frontend.id) ?? null}
                   execLine={installedFrontendExecLines.get(frontend.id)}
+                  readOnly={headless}
                   onToggle={(enabled) => config.toggleFrontend(frontend.id, enabled)}
                   onVersionChange={(version) => config.setFrontendVersion(frontend.id, version)}
                 />
@@ -294,8 +307,13 @@ export function CatalogView({
           <button
             type="button"
             onClick={onEnableAll}
-            className="text-sm text-accent hover:text-accent-hover"
-            title="Enable all systems with their default emulators"
+            disabled={headless}
+            className={`text-sm ${headless ? 'text-on-surface-dim cursor-not-allowed' : 'text-accent hover:text-accent-hover'}`}
+            title={
+              headless
+                ? 'Disabled in headless mode'
+                : 'Enable all systems with their default emulators'
+            }
           >
             Enable all systems
           </button>
@@ -361,6 +379,7 @@ export function CatalogView({
                         installedPaths={installedPaths}
                         provisions={provisions}
                         sharedPackages={sharedPackages}
+                        readOnly={headless}
                         onEmulatorToggle={config.toggleEmulator}
                         onSetDefaultEmulator={config.setDefaultEmulator}
                         onVersionChange={config.setEmulatorVersion}

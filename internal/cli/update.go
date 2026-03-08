@@ -36,6 +36,8 @@ func (cmd *UpdateCmd) Run(ctx *Context) error {
 	}
 
 	fmt.Println("Checking for CLI updates...")
+	fmt.Println("(The desktop app updates separately. Open the app and click the cogwheel icon.)")
+	fmt.Println()
 
 	release, err := fetchRelease(releasesURL)
 	if err != nil {
@@ -107,8 +109,6 @@ func (cmd *UpdateCmd) Run(ctx *Context) error {
 
 	fmt.Println("\nCLI update installed successfully.")
 	fmt.Println("Run 'kyaraben status' to verify.")
-	fmt.Println()
-	fmt.Println("Note: This updates the CLI only. The desktop app updates separately.")
 	return nil
 }
 
