@@ -55,8 +55,11 @@ jobs:
       - name: Install UI dependencies
         run: cd ui && npm ci
 
-      - name: Build and publish
-        run: cd ui && npm run electron:build -- --publish always
+      - name: Build AppImage
+        run: cd ui && npm run electron:build
+
+      - name: Upload to release
+        run: gh release upload "${{ github.ref_name }}" ui/release/*.AppImage
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
