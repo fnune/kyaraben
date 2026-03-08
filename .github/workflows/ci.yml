@@ -119,8 +119,8 @@ jobs:
           cache: "npm"
           cache-dependency-path: ui/package-lock.json
 
-      - name: Install rpm (needed for electron-builder)
-        run: sudo apt-get update && sudo apt-get install -y rpm
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y rpm musl-tools
 
       - name: Build Go sidecar
         run: ./scripts/build-sidecar.sh
