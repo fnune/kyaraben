@@ -30,10 +30,10 @@ func TestURLTemplateExpansion(t *testing.T) {
 		target   string
 		expected string
 	}{
-		{"x64", "https://github.com/eden-emulator/Releases/releases/download/v0.1.0/Eden-Linux-v0.1.0-amd64-clang-pgo.AppImage"},
-		{"steamdeck", "https://github.com/eden-emulator/Releases/releases/download/v0.1.0/Eden-Linux-v0.1.0-steamdeck-clang-pgo.AppImage"},
-		{"rog-ally", "https://github.com/eden-emulator/Releases/releases/download/v0.1.0/Eden-Linux-v0.1.0-rog-ally-clang-pgo.AppImage"},
-		{"aarch64", "https://github.com/eden-emulator/Releases/releases/download/v0.1.0/Eden-Linux-v0.1.0-aarch64-clang-pgo.AppImage"},
+		{"x64", "https://git.eden-emu.dev/eden-emu/eden/releases/download/v0.1.0/Eden-Linux-v0.1.0-amd64-clang-pgo.AppImage"},
+		{"steamdeck", "https://git.eden-emu.dev/eden-emu/eden/releases/download/v0.1.0/Eden-Linux-v0.1.0-steamdeck-clang-pgo.AppImage"},
+		{"rog-ally", "https://git.eden-emu.dev/eden-emu/eden/releases/download/v0.1.0/Eden-Linux-v0.1.0-rog-ally-clang-pgo.AppImage"},
+		{"aarch64", "https://git.eden-emu.dev/eden-emu/eden/releases/download/v0.1.0/Eden-Linux-v0.1.0-aarch64-clang-pgo.AppImage"},
 	}
 
 	for _, tt := range tests {

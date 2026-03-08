@@ -208,15 +208,14 @@ size = 17237104
 
 # ============================================================================
 # EDEN - Nintendo Switch emulator
-# https://github.com/eden-emulator/Releases/releases
+# https://git.eden-emu.dev/eden-emu/eden/releases
 # ============================================================================
 
 [eden]
-releases_url = "github:eden-emulator/Releases"
-url_template = "https://github.com/eden-emulator/Releases/releases/download/{version}/Eden-Linux-{version}-{variant}-clang-pgo.AppImage"
+url_template = "https://git.eden-emu.dev/eden-emu/eden/releases/download/{version}/Eden-Linux-{version}-{variant}-clang-pgo.AppImage"
 default = "v0.1.1"
-icon_url = "https://raw.githubusercontent.com/eden-emulator/eden-emulator.github.io/655bb7bc8dd49db97b39c2d6be93d12be17dab92/src/assets/eden_logo.png"
-icon_sha256 = "sha256-Jq+A1OX5+JkEI9SdOQFuqFzH8/zzbu9jqcxF59P5iiE="
+icon_url = "https://git.eden-emu.dev/eden-emu/eden/media/branch/master/dist/qt_themes/default/icons/256x256/eden.png"
+icon_sha256 = "sha256-1OMBXAVTDIf2FSrS7afv5TUDO5owMxIO21J/7ddl6xA="
 
 [eden."v0.1.1".targets.x64]
 variant = "amd64"
