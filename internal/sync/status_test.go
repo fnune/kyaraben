@@ -65,11 +65,10 @@ func TestStatus_OverallState(t *testing.T) {
 		{
 			name: "conflict takes precedence",
 			status: Status{
-				Enabled:   true,
-				Conflicts: []Conflict{{Path: "saves/game.sav"}},
-				Devices:   []DeviceStatus{{ID: "A", Connected: true}},
+				Enabled: true,
+				Devices: []DeviceStatus{{ID: "A", Connected: true}},
 				Folders: []FolderStatusSummary{
-					{ID: "folder1", State: "syncing"},
+					{ID: "folder1", State: "syncing", ConflictCount: 1},
 				},
 			},
 			want: SyncStateConflict,

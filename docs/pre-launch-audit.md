@@ -2,21 +2,7 @@
 
 A comprehensive list of issues, gaps, and improvements to address before launching Kyaraben.
 
-## Critical: missing files
-
-### ~~No LICENSE file~~ FIXED
-
-MIT license added to repository root.
-
-### ~~No donations page~~ FIXED
-
-Support page created at `site/src/content/docs/support.mdx` with GitHub Sponsors link and upstream project links. App sidebar links to the support page.
-
 ## Critical: infrastructure
-
-### ~~Relay URL is hardcoded~~ FIXED
-
-Relay URLs are now configurable via `sync.relays = ["..."]` in config.toml. The list supports multiple URLs for fallback (tried in order). When not set, defaults to the production relay. Empty list disables relay pairing.
 
 ### No releases URL or download page
 
@@ -35,22 +21,50 @@ In `.github/workflows/ci.yml:107`, the electron-e2e job has `if: false`. This me
 
 Action: fix whatever is blocking E2E tests and re-enable them before launch.
 
-## High priority: UX blockers from feedback.md
+## High priority: UX blockers
+
+### No sync lifecycle controls in the app
+
+The main Kyaraben app has no UI for:
+- Stop/pause syncing
+- Enable/disable sync on boot
+
+Users must manually stop the systemd service. The NextUI guest app already supports these controls.
 
 ### Documentation lives on the website too much
 
 From feedback.md: Kyaraben aims to be self-documenting, but critical information (emulator support table, troubleshooting) is only on the docs site. The app should surface this information in-context.
 
+### Synchronization view is hard to use
+
+The Synchronization view tries to do too much: device pairing, sync status, and folder configuration all in one place.
+
+Action:
+- Upstream sync information into the Catalog view (folder sync status, size on disk, last synced date)
+- Refocus Synchronization view as a setup and device pairing view
+- Add notifications for sync events (sync started, completed, conflicts detected)
+
+### Preferences screen graphics
+
+The preferences screen uses placeholder graphics. Need final artwork before launch.
+
+### Import feature needs polish
+
+The Import feature (for migrating from EmuDeck and similar) was rushed. The UI looks rough and its usefulness is unclear. Both the app UI and CLI counterpart need improvement before launch.
+
 ## High priority: technical gaps
 
-### Single source of truth for folder IDs
+### Headless server-as-sync-hub is untested
 
-From feedback.md: Kyaraben folder IDs are scattered across:
-- `internal/model/system.go` (SystemID constants)
-- `internal/sync/config.go` (constructs folder IDs)
-- `integrations/nextui/internal/config/config.go` (duplicated)
+Kyaraben can run on a headless server as a central sync hub, but this use case has not been tested. Need to verify the setup works and document any required configuration.
 
-If Kyaraben adds a new system, guest integrations do not know about it.
+### No app vs CLI feature parity assessment
+
+The expectation is that the app and CLI have feature parity, but this has not been comprehensively verified.
+
+### NextUI guest cannot unpair devices
+
+The NextUI guest integration allows pairing devices but has no way to unpair them.
 
 ### setup.Disable() leaves orphaned data
 
@@ -75,13 +89,15 @@ From feedback.md: if an emulator writes all its defaults to config, DefaultOnly 
 
 From feedback.md: RetroArch has core-specific hotkeys that can disrupt gameplay. Example: R-Type on PC Engine triggers "Switching to 6 button layout".
 
-### No pause sync during gameplay
-
-From feedback.md: users may want to pause sync while playing to avoid I/O contention. Currently requires stopping the systemd service manually.
-
 ### No Syncthing conflict UI
 
 From feedback.md: when Syncthing creates conflict files, users have no indication in Kyaraben. A simple "X conflict files found" would help.
+
+### Notification system needs polish
+
+The sync notification system has rough edges:
+- Multiple rapid sync events create notification spam instead of grouping
+- Notifications with CTAs (e.g. "Go to catalog") stay open after the user clicks them
 
 ## Medium priority: features
 
@@ -110,6 +126,19 @@ From feedback.md: show a color-coded bar indicating total size and composition o
 From feedback.md: support SD-based handhelds running community distros (NextUI, PakUI, MinUI) with automatic structure translation.
 
 ## Medium priority: technical debt
+
+### Electron UI needs consistent logging
+
+The Electron UI has no consistent logging to `~/.local/state/kyaraben/kyaraben.log`. The daemon logs are captured, but the electron main process events (IPC, window lifecycle, errors) are not. This makes debugging production issues difficult.
+
+Investigation context: while debugging relay pairing e2e tests, daemon logs confirmed progress events were being emitted to stdout, but the renderer never received them via IPC. Attempts to trace the issue failed because:
+- `console.error` in electron/main.ts doesn't appear in e2e test output
+- File-based logging (`fs.appendFileSync`) to kyarabenStateDir didn't produce files, suggesting either the directory path was wrong or the event handler code wasn't reached
+- No visibility into whether readline receives the daemon's stdout lines or whether `webContents.send()` succeeds
+
+The `pairing:progress` IPC event flow (daemon stdout -> readline -> JSON parse -> webContents.send -> renderer) has no observability. Similar issues likely affect `pendingDevice` events.
+
+Action: implement structured logging in electron/main.ts that writes to the same log file as the daemon, or to a separate electron.log file in the same directory. Ensure the log path is resolved correctly (kyarabenStateDir uses XDG_STATE_HOME which may not be set at module load time).
 
 ### Environment variable security
 
@@ -143,29 +172,15 @@ From feedback.md:
 
 ## Documentation gaps
 
-### ~~README.md is minimal~~ FIXED
+### No audit of emulator and system coverage
 
-README now includes installation instructions, link to releases page, system requirements, license badge, and contributing link.
-
-### ~~Documentation site path in README is broken~~ FIXED
-
-Contributing link now correctly points to `site/src/content/docs/contributing.mdx`.
+Before launch, audit which popular emulators and systems are missing. Compare against commonly requested systems and emulators to identify gaps.
 
 ### No FAQ
 
 Common questions are not addressed (what systems are supported? does it work on Steam Deck? do I need to install emulators separately?).
 
 ## Security considerations
-
-### Pairing code entropy
-
-From feedback.md: 6 characters could be low entropy. While probably fine for the threat model, adding a confirmation step could help.
-
-The relay server has rate limiting (`relay/internal/server/ratelimit.go`) but the pairing code is still short.
-
-### No HTTPS for Syncthing UI
-
-From feedback.md: Syncthing ships with HTTPS by default using self-signed certificates. Kyaraben uses HTTP.
 
 ### Relay server security
 
@@ -184,39 +199,11 @@ Consider:
 - Color contrast
 - Focus management in modals
 
-## Privacy
-
-### No privacy policy
-
-The relay server processes device IDs. Users have no visibility into:
-- What data is collected
-- How long it is retained
-- Whether any analytics are present
-
-### No telemetry disclosure
-
-The app checks for updates by fetching from GitHub. This discloses:
-- IP address
-- User-Agent
-- Current version (implicitly)
-
-Users should be informed of this network activity.
-
-## ARM support
-
-### ~~ARM is not officially supported~~ CLARIFIED
-
-Documentation updated to explain partial ARM support. Some emulators have ARM builds (Eden, DuckStation, PPSSPP, Dolphin, Syncthing), but most do not (RetroArch cores, PCSX2, Cemu, Vita3K, RPCS3, Flycast, ES-DE, xemu, xenia-edge). ARM devices can use Kyaraben with limited emulator support.
-
 ## Release process
 
 ### No release automation for documentation site
 
 The site is built in CI but there's no automatic deployment step visible.
-
-### ~~No version in the UI~~ FIXED
-
-Version is now displayed in settings.
 
 ### No rollback guidance
 
@@ -224,38 +211,31 @@ If an update breaks something, users have no documented way to roll back to a pr
 
 ## Other observations
 
-### ~~.test directory is not gitignored~~ FIXED
-
-The `*.test` pattern is now in .gitignore.
-
 ### plan.md in repository root
 
 A `plan.md` file exists that appears to be development planning notes. Consider moving to docs/ or removing before launch.
-
-### ~~No issue/PR templates~~ FIXED
-
-Issue templates (bug_report.md, feature_request.md) and PR template added.
 
 ## Summary
 
 ### Must fix before launch
 
-1. ~~Add LICENSE file~~ FIXED
-2. ~~Add donations page~~ FIXED
-3. ~~Fix or document relay URL configurability~~ FIXED
-4. Re-enable E2E tests in CI
-5. ~~Add basic README content (installation, requirements)~~ FIXED
-6. ~~Fix broken documentation link in README~~ FIXED
+1. Re-enable E2E tests in CI
+2. Add sync lifecycle controls (stop/pause/enable/disable on boot)
+3. Preferences screen graphics
+4. Rework Synchronization view (upstream info to Catalog, refocus on setup/pairing)
 
 ### Should fix before launch
 
-1. ~~Add privacy disclosure for update checks~~ FIXED
-2. Consolidate folder ID definitions
-3. ~~Add version display in UI~~ FIXED
-4. ~~Clarify ARM support status~~ FIXED
+1. FAQ
+2. Accessibility audit
+3. Audit emulator and system coverage
+4. Notification grouping and auto-close on CTA
+5. Test headless server-as-sync-hub setup
+6. Polish Import feature (UI and CLI)
+7. Verify app vs CLI feature parity
+8. Add unpair functionality to NextUI guest
 
 ### Nice to have for launch
 
-1. FAQ
-2. ~~Issue/PR templates~~ FIXED
-3. Accessibility audit
+1. Releases URL / download page
+2. In-app documentation (emulator support table, troubleshooting)

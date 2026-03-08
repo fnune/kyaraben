@@ -3,6 +3,8 @@ package sync
 import (
 	"context"
 
+	"github.com/twpayne/go-vfs/v5"
+
 	"github.com/fnune/kyaraben/internal/syncthing"
 )
 
@@ -22,7 +24,7 @@ type PendingStatus = syncthing.PendingStatus
 
 type SyncClient interface {
 	syncthing.SyncClient
-	GetStatus(ctx context.Context) (*Status, error)
+	GetStatus(ctx context.Context, fs vfs.FS) (*Status, error)
 }
 
 var _ SyncClient = (*Client)(nil)

@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/twpayne/go-vfs/v5"
+
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/sync"
 )
@@ -54,7 +56,7 @@ func (cmd *SyncStatusCmd) Run(cliCtx *Context) error {
 		return nil
 	}
 
-	status, err := client.GetStatus(ctx)
+	status, err := client.GetStatus(ctx, vfs.OSFS)
 	if err != nil {
 		return fmt.Errorf("getting sync status: %w", err)
 	}
@@ -91,6 +93,9 @@ func (cmd *SyncStatusCmd) Run(cliCtx *Context) error {
 				fmt.Printf("  %-20s %s: %s\n", f.Label, f.State, f.Error)
 			} else {
 				fmt.Printf("  %-20s %s\n", f.Label, f.State)
+			}
+			if f.ConflictCount > 0 {
+				fmt.Printf("    %d conflict file(s)\n", f.ConflictCount)
 			}
 		}
 	}

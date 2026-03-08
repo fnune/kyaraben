@@ -344,14 +344,197 @@ gui_port = %d
 	})
 }
 
-func TestSyncConflictDetection(t *testing.T) {
-	t.Run("detects conflict files in folders", func(t *testing.T) {
+func TestSyncDisabled(t *testing.T) {
+	t.Run("shows disabled status when sync not enabled", func(t *testing.T) {
+		c := newCLITest(t)
+		c.init()
+
+		output, err := c.run("sync", "status")
+		if err != nil {
+			t.Fatalf("sync status failed: %v\nOutput: %s", err, output)
+		}
+
+		c.assertContains(output, "Sync: disabled")
+		c.assertContains(output, "Enable sync in your config.toml")
+		c.assertContains(output, "[sync]")
+		c.assertContains(output, "enabled = true")
+	})
+}
+
+func TestSyncStatusNotRunning(t *testing.T) {
+	t.Run("shows not running when syncthing is stopped", func(t *testing.T) {
 		s := newSyncTest(t)
+		s.fakeSyncthing.Stop()
 		s.initWithSyncEnabled()
+
+		output, err := s.run("sync", "status")
+		if err != nil {
+			t.Fatalf("sync status failed: %v\nOutput: %s", err, output)
+		}
+
+		s.assertContains(output, "Sync: enabled")
+		s.assertContains(output, "Status: not running")
+		s.assertContains(output, "Syncthing is not running")
+	})
+}
+
+func TestSyncStatusErrors(t *testing.T) {
+	t.Run("shows not running when API returns 500", func(t *testing.T) {
+		s := newSyncTest(t)
+		s.fakeSyncthing.SetErrorMode("api-error")
+		s.initWithSyncEnabled()
+
+		output, err := s.run("sync", "status")
+		if err != nil {
+			t.Fatalf("sync status failed: %v\nOutput: %s", err, output)
+		}
+
+		s.assertContains(output, "Sync: enabled")
+		s.assertContains(output, "Status: not running")
+	})
+}
+
+func TestSyncStatusFolders(t *testing.T) {
+	t.Run("shows folder syncing state", func(t *testing.T) {
+		s := newSyncTest(t)
+		s.fakeSyncthing.AddFolder("kyaraben-saves-snes", "/path/to/saves/snes", "sendreceive")
+		s.fakeSyncthing.SetFolderState("kyaraben-saves-snes", fakeFolderState{
+			State:       "syncing",
+			GlobalBytes: 1000000,
+			NeedBytes:   500000,
+		})
+		s.initWithSyncEnabled()
+
+		output, err := s.run("sync", "status")
+		if err != nil {
+			t.Fatalf("sync status failed: %v\nOutput: %s", err, output)
+		}
+
+		s.assertContains(output, "Synced folders:")
+		s.assertContains(output, "snes (saves)")
+		s.assertContains(output, "syncing")
+	})
+
+	t.Run("shows folder idle state", func(t *testing.T) {
+		s := newSyncTest(t)
+		s.fakeSyncthing.AddFolder("kyaraben-saves-gba", "/path/to/saves/gba", "sendreceive")
+		s.fakeSyncthing.SetFolderState("kyaraben-saves-gba", fakeFolderState{
+			State:       "idle",
+			GlobalBytes: 1000000,
+			NeedBytes:   0,
+		})
+		s.initWithSyncEnabled()
+
+		output, err := s.run("sync", "status")
+		if err != nil {
+			t.Fatalf("sync status failed: %v\nOutput: %s", err, output)
+		}
+
+		s.assertContains(output, "gba (saves)")
+		s.assertContains(output, "idle")
+	})
+
+	t.Run("shows folder error state with message", func(t *testing.T) {
+		s := newSyncTest(t)
+		s.fakeSyncthing.AddFolder("kyaraben-saves-psx", "/path/to/saves/psx", "sendreceive")
+		s.fakeSyncthing.SetFolderState("kyaraben-saves-psx", fakeFolderState{
+			State: "error",
+			Error: "permission denied",
+		})
+		s.initWithSyncEnabled()
+
+		output, err := s.run("sync", "status")
+		if err != nil {
+			t.Fatalf("sync status failed: %v\nOutput: %s", err, output)
+		}
+
+		s.assertContains(output, "psx (saves)")
+		s.assertContains(output, "error")
+		s.assertContains(output, "permission denied")
+	})
+}
+
+func TestSyncStatusConnections(t *testing.T) {
+	t.Run("shows connected device status", func(t *testing.T) {
+		s := newSyncTest(t)
+		peerID := "PEERAAAA-BBBBBBBB-CCCCCCCC-DDDDDDDD-EEEEEEEE-FFFFFFFF-GGGGGGGG"
+		s.fakeSyncthing.devices[peerID] = fakeDevice{
+			DeviceID: peerID,
+			Name:     "steamdeck-kyaraben",
+		}
+		s.fakeSyncthing.SetConnection(peerID, true)
+		s.initWithSyncEnabled()
+
+		output, err := s.run("sync", "status")
+		if err != nil {
+			t.Fatalf("sync status failed: %v\nOutput: %s", err, output)
+		}
+
+		s.assertContains(output, "Paired devices:")
+		s.assertContains(output, "steamdeck-kyaraben")
+		s.assertContains(output, "connected")
+	})
+
+	t.Run("shows disconnected device status", func(t *testing.T) {
+		s := newSyncTest(t)
+		peerID := "PEERAAAA-BBBBBBBB-CCCCCCCC-DDDDDDDD-EEEEEEEE-FFFFFFFF-GGGGGGGG"
+		s.fakeSyncthing.devices[peerID] = fakeDevice{
+			DeviceID: peerID,
+			Name:     "desktop-kyaraben",
+		}
+		s.fakeSyncthing.SetConnection(peerID, false)
+		s.initWithSyncEnabled()
+
+		output, err := s.run("sync", "status")
+		if err != nil {
+			t.Fatalf("sync status failed: %v\nOutput: %s", err, output)
+		}
+
+		s.assertContains(output, "Paired devices:")
+		s.assertContains(output, "desktop-kyaraben")
+		s.assertContains(output, "disconnected")
+	})
+
+	t.Run("shows disconnected when no connection info", func(t *testing.T) {
+		s := newSyncTest(t)
+		peerID := "PEERAAAA-BBBBBBBB-CCCCCCCC-DDDDDDDD-EEEEEEEE-FFFFFFFF-GGGGGGGG"
+		s.fakeSyncthing.devices[peerID] = fakeDevice{
+			DeviceID: peerID,
+			Name:     "offline-device",
+		}
+		s.initWithSyncEnabled()
+
+		output, err := s.run("sync", "status")
+		if err != nil {
+			t.Fatalf("sync status failed: %v\nOutput: %s", err, output)
+		}
+
+		s.assertContains(output, "offline-device")
+		s.assertContains(output, "disconnected")
+	})
+}
+
+func TestSyncConflictDetection(t *testing.T) {
+	t.Run("CLI shows conflict count when conflicts exist", func(t *testing.T) {
+		s := newSyncTest(t)
 
 		savesDir := filepath.Join(s.collection, "saves", "snes")
 		if err := os.MkdirAll(savesDir, 0755); err != nil {
 			t.Fatalf("creating saves dir: %v", err)
+		}
+
+		s.fakeSyncthing.AddFolder("kyaraben-saves-snes", savesDir, "sendreceive")
+		s.fakeSyncthing.SetFolderState("kyaraben-saves-snes", fakeFolderState{
+			State:       "idle",
+			GlobalBytes: 1000,
+			NeedBytes:   0,
+		})
+
+		s.initWithSyncEnabled()
+
+		normalFile := filepath.Join(savesDir, "game.srm")
+		if err := os.WriteFile(normalFile, []byte("normal data"), 0644); err != nil {
+			t.Fatalf("creating normal file: %v", err)
 		}
 
 		conflictFile := filepath.Join(savesDir, "game.sync-conflict-ABCD123-20260307-120000.srm")
@@ -359,13 +542,17 @@ func TestSyncConflictDetection(t *testing.T) {
 			t.Fatalf("creating conflict file: %v", err)
 		}
 
-		normalFile := filepath.Join(savesDir, "game.srm")
-		if err := os.WriteFile(normalFile, []byte("normal data"), 0644); err != nil {
-			t.Fatalf("creating normal file: %v", err)
+		s.assertFileExists(normalFile)
+		s.assertFileExists(conflictFile)
+
+		output, err := s.run("sync", "status")
+		if err != nil {
+			t.Fatalf("sync status failed: %v\nOutput: %s", err, output)
 		}
 
-		if _, err := os.Stat(conflictFile); os.IsNotExist(err) {
-			t.Fatal("conflict file was not created")
-		}
+		s.assertContains(output, "Sync: enabled")
+		s.assertContains(output, "Status: conflict")
+		s.assertContains(output, "snes (saves)")
+		s.assertContains(output, "1 conflict file(s)")
 	})
 }

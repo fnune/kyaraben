@@ -32,7 +32,7 @@ func TestFakeClient_GetStatus_IncludesFolders(t *testing.T) {
 		},
 	})
 
-	status, err := client.GetStatus(context.Background())
+	status, err := client.GetStatus(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("GetStatus() error = %v", err)
 	}

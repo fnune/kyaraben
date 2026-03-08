@@ -4,15 +4,16 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
+	"github.com/twpayne/go-vfs/v5"
 )
 
 type Status struct {
-	Enabled   bool
-	DeviceID  string
-	GUIURL    string
-	Devices   []DeviceStatus
-	Folders   []FolderStatusSummary
-	Conflicts []Conflict
+	Enabled  bool
+	DeviceID string
+	GUIURL   string
+	Devices  []DeviceStatus
+	Folders  []FolderStatusSummary
 }
 
 type DeviceStatus struct {
@@ -34,12 +35,7 @@ type FolderStatusSummary struct {
 	LocalSize          int64
 	NeedSize           int64
 	ReceiveOnlyChanges int
-}
-
-type Conflict struct {
-	Path         string
-	LocalModTime string
-	Size         int64
+	ConflictCount      int
 }
 
 func FolderLabel(id string) string {
@@ -60,7 +56,7 @@ func FolderLabel(id string) string {
 	return id
 }
 
-func (c *Client) GetStatus(ctx context.Context) (*Status, error) {
+func (c *Client) GetStatus(ctx context.Context, fsys vfs.FS) (*Status, error) {
 	if !c.config.Enabled {
 		return &Status{Enabled: false}, nil
 	}
@@ -94,21 +90,28 @@ func (c *Client) GetStatus(ctx context.Context) (*Status, error) {
 	var folders []FolderStatusSummary
 	if folderConfigs, err := c.GetFolderConfigs(ctx); err == nil {
 		for _, fc := range folderConfigs {
-			fs, err := c.GetFolderStatus(ctx, fc.ID)
+			folderStatus, err := c.GetFolderStatus(ctx, fc.ID)
 			if err != nil {
 				continue
+			}
+			var conflictCount int
+			if fsys != nil {
+				if conflicts, err := ScanForConflicts(fsys, fc.Path); err == nil {
+					conflictCount = len(conflicts)
+				}
 			}
 			folders = append(folders, FolderStatusSummary{
 				ID:                 fc.ID,
 				Label:              FolderLabel(fc.ID),
 				Path:               fc.Path,
 				Type:               fc.Type,
-				State:              fs.State,
-				Error:              fs.Error,
-				GlobalSize:         fs.GlobalBytes,
-				LocalSize:          fs.LocalBytes,
-				NeedSize:           fs.NeedBytes,
-				ReceiveOnlyChanges: fs.ReceiveOnlyTotalItems,
+				State:              folderStatus.State,
+				Error:              folderStatus.Error,
+				GlobalSize:         folderStatus.GlobalBytes,
+				LocalSize:          folderStatus.LocalBytes,
+				NeedSize:           folderStatus.NeedBytes,
+				ReceiveOnlyChanges: folderStatus.ReceiveOnlyTotalItems,
+				ConflictCount:      conflictCount,
 			})
 		}
 	}
@@ -140,8 +143,10 @@ func (s *Status) OverallState() OverallSyncState {
 		return SyncStateDisabled
 	}
 
-	if len(s.Conflicts) > 0 {
-		return SyncStateConflict
+	for _, f := range s.Folders {
+		if f.ConflictCount > 0 {
+			return SyncStateConflict
+		}
 	}
 
 	if len(s.Devices) == 0 {

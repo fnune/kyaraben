@@ -15,10 +15,12 @@ type FakeSyncthing struct {
 	listener net.Listener
 	port     int
 
-	deviceID    string
-	devices     map[string]fakeDevice
-	folders     map[string]fakeFolder
-	connections map[string]fakeConnection
+	deviceID     string
+	devices      map[string]fakeDevice
+	folders      map[string]fakeFolder
+	connections  map[string]fakeConnection
+	folderStates map[string]fakeFolderState
+	errorMode    string
 }
 
 type fakeDevice struct {
@@ -45,12 +47,20 @@ type fakeConnection struct {
 	Paused    bool   `json:"paused"`
 }
 
+type fakeFolderState struct {
+	State       string
+	Error       string
+	GlobalBytes int64
+	NeedBytes   int64
+}
+
 func NewFakeSyncthing(deviceID string) *FakeSyncthing {
 	return &FakeSyncthing{
-		deviceID:    deviceID,
-		devices:     make(map[string]fakeDevice),
-		folders:     make(map[string]fakeFolder),
-		connections: make(map[string]fakeConnection),
+		deviceID:     deviceID,
+		devices:      make(map[string]fakeDevice),
+		folders:      make(map[string]fakeFolder),
+		connections:  make(map[string]fakeConnection),
+		folderStates: make(map[string]fakeFolderState),
 	}
 }
 
@@ -58,6 +68,27 @@ func (f *FakeSyncthing) SetDeviceID(id string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.deviceID = id
+}
+
+func (f *FakeSyncthing) SetErrorMode(mode string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.errorMode = mode
+}
+
+func (f *FakeSyncthing) SetFolderState(id string, state fakeFolderState) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.folderStates[id] = state
+}
+
+func (f *FakeSyncthing) SetConnection(deviceID string, connected bool) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.connections[deviceID] = fakeConnection{
+		Connected: connected,
+		Address:   "tcp://192.168.1.100:22000",
+	}
 }
 
 func (f *FakeSyncthing) AddFolder(id, path, folderType string) {
@@ -112,26 +143,54 @@ func (f *FakeSyncthing) BaseURL() string {
 }
 
 func (f *FakeSyncthing) handlePing(w http.ResponseWriter, _ *http.Request) {
+	f.mu.Lock()
+	errorMode := f.errorMode
+	f.mu.Unlock()
+
+	if errorMode == "api-error" {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	_, _ = w.Write([]byte(`{"ping":"pong"}`))
 }
 
 func (f *FakeSyncthing) handleStatus(w http.ResponseWriter, _ *http.Request) {
 	f.mu.Lock()
-	defer f.mu.Unlock()
+	errorMode := f.errorMode
+	deviceID := f.deviceID
+	f.mu.Unlock()
+
+	if errorMode == "api-error" {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]any{
-		"myID":   f.deviceID,
+		"myID":   deviceID,
 		"uptime": 60,
 	})
 }
 
 func (f *FakeSyncthing) handleConnections(w http.ResponseWriter, _ *http.Request) {
 	f.mu.Lock()
-	defer f.mu.Unlock()
+	errorMode := f.errorMode
+	connections := make(map[string]fakeConnection)
+	for k, v := range f.connections {
+		connections[k] = v
+	}
+	f.mu.Unlock()
+
+	if errorMode == "api-error" {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]any{
-		"connections": f.connections,
+		"connections": connections,
 	})
 }
 
@@ -223,7 +282,24 @@ func (f *FakeSyncthing) handleFolder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (f *FakeSyncthing) handleFolderStatus(w http.ResponseWriter, r *http.Request) {
+	folderID := r.URL.Query().Get("folder")
+
+	f.mu.Lock()
+	state, exists := f.folderStates[folderID]
+	f.mu.Unlock()
+
 	w.Header().Set("Content-Type", "application/json")
+
+	if exists {
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"state":       state.State,
+			"error":       state.Error,
+			"globalBytes": state.GlobalBytes,
+			"needBytes":   state.NeedBytes,
+		})
+		return
+	}
+
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"state":       "idle",
 		"globalBytes": 0,

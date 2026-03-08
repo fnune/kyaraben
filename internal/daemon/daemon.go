@@ -1247,7 +1247,7 @@ func (d *Daemon) handleSyncStatus() []Event {
 		}}
 	}
 
-	syncStatus, err := client.GetStatus(ctx)
+	syncStatus, err := client.GetStatus(ctx, nil)
 	if err != nil {
 		return d.errorResponse(err.Error())
 	}

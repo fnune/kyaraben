@@ -12,6 +12,14 @@ Rules for writing content in the kyaraben documentation site.
 - Use present tense ("kyaraben creates", not "kyaraben will create")
 - Use imperative mood for instructions ("run the command", not "you should run
   the command")
+- Prefer concise prose over bullet points. Bullets are fine for lists of items
+  but not for explaining concepts or flows.
+- Avoid value judgements. Do not compare Kyaraben to other tools. State what
+  Kyaraben does; let readers draw conclusions.
+- Avoid marketing speak. Phrases like "handles the rest", "simple", "easy",
+  "just works" are value judgements. Describe what the software does, not how
+  it feels. Counterexample: "Pick your systems. Kyaraben handles the rest."
+  Better: "Select systems, click apply, Kyaraben installs the emulators."
 - Use backticks for domain concepts: `System`, `Emulator`, `Provision`,
   `Collection`, `Manifest`, `EmulatorConfig`, `KyarabenConfig`
 - Use backticks for CLI commands, file paths, config keys, and code

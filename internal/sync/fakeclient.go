@@ -4,6 +4,8 @@ import (
 	"context"
 	gosync "sync"
 
+	"github.com/twpayne/go-vfs/v5"
+
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/syncthing"
 )
@@ -261,7 +263,7 @@ func (c *FakeClient) DismissPendingFolder(_ context.Context, _, _ string) error 
 	return nil
 }
 
-func (c *FakeClient) GetStatus(_ context.Context) (*Status, error) {
+func (c *FakeClient) GetStatus(_ context.Context, _ vfs.FS) (*Status, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

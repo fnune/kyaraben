@@ -80,3 +80,23 @@ to exclude them from synchronization.
 
 Syncthing keeps old versions of save and state files for 30 days. ROM and BIOS
 folders do not use versioning.
+
+## Resolving conflicts
+
+When the same file is modified on two devices before they sync, Syncthing
+creates a conflict file instead of overwriting either version. Conflict files
+have names like `game.sync-conflict-ABCD123-20260307-120000.srm`.
+
+To check for conflicts:
+
+- **UI**: conflict counts appear in the sync status for each folder
+- **CLI**: run `kyaraben sync status` to see per-folder conflict counts
+
+To resolve a conflict:
+
+1. Find the conflict file in the affected folder (look for `.sync-conflict-` in
+   the filename)
+2. Compare it with the original file and decide which version to keep
+3. Delete the version you do not want
+
+Conflict files sync between devices, so you only need to resolve them once.
