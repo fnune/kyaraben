@@ -14,6 +14,7 @@ import (
 	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/paths"
+	"github.com/fnune/kyaraben/internal/sync"
 )
 
 type UninstallCmd struct {
@@ -63,11 +64,21 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 		collection = cfg.Global.Collection
 	}
 
+	syncServices, _ := sync.FindKyarabenSyncthingServices()
+
 	fmt.Println("This will remove:")
 	fmt.Println()
 
 	if dirExists(kyarabenStateDir) {
 		fmt.Printf("  %s (manifest, state)\n", kyarabenStateDir)
+	}
+
+	if len(syncServices) > 0 {
+		fmt.Println()
+		fmt.Println("  Systemd services:")
+		for _, s := range syncServices {
+			fmt.Printf("    %s\n", s)
+		}
 	}
 
 	if manifest.KyarabenInstall != nil {
@@ -211,6 +222,14 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 			} else {
 				fmt.Printf("  Removed: %s\n", s.Source)
 			}
+		}
+	}
+
+	for _, servicePath := range syncServices {
+		if err := sync.StopAndRemoveService(servicePath); err != nil {
+			fmt.Printf("  Warning: could not remove service %s: %v\n", servicePath, err)
+		} else {
+			fmt.Printf("  Removed: %s\n", servicePath)
 		}
 	}
 

@@ -66,6 +66,28 @@ The expectation is that the app and CLI have feature parity, but this has not be
 
 The NextUI guest integration allows pairing devices but has no way to unpair them.
 
+### `kyaraben uninstall` doesn't remove systemd service
+
+Running `kyaraben uninstall` removes the state directory but doesn't list or remove `~/.config/systemd/user/kyaraben-syncthing.service`. The service should be stopped, disabled, and removed as part of uninstall.
+
+### `kyaraben init` writes empty strings instead of defaults
+
+When running `kyaraben init --headless`, the generated config contains many empty strings and zero values instead of sensible defaults:
+
+```toml
+[sync.syncthing]
+  listen_port = 0
+  discovery_port = 0
+  gui_port = 0
+  relay_enabled = false
+[controller.hotkeys]
+  modifier = ""
+  save_state = ""
+  # ... many more empty strings
+```
+
+The config should either omit these fields entirely (letting internal defaults apply) or write the actual default values.
+
 ### setup.Disable() leaves orphaned data
 
 From feedback.md: disabling sync removes the systemd unit but does not clean up Syncthing config or data directories.
