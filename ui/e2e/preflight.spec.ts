@@ -188,8 +188,8 @@ test.describe('UI-driven config change', () => {
     await expect(southButton).toBeVisible()
     await southButton.click()
 
-    await expect(page.getByRole('button', { name: 'Apply' })).toBeVisible()
-    await page.getByRole('button', { name: 'Apply' }).click()
+    await expect(page.getByRole('button', { name: 'Apply', exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Apply', exact: true }).click()
 
     await expect(page.getByText('Config conflicts detected')).not.toBeVisible({ timeout: 2000 })
     await expect(page.getByText('Kyaraben has updated its defaults')).not.toBeVisible()
@@ -214,9 +214,8 @@ test.describe('Version upgrade review', () => {
       undefined,
     )
 
-    const dataDir = fixture.env.XDG_DATA_HOME
-    const duckstationDataDir = path.join(dataDir, 'duckstation')
-    fs.mkdirSync(duckstationDataDir, { recursive: true })
+    const duckstationConfigDir = path.join(fixture.configDir, 'duckstation')
+    fs.mkdirSync(duckstationConfigDir, { recursive: true })
 
     const configContent = [
       '[Main]',
@@ -226,7 +225,7 @@ test.describe('Version upgrade review', () => {
       'CheckAtStartup = true',
     ].join('\n')
 
-    fs.writeFileSync(path.join(duckstationDataDir, 'settings.ini'), configContent)
+    fs.writeFileSync(path.join(duckstationConfigDir, 'settings.ini'), configContent)
 
     const manifest = {
       version: 1,
@@ -245,7 +244,7 @@ test.describe('Version upgrade review', () => {
           target: {
             RelPath: 'duckstation/settings.ini',
             Format: 'ini',
-            BaseDir: 'user_data',
+            BaseDir: 'user_config',
           },
           written_entries: {
             'AutoUpdater.CheckAtStartup': 'true',
