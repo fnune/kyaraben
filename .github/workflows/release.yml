@@ -5,34 +5,7 @@ on:
     tags: ["v*"]
 
 jobs:
-  wait-for-ci:
-    runs-on: ubuntu-latest
-    permissions:
-      checks: read
-    steps:
-      - name: Wait for CI to pass
-        run: |
-          echo "Waiting for CI workflow to complete..."
-          for i in {1..60}; do
-            STATUS=$(gh api repos/${{ github.repository }}/commits/${{ github.sha }}/check-runs \
-              --jq '.check_runs | map(select(.name != "wait-for-ci")) | if length == 0 then "pending" elif all(.conclusion == "success") then "success" elif any(.conclusion == "failure") then "failure" else "pending" end')
-            echo "CI status: $STATUS"
-            if [ "$STATUS" = "success" ]; then
-              echo "CI passed!"
-              exit 0
-            elif [ "$STATUS" = "failure" ]; then
-              echo "CI failed!"
-              exit 1
-            fi
-            sleep 10
-          done
-          echo "Timeout waiting for CI"
-          exit 1
-        env:
-          GH_TOKEN: ${{ github.token }}
-
   release-cli:
-    needs: wait-for-ci
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -73,8 +46,8 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Install rpm
-        run: sudo apt-get update && sudo apt-get install -y rpm
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y rpm musl-tools
 
       - name: Build Go sidecar
         run: ./scripts/build-sidecar.sh
@@ -92,10 +65,11 @@ jobs:
     needs: release-cli
     permissions:
       contents: write
+    defaults:
+      run:
+        working-directory: integrations/nextui
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: true
 
       - uses: actions/setup-go@v5
         with:
@@ -109,10 +83,15 @@ jobs:
         id: version
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-      - name: Build NextUI pak
-        run: just nextui-release ${{ steps.version.outputs.version }}
+      - name: Build NextUI paks
+        run: just build-all
+
+      - name: Create release zip
+        run: |
+          cd dist
+          zip -r Kyaraben-NextUI-v${{ steps.version.outputs.version }}.zip Tools/
 
       - name: Upload to release
-        run: gh release upload "v${{ steps.version.outputs.version }}" integrations/nextui/dist/Kyaraben.pak.zip
+        run: gh release upload "v${{ steps.version.outputs.version }}" dist/Kyaraben-NextUI-v${{ steps.version.outputs.version }}.zip
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
