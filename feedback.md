@@ -22,8 +22,6 @@
 - Use HTTPS with self-signed certificates for Syncthing's UI
   - This is what Syncthing ships by default
   - Can we do this without sacrificing UX?
-- Tight coupling to systemd (`exec.Command("systemctl", ...)`). On non-systemd systems, sync will not work.
-  - But where? I thought we had a system manager abstraction
 - `setup.Disable()` removes the systemd unit but does not clean up Syncthing config or data directories.
   - Should it? Or should this be left to uninstall? We don't have a "pause sync" feature yet
 - Simplify folder sharing reconciliation
