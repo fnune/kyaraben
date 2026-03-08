@@ -24,6 +24,23 @@ just ui-e2e --grep "shows conflict"          # Filter by test name
 just ui-e2e tests/sync.spec.ts --grep "conflict"  # Both
 ```
 
+## Debugging sync on live devices
+
+SSH aliases: `steamdeck`, `feanor`, `bilbo`
+
+```bash
+cat ~/.local/state/kyaraben/kyaraben.log     # Daemon logs
+systemctl --user status kyaraben-syncthing   # Syncthing service state
+cat ~/.local/state/kyaraben/syncthing/config/config.xml  # Syncthing config
+```
+
+Syncthing web UI: `http://<device-ip>:8484`
+
+Key files:
+- `config.xml`: devices, folders, options (merged on apply, not overwritten)
+- `.apikey`: API key for REST calls
+- Ports: TCP 22100 (sync), UDP 21127 (discovery), TCP 8484 (GUI)
+
 ## Skills
 
 Detailed guides for complex tasks live in `.claude/skills/`:
