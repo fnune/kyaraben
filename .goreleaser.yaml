@@ -17,7 +17,7 @@ builds:
 
 archives:
   - formats: [binary]
-    name_template: "kyaraben-cli-linux-amd64"
+    name_template: "Kyaraben-{{ .Version }}-cli-linux-amd64"
 
 checksum:
   name_template: "checksums.txt"
