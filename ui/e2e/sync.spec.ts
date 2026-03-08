@@ -467,9 +467,9 @@ test.describe('Sync view with multiple folders', () => {
     await navigateToSync(ctx.page)
     await expect(ctx.page.getByText(/Folders \(3\)/)).toBeVisible()
     await ctx.page.getByRole('button', { name: /Folders/ }).click()
-    await expect(ctx.page.getByText('saves')).toBeVisible()
-    await expect(ctx.page.getByText('states')).toBeVisible()
-    await expect(ctx.page.getByText('screenshots')).toBeVisible()
+    await expect(ctx.page.getByText('saves', { exact: true })).toBeVisible()
+    await expect(ctx.page.getByText('states', { exact: true })).toBeVisible()
+    await expect(ctx.page.getByText('screenshots', { exact: true })).toBeVisible()
   })
 })
 
