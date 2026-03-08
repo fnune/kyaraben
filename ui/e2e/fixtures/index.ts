@@ -25,10 +25,14 @@ function buildEnv(fixture: TestFixture): Record<string, string> {
 }
 
 function getElectronArgs(): string[] {
+  const args: string[] = []
   if (process.env.DISPLAY?.startsWith(':')) {
-    return ['--ozone-platform=x11']
+    args.push('--ozone-platform=x11')
   }
-  return []
+  if (process.env.CI) {
+    args.push('--no-sandbox')
+  }
+  return args
 }
 
 export function getAppImagePath(): string {
