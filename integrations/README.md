@@ -83,6 +83,30 @@ Each CFW has different conventions. The integration's job is to translate:
 | `kyaraben-saves-nes` | `Saves/FC/` | `/userdata/saves/nes/` | emulator-specific |
 | `kyaraben-bios-gba` | `Bios/GBA/` | `/userdata/bios/` | `MUOS/bios/` |
 
+## Handling flat directories
+
+Some CFWs use flat directory structures where Kyaraben expects per-system or per-emulator subdirectories. Syncthing does not support multiple folders pointing to the same path with different ignore patterns (they share one `.stignore` file and would pick up each other's files). This limits our mapping options.
+
+When a CFW has a flat directory structure, apply one of these strategies:
+
+| Situation | Strategy | Example |
+|-----------|----------|---------|
+| No good mapping exists | Don't sync, document the limitation | Batocera's flat `/userdata/bios/` |
+| Multiple categories share a directory | Pick one category, skip the others | Batocera `/userdata/saves/{system}/` contains both saves and states; sync saves only |
+| Single category, reasonable assumption | Map to the most likely Kyaraben folder ID | Flat screenshots dir → `kyaraben-screenshots-retroarch` |
+
+Document any limitations in the integration's README so users understand what syncs and what doesn't.
+
+Examples for Batocera:
+
+| Category | Batocera path | Kyaraben mapping | Notes |
+|----------|---------------|------------------|-------|
+| ROMs | `/userdata/roms/{system}/` | `kyaraben-roms-{system}` | Per-system, works normally |
+| Saves | `/userdata/saves/{system}/` | `kyaraben-saves-{system}` | Works, but states excluded |
+| States | `/userdata/saves/{system}/` | Not synced | Shares directory with saves |
+| BIOS | `/userdata/bios/` | Not synced | Flat directory, no per-system mapping |
+| Screenshots | `/userdata/screenshots/` | `kyaraben-screenshots-retroarch` | Flat, but reasonable assumption |
+
 ## Creating a new integration
 
 ### 1. Determine the CFW family
