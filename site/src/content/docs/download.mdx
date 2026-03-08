@@ -3,25 +3,29 @@ title: Download
 description: Install Kyaraben on Linux
 ---
 
-The full Kyaraben app is supported on systems with access to a Linux desktop. For other devices, see [Integrations](#integrations).
+import { LinkCard } from "@astrojs/starlight/components";
+
+All downloads are available on the [GitHub releases page](https://github.com/fnune/kyaraben/releases).
 
 ## Desktop and Steam Deck
 
-Download the latest AppImage from the [GitHub releases page](https://github.com/fnune/kyaraben/releases) and double-click it to run.
+Download the app and double-click it to run it:
+
+<LinkCard title="Desktop app (x86_64 AppImage)" href="https://github.com/fnune/kyaraben/releases" />
 
 On Steam Deck, switch to Desktop Mode first (STEAM button > Power > Switch to Desktop).
 
-:::note
-x86_64 is fully supported. ARM64 is experimental and untested.
-[Report issues](https://github.com/fnune/kyaraben/issues) or help test.
-:::
+## Headless server
 
-## Headless server (CLI only)
+Download the CLI binary:
 
-For servers without a display, download the CLI binary directly:
+<LinkCard
+  title="CLI binary (x86_64)"
+  href="https://github.com/fnune/kyaraben/releases/latest/download/kyaraben-cli-linux-amd64"
+/>
 
 ```bash
-curl -fsSL https://github.com/fnune/kyaraben/releases/latest/download/kyaraben-linux-x86_64 -o kyaraben
+curl -fsSL https://github.com/fnune/kyaraben/releases/latest/download/kyaraben-cli-linux-amd64 -o kyaraben
 chmod +x kyaraben
 sudo mv kyaraben /usr/local/bin/
 ```
@@ -34,7 +38,14 @@ Kyaraben syncs with guest devices that run their own emulators. More integration
 
 ### NextUI handhelds
 
-Download `Kyaraben.pak` from the [GitHub releases page](https://github.com/fnune/kyaraben/releases) and extract it to the `Tools/` directory on your SD card. See [NextUI integration](/nextui/) for supported devices and configuration.
+Download, extract, and copy the `Kyaraben.pak` folder to `Tools/<platform>/` on your SD card. See [NextUI integration](/nextui/) for configuration.
+
+<LinkCard
+  title="Kyaraben.pak.zip"
+  href="https://github.com/fnune/kyaraben/releases/latest/download/Kyaraben.pak.zip"
+/>
+
+Platforms: TrimUI Brick (tg5040), TrimUI Smart Pro (my355), Miyoo Mini (miyoomini), Anbernic RG35XX Plus (rg35xxplus), Miyoo A30 (my282).
 
 ## Next steps
 

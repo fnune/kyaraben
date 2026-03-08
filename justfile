@@ -227,6 +227,10 @@ clean-emu-configs:
 
     echo "Done."
 
+# Build CLI binary for current platform
+build-cli:
+    ./scripts/build-sidecar.sh
+
 # Deploy AppImage to Steam Deck SD card via SSH
 deploy-deck:
     scp ui/release/Kyaraben-*-x86_64.AppImage deck@steamdeck:/run/media/Emulation/External/

@@ -18,6 +18,9 @@ jobs:
         with:
           go-version: "1.24"
 
+      - name: Install musl-gcc
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
       - name: Install goreleaser
         run: |
           curl -sfL https://goreleaser.com/static/run | bash -s -- --version
@@ -54,5 +57,31 @@ jobs:
 
       - name: Build and publish
         run: cd ui && npm run electron:build -- --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release-nextui:
+    runs-on: ubuntu-latest
+    needs: release-cli
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Get version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Build NextUI pak
+        run: just nextui-release ${{ steps.version.outputs.version }}
+
+      - name: Upload to release
+        run: gh release upload "v${{ steps.version.outputs.version }}" integrations/nextui/dist/Kyaraben.pak.zip
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

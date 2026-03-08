@@ -8,6 +8,7 @@ just ensure          # Install dependencies
 just dev             # Run app in development mode
 just check           # Lint, typecheck, test
 just build           # Build AppImage (run check and build before committing)
+just build-cli       # Build CLI binary only (for deployment to other devices)
 just fmt             # Format all code
 just generate-types  # Regenerate TS types from Go (after changing internal/daemon/types.go)
 just site-dev        # Run documentation site locally

@@ -1,6 +1,7 @@
 # Binary
 /kyaraben
 /test-mdns-browse
+/dist/
 
 # Test artifacts
 *.test
