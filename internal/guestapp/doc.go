@@ -29,6 +29,13 @@
 //   - Syncthing service lifecycle: start/stop/waitForReady/loadAPIKey logic that
 //     manages a bundled syncthing process. Could move to syncguest package.
 //
+//   - CLI commands: start/stop/status/enable/disable/pair are universal operations
+//     that every integration needs. The batocera integration implements these as CLI
+//     commands, nextui implements them as menu actions. A shared CLI struct could
+//     accept ServiceManager, SyncManager, and a FolderMapper interface, letting
+//     integrations wire up their specific implementations. Integrations with graphical
+//     UIs could offer both menu and CLI modes.
+//
 // These are documented here rather than extracted now to avoid premature abstraction.
 // When building a second integration, compare with nextui to identify exact boundaries.
 package guestapp

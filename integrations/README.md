@@ -193,9 +193,29 @@ Options vary by CFW:
 ### 5. Configure the build
 
 The justfile should:
-1. Cross-compile the Go binary for the target architecture
+1. Cross-compile the Go binary for all target architectures
 2. Fetch any UI tool dependencies
 3. Package everything into the CFW's expected format (PAK, script, etc.)
+
+### 6. Build for multiple architectures
+
+CFWs often run on multiple hardware platforms. Build binaries for all supported architectures and let users download the correct one:
+
+| Platform | Architecture | Go build flags |
+|----------|--------------|----------------|
+| PC, Steam Deck, x86 SBCs | x86_64 | `GOOS=linux GOARCH=amd64` |
+| Raspberry Pi 4/5, most ARM64 SBCs | arm64 | `GOOS=linux GOARCH=arm64` |
+| Older Pi, 32-bit ARM devices | arm | `GOOS=linux GOARCH=arm GOARM=7` |
+| RISC-V boards | riscv64 | `GOOS=linux GOARCH=riscv64` |
+
+Example justfile recipe:
+
+```just
+build-all:
+    GOOS=linux GOARCH=amd64 go build -o dist/kyaraben-example-amd64 ./cmd/kyaraben-example
+    GOOS=linux GOARCH=arm64 go build -o dist/kyaraben-example-arm64 ./cmd/kyaraben-example
+    GOOS=linux GOARCH=arm GOARM=7 go build -o dist/kyaraben-example-arm ./cmd/kyaraben-example
+```
 
 ## CFW landscape reference
 
