@@ -1,10 +1,12 @@
 package config
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
+	"github.com/twpayne/go-vfs/v5"
 )
 
 type ServiceConfig struct {
@@ -30,19 +32,30 @@ func DefaultConfig() Config {
 	}
 }
 
+var kyarabenToBatoceraSystem = map[string]string{
+	"genesis": "megadrive",
+}
+
+func batoceraSystemName(kyarabenID string) string {
+	if mapped, ok := kyarabenToBatoceraSystem[kyarabenID]; ok {
+		return mapped
+	}
+	return kyarabenID
+}
+
 func defaultROMs() map[string]string {
 	systems := []string{
 		"nes", "snes", "n64", "gb", "gbc", "gba", "nds",
 		"gamecube", "wii",
 		"psx", "ps2", "psp",
-		"megadrive", "mastersystem", "gamegear", "saturn", "dreamcast",
+		"genesis", "mastersystem", "gamegear", "saturn", "dreamcast",
 		"pcengine", "ngp", "neogeo",
 		"atari2600", "c64",
 	}
 
 	roms := make(map[string]string, len(systems))
 	for _, sys := range systems {
-		roms[sys] = filepath.Join("roms", sys)
+		roms[sys] = filepath.Join("roms", batoceraSystemName(sys))
 	}
 	return roms
 }
@@ -52,14 +65,14 @@ func defaultSaves() map[string]string {
 		"nes", "snes", "n64", "gb", "gbc", "gba", "nds",
 		"gamecube", "wii",
 		"psx", "ps2", "psp",
-		"megadrive", "mastersystem", "gamegear", "saturn", "dreamcast",
+		"genesis", "mastersystem", "gamegear", "saturn", "dreamcast",
 		"pcengine", "ngp", "neogeo",
 		"atari2600", "c64",
 	}
 
 	saves := make(map[string]string, len(systems))
 	for _, sys := range systems {
-		saves[sys] = filepath.Join("saves", sys)
+		saves[sys] = filepath.Join("saves", batoceraSystemName(sys))
 	}
 	return saves
 }
@@ -71,17 +84,21 @@ func defaultScreenshots() map[string]string {
 }
 
 type ConfigStore struct {
-	path string
+	fs      vfs.FS
+	dataDir string
 }
 
-func NewConfigStore(dataDir string) *ConfigStore {
-	return &ConfigStore{
-		path: filepath.Join(dataDir, "config.toml"),
-	}
+func NewConfigStore(fs vfs.FS, dataDir string) *ConfigStore {
+	return &ConfigStore{fs: fs, dataDir: dataDir}
+}
+
+func NewDefaultConfigStore(dataDir string) *ConfigStore {
+	return NewConfigStore(vfs.OSFS, dataDir)
 }
 
 func (s *ConfigStore) Load(defaults Config) (*Config, error) {
-	data, err := os.ReadFile(s.path)
+	configPath := filepath.Join(s.dataDir, "config.toml")
+	data, err := s.fs.ReadFile(configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return &defaults, nil
@@ -90,7 +107,7 @@ func (s *ConfigStore) Load(defaults Config) (*Config, error) {
 	}
 
 	cfg := defaults
-	if _, err := toml.Decode(string(data), &cfg); err != nil {
+	if err := toml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
 
@@ -98,19 +115,15 @@ func (s *ConfigStore) Load(defaults Config) (*Config, error) {
 }
 
 func (s *ConfigStore) Save(cfg *Config) error {
-	if err := os.MkdirAll(filepath.Dir(s.path), 0755); err != nil {
+	if err := vfs.MkdirAll(s.fs, s.dataDir, 0755); err != nil {
 		return err
 	}
 
-	f, err := os.Create(s.path)
-	if err != nil {
+	var buf bytes.Buffer
+	if err := toml.NewEncoder(&buf).Encode(cfg); err != nil {
 		return err
 	}
 
-	encodeErr := toml.NewEncoder(f).Encode(cfg)
-	closeErr := f.Close()
-	if encodeErr != nil {
-		return encodeErr
-	}
-	return closeErr
+	configPath := filepath.Join(s.dataDir, "config.toml")
+	return s.fs.WriteFile(configPath, buf.Bytes(), 0644)
 }

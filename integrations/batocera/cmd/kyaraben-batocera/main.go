@@ -56,7 +56,7 @@ Commands:
 }
 
 func run(ctx context.Context, cmd string, args []string) error {
-	cfgStore := config.NewConfigStore(kyarabenData)
+	cfgStore := config.NewDefaultConfigStore(kyarabenData)
 	cfg, err := cfgStore.Load(config.DefaultConfig())
 	if err != nil {
 		log.Printf("load config: %v (using defaults)", err)
