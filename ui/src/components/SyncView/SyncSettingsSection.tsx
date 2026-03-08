@@ -124,7 +124,7 @@ export function SyncSettingsSection({
                 Start on boot
               </label>
               <p className="text-xs text-on-surface-muted mt-0.5">
-                Automatically start syncthing when you log in.
+                Automatically start Syncthing when you log in. Works in Game Mode on Steam Deck.
               </p>
             </div>
             <ToggleSwitch
@@ -158,8 +158,8 @@ export function SyncSettingsSection({
                 <div className="p-3 bg-status-warning/10 border border-status-warning/30 rounded text-sm">
                   <p className="text-on-surface mb-2">This will:</p>
                   <ul className="list-disc list-inside text-on-surface-muted space-y-1">
-                    <li>Stop and remove the syncthing service</li>
-                    <li>Delete syncthing configuration and database</li>
+                    <li>Stop and remove the Syncthing service</li>
+                    <li>Delete Syncthing configuration and database</li>
                     <li>Remove all device pairings</li>
                     <li>Disable synchronization in your Kyaraben config</li>
                   </ul>
@@ -180,7 +180,7 @@ export function SyncSettingsSection({
             ) : (
               <div>
                 <p className="text-sm text-on-surface-muted mb-2">
-                  Remove all syncthing state and start fresh.
+                  Remove all Syncthing state and start fresh.
                 </p>
                 <Button variant="secondary" onClick={() => setShowResetConfirm(true)}>
                   Reset synchronization

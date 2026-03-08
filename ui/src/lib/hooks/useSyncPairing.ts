@@ -307,7 +307,7 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
       if (result.ok) {
         await refreshSyncStatus()
       } else {
-        showToast(`Failed to ${running ? 'start' : 'stop'} syncthing.`, 'error')
+        showToast(`Failed to ${running ? 'start' : 'stop'} Syncthing.`, 'error')
       }
     },
     [refreshSyncStatus, showToast],

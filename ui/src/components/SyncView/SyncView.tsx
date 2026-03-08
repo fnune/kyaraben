@@ -71,7 +71,7 @@ function DisabledState({
         {isEnabling ? (
           <div className="flex items-center gap-3">
             <Spinner />
-            <span className="text-sm text-on-surface-muted">Installing syncthing...</span>
+            <span className="text-sm text-on-surface-muted">Installing Syncthing...</span>
           </div>
         ) : (
           <div className="space-y-4">
@@ -87,7 +87,7 @@ function DisabledState({
 
       {hasOrphanedState && (
         <div className="p-4 bg-surface-alt rounded-card">
-          <h3 className="text-sm font-medium text-on-surface mb-3">Orphaned syncthing state</h3>
+          <h3 className="text-sm font-medium text-on-surface mb-3">Orphaned Syncthing state</h3>
           <p className="text-sm text-on-surface-muted mb-3">
             Syncthing files from a previous installation were detected. This can happen after an
             incomplete uninstall or if synchronization was disabled manually.
@@ -116,7 +116,7 @@ function DisabledState({
             </div>
           ) : (
             <Button variant="secondary" onClick={() => setShowResetConfirm(true)}>
-              Clean up syncthing state
+              Clean up Syncthing state
             </Button>
           )}
         </div>
@@ -133,7 +133,7 @@ function NotRunningState({ serviceError }: { readonly serviceError: string | und
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <Spinner />
-            <span className="text-sm text-on-surface-muted">Waiting for syncthing to start...</span>
+            <span className="text-sm text-on-surface-muted">Waiting for Syncthing to start...</span>
           </div>
           {serviceError && (
             <details className="text-sm">

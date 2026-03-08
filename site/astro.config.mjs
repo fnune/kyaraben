@@ -51,6 +51,7 @@ export default defineConfig({
           items: [
             { label: "Desktop and Steam Deck", slug: "guides/desktop-and-steam-deck" },
             { label: "Adding a NextUI device", slug: "guides/nextui-device" },
+            { label: "Migrating from EmuDeck", slug: "guides/migrating-from-emudeck" },
           ],
         },
         {
