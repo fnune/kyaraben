@@ -2,10 +2,12 @@ package sync
 
 import (
 	"context"
+	"encoding/xml"
 	"net"
 	"testing"
 
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/packages"
 	"github.com/fnune/kyaraben/internal/paths"
 	"github.com/fnune/kyaraben/internal/testutil"
 )
@@ -186,5 +188,256 @@ func TestLoadPairedDevices_NoConfigFile(t *testing.T) {
 
 	if paired != nil {
 		t.Errorf("expected nil paired devices when no config file, got %v", paired)
+	}
+}
+
+func TestInstall_PreservesExistingDevices(t *testing.T) {
+	localDeviceID := "LOCAL-ID-12345-12345-12345-12345-12345-12345-12345"
+	remoteDeviceID := "REMOTE-ID-67890-67890-67890-67890-67890-67890-67890"
+	remoteName := "my-paired-device"
+
+	existingConfig := `<?xml version="1.0" encoding="UTF-8"?>
+<configuration version="37">
+  <device id="` + localDeviceID + `" name="this-device" compression="metadata"></device>
+  <device id="` + remoteDeviceID + `" name="` + remoteName + `" compression="metadata">
+    <address>dynamic</address>
+  </device>
+  <gui enabled="true" tls="false" debugging="false">
+    <address>127.0.0.1:8484</address>
+    <apikey>existing-api-key</apikey>
+  </gui>
+  <options>
+    <listenAddress>tcp://0.0.0.0:22100</listenAddress>
+  </options>
+</configuration>`
+
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/state/syncthing/config/config.xml": existingConfig,
+		"/state/syncthing/config/.apikey":    "existing-api-key",
+	})
+
+	fakeClient := NewFakeClient(model.SyncConfig{})
+	fakeClient.SetDeviceID(localDeviceID)
+
+	installer := packages.NewFakeInstaller(fs, "/packages")
+	serviceMgr := NewFakeServiceManager()
+
+	clientFactory := func(config model.SyncConfig) SyncClient {
+		return fakeClient
+	}
+
+	setup := NewSetup(fs, paths.DefaultPaths(), installer, "/state", serviceMgr, clientFactory)
+
+	cfg := model.SyncConfig{
+		Enabled: true,
+		Syncthing: model.SyncthingConfig{
+			GUIPort:       8484,
+			ListenPort:    22100,
+			DiscoveryPort: 21127,
+		},
+	}
+
+	original := CheckPorts
+	CheckPorts = func(_ model.SyncthingConfig) error { return nil }
+	defer func() { CheckPorts = original }()
+
+	ctx := context.Background()
+	_, err := setup.Install(ctx, cfg, "/collection", nil, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("Install() error = %v", err)
+	}
+
+	configData, err := fs.ReadFile("/state/syncthing/config/config.xml")
+	if err != nil {
+		t.Fatalf("reading config.xml: %v", err)
+	}
+
+	var merged SyncthingXMLConfig
+	if err := xml.Unmarshal(configData, &merged); err != nil {
+		t.Fatalf("parsing merged config: %v", err)
+	}
+
+	if len(merged.Devices) != 2 {
+		t.Fatalf("expected 2 devices in merged config, got %d", len(merged.Devices))
+	}
+
+	var foundRemote bool
+	for _, dev := range merged.Devices {
+		if dev.ID == remoteDeviceID && dev.Name == remoteName {
+			foundRemote = true
+			break
+		}
+	}
+	if !foundRemote {
+		t.Errorf("remote device %s not preserved in merged config", remoteDeviceID)
+	}
+}
+
+func TestInstall_PreservesExistingFolders(t *testing.T) {
+	existingConfig := `<?xml version="1.0" encoding="UTF-8"?>
+<configuration version="37">
+  <folder id="kyaraben-saves-psx" label="kyaraben-saves-psx" path="/collection/saves/psx" type="sendreceive"></folder>
+  <folder id="kyaraben-roms-snes" label="kyaraben-roms-snes" path="/collection/roms/snes" type="sendreceive"></folder>
+  <gui enabled="true" tls="false" debugging="false">
+    <address>127.0.0.1:8484</address>
+    <apikey>existing-api-key</apikey>
+  </gui>
+  <options>
+    <listenAddress>tcp://0.0.0.0:22100</listenAddress>
+  </options>
+</configuration>`
+
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/state/syncthing/config/config.xml": existingConfig,
+		"/state/syncthing/config/.apikey":    "existing-api-key",
+	})
+
+	fakeClient := NewFakeClient(model.SyncConfig{})
+	fakeClient.SetDeviceID("LOCAL-ID")
+
+	installer := packages.NewFakeInstaller(fs, "/packages")
+	serviceMgr := NewFakeServiceManager()
+
+	clientFactory := func(config model.SyncConfig) SyncClient {
+		return fakeClient
+	}
+
+	setup := NewSetup(fs, paths.DefaultPaths(), installer, "/state", serviceMgr, clientFactory)
+
+	cfg := model.SyncConfig{
+		Enabled: true,
+		Syncthing: model.SyncthingConfig{
+			GUIPort:       8484,
+			ListenPort:    22100,
+			DiscoveryPort: 21127,
+		},
+	}
+
+	original := CheckPorts
+	CheckPorts = func(_ model.SyncthingConfig) error { return nil }
+	defer func() { CheckPorts = original }()
+
+	ctx := context.Background()
+	_, err := setup.Install(ctx, cfg, "/collection", nil, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("Install() error = %v", err)
+	}
+
+	configData, err := fs.ReadFile("/state/syncthing/config/config.xml")
+	if err != nil {
+		t.Fatalf("reading config.xml: %v", err)
+	}
+
+	var merged SyncthingXMLConfig
+	if err := xml.Unmarshal(configData, &merged); err != nil {
+		t.Fatalf("parsing merged config: %v", err)
+	}
+
+	if len(merged.Folders) != 2 {
+		t.Fatalf("expected 2 folders in merged config, got %d", len(merged.Folders))
+	}
+
+	folderIDs := make(map[string]bool)
+	for _, f := range merged.Folders {
+		folderIDs[f.ID] = true
+	}
+
+	if !folderIDs["kyaraben-saves-psx"] {
+		t.Error("folder kyaraben-saves-psx not preserved")
+	}
+	if !folderIDs["kyaraben-roms-snes"] {
+		t.Error("folder kyaraben-roms-snes not preserved")
+	}
+}
+
+func TestInstall_UpdatesOptionsOnMerge(t *testing.T) {
+	existingConfig := `<?xml version="1.0" encoding="UTF-8"?>
+<configuration version="37">
+  <device id="REMOTE-DEVICE" name="peer" compression="metadata"></device>
+  <gui enabled="true" tls="false" debugging="false">
+    <address>127.0.0.1:8484</address>
+    <apikey>existing-api-key</apikey>
+  </gui>
+  <options>
+    <listenAddress>tcp://0.0.0.0:22000</listenAddress>
+    <globalAnnounceEnabled>false</globalAnnounceEnabled>
+    <relaysEnabled>false</relaysEnabled>
+  </options>
+</configuration>`
+
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/state/syncthing/config/config.xml": existingConfig,
+		"/state/syncthing/config/.apikey":    "existing-api-key",
+	})
+
+	fakeClient := NewFakeClient(model.SyncConfig{})
+	fakeClient.SetDeviceID("LOCAL-ID")
+
+	installer := packages.NewFakeInstaller(fs, "/packages")
+	serviceMgr := NewFakeServiceManager()
+
+	clientFactory := func(config model.SyncConfig) SyncClient {
+		return fakeClient
+	}
+
+	setup := NewSetup(fs, paths.DefaultPaths(), installer, "/state", serviceMgr, clientFactory)
+
+	cfg := model.SyncConfig{
+		Enabled: true,
+		Syncthing: model.SyncthingConfig{
+			GUIPort:                9999,
+			ListenPort:             22100,
+			DiscoveryPort:          21127,
+			GlobalDiscoveryEnabled: true,
+			RelayEnabled:           true,
+		},
+	}
+
+	original := CheckPorts
+	CheckPorts = func(_ model.SyncthingConfig) error { return nil }
+	defer func() { CheckPorts = original }()
+
+	ctx := context.Background()
+	_, err := setup.Install(ctx, cfg, "/collection", nil, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("Install() error = %v", err)
+	}
+
+	configData, err := fs.ReadFile("/state/syncthing/config/config.xml")
+	if err != nil {
+		t.Fatalf("reading config.xml: %v", err)
+	}
+
+	var merged SyncthingXMLConfig
+	if err := xml.Unmarshal(configData, &merged); err != nil {
+		t.Fatalf("parsing merged config: %v", err)
+	}
+
+	if len(merged.Devices) != 1 {
+		t.Errorf("expected device to be preserved, got %d devices", len(merged.Devices))
+	}
+
+	if merged.GUI.Address != "127.0.0.1:9999" {
+		t.Errorf("expected GUI address to be updated to 127.0.0.1:9999, got %s", merged.GUI.Address)
+	}
+
+	if !merged.Options.GlobalAnnounceEnabled {
+		t.Error("expected globalAnnounceEnabled to be updated to true")
+	}
+
+	if !merged.Options.RelaysEnabled {
+		t.Error("expected relaysEnabled to be updated to true")
+	}
+
+	expectedListen := "tcp://0.0.0.0:22100"
+	found := false
+	for _, addr := range merged.Options.ListenAddresses {
+		if addr == expectedListen {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected listen address %s in options, got %v", expectedListen, merged.Options.ListenAddresses)
 	}
 }

@@ -218,15 +218,48 @@ func (g *ConfigGenerator) frontendSuffixes(fe model.FrontendID, systems []model.
 	return suffixes
 }
 
-func (g *ConfigGenerator) WriteBootstrapConfig(configDir string) error {
-	config := g.GenerateBootstrap()
-
+func (g *ConfigGenerator) WriteConfig(configDir string) error {
 	if err := vfs.MkdirAll(g.fs, configDir, 0700); err != nil {
 		return fmt.Errorf("creating config dir: %w", err)
 	}
 
 	configPath := filepath.Join(configDir, "config.xml")
 
+	existingData, err := g.fs.ReadFile(configPath)
+	if err != nil {
+		return g.writeBootstrapConfig(configPath)
+	}
+
+	var existing SyncthingXMLConfig
+	if err := xml.Unmarshal(existingData, &existing); err != nil {
+		log.Info("Could not parse existing config.xml, writing fresh: %v", err)
+		return g.writeBootstrapConfig(configPath)
+	}
+
+	return g.writeMergedConfig(configPath, &existing)
+}
+
+func (g *ConfigGenerator) writeBootstrapConfig(configPath string) error {
+	config := g.GenerateBootstrap()
+	return g.writeConfig(configPath, config, "bootstrap")
+}
+
+func (g *ConfigGenerator) writeMergedConfig(configPath string, existing *SyncthingXMLConfig) error {
+	bootstrap := g.GenerateBootstrap()
+
+	merged := &SyncthingXMLConfig{
+		Version:  existing.Version,
+		Folders:  existing.Folders,
+		Devices:  existing.Devices,
+		GUI:      bootstrap.GUI,
+		Options:  bootstrap.Options,
+		Defaults: bootstrap.Defaults,
+	}
+
+	return g.writeConfig(configPath, merged, "merged")
+}
+
+func (g *ConfigGenerator) writeConfig(configPath string, config *SyncthingXMLConfig, configType string) error {
 	data, err := xml.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshaling config: %w", err)
@@ -239,7 +272,7 @@ func (g *ConfigGenerator) WriteBootstrapConfig(configDir string) error {
 		return fmt.Errorf("writing config: %w", err)
 	}
 
-	log.Info("Wrote syncthing bootstrap config to %s", configPath)
+	log.Info("Wrote syncthing %s config to %s", configType, configPath)
 	return nil
 }
 

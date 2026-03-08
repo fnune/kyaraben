@@ -85,7 +85,7 @@ func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, collectionPat
 	configGen := NewConfigGenerator(s.fs, cfg, collectionPath, allSystems, allEmulators, allFrontends)
 	configGen.SetAPIKey(apiKey)
 
-	if err := configGen.WriteBootstrapConfig(configDir); err != nil {
+	if err := configGen.WriteConfig(configDir); err != nil {
 		return nil, fmt.Errorf("writing syncthing config: %w", err)
 	}
 
@@ -115,15 +115,6 @@ func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, collectionPat
 	folderRequests := configGen.FolderCreateRequests()
 	if err := client.AddFolders(ctx, folderRequests); err != nil {
 		return nil, fmt.Errorf("adding folders via REST: %w", err)
-	}
-
-	pairedDevices, err := s.loadPairedDevices(ctx, client, configDir)
-	if err != nil {
-		log.Info("Could not load paired devices: %v", err)
-	}
-
-	if err := s.restorePairedDevices(ctx, client, pairedDevices); err != nil {
-		return nil, fmt.Errorf("restoring paired devices: %w", err)
 	}
 
 	if err := configGen.WriteIgnoreFiles(folderRequests); err != nil {
@@ -171,7 +162,7 @@ func (s *Setup) UpdateConfig(ctx context.Context, cfg model.SyncConfig, collecti
 
 		log.Info("Updated syncthing folders via REST API (%d systems, %d emulators)", len(allSystems), len(allEmulators))
 	} else {
-		if err := configGen.WriteBootstrapConfig(configDir); err != nil {
+		if err := configGen.WriteConfig(configDir); err != nil {
 			return fmt.Errorf("writing syncthing config: %w", err)
 		}
 		log.Info("Wrote syncthing bootstrap config (%d systems, %d emulators)", len(allSystems), len(allEmulators))
@@ -380,17 +371,4 @@ func (s *Setup) loadPairedDevices(ctx context.Context, client SyncClient, config
 	}
 
 	return paired, nil
-}
-
-func (s *Setup) restorePairedDevices(ctx context.Context, client SyncClient, devices []XMLDevice) error {
-	for _, dev := range devices {
-		if err := client.AddDeviceWithAddresses(ctx, dev.ID, dev.Name, dev.Addresses); err != nil {
-			return fmt.Errorf("restoring device %s: %w", dev.Name, err)
-		}
-		if err := client.ShareFoldersWithDevice(ctx, dev.ID); err != nil {
-			return fmt.Errorf("sharing folders with device %s: %w", dev.Name, err)
-		}
-		log.Info("Restored paired device: %s", dev.Name)
-	}
-	return nil
 }
