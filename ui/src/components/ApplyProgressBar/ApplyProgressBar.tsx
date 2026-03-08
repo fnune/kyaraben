@@ -1,3 +1,4 @@
+import { VIEW_CATALOG } from '@shared/ui'
 import { useEffect, useState } from 'react'
 import { SpeedBadge } from '@/components/SpeedBadge/SpeedBadge'
 import { useApply } from '@/lib/ApplyContext'
@@ -8,7 +9,6 @@ import { collapsePathsInText } from '@/lib/paths'
 import { getDownloadSpeedBytes, getStepSubtitle } from '@/lib/progressUtils'
 import { ProgressBar, ProgressRail, Shimmer } from '@/lib/progressWidgets'
 import { useOpenLog } from '@/lib/useOpenLog'
-import { VIEW_CATALOG } from '@/types/ui'
 
 export interface ApplyProgressBarProps {
   readonly currentView: string

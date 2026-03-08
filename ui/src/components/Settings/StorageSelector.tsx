@@ -1,3 +1,4 @@
+import type { StorageDevice } from '@shared/daemon'
 import { useCallback, useEffect, useState } from 'react'
 import { formatBytes } from '@/lib/changeUtils'
 import { getStorageDevices, selectDirectory } from '@/lib/daemon'
@@ -6,7 +7,6 @@ import { Input } from '@/lib/Input'
 import { FolderIcon } from '@/lib/icons'
 import { collapseTilde, expandTilde } from '@/lib/paths'
 import { RadioCard } from '@/lib/RadioCard'
-import type { StorageDevice } from '@/types/daemon'
 
 export interface StorageSelectorProps {
   readonly collection: string

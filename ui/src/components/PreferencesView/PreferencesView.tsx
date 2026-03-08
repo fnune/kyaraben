@@ -1,8 +1,8 @@
+import type { EmulatorRef, System } from '@shared/daemon'
 import { useMemo } from 'react'
 import { HotkeySettings } from '@/components/Settings/HotkeySettings'
 import { useConfig } from '@/lib/ConfigContext'
 import { RadioCard } from '@/lib/RadioCard'
-import type { EmulatorRef, System } from '@/types/daemon'
 import { PreferenceSection } from './PreferenceSection'
 
 type PresetOption = 'clean' | 'retro' | 'manual'

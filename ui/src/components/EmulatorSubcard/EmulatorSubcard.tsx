@@ -1,3 +1,10 @@
+import type {
+  EmulatorPaths,
+  EmulatorRef,
+  ManagedConfigInfo,
+  ProvisionResult,
+  SystemID,
+} from '@shared/daemon'
 import { useState } from 'react'
 import { EmulatorLogo, getEmulatorLogo } from '@/components/EmulatorLogo/EmulatorLogo'
 import { EmulatorSettingsModal } from '@/components/EmulatorSettingsModal/EmulatorSettingsModal'
@@ -16,13 +23,6 @@ import {
 import { formatBytes } from '@/lib/changeUtils'
 import { PathText } from '@/lib/PathText'
 import { useToast } from '@/lib/ToastContext'
-import type {
-  EmulatorPaths,
-  EmulatorRef,
-  ManagedConfigInfo,
-  ProvisionResult,
-  SystemID,
-} from '@/types/daemon'
 
 function isNonEmpty<T>(arr: readonly T[]): arr is readonly [T, ...T[]] {
   return arr.length > 0

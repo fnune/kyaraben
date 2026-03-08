@@ -1,7 +1,7 @@
+import type { ApplyStatus, View } from '@shared/ui'
+import { VIEW_CATALOG, VIEW_LABELS } from '@shared/ui'
 import { useEffect, useRef } from 'react'
 import { useToast } from '@/lib/ToastContext'
-import type { ApplyStatus, View } from '@/types/ui'
-import { VIEW_CATALOG, VIEW_LABELS } from '@/types/ui'
 
 export function useApplyStatusHandler(
   applyStatus: ApplyStatus,

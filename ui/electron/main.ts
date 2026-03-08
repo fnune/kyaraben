@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import * as readline from 'node:readline'
+import type { SyncPairingProgressEvent } from '@shared/daemon.gen'
 import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import type { InvokeChannel } from './channels'
 import { checkForUpdates, downloadUpdate } from './updater'
@@ -256,6 +257,19 @@ async function ensureDaemon(): Promise<void> {
           console.error(
             `[sync] Failed to send pending device: ${sendErr instanceof Error ? sendErr.message : String(sendErr)}`,
           )
+        }
+      }
+
+      if (event.type === 'progress' && mainWindow && !mainWindow.isDestroyed()) {
+        const data = event.data as SyncPairingProgressEvent | undefined
+        if (data?.deviceId) {
+          try {
+            mainWindow.webContents.send('pairing:progress', data)
+          } catch (sendErr) {
+            console.error(
+              `[sync] Failed to send pairing progress: ${sendErr instanceof Error ? sendErr.message : String(sendErr)}`,
+            )
+          }
         }
       }
 

@@ -1,3 +1,4 @@
+import type { ProvisionResult } from '@shared/daemon'
 import { ProvisionSummary } from '@/components/ProvisionSummary/ProvisionSummary'
 import { FolderIcon, PlayIcon } from '@/lib/icons'
 import { Modal } from '@/lib/Modal'
@@ -13,7 +14,6 @@ import {
   PROVISION_NOT_NEEDED_ICON,
 } from '@/lib/provisionStatus'
 import { useToast } from '@/lib/ToastContext'
-import type { ProvisionResult } from '@/types/daemon'
 
 export interface ProvisionsModalProps {
   readonly open: boolean

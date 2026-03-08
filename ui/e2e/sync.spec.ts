@@ -686,3 +686,58 @@ test.describe('Relay pairing - pending device via manual device ID', () => {
     await expect(ctx.page.getByText('Device wants to connect')).not.toBeVisible({ timeout: 5000 })
   })
 })
+
+test.describe('Relay pairing - host UI clears when guest connects', () => {
+  let ctx: SyncTestContext
+  let relay: RelayServer
+  const guestDeviceID = 'GUEST01-DEVICE2-ABCDEF3-1234567-HIJKLMN-OPQRSTU-VWXYZ12-3456789'
+
+  test.beforeAll(async () => {
+    relay = await startRelayServer()
+    ctx = await setupSyncTest({
+      config: {
+        systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
+        sync: { enabled: true, relayUrl: relay.url },
+      },
+      manifest: { installedEmulators: {} },
+      syncthing: {
+        devices: [],
+        folders: [{ id: 'saves', path: '/home/test/Emulation/saves' }],
+      },
+    })
+  })
+
+  test.afterAll(async () => {
+    await cleanupSyncTest(ctx)
+    relay.close()
+  })
+
+  test('clears pairing UI when guest device connects via relay', async () => {
+    await navigateToSync(ctx.page)
+    await expect(ctx.page.getByText('Pair a device')).toBeVisible()
+
+    await ctx.page.getByRole('button', { name: 'Generate pairing code' }).click()
+    const codeElement = ctx.page.locator('code').filter({ hasText: /^[A-Z0-9]{6}$/ })
+    await expect(codeElement).toBeVisible({ timeout: 5000 })
+    await expect(ctx.page.getByText('Waiting for device to connect')).toBeVisible()
+
+    const code = await codeElement.textContent()
+    if (!code) throw new Error('Failed to get pairing code')
+
+    const response = await fetch(`${relay.url}/pair/${code}/response`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deviceId: guestDeviceID }),
+    })
+    if (!response.ok) throw new Error(`Failed to submit relay response: ${response.status}`)
+
+    ctx.controller.addDevice({ deviceID: guestDeviceID, name: 'Steam Deck' })
+    ctx.controller.setConnected(guestDeviceID, true)
+
+    await expect(ctx.page.getByText('Waiting for device to connect')).not.toBeVisible({
+      timeout: 10000,
+    })
+    await expect(ctx.page.getByText('Steam Deck', { exact: true })).toBeVisible()
+    await expect(ctx.page.getByText('synced', { exact: true })).toBeVisible()
+  })
+})

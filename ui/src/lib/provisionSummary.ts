@@ -1,3 +1,4 @@
+import type { ProvisionResult } from '@shared/daemon'
 import {
   OPTIONAL_PROVISION_COLOR,
   OPTIONAL_PROVISION_ICON,
@@ -8,7 +9,6 @@ import {
   PROVISION_NOT_NEEDED_COLOR,
   PROVISION_NOT_NEEDED_ICON,
 } from '@/lib/provisionStatus'
-import type { ProvisionResult } from '@/types/daemon'
 
 export type ProvisionSummaryPartKind = 'ready' | 'required' | 'optional' | 'none'
 

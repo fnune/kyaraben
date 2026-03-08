@@ -1,7 +1,7 @@
+import type { SyncDiscoveredDevice, SyncStatusResponse } from '@shared/daemon'
+import { SyncStateSyncing } from '@shared/daemon'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import * as daemon from '@/lib/daemon'
-import type { SyncDiscoveredDevice, SyncStatusResponse } from '@/types/daemon'
-import { SyncStateSyncing } from '@/types/daemon'
 
 type ShowToast = (message: string, type?: 'error' | 'success' | 'info') => void
 

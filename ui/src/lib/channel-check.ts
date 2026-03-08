@@ -2,8 +2,8 @@
 // contains only valid CommandType values from the generated daemon types.
 // This file is not imported anywhere - it exists purely for compile-time checking.
 
+import type { CommandType } from '@shared/daemon.gen'
 import type { InvokeChannel } from '../../electron/channels'
-import type { CommandType } from '../types/daemon.gen'
 
 // Extract just the daemon channels from InvokeChannel
 type DaemonChannel = Exclude<

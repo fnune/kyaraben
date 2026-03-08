@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react'
 import type {
   EmulatorID,
   EmulatorPaths,
   FrontendID,
   ManagedConfigInfo,
   StatusResponse,
-} from '@/types/daemon'
+} from '@shared/daemon'
+import { useMemo, useState } from 'react'
 
 export function useStatusData() {
   const [statusResponse, setStatusResponse] = useState<StatusResponse | null>(null)

@@ -1,6 +1,6 @@
+import type { ProvisionResult } from '@shared/daemon'
 import type { ReactNode } from 'react'
 import { getProvisionSummaryIconState, getProvisionSummaryParts } from '@/lib/provisionSummary'
-import type { ProvisionResult } from '@/types/daemon'
 
 type ProvisionSummarySize = 'xs' | 'sm'
 export interface ProvisionSummaryProps {

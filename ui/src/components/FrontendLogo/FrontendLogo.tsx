@@ -1,5 +1,5 @@
+import type { FrontendID } from '@shared/model.gen'
 import esde from '@/assets/frontends/esde.svg'
-import type { FrontendID } from '@/types/model.gen'
 
 const FRONTEND_LOGOS: Record<FrontendID, string> = {
   esde: esde,

@@ -1,11 +1,11 @@
-import { useMemo } from 'react'
-import { Select } from '@/lib/Select'
 import {
   HOTKEY_ACTIONS,
   type HotkeyActionKey,
   MODIFIER_BUTTONS,
   SDL_BUTTONS,
-} from '@/types/controller'
+} from '@shared/controller'
+import { useMemo } from 'react'
+import { Select } from '@/lib/Select'
 
 export interface HotkeyConfig {
   modifier: string

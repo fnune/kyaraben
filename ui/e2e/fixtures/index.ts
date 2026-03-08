@@ -200,7 +200,7 @@ function generateConfigToml(config: ConfigFixture, defaultCollection: string): s
     lines.push('[sync]')
     lines.push(`enabled = ${config.sync.enabled ?? false}`)
     if (config.sync.relayUrl) {
-      lines.push(`relay_url = "${config.sync.relayUrl}"`)
+      lines.push(`relays = ["${config.sync.relayUrl}"]`)
     }
     lines.push('')
 

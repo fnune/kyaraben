@@ -1,9 +1,9 @@
+import type { EmulatorPaths, ManagedConfigInfo, ManagedRegionInfo } from '@shared/daemon'
 import { IconButton } from '@/lib/IconButton'
 import { FolderIcon } from '@/lib/icons'
 import { INPUT_BASE_CLASSES } from '@/lib/inputStyles'
 import { Modal } from '@/lib/Modal'
 import { PathText } from '@/lib/PathText'
-import type { EmulatorPaths, ManagedConfigInfo, ManagedRegionInfo } from '@/types/daemon'
 
 export interface PathsModalProps {
   readonly open: boolean

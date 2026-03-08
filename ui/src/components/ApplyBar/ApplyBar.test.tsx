@@ -1,3 +1,5 @@
+import type { ConfigFileDiff, PreflightResponse } from '@shared/daemon'
+import type { ApplyStatus } from '@shared/ui'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
@@ -5,8 +7,6 @@ import { useApply } from '@/lib/ApplyContext'
 import { useConfig } from '@/lib/ConfigContext'
 import { useHomeDir } from '@/lib/HomeDirContext'
 import { useOpenLog } from '@/lib/useOpenLog'
-import type { ConfigFileDiff, PreflightResponse } from '@/types/daemon'
-import type { ApplyStatus } from '@/types/ui'
 import { ApplyBar } from './ApplyBar'
 
 vi.mock('@/lib/ApplyContext')

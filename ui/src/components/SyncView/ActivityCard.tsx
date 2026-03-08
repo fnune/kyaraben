@@ -1,6 +1,6 @@
+import type { SyncFolder, SyncState } from '@shared/daemon'
 import { formatBytes } from '@/lib/changeUtils'
 import { ProgressBar, ProgressRail } from '@/lib/progressWidgets'
-import type { SyncFolder, SyncState } from '@/types/daemon'
 
 function formatTimeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000)

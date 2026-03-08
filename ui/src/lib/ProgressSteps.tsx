@@ -1,11 +1,11 @@
+import type { LogEntry, LogLevel } from '@shared/logging.gen'
+import type { ProgressStep } from '@shared/ui'
 import { useEffect, useRef } from 'react'
 import { SpeedBadge } from '@/components/SpeedBadge/SpeedBadge'
 import { useHomeDir } from '@/lib/HomeDirContext'
 import { collapsePathsInText } from '@/lib/paths'
 import { getDownloadSpeedBytes, getStepSubtitle } from '@/lib/progressUtils'
 import { ProgressBar, ProgressRail, Shimmer } from '@/lib/progressWidgets'
-import type { LogEntry, LogLevel } from '@/types/logging.gen'
-import type { ProgressStep } from '@/types/ui'
 
 export interface ProgressStepsProps {
   steps: readonly ProgressStep[]

@@ -5,7 +5,7 @@ import type {
   ProgressEvent,
   SyncEnableProgressEvent,
   SyncPairingProgressEvent,
-} from './types/daemon.gen'
+} from '@shared/daemon.gen'
 
 type EventPayloadMap = {
   'apply:progress': ProgressEvent

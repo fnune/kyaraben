@@ -1,7 +1,3 @@
-import { forwardRef } from 'react'
-import { ESDE_LOGOS } from '@/assets/esde'
-import { EmulatorSubcard } from '@/components/EmulatorSubcard/EmulatorSubcard'
-import { launchEmulator } from '@/lib/daemon'
 import type {
   DoctorResponse,
   EmulatorID,
@@ -9,8 +5,12 @@ import type {
   ManagedConfigInfo,
   System,
   SystemID,
-} from '@/types/daemon'
-import { VERSION_DEFAULT } from '@/types/ui'
+} from '@shared/daemon'
+import { VERSION_DEFAULT } from '@shared/ui'
+import { forwardRef } from 'react'
+import { ESDE_LOGOS } from '@/assets/esde'
+import { EmulatorSubcard } from '@/components/EmulatorSubcard/EmulatorSubcard'
+import { launchEmulator } from '@/lib/daemon'
 
 export const SYSTEM_YEARS: Record<SystemID, number | null> = {
   nes: 1983,

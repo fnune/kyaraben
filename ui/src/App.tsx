@@ -1,3 +1,12 @@
+import type { DoctorResponse, EmulatorID, FrontendID } from '@shared/daemon'
+import {
+  VIEW_CATALOG,
+  VIEW_IMPORT,
+  VIEW_INSTALLATION,
+  VIEW_PREFERENCES,
+  VIEW_SYNC,
+  type View,
+} from '@shared/ui'
 import { useEffect, useRef, useState } from 'react'
 import { ApplyBar } from '@/components/ApplyBar/ApplyBar'
 import { CatalogView } from '@/components/CatalogView/CatalogView'
@@ -19,15 +28,6 @@ import { type FoundProvision, getNewlyFoundProvisions } from '@/lib/provisions'
 import { Spinner } from '@/lib/Spinner'
 import { ToastProvider, useToast } from '@/lib/ToastContext'
 import { useStatusData } from '@/lib/useStatusData'
-import type { DoctorResponse, EmulatorID, FrontendID } from '@/types/daemon'
-import {
-  VIEW_CATALOG,
-  VIEW_IMPORT,
-  VIEW_INSTALLATION,
-  VIEW_PREFERENCES,
-  VIEW_SYNC,
-  type View,
-} from '@/types/ui'
 
 function keyForProvision(provision: FoundProvision) {
   return provision.id

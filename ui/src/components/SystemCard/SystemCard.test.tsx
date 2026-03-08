@@ -1,8 +1,8 @@
+import type { DoctorResponse, EmulatorID, System } from '@shared/daemon'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { ToastProvider } from '@/lib/ToastContext'
-import type { DoctorResponse, EmulatorID, System } from '@/types/daemon'
 import { SystemCard } from './SystemCard'
 
 function renderWithProviders(ui: React.ReactElement) {

@@ -1,3 +1,10 @@
+import type {
+  ImportDataComparison,
+  ImportEmulatorReport,
+  ImportFrontendReport,
+  ImportScanResponse,
+  ImportSystemReport,
+} from '@shared/daemon'
 import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/lib/Button'
 import * as daemon from '@/lib/daemon'
@@ -12,13 +19,6 @@ import { collapseTilde } from '@/lib/paths'
 import { Select } from '@/lib/Select'
 import { Spinner } from '@/lib/Spinner'
 import { useToast } from '@/lib/ToastContext'
-import type {
-  ImportDataComparison,
-  ImportEmulatorReport,
-  ImportFrontendReport,
-  ImportScanResponse,
-  ImportSystemReport,
-} from '@/types/daemon'
 
 const STORAGE_KEY_SOURCE = 'kyaraben-import-source-path'
 const STORAGE_KEY_ESDE = 'kyaraben-import-esde-path'

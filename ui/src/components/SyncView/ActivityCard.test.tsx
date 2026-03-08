@@ -1,6 +1,6 @@
+import type { SyncFolder } from '@shared/daemon'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import type { SyncFolder } from '@/types/daemon'
 import { ActivityCard } from './ActivityCard'
 
 function createFolder(overrides: Partial<SyncFolder> = {}): SyncFolder {

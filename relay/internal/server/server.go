@@ -13,8 +13,9 @@ import (
 )
 
 type Config struct {
-	Addr string
-	TTL  time.Duration
+	Addr             string
+	TTL              time.Duration
+	DisableRateLimit bool
 }
 
 func DefaultConfig() Config {
@@ -38,24 +39,35 @@ func New(cfg Config) *Server {
 
 	mux := http.NewServeMux()
 
-	createLimiter := NewRateLimiter(10, time.Minute)
-	getLimiter := NewRateLimiter(30, time.Minute)
-	deleteLimiter := NewRateLimiter(10, time.Minute)
-	submitLimiter := NewRateLimiter(10, time.Minute)
-	pollLimiter := NewRateLimiter(60, time.Minute)
+	var rateLimiters []*RateLimiter
 
-	mux.Handle("POST /pair", createLimiter.Middleware(http.HandlerFunc(handlers.CreateSession)))
-	mux.Handle("GET /pair/{code}", getLimiter.Middleware(http.HandlerFunc(handlers.GetSession)))
-	mux.Handle("DELETE /pair/{code}", deleteLimiter.Middleware(http.HandlerFunc(handlers.DeleteSession)))
-	mux.Handle("POST /pair/{code}/response", submitLimiter.Middleware(http.HandlerFunc(handlers.SubmitResponse)))
-	mux.Handle("GET /pair/{code}/response", pollLimiter.Middleware(http.HandlerFunc(handlers.GetResponse)))
+	if cfg.DisableRateLimit {
+		mux.HandleFunc("POST /pair", handlers.CreateSession)
+		mux.HandleFunc("GET /pair/{code}", handlers.GetSession)
+		mux.HandleFunc("DELETE /pair/{code}", handlers.DeleteSession)
+		mux.HandleFunc("POST /pair/{code}/response", handlers.SubmitResponse)
+		mux.HandleFunc("GET /pair/{code}/response", handlers.GetResponse)
+	} else {
+		createLimiter := NewRateLimiter(10, time.Minute)
+		getLimiter := NewRateLimiter(30, time.Minute)
+		deleteLimiter := NewRateLimiter(10, time.Minute)
+		submitLimiter := NewRateLimiter(10, time.Minute)
+		pollLimiter := NewRateLimiter(60, time.Minute)
+		rateLimiters = []*RateLimiter{createLimiter, getLimiter, deleteLimiter, submitLimiter, pollLimiter}
+
+		mux.Handle("POST /pair", createLimiter.Middleware(http.HandlerFunc(handlers.CreateSession)))
+		mux.Handle("GET /pair/{code}", getLimiter.Middleware(http.HandlerFunc(handlers.GetSession)))
+		mux.Handle("DELETE /pair/{code}", deleteLimiter.Middleware(http.HandlerFunc(handlers.DeleteSession)))
+		mux.Handle("POST /pair/{code}/response", submitLimiter.Middleware(http.HandlerFunc(handlers.SubmitResponse)))
+		mux.Handle("GET /pair/{code}/response", pollLimiter.Middleware(http.HandlerFunc(handlers.GetResponse)))
+	}
 	mux.HandleFunc("GET /health", handlers.Health)
 
 	return &Server{
 		cfg:          cfg,
 		store:        store,
 		handlers:     handlers,
-		rateLimiters: []*RateLimiter{createLimiter, getLimiter, deleteLimiter, submitLimiter, pollLimiter},
+		rateLimiters: rateLimiters,
 		server: &http.Server{
 			Addr:           cfg.Addr,
 			Handler:        loggingMiddleware(corsMiddleware(mux)),
@@ -67,7 +79,11 @@ func New(cfg Config) *Server {
 }
 
 func (s *Server) Start() error {
-	log.Printf("Starting relay server on %s", s.cfg.Addr)
+	if s.cfg.DisableRateLimit {
+		log.Printf("Starting relay server on %s (rate limiting disabled)", s.cfg.Addr)
+	} else {
+		log.Printf("Starting relay server on %s", s.cfg.Addr)
+	}
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)

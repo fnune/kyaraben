@@ -1,3 +1,4 @@
+import type { FrontendRef } from '@shared/daemon.gen'
 import { getFrontendLogo } from '@/components/FrontendLogo/FrontendLogo'
 import {
   PackageCard,
@@ -7,7 +8,6 @@ import {
 import { formatBytes } from '@/lib/changeUtils'
 import { launchEmulator } from '@/lib/daemon'
 import { useToast } from '@/lib/ToastContext'
-import type { FrontendRef } from '@/types/daemon.gen'
 
 export interface FrontendCardProps {
   readonly frontend: FrontendRef

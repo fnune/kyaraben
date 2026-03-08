@@ -5,6 +5,7 @@ import type {
   DoctorResponse,
   FrontendRef,
   ImportScanRequest,
+  ImportScanResponse,
   InstallStatus,
   PreflightResponse,
   SetConfigRequest,
@@ -29,7 +30,7 @@ import type {
   SyncStatusResponse,
   System,
   UninstallPreviewResponse,
-} from '@/types/daemon'
+} from '@shared/daemon'
 
 type DaemonError = {
   readonly message: string
@@ -109,8 +110,7 @@ export const getUninstallPreview = () => invoke<UninstallPreviewResponse>('unins
 
 export const getStorageDevices = () => invoke<StorageDevicesResponse>('get_storage_devices')
 
-export const importScan = (req: ImportScanRequest) =>
-  invoke<import('@/types/daemon').ImportScanResponse>('import_scan', req)
+export const importScan = (req: ImportScanRequest) => invoke<ImportScanResponse>('import_scan', req)
 
 export const selectDirectory = () => invoke<string | null>('select_directory')
 

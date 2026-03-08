@@ -5,12 +5,16 @@
     "moduleResolution": "node",
     "lib": ["ES2022"],
     "outDir": "../dist-electron",
-    "rootDir": ".",
+    "rootDir": "..",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "baseUrl": "..",
+    "paths": {
+      "@shared/*": ["./types/*"]
+    }
   },
-  "include": ["*.ts"]
+  "include": ["*.ts", "../types/**/*"]
 }

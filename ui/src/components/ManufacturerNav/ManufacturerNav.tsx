@@ -1,4 +1,4 @@
-import type { Manufacturer } from '@/types/ui'
+import type { Manufacturer } from '@shared/ui'
 
 export interface ManufacturerNavProps {
   readonly manufacturers: readonly Manufacturer[]

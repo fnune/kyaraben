@@ -21,7 +21,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@electron/*": ["./electron/*"]
+      "@electron/*": ["./electron/*"],
+      "@shared/*": ["./types/*"]
     }
   },
   "include": ["src/**/*", "electron/channels.ts"],

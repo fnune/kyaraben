@@ -1,7 +1,7 @@
+import type { BugReportInfo, DoctorResponse, StatusResponse } from '@shared/daemon'
 import { useCallback, useEffect, useState } from 'react'
 import { getBugReportInfo, getStatus, runDoctor } from '@/lib/daemon'
 import { Modal } from '@/lib/Modal'
-import type { BugReportInfo, DoctorResponse, StatusResponse } from '@/types/daemon'
 
 export interface BugReportProps {
   readonly open: boolean

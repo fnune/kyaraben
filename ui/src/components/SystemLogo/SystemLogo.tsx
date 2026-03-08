@@ -1,3 +1,4 @@
+import type { SystemID } from '@shared/daemon'
 import arcade from '@/assets/systems/arcade.svg'
 import atari2600 from '@/assets/systems/atari2600.svg'
 import c64 from '@/assets/systems/c64.svg'
@@ -28,7 +29,6 @@ import wii from '@/assets/systems/wii.svg'
 import wiiu from '@/assets/systems/wiiu.svg'
 import xbox from '@/assets/systems/xbox.svg'
 import xbox360 from '@/assets/systems/xbox360.svg'
-import type { SystemID } from '@/types/daemon'
 
 export const SYSTEM_LOGOS: Record<SystemID, string> = {
   // Nintendo

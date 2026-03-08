@@ -1,10 +1,10 @@
+import type { ApplyStatus, View } from '@shared/ui'
+import { VIEW_CATALOG, VIEW_PREFERENCES } from '@shared/ui'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { ToastProvider } from '@/lib/ToastContext'
-import type { ApplyStatus, View } from '@/types/ui'
-import { VIEW_CATALOG, VIEW_PREFERENCES } from '@/types/ui'
 import { useApplyStatusHandler } from './useApplyStatusHandler'
 
 function TestComponent({

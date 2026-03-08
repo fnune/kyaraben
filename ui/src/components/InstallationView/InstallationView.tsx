@@ -1,3 +1,5 @@
+import type { InstallStatus, UninstallPreviewResponse } from '@shared/daemon'
+import { VIEW_CATALOG, VIEW_LABELS } from '@shared/ui'
 import { useEffect, useState } from 'react'
 import { BugReport } from '@/components/BugReport/BugReport'
 import { Button } from '@/lib/Button'
@@ -16,8 +18,6 @@ import {
 import { useOpenPath } from '@/lib/hooks/useOpenPath'
 import { useOpenUrl } from '@/lib/hooks/useOpenUrl'
 import { PathText } from '@/lib/PathText'
-import type { InstallStatus, UninstallPreviewResponse } from '@/types/daemon'
-import { VIEW_CATALOG, VIEW_LABELS } from '@/types/ui'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

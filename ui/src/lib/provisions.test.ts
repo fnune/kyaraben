@@ -1,5 +1,5 @@
+import type { DoctorResponse, ProvisionResult } from '@shared/daemon'
 import { describe, expect, it } from 'vitest'
-import type { DoctorResponse, ProvisionResult } from '@/types/daemon'
 import { getNewlyFoundProvisions } from './provisions'
 
 function provision(

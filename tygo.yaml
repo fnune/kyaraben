@@ -1,6 +1,6 @@
 packages:
   - path: github.com/fnune/kyaraben/internal/model
-    output_path: ui/src/types/model.gen.ts
+    output_path: ui/types/model.gen.ts
     include_files:
       - system.go
       - emulator_id.go
@@ -9,13 +9,13 @@ packages:
     enum_style: union
 
   - path: github.com/fnune/kyaraben/internal/logging
-    output_path: ui/src/types/logging.gen.ts
+    output_path: ui/types/logging.gen.ts
     include_files:
       - types.go
     enum_style: union
 
   - path: github.com/fnune/kyaraben/internal/daemon
-    output_path: ui/src/types/daemon.gen.ts
+    output_path: ui/types/daemon.gen.ts
     include_files:
       - types.go
       - protocol.go

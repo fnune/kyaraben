@@ -1,5 +1,5 @@
+import { VERSION_DEFAULT } from '@shared/ui'
 import { Select } from '@/lib/Select'
-import { VERSION_DEFAULT } from '@/types/ui'
 
 export interface VersionSelectProps {
   readonly defaultVersion: string | undefined

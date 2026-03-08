@@ -1,3 +1,4 @@
+import type { ProvisionResult } from '@shared/daemon'
 import { describe, expect, it } from 'vitest'
 import {
   OPTIONAL_PROVISION_COLOR,
@@ -14,7 +15,6 @@ import {
   getProvisionSummaryIconState,
   getProvisionSummaryParts,
 } from '@/lib/provisionSummary'
-import type { ProvisionResult } from '@/types/daemon'
 
 function provisionResult({
   status,

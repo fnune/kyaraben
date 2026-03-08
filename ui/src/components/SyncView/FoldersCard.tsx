@@ -1,10 +1,10 @@
+import type { SyncFolder, SyncLocalChange } from '@shared/daemon'
 import { useCallback, useEffect, useState } from 'react'
 import { formatBytes } from '@/lib/changeUtils'
 import { getSyncLocalChanges, revertSyncFolder } from '@/lib/daemon'
 import { useOnWindowFocus } from '@/lib/hooks/useOnWindowFocus'
 import { useOpenPath } from '@/lib/hooks/useOpenPath'
 import { FolderIcon } from '@/lib/icons'
-import type { SyncFolder, SyncLocalChange } from '@/types/daemon'
 import { LocalFilesActions } from './LocalFilesActions'
 
 function formatAction(action: string): { text: string; className: string } | null {

@@ -1,3 +1,12 @@
+import type {
+  DoctorResponse,
+  EmulatorID,
+  EmulatorPaths,
+  FrontendID,
+  ManagedConfigInfo,
+  System,
+} from '@shared/daemon'
+import { MANUFACTURER_ORDER, type Manufacturer, VERSION_DEFAULT } from '@shared/ui'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { ConfigDiffReview } from '@/components/ConfigDiffReview/ConfigDiffReview'
 import { FrontendCard } from '@/components/FrontendCard/FrontendCard'
@@ -9,15 +18,6 @@ import { SYSTEM_YEARS, SystemCard } from '@/components/SystemCard/SystemCard'
 import { useApply } from '@/lib/ApplyContext'
 import { useConfig } from '@/lib/ConfigContext'
 import { ProgressSteps } from '@/lib/ProgressSteps'
-import type {
-  DoctorResponse,
-  EmulatorID,
-  EmulatorPaths,
-  FrontendID,
-  ManagedConfigInfo,
-  System,
-} from '@/types/daemon'
-import { MANUFACTURER_ORDER, type Manufacturer, VERSION_DEFAULT } from '@/types/ui'
 
 export interface CatalogViewProps {
   readonly provisions: DoctorResponse

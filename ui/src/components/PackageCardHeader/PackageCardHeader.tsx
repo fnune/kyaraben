@@ -1,9 +1,9 @@
+import { VERSION_DEFAULT } from '@shared/ui'
 import type { ReactNode } from 'react'
 import { ChangeNotch } from '@/components/ChangeNotch/ChangeNotch'
 import { CHANGE_CONFIG, getChangeType } from '@/lib/changeUtils'
 import { ToggleSwitch } from '@/lib/ToggleSwitch'
 import { VersionSelect } from '@/lib/VersionSelect'
-import { VERSION_DEFAULT } from '@/types/ui'
 
 export type ChangeType = ReturnType<typeof getChangeType>
 

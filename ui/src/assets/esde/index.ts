@@ -1,4 +1,4 @@
-import type { SystemID } from '@/types/daemon'
+import type { SystemID } from '@shared/daemon'
 import arcadeLogo from './logos/arcade.svg'
 import atari2600Logo from './logos/atari2600.svg'
 import c64Logo from './logos/c64.svg'

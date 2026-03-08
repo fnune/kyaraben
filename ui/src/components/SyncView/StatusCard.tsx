@@ -1,3 +1,4 @@
+import type { SyncDevice, SyncStatusResponse } from '@shared/daemon'
 import { useCallback, useState } from 'react'
 import syncthingLogo from '@/assets/syncthing.svg'
 import { Button } from '@/lib/Button'
@@ -6,7 +7,6 @@ import { Input } from '@/lib/Input'
 import { CopyIcon, TrashIcon } from '@/lib/icons'
 import { Modal } from '@/lib/Modal'
 import { Spinner } from '@/lib/Spinner'
-import type { SyncDevice, SyncStatusResponse } from '@/types/daemon'
 
 function StatusBadge({ label, ok }: { label: string; ok: boolean }) {
   const capitalizedLabel = label.charAt(0).toUpperCase() + label.slice(1)

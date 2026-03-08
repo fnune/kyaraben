@@ -1,5 +1,5 @@
+import type { EmulatorID, SystemID } from '@shared/daemon'
 import { Modal } from '@/lib/Modal'
-import type { EmulatorID, SystemID } from '@/types/daemon'
 
 export interface EmulatorSettingsModalProps {
   readonly open: boolean

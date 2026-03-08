@@ -1,13 +1,13 @@
-import { useOpenPath } from '@/lib/hooks/useOpenPath'
-import { PathText } from '@/lib/PathText'
-import { useScrollToTop } from '@/lib/useScrollToTop'
 import type {
   ConfigChangeDetail,
   ConfigFileDiff,
   KyarabenUpdateDetail,
   ManagedRegionInfo,
   PreflightResponse,
-} from '@/types/daemon'
+} from '@shared/daemon'
+import { useOpenPath } from '@/lib/hooks/useOpenPath'
+import { PathText } from '@/lib/PathText'
+import { useScrollToTop } from '@/lib/useScrollToTop'
 
 export interface ConfigDiffReviewProps {
   readonly data: PreflightResponse

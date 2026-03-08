@@ -1,8 +1,4 @@
-import { AppIcon } from '@/components/Logo/AppIcon'
-import { Logo } from '@/components/Logo/Logo'
-import { useOpenUrl } from '@/lib/hooks/useOpenUrl'
-import { ExternalLinkIcon, SettingsIcon } from '@/lib/icons'
-import type { SyncState, SyncStatusResponse } from '@/types/daemon'
+import type { SyncState, SyncStatusResponse } from '@shared/daemon'
 import {
   SyncStateConflict,
   SyncStateDisabled,
@@ -10,7 +6,7 @@ import {
   SyncStateError,
   SyncStateSynced,
   SyncStateSyncing,
-} from '@/types/daemon'
+} from '@shared/daemon'
 import {
   VIEW_CATALOG,
   VIEW_IMPORT,
@@ -19,7 +15,11 @@ import {
   VIEW_PREFERENCES,
   VIEW_SYNC,
   type View,
-} from '@/types/ui'
+} from '@shared/ui'
+import { AppIcon } from '@/components/Logo/AppIcon'
+import { Logo } from '@/components/Logo/Logo'
+import { useOpenUrl } from '@/lib/hooks/useOpenUrl'
+import { ExternalLinkIcon, SettingsIcon } from '@/lib/icons'
 
 export interface SidebarProps {
   readonly currentView: View

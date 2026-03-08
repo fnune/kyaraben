@@ -1,8 +1,8 @@
+import type { SyncLocalChange } from '@shared/daemon'
 import { useCallback, useState } from 'react'
 import { Button } from '@/lib/Button'
 import { formatBytes } from '@/lib/changeUtils'
 import { Modal } from '@/lib/Modal'
-import type { SyncLocalChange } from '@/types/daemon'
 
 function formatAction(action: string): { text: string; className: string } | null {
   switch (action) {

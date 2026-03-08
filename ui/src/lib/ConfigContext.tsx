@@ -1,6 +1,4 @@
-import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from 'react'
-import * as daemon from '@/lib/daemon'
-import type { HotkeyActionKey } from '@/types/controller'
+import type { HotkeyActionKey } from '@shared/controller'
 import type {
   ConfigResponse,
   EmulatorID,
@@ -8,8 +6,10 @@ import type {
   FrontendRef,
   System,
   SystemID,
-} from '@/types/daemon'
-import { VERSION_DEFAULT } from '@/types/ui'
+} from '@shared/daemon'
+import { VERSION_DEFAULT } from '@shared/ui'
+import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from 'react'
+import * as daemon from '@/lib/daemon'
 import { useApply } from './ApplyContext'
 import {
   addChange,

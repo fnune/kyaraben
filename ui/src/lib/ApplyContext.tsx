@@ -1,3 +1,6 @@
+import type { PreflightResponse, SyncPendingResponse } from '@shared/daemon'
+import type { LogEntry } from '@shared/logging.gen'
+import type { ApplyStatus, ProgressStep } from '@shared/ui'
 import {
   createContext,
   type MutableRefObject,
@@ -10,9 +13,6 @@ import {
 import * as daemon from '@/lib/daemon'
 import { installApp } from '@/lib/daemon'
 import { useToast } from '@/lib/ToastContext'
-import type { PreflightResponse, SyncPendingResponse } from '@/types/daemon'
-import type { LogEntry } from '@/types/logging.gen'
-import type { ApplyStatus, ProgressStep } from '@/types/ui'
 
 const PROGRESS_STEP_LABELS: Readonly<Record<string, string>> = {
   'sync-pause': 'Pausing synchronization',

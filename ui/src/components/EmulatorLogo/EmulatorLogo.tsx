@@ -1,3 +1,4 @@
+import type { EmulatorID } from '@shared/daemon'
 import azahar from '@/assets/emulators/azahar.png'
 import bsnes from '@/assets/emulators/bsnes.png'
 import cemu from '@/assets/emulators/cemu.png'
@@ -23,7 +24,6 @@ import vice from '@/assets/emulators/vice.svg'
 import vita3k from '@/assets/emulators/vita3k.png'
 import xemu from '@/assets/emulators/xemu.png'
 import xeniaEdge from '@/assets/emulators/xenia-edge.png'
-import type { EmulatorID } from '@/types/daemon'
 
 const EMULATOR_LOGOS: Partial<Record<EmulatorID, string>> = {
   cemu,

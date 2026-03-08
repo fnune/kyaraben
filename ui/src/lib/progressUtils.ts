@@ -1,4 +1,4 @@
-import type { ProgressStep } from '@/types/ui'
+import type { ProgressStep } from '@shared/ui'
 
 export function getBuildPhaseSubtitle(step: ProgressStep): string | null {
   switch (step.buildPhase) {

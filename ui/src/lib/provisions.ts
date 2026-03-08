@@ -1,4 +1,4 @@
-import type { DoctorResponse } from '@/types/daemon'
+import type { DoctorResponse } from '@shared/daemon'
 
 export interface FoundProvision {
   id: string

@@ -24,7 +24,7 @@ export async function startRelayServer(): Promise<RelayServer> {
   const port = nextRelayPort++
   const binaryPath = getRelayBinaryPath()
 
-  const proc = spawn(binaryPath, ['-addr', `:${port}`], {
+  const proc = spawn(binaryPath, ['-addr', `:${port}`, '-no-rate-limit'], {
     stdio: ['ignore', 'pipe', 'pipe'],
   })
 
