@@ -195,6 +195,17 @@ install_type = "retroarch-core"
 sha256 = "9b7c1ef08a9ed3d1a61be3981cf40332c88ce3f59ca76336262701b27dabdb2b"
 size = 2075879
 
+[azahar]
+releases_url = "github:azahar-emu/azahar"
+url_template = "https://github.com/azahar-emu/azahar/releases/download/{version}/azahar-libretro-{version}-linux-x86_64.zip"
+default = "2125.0-alpha4"
+binary_path = "azahar_libretro.so"
+install_type = "retroarch-core"
+
+[azahar."2125.0-alpha4".targets.x64]
+sha256 = "3f6eae4a33572eabb297b93152a9e71b54f393cbeb33655debaf477654f0b9e4"
+size = 17237104
+
 # ============================================================================
 # EDEN - Nintendo Switch emulator
 # https://github.com/eden-emulator/Releases/releases

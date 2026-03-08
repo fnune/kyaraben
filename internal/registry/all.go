@@ -8,6 +8,7 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/flycast"
 	"github.com/fnune/kyaraben/internal/emulators/pcsx2"
 	"github.com/fnune/kyaraben/internal/emulators/ppsspp"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchazahar"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbeetlengp"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbeetlepce"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbeetlesaturn"
@@ -125,6 +126,7 @@ func NewDefault() *Registry {
 			flycast.Definition{},
 			cemu.Definition{},
 			retroarchcitra.Definition{},
+			retroarchazahar.Definition{},
 			dolphin.Definition{},
 			eden.Definition{},
 			xemu.Definition{},

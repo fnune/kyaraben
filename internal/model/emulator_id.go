@@ -38,6 +38,7 @@ const (
 	EmulatorIDRetroArchMGBA          EmulatorID = "retroarch:mgba"
 	EmulatorIDRetroArchMelonDS       EmulatorID = "retroarch:melondsds"
 	EmulatorIDRetroArchCitra         EmulatorID = "retroarch:citra"
+	EmulatorIDRetroArchAzahar        EmulatorID = "retroarch:azahar"
 	EmulatorIDRetroArchFBNeo         EmulatorID = "retroarch:fbneo"
 	EmulatorIDRetroArchStella        EmulatorID = "retroarch:stella"
 	EmulatorIDRetroArchVICE          EmulatorID = "retroarch:vice_x64sc"

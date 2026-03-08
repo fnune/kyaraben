@@ -199,6 +199,7 @@ var packageNames = []string{
 	"stella",
 	"vice_x64sc",
 	"melondsds",
+	"azahar",
 	// Standalone emulators
 	"eden",
 	"duckstation",

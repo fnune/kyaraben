@@ -17,5 +17,6 @@ func (Definition) System() model.System {
 }
 
 func (Definition) DefaultEmulatorID() model.EmulatorID {
+	// Azahar crashes on Vulkan: https://github.com/azahar-emu/azahar/pull/1825
 	return model.EmulatorIDRetroArchCitra
 }

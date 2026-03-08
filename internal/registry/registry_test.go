@@ -10,6 +10,7 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/flycast"
 	"github.com/fnune/kyaraben/internal/emulators/pcsx2"
 	"github.com/fnune/kyaraben/internal/emulators/ppsspp"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchazahar"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbeetlengp"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbeetlepce"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbeetlesaturn"
@@ -111,6 +112,7 @@ func TestAllDefinitions(t *testing.T) {
 		flycast.Definition{},
 		cemu.Definition{},
 		retroarchcitra.Definition{},
+		retroarchazahar.Definition{},
 		dolphin.Definition{},
 		eden.Definition{},
 	}
@@ -225,6 +227,7 @@ func TestRegistryGetEmulator(t *testing.T) {
 		{model.EmulatorIDFlycast, false},
 		{model.EmulatorIDCemu, false},
 		{model.EmulatorIDRetroArchCitra, false},
+		{model.EmulatorIDRetroArchAzahar, false},
 		{model.EmulatorIDDolphin, false},
 		{model.EmulatorIDEden, false},
 		{model.EmulatorID("unknown"), true},
@@ -259,7 +262,7 @@ func TestRegistryGetEmulatorsForSystem(t *testing.T) {
 		{model.SystemIDGBC, 1, []model.EmulatorID{model.EmulatorIDRetroArchMGBA}},
 		{model.SystemIDGBA, 1, []model.EmulatorID{model.EmulatorIDRetroArchMGBA}},
 		{model.SystemIDNDS, 1, []model.EmulatorID{model.EmulatorIDRetroArchMelonDS}},
-		{model.SystemIDN3DS, 1, []model.EmulatorID{model.EmulatorIDRetroArchCitra}},
+		{model.SystemIDN3DS, 2, []model.EmulatorID{model.EmulatorIDRetroArchAzahar, model.EmulatorIDRetroArchCitra}},
 		{model.SystemIDGameCube, 1, []model.EmulatorID{model.EmulatorIDDolphin}},
 		{model.SystemIDWii, 1, []model.EmulatorID{model.EmulatorIDDolphin}},
 		{model.SystemIDWiiU, 1, []model.EmulatorID{model.EmulatorIDCemu}},
@@ -447,6 +450,7 @@ func TestGetConfigGenerator(t *testing.T) {
 		{model.EmulatorIDFlycast, true},
 		{model.EmulatorIDCemu, true},
 		{model.EmulatorIDRetroArchCitra, true},
+		{model.EmulatorIDRetroArchAzahar, true},
 		{model.EmulatorIDDolphin, true},
 		{model.EmulatorIDEden, true},
 		{model.EmulatorIDRetroArchFBNeo, true},

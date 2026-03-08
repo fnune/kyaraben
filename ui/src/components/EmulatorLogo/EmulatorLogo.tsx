@@ -1,3 +1,4 @@
+import azahar from '@/assets/emulators/azahar.png'
 import bsnes from '@/assets/emulators/bsnes.png'
 import cemu from '@/assets/emulators/cemu.png'
 import citra from '@/assets/emulators/citra.png'
@@ -46,6 +47,7 @@ const EMULATOR_LOGOS: Partial<Record<EmulatorID, string>> = {
   'retroarch:mgba': mgba,
   'retroarch:melondsds': melonds,
   'retroarch:citra': citra,
+  'retroarch:azahar': azahar,
   'retroarch:fbneo': fbneo,
   'retroarch:stella': stella,
   'retroarch:vice_x64sc': vice,

@@ -25,6 +25,7 @@ export const EmulatorIDRetroArchBeetleNGP = "retroarch:mednafen_ngp";
 export const EmulatorIDRetroArchMGBA = "retroarch:mgba";
 export const EmulatorIDRetroArchMelonDS = "retroarch:melondsds";
 export const EmulatorIDRetroArchCitra = "retroarch:citra";
+export const EmulatorIDRetroArchAzahar = "retroarch:azahar";
 export const EmulatorIDRetroArchFBNeo = "retroarch:fbneo";
 export const EmulatorIDRetroArchStella = "retroarch:stella";
 export const EmulatorIDRetroArchVICE = "retroarch:vice_x64sc";
@@ -39,7 +40,7 @@ export const EmulatorIDDolphin = "dolphin";
 export const EmulatorIDEden = "eden";
 export const EmulatorIDXemu = "xemu";
 export const EmulatorIDXeniaEdge = "xenia-edge";
-export type EmulatorID = typeof EmulatorIDRetroArch | typeof EmulatorIDRetroArchSnes9x | typeof EmulatorIDRetroArchBsnes | typeof EmulatorIDRetroArchMesen | typeof EmulatorIDRetroArchGenesisPlusGX | typeof EmulatorIDRetroArchMupen64Plus | typeof EmulatorIDRetroArchBeetleSaturn | typeof EmulatorIDRetroArchBeetlePCE | typeof EmulatorIDRetroArchBeetleNGP | typeof EmulatorIDRetroArchMGBA | typeof EmulatorIDRetroArchMelonDS | typeof EmulatorIDRetroArchCitra | typeof EmulatorIDRetroArchFBNeo | typeof EmulatorIDRetroArchStella | typeof EmulatorIDRetroArchVICE | typeof EmulatorIDDuckStation | typeof EmulatorIDPCSX2 | typeof EmulatorIDRPCS3 | typeof EmulatorIDVita3K | typeof EmulatorIDPPSSPP | typeof EmulatorIDFlycast | typeof EmulatorIDCemu | typeof EmulatorIDDolphin | typeof EmulatorIDEden | typeof EmulatorIDXemu | typeof EmulatorIDXeniaEdge;
+export type EmulatorID = typeof EmulatorIDRetroArch | typeof EmulatorIDRetroArchSnes9x | typeof EmulatorIDRetroArchBsnes | typeof EmulatorIDRetroArchMesen | typeof EmulatorIDRetroArchGenesisPlusGX | typeof EmulatorIDRetroArchMupen64Plus | typeof EmulatorIDRetroArchBeetleSaturn | typeof EmulatorIDRetroArchBeetlePCE | typeof EmulatorIDRetroArchBeetleNGP | typeof EmulatorIDRetroArchMGBA | typeof EmulatorIDRetroArchMelonDS | typeof EmulatorIDRetroArchCitra | typeof EmulatorIDRetroArchAzahar | typeof EmulatorIDRetroArchFBNeo | typeof EmulatorIDRetroArchStella | typeof EmulatorIDRetroArchVICE | typeof EmulatorIDDuckStation | typeof EmulatorIDPCSX2 | typeof EmulatorIDRPCS3 | typeof EmulatorIDVita3K | typeof EmulatorIDPPSSPP | typeof EmulatorIDFlycast | typeof EmulatorIDCemu | typeof EmulatorIDDolphin | typeof EmulatorIDEden | typeof EmulatorIDXemu | typeof EmulatorIDXeniaEdge;
 
 //////////
 // source: frontend_id.go

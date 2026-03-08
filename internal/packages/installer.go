@@ -370,10 +370,16 @@ func (i *PackageInstaller) installCoresFromBundle(ctx context.Context, url, sha2
 
 	downloadDest := filepath.Join(i.downloadsDir, fmt.Sprintf("retroarch-cores-%x.download", sha256[:8]))
 
-	bundleVersion := cores[0].entry.Version
+	isBundle := len(cores) > 1
+	version := cores[0].entry.Version
+	coreName := cores[0].name
 
 	if _, err := i.fs.Stat(downloadDest); err != nil {
-		log.InfoCtx(ctx, "Downloading RetroArch cores bundle %s", bundleVersion)
+		if isBundle {
+			log.InfoCtx(ctx, "Downloading RetroArch cores bundle %s", version)
+		} else {
+			log.InfoCtx(ctx, "Downloading RetroArch core %s %s", coreName, version)
+		}
 
 		if onProgress != nil {
 			onProgress(InstallProgress{PackageName: "retroarch-cores", Phase: "downloading"})
@@ -399,14 +405,22 @@ func (i *PackageInstaller) installCoresFromBundle(ctx context.Context, url, sha2
 			return nil, fmt.Errorf("downloading cores bundle: %w", err)
 		}
 	} else {
-		log.InfoCtx(ctx, "Using cached RetroArch cores bundle %s", bundleVersion)
+		if isBundle {
+			log.InfoCtx(ctx, "Using cached RetroArch cores bundle %s", version)
+		} else {
+			log.InfoCtx(ctx, "Using cached RetroArch core %s %s", coreName, version)
+		}
 	}
 
 	if onProgress != nil {
 		onProgress(InstallProgress{PackageName: "retroarch-cores", Phase: "extracting"})
 	}
 
-	log.InfoCtx(ctx, "Extracting RetroArch cores bundle %s", bundleVersion)
+	if isBundle {
+		log.InfoCtx(ctx, "Extracting RetroArch cores bundle %s", version)
+	} else {
+		log.InfoCtx(ctx, "Extracting RetroArch core %s %s", coreName, version)
+	}
 
 	extractDir := filepath.Join(i.downloadsDir, "retroarch-cores-extract")
 	_ = i.fs.RemoveAll(extractDir)
