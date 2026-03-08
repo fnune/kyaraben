@@ -222,3 +222,20 @@ configurations included in the update. This is optional but recommended.
 - Windows, macOS, iOS, or Android support
 - ROM management or scraping (use EmulationStation DE)
 - Netplay configuration
+
+## Privacy and network activity
+
+Kyaraben makes network requests in these situations:
+
+- **Update checks**: on startup, Kyaraben fetches
+  `https://api.github.com/repos/fnune/kyaraben/releases/latest` to check for new
+  versions. This discloses your IP address and a `kyaraben-updater` user agent
+  to GitHub.
+- **Emulator downloads**: when you apply, Kyaraben downloads emulator packages
+  from their official sources (GitHub releases, GitLab, libretro buildbot).
+- **Synchronization**: if you enable sync, Kyaraben connects to a relay server
+  during device pairing and uses Syncthing for peer-to-peer file transfer.
+
+Kyaraben does not collect telemetry or analytics. The relay server stores
+pairing codes temporarily (until redeemed or expired) but does not log device
+identifiers or IP addresses beyond what is necessary for the pairing handshake.

@@ -10,10 +10,10 @@
   - Currently scattered: `internal/model/system.go` (SystemID constants), `internal/sync/config.go` (constructs folder IDs), and now duplicated in `integrations/nextui/internal/config/config.go`
   - Problem: if Kyaraben adds a new system, guest integrations don't know about it
   - Idea: one package that exports all Kyaraben folder IDs; guests just provide path mappings
-- Relay URL configurability and fallbacks
-  - Currently the relay URL is hardcoded
-  - Users should be able to configure their own relay server
-  - Should have fallback URLs if the primary relay is unreachable
+- ~~Relay URL configurability and fallbacks~~ FIXED
+  - Configurable via `sync.relays = ["..."]` in config.toml
+  - Supports multiple URLs for fallback (tried in order)
+  - Empty list disables relay pairing
 - Unify folder configuration logic
   - Kyaraben configures Syncthing folders two ways: `internal/sync/config.go` writes config.xml (before Syncthing starts), `internal/syncthing/client.go` uses REST API (after Syncthing running)
   - `syncguest` does the config.xml approach
@@ -24,32 +24,15 @@
   - Can we do this without sacrificing UX?
 - `setup.Disable()` removes the systemd unit but does not clean up Syncthing config or data directories.
   - Should it? Or should this be left to uninstall? We don't have a "pause sync" feature yet
-- Simplify folder sharing reconciliation
-  - Current approach: compute drift with `ComputeFolderSharingDrift`, then apply with `ReconcileFolderSharing`
-  - Simpler alternative: single `EnsureDevicesOnFolders(deviceIDs)` method that internally computes what's missing and fixes it
-  - Removes the intermediate `FolderSharingDrift` type and simplifies daemon reconciliation logic
-
 ### Can launch without
 
 - Environment variable security: KYARABEN*\* env vars (KYARABEN_RELEASES_URL, KYARABEN_VERSION, KYARABEN_NIX_PORTABLE_PATH) are useful for testing but could be risky in production if accidentally set. Consider adding a "test mode" flag that must be set to enable these overrides, or prefix them with KYARABEN_TEST* to make intent clear
 - What happens when an emulator updates versions and our config setup no longer works? Can we version our strategy for each emulator?
 - `config.go` hardcodes Syncthing config `Version: 37`. Low priority since Syncthing is backward compatible, but will eventually need a migration path.
   - But isn't this tied to Syncthing's version? Which we also control?
-- Emoji in SyncStatusBanner.tsx (uses ✓, ↻, ○, ⚠, ✕, ●). Should use SVG icons or CSS.
-- Inconsistent error wrapping: some use `fmt.Errorf("foo: %w", err)`, others `fmt.Errorf("foo %v", err)`.
-
 ## UX gaps
 
 ### Proper blocker
-
-- Sync pairing UI issues
-  - Pairing UI hides prematurely: when showing a pairing code, the UI hides as soon as a device connects, even if it's not the device that redeemed our code. Should confirm the specific code was redeemed before hiding.
-  - Zombie devices reappear: after removing a device (e.g. "TinaLinux"), it reappeared later while the pairing UI was open. Unclear why - possibly Syncthing re-adding it from cached state or the other device re-initiating connection.
-
-- Sync percentage per device is inaccurate
-  - Desktop (feanor) stuck at 99% for days
-  - nextui-tg5040 shows 0% despite having synced data
-  - Need to investigate how we calculate/display this - may be a Syncthing API interpretation issue
 
 - Documentation lives on the website too much
   - One goal of Kyaraben is to have its app be self-documenting

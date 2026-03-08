@@ -1505,9 +1505,9 @@ func (d *Daemon) HandleSyncDiscoveredDevices(cmd Command, emit func(Event)) []Ev
 	return d.handleSyncDiscoveredDevices()
 }
 
-func newRelayClient(overrideURL string) (*syncpkg.RelayClient, error) {
-	if overrideURL != "" {
-		return syncpkg.NewRelayClient([]string{overrideURL})
+func newRelayClient(relays []string) (*syncpkg.RelayClient, error) {
+	if len(relays) > 0 {
+		return syncpkg.NewRelayClient(relays)
 	}
 	return syncpkg.NewDefaultRelayClient()
 }
@@ -1538,7 +1538,7 @@ func (d *Daemon) handleSyncStartPairing(emit func(Event)) []Event {
 		return d.errorResponse(fmt.Sprintf("getting device ID: %v", err))
 	}
 
-	relayClient, err := newRelayClient(cfg.Sync.RelayURL)
+	relayClient, err := newRelayClient(cfg.Sync.Relays)
 	if err != nil {
 		log.Info("No relay server available, falling back to device ID only: %v", err)
 		d.startPendingDeviceLoop(cfg, emit)
@@ -1592,7 +1592,7 @@ func (d *Daemon) handleSyncJoinPeer(data *SyncJoinPeerRequest, emit func(Event))
 		if isRelayCode(code) {
 			log.Info("handleSyncJoinPeer called with relay code=%s", code)
 			relayCode = code
-			relayClient, err = newRelayClient(cfg.Sync.RelayURL)
+			relayClient, err = newRelayClient(cfg.Sync.Relays)
 			if err != nil {
 				return d.errorResponse(fmt.Sprintf("relay unavailable: %v", err))
 			}

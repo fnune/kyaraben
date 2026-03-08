@@ -37,9 +37,9 @@ func (s *syncTest) initWithSyncEnabled() {
 	s.t.Helper()
 	s.init()
 
-	relayURL := ""
+	relaysLine := ""
 	if s.relayServer != nil {
-		relayURL = s.relayServer.url
+		relaysLine = fmt.Sprintf("relays = [%q]", s.relayServer.url)
 	}
 
 	config := fmt.Sprintf(`[global]
@@ -50,12 +50,12 @@ snes = ["retroarch:bsnes"]
 
 [sync]
 enabled = true
-relay_url = %q
+%s
 
 [sync.syncthing]
 base_url = %q
 gui_port = %d
-`, s.collection, relayURL, s.fakeSyncthing.BaseURL(), s.fakeSyncthing.Port())
+`, s.collection, relaysLine, s.fakeSyncthing.BaseURL(), s.fakeSyncthing.Port())
 
 	s.writeFile("config.toml", config)
 }

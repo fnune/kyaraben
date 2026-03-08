@@ -2,7 +2,7 @@ package model
 
 type SyncConfig struct {
 	Enabled   bool             `toml:"enabled"`
-	RelayURL  string           `toml:"relay_url,omitempty"`
+	Relays    []string         `toml:"relays,omitempty"`
 	Syncthing SyncthingConfig  `toml:"syncthing"`
 	Ignore    SyncIgnoreConfig `toml:"ignore"`
 }

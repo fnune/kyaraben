@@ -147,3 +147,34 @@ func TestConfigStoreSaveCreatesDir(t *testing.T) {
 		t.Errorf("config file should exist: %v", err)
 	}
 }
+
+func TestConfigStoreLoadSyncRelays(t *testing.T) {
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/data/config.toml": `[service]
+autostart = true
+
+[sync]
+relays = ["https://relay1.example.com", "https://relay2.example.com"]
+`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	store := NewConfigStore(fs, "/data")
+	cfg, err := store.Load(testDefaults())
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	if len(cfg.Sync.Relays) != 2 {
+		t.Fatalf("expected 2 relays, got %d", len(cfg.Sync.Relays))
+	}
+	if cfg.Sync.Relays[0] != "https://relay1.example.com" {
+		t.Errorf("expected first relay 'https://relay1.example.com', got %q", cfg.Sync.Relays[0])
+	}
+	if cfg.Sync.Relays[1] != "https://relay2.example.com" {
+		t.Errorf("expected second relay 'https://relay2.example.com', got %q", cfg.Sync.Relays[1])
+	}
+}

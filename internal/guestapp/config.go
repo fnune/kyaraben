@@ -14,6 +14,10 @@ type ServiceConfig struct {
 	SyncStates bool `toml:"sync_states"`
 }
 
+type SyncConfig struct {
+	Relays []string `toml:"relays,omitempty"`
+}
+
 type PathMappings struct {
 	Saves       map[string]string `toml:"saves"`
 	ROMs        map[string]string `toml:"roms"`
@@ -25,6 +29,7 @@ type PathMappings struct {
 type Config struct {
 	PathMappings
 	Service ServiceConfig `toml:"service"`
+	Sync    SyncConfig    `toml:"sync"`
 }
 
 type ConfigStore struct {

@@ -45,6 +45,7 @@ func run() error {
 	syncConfig := syncguest.DefaultConfig(dataDir)
 	syncConfig.SyncthingPath = filepath.Join(env.PakPath, "syncthing")
 	syncConfig.Syncthing.GUIPort = guiPort
+	syncConfig.RelayURLs = cfg.Sync.Relays
 	syncMgr := syncguest.NewWithClient(syncConfig, client)
 
 	svcCfg := service.Config{

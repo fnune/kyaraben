@@ -288,15 +288,10 @@ func (cmd *SyncPairCmd) runInitiator(ctx context.Context, cfg *model.KyarabenCon
 		return nil
 	}
 
-	var relayURLs []string
-	if cfg.Sync.RelayURL != "" {
-		relayURLs = []string{cfg.Sync.RelayURL}
-	}
-
 	flow := sync.NewRelayInitiatorPairingFlow(sync.RelayPairingFlowConfig{
 		SyncConfig: cfg.Sync,
 		Client:     client,
-		RelayURLs:  relayURLs,
+		RelayURLs:  cfg.Sync.Relays,
 		OnProgress: progress,
 		OnCode: func(code string, expiresIn int) {
 			fmt.Printf("Pairing code: %s\n", code)
@@ -324,15 +319,10 @@ func (cmd *SyncPairCmd) runInitiator(ctx context.Context, cfg *model.KyarabenCon
 }
 
 func (cmd *SyncPairCmd) runJoinerWithRelay(ctx context.Context, cfg *model.KyarabenConfig, configPath string, client *sync.Client, code string, progress func(string), saveConfig func(*model.KyarabenConfig, string) error) error {
-	var relayURLs []string
-	if cfg.Sync.RelayURL != "" {
-		relayURLs = []string{cfg.Sync.RelayURL}
-	}
-
 	flow := sync.NewRelayJoinerPairingFlow(sync.RelayPairingFlowConfig{
 		SyncConfig: cfg.Sync,
 		Client:     client,
-		RelayURLs:  relayURLs,
+		RelayURLs:  cfg.Sync.Relays,
 		OnProgress: progress,
 	})
 

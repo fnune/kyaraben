@@ -8,6 +8,7 @@ import (
 
 type Config = guestapp.Config
 type ServiceConfig = guestapp.ServiceConfig
+type SyncConfig = guestapp.SyncConfig
 type PathMappings = guestapp.PathMappings
 type ConfigStore = guestapp.ConfigStore
 
