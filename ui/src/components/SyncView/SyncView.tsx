@@ -1,11 +1,9 @@
 import type { SyncStatusResponse } from '@shared/daemon'
 import { useCallback, useState } from 'react'
 import { Button } from '@/lib/Button'
-import type { PendingDevice } from '@/lib/hooks/useSyncPairing'
 import { Spinner } from '@/lib/Spinner'
 import { ActivityCard } from './ActivityCard'
 import { FoldersCard } from './FoldersCard'
-import { PendingDeviceCard } from './PendingDeviceCard'
 import { StatusCard } from './StatusCard'
 import { SyncSettingsSection } from './SyncSettingsSection'
 
@@ -18,17 +16,17 @@ export interface SyncViewProps {
   readonly pairingDeviceId: string | null
   readonly pairingCode: string | null
   readonly lastSyncedAt: Date | null
-  readonly pendingDevice: PendingDevice | null
   readonly onRemoveDevice: (deviceId: string) => Promise<void>
   readonly onConnectToDevice: (deviceId: string) => Promise<{ ok: boolean; error?: string }>
   readonly onEnableSync: () => Promise<void>
   readonly onResetSync: () => Promise<void>
   readonly onStartPairing: () => Promise<void>
   readonly onStopPairing: () => Promise<void>
-  readonly onAcceptDevice: (accept: boolean) => Promise<void>
   readonly onClearConnectionError: () => void
   readonly onRefresh: () => void
   readonly onToggleGlobalDiscovery: (enabled: boolean) => Promise<void>
+  readonly onToggleRunning: (running: boolean) => Promise<void>
+  readonly onToggleAutostart: (enabled: boolean) => Promise<void>
   readonly isEnabling: boolean
   readonly enableError: string | null
 }
@@ -162,17 +160,17 @@ export function SyncView({
   pairingDeviceId,
   pairingCode,
   lastSyncedAt,
-  pendingDevice,
   onRemoveDevice,
   onConnectToDevice,
   onEnableSync,
   onResetSync,
   onStartPairing,
   onStopPairing,
-  onAcceptDevice,
   onClearConnectionError,
   onRefresh,
   onToggleGlobalDiscovery,
+  onToggleRunning,
+  onToggleAutostart,
   isEnabling,
   enableError,
 }: SyncViewProps) {
@@ -196,10 +194,6 @@ export function SyncView({
 
   return (
     <div className="p-6 space-y-4">
-      {pendingDevice && (
-        <PendingDeviceCard pendingDevice={pendingDevice} onAccept={onAcceptDevice} />
-      )}
-
       <StatusCard
         status={status}
         connectionProgress={connectionProgress}
@@ -231,7 +225,11 @@ export function SyncView({
       <SyncSettingsSection
         guiURL={status.guiURL}
         globalDiscoveryEnabled={status.globalDiscoveryEnabled ?? false}
+        running={status.running ?? false}
+        autostartEnabled={status.autostartEnabled ?? true}
         onToggleGlobalDiscovery={onToggleGlobalDiscovery}
+        onToggleRunning={onToggleRunning}
+        onToggleAutostart={onToggleAutostart}
         onReset={onResetSync}
       />
     </div>

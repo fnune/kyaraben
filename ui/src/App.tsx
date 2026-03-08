@@ -12,6 +12,7 @@ import { ApplyBar } from '@/components/ApplyBar/ApplyBar'
 import { CatalogView } from '@/components/CatalogView/CatalogView'
 import { ImportView } from '@/components/ImportView/ImportView'
 import { InstallationView } from '@/components/InstallationView/InstallationView'
+import { PendingDeviceBanner } from '@/components/PendingDeviceBanner/PendingDeviceBanner'
 import { PreferencesView } from '@/components/PreferencesView/PreferencesView'
 import { Sidebar } from '@/components/Sidebar/Sidebar'
 import { SyncView } from '@/components/SyncView/SyncView'
@@ -95,6 +96,8 @@ function AppContent() {
     handleStartPairing,
     handleStopPairing,
     handleToggleGlobalDiscovery,
+    handleToggleRunning,
+    handleToggleAutostart,
     handleAcceptDevice,
     clearConnectionError,
     refreshSyncStatus,
@@ -320,17 +323,17 @@ function AppContent() {
             pairingDeviceId={pairingDeviceId}
             pairingCode={pairingCode}
             lastSyncedAt={lastSyncedAt}
-            pendingDevice={pendingDevice}
             onRemoveDevice={handleRemoveDevice}
             onConnectToDevice={handleConnectToDevice}
             onEnableSync={handleEnableSync}
             onResetSync={handleResetSync}
             onStartPairing={handleStartPairing}
             onStopPairing={handleStopPairing}
-            onAcceptDevice={handleAcceptDevice}
             onClearConnectionError={clearConnectionError}
             onRefresh={refreshSyncStatus}
             onToggleGlobalDiscovery={handleToggleGlobalDiscovery}
+            onToggleRunning={handleToggleRunning}
+            onToggleAutostart={handleToggleAutostart}
             enableError={enableError}
             isEnabling={isEnabling}
           />
@@ -362,6 +365,10 @@ function AppContent() {
           isDownloading={isDownloading}
           downloadProgress={downloadProgress}
         />
+      )}
+
+      {pendingDevice && (
+        <PendingDeviceBanner pendingDevice={pendingDevice} onAccept={handleAcceptDevice} />
       )}
 
       <div className="flex-1 flex flex-col min-[720px]:flex-row min-h-0">
