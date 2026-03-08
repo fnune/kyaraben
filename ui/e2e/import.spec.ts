@@ -1,30 +1,15 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
+import { type ElectronApplication, expect, type Page, test } from '@playwright/test'
 import {
-  type ElectronApplication,
-  _electron as electron,
-  expect,
-  type Page,
-  test,
-} from '@playwright/test'
-import {
-  buildEnv,
-  getElectronArgs,
   type ConfigFixture,
   createFixture,
   EmulatorIDRetroArchBsnes,
+  launchElectron,
   type ManifestFixture,
   SystemIDSNES,
   type TestFixture,
 } from './fixtures'
-
-function getAppImagePath(): string {
-  const appImagePath = process.env.KYARABEN_APPIMAGE
-  if (!appImagePath) {
-    throw new Error('KYARABEN_APPIMAGE environment variable must be set')
-  }
-  return appImagePath
-}
 
 interface ImportTestContext {
   app: ElectronApplication
@@ -59,18 +44,8 @@ async function setupImportTest(options: {
   setupSource?: boolean
 }): Promise<ImportTestContext> {
   const fixture = createFixture(options.config, options.manifest)
-
   const sourceCollection = options.setupSource !== false ? setupSourceCollection(fixture) : ''
-
-  const app = await electron.launch({
-    executablePath: getAppImagePath(),
-    args: getElectronArgs(),
-    env: buildEnv(fixture),
-  })
-
-  const page = await app.firstWindow()
-  await page.getByRole('img', { name: 'Kyaraben' }).waitFor({ timeout: 30000 })
-
+  const { app, page } = await launchElectron(fixture)
   return { app, page, fixture, sourceCollection }
 }
 

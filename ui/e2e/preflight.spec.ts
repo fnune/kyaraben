@@ -1,30 +1,15 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
+import { type ElectronApplication, expect, type Page, test } from '@playwright/test'
 import {
-  type ElectronApplication,
-  _electron as electron,
-  expect,
-  type Page,
-  test,
-} from '@playwright/test'
-import {
-  buildEnv,
-  getElectronArgs,
   createFixture,
   EmulatorIDDuckStation,
   EmulatorIDRetroArchMGBA,
+  launchElectron,
   SystemIDGBA,
   SystemIDPSX,
   type TestFixture,
 } from './fixtures'
-
-function getAppImagePath(): string {
-  const appImagePath = process.env.KYARABEN_APPIMAGE
-  if (!appImagePath) {
-    throw new Error('KYARABEN_APPIMAGE environment variable must be set')
-  }
-  return appImagePath
-}
 
 test.describe('Config conflict review', () => {
   let fixture: TestFixture
@@ -90,14 +75,9 @@ test.describe('Config conflict review', () => {
       JSON.stringify(manifest, null, 2),
     )
 
-    app = await electron.launch({
-      executablePath: getAppImagePath(),
-      args: getElectronArgs(),
-      env: buildEnv(fixture),
-    })
-
-    page = await app.firstWindow()
-    await page.getByRole('img', { name: 'Kyaraben' }).waitFor({ timeout: 30000 })
+    const result = await launchElectron(fixture)
+    app = result.app
+    page = result.page
   })
 
   test.afterAll(async () => {
@@ -160,14 +140,9 @@ test.describe('UI-driven config change', () => {
       undefined,
     )
 
-    app = await electron.launch({
-      executablePath: getAppImagePath(),
-      args: getElectronArgs(),
-      env: buildEnv(fixture),
-    })
-
-    page = await app.firstWindow()
-    await page.getByRole('img', { name: 'Kyaraben' }).waitFor({ timeout: 30000 })
+    const result = await launchElectron(fixture)
+    app = result.app
+    page = result.page
   })
 
   test.afterAll(async () => {
@@ -264,14 +239,9 @@ test.describe('Version upgrade review', () => {
       JSON.stringify(manifest, null, 2),
     )
 
-    app = await electron.launch({
-      executablePath: getAppImagePath(),
-      args: getElectronArgs(),
-      env: buildEnv(fixture),
-    })
-
-    page = await app.firstWindow()
-    await page.getByRole('img', { name: 'Kyaraben' }).waitFor({ timeout: 30000 })
+    const result = await launchElectron(fixture)
+    app = result.app
+    page = result.page
   })
 
   test.afterAll(async () => {

@@ -1,12 +1,5 @@
-import {
-  type ElectronApplication,
-  _electron as electron,
-  expect,
-  type Page,
-  test,
-} from '@playwright/test'
-import { buildEnv,
-  getElectronArgs, createFixture, setupFakeReleasesApi, type TestFixture } from './fixtures'
+import { type ElectronApplication, expect, type Page, test } from '@playwright/test'
+import { createFixture, launchElectron, setupFakeReleasesApi, type TestFixture } from './fixtures'
 
 let fixture: TestFixture
 let electronApp: ElectronApplication
@@ -14,22 +7,11 @@ let page: Page
 
 test.describe('Update checking', () => {
   test.beforeAll(async () => {
-    const appImagePath = process.env.KYARABEN_APPIMAGE
-    if (!appImagePath) {
-      throw new Error('KYARABEN_APPIMAGE environment variable must be set')
-    }
-
     fixture = createFixture({})
     setupFakeReleasesApi(fixture, { latestVersion: '99.0.0' })
-
-    electronApp = await electron.launch({
-      executablePath: appImagePath,
-      args: getElectronArgs(),
-      env: buildEnv(fixture),
-    })
-
-    page = await electronApp.firstWindow()
-    await page.getByRole('img', { name: 'Kyaraben' }).waitFor()
+    const result = await launchElectron(fixture)
+    electronApp = result.app
+    page = result.page
   })
 
   test.afterAll(async () => {
@@ -69,22 +51,11 @@ test.describe('Update checking', () => {
 
 test.describe('No update available', () => {
   test.beforeAll(async () => {
-    const appImagePath = process.env.KYARABEN_APPIMAGE
-    if (!appImagePath) {
-      throw new Error('KYARABEN_APPIMAGE environment variable must be set')
-    }
-
     fixture = createFixture({})
     setupFakeReleasesApi(fixture, { latestVersion: '0.0.1' })
-
-    electronApp = await electron.launch({
-      executablePath: appImagePath,
-      args: getElectronArgs(),
-      env: buildEnv(fixture),
-    })
-
-    page = await electronApp.firstWindow()
-    await page.getByRole('img', { name: 'Kyaraben' }).waitFor()
+    const result = await launchElectron(fixture)
+    electronApp = result.app
+    page = result.page
   })
 
   test.afterAll(async () => {
@@ -107,11 +78,6 @@ test.describe('No update available', () => {
 
 test.describe('Version mismatch detection', () => {
   test.beforeAll(async () => {
-    const appImagePath = process.env.KYARABEN_APPIMAGE
-    if (!appImagePath) {
-      throw new Error('KYARABEN_APPIMAGE environment variable must be set')
-    }
-
     fixture = createFixture(
       {},
       {
@@ -121,17 +87,10 @@ test.describe('Version mismatch detection', () => {
         kyarabenVersion: '0.0.1',
       },
     )
-
     fixture.env.KYARABEN_VERSION = '0.1.0'
-
-    electronApp = await electron.launch({
-      executablePath: appImagePath,
-      args: getElectronArgs(),
-      env: buildEnv(fixture),
-    })
-
-    page = await electronApp.firstWindow()
-    await page.getByRole('img', { name: 'Kyaraben' }).waitFor()
+    const result = await launchElectron(fixture)
+    electronApp = result.app
+    page = result.page
   })
 
   test.afterAll(async () => {

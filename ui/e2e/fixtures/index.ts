@@ -2,6 +2,7 @@ import * as fs from 'node:fs'
 import type * as http from 'node:http'
 import * as os from 'node:os'
 import * as path from 'node:path'
+import { type ElectronApplication, _electron as electron, type Page } from '@playwright/test'
 import { startFakeReleasesServer } from './fake-releases-server'
 import {
   type Device,
@@ -13,17 +14,44 @@ import { type RelayServer, startRelayServer } from './relay-server'
 
 export { type RelayServer, startRelayServer }
 
-export function buildEnv(fixture: TestFixture): Record<string, string> {
+function buildEnv(fixture: TestFixture): Record<string, string> {
   const env: Record<string, string> = {}
   for (const [key, value] of Object.entries(process.env)) {
     if (value !== undefined) {
       env[key] = value
     }
   }
-  if (!env.ELECTRON_OZONE_PLATFORM_HINT) {
-    env.ELECTRON_OZONE_PLATFORM_HINT = 'headless'
-  }
   return { ...env, ...fixture.env }
+}
+
+function getElectronArgs(): string[] {
+  if (process.env.DISPLAY?.startsWith(':')) {
+    return ['--ozone-platform=x11']
+  }
+  return []
+}
+
+export function getAppImagePath(): string {
+  const appImagePath = process.env.KYARABEN_APPIMAGE
+  if (!appImagePath) {
+    throw new Error('KYARABEN_APPIMAGE environment variable must be set')
+  }
+  return appImagePath
+}
+
+export async function launchElectron(
+  fixture: TestFixture,
+): Promise<{ app: ElectronApplication; page: Page }> {
+  const app = await electron.launch({
+    executablePath: getAppImagePath(),
+    args: getElectronArgs(),
+    env: buildEnv(fixture),
+  })
+
+  const page = await app.firstWindow()
+  await page.getByRole('img', { name: 'Kyaraben' }).waitFor({ timeout: 30000 })
+
+  return { app, page }
 }
 
 export const SystemIDSNES = 'snes' as const

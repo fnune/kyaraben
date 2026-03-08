@@ -1,36 +1,15 @@
-import {
-  type ElectronApplication,
-  _electron as electron,
-  expect,
-  type Page,
-  test,
-} from '@playwright/test'
-import { buildEnv,
-  getElectronArgs, createFixture, type TestFixture } from './fixtures'
+import { type ElectronApplication, expect, type Page, test } from '@playwright/test'
+import { createFixture, launchElectron, type TestFixture } from './fixtures'
 
 let fixture: TestFixture
 let electronApp: ElectronApplication
 let page: Page
 
 test.beforeAll(async () => {
-  const appImagePath = process.env.KYARABEN_APPIMAGE
-  if (!appImagePath) {
-    throw new Error(
-      'KYARABEN_APPIMAGE environment variable must be set to the path of the Electron executable',
-    )
-  }
-
   fixture = createFixture({}, undefined)
-
-  console.log(`Testing: ${appImagePath}`)
-  electronApp = await electron.launch({
-    executablePath: appImagePath,
-    args: getElectronArgs(),
-    env: buildEnv(fixture),
-  })
-
-  page = await electronApp.firstWindow()
-  await page.getByRole('img', { name: 'Kyaraben' }).waitFor()
+  const result = await launchElectron(fixture)
+  electronApp = result.app
+  page = result.page
 })
 
 test.afterAll(async () => {

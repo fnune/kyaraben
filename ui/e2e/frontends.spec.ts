@@ -1,36 +1,5 @@
-import {
-  type ElectronApplication,
-  _electron as electron,
-  expect,
-  type Page,
-  test,
-} from '@playwright/test'
-import { buildEnv,
-  getElectronArgs, createFixture, presets, type TestFixture } from './fixtures'
-
-async function launchWithFixture(
-  fixture: TestFixture,
-  appImagePath: string,
-): Promise<{ app: ElectronApplication; page: Page }> {
-  const app = await electron.launch({
-    executablePath: appImagePath,
-    args: getElectronArgs(),
-    env: buildEnv(fixture),
-  })
-
-  const page = await app.firstWindow()
-  await page.getByRole('img', { name: 'Kyaraben' }).waitFor({ timeout: 30000 })
-
-  return { app, page }
-}
-
-function getAppImagePath(): string {
-  const appImagePath = process.env.KYARABEN_APPIMAGE
-  if (!appImagePath) {
-    throw new Error('KYARABEN_APPIMAGE environment variable must be set')
-  }
-  return appImagePath
-}
+import { type ElectronApplication, expect, type Page, test } from '@playwright/test'
+import { createFixture, launchElectron, presets, type TestFixture } from './fixtures'
 
 test.describe('Frontend installation', () => {
   let fixture: TestFixture
@@ -40,7 +9,7 @@ test.describe('Frontend installation', () => {
   test.beforeAll(async () => {
     const preset = presets.freshInstall()
     fixture = createFixture(preset.config, preset.manifest)
-    const result = await launchWithFixture(fixture, getAppImagePath())
+    const result = await launchElectron(fixture)
     app = result.app
     page = result.page
   })
@@ -89,7 +58,7 @@ test.describe('Frontend already enabled', () => {
   test.beforeAll(async () => {
     const preset = presets.frontendEnabled()
     fixture = createFixture(preset.config, preset.manifest)
-    const result = await launchWithFixture(fixture, getAppImagePath())
+    const result = await launchElectron(fixture)
     app = result.app
     page = result.page
   })

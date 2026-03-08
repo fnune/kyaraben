@@ -1,43 +1,12 @@
+import { type ElectronApplication, expect, type Page, test } from '@playwright/test'
 import {
-  type ElectronApplication,
-  _electron as electron,
-  expect,
-  type Page,
-  test,
-} from '@playwright/test'
-import {
-  buildEnv,
-  getElectronArgs,
   createFixture,
   EmulatorIDRetroArchBsnes,
+  launchElectron,
   presets,
   SystemIDSNES,
   type TestFixture,
 } from './fixtures'
-
-async function launchWithFixture(
-  fixture: TestFixture,
-  appImagePath: string,
-): Promise<{ app: ElectronApplication; page: Page }> {
-  const app = await electron.launch({
-    executablePath: appImagePath,
-    args: getElectronArgs(),
-    env: buildEnv(fixture),
-  })
-
-  const page = await app.firstWindow()
-  await page.getByRole('img', { name: 'Kyaraben' }).waitFor({ timeout: 30000 })
-
-  return { app, page }
-}
-
-function getAppImagePath(): string {
-  const appImagePath = process.env.KYARABEN_APPIMAGE
-  if (!appImagePath) {
-    throw new Error('KYARABEN_APPIMAGE environment variable must be set')
-  }
-  return appImagePath
-}
 
 test.describe('Fresh install state', () => {
   let fixture: TestFixture
@@ -47,7 +16,7 @@ test.describe('Fresh install state', () => {
   test.beforeAll(async () => {
     const preset = presets.freshInstall()
     fixture = createFixture(preset.config, preset.manifest)
-    const result = await launchWithFixture(fixture, getAppImagePath())
+    const result = await launchElectron(fixture)
     app = result.app
     page = result.page
   })
@@ -84,7 +53,7 @@ test.describe('Systems enabled but not installed', () => {
   test.beforeAll(async () => {
     const preset = presets.systemsEnabledNotInstalled()
     fixture = createFixture(preset.config, preset.manifest)
-    const result = await launchWithFixture(fixture, getAppImagePath())
+    const result = await launchElectron(fixture)
     app = result.app
     page = result.page
   })
@@ -130,7 +99,7 @@ test.describe('Emulators installed', () => {
   test.beforeAll(async () => {
     const preset = presets.emulatorsInstalled()
     fixture = createFixture(preset.config, preset.manifest)
-    const result = await launchWithFixture(fixture, getAppImagePath())
+    const result = await launchElectron(fixture)
     app = result.app
     page = result.page
   })
@@ -162,7 +131,7 @@ test.describe('Sync disabled', () => {
       { systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] } },
       { installedEmulators: {} },
     )
-    const result = await launchWithFixture(fixture, getAppImagePath())
+    const result = await launchElectron(fixture)
     app = result.app
     page = result.page
   })
@@ -187,7 +156,7 @@ test.describe('Installation view', () => {
   test.beforeAll(async () => {
     const preset = presets.emulatorsInstalled()
     fixture = createFixture(preset.config, preset.manifest)
-    const result = await launchWithFixture(fixture, getAppImagePath())
+    const result = await launchElectron(fixture)
     app = result.app
     page = result.page
   })
@@ -228,7 +197,7 @@ test.describe('Version pinning', () => {
   test.beforeAll(async () => {
     const preset = presets.versionPinned()
     fixture = createFixture(preset.config, preset.manifest)
-    const result = await launchWithFixture(fixture, getAppImagePath())
+    const result = await launchElectron(fixture)
     app = result.app
     page = result.page
   })
@@ -256,14 +225,9 @@ test.describe('Apply flow', () => {
     const preset = presets.freshInstall()
     fixture = createFixture(preset.config, preset.manifest)
 
-    app = await electron.launch({
-      executablePath: getAppImagePath(),
-      args: getElectronArgs(),
-      env: buildEnv(fixture),
-    })
-
-    page = await app.firstWindow()
-    await page.getByRole('img', { name: 'Kyaraben' }).waitFor({ timeout: 30000 })
+    const result = await launchElectron(fixture)
+    app = result.app
+    page = result.page
   })
 
   test.afterAll(async () => {
@@ -322,14 +286,9 @@ test.describe('Enable all flow', () => {
     const preset = presets.freshInstall()
     fixture = createFixture(preset.config, preset.manifest)
 
-    app = await electron.launch({
-      executablePath: getAppImagePath(),
-      args: getElectronArgs(),
-      env: buildEnv(fixture),
-    })
-
-    page = await app.firstWindow()
-    await page.getByRole('img', { name: 'Kyaraben' }).waitFor({ timeout: 30000 })
+    const result = await launchElectron(fixture)
+    app = result.app
+    page = result.page
   })
 
   test.afterAll(async () => {
@@ -372,7 +331,7 @@ test.describe('Tab navigation', () => {
 
   test.beforeAll(async () => {
     fixture = createFixture({}, undefined)
-    const result = await launchWithFixture(fixture, getAppImagePath())
+    const result = await launchElectron(fixture)
     app = result.app
     page = result.page
   })
