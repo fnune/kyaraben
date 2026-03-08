@@ -56,7 +56,7 @@ jobs:
         run: cd ui && npm ci
 
       - name: Build AppImage
-        run: cd ui && npm run electron:build
+        run: cd ui && npm run electron:build -- --publish never
 
       - name: Upload to release
         run: gh release upload "${{ github.ref_name }}" ui/release/*.AppImage
