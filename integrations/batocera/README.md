@@ -2,6 +2,8 @@
 
 This integration enables Kyaraben sync on Batocera, KNULLI, and Koriki.
 
+Status: planned (see `feat/kyaraben-guest` branch)
+
 ## What syncs
 
 | Category | Syncs | Notes |
@@ -11,34 +13,6 @@ This integration enables Kyaraben sync on Batocera, KNULLI, and Koriki.
 | States | No | Batocera stores states alongside saves; syncing both would conflict |
 | BIOS | No | Batocera uses a flat BIOS directory |
 | Screenshots | Yes | Maps to `kyaraben-screenshots-retroarch` |
-
-## Requirements
-
-- Batocera v33+ (includes Syncthing)
-- KNULLI or Koriki (Batocera forks with same paths)
-
-## Installation
-
-Copy `kyaraben-batocera` to `/userdata/system/` and run it via SSH or a custom script.
-
-## Usage
-
-```sh
-kyaraben-batocera start     # Start syncing
-kyaraben-batocera stop      # Stop syncing
-kyaraben-batocera status    # Show sync status
-kyaraben-batocera enable    # Enable autostart
-kyaraben-batocera disable   # Disable autostart
-kyaraben-batocera pair      # Pair with another device
-```
-
-## How it works
-
-This integration uses Batocera's built-in Syncthing service rather than bundling its own. It:
-
-1. Controls Syncthing via `batocera-services` commands
-2. Configures folder mappings via the Syncthing API
-3. Uses Batocera's existing Syncthing config at `/userdata/system/configs/syncthing/`
 
 ## Path mappings
 
