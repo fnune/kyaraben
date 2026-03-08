@@ -5,7 +5,8 @@ import {
   type Page,
   test,
 } from '@playwright/test'
-import { buildEnv, createFixture, type TestFixture } from './fixtures'
+import { buildEnv,
+  getElectronArgs, createFixture, type TestFixture } from './fixtures'
 
 const SystemIDSNES = 'snes'
 const EmulatorIDRetroArchBsnes = 'retroarch:bsnes'
@@ -17,7 +18,7 @@ async function launchWithFixture(
 ): Promise<{ app: ElectronApplication; page: Page }> {
   const app = await electron.launch({
     executablePath: appImagePath,
-    args: ['--no-sandbox'],
+    args: getElectronArgs(),
     env: buildEnv(fixture),
   })
 

@@ -20,6 +20,9 @@ export function buildEnv(fixture: TestFixture): Record<string, string> {
       env[key] = value
     }
   }
+  if (!env.ELECTRON_OZONE_PLATFORM_HINT) {
+    env.ELECTRON_OZONE_PLATFORM_HINT = 'headless'
+  }
   return { ...env, ...fixture.env }
 }
 

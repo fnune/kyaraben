@@ -7,6 +7,7 @@ import {
 } from '@playwright/test'
 import {
   buildEnv,
+  getElectronArgs,
   type ConfigFixture,
   createFixture,
   EmulatorIDRetroArchBsnes,
@@ -47,7 +48,7 @@ async function setupSyncTest(options: {
 
   const app = await electron.launch({
     executablePath: getAppImagePath(),
-    args: ['--no-sandbox'],
+    args: getElectronArgs(),
     env: buildEnv(fixture),
   })
 

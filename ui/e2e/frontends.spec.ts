@@ -5,7 +5,8 @@ import {
   type Page,
   test,
 } from '@playwright/test'
-import { buildEnv, createFixture, presets, type TestFixture } from './fixtures'
+import { buildEnv,
+  getElectronArgs, createFixture, presets, type TestFixture } from './fixtures'
 
 async function launchWithFixture(
   fixture: TestFixture,
@@ -13,7 +14,7 @@ async function launchWithFixture(
 ): Promise<{ app: ElectronApplication; page: Page }> {
   const app = await electron.launch({
     executablePath: appImagePath,
-    args: ['--no-sandbox'],
+    args: getElectronArgs(),
     env: buildEnv(fixture),
   })
 

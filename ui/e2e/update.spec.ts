@@ -5,7 +5,8 @@ import {
   type Page,
   test,
 } from '@playwright/test'
-import { buildEnv, createFixture, setupFakeReleasesApi, type TestFixture } from './fixtures'
+import { buildEnv,
+  getElectronArgs, createFixture, setupFakeReleasesApi, type TestFixture } from './fixtures'
 
 let fixture: TestFixture
 let electronApp: ElectronApplication
@@ -23,7 +24,7 @@ test.describe('Update checking', () => {
 
     electronApp = await electron.launch({
       executablePath: appImagePath,
-      args: ['--no-sandbox'],
+      args: getElectronArgs(),
       env: buildEnv(fixture),
     })
 
@@ -78,7 +79,7 @@ test.describe('No update available', () => {
 
     electronApp = await electron.launch({
       executablePath: appImagePath,
-      args: ['--no-sandbox'],
+      args: getElectronArgs(),
       env: buildEnv(fixture),
     })
 
@@ -125,7 +126,7 @@ test.describe('Version mismatch detection', () => {
 
     electronApp = await electron.launch({
       executablePath: appImagePath,
-      args: ['--no-sandbox'],
+      args: getElectronArgs(),
       env: buildEnv(fixture),
     })
 

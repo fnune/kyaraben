@@ -7,7 +7,8 @@ import {
   type Page,
   test,
 } from '@playwright/test'
-import { buildEnv, createFixture, type TestFixture } from './fixtures'
+import { buildEnv,
+  getElectronArgs, createFixture, type TestFixture } from './fixtures'
 
 let fixture: TestFixture
 let electronApp: ElectronApplication
@@ -43,7 +44,7 @@ enabled = true
     console.log(`Testing: ${appImagePath}`)
     electronApp = await electron.launch({
       executablePath: appImagePath,
-      args: ['--no-sandbox'],
+      args: getElectronArgs(),
       env: buildEnv(fixture),
     })
 

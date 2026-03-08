@@ -108,6 +108,7 @@ ui-e2e-ui *args: _extract-appimage
     cd ui && \
         KYARABEN_APPIMAGE="$(pwd)/../{{ test_dir }}/app/kyaraben-ui" \
         APPDIR="$(pwd)/../{{ test_dir }}/app" \
+        ELECTRON_OZONE_PLATFORM_HINT=auto \
         ../scripts/run-ui-e2e.sh npx playwright test --ui {{ args }}
 
 # Run site development server

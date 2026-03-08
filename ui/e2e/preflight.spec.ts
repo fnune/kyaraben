@@ -9,6 +9,7 @@ import {
 } from '@playwright/test'
 import {
   buildEnv,
+  getElectronArgs,
   createFixture,
   EmulatorIDDuckStation,
   EmulatorIDRetroArchMGBA,
@@ -91,7 +92,7 @@ test.describe('Config conflict review', () => {
 
     app = await electron.launch({
       executablePath: getAppImagePath(),
-      args: ['--no-sandbox'],
+      args: getElectronArgs(),
       env: buildEnv(fixture),
     })
 
@@ -161,7 +162,7 @@ test.describe('UI-driven config change', () => {
 
     app = await electron.launch({
       executablePath: getAppImagePath(),
-      args: ['--no-sandbox'],
+      args: getElectronArgs(),
       env: buildEnv(fixture),
     })
 
@@ -265,7 +266,7 @@ test.describe('Version upgrade review', () => {
 
     app = await electron.launch({
       executablePath: getAppImagePath(),
-      args: ['--no-sandbox'],
+      args: getElectronArgs(),
       env: buildEnv(fixture),
     })
 
