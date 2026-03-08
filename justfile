@@ -79,6 +79,14 @@ release-create version:
         echo "Local main differs from origin. Push first."
         exit 1
     fi
+
+    echo "Generating changelog for v{{ version }}..."
+    git-cliff --tag "v{{ version }}" -o CHANGELOG.md
+
+    git add CHANGELOG.md
+    git commit -m "chore(release): update changelog for v{{ version }}"
+    git push origin main
+
     git tag "v{{ version }}"
     git push origin "v{{ version }}"
     echo "Tag v{{ version }} pushed. Watch: https://github.com/fnune/kyaraben/actions"

@@ -23,20 +23,10 @@ checksum:
   name_template: "checksums.txt"
 
 changelog:
-  sort: asc
-  filters:
-    exclude:
-      - '^docs:'
-      - '^test:'
-      - '^chore:'
-      - '^ci:'
-  groups:
-    - title: Features
-      regexp: '^feat'
-      order: 0
-    - title: Bug fixes
-      regexp: '^fix'
-      order: 1
+  use: git-cliff
+  args:
+    - --config
+    - cliff.toml
 
 release:
   draft: true
