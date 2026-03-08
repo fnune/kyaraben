@@ -1,9 +1,11 @@
 import { useCallback, useState } from 'react'
 import { Button } from '@/lib/Button'
+import type { PendingDevice } from '@/lib/hooks/useSyncPairing'
 import { Spinner } from '@/lib/Spinner'
 import type { SyncStatusResponse } from '@/types/daemon'
 import { ActivityCard } from './ActivityCard'
 import { FoldersCard } from './FoldersCard'
+import { PendingDeviceCard } from './PendingDeviceCard'
 import { StatusCard } from './StatusCard'
 import { SyncSettingsSection } from './SyncSettingsSection'
 
@@ -16,12 +18,14 @@ export interface SyncViewProps {
   readonly pairingDeviceId: string | null
   readonly pairingCode: string | null
   readonly lastSyncedAt: Date | null
+  readonly pendingDevice: PendingDevice | null
   readonly onRemoveDevice: (deviceId: string) => Promise<void>
   readonly onConnectToDevice: (deviceId: string) => Promise<{ ok: boolean; error?: string }>
   readonly onEnableSync: () => Promise<void>
   readonly onResetSync: () => Promise<void>
   readonly onStartPairing: () => Promise<void>
   readonly onStopPairing: () => Promise<void>
+  readonly onAcceptDevice: (accept: boolean) => Promise<void>
   readonly onClearConnectionError: () => void
   readonly onRefresh: () => void
   readonly onToggleGlobalDiscovery: (enabled: boolean) => Promise<void>
@@ -158,12 +162,14 @@ export function SyncView({
   pairingDeviceId,
   pairingCode,
   lastSyncedAt,
+  pendingDevice,
   onRemoveDevice,
   onConnectToDevice,
   onEnableSync,
   onResetSync,
   onStartPairing,
   onStopPairing,
+  onAcceptDevice,
   onClearConnectionError,
   onRefresh,
   onToggleGlobalDiscovery,
@@ -190,6 +196,10 @@ export function SyncView({
 
   return (
     <div className="p-6 space-y-4">
+      {pendingDevice && (
+        <PendingDeviceCard pendingDevice={pendingDevice} onAccept={onAcceptDevice} />
+      )}
+
       <StatusCard
         status={status}
         connectionProgress={connectionProgress}

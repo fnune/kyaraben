@@ -87,6 +87,7 @@ function AppContent() {
     pairingDeviceId,
     pairingCode,
     lastSyncedAt,
+    pendingDevice,
     handleRemoveDevice,
     handleConnectToDevice,
     handleEnableSync,
@@ -94,6 +95,7 @@ function AppContent() {
     handleStartPairing,
     handleStopPairing,
     handleToggleGlobalDiscovery,
+    handleAcceptDevice,
     clearConnectionError,
     refreshSyncStatus,
   } = useSyncPairing(showToast, currentView === VIEW_SYNC)
@@ -318,12 +320,14 @@ function AppContent() {
             pairingDeviceId={pairingDeviceId}
             pairingCode={pairingCode}
             lastSyncedAt={lastSyncedAt}
+            pendingDevice={pendingDevice}
             onRemoveDevice={handleRemoveDevice}
             onConnectToDevice={handleConnectToDevice}
             onEnableSync={handleEnableSync}
             onResetSync={handleResetSync}
             onStartPairing={handleStartPairing}
             onStopPairing={handleStopPairing}
+            onAcceptDevice={handleAcceptDevice}
             onClearConnectionError={clearConnectionError}
             onRefresh={refreshSyncStatus}
             onToggleGlobalDiscovery={handleToggleGlobalDiscovery}

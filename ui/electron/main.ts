@@ -249,6 +249,16 @@ async function ensureDaemon(): Promise<void> {
         return
       }
 
+      if (event.type === 'pendingDevice' && mainWindow && !mainWindow.isDestroyed()) {
+        try {
+          mainWindow.webContents.send('pairing:pending_device', event.data)
+        } catch (sendErr) {
+          console.error(
+            `[sync] Failed to send pending device: ${sendErr instanceof Error ? sendErr.message : String(sendErr)}`,
+          )
+        }
+      }
+
       if (event.id) {
         const handler = daemon?.pending.get(event.id)
         if (handler) {
@@ -615,6 +625,11 @@ function setupIpcHandlers(): void {
     return event.data
   })
 
+  ipcMain.handle('sync_accept_device', async (_, data: { deviceId: string; accept: boolean }) => {
+    const event = await sendCommand({ type: 'sync_accept_device', data })
+    return event.data
+  })
+
   ipcMain.handle('sync_revert_folder', async (_, data: { folderId: string }) => {
     const event = await sendCommand({ type: 'sync_revert_folder', data })
     return event.data
@@ -879,6 +894,7 @@ function setupIpcHandlers(): void {
     'sync_revert_folder',
     'sync_local_changes',
     'sync_reset',
+    'sync_accept_device',
     'uninstall_preview',
     'refresh_icon_caches',
     'get_home_dir',

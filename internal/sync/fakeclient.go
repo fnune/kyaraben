@@ -332,6 +332,10 @@ func (c *FakeClient) GetDeviceCompletion(_ context.Context, deviceID string) (*s
 	return &syncthing.CompletionResponse{Completion: 100}, nil
 }
 
+func (c *FakeClient) GetFolderCompletionForDevice(_ context.Context, _, _ string) (*syncthing.CompletionResponse, error) {
+	return &syncthing.CompletionResponse{Completion: 100}, nil
+}
+
 func (c *FakeClient) GetSyncProgress(_ context.Context) (*syncthing.SyncProgressInfo, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()

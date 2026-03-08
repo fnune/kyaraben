@@ -5,6 +5,11 @@ import { SyncStateSyncing } from '@/types/daemon'
 
 type ShowToast = (message: string, type?: 'error' | 'success' | 'info') => void
 
+export interface PendingDevice {
+  deviceId: string
+  name: string
+}
+
 export interface UseSyncPairingResult {
   syncStatus: SyncStatusResponse | null
   discoveredDevices: SyncDiscoveredDevice[]
@@ -18,6 +23,7 @@ export interface UseSyncPairingResult {
   pairingDeviceId: string | null
   pairingCode: string | null
   lastSyncedAt: Date | null
+  pendingDevice: PendingDevice | null
   handleRemoveDevice: (deviceId: string) => Promise<void>
   handleConnectToDevice: (deviceId: string) => Promise<{ ok: boolean; error?: string }>
   handleEnableSync: () => Promise<void>
@@ -25,6 +31,7 @@ export interface UseSyncPairingResult {
   handleStartPairing: () => Promise<void>
   handleStopPairing: () => Promise<void>
   handleToggleGlobalDiscovery: (enabled: boolean) => Promise<void>
+  handleAcceptDevice: (accept: boolean) => Promise<void>
   clearConnectionError: () => void
   refreshSyncStatus: () => Promise<void>
   refreshDiscoveredDevices: () => Promise<void>
@@ -48,10 +55,11 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
   const [pairingDeviceId, setPairingDeviceId] = useState<string | null>(null)
   const [pairingCode, setPairingCode] = useState<string | null>(null)
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null)
+  const [pendingDevice, setPendingDevice] = useState<PendingDevice | null>(null)
+  const [expectedPairedDevice, setExpectedPairedDevice] = useState<string | null>(null)
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const discoveryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const previousStateRef = useRef<string | undefined>(undefined)
-  const previousDeviceCountRef = useRef<number>(0)
 
   const refreshSyncStatus = useCallback(async () => {
     const result = await daemon.getSyncStatus()
@@ -148,25 +156,36 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
       if (data.message) {
         setConnectionProgress(data.message)
       }
+      if (data.deviceId) {
+        setExpectedPairedDevice(data.deviceId)
+      }
     })
   }, [])
 
   useEffect(() => {
-    const currentDeviceCount = syncStatus?.devices?.length ?? 0
-    const previousDeviceCount = previousDeviceCountRef.current
+    return window.electron.on('pairing:pending_device', (data) => {
+      const { deviceId, name } = data as { deviceId: string; name: string }
+      setPendingDevice({ deviceId, name })
+    })
+  }, [])
 
-    if (isPairing && currentDeviceCount > previousDeviceCount && currentDeviceCount > 0) {
-      const newDevice = syncStatus?.devices?.[syncStatus.devices.length - 1]
-      const deviceName = newDevice?.name || 'New device'
+  useEffect(() => {
+    if (!isPairing || !expectedPairedDevice) {
+      return
+    }
+
+    const pairedDevice = syncStatus?.devices?.find((d) => d.id === expectedPairedDevice)
+
+    if (pairedDevice) {
+      const deviceName = pairedDevice.name || 'New device'
       showToast(`${deviceName} connected.`, 'success')
       setIsPairing(false)
       setPairingDeviceId(null)
       setPairingCode(null)
+      setExpectedPairedDevice(null)
       daemon.cancelSyncPairing()
     }
-
-    previousDeviceCountRef.current = currentDeviceCount
-  }, [syncStatus?.devices, isPairing, showToast])
+  }, [syncStatus?.devices, isPairing, expectedPairedDevice, showToast])
 
   const handleRemoveDevice = useCallback(
     async (deviceId: string) => {
@@ -269,6 +288,28 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
     [refreshSyncStatus, showToast],
   )
 
+  const handleAcceptDevice = useCallback(
+    async (accept: boolean) => {
+      if (!pendingDevice) return
+      const result = await daemon.acceptSyncDevice({
+        deviceId: pendingDevice.deviceId,
+        accept,
+      })
+      if (result.ok) {
+        if (accept) {
+          showToast(`${pendingDevice.name || 'Device'} accepted.`, 'success')
+        } else {
+          showToast(`${pendingDevice.name || 'Device'} rejected.`, 'info')
+        }
+        await refreshSyncStatus()
+      } else {
+        showToast(`Failed to ${accept ? 'accept' : 'reject'} device.`, 'error')
+      }
+      setPendingDevice(null)
+    },
+    [pendingDevice, refreshSyncStatus, showToast],
+  )
+
   const clearConnectionError = useCallback(() => {
     setConnectionError(null)
   }, [])
@@ -286,6 +327,7 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
     pairingDeviceId,
     pairingCode,
     lastSyncedAt,
+    pendingDevice,
     handleRemoveDevice,
     handleConnectToDevice,
     handleEnableSync,
@@ -293,6 +335,7 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
     handleStartPairing,
     handleStopPairing,
     handleToggleGlobalDiscovery,
+    handleAcceptDevice,
     clearConnectionError,
     refreshSyncStatus,
     refreshDiscoveredDevices,

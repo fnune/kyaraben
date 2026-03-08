@@ -385,6 +385,16 @@ type SyncPairingProgressEvent struct {
 	Code     string `json:"code,omitempty"`
 }
 
+type SyncPendingDeviceEvent struct {
+	DeviceID string `json:"deviceId"`
+	Name     string `json:"name"`
+}
+
+type SyncAcceptDeviceRequest struct {
+	DeviceID string `json:"deviceId"`
+	Accept   bool   `json:"accept"`
+}
+
 type SyncEnableProgressEvent struct {
 	Phase   string `json:"phase"`
 	Message string `json:"message"`

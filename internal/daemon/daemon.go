@@ -77,13 +77,20 @@ type Daemon struct {
 	reconcileRunning     bool
 	reconcileLastFailure time.Time
 	reconcileFailCount   int
+
+	completionLogMu   sync.Mutex
+	completionLastLog time.Time
+
+	removedDevicesMu sync.Mutex
+	removedDevices   map[string]time.Time
 }
 
 func New(deps Deps) *Daemon {
 	return &Daemon{
-		deps:          deps,
-		configStore:   model.NewConfigStore(deps.FS),
-		manifestStore: model.NewManifestStore(deps.FS),
+		deps:           deps,
+		configStore:    model.NewConfigStore(deps.FS),
+		manifestStore:  model.NewManifestStore(deps.FS),
+		removedDevices: make(map[string]time.Time),
 	}
 }
 
@@ -151,6 +158,8 @@ func (d *Daemon) HandleWithEmit(cmd Command, emit func(Event)) []Event {
 		return d.handleSyncRemoveDevice(nil)
 	case CommandTypeSyncCancelPairing:
 		return d.handleSyncCancelPairing()
+	case CommandTypeSyncAcceptDevice:
+		return d.handleSyncAcceptDevice(nil)
 	case CommandTypeSyncPending:
 		return d.handleSyncPending()
 	case CommandTypeUninstallPreview:
@@ -192,6 +201,10 @@ func (d *Daemon) HandleSetConfig(cmd SetConfigCommand, emit func(Event)) []Event
 
 func (d *Daemon) HandleSyncRemoveDevice(cmd SyncRemoveDeviceCommand, emit func(Event)) []Event {
 	return d.handleSyncRemoveDevice(&cmd.Data)
+}
+
+func (d *Daemon) HandleSyncAcceptDevice(cmd SyncAcceptDeviceCommand, emit func(Event)) []Event {
+	return d.handleSyncAcceptDevice(&cmd.Data)
 }
 
 func (d *Daemon) HandleInstallKyaraben(cmd InstallKyarabenCommand, emit func(Event)) []Event {
@@ -1255,9 +1268,15 @@ func (d *Daemon) handleSyncStatus() []Event {
 			Paused:    dev.Paused,
 		}
 		if dev.Connected {
-			if completion, err := client.GetDeviceCompletion(ctx, dev.ID); err == nil {
-				percent := int(completion.Completion)
-				devices[i].Completion = &percent
+			completion, err := client.GetDeviceCompletion(ctx, dev.ID)
+			if err != nil {
+				log.Debug("Failed to get completion for device %s (%s): %v", dev.Name, dev.ID[:7], err)
+				continue
+			}
+			percent := int(completion.Completion)
+			devices[i].Completion = &percent
+			if percent < 100 {
+				d.logCompletionDiagnostics(ctx, client, dev, completion, syncStatus.Folders)
 			}
 		}
 	}
@@ -1345,6 +1364,11 @@ func (d *Daemon) handleSyncRemoveDevice(data *SyncRemoveDeviceRequest) []Event {
 		return d.errorResponse(fmt.Sprintf("failed to remove device from syncthing: %v", err))
 	}
 
+	d.removedDevicesMu.Lock()
+	d.removedDevices[deviceID] = time.Now()
+	d.removedDevicesMu.Unlock()
+	log.Info("Device removed: %s (%s) - tracking for zombie detection", removedName, deviceID[:7])
+
 	return []Event{{
 		Type: EventTypeResult,
 		Data: SyncRemoveDeviceResponse{
@@ -1352,6 +1376,50 @@ func (d *Daemon) handleSyncRemoveDevice(data *SyncRemoveDeviceRequest) []Event {
 			DeviceID: deviceID,
 			Name:     removedName,
 		},
+	}}
+}
+
+func (d *Daemon) handleSyncAcceptDevice(data *SyncAcceptDeviceRequest) []Event {
+	if data == nil || data.DeviceID == "" {
+		return d.errorResponse("deviceId is required")
+	}
+
+	if !data.Accept {
+		log.Info("User rejected pending device: %s", data.DeviceID[:7])
+		d.stopAutoAcceptLoop()
+		return []Event{{
+			Type: EventTypeResult,
+			Data: map[string]bool{"rejected": true},
+		}}
+	}
+
+	cfg, err := d.loadConfig()
+	if err != nil {
+		return d.errorResponse(err.Error())
+	}
+
+	client := syncpkg.NewClient(cfg.Sync)
+	loadedKey := d.loadSyncAPIKey()
+	if loadedKey != "" {
+		client.SetAPIKey(loadedKey)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	log.Info("User accepted pending device: %s", data.DeviceID[:7])
+	if err := client.AddDevice(ctx, data.DeviceID, ""); err != nil {
+		return d.errorResponse(fmt.Sprintf("failed to add device: %v", err))
+	}
+	if err := client.ShareFoldersWithDevice(ctx, data.DeviceID); err != nil {
+		log.Error("Failed to share folders with accepted device: %v", err)
+	}
+
+	d.stopAutoAcceptLoop()
+
+	return []Event{{
+		Type: EventTypeResult,
+		Data: map[string]bool{"accepted": true},
 	}}
 }
 
@@ -1446,6 +1514,10 @@ func newRelayClient(overrideURL string) (*syncpkg.RelayClient, error) {
 
 func (d *Daemon) handleSyncStartPairing(emit func(Event)) []Event {
 	log.Info("Starting pairing mode")
+
+	d.removedDevicesMu.Lock()
+	d.removedDevices = make(map[string]time.Time)
+	d.removedDevicesMu.Unlock()
 	cfg, err := d.loadConfig()
 	if err != nil {
 		log.Error("Failed to load config: %v", err)
@@ -1469,7 +1541,7 @@ func (d *Daemon) handleSyncStartPairing(emit func(Event)) []Event {
 	relayClient, err := newRelayClient(cfg.Sync.RelayURL)
 	if err != nil {
 		log.Info("No relay server available, falling back to device ID only: %v", err)
-		d.startAutoAcceptLoop(cfg)
+		d.startPendingDeviceLoop(cfg, emit)
 		return []Event{{
 			Type: EventTypeResult,
 			Data: SyncStartPairingResponse{DeviceID: deviceID},
@@ -1481,7 +1553,7 @@ func (d *Daemon) handleSyncStartPairing(emit func(Event)) []Event {
 	relayResp, err := relayClient.CreateSession(createCtx, deviceID)
 	if err != nil {
 		log.Info("Failed to create relay session, falling back to device ID only: %v", err)
-		d.startAutoAcceptLoop(cfg)
+		d.startPendingDeviceLoop(cfg, emit)
 		return []Event{{
 			Type: EventTypeResult,
 			Data: SyncStartPairingResponse{DeviceID: deviceID},
@@ -1489,8 +1561,8 @@ func (d *Daemon) handleSyncStartPairing(emit func(Event)) []Event {
 	}
 
 	log.Info("Created relay session with code %s for device %s", relayResp.Code, deviceID)
-	d.startAutoAcceptLoop(cfg)
 	d.startRelayPollLoop(cfg, relayClient, relayResp.Code, client, emit)
+	d.startPendingDeviceLoop(cfg, emit)
 
 	return []Event{{
 		Type: EventTypeResult,
@@ -2191,6 +2263,35 @@ func (d *Daemon) reconcileFolderSharing(cfg *model.KyarabenConfig) {
 	log.Info("Reconcile: folder sharing drift fixed")
 }
 
+func (d *Daemon) logCompletionDiagnostics(ctx context.Context, client syncpkg.SyncClient, dev syncpkg.DeviceStatus, completion *syncpkg.CompletionResponse, folders []syncpkg.FolderStatusSummary) {
+	d.completionLogMu.Lock()
+	if time.Since(d.completionLastLog) < 30*time.Second {
+		d.completionLogMu.Unlock()
+		return
+	}
+	d.completionLastLog = time.Now()
+	d.completionLogMu.Unlock()
+
+	percent := int(completion.Completion)
+	log.Info("Completion diagnostics for %s (%s): aggregate=%d%% globalBytes=%d needBytes=%d globalItems=%d needItems=%d needDeletes=%d",
+		dev.Name, dev.ID[:7], percent,
+		completion.GlobalBytes, completion.NeedBytes,
+		completion.GlobalItems, completion.NeedItems, completion.NeedDeletes)
+
+	for _, f := range folders {
+		folderCompletion, err := client.GetFolderCompletionForDevice(ctx, f.ID, dev.ID)
+		if err != nil {
+			log.Debug("  folder %s: error getting completion: %v", f.ID, err)
+			continue
+		}
+		if int(folderCompletion.Completion) < 100 {
+			log.Info("  folder %s: completion=%d%% globalBytes=%d needBytes=%d needItems=%d",
+				f.ID, int(folderCompletion.Completion),
+				folderCompletion.GlobalBytes, folderCompletion.NeedBytes, folderCompletion.NeedItems)
+		}
+	}
+}
+
 func (d *Daemon) shouldRetryReconcile() bool {
 	if d.reconcileFailCount == 0 {
 		return true
@@ -2308,7 +2409,7 @@ func (d *Daemon) persistSyncEnabled(cfg *model.KyarabenConfig) {
 	}
 }
 
-func (d *Daemon) startAutoAcceptLoop(cfg *model.KyarabenConfig) {
+func (d *Daemon) startPendingDeviceLoop(cfg *model.KyarabenConfig, emit func(Event)) {
 	d.autoAcceptMu.Lock()
 	if d.autoAcceptCancelFunc != nil {
 		d.autoAcceptCancelFunc()
@@ -2337,12 +2438,8 @@ func (d *Daemon) startAutoAcceptLoop(cfg *model.KyarabenConfig) {
 				pending, err := client.GetPendingDevices(pollCtx)
 				pollCancel()
 				if err != nil {
-					log.Debug("Auto-accept: error getting pending devices: %v", err)
+					log.Debug("Pending device loop: error getting pending devices: %v", err)
 					continue
-				}
-
-				if len(pending) > 0 {
-					log.Info("Auto-accept: found %d pending device(s)", len(pending))
 				}
 
 				for _, dev := range pending {
@@ -2351,21 +2448,14 @@ func (d *Daemon) startAutoAcceptLoop(cfg *model.KyarabenConfig) {
 					}
 					seenDevices[dev.DeviceID] = true
 
-					log.Info("Auto-accepting pending device: %s (ID: %s)", dev.Name, dev.DeviceID[:7])
-					addCtx, addCancel := context.WithTimeout(ctx, 10*time.Second)
-					if err := client.AddDevice(addCtx, dev.DeviceID, dev.Name); err != nil {
-						log.Error("Failed to add device %s: %v", dev.Name, err)
-						addCancel()
-						continue
-					}
-					if err := client.ShareFoldersWithDevice(addCtx, dev.DeviceID); err != nil {
-						log.Error("Failed to share folders with %s: %v", dev.Name, err)
-					}
-					addCancel()
-
-					log.Info("Auto-accept: pairing complete, stopping loop")
-					d.stopAutoAcceptLoop()
-					return
+					log.Info("Pending device found: %s (%s), requesting user confirmation", dev.Name, dev.DeviceID[:7])
+					emit(Event{
+						Type: EventTypePendingDevice,
+						Data: SyncPendingDeviceEvent{
+							DeviceID: dev.DeviceID,
+							Name:     dev.Name,
+						},
+					})
 				}
 			}
 		}
@@ -2426,10 +2516,13 @@ func (d *Daemon) startRelayPollLoop(cfg *model.KyarabenConfig, relayClient *sync
 				}
 				addCancel()
 
-				pairingLog.Info("Initiator pairing via relay completed successfully")
+				pairingLog.Info("Initiator pairing via relay completed successfully for device %s", resp.DeviceID[:7])
 				emit(Event{
 					Type: EventTypeProgress,
-					Data: SyncPairingProgressEvent{Message: "Device connected via pairing code"},
+					Data: SyncPairingProgressEvent{
+						Message:  "Device connected via pairing code",
+						DeviceID: resp.DeviceID,
+					},
 				})
 
 				_ = relayClient.DeleteSession(context.Background(), code)

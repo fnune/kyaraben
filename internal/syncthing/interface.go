@@ -24,6 +24,7 @@ type SyncClient interface {
 	GetPendingFolders(ctx context.Context) ([]PendingFolder, error)
 	DismissPendingFolder(ctx context.Context, folderID, deviceID string) error
 	GetDeviceCompletion(ctx context.Context, deviceID string) (*CompletionResponse, error)
+	GetFolderCompletionForDevice(ctx context.Context, folderID, deviceID string) (*CompletionResponse, error)
 	GetSyncProgress(ctx context.Context) (*SyncProgressInfo, error)
 	GetPendingStatus(ctx context.Context) (*PendingStatus, error)
 	AddFolders(ctx context.Context, folders []FolderCreateRequest) error

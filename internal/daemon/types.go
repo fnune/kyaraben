@@ -25,6 +25,7 @@ const (
 	CommandTypeSyncStartPairing      CommandType = "sync_start_pairing"
 	CommandTypeSyncJoinPeer          CommandType = "sync_join_peer"
 	CommandTypeSyncCancelPairing     CommandType = "sync_cancel_pairing"
+	CommandTypeSyncAcceptDevice      CommandType = "sync_accept_device"
 	CommandTypeSyncPending           CommandType = "sync_pending"
 	CommandTypeUninstallPreview      CommandType = "uninstall_preview"
 	CommandTypeUninstall             CommandType = "uninstall"
@@ -60,6 +61,13 @@ type SyncRemoveDeviceCommand struct {
 	Type CommandType             `json:"type"`
 	ID   string                  `json:"id,omitempty"`
 	Data SyncRemoveDeviceRequest `json:"data"`
+}
+
+// SyncAcceptDeviceCommand includes the device to accept or reject.
+type SyncAcceptDeviceCommand struct {
+	Type CommandType             `json:"type"`
+	ID   string                  `json:"id,omitempty"`
+	Data SyncAcceptDeviceRequest `json:"data"`
 }
 
 // SyncJoinPeerCommand includes the pairing code and peer device.
@@ -118,11 +126,12 @@ type ImportScanCommand struct {
 type EventType string
 
 const (
-	EventTypeReady     EventType = "ready"
-	EventTypeResult    EventType = "result"
-	EventTypeProgress  EventType = "progress"
-	EventTypeError     EventType = "error"
-	EventTypeCancelled EventType = "cancelled"
+	EventTypeReady         EventType = "ready"
+	EventTypeResult        EventType = "result"
+	EventTypeProgress      EventType = "progress"
+	EventTypeError         EventType = "error"
+	EventTypeCancelled     EventType = "cancelled"
+	EventTypePendingDevice EventType = "pendingDevice"
 )
 
 // Event represents an event sent to the UI.

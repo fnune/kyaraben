@@ -121,6 +121,16 @@ func (cmd *DaemonCmd) Run(ctx *Context) error {
 				continue
 			}
 			events = d.HandleSyncRemoveDevice(syncRemoveCmd, emitWithID)
+		case daemon.CommandTypeSyncAcceptDevice:
+			var acceptCmd daemon.SyncAcceptDeviceCommand
+			if err := json.Unmarshal(line, &acceptCmd); err != nil {
+				sendEventWithID(daemon.Event{
+					Type: daemon.EventTypeError,
+					Data: map[string]string{"error": fmt.Sprintf("invalid sync_accept_device command: %v", err)},
+				}, cmdID)
+				continue
+			}
+			events = d.HandleSyncAcceptDevice(acceptCmd, emitWithID)
 		case daemon.CommandTypeSyncRevertFolder:
 			var revertCmd daemon.SyncRevertFolderCommand
 			if err := json.Unmarshal(line, &revertCmd); err != nil {

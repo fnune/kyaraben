@@ -165,6 +165,25 @@ func (c *Client) GetDeviceCompletion(ctx context.Context, deviceID string) (*Com
 	return &completion, nil
 }
 
+func (c *Client) GetFolderCompletionForDevice(ctx context.Context, folderID, deviceID string) (*CompletionResponse, error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/db/completion?folder="+folderID+"&device="+deviceID, nil)
+	if err != nil {
+		return nil, fmt.Errorf("getting folder completion: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+
+	var completion CompletionResponse
+	if err := json.NewDecoder(resp.Body).Decode(&completion); err != nil {
+		return nil, fmt.Errorf("decoding response: %w", err)
+	}
+
+	return &completion, nil
+}
+
 func (c *Client) GetLocalChanges(ctx context.Context, folderID string) ([]LocalChange, error) {
 	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/db/localchanged?folder="+folderID, nil)
 	if err != nil {

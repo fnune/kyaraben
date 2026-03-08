@@ -44,6 +44,8 @@ export interface TestFixtureEnv extends Record<string, string> {
   XDG_STATE_HOME: string
   XDG_DATA_HOME: string
   HOME: string
+  KYARABEN_E2E_FAKE_INSTALLER: string
+  KYARABEN_RELAY_HEALTH_RETRIES: string
 }
 
 export interface TestFixture {
@@ -155,6 +157,7 @@ export function createFixture(config?: ConfigFixture, manifest?: ManifestFixture
     XDG_DATA_HOME: dataDir,
     HOME: tmpDir,
     KYARABEN_E2E_FAKE_INSTALLER: '1',
+    KYARABEN_RELAY_HEALTH_RETRIES: '1',
   }
 
   return {

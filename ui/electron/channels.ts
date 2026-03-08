@@ -16,6 +16,7 @@ const DAEMON_CHANNELS = [
   'sync_start_pairing',
   'sync_join_peer',
   'sync_cancel_pairing',
+  'sync_accept_device',
   'sync_pending',
   'sync_enable',
   'sync_revert_folder',
@@ -55,6 +56,7 @@ export type InvokeChannel = (typeof INVOKE_CHANNELS)[number]
 export const EVENT_CHANNELS = [
   'apply:progress',
   'pairing:progress',
+  'pairing:pending_device',
   'sync_enable:progress',
   'update:progress',
 ] as const

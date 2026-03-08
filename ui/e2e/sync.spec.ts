@@ -555,3 +555,134 @@ test.describe('Relay pairing - enter invalid code', () => {
     )
   })
 })
+
+test.describe('Device ID pairing - pending device confirmation', () => {
+  let ctx: SyncTestContext
+
+  test.beforeAll(async () => {
+    ctx = await setupSyncTest({
+      config: {
+        systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
+        sync: { enabled: true, relayUrl: 'http://localhost:1' },
+      },
+      manifest: { installedEmulators: {} },
+      syncthing: {
+        devices: [],
+        folders: [{ id: 'saves', path: '/home/test/Emulation/saves' }],
+      },
+    })
+  })
+
+  test.afterAll(async () => {
+    await cleanupSyncTest(ctx)
+  })
+
+  test('shows pending device confirmation when device ID is used', async () => {
+    await navigateToSync(ctx.page)
+
+    await ctx.page.getByRole('button', { name: 'Generate pairing code' }).click()
+    await expect(ctx.page.getByText('Use device ID instead')).toBeVisible({ timeout: 5000 })
+
+    ctx.controller.addPendingDevice({
+      deviceID: 'PENDING-DEVICE-1234567890ABCDEF',
+      name: 'Steam Deck',
+      address: '192.168.1.50:22000',
+      time: new Date().toISOString(),
+    })
+
+    await expect(ctx.page.getByText('Device wants to connect')).toBeVisible({ timeout: 10000 })
+    await expect(ctx.page.getByText('Steam Deck')).toBeVisible()
+    await expect(ctx.page.getByRole('button', { name: 'Accept' })).toBeVisible()
+    await expect(ctx.page.getByRole('button', { name: 'Reject' })).toBeVisible()
+  })
+
+  test('can accept pending device', async () => {
+    await ctx.page.getByRole('button', { name: 'Accept' }).click()
+    await expect(ctx.page.getByText('Device wants to connect')).not.toBeVisible({ timeout: 5000 })
+  })
+})
+
+test.describe('Device ID pairing - reject pending device', () => {
+  let ctx: SyncTestContext
+
+  test.beforeAll(async () => {
+    ctx = await setupSyncTest({
+      config: {
+        systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
+        sync: { enabled: true, relayUrl: 'http://localhost:1' },
+      },
+      manifest: { installedEmulators: {} },
+      syncthing: {
+        devices: [],
+        folders: [{ id: 'saves', path: '/home/test/Emulation/saves' }],
+      },
+    })
+  })
+
+  test.afterAll(async () => {
+    await cleanupSyncTest(ctx)
+  })
+
+  test('can reject pending device', async () => {
+    await navigateToSync(ctx.page)
+
+    await ctx.page.getByRole('button', { name: 'Generate pairing code' }).click()
+    await expect(ctx.page.getByText('Use device ID instead')).toBeVisible({ timeout: 5000 })
+
+    ctx.controller.addPendingDevice({
+      deviceID: 'REJECTED-DEVICE-1234567890ABC',
+      name: 'Unknown Device',
+      address: '192.168.1.100:22000',
+      time: new Date().toISOString(),
+    })
+
+    await expect(ctx.page.getByText('Device wants to connect')).toBeVisible({ timeout: 10000 })
+    await ctx.page.getByRole('button', { name: 'Reject' }).click()
+    await expect(ctx.page.getByText('Device wants to connect')).not.toBeVisible({ timeout: 5000 })
+  })
+})
+
+test.describe('Relay pairing - pending device via manual device ID', () => {
+  let ctx: SyncTestContext
+  let relay: RelayServer
+
+  test.beforeAll(async () => {
+    relay = await startRelayServer()
+    ctx = await setupSyncTest({
+      config: {
+        systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
+        sync: { enabled: true, relayUrl: relay.url },
+      },
+      manifest: { installedEmulators: {} },
+      syncthing: {
+        devices: [],
+        folders: [{ id: 'saves', path: '/home/test/Emulation/saves' }],
+      },
+    })
+  })
+
+  test.afterAll(async () => {
+    await cleanupSyncTest(ctx)
+    relay.close()
+  })
+
+  test('shows pending device confirmation when device connects via manually shared device ID', async () => {
+    await navigateToSync(ctx.page)
+
+    await ctx.page.getByRole('button', { name: 'Generate pairing code' }).click()
+    const codeElement = ctx.page.locator('code').filter({ hasText: /^[A-Z0-9]{6}$/ })
+    await expect(codeElement).toBeVisible({ timeout: 5000 })
+
+    ctx.controller.addPendingDevice({
+      deviceID: 'MANUAL-DEVICE-ID-1234567890AB',
+      name: 'Phone',
+      address: '192.168.1.200:22000',
+      time: new Date().toISOString(),
+    })
+
+    await expect(ctx.page.getByText('Device wants to connect')).toBeVisible({ timeout: 10000 })
+    await expect(ctx.page.getByText('Phone')).toBeVisible()
+    await ctx.page.getByRole('button', { name: 'Accept' }).click()
+    await expect(ctx.page.getByText('Device wants to connect')).not.toBeVisible({ timeout: 5000 })
+  })
+})

@@ -330,6 +330,14 @@ export interface SyncPairingProgressEvent {
   deviceId?: string;
   code?: string;
 }
+export interface SyncPendingDeviceEvent {
+  deviceId: string;
+  name: string;
+}
+export interface SyncAcceptDeviceRequest {
+  deviceId: string;
+  accept: boolean;
+}
 export interface SyncEnableProgressEvent {
   phase: string;
   message: string;
@@ -521,6 +529,7 @@ export const CommandTypeSyncRemoveDevice = "sync_remove_device";
 export const CommandTypeSyncStartPairing = "sync_start_pairing";
 export const CommandTypeSyncJoinPeer = "sync_join_peer";
 export const CommandTypeSyncCancelPairing = "sync_cancel_pairing";
+export const CommandTypeSyncAcceptDevice = "sync_accept_device";
 export const CommandTypeSyncPending = "sync_pending";
 export const CommandTypeUninstallPreview = "uninstall_preview";
 export const CommandTypeUninstall = "uninstall";
@@ -536,7 +545,7 @@ export const CommandTypeSyncDiscoveredDevices = "sync_discovered_devices";
 export const CommandTypeSyncSetSettings = "sync_set_settings";
 export const CommandTypeGetStorageDevices = "get_storage_devices";
 export const CommandTypeImportScan = "import_scan";
-export type CommandType = typeof CommandTypeStatus | typeof CommandTypeDoctor | typeof CommandTypeApply | typeof CommandTypeCancelApply | typeof CommandTypeGetSystems | typeof CommandTypeGetFrontends | typeof CommandTypeGetConfig | typeof CommandTypeSetConfig | typeof CommandTypeSyncStatus | typeof CommandTypeSyncRemoveDevice | typeof CommandTypeSyncStartPairing | typeof CommandTypeSyncJoinPeer | typeof CommandTypeSyncCancelPairing | typeof CommandTypeSyncPending | typeof CommandTypeUninstallPreview | typeof CommandTypeUninstall | typeof CommandTypeInstallKyaraben | typeof CommandTypeInstallStatus | typeof CommandTypeRefreshIconCaches | typeof CommandTypePreflight | typeof CommandTypeSyncEnable | typeof CommandTypeSyncRevertFolder | typeof CommandTypeSyncLocalChanges | typeof CommandTypeSyncReset | typeof CommandTypeSyncDiscoveredDevices | typeof CommandTypeSyncSetSettings | typeof CommandTypeGetStorageDevices | typeof CommandTypeImportScan;
+export type CommandType = typeof CommandTypeStatus | typeof CommandTypeDoctor | typeof CommandTypeApply | typeof CommandTypeCancelApply | typeof CommandTypeGetSystems | typeof CommandTypeGetFrontends | typeof CommandTypeGetConfig | typeof CommandTypeSetConfig | typeof CommandTypeSyncStatus | typeof CommandTypeSyncRemoveDevice | typeof CommandTypeSyncStartPairing | typeof CommandTypeSyncJoinPeer | typeof CommandTypeSyncCancelPairing | typeof CommandTypeSyncAcceptDevice | typeof CommandTypeSyncPending | typeof CommandTypeUninstallPreview | typeof CommandTypeUninstall | typeof CommandTypeInstallKyaraben | typeof CommandTypeInstallStatus | typeof CommandTypeRefreshIconCaches | typeof CommandTypePreflight | typeof CommandTypeSyncEnable | typeof CommandTypeSyncRevertFolder | typeof CommandTypeSyncLocalChanges | typeof CommandTypeSyncReset | typeof CommandTypeSyncDiscoveredDevices | typeof CommandTypeSyncSetSettings | typeof CommandTypeGetStorageDevices | typeof CommandTypeImportScan;
 /**
  * Command represents a command from the UI.
  */
@@ -559,6 +568,14 @@ export interface SyncRemoveDeviceCommand {
   type: CommandType;
   id?: string;
   data: SyncRemoveDeviceRequest;
+}
+/**
+ * SyncAcceptDeviceCommand includes the device to accept or reject.
+ */
+export interface SyncAcceptDeviceCommand {
+  type: CommandType;
+  id?: string;
+  data: SyncAcceptDeviceRequest;
 }
 /**
  * SyncJoinPeerCommand includes the pairing code and peer device.
@@ -626,7 +643,8 @@ export const EventTypeResult = "result";
 export const EventTypeProgress = "progress";
 export const EventTypeError = "error";
 export const EventTypeCancelled = "cancelled";
-export type EventType = typeof EventTypeReady | typeof EventTypeResult | typeof EventTypeProgress | typeof EventTypeError | typeof EventTypeCancelled;
+export const EventTypePendingDevice = "pendingDevice";
+export type EventType = typeof EventTypeReady | typeof EventTypeResult | typeof EventTypeProgress | typeof EventTypeError | typeof EventTypeCancelled | typeof EventTypePendingDevice;
 /**
  * Event represents an event sent to the UI.
  * The Data field contains a typed response struct depending on the command.

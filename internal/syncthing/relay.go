@@ -7,12 +7,23 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
 )
 
 const relayRequestTimeout = 10 * time.Second
 const relayRetryDelay = 2 * time.Second
 const relayMaxRetries = 3
+
+func getRelayHealthRetries() int {
+	if v := os.Getenv("KYARABEN_RELAY_HEALTH_RETRIES"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			return n
+		}
+	}
+	return 30
+}
 
 var ProductionRelayURLs = []string{
 	"https://kyaraben-relay-kyaraben-28e14310.koyeb.app",
@@ -29,9 +40,10 @@ func NewRelayClient(urls []string) (*RelayClient, error) {
 	}
 
 	client := &http.Client{Timeout: 30 * time.Second}
+	maxRetries := getRelayHealthRetries()
 
 	for _, url := range urls {
-		for attempt := 0; attempt < 30; attempt++ {
+		for attempt := 0; attempt < maxRetries; attempt++ {
 			resp, err := client.Get(url + "/health")
 			if err != nil {
 				defaultLogger.Debug("Relay health check attempt %d failed for %s: %v", attempt+1, url, err)

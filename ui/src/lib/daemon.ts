@@ -84,6 +84,9 @@ export const joinSyncPeer = (req: SyncJoinPeerRequest) =>
 
 export const cancelSyncPairing = () => invoke<{ cancelled: boolean }>('sync_cancel_pairing')
 
+export const acceptSyncDevice = (req: { deviceId: string; accept: boolean }) =>
+  invoke<{ success: boolean }>('sync_accept_device', req)
+
 export const getSyncPending = () => invoke<SyncPendingResponse>('sync_pending')
 
 export const enableSync = (req: SyncEnableRequest) => invoke<SyncEnableResponse>('sync_enable', req)
