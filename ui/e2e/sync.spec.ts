@@ -236,9 +236,6 @@ test.describe('Sync view with connectivity issue', () => {
     await expect(ctx.page.getByText(/Unreachable Device/)).toBeVisible()
     await expect(ctx.page.getByText(/Port unreachable/)).toBeVisible({ timeout: 10000 })
     await expect(ctx.page.getByText(/Learn more about firewall/)).toBeVisible()
-
-    // Pause for visual inspection - remove after review
-    await ctx.page.waitForTimeout(30000)
   })
 })
 
@@ -273,9 +270,6 @@ test.describe('Sync view with local connectivity issue', () => {
       timeout: 10000,
     })
     await expect(ctx.page.getByText(/Learn more about firewall/)).toBeVisible()
-
-    // Pause for visual inspection - remove after review
-    await ctx.page.waitForTimeout(30000)
   })
 })
 
