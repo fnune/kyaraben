@@ -28,9 +28,11 @@ This directory contains device-side integrations for Kyaraben. Each integration 
 
 An integration runs on the device and:
 
-1. Manages a bundled Syncthing instance
+1. Manages Syncthing (bundled, or using the CFW's built-in instance)
 2. Maps Kyaraben folder IDs to CFW-specific paths
 3. Provides a UI for pairing, status, and configuration
+
+Some CFWs ship with Syncthing built-in (Batocera v33+, KNULLI, ROCKNIX). Integrations for these can configure the existing service rather than bundling a separate binary.
 
 ## Shared code
 
@@ -89,10 +91,10 @@ Some CFWs share path conventions and can be covered by one integration:
 
 | Integration | Covers | Base path | Notes |
 |-------------|--------|-----------|-------|
-| `nextui` | MinUI, NextUI | SD card root | Uses minui-* UI tools |
-| `batocera` | Batocera, KNULLI, Koriki | `/userdata` | EmulationStation-based |
-| `rocknix` | ROCKNIX, UnofficialOS, JELOS | `/storage` | Has built-in Syncthing |
-| `muos` | muOS | SD card root | Unique union filesystem |
+| `nextui` | MinUI, NextUI | SD card root | Uses minui-* UI tools, bundles Syncthing |
+| `batocera` | Batocera, KNULLI, Koriki | `/userdata` | EmulationStation-based, has built-in Syncthing |
+| `rocknix` | ROCKNIX, UnofficialOS, JELOS | `/storage` | Has built-in Syncthing and rclone |
+| `muos` | muOS | SD card root | Unique union filesystem, bundles Syncthing |
 
 ### 2. Create the integration structure
 
