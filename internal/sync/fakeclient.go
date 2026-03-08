@@ -23,6 +23,7 @@ type FakeClient struct {
 	pendingDevs       []syncthing.PendingDevice
 	deviceCompletions map[string]syncthing.CompletionResponse
 	reconciledDrift   []syncthing.FolderSharingDrift
+	addFoldersCalls   [][]syncthing.FolderCreateRequest
 }
 
 func NewFakeClient(config model.SyncConfig) *FakeClient {
@@ -386,7 +387,18 @@ func (c *FakeClient) Config() syncthing.Config {
 }
 
 func (c *FakeClient) AddFolders(ctx context.Context, folders []syncthing.FolderCreateRequest) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.addFoldersCalls = append(c.addFoldersCalls, folders)
 	return nil
+}
+
+func (c *FakeClient) AddFoldersCalls() [][]syncthing.FolderCreateRequest {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	result := make([][]syncthing.FolderCreateRequest, len(c.addFoldersCalls))
+	copy(result, c.addFoldersCalls)
+	return result
 }
 
 func (c *FakeClient) DisableUsageReporting(ctx context.Context) error {

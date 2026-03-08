@@ -246,27 +246,65 @@ func (k *kyarabenInstance) writeKyarabenConfig(peer *kyarabenInstance) error {
 	}
 
 	gen := NewDefaultConfigGenerator(cfg, k.collection, k.systems, k.emulators, nil)
-	gen.SetDeviceID(k.deviceID)
-	gen.SetAPIKey(k.apiKey)
+	folderRequests := gen.FolderCreateRequests()
 
-	xmlCfg, err := gen.Generate()
-	if err != nil {
-		return err
+	deviceRefs := []XMLFolderDevice{
+		{ID: k.deviceID},
+		{ID: peer.deviceID},
 	}
 
-	xmlCfg.Devices = append(xmlCfg.Devices, XMLDevice{
-		ID:          peer.deviceID,
-		Name:        peer.name,
-		Compression: "metadata",
-		Addresses:   []string{fmt.Sprintf("tcp://127.0.0.1:%d", peer.listenPort)},
-	})
-
-	for i := range xmlCfg.Folders {
-		xmlCfg.Folders[i].Devices = append(xmlCfg.Folders[i].Devices, XMLFolderDevice{ID: peer.deviceID})
+	xmlFolders := make([]XMLFolder, len(folderRequests))
+	for i, req := range folderRequests {
+		xmlFolders[i] = XMLFolder{
+			ID:               req.ID,
+			Label:            req.Label,
+			Path:             req.Path,
+			Type:             FolderType(req.Type),
+			Devices:          deviceRefs,
+			FSWatcherEnabled: true,
+			IgnorePerms:      true,
+		}
 	}
 
-	xmlCfg.Options.GlobalAnnounceEnabled = false
-	xmlCfg.Options.LocalAnnounceEnabled = false
+	xmlCfg := &SyncthingXMLConfig{
+		Version: 37,
+		Folders: xmlFolders,
+		Devices: []XMLDevice{
+			{
+				ID:          k.deviceID,
+				Name:        "this-device",
+				Compression: "metadata",
+			},
+			{
+				ID:          peer.deviceID,
+				Name:        peer.name,
+				Compression: "metadata",
+				Addresses:   []string{fmt.Sprintf("tcp://127.0.0.1:%d", peer.listenPort)},
+			},
+		},
+		GUI: XMLGUI{
+			Enabled: true,
+			Address: fmt.Sprintf("127.0.0.1:%d", k.guiPort),
+			APIKey:  k.apiKey,
+			Theme:   "default",
+		},
+		Options: XMLOptions{
+			ListenAddresses: []string{
+				fmt.Sprintf("tcp://0.0.0.0:%d", k.listenPort),
+				fmt.Sprintf("quic://0.0.0.0:%d", k.listenPort),
+			},
+			GlobalAnnounceEnabled: false,
+			LocalAnnounceEnabled:  false,
+			LocalAnnouncePort:     21027,
+			URAccepted:            -1,
+			AutoUpgradeIntervalH:  0,
+		},
+		Defaults: XMLDefaults{
+			Folder: XMLDefaultFolder{
+				Path: k.collection,
+			},
+		},
+	}
 
 	return k.writeConfigXML(xmlCfg)
 }

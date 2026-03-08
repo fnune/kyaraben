@@ -1,15 +1,15 @@
 package sync
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/fnune/kyaraben/internal/folders"
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/syncthing"
 	"github.com/fnune/kyaraben/internal/testutil"
 )
 
-func TestConfigGenerator_GenerateFolders(t *testing.T) {
+func TestConfigGenerator_FolderCreateRequests(t *testing.T) {
 	cfg := model.SyncConfig{
 		Enabled: true,
 		Syncthing: model.SyncthingConfig{
@@ -28,32 +28,27 @@ func TestConfigGenerator_GenerateFolders(t *testing.T) {
 		{ID: "duckstation", UsesStatesDir: true, UsesScreenshotsDir: true},
 	}
 	gen := NewConfigGenerator(fs, cfg, "/home/user/Emulation", systems, emulators, nil)
-	gen.SetDeviceID("TEST-DEVICE-ID")
-	gen.SetAPIKey("test-api-key")
 
-	xmlCfg, err := gen.Generate()
-	if err != nil {
-		t.Fatalf("Generate() error = %v", err)
-	}
+	requests := gen.FolderCreateRequests()
 
-	foldersByID := make(map[string]XMLFolder)
-	for _, f := range xmlCfg.Folders {
+	foldersByID := make(map[string]syncthing.FolderCreateRequest)
+	for _, f := range requests {
 		foldersByID[f.ID] = f
 	}
 
 	tests := []struct {
 		folderID string
-		wantType FolderType
+		wantType string
 		wantPath string
 	}{
-		{"kyaraben-roms-snes", FolderTypeSendReceive, "/home/user/Emulation/roms/snes"},
-		{"kyaraben-roms-psx", FolderTypeSendReceive, "/home/user/Emulation/roms/psx"},
-		{"kyaraben-bios-snes", FolderTypeSendReceive, "/home/user/Emulation/bios/snes"},
-		{"kyaraben-bios-psx", FolderTypeSendReceive, "/home/user/Emulation/bios/psx"},
-		{"kyaraben-saves-snes", FolderTypeSendReceive, "/home/user/Emulation/saves/snes"},
-		{"kyaraben-saves-psx", FolderTypeSendReceive, "/home/user/Emulation/saves/psx"},
-		{"kyaraben-screenshots-retroarch", FolderTypeSendReceive, "/home/user/Emulation/screenshots/retroarch"},
-		{"kyaraben-screenshots-duckstation", FolderTypeSendReceive, "/home/user/Emulation/screenshots/duckstation"},
+		{"kyaraben-roms-snes", "sendreceive", "/home/user/Emulation/roms/snes"},
+		{"kyaraben-roms-psx", "sendreceive", "/home/user/Emulation/roms/psx"},
+		{"kyaraben-bios-snes", "sendreceive", "/home/user/Emulation/bios/snes"},
+		{"kyaraben-bios-psx", "sendreceive", "/home/user/Emulation/bios/psx"},
+		{"kyaraben-saves-snes", "sendreceive", "/home/user/Emulation/saves/snes"},
+		{"kyaraben-saves-psx", "sendreceive", "/home/user/Emulation/saves/psx"},
+		{"kyaraben-screenshots-retroarch", "sendreceive", "/home/user/Emulation/screenshots/retroarch"},
+		{"kyaraben-screenshots-duckstation", "sendreceive", "/home/user/Emulation/screenshots/duckstation"},
 	}
 
 	for _, tt := range tests {
@@ -72,44 +67,7 @@ func TestConfigGenerator_GenerateFolders(t *testing.T) {
 	}
 }
 
-func TestConfigGenerator_Versioning(t *testing.T) {
-	cfg := model.SyncConfig{
-		Enabled:   true,
-		Syncthing: model.SyncthingConfig{GUIPort: 8385},
-	}
-
-	fs := testutil.NewTestFS(t, nil)
-
-	emulators := []folders.EmulatorInfo{
-		{ID: "retroarch:bsnes", UsesStatesDir: true, UsesScreenshotsDir: true},
-	}
-	gen := NewConfigGenerator(fs, cfg, "/tmp", []model.SystemID{"snes"}, emulators, nil)
-
-	xmlCfg, err := gen.Generate()
-	if err != nil {
-		t.Fatalf("Generate() error = %v", err)
-	}
-
-	var savesFolder, romsFolder XMLFolder
-	for _, f := range xmlCfg.Folders {
-		switch f.ID {
-		case "kyaraben-saves-snes":
-			savesFolder = f
-		case "kyaraben-roms-snes":
-			romsFolder = f
-		}
-	}
-
-	if savesFolder.Versioning.Type != "staggered" {
-		t.Errorf("saves folder should have staggered versioning, got %s", savesFolder.Versioning.Type)
-	}
-
-	if romsFolder.Versioning.Type != "" {
-		t.Errorf("roms folder should not have versioning, got %s", romsFolder.Versioning.Type)
-	}
-}
-
-func TestConfigGenerator_WriteConfig_WritesIgnoreFiles(t *testing.T) {
+func TestConfigGenerator_WriteIgnoreFiles(t *testing.T) {
 	cfg := model.SyncConfig{
 		Enabled: true,
 		Syncthing: model.SyncthingConfig{
@@ -132,10 +90,10 @@ func TestConfigGenerator_WriteConfig_WritesIgnoreFiles(t *testing.T) {
 		{ID: "retroarch:bsnes", UsesStatesDir: true, UsesScreenshotsDir: true},
 	}
 	gen := NewConfigGenerator(fs, cfg, "/emulation", []model.SystemID{"snes"}, emulators, nil)
-	gen.SetAPIKey("test-key")
 
-	if err := gen.WriteConfig("/config"); err != nil {
-		t.Fatalf("WriteConfig() error = %v", err)
+	requests := gen.FolderCreateRequests()
+	if err := gen.WriteIgnoreFiles(requests); err != nil {
+		t.Fatalf("WriteIgnoreFiles() error = %v", err)
 	}
 
 	ignoreFiles := []string{
@@ -160,7 +118,7 @@ func TestConfigGenerator_WriteConfig_WritesIgnoreFiles(t *testing.T) {
 	}
 }
 
-func TestConfigGenerator_WriteConfig_NoIgnoreFilesWhenNoPatterns(t *testing.T) {
+func TestConfigGenerator_WriteIgnoreFiles_NoFilesWhenNoPatterns(t *testing.T) {
 	cfg := model.SyncConfig{
 		Enabled: true,
 		Syncthing: model.SyncthingConfig{
@@ -176,60 +134,15 @@ func TestConfigGenerator_WriteConfig_NoIgnoreFilesWhenNoPatterns(t *testing.T) {
 		{ID: "retroarch:bsnes", UsesStatesDir: true, UsesScreenshotsDir: true},
 	}
 	gen := NewConfigGenerator(fs, cfg, "/emulation", []model.SystemID{"snes"}, emulators, nil)
-	gen.SetAPIKey("test-key")
 
-	if err := gen.WriteConfig("/config"); err != nil {
-		t.Fatalf("WriteConfig() error = %v", err)
+	requests := gen.FolderCreateRequests()
+	if err := gen.WriteIgnoreFiles(requests); err != nil {
+		t.Fatalf("WriteIgnoreFiles() error = %v", err)
 	}
 
 	ignorePath := "/emulation/roms/snes/.stignore"
 	if _, err := fs.ReadFile(ignorePath); err == nil {
 		t.Errorf("expected %s to not exist when no patterns configured", ignorePath)
-	}
-}
-
-func TestConfigGenerator_WriteConfig_PreservesExistingDevices(t *testing.T) {
-	existingConfig := `<?xml version="1.0" encoding="UTF-8"?>
-<configuration version="37">
-  <device id="LOCAL-DEVICE-ID" name="this-device" compression="metadata"></device>
-  <device id="PAIRED-DEVICE-ID" name="steamdeck" compression="metadata"></device>
-</configuration>`
-
-	fs := testutil.NewTestFS(t, map[string]any{
-		"/config/config.xml": existingConfig,
-	})
-
-	cfg := model.SyncConfig{
-		Enabled: true,
-		Syncthing: model.SyncthingConfig{
-			ListenPort:    22001,
-			DiscoveryPort: 21028,
-			GUIPort:       8385,
-		},
-	}
-
-	emulators := []folders.EmulatorInfo{
-		{ID: "retroarch:bsnes", UsesStatesDir: true, UsesScreenshotsDir: true},
-	}
-	gen := NewConfigGenerator(fs, cfg, "/emulation", []model.SystemID{"snes"}, emulators, nil)
-	gen.SetDeviceID("LOCAL-DEVICE-ID")
-	gen.SetAPIKey("test-key")
-
-	if err := gen.WriteConfig("/config"); err != nil {
-		t.Fatalf("WriteConfig() error = %v", err)
-	}
-
-	content, err := fs.ReadFile("/config/config.xml")
-	if err != nil {
-		t.Fatalf("ReadFile() error = %v", err)
-	}
-
-	configStr := string(content)
-	if !strings.Contains(configStr, "PAIRED-DEVICE-ID") {
-		t.Errorf("config should preserve paired device ID")
-	}
-	if !strings.Contains(configStr, `name="steamdeck"`) {
-		t.Errorf("config should preserve paired device name")
 	}
 }
 
@@ -247,14 +160,11 @@ func TestConfigGenerator_FiltersEmulatorsByPathUsage(t *testing.T) {
 	}
 	gen := NewConfigGenerator(fs, cfg, "/emulation", []model.SystemID{"psx", "switch"}, emulators, nil)
 
-	xmlCfg, err := gen.Generate()
-	if err != nil {
-		t.Fatalf("Generate() error = %v", err)
-	}
+	requests := gen.FolderCreateRequests()
 
 	var hasDuckstationStates, hasEdenStates bool
 	var hasDuckstationScreenshots, hasEdenScreenshots bool
-	for _, f := range xmlCfg.Folders {
+	for _, f := range requests {
 		switch f.ID {
 		case "kyaraben-states-duckstation":
 			hasDuckstationStates = true
@@ -295,10 +205,7 @@ func TestConfigGenerator_FrontendFolders(t *testing.T) {
 	frontends := []model.FrontendID{"esde"}
 	gen := NewConfigGenerator(fs, cfg, "/emulation", []model.SystemID{"snes", "psx"}, emulators, frontends)
 
-	xmlCfg, err := gen.Generate()
-	if err != nil {
-		t.Fatalf("Generate() error = %v", err)
-	}
+	requests := gen.FolderCreateRequests()
 
 	wantFrontendFolders := []string{
 		"kyaraben-frontends-esde-gamelists-snes",
@@ -307,8 +214,8 @@ func TestConfigGenerator_FrontendFolders(t *testing.T) {
 		"kyaraben-frontends-esde-media-psx",
 	}
 
-	foldersByID := make(map[string]XMLFolder)
-	for _, f := range xmlCfg.Folders {
+	foldersByID := make(map[string]syncthing.FolderCreateRequest)
+	for _, f := range requests {
 		foldersByID[f.ID] = f
 	}
 
@@ -316,5 +223,42 @@ func TestConfigGenerator_FrontendFolders(t *testing.T) {
 		if _, ok := foldersByID[wantID]; !ok {
 			t.Errorf("missing expected frontend folder: %s", wantID)
 		}
+	}
+}
+
+func TestConfigGenerator_GenerateBootstrap(t *testing.T) {
+	cfg := model.SyncConfig{
+		Enabled: true,
+		Syncthing: model.SyncthingConfig{
+			ListenPort:    22001,
+			DiscoveryPort: 21028,
+			GUIPort:       8385,
+			RelayEnabled:  true,
+		},
+	}
+
+	fs := testutil.NewTestFS(t, nil)
+	gen := NewConfigGenerator(fs, cfg, "/emulation", []model.SystemID{"snes"}, nil, nil)
+	gen.SetAPIKey("test-api-key")
+
+	xmlCfg := gen.GenerateBootstrap()
+
+	if xmlCfg.Version != 37 {
+		t.Errorf("Version = %d, want 37", xmlCfg.Version)
+	}
+	if len(xmlCfg.Folders) != 0 {
+		t.Errorf("Folders = %d, want 0 (bootstrap config has no folders)", len(xmlCfg.Folders))
+	}
+	if len(xmlCfg.Devices) != 0 {
+		t.Errorf("Devices = %d, want 0 (bootstrap config has no devices)", len(xmlCfg.Devices))
+	}
+	if xmlCfg.GUI.APIKey != "test-api-key" {
+		t.Errorf("APIKey = %s, want test-api-key", xmlCfg.GUI.APIKey)
+	}
+	if xmlCfg.GUI.Address != "127.0.0.1:8385" {
+		t.Errorf("GUI Address = %s, want 127.0.0.1:8385", xmlCfg.GUI.Address)
+	}
+	if !xmlCfg.Options.RelaysEnabled {
+		t.Error("RelaysEnabled should be true")
 	}
 }

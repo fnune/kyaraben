@@ -10,6 +10,7 @@ import (
 
 	"github.com/fnune/kyaraben/internal/folders"
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/syncthing"
 )
 
 type FolderType string
@@ -94,15 +95,14 @@ type XMLVersioningParam struct {
 }
 
 type ConfigGenerator struct {
-	fs              vfs.FS
-	syncConfig      model.SyncConfig
-	collection      string
-	deviceID        string
-	apiKey          string
-	allSystems      []model.SystemID
-	allEmulators    []folders.EmulatorInfo
-	allFrontends    []model.FrontendID
-	existingDevices []XMLDevice
+	fs           vfs.FS
+	syncConfig   model.SyncConfig
+	collection   string
+	deviceID     string
+	apiKey       string
+	allSystems   []model.SystemID
+	allEmulators []folders.EmulatorInfo
+	allFrontends []model.FrontendID
 }
 
 func NewConfigGenerator(fs vfs.FS, syncConfig model.SyncConfig, collection string, allSystems []model.SystemID, allEmulators []folders.EmulatorInfo, allFrontends []model.FrontendID) *ConfigGenerator {
@@ -128,44 +128,11 @@ func (g *ConfigGenerator) SetAPIKey(key string) {
 	g.apiKey = key
 }
 
-func (g *ConfigGenerator) LoadExistingDevices(configDir string) error {
-	configPath := filepath.Join(configDir, "config.xml")
-	data, err := g.fs.ReadFile(configPath)
-	if err != nil {
-		return nil
-	}
-
-	var existing SyncthingXMLConfig
-	if err := xml.Unmarshal(data, &existing); err != nil {
-		log.Info("Could not parse existing config.xml, will create fresh: %v", err)
-		return nil
-	}
-
-	for _, dev := range existing.Devices {
-		if dev.ID != g.deviceID {
-			g.existingDevices = append(g.existingDevices, dev)
-		}
-	}
-
-	if len(g.existingDevices) > 0 {
-		log.Info("Preserving %d existing paired device(s) from config", len(g.existingDevices))
-	}
-
-	return nil
-}
-
-func (g *ConfigGenerator) Generate() (*SyncthingXMLConfig, error) {
-	folders, err := g.generateFolders()
-	if err != nil {
-		return nil, fmt.Errorf("generating folders: %w", err)
-	}
-
-	devices := g.generateDevices()
-
-	config := &SyncthingXMLConfig{
+func (g *ConfigGenerator) GenerateBootstrap() *SyncthingXMLConfig {
+	return &SyncthingXMLConfig{
 		Version: 37,
-		Folders: folders,
-		Devices: devices,
+		Folders: nil,
+		Devices: nil,
 		GUI: XMLGUI{
 			Enabled: true,
 			Address: fmt.Sprintf("127.0.0.1:%d", g.syncConfig.Syncthing.GUIPort),
@@ -190,13 +157,9 @@ func (g *ConfigGenerator) Generate() (*SyncthingXMLConfig, error) {
 			},
 		},
 	}
-
-	return config, nil
 }
 
-func (g *ConfigGenerator) generateFolders() ([]XMLFolder, error) {
-	deviceRefs := g.folderDeviceRefs()
-
+func (g *ConfigGenerator) FolderCreateRequests() []syncthing.FolderCreateRequest {
 	specs := folders.GenerateSpecs(folders.HostInput{
 		Systems:          g.allSystems,
 		Emulators:        g.allEmulators,
@@ -204,28 +167,16 @@ func (g *ConfigGenerator) generateFolders() ([]XMLFolder, error) {
 		FrontendSuffixes: g.frontendSuffixes,
 	})
 
-	xmlFolders := make([]XMLFolder, 0, len(specs))
-	for _, spec := range specs {
-		path := g.folderPath(spec)
-
-		folder := XMLFolder{
-			ID:               spec.ID,
-			Label:            spec.ID,
-			Path:             path,
-			Type:             FolderTypeSendReceive,
-			Devices:          deviceRefs,
-			FSWatcherEnabled: true,
-			IgnorePerms:      true,
+	requests := make([]syncthing.FolderCreateRequest, len(specs))
+	for i, spec := range specs {
+		requests[i] = syncthing.FolderCreateRequest{
+			ID:    spec.ID,
+			Label: spec.ID,
+			Path:  g.folderPath(spec),
+			Type:  string(FolderTypeSendReceive),
 		}
-
-		if spec.Versioning {
-			folder.Versioning = g.versioningConfig()
-		}
-
-		xmlFolders = append(xmlFolders, folder)
 	}
-
-	return xmlFolders, nil
+	return requests
 }
 
 func (g *ConfigGenerator) folderPath(spec folders.Spec) string {
@@ -267,55 +218,8 @@ func (g *ConfigGenerator) frontendSuffixes(fe model.FrontendID, systems []model.
 	return suffixes
 }
 
-func (g *ConfigGenerator) generateDevices() []XMLDevice {
-	var devices []XMLDevice
-
-	if g.deviceID != "" {
-		devices = append(devices, XMLDevice{
-			ID:          g.deviceID,
-			Name:        "this-device",
-			Compression: "metadata",
-		})
-	}
-
-	devices = append(devices, g.existingDevices...)
-
-	return devices
-}
-
-func (g *ConfigGenerator) folderDeviceRefs() []XMLFolderDevice {
-	var refs []XMLFolderDevice
-
-	if g.deviceID != "" {
-		refs = append(refs, XMLFolderDevice{ID: g.deviceID})
-	}
-
-	for _, dev := range g.existingDevices {
-		refs = append(refs, XMLFolderDevice{ID: dev.ID})
-	}
-
-	return refs
-}
-
-func (g *ConfigGenerator) versioningConfig() XMLVersioning {
-	return XMLVersioning{
-		Type: "staggered",
-		Params: []XMLVersioningParam{
-			{Key: "cleanInterval", Val: "3600"},
-			{Key: "maxAge", Val: "2592000"},
-		},
-	}
-}
-
-func (g *ConfigGenerator) WriteConfig(configDir string) error {
-	if err := g.LoadExistingDevices(configDir); err != nil {
-		log.Info("Could not load existing devices: %v", err)
-	}
-
-	config, err := g.Generate()
-	if err != nil {
-		return err
-	}
+func (g *ConfigGenerator) WriteBootstrapConfig(configDir string) error {
+	config := g.GenerateBootstrap()
 
 	if err := vfs.MkdirAll(g.fs, configDir, 0700); err != nil {
 		return fmt.Errorf("creating config dir: %w", err)
@@ -335,16 +239,11 @@ func (g *ConfigGenerator) WriteConfig(configDir string) error {
 		return fmt.Errorf("writing config: %w", err)
 	}
 
-	log.Info("Wrote syncthing config to %s", configPath)
-
-	if err := g.writeIgnoreFiles(config.Folders); err != nil {
-		return fmt.Errorf("writing ignore files: %w", err)
-	}
-
+	log.Info("Wrote syncthing bootstrap config to %s", configPath)
 	return nil
 }
 
-func (g *ConfigGenerator) writeIgnoreFiles(folders []XMLFolder) error {
+func (g *ConfigGenerator) WriteIgnoreFiles(folderRequests []syncthing.FolderCreateRequest) error {
 	if len(g.syncConfig.Ignore.Patterns) == 0 {
 		return nil
 	}
@@ -356,7 +255,7 @@ func (g *ConfigGenerator) writeIgnoreFiles(folders []XMLFolder) error {
 	}
 	ignoreContent := []byte(content.String())
 
-	for _, folder := range folders {
+	for _, folder := range folderRequests {
 		if err := vfs.MkdirAll(g.fs, folder.Path, 0755); err != nil {
 			return fmt.Errorf("creating folder %s: %w", folder.Path, err)
 		}
@@ -367,6 +266,6 @@ func (g *ConfigGenerator) writeIgnoreFiles(folders []XMLFolder) error {
 		}
 	}
 
-	log.Info("Wrote .stignore files to %d folders", len(folders))
+	log.Info("Wrote .stignore files to %d folders", len(folderRequests))
 	return nil
 }

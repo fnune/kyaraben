@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/xml"
 	"fmt"
 	"net"
 	"os"
@@ -18,26 +19,33 @@ import (
 	"github.com/fnune/kyaraben/internal/paths"
 )
 
+type ClientFactory func(config model.SyncConfig) SyncClient
+
 type Setup struct {
-	fs        vfs.FS
-	paths     *paths.Paths
-	installer packages.Installer
-	stateDir  string
-	service   ServiceManager
+	fs            vfs.FS
+	paths         *paths.Paths
+	installer     packages.Installer
+	stateDir      string
+	service       ServiceManager
+	clientFactory ClientFactory
 }
 
-func NewSetup(fs vfs.FS, p *paths.Paths, installer packages.Installer, stateDir string, service ServiceManager) *Setup {
+func NewSetup(fs vfs.FS, p *paths.Paths, installer packages.Installer, stateDir string, service ServiceManager, clientFactory ClientFactory) *Setup {
 	return &Setup{
-		fs:        fs,
-		paths:     p,
-		installer: installer,
-		stateDir:  stateDir,
-		service:   service,
+		fs:            fs,
+		paths:         p,
+		installer:     installer,
+		stateDir:      stateDir,
+		service:       service,
+		clientFactory: clientFactory,
 	}
 }
 
 func NewDefaultSetup(installer packages.Installer, stateDir string) *Setup {
-	return NewSetup(vfs.OSFS, paths.DefaultPaths(), installer, stateDir, NewDefaultServiceManager())
+	factory := func(config model.SyncConfig) SyncClient {
+		return NewClient(config)
+	}
+	return NewSetup(vfs.OSFS, paths.DefaultPaths(), installer, stateDir, NewDefaultServiceManager(), factory)
 }
 
 type SetupResult struct {
@@ -69,6 +77,11 @@ func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, collectionPat
 	configDir := filepath.Join(s.stateDir, "syncthing", "config")
 	dataDir := filepath.Join(s.stateDir, "syncthing", "data")
 
+	pairedDevices, err := s.loadPairedDevices(configDir)
+	if err != nil {
+		log.Info("Could not load paired devices: %v", err)
+	}
+
 	apiKey, err := s.loadOrGenerateAPIKey(configDir)
 	if err != nil {
 		return nil, fmt.Errorf("generating API key: %w", err)
@@ -77,7 +90,7 @@ func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, collectionPat
 	configGen := NewConfigGenerator(s.fs, cfg, collectionPath, allSystems, allEmulators, allFrontends)
 	configGen.SetAPIKey(apiKey)
 
-	if err := configGen.WriteConfig(configDir); err != nil {
+	if err := configGen.WriteBootstrapConfig(configDir); err != nil {
 		return nil, fmt.Errorf("writing syncthing config: %w", err)
 	}
 
@@ -97,6 +110,26 @@ func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, collectionPat
 		return nil, fmt.Errorf("enabling syncthing service: %w", err)
 	}
 
+	client := s.clientFactory(cfg)
+	client.SetAPIKey(apiKey)
+
+	if err := s.waitForSyncthing(ctx, client); err != nil {
+		return nil, fmt.Errorf("waiting for syncthing: %w", err)
+	}
+
+	folderRequests := configGen.FolderCreateRequests()
+	if err := client.AddFolders(ctx, folderRequests); err != nil {
+		return nil, fmt.Errorf("adding folders via REST: %w", err)
+	}
+
+	if err := s.restorePairedDevices(ctx, client, pairedDevices); err != nil {
+		return nil, fmt.Errorf("restoring paired devices: %w", err)
+	}
+
+	if err := configGen.WriteIgnoreFiles(folderRequests); err != nil {
+		return nil, fmt.Errorf("writing ignore files: %w", err)
+	}
+
 	unitPath, _ := unitGen.unitPath()
 
 	return &SetupResult{
@@ -108,7 +141,7 @@ func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, collectionPat
 	}, nil
 }
 
-func (s *Setup) UpdateConfig(cfg model.SyncConfig, collectionPath string, allSystems []model.SystemID, allEmulators []folders.EmulatorInfo, allFrontends []model.FrontendID) error {
+func (s *Setup) UpdateConfig(ctx context.Context, cfg model.SyncConfig, collectionPath string, allSystems []model.SystemID, allEmulators []folders.EmulatorInfo, allFrontends []model.FrontendID) error {
 	if !cfg.Enabled {
 		return nil
 	}
@@ -123,11 +156,27 @@ func (s *Setup) UpdateConfig(cfg model.SyncConfig, collectionPath string, allSys
 	configGen := NewConfigGenerator(s.fs, cfg, collectionPath, allSystems, allEmulators, allFrontends)
 	configGen.SetAPIKey(apiKey)
 
-	if err := configGen.WriteConfig(configDir); err != nil {
-		return fmt.Errorf("writing syncthing config: %w", err)
+	client := s.clientFactory(cfg)
+	client.SetAPIKey(apiKey)
+
+	if client.IsRunning(ctx) {
+		folderRequests := configGen.FolderCreateRequests()
+		if err := client.AddFolders(ctx, folderRequests); err != nil {
+			return fmt.Errorf("adding folders via REST: %w", err)
+		}
+
+		if err := configGen.WriteIgnoreFiles(folderRequests); err != nil {
+			return fmt.Errorf("writing ignore files: %w", err)
+		}
+
+		log.Info("Updated syncthing folders via REST API (%d systems, %d emulators)", len(allSystems), len(allEmulators))
+	} else {
+		if err := configGen.WriteBootstrapConfig(configDir); err != nil {
+			return fmt.Errorf("writing syncthing config: %w", err)
+		}
+		log.Info("Wrote syncthing bootstrap config (%d systems, %d emulators)", len(allSystems), len(allEmulators))
 	}
 
-	log.Info("Updated syncthing config with %d systems, %d emulators", len(allSystems), len(allEmulators))
 	return nil
 }
 
@@ -284,3 +333,59 @@ func checkPortAvailable(network string, port int) error {
 type PortChecker func(cfg model.SyncthingConfig) error
 
 var CheckPorts PortChecker = checkPortsAvailable
+
+func (s *Setup) waitForSyncthing(ctx context.Context, client SyncClient) error {
+	deadline := time.Now().Add(30 * time.Second)
+	for time.Now().Before(deadline) {
+		if client.IsRunning(ctx) {
+			log.Info("Syncthing is ready")
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(500 * time.Millisecond):
+		}
+	}
+	return fmt.Errorf("timed out waiting for syncthing to start")
+}
+
+func (s *Setup) loadPairedDevices(configDir string) ([]XMLDevice, error) {
+	configPath := filepath.Join(configDir, "config.xml")
+	data, err := s.fs.ReadFile(configPath)
+	if err != nil {
+		return nil, nil
+	}
+
+	var existing SyncthingXMLConfig
+	if err := xml.Unmarshal(data, &existing); err != nil {
+		log.Info("Could not parse existing config.xml: %v", err)
+		return nil, nil
+	}
+
+	var paired []XMLDevice
+	for _, dev := range existing.Devices {
+		if dev.Name != "this-device" && dev.Name != "" {
+			paired = append(paired, dev)
+		}
+	}
+
+	if len(paired) > 0 {
+		log.Info("Found %d paired device(s) to restore", len(paired))
+	}
+
+	return paired, nil
+}
+
+func (s *Setup) restorePairedDevices(ctx context.Context, client SyncClient, devices []XMLDevice) error {
+	for _, dev := range devices {
+		if err := client.AddDeviceWithAddresses(ctx, dev.ID, dev.Name, dev.Addresses); err != nil {
+			return fmt.Errorf("restoring device %s: %w", dev.Name, err)
+		}
+		if err := client.ShareFoldersWithDevice(ctx, dev.ID); err != nil {
+			return fmt.Errorf("sharing folders with device %s: %w", dev.Name, err)
+		}
+		log.Info("Restored paired device: %s", dev.Name)
+	}
+	return nil
+}

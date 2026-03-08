@@ -1756,7 +1756,7 @@ func (d *Daemon) handleSyncEnable(emit func(Event)) []Event {
 	go func() {
 		emitProgress("installing", "Installing syncthing...", 0)
 
-		setup := syncpkg.NewSetup(d.deps.FS, d.deps.Paths, d.deps.Installer, d.deps.StateDir, d.deps.Service)
+		setup := d.syncSetup()
 		result, err := setup.Install(context.Background(), cfg.Sync, collection.Root(), allSystems, allEmulators, allFrontends, func(p packages.InstallProgress) {
 			percent := 0
 			if p.BytesTotal > 0 {
@@ -1814,7 +1814,7 @@ func (d *Daemon) handleSyncEnable(emit func(Event)) []Event {
 func (d *Daemon) handleSyncReset() []Event {
 	d.stopAutoAcceptLoop()
 	d.stopJoinerPairing()
-	setup := syncpkg.NewSetup(d.deps.FS, d.deps.Paths, d.deps.Installer, d.deps.StateDir, d.deps.Service)
+	setup := d.syncSetup()
 	var removedFiles []string
 
 	if setup.IsEnabled() {
@@ -1891,8 +1891,8 @@ func (d *Daemon) handleSyncSetSettings(data *SyncSetSettingsRequest) []Event {
 		allSystems := d.syncSystems(cfg)
 		allEmulators := d.syncEmulators(cfg)
 		allFrontends := d.syncFrontends(cfg)
-		setup := syncpkg.NewSetup(d.deps.FS, d.deps.Paths, d.deps.Installer, d.deps.StateDir, d.deps.Service)
-		if err := setup.UpdateConfig(cfg.Sync, collection.Root(), allSystems, allEmulators, allFrontends); err != nil {
+		setup := d.syncSetup()
+		if err := setup.UpdateConfig(context.Background(), cfg.Sync, collection.Root(), allSystems, allEmulators, allFrontends); err != nil {
 			return d.errorResponse(fmt.Sprintf("updating syncthing config: %v", err))
 		}
 
@@ -2123,7 +2123,7 @@ func (d *Daemon) ensureSyncthingManaged(cfg *model.KyarabenConfig) {
 	allEmulators := d.syncEmulators(cfg)
 	allFrontends := d.syncFrontends(cfg)
 
-	setup := syncpkg.NewSetup(d.deps.FS, d.deps.Paths, d.deps.Installer, d.deps.StateDir, d.deps.Service)
+	setup := d.syncSetup()
 	result, err := setup.Install(context.Background(), cfg.Sync, collection.Root(), allSystems, allEmulators, allFrontends, nil)
 	if err != nil {
 		log.Error("Syncthing setup failed: %v", err)
@@ -2330,7 +2330,7 @@ func (d *Daemon) updateSyncConfig(cfg *model.KyarabenConfig, collectionPath stri
 		return fmt.Errorf("loading manifest: %w", err)
 	}
 
-	setup := syncpkg.NewSetup(d.deps.FS, d.deps.Paths, d.deps.Installer, d.deps.StateDir, d.deps.Service)
+	setup := d.syncSetup()
 	result, installErr := setup.Install(context.Background(), cfg.Sync, collectionPath, allSystems, allEmulators, allFrontends, nil)
 	if installErr != nil {
 		return fmt.Errorf("updating syncthing: %w", installErr)
@@ -2365,6 +2365,13 @@ func (d *Daemon) updateSyncConfig(cfg *model.KyarabenConfig, collectionPath stri
 	}
 
 	return nil
+}
+
+func (d *Daemon) syncSetup() *syncpkg.Setup {
+	clientFactory := func(config model.SyncConfig) syncpkg.SyncClient {
+		return syncpkg.NewClient(config)
+	}
+	return syncpkg.NewSetup(d.deps.FS, d.deps.Paths, d.deps.Installer, d.deps.StateDir, d.deps.Service, clientFactory)
 }
 
 func (d *Daemon) waitForSyncthingReady(ctx context.Context, client syncpkg.SyncClient) error {
