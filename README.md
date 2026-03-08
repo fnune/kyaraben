@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://kyaraben-kyaraben-245b3f77.koyeb.app/download/"><img src="https://img.shields.io/badge/download-AppImage-green.svg" alt="Download"></a>
-  <a href="https://kyaraben-kyaraben-245b3f77.koyeb.app/"><img src="https://img.shields.io/badge/docs-kyaraben.app-blue.svg" alt="Documentation"></a>
+  <a href="https://kyaraben-kyaraben-245b3f77.koyeb.app/"><img src="https://img.shields.io/badge/docs-online-blue.svg" alt="Documentation"></a>
   <a href="https://github.com/fnune/kyaraben/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
 </p>
 
