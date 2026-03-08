@@ -64,6 +64,78 @@ h6 {
   font-family: "DM Serif Display", serif;
 }
 
+:root {
+  --hero-pad-y: 3rem;
+}
+
+.content-panel:has(.hero) {
+  padding-top: 0;
+}
+
+.hero {
+  position: relative;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  padding-left: calc(50vw - 50%);
+  padding-right: calc(50vw - 50%);
+  overflow: hidden;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: -20px;
+  z-index: -1;
+  background-image: url("/hero-bg.jpg");
+  background-size: cover;
+  background-position: center;
+  filter: blur(12px) brightness(0.8);
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.75) 0%, transparent 80%);
+}
+
+.hero-attribution {
+  position: relative;
+  margin-top: calc(-1 * var(--hero-pad-y));
+  margin-bottom: var(--hero-pad-y);
+  text-align: right;
+  font-size: 0.7rem;
+  font-style: italic;
+}
+
+.hero-attribution a {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.hero-attribution a:hover {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.hero h1 img {
+  filter: invert(1) brightness(0.9);
+}
+
+.hero > img {
+  width: 32rem;
+  max-width: none;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.8);
+  border-radius: 6px;
+}
+
+.hero .tagline {
+  color: var(--sl-color-text-invert);
+}
+
+.hero .sl-link-button.minimal {
+  color: var(--sl-color-text-invert);
+}
+
 body::before {
   content: "";
   position: fixed;
