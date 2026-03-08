@@ -104,7 +104,6 @@ jobs:
         run: npm run build
 
   electron-e2e:
-    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
