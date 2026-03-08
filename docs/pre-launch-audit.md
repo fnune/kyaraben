@@ -15,21 +15,7 @@ The updater in `ui/electron/updater.ts` hardcodes `https://api.github.com/repos/
 
 Action: set up stable download URLs, consider a landing page with download buttons.
 
-### E2E tests are disabled in CI
-
-In `.github/workflows/ci.yml:107`, the electron-e2e job has `if: false`. This means end-to-end tests never run.
-
-Action: fix whatever is blocking E2E tests and re-enable them before launch.
-
 ## High priority: UX blockers
-
-### No sync lifecycle controls in the app
-
-The main Kyaraben app has no UI for:
-- Stop/pause syncing
-- Enable/disable sync on boot
-
-Users must manually stop the systemd service. The NextUI guest app already supports these controls.
 
 ### Documentation lives on the website too much
 
@@ -65,28 +51,6 @@ The expectation is that the app and CLI have feature parity, but this has not be
 ### NextUI guest cannot unpair devices
 
 The NextUI guest integration allows pairing devices but has no way to unpair them.
-
-### `kyaraben uninstall` doesn't remove systemd service
-
-Running `kyaraben uninstall` removes the state directory but doesn't list or remove `~/.config/systemd/user/kyaraben-syncthing.service`. The service should be stopped, disabled, and removed as part of uninstall.
-
-### `kyaraben init` writes empty strings instead of defaults
-
-When running `kyaraben init --headless`, the generated config contains many empty strings and zero values instead of sensible defaults:
-
-```toml
-[sync.syncthing]
-  listen_port = 0
-  discovery_port = 0
-  gui_port = 0
-  relay_enabled = false
-[controller.hotkeys]
-  modifier = ""
-  save_state = ""
-  # ... many more empty strings
-```
-
-The config should either omit these fields entirely (letting internal defaults apply) or write the actual default values.
 
 ### setup.Disable() leaves orphaned data
 
@@ -243,10 +207,8 @@ A `plan.md` file exists that appears to be development planning notes. Consider 
 
 ### Must fix before launch
 
-1. Re-enable E2E tests in CI
-2. Add sync lifecycle controls (stop/pause/enable/disable on boot)
-3. Preferences screen graphics
-4. Rework Synchronization view (upstream info to Catalog, refocus on setup/pairing)
+1. Preferences screen graphics
+2. Rework Synchronization view (upstream info to Catalog, refocus on setup/pairing)
 
 ### Should fix before launch
 
