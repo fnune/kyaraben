@@ -21,27 +21,36 @@ function getRelayBinaryPath(): string {
 }
 
 export async function startRelayServer(): Promise<RelayServer> {
-  const port = nextRelayPort++
   const binaryPath = getRelayBinaryPath()
+  const maxAttempts = 5
 
-  const proc = spawn(binaryPath, ['-addr', `:${port}`, '-no-rate-limit'], {
-    stdio: ['ignore', 'pipe', 'pipe'],
-  })
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const port = nextRelayPort++
 
-  proc.stderr?.on('data', (data) => {
-    console.error(`relay stderr: ${data}`)
-  })
+    const proc = spawn(binaryPath, ['-addr', `:${port}`, '-no-rate-limit'], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
 
-  await waitForServer(`http://localhost:${port}/health`, 10000)
+    proc.stderr?.on('data', (data) => {
+      console.error(`relay stderr: ${data}`)
+    })
 
-  return {
-    port,
-    url: `http://localhost:${port}`,
-    process: proc,
-    close: () => {
-      proc.kill('SIGTERM')
-    },
+    try {
+      await waitForServer(`http://localhost:${port}/health`, 3000)
+      return {
+        port,
+        url: `http://localhost:${port}`,
+        process: proc,
+        close: () => {
+          proc.kill('SIGTERM')
+        },
+      }
+    } catch {
+      proc.kill('SIGKILL')
+    }
   }
+
+  throw new Error(`Failed to start relay server after ${maxAttempts} attempts`)
 }
 
 async function waitForServer(url: string, timeoutMs: number): Promise<void> {

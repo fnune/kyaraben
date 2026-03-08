@@ -87,12 +87,14 @@ export class FakeSyncthingController {
   }
 
   addDevice(device: Device): void {
+    const existing = this.state.devices.get(device.deviceID)
     this.state.devices.set(device.deviceID, {
       addresses: ['dynamic'],
       compression: 'metadata',
       autoAcceptFolders: false,
       paused: false,
       ...device,
+      name: device.name || existing?.name || '',
     })
   }
 
@@ -107,21 +109,23 @@ export class FakeSyncthingController {
       devices: [],
       ...folder,
     })
-    this.state.folderStates.set(folder.id, {
-      state: 'idle',
-      error: '',
-      globalBytes: 0,
-      needBytes: 0,
-      globalFiles: 0,
-      needFiles: 0,
-      localBytes: 0,
-      localFiles: 0,
-      inSyncBytes: 0,
-      inSyncFiles: 0,
-      receiveOnlyTotalItems: 0,
-      receiveOnlyChangedBytes: 0,
-      pullErrors: 0,
-    })
+    if (!this.state.folderStates.has(folder.id)) {
+      this.state.folderStates.set(folder.id, {
+        state: 'idle',
+        error: '',
+        globalBytes: 0,
+        needBytes: 0,
+        globalFiles: 0,
+        needFiles: 0,
+        localBytes: 0,
+        localFiles: 0,
+        inSyncBytes: 0,
+        inSyncFiles: 0,
+        receiveOnlyTotalItems: 0,
+        receiveOnlyChangedBytes: 0,
+        pullErrors: 0,
+      })
+    }
   }
 
   setConnected(deviceID: string, connected: boolean): void {
@@ -379,6 +383,27 @@ export function startFakeSyncthingServer(
       }
       res.writeHead(200)
       res.end(JSON.stringify({ status: 'ok' }))
+      return
+    }
+
+    if (req.method === 'PUT' && url.pathname === '/rest/config/folders') {
+      let body = ''
+      req.on('data', (chunk) => {
+        body += chunk
+      })
+      req.on('end', () => {
+        try {
+          const folders = JSON.parse(body) as Folder[]
+          for (const folder of folders) {
+            controller.addFolder(folder)
+          }
+          res.writeHead(200)
+          res.end(JSON.stringify({ status: 'ok' }))
+        } catch {
+          res.writeHead(400)
+          res.end(JSON.stringify({ error: 'invalid JSON' }))
+        }
+      })
       return
     }
 
