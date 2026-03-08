@@ -55,6 +55,11 @@ export async function launchElectron(
   const page = await app.firstWindow()
   await page.getByRole('img', { name: 'Kyaraben' }).waitFor({ timeout: 30000 })
 
+  const dismissButton = page.getByRole('button', { name: 'Dismiss' }).first()
+  if (await dismissButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+    await dismissButton.click()
+  }
+
   return { app, page }
 }
 
