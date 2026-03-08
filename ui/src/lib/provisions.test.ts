@@ -53,8 +53,8 @@ describe('getNewlyFoundProvisions', () => {
           'sega_101.bin',
           'found',
           'JP',
-          '/home/fausto/Emulation/saves/gamecube/EUR',
-          '/home/fausto/Emulation/saves/gamecube/EUR/sega_101.bin',
+          '/home/user/Emulation/saves/gamecube/EUR',
+          '/home/user/Emulation/saves/gamecube/EUR/sega_101.bin',
         ),
         provision('mpr-17933.bin', 'missing', 'NA/EU'),
       ],
@@ -62,13 +62,13 @@ describe('getNewlyFoundProvisions', () => {
 
     expect(getNewlyFoundProvisions(oldProvisions, newProvisions)).toEqual([
       {
-        id: 'retroarch:beetle-saturn:sega_101.bin:JP:/home/fausto/Emulation/saves/gamecube/EUR',
+        id: 'retroarch:beetle-saturn:sega_101.bin:JP:/home/user/Emulation/saves/gamecube/EUR',
         emulatorId: 'retroarch:beetle-saturn',
         filename: 'sega_101.bin',
         displayName: 'sega_101.bin',
         description: 'JP',
-        expectedPath: '/home/fausto/Emulation/saves/gamecube/EUR',
-        foundPath: '/home/fausto/Emulation/saves/gamecube/EUR/sega_101.bin',
+        expectedPath: '/home/user/Emulation/saves/gamecube/EUR',
+        foundPath: '/home/user/Emulation/saves/gamecube/EUR/sega_101.bin',
       },
     ])
   })
@@ -87,8 +87,8 @@ describe('getNewlyFoundProvisions', () => {
           'sega_101.bin',
           'found',
           'JP',
-          '/home/fausto/Emulation/saves/gamecube/EUR',
-          '/home/fausto/Emulation/saves/gamecube/EUR/sega_101.bin',
+          '/home/user/Emulation/saves/gamecube/EUR',
+          '/home/user/Emulation/saves/gamecube/EUR/sega_101.bin',
         ),
       ],
       pcsx2: [
@@ -96,30 +96,30 @@ describe('getNewlyFoundProvisions', () => {
           'ps2-bios.bin',
           'found',
           'PS2 BIOS',
-          '/home/fausto/Emulation/bios/ps2',
-          '/home/fausto/Emulation/bios/ps2/ps2-bios.bin',
+          '/home/user/Emulation/bios/ps2',
+          '/home/user/Emulation/bios/ps2/ps2-bios.bin',
         ),
       ],
     }
 
     expect(getNewlyFoundProvisions(oldProvisions, newProvisions)).toEqual([
       {
-        id: 'retroarch:beetle-saturn:sega_101.bin:JP:/home/fausto/Emulation/saves/gamecube/EUR',
+        id: 'retroarch:beetle-saturn:sega_101.bin:JP:/home/user/Emulation/saves/gamecube/EUR',
         emulatorId: 'retroarch:beetle-saturn',
         filename: 'sega_101.bin',
         displayName: 'sega_101.bin',
         description: 'JP',
-        expectedPath: '/home/fausto/Emulation/saves/gamecube/EUR',
-        foundPath: '/home/fausto/Emulation/saves/gamecube/EUR/sega_101.bin',
+        expectedPath: '/home/user/Emulation/saves/gamecube/EUR',
+        foundPath: '/home/user/Emulation/saves/gamecube/EUR/sega_101.bin',
       },
       {
-        id: 'pcsx2:ps2-bios.bin:PS2 BIOS:/home/fausto/Emulation/bios/ps2',
+        id: 'pcsx2:ps2-bios.bin:PS2 BIOS:/home/user/Emulation/bios/ps2',
         emulatorId: 'pcsx2',
         filename: 'ps2-bios.bin',
         displayName: 'ps2-bios.bin',
         description: 'PS2 BIOS',
-        expectedPath: '/home/fausto/Emulation/bios/ps2',
-        foundPath: '/home/fausto/Emulation/bios/ps2/ps2-bios.bin',
+        expectedPath: '/home/user/Emulation/bios/ps2',
+        foundPath: '/home/user/Emulation/bios/ps2/ps2-bios.bin',
       },
     ])
   })
