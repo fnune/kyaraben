@@ -3,11 +3,11 @@ set -euo pipefail
 
 : "${KOYEB_TOKEN:?KOYEB_TOKEN must be set}"
 
-APP_NAME="kyaraben-relay"
-SERVICE_NAME="relay"
+APP_NAME="kyaraben"
+SERVICE_NAME="web"
 REGION="fra"
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 if ! koyeb app get "$APP_NAME" &>/dev/null; then
     echo "Creating app $APP_NAME..."
@@ -23,19 +23,19 @@ if koyeb service get "$APP_NAME/$SERVICE_NAME" &>/dev/null; then
     koyeb service update "$APP_NAME/$SERVICE_NAME" \
         --archive "$ARCHIVE_ID" \
         --archive-builder docker \
-        --archive-docker-dockerfile Containerfile
+        --archive-docker-dockerfile deploy/Containerfile
 else
     echo "Creating service $SERVICE_NAME..."
     koyeb service create "$SERVICE_NAME" \
         --app "$APP_NAME" \
         --archive "$ARCHIVE_ID" \
         --archive-builder docker \
-        --archive-docker-dockerfile Containerfile \
+        --archive-docker-dockerfile deploy/Containerfile \
         --regions "$REGION" \
         --instance-type free \
         --ports 8080:http \
         --routes /:8080 \
-        --checks 8080:http:/health \
+        --checks 8080:http:/api/health \
         --min-scale 0 \
         --max-scale 1
 fi

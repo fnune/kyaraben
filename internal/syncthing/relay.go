@@ -26,7 +26,7 @@ func getRelayHealthRetries() int {
 }
 
 var ProductionRelayURLs = []string{
-	"https://kyaraben-relay-kyaraben-28e14310.koyeb.app",
+	"https://kyaraben-kyaraben-245b3f77.koyeb.app/api",
 }
 
 type RelayClient struct {

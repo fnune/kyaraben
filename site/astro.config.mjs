@@ -2,7 +2,7 @@ import { defineConfig, passthroughImageService } from "astro/config";
 import starlight from "@astrojs/starlight";
 
 export default defineConfig({
-  site: "https://kyaraben.org",
+  site: "https://kyaraben-kyaraben-245b3f77.koyeb.app",
   image: {
     service: passthroughImageService(),
   },

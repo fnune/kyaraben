@@ -1,18 +1,14 @@
-name: Deploy relay
+name: Deploy
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
-    paths:
-      - "relay/**/*.go"
-      - "relay/go.mod"
-      - "relay/go.sum"
-      - "relay/Containerfile"
-      - "relay/scripts/deploy.sh"
-      - ".github/workflows/deploy-relay.yml"
 
 jobs:
   deploy:
+    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,4 +22,4 @@ jobs:
       - name: Deploy to Koyeb
         env:
           KOYEB_TOKEN: ${{ secrets.KOYEB_TOKEN }}
-        run: ./relay/scripts/deploy.sh
+        run: ./deploy/scripts/deploy.sh

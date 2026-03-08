@@ -1,0 +1,14 @@
+:8080 {
+	handle /api/* {
+		uri strip_prefix /api
+		reverse_proxy localhost:8081
+	}
+
+	handle {
+		root * /srv
+		file_server
+		try_files {path} {path}/ /404.html
+	}
+
+	encode gzip
+}

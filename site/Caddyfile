@@ -1,6 +1,0 @@
-:8080 {
-	root * /srv
-	file_server
-	try_files {path} {path}/ /404.html
-	encode gzip
-}

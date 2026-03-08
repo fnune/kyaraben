@@ -1,0 +1,30 @@
+FROM docker.io/golang:1.24-alpine AS relay-builder
+
+WORKDIR /app
+COPY relay/go.mod ./
+RUN go mod download
+
+COPY relay/ .
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /relay ./cmd/relay
+
+FROM docker.io/node:22-alpine AS site-builder
+
+WORKDIR /app
+COPY site/package*.json ./
+RUN npm ci
+
+COPY site/ .
+RUN npm run build
+
+FROM docker.io/caddy:2-alpine
+
+COPY --from=relay-builder /relay /usr/local/bin/relay
+COPY --from=site-builder /app/dist /srv
+COPY deploy/Caddyfile /etc/caddy/Caddyfile
+COPY deploy/entrypoint.sh /entrypoint.sh
+
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 8080
+
+ENTRYPOINT ["/entrypoint.sh"]
