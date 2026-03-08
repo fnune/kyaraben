@@ -42,6 +42,14 @@ Key files:
 - `.apikey`: API key for REST calls
 - Ports: TCP 22100 (sync), UDP 21127 (discovery), TCP 8484 (GUI)
 
+## Code style
+
+See `site/src/content/docs/contributing.mdx` for full guidelines. Key points:
+
+- Use clean dependency injection following existing patterns in the codebase
+- No "what" comments; make code self-evident instead
+- "Why" comments are acceptable when the reasoning isn't obvious
+
 ## Skills
 
 Detailed guides for complex tasks live in `.claude/skills/`:

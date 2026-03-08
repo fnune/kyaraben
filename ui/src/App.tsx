@@ -8,6 +8,7 @@ import {
   type View,
 } from '@shared/ui'
 import { useEffect, useRef, useState } from 'react'
+import { AlphaWarningBanner } from '@/components/AlphaWarningBanner/AlphaWarningBanner'
 import { ApplyBar } from '@/components/ApplyBar/ApplyBar'
 import { CatalogView } from '@/components/CatalogView/CatalogView'
 import { ImportView } from '@/components/ImportView/ImportView'
@@ -357,6 +358,8 @@ function AppContent() {
 
   return (
     <div className="h-dvh bg-surface flex flex-col overflow-hidden font-body">
+      <AlphaWarningBanner />
+
       {updateInfo?.available && !updateDismissed && (
         <UpdateBanner
           updateInfo={updateInfo}
