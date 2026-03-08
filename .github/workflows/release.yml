@@ -5,7 +5,32 @@ on:
     tags: ["v*"]
 
 jobs:
+  wait-for-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for CI to pass
+        run: |
+          echo "Waiting for CI workflow to complete..."
+          for i in {1..60}; do
+            STATUS=$(gh api repos/${{ github.repository }}/commits/${{ github.sha }}/check-runs \
+              --jq '.check_runs | map(select(.name != "wait-for-ci")) | if length == 0 then "pending" elif all(.conclusion == "success") then "success" elif any(.conclusion == "failure") then "failure" else "pending" end')
+            echo "CI status: $STATUS"
+            if [ "$STATUS" = "success" ]; then
+              echo "CI passed!"
+              exit 0
+            elif [ "$STATUS" = "failure" ]; then
+              echo "CI failed!"
+              exit 1
+            fi
+            sleep 10
+          done
+          echo "Timeout waiting for CI"
+          exit 1
+        env:
+          GH_TOKEN: ${{ github.token }}
+
   release-cli:
+    needs: wait-for-ci
     runs-on: ubuntu-latest
     permissions:
       contents: write
