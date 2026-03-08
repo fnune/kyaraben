@@ -148,7 +148,7 @@ func (m *Manager) loadExistingDevices(configDir, selfID string) ([]XMLDevice, er
 
 	var devices []XMLDevice
 	for _, dev := range existing.Devices {
-		if dev.ID != selfID && dev.Name != "this-device" {
+		if dev.ID != selfID {
 			devices = append(devices, dev)
 		}
 	}
