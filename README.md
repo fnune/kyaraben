@@ -12,7 +12,7 @@ Emulation setup for Linux with automated Syncthing management. Runs on desktop, 
 > Kyaraben is pre-alpha software. Feedback and bug reports are welcome on [GitHub Issues](https://github.com/fnune/kyaraben/issues).
 
 <p align="center">
-  <img src="assets/screenshots/catalog-idle.png" alt="Kyaraben screenshot" width="800">
+  <img src="assets/hero-screenshot.png" alt="Kyaraben screenshot" width="800">
 </p>
 
 ## How it works
