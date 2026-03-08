@@ -21,6 +21,14 @@ export default defineConfig({
         {
           tag: "link",
           attrs: {
+            rel: "preload",
+            href: "/kyaraben-logo.svg",
+            as: "image",
+          },
+        },
+        {
+          tag: "link",
+          attrs: {
             rel: "preconnect",
             href: "https://fonts.googleapis.com",
           },
