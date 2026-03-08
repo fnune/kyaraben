@@ -51,12 +51,20 @@ interface ConnectionState {
   connected: boolean
   address: string
   paused: boolean
+  type?: string
+  isLocal?: boolean
 }
 
 interface DeviceCompletion {
   completion: number
   globalBytes: number
   needBytes: number
+}
+
+interface ConnectionServiceInfo {
+  error: string
+  lanAddresses: string[]
+  wanAddresses: string[]
 }
 
 interface ServerState {
@@ -68,6 +76,8 @@ interface ServerState {
   localChanges: Map<string, LocalChange[]>
   pendingDevices: Map<string, PendingDevice>
   deviceCompletions: Map<string, DeviceCompletion>
+  discoveredAddresses: Map<string, string[]>
+  connectionServiceStatus: Map<string, ConnectionServiceInfo>
 }
 
 export class FakeSyncthingController {
@@ -83,6 +93,8 @@ export class FakeSyncthingController {
       localChanges: new Map(),
       pendingDevices: new Map(),
       deviceCompletions: new Map(),
+      discoveredAddresses: new Map(),
+      connectionServiceStatus: new Map(),
     }
   }
 
@@ -194,6 +206,21 @@ export class FakeSyncthingController {
     })
   }
 
+  setDiscoveredAddresses(deviceID: string, addresses: string[]): void {
+    this.state.discoveredAddresses.set(deviceID, addresses)
+  }
+
+  setConnectionServiceStatus(
+    name: string,
+    info: { error?: string; lanAddresses?: string[]; wanAddresses?: string[] },
+  ): void {
+    this.state.connectionServiceStatus.set(name, {
+      error: info.error ?? '',
+      lanAddresses: info.lanAddresses ?? [],
+      wanAddresses: info.wanAddresses ?? [],
+    })
+  }
+
   getState(): ServerState {
     return this.state
   }
@@ -216,8 +243,22 @@ export function startFakeSyncthingServer(
     }
 
     if (req.method === 'GET' && url.pathname === '/rest/system/status') {
+      const connectionServiceStatus: Record<
+        string,
+        { error: string; lanAddresses: string[]; wanAddresses: string[] }
+      > = {}
+      for (const [name, info] of state.connectionServiceStatus) {
+        connectionServiceStatus[name] = info
+      }
       res.writeHead(200)
-      res.end(JSON.stringify({ myID: state.myID, uptime: 60 }))
+      res.end(
+        JSON.stringify({
+          myID: state.myID,
+          uptime: 60,
+          connectionServiceStatus:
+            Object.keys(connectionServiceStatus).length > 0 ? connectionServiceStatus : undefined,
+        }),
+      )
       return
     }
 
@@ -352,8 +393,12 @@ export function startFakeSyncthingServer(
     }
 
     if (req.method === 'GET' && url.pathname === '/rest/system/discovery') {
+      const discovery: Record<string, { addresses: string[] }> = {}
+      for (const [deviceID, addresses] of state.discoveredAddresses) {
+        discovery[deviceID] = { addresses }
+      }
       res.writeHead(200)
-      res.end(JSON.stringify({}))
+      res.end(JSON.stringify(discovery))
       return
     }
 

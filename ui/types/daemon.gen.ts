@@ -258,12 +258,13 @@ export interface SyncStatusResponse {
   serviceError?: string;
   globalDiscoveryEnabled?: boolean;
   autostartEnabled?: boolean;
+  localConnectivityIssue?: string;
 }
 export interface SyncProgress {
   needFiles: number /* int64 */;
   needBytes: number /* int64 */;
   globalBytes: number /* int64 */;
-  percent: number /* int */;
+  percent: number /* float64 */;
 }
 export interface SyncDevice {
   id: string;
@@ -271,6 +272,10 @@ export interface SyncDevice {
   connected: boolean;
   paused?: boolean;
   completion?: number /* int */;
+  lastSeen?: string;
+  connectionType?: string;
+  isLocal?: boolean;
+  connectivityIssue?: string;
 }
 export interface SyncFolder {
   id: string;

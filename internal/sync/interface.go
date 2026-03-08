@@ -21,6 +21,7 @@ type FolderSharingDrift = syncthing.FolderSharingDrift
 type SystemStatus = syncthing.SystemStatus
 type SyncProgressInfo = syncthing.SyncProgressInfo
 type PendingStatus = syncthing.PendingStatus
+type DeviceStats = syncthing.DeviceStats
 
 type SyncClient interface {
 	syncthing.SyncClient

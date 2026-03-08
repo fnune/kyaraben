@@ -327,7 +327,7 @@ type Status struct {
 	Running        bool
 	DeviceID       string
 	Syncing        bool
-	Progress       int
+	Progress       float64
 	NeedBytes      int64
 	ConnectedPeers int
 	Peers          []PeerStatus

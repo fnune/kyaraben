@@ -12,6 +12,7 @@ import (
 
 const pairingTimeout = 5 * time.Minute
 const pollInterval = 2 * time.Second
+const folderShareSlowThreshold = 5 * time.Second
 
 var pairingLog = logging.New("sync").WithPrefix("[pairing]")
 
@@ -80,9 +81,11 @@ func (f *InitiatorPairingFlow) Run(ctx context.Context) (*PairResult, error) {
 				}
 
 				pairingLog.Info("Sharing folders with device %s", truncateDeviceID(dev.DeviceID))
-				if err := f.cfg.Client.ShareFoldersWithDevice(ctx, dev.DeviceID); err != nil {
+				if err := shareFoldersWithProgress(ctx, f.cfg.Client, dev.DeviceID, f.emit); err != nil {
 					pairingLog.Error("Failed to share folders: %v", err)
-					return nil, fmt.Errorf("sharing folders: %w", err)
+					f.emit("Folder sharing timed out, sync will complete in background")
+				} else {
+					f.emit("Folder sharing completed")
 				}
 
 				pairingLog.Info("Initiator pairing completed successfully with %s", dev.Name)
@@ -173,9 +176,11 @@ func (f *JoinerPairingFlow) Run(ctx context.Context, peerDeviceID string) (*Pair
 			conn, ok := connections[peerDeviceID]
 			if ok && conn.Connected {
 				pairingLog.Info("Poll %d: connection established with peer, sharing folders", pollCount)
-				if err := f.cfg.Client.ShareFoldersWithDevice(ctx, peerDeviceID); err != nil {
+				if err := shareFoldersWithProgress(ctx, f.cfg.Client, peerDeviceID, f.emit); err != nil {
 					pairingLog.Error("Failed to share folders: %v", err)
-					return nil, fmt.Errorf("sharing folders: %w", err)
+					f.emit("Folder sharing timed out, sync will complete in background")
+				} else {
+					f.emit("Folder sharing completed")
 				}
 
 				pairingLog.Info("Joiner pairing completed successfully with %s", peerName)
@@ -321,9 +326,11 @@ func (f *RelayInitiatorPairingFlow) Run(ctx context.Context) (*RelayInitiatorRes
 				_ = relayClient.DeleteSession(ctx, session.Code)
 				return nil, fmt.Errorf("adding device: %w", err)
 			}
-			if err := f.cfg.Client.ShareFoldersWithDevice(ctx, resp.DeviceID); err != nil {
-				_ = relayClient.DeleteSession(ctx, session.Code)
-				return nil, fmt.Errorf("sharing folders: %w", err)
+			if err := shareFoldersWithProgress(ctx, f.cfg.Client, resp.DeviceID, f.emit); err != nil {
+				pairingLog.Error("Failed to share folders: %v", err)
+				f.emit("Folder sharing timed out, sync will complete in background")
+			} else {
+				f.emit("Folder sharing completed")
 			}
 
 			_ = relayClient.DeleteSession(ctx, session.Code)
@@ -425,4 +432,25 @@ func IsRelayCode(s string) bool {
 		}
 	}
 	return true
+}
+
+func shareFoldersWithProgress(ctx context.Context, client SyncClient, deviceID string, emit func(string, ...any)) error {
+	resultCh := make(chan error, 1)
+	go func() {
+		resultCh <- client.ShareFoldersWithDevice(ctx, deviceID)
+	}()
+
+	select {
+	case err := <-resultCh:
+		return err
+	case <-time.After(folderShareSlowThreshold):
+		emit("Sharing folders is taking longer than expected (timeout: 60s)...")
+	}
+
+	select {
+	case err := <-resultCh:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }

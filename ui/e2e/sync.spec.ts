@@ -206,6 +206,79 @@ test.describe('Sync view with device disconnected', () => {
   })
 })
 
+test.describe('Sync view with connectivity issue', () => {
+  let ctx: SyncTestContext
+
+  test.beforeAll(async () => {
+    ctx = await setupSyncTest({
+      config: {
+        systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
+        sync: { enabled: true },
+      },
+      manifest: { installedEmulators: {} },
+      syncthing: {
+        devices: [{ deviceID: 'UNREACHABLE-DEVICE-1234567890AB', name: 'Unreachable Device' }],
+        folders: [{ id: 'saves', path: '/home/test/Emulation/saves' }],
+      },
+      setup: (c) => {
+        c.setConnected('UNREACHABLE-DEVICE-1234567890AB', false)
+        c.setDiscoveredAddresses('UNREACHABLE-DEVICE-1234567890AB', ['tcp://127.0.0.1:1'])
+      },
+    })
+  })
+
+  test.afterAll(async () => {
+    await cleanupSyncTest(ctx)
+  })
+
+  test('shows port unreachable warning for device with closed ports', async () => {
+    await navigateToSync(ctx.page)
+    await expect(ctx.page.getByText(/Unreachable Device/)).toBeVisible()
+    await expect(ctx.page.getByText(/Port unreachable/)).toBeVisible({ timeout: 10000 })
+    await expect(ctx.page.getByText(/Learn more about firewall/)).toBeVisible()
+
+    // Pause for visual inspection - remove after review
+    await ctx.page.waitForTimeout(30000)
+  })
+})
+
+test.describe('Sync view with local connectivity issue', () => {
+  let ctx: SyncTestContext
+
+  test.beforeAll(async () => {
+    ctx = await setupSyncTest({
+      config: {
+        systems: { [SystemIDSNES]: [EmulatorIDRetroArchBsnes] },
+        sync: { enabled: true },
+      },
+      manifest: { installedEmulators: {} },
+      syncthing: {
+        devices: [{ deviceID: 'REMOTE-DEVICE-1234567890ABCDEF', name: 'Steam Deck' }],
+        folders: [{ id: 'saves', path: '/home/test/Emulation/saves' }],
+      },
+      setup: (c) => {
+        c.setConnected('REMOTE-DEVICE-1234567890ABCDEF', true)
+        c.setConnectionServiceStatus('tcp://0.0.0.0:22000', { lanAddresses: [] })
+      },
+    })
+  })
+
+  test.afterAll(async () => {
+    await cleanupSyncTest(ctx)
+  })
+
+  test('shows local connectivity warning when no LAN address detected', async () => {
+    await navigateToSync(ctx.page)
+    await expect(ctx.page.getByText(/Other devices may not be able to connect/)).toBeVisible({
+      timeout: 10000,
+    })
+    await expect(ctx.page.getByText(/Learn more about firewall/)).toBeVisible()
+
+    // Pause for visual inspection - remove after review
+    await ctx.page.waitForTimeout(30000)
+  })
+})
+
 test.describe('Sync view with folder in error state', () => {
   let ctx: SyncTestContext
 

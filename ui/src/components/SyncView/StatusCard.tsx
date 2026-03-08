@@ -29,6 +29,8 @@ function DeviceRow({
   readonly device: SyncDevice
   readonly onRemove: () => void
 }) {
+  const openUrl = useOpenUrl()
+
   const getStatusDisplay = () => {
     if (device.paused) {
       return { dotClass: 'bg-status-warning', label: 'paused' }
@@ -37,28 +39,50 @@ function DeviceRow({
       if (device.completion !== undefined && device.completion < 100) {
         return { dotClass: 'bg-accent', label: `${device.completion}% synced` }
       }
-      return { dotClass: 'bg-status-ok', label: 'synced' }
+      const connectionLabel = device.connectionType ? ` (${device.connectionType})` : ''
+      return { dotClass: 'bg-status-ok', label: `synced${connectionLabel}` }
     }
     return { dotClass: 'bg-outline', label: 'offline' }
   }
 
   const { dotClass, label } = getStatusDisplay()
+  const hasConnectivityIssue = device.connectivityIssue === 'port_unreachable'
 
   return (
-    <div className="flex items-center justify-between py-2 border-b border-outline last:border-0">
-      <div className="flex items-center gap-2">
-        <span className={`w-2 h-2 rounded-full ${dotClass}`} />
-        <span className="font-medium text-on-surface">{device.name || 'kyaraben device'}</span>
-        <span className="text-on-surface-muted">{label}</span>
+    <div className="py-2 border-b border-outline last:border-0">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className={`w-2 h-2 rounded-full ${dotClass}`} />
+          <span className="font-medium text-on-surface">{device.name || 'kyaraben device'}</span>
+          <span className="text-on-surface-muted">{label}</span>
+        </div>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="p-1.5 text-on-surface-muted hover:text-on-surface-secondary rounded"
+          title="Remove device"
+        >
+          <TrashIcon className="w-4 h-4" />
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={onRemove}
-        className="p-1.5 text-on-surface-muted hover:text-on-surface-secondary rounded"
-        title="Remove device"
-      >
-        <TrashIcon className="w-4 h-4" />
-      </button>
+      {hasConnectivityIssue && (
+        <div className="flex items-start gap-2 mt-1 p-2 bg-status-warning/10 border border-status-warning/30 rounded text-xs">
+          <span className="text-status-warning w-3 text-center shrink-0">!</span>
+          <span className="text-on-surface-muted">
+            Port unreachable on peer device.{' '}
+            <a
+              href="https://docs.syncthing.net/users/firewall.html"
+              onClick={(e) => {
+                e.preventDefault()
+                openUrl('https://docs.syncthing.net/users/firewall.html')
+              }}
+              className="text-accent underline"
+            >
+              Learn more about firewall configuration
+            </a>
+          </span>
+        </div>
+      )}
     </div>
   )
 }
@@ -529,6 +553,27 @@ export function StatusCard({
           {status.devices?.map((device) => (
             <DeviceRow key={device.id} device={device} onRemove={() => setDeviceToRemove(device)} />
           ))}
+        </div>
+      )}
+
+      {status.localConnectivityIssue && (
+        <div className="flex items-start gap-2 mt-3 p-2 bg-status-warning/10 border border-status-warning/30 rounded text-xs">
+          <span className="text-status-warning w-3 text-center shrink-0">!</span>
+          <span className="text-on-surface-muted">
+            {status.localConnectivityIssue === 'listen_error'
+              ? 'Failed to listen on sync port.'
+              : 'Other devices may not be able to connect.'}{' '}
+            <a
+              href="https://docs.syncthing.net/users/firewall.html"
+              onClick={(e) => {
+                e.preventDefault()
+                openUrl('https://docs.syncthing.net/users/firewall.html')
+              }}
+              className="text-accent underline"
+            >
+              Learn more about firewall configuration
+            </a>
+          </span>
         </div>
       )}
 

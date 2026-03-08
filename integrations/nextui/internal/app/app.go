@@ -296,7 +296,7 @@ func (a *App) getSyncStatus(ctx context.Context) ([]string, int, string) {
 	if status.Syncing {
 		opts := make([]string, len(statusOptions))
 		copy(opts, statusOptions)
-		opts[statusSyncing] = fmt.Sprintf("Syncing %d%%", status.Progress)
+		opts[statusSyncing] = fmt.Sprintf("Syncing %.0f%%", status.Progress)
 		return opts, statusSyncing, colorLink
 	}
 

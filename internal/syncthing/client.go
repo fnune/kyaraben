@@ -6,9 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -29,7 +32,7 @@ func NewClient(config Config) *Client {
 	return &Client{
 		config: config,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: 60 * time.Second,
 		},
 	}
 }
@@ -409,6 +412,25 @@ func (c *Client) GetDiscoveredDevices(ctx context.Context) ([]DiscoveredDevice, 
 	return result, nil
 }
 
+func (c *Client) GetDeviceStats(ctx context.Context) (map[string]DeviceStats, error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/stats/device", nil)
+	if err != nil {
+		return nil, fmt.Errorf("getting device stats: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+
+	var stats map[string]DeviceStats
+	if err := json.NewDecoder(resp.Body).Decode(&stats); err != nil {
+		return nil, fmt.Errorf("decoding device stats: %w", err)
+	}
+
+	return stats, nil
+}
+
 func (c *Client) GetPendingDevices(ctx context.Context) ([]PendingDevice, error) {
 	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/cluster/pending/devices", nil)
 	if err != nil {
@@ -711,9 +733,9 @@ func (c *Client) GetSyncProgress(ctx context.Context) (*SyncProgressInfo, error)
 
 	if progress.GlobalBytes > 0 {
 		syncedBytes := progress.GlobalBytes - progress.NeedBytes
-		progress.Percent = int(syncedBytes * 100 / progress.GlobalBytes)
+		progress.Percent = float64(syncedBytes) * 100.0 / float64(progress.GlobalBytes)
 	} else {
-		progress.Percent = 100
+		progress.Percent = 100.0
 	}
 
 	return &progress, nil
@@ -906,4 +928,34 @@ func (c *Client) AllowInsecureAdmin(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+const portCheckTimeout = 2 * time.Second
+
+func CheckPortReachable(address string) bool {
+	host := extractHost(address)
+	if host == "" {
+		return false
+	}
+
+	conn, err := net.DialTimeout("tcp", host, portCheckTimeout)
+	if err != nil {
+		return false
+	}
+	_ = conn.Close()
+	return true
+}
+
+func extractHost(addr string) string {
+	if strings.HasPrefix(addr, "tcp://") || strings.HasPrefix(addr, "quic://") {
+		parsed, err := url.Parse(addr)
+		if err != nil {
+			return ""
+		}
+		return parsed.Host
+	}
+	if strings.Contains(addr, ":") {
+		return addr
+	}
+	return ""
 }

@@ -6,21 +6,28 @@ import (
 	"strings"
 
 	"github.com/twpayne/go-vfs/v5"
+
+	"github.com/fnune/kyaraben/internal/syncthing"
 )
 
 type Status struct {
-	Enabled  bool
-	DeviceID string
-	GUIURL   string
-	Devices  []DeviceStatus
-	Folders  []FolderStatusSummary
+	Enabled                bool
+	DeviceID               string
+	GUIURL                 string
+	Devices                []DeviceStatus
+	Folders                []FolderStatusSummary
+	LocalConnectivityIssue string
 }
 
 type DeviceStatus struct {
-	ID        string
-	Name      string
-	Connected bool
-	Paused    bool
+	ID                string
+	Name              string
+	Connected         bool
+	Paused            bool
+	LastSeen          string
+	ConnectionType    string
+	IsLocal           bool
+	ConnectivityIssue string
 }
 
 type FolderStatusSummary struct {
@@ -76,15 +83,40 @@ func (c *Client) GetStatus(ctx context.Context, fsys vfs.FS) (*Status, error) {
 		return nil, fmt.Errorf("getting configured devices: %w", err)
 	}
 
+	deviceStats, _ := c.GetDeviceStats(ctx)
+	discoveredDevices, _ := c.GetDiscoveredDevices(ctx)
+	discoveredAddrs := make(map[string][]string)
+	for _, d := range discoveredDevices {
+		discoveredAddrs[d.DeviceID] = d.Addresses
+	}
+
+	systemStatus, _ := c.GetSystemStatus(ctx)
+	localConnectivityIssue := diagnoseLocalConnectivity(systemStatus)
+
 	var devices []DeviceStatus
 	for _, dev := range configuredDevices {
 		conn, ok := connections[dev.ID]
-		devices = append(devices, DeviceStatus{
+		ds := DeviceStatus{
 			ID:        dev.ID,
 			Name:      dev.Name,
 			Connected: ok && conn.Connected,
 			Paused:    dev.Paused || (ok && conn.Paused),
-		})
+		}
+
+		if ok && conn.Connected {
+			ds.ConnectionType = connectionTypeLabel(conn.Type)
+			ds.IsLocal = conn.IsLocal
+		}
+
+		if stats, ok := deviceStats[dev.ID]; ok && !stats.LastSeen.IsZero() && stats.LastSeen.Year() > 1970 {
+			ds.LastSeen = stats.LastSeen.Format("2006-01-02T15:04:05Z07:00")
+		}
+
+		if !ds.Connected && !ds.Paused {
+			ds.ConnectivityIssue = diagnoseConnectivity(dev.ID, discoveredAddrs, c.config.Syncthing.ListenPort)
+		}
+
+		devices = append(devices, ds)
 	}
 
 	var folders []FolderStatusSummary
@@ -117,11 +149,12 @@ func (c *Client) GetStatus(ctx context.Context, fsys vfs.FS) (*Status, error) {
 	}
 
 	status := &Status{
-		Enabled:  true,
-		DeviceID: deviceID,
-		GUIURL:   fmt.Sprintf("http://127.0.0.1:%d", c.config.Syncthing.GUIPort),
-		Devices:  devices,
-		Folders:  folders,
+		Enabled:                true,
+		DeviceID:               deviceID,
+		GUIURL:                 fmt.Sprintf("http://127.0.0.1:%d", c.config.Syncthing.GUIPort),
+		Devices:                devices,
+		Folders:                folders,
+		LocalConnectivityIssue: localConnectivityIssue,
 	}
 
 	return status, nil
@@ -174,4 +207,52 @@ func (s *Status) OverallState() OverallSyncState {
 	}
 
 	return SyncStateSynced
+}
+
+func connectionTypeLabel(t string) string {
+	switch {
+	case strings.HasPrefix(t, "relay"):
+		return "relay"
+	case strings.HasPrefix(t, "tcp"), strings.HasPrefix(t, "quic"):
+		return "direct"
+	default:
+		return ""
+	}
+}
+
+func diagnoseConnectivity(deviceID string, discoveredAddrs map[string][]string, listenPort int) string {
+	addrs, hasAddrs := discoveredAddrs[deviceID]
+	if !hasAddrs || len(addrs) == 0 {
+		return ""
+	}
+
+	for _, addr := range addrs {
+		if syncthing.CheckPortReachable(addr) {
+			return ""
+		}
+	}
+
+	return "port_unreachable"
+}
+
+func diagnoseLocalConnectivity(status *syncthing.SystemStatus) string {
+	if status == nil || status.ConnectionServiceStatus == nil {
+		return ""
+	}
+
+	for name, svc := range status.ConnectionServiceStatus {
+		if !strings.HasPrefix(name, "tcp://") && !strings.HasPrefix(name, "quic://") {
+			continue
+		}
+
+		if svc.Error != "" {
+			return "listen_error"
+		}
+
+		if len(svc.LANAddresses) == 0 {
+			return "no_lan_address"
+		}
+	}
+
+	return ""
 }

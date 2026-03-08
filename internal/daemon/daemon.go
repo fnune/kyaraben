@@ -1309,10 +1309,16 @@ func (d *Daemon) handleSyncStatus() []Event {
 	devices := make([]SyncDevice, len(syncStatus.Devices))
 	for i, dev := range syncStatus.Devices {
 		devices[i] = SyncDevice{
-			ID:        dev.ID,
-			Name:      dev.Name,
-			Connected: dev.Connected,
-			Paused:    dev.Paused,
+			ID:                dev.ID,
+			Name:              dev.Name,
+			Connected:         dev.Connected,
+			Paused:            dev.Paused,
+			ConnectionType:    dev.ConnectionType,
+			IsLocal:           dev.IsLocal,
+			ConnectivityIssue: dev.ConnectivityIssue,
+		}
+		if dev.LastSeen != "" {
+			devices[i].LastSeen = &dev.LastSeen
 		}
 		if dev.Connected {
 			completion, err := client.GetDeviceCompletion(ctx, dev.ID)
@@ -1325,6 +1331,8 @@ func (d *Daemon) handleSyncStatus() []Event {
 			if percent < 100 {
 				d.logCompletionDiagnostics(ctx, client, dev, completion, syncStatus.Folders)
 			}
+		} else if dev.ConnectivityIssue != "" {
+			log.Info("Device %s connectivity issue: %s", dev.Name, dev.ConnectivityIssue)
 		}
 	}
 
@@ -1378,6 +1386,7 @@ func (d *Daemon) handleSyncStatus() []Event {
 			Progress:               progress,
 			GlobalDiscoveryEnabled: cfg.Sync.Syncthing.GlobalDiscoveryEnabled,
 			AutostartEnabled:       cfg.Sync.Autostart,
+			LocalConnectivityIssue: syncStatus.LocalConnectivityIssue,
 		},
 	}}
 }

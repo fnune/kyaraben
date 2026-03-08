@@ -17,6 +17,15 @@ Use cases:
 - systemd user services support
 - Sync ports accessible (see [Syncthing's firewall documentation](https://docs.syncthing.net/users/firewall.html))
 
+:::note[Port numbers]
+Kyaraben uses different ports than default Syncthing:
+
+- TCP 22100 (sync traffic, default is 22000)
+- UDP 21127 (local discovery, default is 21027)
+
+If you have existing Syncthing firewall rules, update them accordingly.
+:::
+
 ## Installation
 
 Download the CLI binary directly.
@@ -99,6 +108,14 @@ Check sync status:
 kyaraben sync status
 ```
 
+This shows whether sync is running, connection status, paired devices, synced folders, and any connectivity warnings.
+
+If sync shows "not running", check the Syncthing service:
+
+```bash
+systemctl --user status kyaraben-syncthing
+```
+
 Access the Syncthing web UI at `http://server-ip:8484` for detailed monitoring.
 
 ## Updating
@@ -147,9 +164,3 @@ Check service status:
 ```bash
 systemctl --user status kyaraben-syncthing
 ```
-
-### Devices not connecting
-
-1. Verify ports are open: `nc -zv server-ip 22100`
-2. Check firewall rules
-3. If direct connections fail, ensure Syncthing relays are enabled (`relay_enabled = true` in config)

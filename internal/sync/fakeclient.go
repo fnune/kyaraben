@@ -11,31 +11,34 @@ import (
 )
 
 type FakeClient struct {
-	mu                gosync.Mutex
-	running           bool
-	deviceID          string
-	connections       map[string]syncthing.ConnectionInfo
-	addedPeers        []syncthing.ConfiguredDevice
-	removedIDs        []string
-	sharedWith        []string
-	config            model.SyncConfig
-	folders           map[string]FolderStatusSummary
-	folderDevices     map[string][]string
-	discoveredDevs    []syncthing.DiscoveredDevice
-	pendingDevs       []syncthing.PendingDevice
-	deviceCompletions map[string]syncthing.CompletionResponse
-	reconciledDrift   []syncthing.FolderSharingDrift
-	addFoldersCalls   [][]syncthing.FolderCreateRequest
+	mu                     gosync.Mutex
+	running                bool
+	deviceID               string
+	connections            map[string]syncthing.ConnectionInfo
+	addedPeers             []syncthing.ConfiguredDevice
+	removedIDs             []string
+	sharedWith             []string
+	config                 model.SyncConfig
+	folders                map[string]FolderStatusSummary
+	folderDevices          map[string][]string
+	discoveredDevs         []syncthing.DiscoveredDevice
+	pendingDevs            []syncthing.PendingDevice
+	deviceCompletions      map[string]syncthing.CompletionResponse
+	reconciledDrift        []syncthing.FolderSharingDrift
+	addFoldersCalls        [][]syncthing.FolderCreateRequest
+	connectivityIssues     map[string]string
+	localConnectivityIssue string
 }
 
 func NewFakeClient(config model.SyncConfig) *FakeClient {
 	return &FakeClient{
-		running:           true,
-		connections:       make(map[string]syncthing.ConnectionInfo),
-		folders:           make(map[string]FolderStatusSummary),
-		folderDevices:     make(map[string][]string),
-		deviceCompletions: make(map[string]syncthing.CompletionResponse),
-		config:            config,
+		running:            true,
+		connections:        make(map[string]syncthing.ConnectionInfo),
+		folders:            make(map[string]FolderStatusSummary),
+		folderDevices:      make(map[string][]string),
+		deviceCompletions:  make(map[string]syncthing.CompletionResponse),
+		connectivityIssues: make(map[string]string),
+		config:             config,
 	}
 }
 
@@ -161,6 +164,18 @@ func (c *FakeClient) SetDiscoveredDevices(devs []syncthing.DiscoveredDevice) {
 	c.discoveredDevs = devs
 }
 
+func (c *FakeClient) SetConnectivityIssue(deviceID, issue string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.connectivityIssues[deviceID] = issue
+}
+
+func (c *FakeClient) SetLocalConnectivityIssue(issue string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.localConnectivityIssue = issue
+}
+
 func (c *FakeClient) GetDiscoveredDevices(_ context.Context) ([]syncthing.DiscoveredDevice, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -270,12 +285,16 @@ func (c *FakeClient) GetStatus(_ context.Context, _ vfs.FS) (*Status, error) {
 	var devices []DeviceStatus
 	for _, dev := range c.addedPeers {
 		conn, ok := c.connections[dev.ID]
-		devices = append(devices, DeviceStatus{
+		ds := DeviceStatus{
 			ID:        dev.ID,
 			Name:      dev.Name,
 			Connected: ok && conn.Connected,
 			Paused:    ok && conn.Paused,
-		})
+		}
+		if issue, hasIssue := c.connectivityIssues[dev.ID]; hasIssue {
+			ds.ConnectivityIssue = issue
+		}
+		devices = append(devices, ds)
 	}
 
 	var folders []FolderStatusSummary
@@ -284,10 +303,11 @@ func (c *FakeClient) GetStatus(_ context.Context, _ vfs.FS) (*Status, error) {
 	}
 
 	return &Status{
-		Enabled:  c.config.Enabled,
-		DeviceID: c.deviceID,
-		Devices:  devices,
-		Folders:  folders,
+		Enabled:                c.config.Enabled,
+		DeviceID:               c.deviceID,
+		Devices:                devices,
+		Folders:                folders,
+		LocalConnectivityIssue: c.localConnectivityIssue,
 	}, nil
 }
 
@@ -351,9 +371,9 @@ func (c *FakeClient) GetSyncProgress(_ context.Context) (*syncthing.SyncProgress
 
 	if progress.GlobalBytes > 0 {
 		syncedBytes := progress.GlobalBytes - progress.NeedBytes
-		progress.Percent = int(syncedBytes * 100 / progress.GlobalBytes)
+		progress.Percent = float64(syncedBytes) * 100.0 / float64(progress.GlobalBytes)
 	} else {
-		progress.Percent = 100
+		progress.Percent = 100.0
 	}
 
 	return &progress, nil
@@ -409,6 +429,10 @@ func (c *FakeClient) DisableUsageReporting(ctx context.Context) error {
 
 func (c *FakeClient) AllowInsecureAdmin(ctx context.Context) error {
 	return nil
+}
+
+func (c *FakeClient) GetDeviceStats(ctx context.Context) (map[string]syncthing.DeviceStats, error) {
+	return make(map[string]syncthing.DeviceStats), nil
 }
 
 var _ SyncClient = (*FakeClient)(nil)

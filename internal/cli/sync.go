@@ -67,6 +67,20 @@ func (cmd *SyncStatusCmd) Run(cliCtx *Context) error {
 	fmt.Printf("UI: %s\n", status.GUIURL)
 	fmt.Println()
 
+	if status.LocalConnectivityIssue != "" {
+		fmt.Println()
+		switch status.LocalConnectivityIssue {
+		case "listen_error":
+			fmt.Println("! Warning: Failed to listen on sync port")
+		case "no_lan_address":
+			fmt.Println("! Warning: Other devices may not be able to connect")
+		default:
+			fmt.Printf("! Warning: %s\n", status.LocalConnectivityIssue)
+		}
+		fmt.Println("  Check your firewall and network settings.")
+		fmt.Println("  See: https://docs.syncthing.net/users/firewall.html")
+	}
+
 	if len(status.Devices) == 0 {
 		fmt.Println("Paired devices: none")
 		fmt.Println()
@@ -78,8 +92,15 @@ func (cmd *SyncStatusCmd) Run(cliCtx *Context) error {
 			state := "disconnected"
 			if dev.Connected {
 				state = "connected"
+				if dev.ConnectionType != "" {
+					state = fmt.Sprintf("connected (%s)", dev.ConnectionType)
+				}
 			}
 			fmt.Printf("  %-30s %s\n", dev.Name, state)
+			if dev.ConnectivityIssue == "port_unreachable" {
+				fmt.Printf("    ! Port unreachable - check firewall on peer device\n")
+				fmt.Printf("      See: https://docs.syncthing.net/users/firewall.html\n")
+			}
 		}
 	}
 

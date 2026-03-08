@@ -9,6 +9,7 @@ type SyncClient interface {
 	GetConnections(ctx context.Context) (map[string]ConnectionInfo, error)
 	GetConfiguredDevices(ctx context.Context) ([]ConfiguredDevice, error)
 	GetDiscoveredDevices(ctx context.Context) ([]DiscoveredDevice, error)
+	GetDeviceStats(ctx context.Context) (map[string]DeviceStats, error)
 	GetPendingDevices(ctx context.Context) ([]PendingDevice, error)
 	GetFolderStatus(ctx context.Context, folderID string) (*FolderStatus, error)
 	GetFolderConfigs(ctx context.Context) ([]FolderConfig, error)

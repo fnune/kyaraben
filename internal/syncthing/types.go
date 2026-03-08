@@ -3,15 +3,28 @@ package syncthing
 import "time"
 
 type SystemStatus struct {
-	MyID      string `json:"myID"`
-	StartTime string `json:"startTime"`
-	Uptime    int    `json:"uptime"`
+	MyID                    string                           `json:"myID"`
+	StartTime               string                           `json:"startTime"`
+	Uptime                  int                              `json:"uptime"`
+	ConnectionServiceStatus map[string]ConnectionServiceInfo `json:"connectionServiceStatus"`
+}
+
+type ConnectionServiceInfo struct {
+	Error        string   `json:"error"`
+	LANAddresses []string `json:"lanAddresses"`
+	WANAddresses []string `json:"wanAddresses"`
 }
 
 type ConnectionInfo struct {
 	Connected bool   `json:"connected"`
 	Address   string `json:"address"`
 	Paused    bool   `json:"paused"`
+	Type      string `json:"type"`
+	IsLocal   bool   `json:"isLocal"`
+}
+
+type DeviceStats struct {
+	LastSeen time.Time `json:"lastSeen"`
 }
 
 type FolderStatus struct {
@@ -94,7 +107,7 @@ type SyncProgressInfo struct {
 	NeedFiles   int64
 	NeedBytes   int64
 	GlobalBytes int64
-	Percent     int
+	Percent     float64
 }
 
 type PendingStatus struct {

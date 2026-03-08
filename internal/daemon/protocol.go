@@ -298,21 +298,26 @@ type SyncStatusResponse struct {
 	ServiceError           string        `json:"serviceError,omitempty"`
 	GlobalDiscoveryEnabled bool          `json:"globalDiscoveryEnabled,omitempty"`
 	AutostartEnabled       bool          `json:"autostartEnabled,omitempty"`
+	LocalConnectivityIssue string        `json:"localConnectivityIssue,omitempty"`
 }
 
 type SyncProgress struct {
-	NeedFiles   int64 `json:"needFiles"`
-	NeedBytes   int64 `json:"needBytes"`
-	GlobalBytes int64 `json:"globalBytes"`
-	Percent     int   `json:"percent"`
+	NeedFiles   int64   `json:"needFiles"`
+	NeedBytes   int64   `json:"needBytes"`
+	GlobalBytes int64   `json:"globalBytes"`
+	Percent     float64 `json:"percent"`
 }
 
 type SyncDevice struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	Connected  bool   `json:"connected"`
-	Paused     bool   `json:"paused,omitempty"`
-	Completion *int   `json:"completion,omitempty"`
+	ID                string  `json:"id"`
+	Name              string  `json:"name"`
+	Connected         bool    `json:"connected"`
+	Paused            bool    `json:"paused,omitempty"`
+	Completion        *int    `json:"completion,omitempty"`
+	LastSeen          *string `json:"lastSeen,omitempty"`
+	ConnectionType    string  `json:"connectionType,omitempty"`
+	IsLocal           bool    `json:"isLocal,omitempty"`
+	ConnectivityIssue string  `json:"connectivityIssue,omitempty"`
 }
 
 type SyncFolder struct {
