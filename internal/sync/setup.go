@@ -77,11 +77,6 @@ func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, collectionPat
 	configDir := filepath.Join(s.stateDir, "syncthing", "config")
 	dataDir := filepath.Join(s.stateDir, "syncthing", "data")
 
-	pairedDevices, err := s.loadPairedDevices(configDir)
-	if err != nil {
-		log.Info("Could not load paired devices: %v", err)
-	}
-
 	apiKey, err := s.loadOrGenerateAPIKey(configDir)
 	if err != nil {
 		return nil, fmt.Errorf("generating API key: %w", err)
@@ -120,6 +115,11 @@ func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, collectionPat
 	folderRequests := configGen.FolderCreateRequests()
 	if err := client.AddFolders(ctx, folderRequests); err != nil {
 		return nil, fmt.Errorf("adding folders via REST: %w", err)
+	}
+
+	pairedDevices, err := s.loadPairedDevices(ctx, client, configDir)
+	if err != nil {
+		log.Info("Could not load paired devices: %v", err)
 	}
 
 	if err := s.restorePairedDevices(ctx, client, pairedDevices); err != nil {
@@ -350,7 +350,7 @@ func (s *Setup) waitForSyncthing(ctx context.Context, client SyncClient) error {
 	return fmt.Errorf("timed out waiting for syncthing to start")
 }
 
-func (s *Setup) loadPairedDevices(configDir string) ([]XMLDevice, error) {
+func (s *Setup) loadPairedDevices(ctx context.Context, client SyncClient, configDir string) ([]XMLDevice, error) {
 	configPath := filepath.Join(configDir, "config.xml")
 	data, err := s.fs.ReadFile(configPath)
 	if err != nil {
@@ -363,15 +363,20 @@ func (s *Setup) loadPairedDevices(configDir string) ([]XMLDevice, error) {
 		return nil, nil
 	}
 
+	localID, err := client.GetDeviceID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("getting local device ID: %w", err)
+	}
+
 	var paired []XMLDevice
 	for _, dev := range existing.Devices {
-		if dev.Name != "this-device" && dev.Name != "" {
+		if dev.ID != localID {
 			paired = append(paired, dev)
 		}
 	}
 
 	if len(paired) > 0 {
-		log.Info("Found %d paired device(s) to restore", len(paired))
+		log.Info("Found %d paired device(s) to restore (local device: %s)", len(paired), localID)
 	}
 
 	return paired, nil

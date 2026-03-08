@@ -1,10 +1,13 @@
 package sync
 
 import (
+	"context"
 	"net"
 	"testing"
 
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/paths"
+	"github.com/fnune/kyaraben/internal/testutil"
 )
 
 func TestCheckPortsAvailable_AllFree(t *testing.T) {
@@ -92,5 +95,96 @@ func TestCheckPorts_CanBeReplaced(t *testing.T) {
 
 	if !called {
 		t.Error("CheckPorts replacement was not called")
+	}
+}
+
+func TestLoadPairedDevices_ExcludesLocalDevice(t *testing.T) {
+	localDeviceID := "SLBSDKR-1234567-1234567-1234567-1234567-1234567-1234567-1234567"
+	remoteDeviceID := "GXCWEZS-7654321-7654321-7654321-7654321-7654321-7654321-7654321"
+
+	existingConfig := `<?xml version="1.0" encoding="UTF-8"?>
+<configuration version="37">
+  <device id="` + localDeviceID + `" name="steamdeck" compression="metadata"></device>
+  <device id="` + remoteDeviceID + `" name="desktop" compression="metadata"></device>
+</configuration>`
+
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/config/config.xml": existingConfig,
+	})
+
+	fakeClient := NewFakeClient(model.SyncConfig{})
+	fakeClient.SetDeviceID(localDeviceID)
+
+	setup := NewSetup(fs, paths.DefaultPaths(), nil, "/state", nil, nil)
+
+	ctx := context.Background()
+	paired, err := setup.loadPairedDevices(ctx, fakeClient, "/config")
+	if err != nil {
+		t.Fatalf("loadPairedDevices() error = %v", err)
+	}
+
+	if len(paired) != 1 {
+		t.Fatalf("expected 1 paired device, got %d", len(paired))
+	}
+
+	if paired[0].ID != remoteDeviceID {
+		t.Errorf("expected paired device ID %s, got %s", remoteDeviceID, paired[0].ID)
+	}
+
+	if paired[0].Name != "desktop" {
+		t.Errorf("expected paired device name 'desktop', got %s", paired[0].Name)
+	}
+}
+
+func TestLoadPairedDevices_LocalDeviceNamedThisDevice(t *testing.T) {
+	localDeviceID := "LOCAL-ID-12345-12345-12345-12345-12345-12345-12345"
+	remoteDeviceID := "REMOTE-ID-67890-67890-67890-67890-67890-67890-67890"
+
+	existingConfig := `<?xml version="1.0" encoding="UTF-8"?>
+<configuration version="37">
+  <device id="` + localDeviceID + `" name="this-device" compression="metadata"></device>
+  <device id="` + remoteDeviceID + `" name="my-phone" compression="metadata"></device>
+</configuration>`
+
+	fs := testutil.NewTestFS(t, map[string]any{
+		"/config/config.xml": existingConfig,
+	})
+
+	fakeClient := NewFakeClient(model.SyncConfig{})
+	fakeClient.SetDeviceID(localDeviceID)
+
+	setup := NewSetup(fs, paths.DefaultPaths(), nil, "/state", nil, nil)
+
+	ctx := context.Background()
+	paired, err := setup.loadPairedDevices(ctx, fakeClient, "/config")
+	if err != nil {
+		t.Fatalf("loadPairedDevices() error = %v", err)
+	}
+
+	if len(paired) != 1 {
+		t.Fatalf("expected 1 paired device, got %d", len(paired))
+	}
+
+	if paired[0].ID != remoteDeviceID {
+		t.Errorf("expected paired device ID %s, got %s", remoteDeviceID, paired[0].ID)
+	}
+}
+
+func TestLoadPairedDevices_NoConfigFile(t *testing.T) {
+	fs := testutil.NewTestFS(t, nil)
+
+	fakeClient := NewFakeClient(model.SyncConfig{})
+	fakeClient.SetDeviceID("LOCAL-DEVICE-ID")
+
+	setup := NewSetup(fs, paths.DefaultPaths(), nil, "/state", nil, nil)
+
+	ctx := context.Background()
+	paired, err := setup.loadPairedDevices(ctx, fakeClient, "/config")
+	if err != nil {
+		t.Fatalf("loadPairedDevices() error = %v", err)
+	}
+
+	if paired != nil {
+		t.Errorf("expected nil paired devices when no config file, got %v", paired)
 	}
 }
