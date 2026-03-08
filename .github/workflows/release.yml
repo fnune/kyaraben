@@ -45,23 +45,32 @@ jobs:
         with:
           go-version: "1.24"
 
-      - name: Install musl-gcc
-        run: sudo apt-get update && sudo apt-get install -y musl-tools
-
-      - name: Install git-cliff
+      - name: Install dependencies
         run: |
+          sudo apt-get update && sudo apt-get install -y musl-tools
           curl -sSfL https://github.com/orhun/git-cliff/releases/download/v2.7.0/git-cliff-2.7.0-x86_64-unknown-linux-gnu.tar.gz | tar xz
           sudo mv git-cliff-2.7.0/git-cliff /usr/local/bin/
           rm -rf git-cliff-2.7.0
 
-      - name: Install goreleaser
+      - name: Build CLI
         run: |
-          curl -sfL https://goreleaser.com/static/run | bash -s -- --version
+          CGO_ENABLED=1 CC=musl-gcc go build \
+            -ldflags="-s -w -linkmode external -extldflags '-static'" \
+            -o Kyaraben-CLI-linux-amd64 \
+            ./cmd/kyaraben
+          sha256sum Kyaraben-CLI-linux-amd64 > checksums.txt
 
-      - name: Run goreleaser
-        run: curl -sfL https://goreleaser.com/static/run | bash -s -- release
+      - name: Create release
+        run: |
+          git-cliff --latest --strip header > release-notes.md
+          gh release create "${{ github.ref_name }}" \
+            --draft \
+            --title "${{ github.ref_name }}" \
+            --notes-file release-notes.md \
+            Kyaraben-CLI-linux-amd64 \
+            checksums.txt
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release-electron:
     runs-on: ubuntu-latest
