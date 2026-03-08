@@ -143,13 +143,18 @@ jobs:
           mv squashfs-root app
 
       - name: Cache Playwright browsers
+        id: playwright-cache
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('ui/package-lock.json') }}
 
       - name: Install Playwright browsers
-        run: cd ui && npx playwright install --with-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: cd ui && npx playwright install chromium
+
+      - name: Install Playwright system dependencies
+        run: cd ui && npx playwright install-deps chromium
 
       - name: Run Playwright E2E tests
         run: |

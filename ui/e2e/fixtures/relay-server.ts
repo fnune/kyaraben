@@ -8,7 +8,26 @@ export interface RelayServer {
   close: () => void
 }
 
-let nextRelayPort = 19600
+const activeRelays: Set<ChildProcess> = new Set()
+
+function cleanupAllRelays() {
+  for (const proc of activeRelays) {
+    proc.kill('SIGKILL')
+  }
+  activeRelays.clear()
+}
+
+process.on('exit', cleanupAllRelays)
+process.on('SIGINT', () => {
+  cleanupAllRelays()
+  process.exit(1)
+})
+process.on('SIGTERM', () => {
+  cleanupAllRelays()
+  process.exit(1)
+})
+
+let nextRelayPort = 20000 + Math.floor(Math.random() * 10000)
 
 function getRelayBinaryPath(): string {
   const envPath = process.env.KYARABEN_RELAY_BINARY
@@ -35,6 +54,8 @@ export async function startRelayServer(): Promise<RelayServer> {
       console.error(`relay stderr: ${data}`)
     })
 
+    activeRelays.add(proc)
+
     try {
       await waitForServer(`http://localhost:${port}/health`, 3000)
       return {
@@ -43,10 +64,12 @@ export async function startRelayServer(): Promise<RelayServer> {
         process: proc,
         close: () => {
           proc.kill('SIGKILL')
+          activeRelays.delete(proc)
         },
       }
     } catch {
       proc.kill('SIGKILL')
+      activeRelays.delete(proc)
     }
   }
 
