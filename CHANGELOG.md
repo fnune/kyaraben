@@ -1,161 +1,34 @@
-## [0.1.0] - 2026-03-08
+# Changelog
+
+## 0.1.0
+
+Initial release.
 
 ### Features
 
-- Add release workflow and conventional commits
-- Replace Layout with NintendoConfirmButton for clearer controller config
-- Default ES-DE screensaver to dim instead of video
-- Add optional managed shader support
-- Add global shader defaults with [graphics] section
-- *(ui)* Add Graphics section for global shader defaults
-- *(ui)* Replace SystemNav with ManufacturerNav and add frontend launch
-- Show config warnings as persistent toast instead of failing
-- Add import scanner for migrating existing collections
-- *(snes)* Add snes9x as default emulator
-- *(shaders)* Make emulators opt-in to global shader setting
-- *(packages)* Add per-core version pinning for libretro cores
-- *(pcsx2)* Default internal resolution to 2x
-- *(resume)* Add auto-resume support with per-emulator overrides
-- *(resume)* Add autoload for DuckStation, tune recommended settings
-- *(ui)* Add Preferences view and refactor config state management
-- *(ui)* Extract apply completion toast to testable hook
-- *(ui)* Add controller hotkey configuration
-- Drive PreferencesView from backend emulator/system data
-- Replace shaders toggle with graphics presets system
-- Use crt-1tap shader for pseudo-authentic preset
-- Implement RGC overlay pack recommendations for mGBA
-- Add RGC recommendations for all RetroArch cores
-- *(sync)* Add folder sharing reconciliation support
-- *(sync)* Integrate folder sharing reconciliation into daemon
-- *(retroarch)* Add 5x integer scaling bezels for handheld systems
-- *(shaders)* Switch to koko-aio with OLED-tuned per-system presets
-- *(shaders)* Replace koko-aio with simpler CRT/LCD shaders
-- *(nextui)* Add NextUI integration pak for TrimUI/MinUI devices
-- *(syncthing)* Extract standalone Syncthing client package
-- *(nextui)* Add integration structure with UI abstractions and mapping
-- *(syncguest)* Add generic sync manager and kyaraben-guest CLI
-- *(nextui)* Add build system, config-driven mapping, and E2E tests
-- *(syncguest)* Add Syncthing config.xml generation
-- *(sync)* Use per-emulator folders for screenshots
-- *(nextui)* Add service management with start/stop and autostart toggles
-- *(nextui)* Improve UI and syncthing configuration
-- *(nextui)* Add state syncing and fix pairing flow
-- *(integrations)* Add Batocera integration
-- *(batocera)* Add vfs support, tests, system name translation, and justfile
-- *(3ds)* Add Azahar emulator, keep Citra as default
-- *(ui)* Add default emulator indicator for multi-emulator systems
-- *(sync)* Add confirmation flow for device ID connections
-- *(sync)* Make relay URLs configurable via sync.relays
-- *(sync)* Add sync conflict file detection
-- *(sync)* Add autostart and running controls
-- *(sync)* Add conflict indicator and improve pairing detection
-- *(site)* Add hero background and screenshot to landing page
-- *(cli)* Add conflict display to sync status
-- *(cli)* Add headless mode for sync-only servers
-- *(ui)* Add headless mode support and documentation
-- *(sync)* Add connectivity diagnostics and improve pairing UX
-- *(release)* Enable auto-changelog from goreleaser
+- **System and emulator management**: select systems from Atari 2600 through PS3 and Switch, with automatic emulator installation as self-contained AppImages
+- **Collection directory**: unified folder structure for ROMs, saves, states, and BIOS files
+- **BIOS verification**: provisions panel shows required files, hash verification, and placement instructions
+- **Configuration management**: Kyaraben manages specific emulator config keys and shows diffs before applying changes
+- **Desktop integration**: creates desktop entries and integrates with ES-DE frontend
 
-### Bug fixes
+### Sync
 
-- Correct FaceButtons logic and Eden hotkey generation
-- Use SDL3 positional button names for PCSX2
-- *(import)* Correct source path fallback and ordering issues
-- *(import)* Show empty source as '(not in source)' instead of fake path
-- *(import)* Improve empty source message
-- *(import)* Match font size for empty source message
-- *(import)* Filter syncthing files from diff and file counts
-- *(import)* Remove misleading flat structure warning
-- *(import)* Remove unused notes UI
-- Make emulator subcards have small version dropdowns
-- *(ui)* Stabilize emulator order in system cards
-- *(packages)* Correct IsEmulatorInstalled path and SetVersionOverrides behavior
-- *(gc)* Keep retroarch package when cores are enabled
-- *(config)* Allow clearing emulator version pins
-- *(config)* Fix diff detection and display for whole-file configs
-- *(daemon)* Make execLine required for installed emulators and frontends
-- *(packages)* Remove misleading cores installation summary
-- *(e2e)* Handle multiple emulator switches in SNES card
-- *(e2e)* Handle multiple SNES emulators in test selectors
-- *(ui)* Await onComplete callback and update config state after apply
-- *(ui)* Update installed versions after apply completes
-- *(e2e)* Click East button in preflight test
-- *(ui)* Set success status before running onComplete callback
-- Use lcd3x shader for LCD systems per RGC guide
-- Add steamdeck and rog-ally to target fallback map
-- *(ui)* Show error toast when apply fails from non-catalog views
-- *(sync)* Use fresh context for relay CreateSession after health checks
-- *(ui)* Add loading state to Apply button to prevent double-clicks
-- *(steam)* Set icon path for non-Steam shortcuts
-- *(retroarch)* Use library names for per-core save/state directories
-- *(sync)* Use emulator-based subdirs for states in syncthing
-- Enable CGO for build and fix e2e test flag parsing
-- *(build)* Produce statically linked sidecar for portability
-- *(duckstation)* Use XDG_CONFIG_HOME for config directory
-- *(duckstation)* Disable setup wizard on first launch
-- *(nix)* Default to musl-gcc for static CGO builds
-- *(test)* Use correct config base dir for duckstation
-- *(ui)* Always show pairing UI in sync view
-- *(nix)* Configure static linking with netgo build tag
-- *(ui)* Always show device pairing UI
-- *(justfile)* Skip e2e tests in check recipe
-- *(nextui)* Correct platform codes to match minui tools
-- *(3ds)* Share saves between Citra and Azahar cores
-- *(eden)* Migrate URLs from GitHub to git.eden-emu.dev
-- *(sync)* Configure folders via REST API after syncthing starts
-- *(e2e)* Fix preflight test failures
-- *(sync)* Filter paired devices by ID instead of name
-- *(e2e)* Improve fake syncthing server and relay robustness
-- *(e2e)* Use xvfb-run for headless e2e testing
-- *(ui,docs)* Capitalize Syncthing and document Game Mode autostart
-- *(ui)* Correct electron entry point path for tsconfig output
-- *(e2e)* Use SIGKILL for relay server cleanup
-- *(e2e)* Robust relay cleanup and playwright caching
-- *(e2e)* Disable Electron sandbox on CI
-- *(cli)* Init --headless uses defaults, uninstall removes systemd service
-- *(sync)* Preserve devices and folders when rewriting config
-- *(site)* Prevent layout shift on page load
-- *(sync)* Suppress port warning for offline devices
-- *(release)* Use correct nextui build system
-- *(release)* Upload electron AppImage to existing release
-- *(release)* Disable electron-builder auto-publish
-- *(release)* Consistent artifact naming
-- *(release)* Remove version from artifact names for stable download links
-- *(release)* Uppercase CLI in artifact name
-- Use generic label for docs badge
-- *(release)* Cleaner changelog format
+- **Syncthing-based sync**: automatic Syncthing setup with systemd service management
+- **Device pairing**: 6-digit relay-based pairing codes for easy device connection
+- **Multi-device support**: sync between desktop, Steam Deck, and headless servers
+- **NextUI guest integration**: sync with NextUI handhelds
 
-### Performance
+### Platforms
 
-- *(extractor)* Switch 7z extraction to go-unarr for 2x speedup
-- *(nextui)* Cache kyaraben-nextui binary across platform builds
-- *(site)* Optimize hero images
+- Linux x86_64 (AppImage)
+- Steam Deck (works in Game Mode)
+- Headless server (CLI-only for sync hub use case)
+- ARM64 experimental
 
-### Refactor
+### CLI
 
-- Improve DI patterns and fix preflight review bugs
-- Consolidate config dependency tracking with Entry/Default API
-- Rename user_store to collection
-- *(versions)* Treat retroarch cores as regular packages
-- *(shaders)* Use CFG format with absolute paths for shader presets
-- *(ui)* Use VERSION_DEFAULT sentinel for version selection
-- *(ui)* Extract useStatusData hook to prevent missing state updates
-- *(ui)* Extract shared PackageCard and PackageCardHeader components
-- *(ui)* Consolidate bottom bars into ApplyBar
-- *(presets)* Simplify to clean/retro, apply color correction always
-- *(ui)* Simplify graphics presets to clean and retro
-- *(graphics)* Default to retro preset and reorder options
-- *(graphics)* Remove bezels feature
-- *(sync)* Unify folder sharing methods
-- *(sync)* Use internal/syncthing package
-- Remove kyaraben-guest CLI for now
-- *(sync)* Add folders package as single source of truth for folder IDs
-- *(integrations)* Extract shared guestapp package, improve DI
-- *(nextui)* Remove dead code and simplify with guestapp abstractions
-- Extract shared utilities, document extraction candidates
-- *(batocera)* Remove CLI code, mark integration as planned
-- *(nextui)* Use typed SystemID constants for path mapping keys
-- *(syncguest)* Remove redundant name check in device filter
-- *(ui)* Move types to shared directory accessible by electron
-- *(ui)* Extract ActionBanner and show pending device app-wide
-- *(e2e)* Extract launchElectron helper to reduce duplication
+- `kyaraben status` - show current state
+- `kyaraben apply` - apply configuration changes
+- `kyaraben sync` - manage sync and device pairing
+- `kyaraben doctor` - check BIOS and firmware status

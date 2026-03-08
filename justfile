@@ -81,7 +81,7 @@ release-create version:
     fi
 
     echo "Generating changelog for v{{ version }}..."
-    git-cliff --tag "v{{ version }}" -o CHANGELOG.md
+    git-cliff --tag "v{{ version }}" --unreleased --prepend CHANGELOG.md
 
     git add CHANGELOG.md
     git commit -m "chore(release): update changelog for v{{ version }}"
