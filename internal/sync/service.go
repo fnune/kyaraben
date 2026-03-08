@@ -13,6 +13,8 @@ type ServiceManager interface {
 	Restart(unit string) error
 	Enable(unit string) error
 	Disable(unit string) error
+	EnableAutostart(unit string) error
+	DisableAutostart(unit string) error
 	IsEnabled(unit string) bool
 	State(unit string) string
 	Logs(unit string, lines int) string
@@ -46,6 +48,14 @@ func (m *SystemctlManager) Enable(unit string) error {
 
 func (m *SystemctlManager) Disable(unit string) error {
 	return exec.Command("systemctl", "--user", "disable", "--now", unit).Run()
+}
+
+func (m *SystemctlManager) EnableAutostart(unit string) error {
+	return exec.Command("systemctl", "--user", "enable", unit).Run()
+}
+
+func (m *SystemctlManager) DisableAutostart(unit string) error {
+	return exec.Command("systemctl", "--user", "disable", unit).Run()
 }
 
 func (m *SystemctlManager) IsEnabled(unit string) bool {

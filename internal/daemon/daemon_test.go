@@ -198,15 +198,17 @@ type fakeServiceManager struct {
 	stateCalls atomic.Int32
 }
 
-func (f *fakeServiceManager) DaemonReload() error            { return nil }
-func (f *fakeServiceManager) Start(unit string) error        { return nil }
-func (f *fakeServiceManager) Stop(unit string) error         { return nil }
-func (f *fakeServiceManager) Restart(unit string) error      { return nil }
-func (f *fakeServiceManager) Enable(unit string) error       { return nil }
-func (f *fakeServiceManager) Disable(unit string) error      { return nil }
-func (f *fakeServiceManager) IsEnabled(unit string) bool     { return f.state == "active" }
-func (f *fakeServiceManager) State(unit string) string       { f.stateCalls.Add(1); return f.state }
-func (f *fakeServiceManager) Logs(unit string, n int) string { return "" }
+func (f *fakeServiceManager) DaemonReload() error                { return nil }
+func (f *fakeServiceManager) Start(unit string) error            { return nil }
+func (f *fakeServiceManager) Stop(unit string) error             { return nil }
+func (f *fakeServiceManager) Restart(unit string) error          { return nil }
+func (f *fakeServiceManager) Enable(unit string) error           { return nil }
+func (f *fakeServiceManager) Disable(unit string) error          { return nil }
+func (f *fakeServiceManager) EnableAutostart(unit string) error  { return nil }
+func (f *fakeServiceManager) DisableAutostart(unit string) error { return nil }
+func (f *fakeServiceManager) IsEnabled(unit string) bool         { return f.state == "active" }
+func (f *fakeServiceManager) State(unit string) string           { f.stateCalls.Add(1); return f.state }
+func (f *fakeServiceManager) Logs(unit string, n int) string     { return "" }
 
 var _ syncpkg.ServiceManager = (*fakeServiceManager)(nil)
 

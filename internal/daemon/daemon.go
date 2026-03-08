@@ -1201,6 +1201,7 @@ func (d *Daemon) handleSyncStatus() []Event {
 				Installed:              installed,
 				ServiceInstalled:       serviceInstalled,
 				GlobalDiscoveryEnabled: cfg.Sync.Syncthing.GlobalDiscoveryEnabled,
+				AutostartEnabled:       cfg.Sync.Autostart,
 			},
 		}}
 	}
@@ -1241,6 +1242,7 @@ func (d *Daemon) handleSyncStatus() []Event {
 				GUIURL:                 fmt.Sprintf("http://127.0.0.1:%d", cfg.Sync.Syncthing.GUIPort),
 				ServiceError:           serviceError,
 				GlobalDiscoveryEnabled: cfg.Sync.Syncthing.GlobalDiscoveryEnabled,
+				AutostartEnabled:       cfg.Sync.Autostart,
 			},
 		}}
 	}
@@ -1287,6 +1289,10 @@ func (d *Daemon) handleSyncStatus() []Event {
 		if !filepath.IsAbs(path) {
 			path = computeFolderPath(collection.Root(), f.ID)
 		}
+		var conflictCount int
+		if conflicts, err := syncpkg.ScanForConflicts(d.deps.FS, path); err == nil {
+			conflictCount = len(conflicts)
+		}
 		folders[i] = SyncFolder{
 			ID:                 f.ID,
 			Path:               path,
@@ -1298,6 +1304,7 @@ func (d *Daemon) handleSyncStatus() []Event {
 			LocalSize:          f.LocalSize,
 			NeedSize:           f.NeedSize,
 			ReceiveOnlyChanges: f.ReceiveOnlyChanges,
+			ConflictCount:      conflictCount,
 		}
 	}
 
@@ -1325,6 +1332,7 @@ func (d *Daemon) handleSyncStatus() []Event {
 			Folders:                folders,
 			Progress:               progress,
 			GlobalDiscoveryEnabled: cfg.Sync.Syncthing.GlobalDiscoveryEnabled,
+			AutostartEnabled:       cfg.Sync.Autostart,
 		},
 	}}
 }
@@ -1861,9 +1869,41 @@ func (d *Daemon) handleSyncSetSettings(data *SyncSetSettingsRequest) []Event {
 		return d.errorResponse("missing settings data")
 	}
 
+	unit := syncpkg.NewSystemdUnit(d.deps.FS, d.deps.Paths, d.deps.Service)
+
+	if data.Running != nil {
+		if *data.Running {
+			if err := unit.Start(); err != nil {
+				return d.errorResponse(fmt.Sprintf("starting syncthing: %v", err))
+			}
+		} else {
+			if err := unit.Stop(); err != nil {
+				return d.errorResponse(fmt.Sprintf("stopping syncthing: %v", err))
+			}
+		}
+	}
+
+	if data.AutostartEnabled != nil {
+		unitName := unit.UnitName()
+		if *data.AutostartEnabled {
+			if err := d.deps.Service.EnableAutostart(unitName); err != nil {
+				return d.errorResponse(fmt.Sprintf("enabling autostart: %v", err))
+			}
+		} else {
+			if err := d.deps.Service.DisableAutostart(unitName); err != nil {
+				return d.errorResponse(fmt.Sprintf("disabling autostart: %v", err))
+			}
+		}
+		cfg.Sync.Autostart = *data.AutostartEnabled
+	}
+
 	changed := false
 	if data.GlobalDiscoveryEnabled != nil {
 		cfg.Sync.Syncthing.GlobalDiscoveryEnabled = *data.GlobalDiscoveryEnabled
+		changed = true
+	}
+
+	if data.AutostartEnabled != nil {
 		changed = true
 	}
 
@@ -1882,7 +1922,7 @@ func (d *Daemon) handleSyncSetSettings(data *SyncSetSettingsRequest) []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	if cfg.Sync.Enabled {
+	if cfg.Sync.Enabled && data.GlobalDiscoveryEnabled != nil {
 		collection, err := store.NewCollection(d.deps.FS, d.deps.Paths, cfg.Global.Collection)
 		if err != nil {
 			return d.errorResponse(err.Error())
@@ -1896,7 +1936,6 @@ func (d *Daemon) handleSyncSetSettings(data *SyncSetSettingsRequest) []Event {
 			return d.errorResponse(fmt.Sprintf("updating syncthing config: %v", err))
 		}
 
-		unit := syncpkg.NewSystemdUnit(d.deps.FS, d.deps.Paths, d.deps.Service)
 		if unit.IsEnabled() {
 			if err := d.deps.Service.Restart(unit.UnitName()); err != nil {
 				log.Error("Failed to restart syncthing after settings change: %v", err)
@@ -2524,6 +2563,7 @@ func (d *Daemon) startRelayPollLoop(cfg *model.KyarabenConfig, relayClient *sync
 				addCancel()
 
 				pairingLog.Info("Initiator pairing via relay completed successfully for device %s", resp.DeviceID[:7])
+				pairingLog.Info("Emitting progress event with deviceId: %s", resp.DeviceID)
 				emit(Event{
 					Type: EventTypeProgress,
 					Data: SyncPairingProgressEvent{
@@ -2531,6 +2571,7 @@ func (d *Daemon) startRelayPollLoop(cfg *model.KyarabenConfig, relayClient *sync
 						DeviceID: resp.DeviceID,
 					},
 				})
+				pairingLog.Info("Progress event emitted successfully")
 
 				_ = relayClient.DeleteSession(context.Background(), code)
 				return

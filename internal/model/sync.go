@@ -2,6 +2,7 @@ package model
 
 type SyncConfig struct {
 	Enabled   bool             `toml:"enabled"`
+	Autostart bool             `toml:"autostart"`
 	Relays    []string         `toml:"relays,omitempty"`
 	Syncthing SyncthingConfig  `toml:"syncthing"`
 	Ignore    SyncIgnoreConfig `toml:"ignore"`
@@ -22,7 +23,8 @@ type SyncIgnoreConfig struct {
 
 func DefaultSyncConfig() SyncConfig {
 	return SyncConfig{
-		Enabled: false,
+		Enabled:   false,
+		Autostart: true,
 		Syncthing: SyncthingConfig{
 			ListenPort:    22100,
 			DiscoveryPort: 21127,

@@ -296,6 +296,7 @@ type SyncStatusResponse struct {
 	Progress               *SyncProgress `json:"progress,omitempty"`
 	ServiceError           string        `json:"serviceError,omitempty"`
 	GlobalDiscoveryEnabled bool          `json:"globalDiscoveryEnabled,omitempty"`
+	AutostartEnabled       bool          `json:"autostartEnabled,omitempty"`
 }
 
 type SyncProgress struct {
@@ -324,6 +325,7 @@ type SyncFolder struct {
 	LocalSize          int64  `json:"localSize"`
 	NeedSize           int64  `json:"needSize"`
 	ReceiveOnlyChanges int    `json:"receiveOnlyChanges"`
+	ConflictCount      int    `json:"conflictCount,omitempty"`
 }
 
 type SyncRevertFolderRequest struct {
@@ -412,6 +414,8 @@ type SyncResetResponse struct {
 
 type SyncSetSettingsRequest struct {
 	GlobalDiscoveryEnabled *bool `json:"globalDiscoveryEnabled,omitempty"`
+	Running                *bool `json:"running,omitempty"`
+	AutostartEnabled       *bool `json:"autostartEnabled,omitempty"`
 }
 
 type SyncSetSettingsResponse struct {

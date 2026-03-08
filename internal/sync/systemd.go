@@ -100,6 +100,27 @@ func (s *SystemdUnit) Write(params UnitParams) error {
 	return nil
 }
 
+func (s *SystemdUnit) Start() error {
+	if err := s.service.DaemonReload(); err != nil {
+		return fmt.Errorf("daemon-reload: %w", err)
+	}
+	unitName := s.UnitName()
+	if err := s.service.Start(unitName); err != nil {
+		return fmt.Errorf("start service: %w", err)
+	}
+	log.Info("Started %s", unitName)
+	return nil
+}
+
+func (s *SystemdUnit) Stop() error {
+	unitName := s.UnitName()
+	if err := s.service.Stop(unitName); err != nil {
+		return fmt.Errorf("stop service: %w", err)
+	}
+	log.Info("Stopped %s", unitName)
+	return nil
+}
+
 func (s *SystemdUnit) Enable() error {
 	if err := s.service.DaemonReload(); err != nil {
 		return fmt.Errorf("daemon-reload: %w", err)

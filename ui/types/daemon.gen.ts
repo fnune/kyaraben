@@ -256,6 +256,7 @@ export interface SyncStatusResponse {
   progress?: SyncProgress;
   serviceError?: string;
   globalDiscoveryEnabled?: boolean;
+  autostartEnabled?: boolean;
 }
 export interface SyncProgress {
   needFiles: number /* int64 */;
@@ -281,6 +282,7 @@ export interface SyncFolder {
   localSize: number /* int64 */;
   needSize: number /* int64 */;
   receiveOnlyChanges: number /* int */;
+  conflictCount?: number /* int */;
 }
 export interface SyncRevertFolderRequest {
   folderId: string;
@@ -352,6 +354,8 @@ export interface SyncResetResponse {
 }
 export interface SyncSetSettingsRequest {
   globalDiscoveryEnabled?: boolean;
+  running?: boolean;
+  autostartEnabled?: boolean;
 }
 export interface SyncSetSettingsResponse {
   success: boolean;

@@ -6,20 +6,30 @@ import { ToggleSwitch } from '@/lib/ToggleSwitch'
 export interface SyncSettingsSectionProps {
   readonly guiURL: string | undefined
   readonly globalDiscoveryEnabled: boolean
+  readonly running: boolean
+  readonly autostartEnabled: boolean
   readonly onToggleGlobalDiscovery: (enabled: boolean) => Promise<void>
+  readonly onToggleRunning: (running: boolean) => Promise<void>
+  readonly onToggleAutostart: (enabled: boolean) => Promise<void>
   readonly onReset: () => Promise<void>
 }
 
 export function SyncSettingsSection({
   guiURL,
   globalDiscoveryEnabled,
+  running,
+  autostartEnabled,
   onToggleGlobalDiscovery,
+  onToggleRunning,
+  onToggleAutostart,
   onReset,
 }: SyncSettingsSectionProps) {
   const [isCollapsed, setIsCollapsed] = useState(true)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
   const [isTogglingDiscovery, setIsTogglingDiscovery] = useState(false)
+  const [isTogglingRunning, setIsTogglingRunning] = useState(false)
+  const [isTogglingAutostart, setIsTogglingAutostart] = useState(false)
   const openUrl = useOpenUrl()
 
   const handleReset = useCallback(async () => {
@@ -42,6 +52,30 @@ export function SyncSettingsSection({
       }
     },
     [onToggleGlobalDiscovery],
+  )
+
+  const handleToggleRunning = useCallback(
+    async (enabled: boolean) => {
+      setIsTogglingRunning(true)
+      try {
+        await onToggleRunning(enabled)
+      } finally {
+        setIsTogglingRunning(false)
+      }
+    },
+    [onToggleRunning],
+  )
+
+  const handleToggleAutostart = useCallback(
+    async (enabled: boolean) => {
+      setIsTogglingAutostart(true)
+      try {
+        await onToggleAutostart(enabled)
+      } finally {
+        setIsTogglingAutostart(false)
+      }
+    },
+    [onToggleAutostart],
   )
 
   return (
@@ -69,6 +103,36 @@ export function SyncSettingsSection({
               Open Syncthing web interface
             </button>
           )}
+          <div className="flex items-center justify-between">
+            <div>
+              <label htmlFor="syncing-toggle" className="text-sm font-medium text-on-surface">
+                Syncing
+              </label>
+              <p className="text-xs text-on-surface-muted mt-0.5">
+                Enable or disable synchronization.
+              </p>
+            </div>
+            <ToggleSwitch
+              enabled={running}
+              onChange={handleToggleRunning}
+              disabled={isTogglingRunning}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <label htmlFor="autostart-toggle" className="text-sm font-medium text-on-surface">
+                Start on boot
+              </label>
+              <p className="text-xs text-on-surface-muted mt-0.5">
+                Automatically start syncthing when you log in.
+              </p>
+            </div>
+            <ToggleSwitch
+              enabled={autostartEnabled}
+              onChange={handleToggleAutostart}
+              disabled={isTogglingAutostart}
+            />
+          </div>
           <div className="flex items-center justify-between">
             <div>
               <label

@@ -81,6 +81,24 @@ func (m *FakeServiceManager) Disable(unit string) error {
 	return nil
 }
 
+func (m *FakeServiceManager) EnableAutostart(unit string) error {
+	if err := m.Errors["enable-autostart:"+unit]; err != nil {
+		return err
+	}
+	u := m.getOrCreate(unit)
+	u.Enabled = true
+	return nil
+}
+
+func (m *FakeServiceManager) DisableAutostart(unit string) error {
+	if err := m.Errors["disable-autostart:"+unit]; err != nil {
+		return err
+	}
+	u := m.getOrCreate(unit)
+	u.Enabled = false
+	return nil
+}
+
 func (m *FakeServiceManager) IsEnabled(unit string) bool {
 	u := m.Units[unit]
 	return u != nil && u.Enabled
