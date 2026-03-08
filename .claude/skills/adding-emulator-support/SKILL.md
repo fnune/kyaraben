@@ -447,6 +447,8 @@ Update the following test cases to include the new system/emulator:
 
 ## Step 10: Update site documentation
 
+### Emulator support table
+
 File: `site/src/content/docs/using-the-app.mdx`
 
 Add a row to the emulator support table:
@@ -464,6 +466,12 @@ Column definitions:
 - **Controller**: `configured` (Kyaraben generates bindings), `auto` (emulator handles)
 - **Players**: number of controller slots configured, or `-` if emulator handles
 - **Provisions**: BIOS/firmware needed, or `none`. Add `(optional)` if not required
+
+### Support page
+
+File: `site/src/content/docs/support.mdx`
+
+If the emulator has a donation page, add it to the appropriate table. Link to the project's official donation page, not directly to PayPal or similar.
 
 ## Step 11: Generate types and test
 

@@ -50,6 +50,7 @@ export default defineConfig({
         { label: "CLI reference", slug: "using-the-cli" },
         { label: "Synchronization", slug: "sync" },
         { label: "Contributing", slug: "contributing" },
+        { label: "Support the project", slug: "support" },
       ],
     }),
   ],
