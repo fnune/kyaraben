@@ -255,7 +255,7 @@ test.describe('Version upgrade review', () => {
     await expect(page.getByText('Kyaraben has updated its defaults')).toBeVisible({
       timeout: 10000,
     })
-    await expect(page.getByText('duckstation/settings.ini')).toBeVisible()
+    await expect(page.getByText('duckstation/settings.ini').first()).toBeVisible()
     await expect(page.getByRole('button', { name: 'Continue' })).toBeVisible()
 
     await page.getByRole('button', { name: 'Continue' }).click()
