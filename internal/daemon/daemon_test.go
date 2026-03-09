@@ -2,12 +2,16 @@ package daemon
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/paths"
 	syncpkg "github.com/fnune/kyaraben/internal/sync"
+	"github.com/fnune/kyaraben/internal/syncthing"
 )
 
 func TestSetConfigCommandParsing(t *testing.T) {
@@ -255,5 +259,61 @@ func TestEnsureSyncthingManagedSkipsWhenActive(t *testing.T) {
 
 	if service.stateCalls.Load() != 1 {
 		t.Errorf("expected State to be called once, got %d", service.stateCalls.Load())
+	}
+}
+
+func TestRelayPollLoopStopsOnCancel(t *testing.T) {
+	oldInterval := relayPollInterval
+	relayPollInterval = 10 * time.Millisecond
+	t.Cleanup(func() { relayPollInterval = oldInterval })
+
+	polled := make(chan struct{}, 10)
+	deleted := make(chan struct{}, 1)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/api/health":
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodGet && r.URL.Path == "/api/pair/TESTCD/response":
+			select {
+			case polled <- struct{}{}:
+			default:
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"ready": false}`))
+		case r.Method == http.MethodDelete && r.URL.Path == "/api/pair/TESTCD":
+			select {
+			case deleted <- struct{}{}:
+			default:
+			}
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	relayClient, err := syncthing.NewRelayClient([]string{server.URL + "/api"})
+	if err != nil {
+		t.Fatalf("failed to create relay client: %v", err)
+	}
+
+	d := &Daemon{}
+	cfg := &model.KyarabenConfig{}
+
+	d.startRelayPollLoop(cfg, relayClient, "TESTCD", nil, func(Event) {})
+
+	select {
+	case <-polled:
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for first poll")
+	}
+
+	d.handleSyncCancelPairing()
+
+	select {
+	case <-deleted:
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for session deletion after cancel")
 	}
 }

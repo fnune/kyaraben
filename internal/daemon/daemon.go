@@ -38,6 +38,8 @@ import (
 var log = logging.New("daemon")
 var pairingLog = log.WithPrefix("[pairing]")
 
+var relayPollInterval = 2 * time.Second
+
 type Deps struct {
 	FS              vfs.FS
 	Paths           *paths.Paths
@@ -66,6 +68,9 @@ type Daemon struct {
 
 	autoAcceptMu         sync.Mutex
 	autoAcceptCancelFunc context.CancelFunc
+
+	relayPollMu         sync.Mutex
+	relayPollCancelFunc context.CancelFunc
 
 	syncReconfigMu          sync.Mutex
 	syncReconfigRunning     bool
@@ -1766,12 +1771,23 @@ func (d *Daemon) handleSyncJoinPeer(data *SyncJoinPeerRequest, emit func(Event))
 }
 
 func (d *Daemon) handleSyncCancelPairing() []Event {
+	d.stopRelayPollLoop()
 	d.stopAutoAcceptLoop()
 	d.stopJoinerPairing()
 	return []Event{{
 		Type: EventTypeResult,
 		Data: map[string]bool{"cancelled": true},
 	}}
+}
+
+func (d *Daemon) stopRelayPollLoop() {
+	d.relayPollMu.Lock()
+	defer d.relayPollMu.Unlock()
+	if d.relayPollCancelFunc != nil {
+		pairingLog.Info("Stopping relay poll loop")
+		d.relayPollCancelFunc()
+		d.relayPollCancelFunc = nil
+	}
 }
 
 func (d *Daemon) stopJoinerPairing() {
@@ -2575,9 +2591,18 @@ func (d *Daemon) stopAutoAcceptLoop() {
 }
 
 func (d *Daemon) startRelayPollLoop(cfg *model.KyarabenConfig, relayClient *syncpkg.RelayClient, code string, syncClient syncpkg.SyncClient, emit func(Event)) {
+	d.relayPollMu.Lock()
+	if d.relayPollCancelFunc != nil {
+		d.relayPollCancelFunc()
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	d.relayPollCancelFunc = cancel
+	d.relayPollMu.Unlock()
+
 	go func() {
+
 		pairingLog.Info("Starting relay poll loop for code %s", code)
-		ticker := time.NewTicker(2 * time.Second)
+		ticker := time.NewTicker(relayPollInterval)
 		defer ticker.Stop()
 
 		timeout := time.After(5 * time.Minute)
@@ -2585,6 +2610,10 @@ func (d *Daemon) startRelayPollLoop(cfg *model.KyarabenConfig, relayClient *sync
 
 		for {
 			select {
+			case <-ctx.Done():
+				pairingLog.Info("Relay poll loop cancelled for code %s after %d polls", code, pollCount)
+				_ = relayClient.DeleteSession(context.Background(), code)
+				return
 			case <-timeout:
 				pairingLog.Info("Relay poll loop timed out for code %s after %d polls", code, pollCount)
 				_ = relayClient.DeleteSession(context.Background(), code)
