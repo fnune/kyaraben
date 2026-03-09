@@ -76,7 +76,7 @@ function ChangeRow({ change }: { readonly change: ConfigChangeDetail }) {
 function KyarabenUpdateRow({ update }: { readonly update: KyarabenUpdateDetail }) {
   return (
     <div className="font-mono text-xs text-status-ok/80 pl-2">
-      {update.key}: {update.oldValue} &rarr; {update.newValue}
+      {update.key}: was: {update.oldValue} &rarr; becomes: {update.newValue || '(removed)'}
     </div>
   )
 }
@@ -140,7 +140,7 @@ function FileDiff({ diff }: { readonly diff: ConfigFileDiff }) {
           ) : (
             diff.userChanges.map((uc) => (
               <div key={uc.key} className="font-mono text-xs text-status-warning/80 pl-2">
-                {uc.key}: {uc.writtenValue} &rarr; {uc.currentValue}
+                {uc.key}: yours: {uc.currentValue || '(deleted)'} &rarr; kyaraben: {uc.writtenValue}
               </div>
             ))
           )}

@@ -276,7 +276,11 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 				for _, vu := range diff.VersionUpgrades {
 					if !seenKeys[vu.Key] {
 						seenKeys[vu.Key] = true
-						fmt.Printf("    %s: %s → %s\n", vu.Key, vu.OldValue, vu.NewValue)
+						newDisplay := vu.NewValue
+						if newDisplay == "" {
+							newDisplay = "(removed)"
+						}
+						fmt.Printf("    %s: was: %s → becomes: %s\n", vu.Key, vu.OldValue, newDisplay)
 					}
 				}
 			}
@@ -296,7 +300,11 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 				for _, uc := range diff.UserChanges {
 					if !seenKeys[uc.Key] {
 						seenKeys[uc.Key] = true
-						fmt.Printf("    %s: %s → %s\n", uc.Key, uc.WrittenValue, uc.CurrentValue)
+						currentDisplay := uc.CurrentValue
+						if currentDisplay == "" {
+							currentDisplay = "(deleted)"
+						}
+						fmt.Printf("    %s: yours: %s → kyaraben: %s\n", uc.Key, currentDisplay, uc.WrittenValue)
 					}
 				}
 			}

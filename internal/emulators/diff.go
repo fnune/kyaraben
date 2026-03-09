@@ -346,7 +346,11 @@ func (d *ConfigDiff) FormatWithColor(useColor bool) string {
 		if d.UserModified && len(d.UserChanges) > 0 {
 			sb.WriteString(fmt.Sprintf("    %s\n", yellow("Your changes will be overwritten:")))
 			for _, uc := range d.UserChanges {
-				sb.WriteString(fmt.Sprintf("      %s: %s -> %s\n", uc.Key, dim(uc.WrittenValue), yellow(uc.CurrentValue)))
+				currentDisplay := uc.CurrentValue
+				if currentDisplay == "" {
+					currentDisplay = "(deleted)"
+				}
+				sb.WriteString(fmt.Sprintf("      %s: yours: %s -> kyaraben: %s\n", uc.Key, yellow(currentDisplay), dim(uc.WrittenValue)))
 			}
 		}
 		return sb.String()
@@ -357,7 +361,11 @@ func (d *ConfigDiff) FormatWithColor(useColor bool) string {
 	if d.UserModified && len(d.UserChanges) > 0 {
 		sb.WriteString(fmt.Sprintf("    %s\n", yellow("Your changes will be overwritten:")))
 		for _, uc := range d.UserChanges {
-			sb.WriteString(fmt.Sprintf("      %s: %s -> %s\n", uc.Key, dim(uc.WrittenValue), yellow(uc.CurrentValue)))
+			currentDisplay := uc.CurrentValue
+			if currentDisplay == "" {
+				currentDisplay = "(deleted)"
+			}
+			sb.WriteString(fmt.Sprintf("      %s: yours: %s -> kyaraben: %s\n", uc.Key, yellow(currentDisplay), dim(uc.WrittenValue)))
 		}
 		sb.WriteString("\n")
 	}
@@ -365,7 +373,11 @@ func (d *ConfigDiff) FormatWithColor(useColor bool) string {
 	if d.KyarabenChanged && len(d.VersionUpgrades) > 0 {
 		sb.WriteString(fmt.Sprintf("    %s\n", green("Kyaraben has new defaults:")))
 		for _, vu := range d.VersionUpgrades {
-			sb.WriteString(fmt.Sprintf("      %s: %s -> %s\n", vu.Key, dim(vu.OldValue), green(vu.NewValue)))
+			newDisplay := vu.NewValue
+			if newDisplay == "" {
+				newDisplay = "(removed)"
+			}
+			sb.WriteString(fmt.Sprintf("      %s: was: %s -> becomes: %s\n", vu.Key, dim(vu.OldValue), green(newDisplay)))
 		}
 		sb.WriteString("\n")
 	}
