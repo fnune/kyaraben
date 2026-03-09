@@ -1,3 +1,14 @@
+## [0.1.2] - 2026-03-09
+
+### Features
+
+- *(versions)* Add Forgejo support for version checking
+- *(ui)* Link to release notes in update banner
+
+### Bug fixes
+
+- *(ui)* Fix update download getting stuck on redirects
+- *(updater)* Fix self-update relaunch and text file busy error
 ## [0.1.1] - 2026-03-09
 
 ### Features
