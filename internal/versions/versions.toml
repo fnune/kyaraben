@@ -212,6 +212,7 @@ size = 17237104
 # ============================================================================
 
 [eden]
+releases_url = "forgejo:git.eden-emu.dev/eden-emu/eden"
 url_template = "https://git.eden-emu.dev/eden-emu/eden/releases/download/{version}/Eden-Linux-{version}-{variant}-clang-pgo.AppImage"
 default = "v0.1.1"
 icon_url = "https://git.eden-emu.dev/eden-emu/eden/media/branch/master/dist/qt_themes/default/icons/256x256/eden.png"

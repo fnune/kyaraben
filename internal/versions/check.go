@@ -81,6 +81,8 @@ func checkReleasesURL(ctx context.Context, pkg, current, releasesURL string) Ver
 		releases, err = fetchGitHubReleases(ctx, path)
 	case "gitlab":
 		releases, err = fetchGitLabReleases(ctx, path)
+	case "forgejo":
+		releases, err = fetchForgejoReleases(ctx, path)
 	default:
 		check.Error = fmt.Errorf("unknown release source: %s", source)
 		return check
@@ -259,6 +261,51 @@ func fetchGitLabReleases(ctx context.Context, project string) ([]ReleaseInfo, er
 		releases = append(releases, ReleaseInfo{
 			Tag:        r.TagName,
 			Prerelease: false,
+		})
+	}
+
+	return releases, nil
+}
+
+func fetchForgejoReleases(ctx context.Context, path string) ([]ReleaseInfo, error) {
+	parts := strings.SplitN(path, "/", 2)
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid forgejo path: expected host/owner/repo, got %s", path)
+	}
+	host := parts[0]
+	repo := parts[1]
+
+	apiURL := fmt.Sprintf("https://%s/api/v1/repos/%s/releases?limit=20", host, repo)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
+	}
+
+	var fgReleases []githubRelease
+	if err := json.NewDecoder(resp.Body).Decode(&fgReleases); err != nil {
+		return nil, err
+	}
+
+	var releases []ReleaseInfo
+	for _, r := range fgReleases {
+		if r.Draft {
+			continue
+		}
+		releases = append(releases, ReleaseInfo{
+			Tag:        r.TagName,
+			Prerelease: r.Prerelease,
 		})
 	}
 
