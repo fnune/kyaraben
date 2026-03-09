@@ -1,3 +1,8 @@
+## [0.1.1] - 2026-03-09
+
+### Features
+
+- Use kyaraben.org as primary relay and documentation URL
 # Changelog
 
 ## 0.1.0
