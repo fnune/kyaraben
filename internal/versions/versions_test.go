@@ -189,9 +189,9 @@ func TestMultipleVersions(t *testing.T) {
 		t.Errorf("expected at least 2 eden versions, got %d: %v", len(versions), versions)
 	}
 
-	// Check default is v0.1.1
-	if spec.Default != "v0.1.1" {
-		t.Errorf("expected default version v0.1.1, got %s", spec.Default)
+	// Check default is v0.2.0-rc1
+	if spec.Default != "v0.2.0-rc1" {
+		t.Errorf("expected default version v0.2.0-rc1, got %s", spec.Default)
 	}
 
 	// Check we can get specific versions
@@ -204,10 +204,10 @@ func TestMultipleVersions(t *testing.T) {
 		t.Error("v0.1.1 not found")
 	}
 
-	// Check GetDefault returns v0.1.1
+	// Check GetDefault returns v0.2.0-rc1
 	defaultEntry := spec.GetDefault()
-	if defaultEntry == nil || defaultEntry.Version != "v0.1.1" {
-		t.Errorf("GetDefault() should return v0.1.1, got %v", defaultEntry)
+	if defaultEntry == nil || defaultEntry.Version != "v0.2.0-rc1" {
+		t.Errorf("GetDefault() should return v0.2.0-rc1, got %v", defaultEntry)
 	}
 }
 

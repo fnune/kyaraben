@@ -197,12 +197,17 @@ size = 2075879
 
 [azahar]
 releases_url = "github:azahar-emu/azahar"
-url_template = "https://github.com/azahar-emu/azahar/releases/download/{version}/azahar-libretro-{version}-linux-x86_64.zip"
-default = "2125.0-alpha4"
+url_template = "https://github.com/azahar-emu/azahar/releases/download/{version}/azahar-libretro-linux-x86_64-{version}.zip"
+default = "2125.0-alpha5"
 binary_path = "azahar_libretro.so"
 install_type = "retroarch-core"
 
+[azahar."2125.0-alpha5".targets.x64]
+sha256 = "sha256-PwPGhN0I4ZhomQTJ+O4ujSu78xVl12LjNGCtS07AWmE="
+size = 17276436
+
 [azahar."2125.0-alpha4".targets.x64]
+url = "https://github.com/azahar-emu/azahar/releases/download/2125.0-alpha4/azahar-libretro-2125.0-alpha4-linux-x86_64.zip"
 sha256 = "3f6eae4a33572eabb297b93152a9e71b54f393cbeb33655debaf477654f0b9e4"
 size = 17237104
 
@@ -214,9 +219,29 @@ size = 17237104
 [eden]
 releases_url = "forgejo:git.eden-emu.dev/eden-emu/eden"
 url_template = "https://git.eden-emu.dev/eden-emu/eden/releases/download/{version}/Eden-Linux-{version}-{variant}-clang-pgo.AppImage"
-default = "v0.1.1"
+default = "v0.2.0-rc1"
 icon_url = "https://git.eden-emu.dev/eden-emu/eden/media/branch/master/dist/qt_themes/default/icons/256x256/eden.png"
 icon_sha256 = "sha256-1OMBXAVTDIf2FSrS7afv5TUDO5owMxIO21J/7ddl6xA="
+
+[eden."v0.2.0-rc1".targets.x64]
+variant = "amd64"
+sha256 = "sha256-WB+UcqaW/Gf2STA8E8vCwi6EScPrdSIrje0V5xPW65Q="
+size = 66061877
+
+[eden."v0.2.0-rc1".targets.steamdeck]
+variant = "steamdeck"
+sha256 = "sha256-yGWLiRG1iBAyPfBZbTasxzEYdLu9hM28gMSyde9yS8c="
+size = 65887963
+
+[eden."v0.2.0-rc1".targets.rog-ally]
+variant = "rog-ally"
+sha256 = "sha256-K3Tk3TCQaMyYx2nh4CRmyTNRKBftC0mcepRjD/uiPUg="
+size = 62273524
+
+[eden."v0.2.0-rc1".targets.aarch64]
+variant = "aarch64"
+sha256 = "sha256-oi6C4uHUmu1OPL3+aFl89wIwQvQ+wI/LttMcF+IRiG8="
+size = 64680876
 
 [eden."v0.1.1".targets.x64]
 variant = "amd64"
@@ -266,9 +291,19 @@ size = 61443821
 [duckstation]
 releases_url = "github:stenzek/duckstation"
 url_template = "https://github.com/stenzek/duckstation/releases/download/{version}/DuckStation-{variant}.AppImage"
-default = "v0.1-10655"
+default = "v0.1-10861"
 icon_url = "https://github.com/stenzek/duckstation/raw/016c08b9c35a0ccf4196b21bc10c7d057af689d8/data/resources/images/duck.png"
 icon_sha256 = "sha256-qR+lWCmOZKt/wT6MFXPKtCx/p0IUCOgRNdjb8CLdwv4="
+
+[duckstation."v0.1-10861".targets.x64]
+variant = "x64"
+sha256 = "sha256-drCzRzlMuJ1DpqhBPknZYnRuOoTANl99jSvguqcD3EU="
+size = 90140960
+
+[duckstation."v0.1-10861".targets.aarch64]
+variant = "arm64"
+sha256 = "sha256-ESQFxRDF8ToI77YdTcZZU7eVLYrwn0kkqOHMgbQKvlg="
+size = 82018560
 
 [duckstation."v0.1-10655".targets.x64]
 variant = "x64"
@@ -288,9 +323,14 @@ size = 81788928
 [pcsx2]
 releases_url = "github:PCSX2/pcsx2"
 url_template = "https://github.com/PCSX2/pcsx2/releases/download/{version}/pcsx2-{version}-linux-appimage-x64-Qt.AppImage"
-default = "v2.6.3"
+default = "v2.7.168"
 icon_url = "https://github.com/PCSX2/pcsx2/raw/fe7935ce0e9c2457eb2586897c3cbc5eef10324a/pcsx2-qt/resources/icons/AppIcon64.png"
 icon_sha256 = "sha256-vyHthTMThVUN2IWrbkfXYQGbj6I1O+iUG30MoZxa+z4="
+
+[pcsx2."v2.7.168".targets.x64]
+variant = "x86_64"
+sha256 = "sha256-93KdEoONK7DvwjVGo5TWNa6G/JXoKi2PT/nENo3fruM="
+size = 65968632
 
 [pcsx2."v2.6.3".targets.x64]
 variant = "x86_64"
@@ -305,9 +345,19 @@ size = 71725056
 [ppsspp]
 releases_url = "github:hrydgard/ppsspp"
 url_template = "https://github.com/hrydgard/ppsspp/releases/download/{version}/PPSSPP-{version}-anylinux-{variant}.AppImage"
-default = "v1.19.3"
+default = "v1.20.1"
 icon_url = "https://github.com/hrydgard/ppsspp/raw/7c2632cd551fdc50856d304ae22fc5ecf41111b2/icons/hicolor/256x256/apps/ppsspp.png"
 icon_sha256 = "sha256-il19tCxn2RhdAgz6QE6p4IYuEToagHMZp2HsdL1kZp4="
+
+[ppsspp."v1.20.1".targets.x64]
+variant = "x86_64"
+sha256 = "sha256-zVvZ4HBz7s9KeqKOUaBTqbPfJFx1vNLcD9/Ldt0ueSI="
+size = 52044871
+
+[ppsspp."v1.20.1".targets.aarch64]
+variant = "aarch64"
+sha256 = "sha256-9iUxGOU/RuLgxFDrnVAKCcjFt/9OyD4yHU7Q1qTmj8I="
+size = 50447562
 
 [ppsspp."v1.19.3".targets.x64]
 variant = "x86_64"
@@ -374,9 +424,17 @@ size = 71198720
 [vita3k]
 releases_url = "github:Vita3K/Vita3K-builds"
 url_template = "https://github.com/Vita3K/Vita3K-builds/releases/download/{release_tag}/Vita3K-{variant}.AppImage"
-default = "3912"
+default = "3935"
 icon_url = "https://github.com/Vita3K/Vita3K/raw/750a516d8fb8ffaaa063db3d226d8f382db58063/data/image/icon.png"
 icon_sha256 = "sha256-lW+0WbQ+hdg/gnjk+9vA//eDZmbhvwAoNqmaLLvAWMs="
+
+[vita3k."3935"]
+release_tag = "3935"
+
+[vita3k."3935".targets.x64]
+variant = "x86_64"
+sha256 = "sha256-uou9aYZbWfa7wHKvOTTYADf6ooToOjwFJv+tQ5MpBrY="
+size = 23058936
 
 [vita3k."3912"]
 release_tag = "3912"
@@ -474,9 +532,17 @@ size = 179415654
 [xemu]
 releases_url = "github:xemu-project/xemu"
 url_template = "https://github.com/xemu-project/xemu/releases/download/{release_tag}/xemu-{version}-{variant}.AppImage"
-default = "0.8.133"
+default = "0.8.134"
 icon_url = "https://raw.githubusercontent.com/xemu-project/xemu/e8d7171fdd4520b83251b923b3954ef48d854974/ui/icons/xemu_256x256.png"
 icon_sha256 = "sha256-i5EcCG9kqB24y9DSqUY2rTWp3xDLnVoebG9q6lMuLBs="
+
+[xemu."0.8.134"]
+release_tag = "v0.8.134"
+
+[xemu."0.8.134".targets.x64]
+variant = "x86_64"
+sha256 = "sha256-PAWgZzD6d874/s8uSJM9spX6Jj70HAuOdzl5UJG6XBg="
+size = 16574968
 
 [xemu."0.8.133"]
 release_tag = "v0.8.133"
@@ -494,9 +560,16 @@ size = 23452152
 [xenia-edge]
 releases_url = "github:has207/xenia-edge"
 url_template = "https://github.com/has207/xenia-edge/releases/download/{release_tag}/xenia_edge_linux.AppImage"
-default = "cf0d65e"
+default = "2beb0bf"
 icon_url = "https://raw.githubusercontent.com/xenia-canary/xenia-canary/33743a435acdb4ad3efbfb35a0a655315588bcb2/assets/icon/256.png"
 icon_sha256 = "sha256-ja97kt5PTlTIEuvwE7mThgnUux2/qh6f9HDmrZiVm0Y="
+
+[xenia-edge."2beb0bf"]
+release_tag = "2beb0bf"
+
+[xenia-edge."2beb0bf".targets.x64]
+sha256 = "sha256-aSzyF4YGJpck2MRBPrCsj5bd7X755X8Bui6LIBK+3Oo="
+size = 40909304
 
 [xenia-edge."cf0d65e"]
 release_tag = "cf0d65e"
@@ -513,7 +586,19 @@ size = 40901112
 [syncthing]
 releases_url = "github:syncthing/syncthing"
 url_template = "https://github.com/syncthing/syncthing/releases/download/{version}/syncthing-linux-{variant}-{version}.tar.gz"
-default = "v2.0.14"
+default = "v2.0.15"
+
+[syncthing."v2.0.15".targets.x64]
+variant = "amd64"
+sha256 = "sha256-KlMGh5Ac6BUcMu4P8jpSgmRK6fG/XNXuAgmDAIWG9Pw="
+binary_path = "syncthing-linux-amd64-v2.0.15/syncthing"
+size = 11696338
+
+[syncthing."v2.0.15".targets.aarch64]
+variant = "arm64"
+sha256 = "sha256-k7xIi4peAzVmxTbHfxNHMtJj4enr1x3HtCefqfIRpy8="
+binary_path = "syncthing-linux-arm64-v2.0.15/syncthing"
+size = 10778849
 
 [syncthing."v2.0.14".targets.x64]
 variant = "amd64"
