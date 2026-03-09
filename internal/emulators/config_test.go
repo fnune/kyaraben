@@ -91,23 +91,26 @@ func TestDuckStationGenerate(t *testing.T) {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	if len(result.Patches) != 1 {
-		t.Fatalf("expected 1 patch, got %d", len(result.Patches))
+	// DuckStation writes to both UserConfig and UserData locations
+	if len(result.Patches) != 2 {
+		t.Fatalf("expected 2 patches (UserConfig + UserData), got %d", len(result.Patches))
+	}
+
+	baseDirs := make(map[model.ConfigBaseDir]bool)
+	for _, patch := range result.Patches {
+		if patch.Target.Format != model.ConfigFormatINI {
+			t.Errorf("expected INI format, got %s", patch.Target.Format)
+		}
+		if !strings.Contains(patch.Target.RelPath, "duckstation") {
+			t.Errorf("expected RelPath to contain 'duckstation', got %s", patch.Target.RelPath)
+		}
+		baseDirs[patch.Target.BaseDir] = true
+	}
+	if !baseDirs[model.ConfigBaseDirUserConfig] || !baseDirs[model.ConfigBaseDirUserData] {
+		t.Errorf("expected patches for both UserConfig and UserData, got %v", baseDirs)
 	}
 
 	patch := result.Patches[0]
-
-	if patch.Target.Format != model.ConfigFormatINI {
-		t.Errorf("expected INI format, got %s", patch.Target.Format)
-	}
-
-	if patch.Target.BaseDir != model.ConfigBaseDirUserConfig {
-		t.Errorf("expected UserConfig base dir, got %s", patch.Target.BaseDir)
-	}
-
-	if !strings.Contains(patch.Target.RelPath, "duckstation") {
-		t.Errorf("expected RelPath to contain 'duckstation', got %s", patch.Target.RelPath)
-	}
 
 	expectedKeys := map[string]bool{
 		"SearchDirectory": false,
@@ -948,7 +951,7 @@ func TestDuckStationControllerConfig(t *testing.T) {
 	var profile model.ConfigPatch
 	profileFound := false
 	for _, p := range result.Patches {
-		if p.ManagesWholeFile() {
+		if p.ManagesWholeFile() && strings.Contains(p.Target.RelPath, "inputprofiles") {
 			profile = p
 			profileFound = true
 			break
@@ -956,9 +959,6 @@ func TestDuckStationControllerConfig(t *testing.T) {
 	}
 	if !profileFound {
 		t.Fatal("expected a patch that manages whole file (profile), but none found")
-	}
-	if profile.Target != duckstation.ProfileTarget {
-		t.Errorf("expected profile target %v, got %v", duckstation.ProfileTarget, profile.Target)
 	}
 
 	keys := collectKeys(profile.Entries)

@@ -71,16 +71,17 @@ func (Definition) ConfigGenerator() model.ConfigGenerator {
 	return &Config{}
 }
 
-var configTarget = model.ConfigTarget{
-	RelPath: "duckstation/settings.ini",
-	Format:  model.ConfigFormatINI,
-	BaseDir: model.ConfigBaseDirUserConfig,
+// DuckStation uses XDG_CONFIG_HOME if set, otherwise ~/.local/share.
+// Since XDG_CONFIG_HOME may differ between when Kyaraben applies and when the user plays,
+// we write to both locations to ensure DuckStation finds the config.
+var configTargets = []model.ConfigTarget{
+	{RelPath: "duckstation/settings.ini", Format: model.ConfigFormatINI, BaseDir: model.ConfigBaseDirUserConfig},
+	{RelPath: "duckstation/settings.ini", Format: model.ConfigFormatINI, BaseDir: model.ConfigBaseDirUserData},
 }
 
-var ProfileTarget = model.ConfigTarget{
-	RelPath: "duckstation/inputprofiles/kyaraben-steamdeck.ini",
-	Format:  model.ConfigFormatINI,
-	BaseDir: model.ConfigBaseDirUserConfig,
+var profileTargets = []model.ConfigTarget{
+	{RelPath: "duckstation/inputprofiles/kyaraben-steamdeck.ini", Format: model.ConfigFormatINI, BaseDir: model.ConfigBaseDirUserConfig},
+	{RelPath: "duckstation/inputprofiles/kyaraben-steamdeck.ini", Format: model.ConfigFormatINI, BaseDir: model.ConfigBaseDirUserData},
 }
 
 const profileName = "kyaraben-steamdeck"
@@ -93,6 +94,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		model.Entry(model.None, model.Path("Main", "SettingsVersion"), "3"),
 		model.Entry(model.None, model.Path("Main", "SetupWizardIncomplete"), "false"),
 		model.Entry(model.None, model.Path("Main", "ConfirmPowerOff"), "false"),
+		model.Default(model.None, model.Path("Main", "NoDesktopFile"), "true"),
 		model.Entry(model.None, model.Path("AutoUpdater", "CheckAtStartup"), "false"),
 		model.Entry(model.Store, model.Path("BIOS", "SearchDirectory"), store.SystemBiosDir(model.SystemIDPSX)),
 		model.Entry(model.Store, model.Path("MemoryCards", "Directory"), store.SystemSavesDir(model.SystemIDPSX)),
@@ -127,24 +129,27 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		entries = append(entries, model.Entry(model.Resume, model.Path("Main", "SaveStateOnExit"), "false"))
 	}
 
-	patches := []model.ConfigPatch{{Target: configTarget, Entries: entries}}
 	if cc := ctx.ControllerConfig; cc != nil {
-		// Point to the profile preset (DefaultOnly so users can switch away).
 		entries = append(entries, model.Default(model.None, model.Path("ControllerPorts", "InputProfileName"), profileName))
-
-		// Write bindings directly to main config (fully managed).
 		entries = append(entries, padEntries(cc)...)
 		entries = append(entries, hotkeyEntries(cc)...)
-		patches[0].Entries = entries
+	}
 
-		// Also write a profile file as a reusable preset (fully managed).
-		profileEntries := padEntries(cc)
-		profileEntries = append(profileEntries, hotkeyEntries(cc)...)
-		patches = append(patches, model.ConfigPatch{
-			Target:         ProfileTarget,
-			Entries:        profileEntries,
-			ManagedRegions: []model.ManagedRegion{model.FileRegion{}},
-		})
+	var patches []model.ConfigPatch
+	for _, target := range configTargets {
+		patches = append(patches, model.ConfigPatch{Target: target, Entries: entries})
+	}
+
+	if ctx.ControllerConfig != nil {
+		profileEntries := padEntries(ctx.ControllerConfig)
+		profileEntries = append(profileEntries, hotkeyEntries(ctx.ControllerConfig)...)
+		for _, target := range profileTargets {
+			patches = append(patches, model.ConfigPatch{
+				Target:         target,
+				Entries:        profileEntries,
+				ManagedRegions: []model.ManagedRegion{model.FileRegion{}},
+			})
+		}
 	}
 
 	var launchArgs []string
