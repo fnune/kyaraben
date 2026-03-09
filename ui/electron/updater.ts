@@ -116,28 +116,25 @@ export function downloadUpdate(
     const tempDir = path.join(os.tmpdir(), 'kyaraben-update')
     fs.mkdirSync(tempDir, { recursive: true })
     const tempPath = path.join(tempDir, `kyaraben-update-${Date.now()}.AppImage`)
-    const file = fs.createWriteStream(tempPath)
-
-    const protocol = url.startsWith('https') ? https : http
 
     const makeRequest = (requestUrl: string) => {
+      const protocol = requestUrl.startsWith('https') ? https : http
+
       const req = protocol.get(requestUrl, (res) => {
         if (res.statusCode === 301 || res.statusCode === 302) {
           const location = res.headers.location
           if (location) {
-            file.close()
             makeRequest(location)
             return
           }
         }
 
         if (res.statusCode !== 200) {
-          file.close()
-          fs.unlinkSync(tempPath)
           reject(new Error(`HTTP ${res.statusCode}`))
           return
         }
 
+        const file = fs.createWriteStream(tempPath)
         const totalSize = Number.parseInt(res.headers['content-length'] || '0', 10)
         let downloaded = 0
 
@@ -155,10 +152,19 @@ export function downloadUpdate(
           fs.chmodSync(tempPath, 0o755)
           resolve(tempPath)
         })
+
+        file.on('error', (err) => {
+          file.close()
+          try {
+            fs.unlinkSync(tempPath)
+          } catch {
+            // Ignore cleanup errors
+          }
+          reject(err)
+        })
       })
 
       req.on('error', (err) => {
-        file.close()
         try {
           fs.unlinkSync(tempPath)
         } catch {
@@ -169,7 +175,6 @@ export function downloadUpdate(
 
       req.setTimeout(600000, () => {
         req.destroy()
-        file.close()
         try {
           fs.unlinkSync(tempPath)
         } catch {

@@ -29,7 +29,7 @@ export function UpdateBanner({
       variant="accent"
       title={
         <>
-          Kyaraben {updateInfo.latestVersion} is available.{' '}
+          A new version of Kyaraben is available: {updateInfo.latestVersion}.{' '}
           <a
             href={releaseUrl}
             onClick={(e) => {
@@ -38,7 +38,7 @@ export function UpdateBanner({
             }}
             className="underline"
           >
-            See what's new
+            See what's new.
           </a>
         </>
       }
