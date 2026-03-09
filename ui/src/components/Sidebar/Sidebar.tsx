@@ -106,7 +106,7 @@ export function Sidebar({ currentView, onNavigate, syncStatus, version }: Sideba
       <div className="hidden min-[720px]:block min-[720px]:py-2 min-[720px]:mt-auto">
         <button
           type="button"
-          onClick={() => openUrl('https://kyaraben.dev')}
+          onClick={() => openUrl('https://kyaraben.org')}
           className="w-full px-4 py-2 text-sm tracking-wide flex items-center gap-2 text-on-surface-secondary hover:bg-surface-raised min-[720px]:border-l-2 border-transparent"
         >
           <span>Documentation</span>
@@ -114,7 +114,7 @@ export function Sidebar({ currentView, onNavigate, syncStatus, version }: Sideba
         </button>
         <button
           type="button"
-          onClick={() => openUrl('https://kyaraben.dev/support/')}
+          onClick={() => openUrl('https://kyaraben.org/support/')}
           className="w-full px-4 py-2 text-sm tracking-wide flex items-center gap-2 text-on-surface-secondary hover:bg-surface-raised min-[720px]:border-l-2 border-transparent"
         >
           <span>Support the project</span>
