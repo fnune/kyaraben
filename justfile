@@ -245,7 +245,7 @@ build-cli:
 
 # Deploy AppImage to Steam Deck SD card via SSH
 deploy-deck:
-    scp ui/release/Kyaraben-*-x86_64.AppImage deck@steamdeck:/run/media/Emulation/External/
+    scp ui/release/Kyaraben-x86_64.AppImage deck@steamdeck:/run/media/Emulation/External/
 
 # Run an additional kyaraben instance for local sync testing
 # Usage: just instance secondary
@@ -273,7 +273,7 @@ _container-e2e-build:
 
 _extract-appimage:
     #!/usr/bin/env bash
-    appimage=$(realpath ui/release/Kyaraben-*-x86_64.AppImage 2>/dev/null | head -1)
+    appimage=$(realpath ui/release/Kyaraben-x86_64.AppImage 2>/dev/null | head -1)
     if [ -z "$appimage" ]; then
         echo "AppImage not found. Run 'just build' first."
         exit 1
