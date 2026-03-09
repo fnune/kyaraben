@@ -22,7 +22,27 @@ Place ROM files in the appropriate `roms/` subdirectory of your collection (defa
 
 ## Playing games
 
-Launch games through EmulationStation DE (enable it in settings) or open ROMs directly from individual emulators in your application menu.
+Launch games through EmulationStation DE or open ROMs directly from individual emulators.
+
+### Recommended: EmulationStation DE via Steam
+
+For the best controller support, enable EmulationStation DE in Kyaraben settings and launch it from Steam. Kyaraben automatically adds it as a non-Steam game.
+
+Steam Input handles controller mapping, so any controller Steam recognizes works automatically. This applies to Steam on any Linux system, not just Steam Deck.
+
+### Opening emulators directly
+
+You can launch emulators from your application menu. This works well with keyboard/mouse or when Steam is handling your controller (e.g., Steam Deck Game Mode, or Desktop Mode with Steam running).
+
+In desktop mode without Steam running, controller support varies:
+
+| Emulator                                             | Controller support                            |
+| ---------------------------------------------------- | --------------------------------------------- |
+| RetroArch cores, DuckStation, PCSX2, PPSSPP, Dolphin | Works with most controllers                   |
+| Eden, Cemu, Flycast, xemu                            | Launch via Steam/ES-DE, or configure manually |
+| RPCS3, Vita3K, Xenia Edge                            | Good auto-detection for most controllers      |
+
+If your controller isn't working, add the emulator to Steam as a non-Steam game and launch from there.
 
 ## Syncing between devices
 
