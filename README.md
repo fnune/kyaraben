@@ -58,6 +58,12 @@ A CLI binary is also available for headless servers. See the [download page](htt
 - [Synchronization](https://kyaraben.org/sync/)
 - [NextUI integration](https://kyaraben.org/nextui/)
 
+## Use of AI and LLMs
+
+Kyaraben accepts the use of LLMs to write code. The tools used to build software are changing very fast, but Kyaraben is far from what people call "vibe-coded": the code is well tested (unit, integration, E2E with Playwright), and code quality and architecture are held to the same standards as they would be without LLMs.
+
+This section is here to help you decide whether you want to use the project. Not wanting to use software built with LLMs is a reasonable stance. Feel free to read and review the code.
+
 ## Contributing
 
 See the [contributing guide](site/src/content/docs/contributing.mdx) for development setup and conventions.
