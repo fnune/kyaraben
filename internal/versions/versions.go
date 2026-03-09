@@ -18,15 +18,16 @@ type Versions struct {
 
 // PackageSpec describes all available versions of a package.
 type PackageSpec struct {
-	ReleasesURL string                  // URL for checking releases (e.g., "github:owner/repo" or "gitlab:namespace/project")
-	URLTemplate string                  // URL template with {version}, {release_tag}, {variant} placeholders
-	BinaryPath  string                  // Default binary path for archives
-	Default     string                  // Default version string
-	IconURL     string                  // URL to download icon from
-	IconSHA256  string                  // SHA256 hash of icon
-	InstallType string                  // Installation type: "" for normal, "retroarch-core" for cores
-	BundleSize  int64                   // Download size for shared bundles (retroarch-cores)
-	Versions    map[string]VersionEntry // Map of version string to entry
+	ReleasesURL     string                  // URL for checking releases (e.g., "github:owner/repo" or "gitlab:namespace/project")
+	URLTemplate     string                  // URL template with {version}, {release_tag}, {variant} placeholders
+	BinaryPath      string                  // Default binary path for archives
+	Default         string                  // Default version string
+	IconURL         string                  // URL to download icon from
+	IconSHA256      string                  // SHA256 hash of icon
+	InstallType     string                  // Installation type: "" for normal, "retroarch-core" for cores
+	BundleSize      int64                   // Download size for shared bundles (retroarch-cores)
+	Versions        map[string]VersionEntry // Map of version string to entry
+	VersionsInOrder []string                // TOML definition order (newest first)
 }
 
 // IsRetroArchCore returns true if this package is a RetroArch core.
@@ -47,13 +48,9 @@ func (e *PackageSpec) GetDefault() *VersionEntry {
 	return e.GetVersion(e.Default)
 }
 
-// AvailableVersions returns all version strings.
+// AvailableVersions returns all version strings in TOML definition order (newest first).
 func (e *PackageSpec) AvailableVersions() []string {
-	versions := make([]string, 0, len(e.Versions))
-	for v := range e.Versions {
-		versions = append(versions, v)
-	}
-	return versions
+	return e.VersionsInOrder
 }
 
 // VersionEntry describes a specific version of a package.
@@ -261,9 +258,9 @@ func ResetCache() {
 
 // parse parses the versions.toml content into Versions struct.
 func parse(data string) (*Versions, error) {
-	// First pass: decode into generic map
 	var raw map[string]interface{}
-	if _, err := toml.Decode(data, &raw); err != nil {
+	meta, err := toml.Decode(data, &raw)
+	if err != nil {
 		return nil, fmt.Errorf("parsing versions.toml: %w", err)
 	}
 
@@ -277,7 +274,7 @@ func parse(data string) (*Versions, error) {
 			continue
 		}
 
-		spec, err := parsePackageSpec(pkgRaw)
+		spec, err := parsePackageSpec(pkgRaw, name, meta)
 		if err != nil {
 			return nil, fmt.Errorf("parsing package %s: %w", name, err)
 		}
@@ -288,7 +285,7 @@ func parse(data string) (*Versions, error) {
 }
 
 // parsePackageSpec parses a single package specification from raw TOML data.
-func parsePackageSpec(raw map[string]interface{}) (PackageSpec, error) {
+func parsePackageSpec(raw map[string]interface{}, pkgName string, meta toml.MetaData) (PackageSpec, error) {
 	spec := PackageSpec{
 		Versions: make(map[string]VersionEntry),
 	}
@@ -318,7 +315,6 @@ func parsePackageSpec(raw map[string]interface{}) (PackageSpec, error) {
 		spec.BundleSize = v
 	}
 
-	// Everything else is a version entry
 	knownKeys := map[string]bool{
 		"releases_url": true,
 		"url_template": true,
@@ -335,7 +331,6 @@ func parsePackageSpec(raw map[string]interface{}) (PackageSpec, error) {
 			continue
 		}
 
-		// This should be a version entry
 		versionRaw, ok := value.(map[string]interface{})
 		if !ok {
 			continue
@@ -348,13 +343,20 @@ func parsePackageSpec(raw map[string]interface{}) (PackageSpec, error) {
 		spec.Versions[key] = entry
 	}
 
-	// If no explicit default and we have versions, use the first one found
-	// (though this shouldn't happen with proper TOML)
-	if spec.Default == "" && len(spec.Versions) > 0 {
-		for v := range spec.Versions {
-			spec.Default = v
-			break
+	// Extract version keys in TOML definition order
+	seen := make(map[string]bool)
+	for _, key := range meta.Keys() {
+		if len(key) >= 2 && key[0] == pkgName {
+			version := key[1]
+			if _, isVersion := spec.Versions[version]; isVersion && !seen[version] {
+				spec.VersionsInOrder = append(spec.VersionsInOrder, version)
+				seen[version] = true
+			}
 		}
+	}
+
+	if spec.Default == "" && len(spec.VersionsInOrder) > 0 {
+		spec.Default = spec.VersionsInOrder[0]
 	}
 
 	return spec, nil

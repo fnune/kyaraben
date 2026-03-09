@@ -211,6 +211,28 @@ func TestMultipleVersions(t *testing.T) {
 	}
 }
 
+func TestAvailableVersionsPreservesDefinitionOrder(t *testing.T) {
+	v := MustGet()
+
+	spec, ok := v.GetPackage("xenia-edge")
+	if !ok {
+		t.Fatal("xenia-edge package not found")
+	}
+
+	versions := spec.AvailableVersions()
+	if len(versions) < 2 {
+		t.Fatalf("expected at least 2 versions, got %d", len(versions))
+	}
+
+	// In versions.toml, 2beb0bf is defined before cf0d65e (newest first)
+	if versions[0] != "2beb0bf" {
+		t.Errorf("expected first version to be 2beb0bf (newest), got %s", versions[0])
+	}
+	if versions[1] != "cf0d65e" {
+		t.Errorf("expected second version to be cf0d65e (older), got %s", versions[1])
+	}
+}
+
 func TestAllPackagesHaveSize(t *testing.T) {
 	v := MustGet()
 	for name, spec := range v.Packages {

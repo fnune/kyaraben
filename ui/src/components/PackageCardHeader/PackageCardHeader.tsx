@@ -100,5 +100,10 @@ export function useChangeType(
 ): ChangeType {
   const effectiveVersion =
     selectedVersion === VERSION_DEFAULT ? (defaultVersion ?? null) : selectedVersion
-  return getChangeType(enabled, installedVersion, effectiveVersion, availableVersions)
+  return getChangeType({
+    enabled,
+    installedVersion,
+    declaredVersion: effectiveVersion,
+    availableVersions,
+  })
 }

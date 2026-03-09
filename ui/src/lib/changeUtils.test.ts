@@ -6,6 +6,7 @@ import {
   type EmulatorChangeInput,
   emptyChangeSummary,
   getChangeGroups,
+  getChangeType,
 } from './changeUtils'
 
 function emulator(
@@ -204,5 +205,92 @@ describe('getChangeGroups', () => {
     expect(groups.find((g) => g.type === 'remove')?.items).toEqual([
       { id: 'dolphin', name: 'Dolphin' },
     ])
+  })
+})
+
+describe('getChangeType', () => {
+  it('returns null when not enabled and not installed', () => {
+    expect(
+      getChangeType({ enabled: false, installedVersion: null, declaredVersion: null }),
+    ).toBeNull()
+  })
+
+  it('returns remove when not enabled but installed', () => {
+    expect(
+      getChangeType({ enabled: false, installedVersion: 'v1.0.0', declaredVersion: 'v1.0.0' }),
+    ).toBe('remove')
+  })
+
+  it('returns install when enabled but not installed', () => {
+    expect(
+      getChangeType({ enabled: true, installedVersion: null, declaredVersion: 'v1.0.0' }),
+    ).toBe('install')
+  })
+
+  it('returns null when versions match', () => {
+    expect(
+      getChangeType({ enabled: true, installedVersion: 'v1.0.0', declaredVersion: 'v1.0.0' }),
+    ).toBeNull()
+  })
+
+  describe('upgrade/downgrade detection with availableVersions', () => {
+    it('detects upgrade when moving to a newer version (lower index)', () => {
+      expect(
+        getChangeType({
+          enabled: true,
+          installedVersion: 'v1.0.0',
+          declaredVersion: 'v2.0.0',
+          availableVersions: ['v2.0.0', 'v1.0.0'],
+        }),
+      ).toBe('upgrade')
+    })
+
+    it('detects downgrade when moving to an older version (higher index)', () => {
+      expect(
+        getChangeType({
+          enabled: true,
+          installedVersion: 'v2.0.0',
+          declaredVersion: 'v1.0.0',
+          availableVersions: ['v2.0.0', 'v1.0.0'],
+        }),
+      ).toBe('downgrade')
+    })
+
+    it('handles commit hashes correctly (xenia-edge case)', () => {
+      expect(
+        getChangeType({
+          enabled: true,
+          installedVersion: 'cf0d65e',
+          declaredVersion: '2beb0bf',
+          availableVersions: ['2beb0bf', 'cf0d65e'],
+        }),
+      ).toBe('upgrade')
+    })
+  })
+
+  describe('fallback comparison when version not in list', () => {
+    it('uses semver for semantic versions', () => {
+      expect(
+        getChangeType({ enabled: true, installedVersion: 'v1.0.0', declaredVersion: 'v2.0.0' }),
+      ).toBe('upgrade')
+      expect(
+        getChangeType({ enabled: true, installedVersion: 'v2.0.0', declaredVersion: 'v1.0.0' }),
+      ).toBe('downgrade')
+    })
+
+    it('uses integer comparison for build numbers', () => {
+      expect(
+        getChangeType({ enabled: true, installedVersion: '3912', declaredVersion: '3935' }),
+      ).toBe('upgrade')
+      expect(
+        getChangeType({ enabled: true, installedVersion: '3935', declaredVersion: '3912' }),
+      ).toBe('downgrade')
+    })
+
+    it('defaults to upgrade for unrecognized formats', () => {
+      expect(
+        getChangeType({ enabled: true, installedVersion: 'abc123', declaredVersion: 'def456' }),
+      ).toBe('upgrade')
+    })
   })
 })

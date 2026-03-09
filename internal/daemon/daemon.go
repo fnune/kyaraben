@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
 	"syscall"
@@ -876,9 +875,7 @@ func (d *Daemon) handleGetSystems() []Event {
 				}
 				if spec, ok := vers.GetPackage(pkgName); ok {
 					ref.DefaultVersion = spec.Default
-					availableVersions := spec.AvailableVersions()
-					sort.Strings(availableVersions)
-					ref.AvailableVersions = availableVersions
+					ref.AvailableVersions = spec.AvailableVersions()
 
 					if entry := spec.GetDefault(); entry != nil {
 						if target := entry.SelectTarget(detectedTarget.Name, detectedTarget.Arch); target != "" {
@@ -947,9 +944,7 @@ func (d *Daemon) handleGetFrontends() []Event {
 		if vers != nil {
 			if spec, ok := vers.GetPackage(fe.Package.PackageName()); ok {
 				ref.DefaultVersion = spec.Default
-				availableVersions := spec.AvailableVersions()
-				sort.Strings(availableVersions)
-				ref.AvailableVersions = availableVersions
+				ref.AvailableVersions = spec.AvailableVersions()
 
 				if entry := spec.GetDefault(); entry != nil {
 					if target := entry.SelectTarget(detectedTarget.Name, detectedTarget.Arch); target != "" {

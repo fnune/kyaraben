@@ -378,12 +378,12 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
         const effectiveVersion =
           selectedVersion === VERSION_DEFAULT ? (emulator.defaultVersion ?? null) : selectedVersion
 
-        const changeType = getChangeType(
+        const changeType = getChangeType({
           enabled,
           installedVersion,
-          effectiveVersion,
-          emulator.availableVersions,
-        )
+          declaredVersion: effectiveVersion,
+          availableVersions: emulator.availableVersions,
+        })
 
         emulatorInputs.push({
           id: emulator.id,
@@ -412,12 +412,12 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
       const effectiveVersion =
         selectedVersion === VERSION_DEFAULT ? (frontend.defaultVersion ?? null) : selectedVersion
 
-      const changeType = getChangeType(
+      const changeType = getChangeType({
         enabled,
         installedVersion,
-        effectiveVersion,
-        frontend.availableVersions,
-      )
+        declaredVersion: effectiveVersion,
+        availableVersions: frontend.availableVersions,
+      })
 
       const downloadBytes = frontend.downloadBytes ?? 0
       summary = addChange(summary, changeType, downloadBytes, {

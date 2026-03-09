@@ -3,22 +3,19 @@ import * as semver from 'semver'
 export type ChangeType = 'install' | 'remove' | 'upgrade' | 'downgrade' | null
 
 function compareVersions(installed: string, declared: string): 'upgrade' | 'downgrade' {
-  // Try semver comparison (handles "1.2.3", "1.2.3-beta.1", etc.)
   const semverInstalled = semver.valid(semver.coerce(installed))
   const semverDeclared = semver.valid(semver.coerce(declared))
   if (semverInstalled && semverDeclared) {
     return semver.gt(semverDeclared, semverInstalled) ? 'upgrade' : 'downgrade'
   }
 
-  // Try integer comparison (e.g., "24" vs "25")
   const numInstalled = parseInt(installed, 10)
   const numDeclared = parseInt(declared, 10)
   if (!Number.isNaN(numInstalled) && !Number.isNaN(numDeclared)) {
     return numDeclared > numInstalled ? 'upgrade' : 'downgrade'
   }
 
-  // Fall back to string comparison
-  return declared > installed ? 'upgrade' : 'downgrade'
+  return 'upgrade'
 }
 
 export interface ChangeTypeConfig {
@@ -60,12 +57,19 @@ export const CHANGE_CONFIG: Record<NonNullable<ChangeType>, ChangeTypeConfig> = 
   },
 }
 
-export function getChangeType(
-  enabled: boolean,
-  installedVersion: string | null,
-  declaredVersion: string | null,
-  availableVersions?: readonly string[],
-): ChangeType {
+export interface ChangeTypeInput {
+  readonly enabled: boolean
+  readonly installedVersion: string | null
+  readonly declaredVersion: string | null
+  readonly availableVersions?: readonly string[] | undefined
+}
+
+export function getChangeType({
+  enabled,
+  installedVersion,
+  declaredVersion,
+  availableVersions,
+}: ChangeTypeInput): ChangeType {
   // Not enabled: will remove if currently installed
   if (!enabled) {
     return installedVersion ? 'remove' : null
@@ -78,20 +82,16 @@ export function getChangeType(
 
   // Enabled and installed: check for version change
   if (declaredVersion && installedVersion !== declaredVersion) {
-    // Determine if upgrade or downgrade based on version order
-    // availableVersions is sorted ascending (oldest first via sort.Strings in Go)
+    // availableVersions is in definition order (newest first)
     if (availableVersions && availableVersions.length > 0) {
       const installedIdx = availableVersions.indexOf(installedVersion)
       const declaredIdx = availableVersions.indexOf(declaredVersion)
 
-      // If both versions are in the list, compare indices
-      // Higher index = newer version (ascending sort)
       if (installedIdx >= 0 && declaredIdx >= 0) {
-        return declaredIdx > installedIdx ? 'upgrade' : 'downgrade'
+        return declaredIdx < installedIdx ? 'upgrade' : 'downgrade'
       }
     }
 
-    // Fallback: compare versions directly
     return compareVersions(installedVersion, declaredVersion)
   }
 
