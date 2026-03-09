@@ -80,10 +80,14 @@ release-create version:
         exit 1
     fi
 
+    echo "Updating ui/package.json version to {{ version }}..."
+    jq '.version = "{{ version }}"' ui/package.json > ui/package.json.tmp
+    mv ui/package.json.tmp ui/package.json
+
     echo "Generating changelog for v{{ version }}..."
     git-cliff --tag "v{{ version }}" --unreleased --prepend CHANGELOG.md
 
-    git add CHANGELOG.md
+    git add ui/package.json CHANGELOG.md
     git commit -m "chore(release): update changelog for v{{ version }}"
     git push origin main
 

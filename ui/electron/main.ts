@@ -866,6 +866,7 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle('apply_update', async (_, tempPath: string) => {
     const sidecarPath = findSidecarPath()
+    console.log(`[kyaraben] Applying update from ${tempPath}`)
 
     const event = await sendCommand({
       type: 'install_kyaraben',
@@ -873,14 +874,26 @@ function setupIpcHandlers(): void {
     })
 
     if (event.type === 'error') {
-      return {
-        success: false,
-        error: (event.data as { error?: string })?.error || 'Install failed',
-      }
+      const error = (event.data as { error?: string })?.error || 'Install failed'
+      console.error(`[kyaraben] Update install failed: ${error}`)
+      return { success: false, error }
     }
 
-    app.relaunch()
-    app.exit(0)
+    const appPath = (event.data as { appPath?: string })?.appPath
+    console.log(`[kyaraben] Update installed to ${appPath}, relaunching...`)
+
+    if (appPath) {
+      const { spawn } = await import('node:child_process')
+      spawn(appPath, [], {
+        detached: true,
+        stdio: 'ignore',
+      }).unref()
+    } else {
+      console.warn('[kyaraben] No appPath returned, using default relaunch')
+      app.relaunch()
+    }
+
+    setTimeout(() => app.exit(0), 500)
     return { success: true }
   })
 

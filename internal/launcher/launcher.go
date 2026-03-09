@@ -270,6 +270,12 @@ func (m *Manager) InstallApp(appImagePath, sidecarPath string) (*InstallResult, 
 		CLIPath: filepath.Join(binDir, m.paths.CLIBinaryName()),
 	}
 
+	if _, err := m.fs.Lstat(result.AppPath); err == nil {
+		if err := m.fs.Remove(result.AppPath); err != nil {
+			return nil, fmt.Errorf("removing old AppImage: %w", err)
+		}
+	}
+
 	if err := m.copyFile(appImagePath, result.AppPath); err != nil {
 		return nil, fmt.Errorf("copying AppImage: %w", err)
 	}

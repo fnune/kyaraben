@@ -412,6 +412,7 @@ export const presets = {
 export interface FakeReleasesOptions {
   latestVersion: string
   appImagePath?: string
+  simulateRedirect?: boolean
 }
 
 let nextPort = 19500
@@ -421,6 +422,7 @@ export function setupFakeReleasesApi(fixture: TestFixture, options: FakeReleases
   const server = startFakeReleasesServer(port, {
     version: options.latestVersion,
     ...(options.appImagePath !== undefined && { appImagePath: options.appImagePath }),
+    ...(options.simulateRedirect !== undefined && { simulateRedirect: options.simulateRedirect }),
   })
 
   fixture.releasesServer = server

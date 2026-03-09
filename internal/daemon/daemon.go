@@ -2962,9 +2962,11 @@ func (d *Daemon) handleInstallKyaraben(data *InstallKyarabenRequest) []Event {
 		return d.errorResponse(fmt.Sprintf("failed to save manifest: %v", saveErr))
 	}
 
+	log.Info("Kyaraben installed successfully to %s", result.AppPath)
+
 	return []Event{{
 		Type: EventTypeResult,
-		Data: InstallKyarabenResponse{Success: true},
+		Data: InstallKyarabenResponse{Success: true, AppPath: result.AppPath},
 	}}
 }
 

@@ -461,7 +461,8 @@ type InstallKyarabenRequest struct {
 }
 
 type InstallKyarabenResponse struct {
-	Success bool `json:"success"`
+	Success bool   `json:"success"`
+	AppPath string `json:"appPath,omitempty"`
 }
 
 type InstallStatusResponse struct {

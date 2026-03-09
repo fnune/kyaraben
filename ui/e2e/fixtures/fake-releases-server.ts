@@ -4,13 +4,14 @@ import * as http from 'node:http'
 export interface FakeReleasesServerOptions {
   version: string
   appImagePath?: string
+  simulateRedirect?: boolean
 }
 
 export function startFakeReleasesServer(
   port: number,
   options: FakeReleasesServerOptions,
 ): http.Server {
-  const { version, appImagePath } = options
+  const { version, appImagePath, simulateRedirect } = options
 
   const server = http.createServer((req, res) => {
     const url = new URL(req.url || '/', `http://localhost:${port}`)
@@ -18,6 +19,7 @@ export function startFakeReleasesServer(
     if (url.pathname === '/releases/latest') {
       const arch = process.arch === 'x64' ? 'x86_64' : 'aarch64'
       const assetName = `Kyaraben-${arch}.AppImage`
+      const downloadPath = simulateRedirect ? '/redirect' : `/download/${assetName}`
 
       const release = {
         tag_name: `v${version}`,
@@ -25,13 +27,21 @@ export function startFakeReleasesServer(
         assets: [
           {
             name: assetName,
-            browser_download_url: `http://localhost:${port}/download/${assetName}`,
+            browser_download_url: `http://localhost:${port}${downloadPath}`,
           },
         ],
       }
 
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify(release))
+      return
+    }
+
+    if (url.pathname === '/redirect' && appImagePath) {
+      const arch = process.arch === 'x64' ? 'x86_64' : 'aarch64'
+      const assetName = `Kyaraben-${arch}.AppImage`
+      res.writeHead(302, { Location: `http://localhost:${port}/download/${assetName}` })
+      res.end()
       return
     }
 

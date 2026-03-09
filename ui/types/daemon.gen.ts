@@ -395,6 +395,7 @@ export interface InstallKyarabenRequest {
 }
 export interface InstallKyarabenResponse {
   success: boolean;
+  appPath?: string;
 }
 export interface InstallStatusResponse {
   installed: boolean;
