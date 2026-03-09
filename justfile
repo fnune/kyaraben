@@ -64,7 +64,7 @@ release: ensure generate-types
 # Test release build locally without publishing
 release-test: ensure generate-types
     RELEASE_BUILD=1 ./scripts/build-sidecar.sh
-    goreleaser release --snapshot --clean
+    ./scripts/build-release-cli.sh
     cd ui && npm run electron:build
 
 # Create and push a release tag (triggers CI release)
@@ -151,7 +151,7 @@ deploy:
 # Clean build artifacts
 clean:
     rm -f kyaraben
-    rm -rf ui/dist ui/dist-electron ui/release ui/binaries {{ test_dir }}
+    rm -rf dist ui/dist ui/dist-electron ui/release ui/binaries {{ test_dir }}
 
 # Clean all emulator config directories (for development/testing)
 clean-emu-configs:

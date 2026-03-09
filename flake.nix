@@ -54,7 +54,6 @@
             # General tools
             git
             git-cliff
-            goreleaser
             jq
             just
             podman
