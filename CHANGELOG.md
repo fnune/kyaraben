@@ -12,19 +12,7 @@
 - *(duckstation)* Write config to both XDG locations
 - *(diff)* Clarify config change display with labels and consistent direction
 - *(e2e)* Handle duckstation writing to both XDG locations
-## [0.1.3] - 2026-03-09
 
-### Features
-
-- *(versions)* Update emulator versions
-- *(apply)* Continue on transient download failures
-
-### Bug fixes
-
-- *(ui)* Update documentation URLs to kyaraben.org
-- *(versions)* Preserve TOML definition order for upgrade/downgrade detection
-- *(duckstation)* Write config to both XDG locations
-- *(diff)* Clarify config change display with labels and consistent direction
 ## [0.1.2] - 2026-03-09
 
 ### Features
