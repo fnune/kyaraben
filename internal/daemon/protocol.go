@@ -169,7 +169,13 @@ type ProgressEvent struct {
 }
 
 type ApplyResult struct {
-	Success bool `json:"success"`
+	Success        bool            `json:"success"`
+	FailedPackages []FailedPackage `json:"failedPackages,omitempty"`
+}
+
+type FailedPackage struct {
+	Name   string `json:"name"`
+	Reason string `json:"reason"`
 }
 
 type CancelledResponse struct {

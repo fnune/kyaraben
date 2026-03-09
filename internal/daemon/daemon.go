@@ -586,7 +586,7 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 		},
 	}
 
-	_, err = applier.Apply(ctx, cfg, collection, opts)
+	applyResult, err := applier.Apply(ctx, cfg, collection, opts)
 	if ctx.Err() != nil {
 		return []Event{{
 			Type: EventTypeCancelled,
@@ -615,10 +615,19 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 		}
 	}
 
+	var failedPackages []FailedPackage
+	for _, fp := range applyResult.FailedPackages {
+		failedPackages = append(failedPackages, FailedPackage{
+			Name:   fp.Name,
+			Reason: fp.Reason,
+		})
+	}
+
 	return []Event{{
 		Type: EventTypeResult,
 		Data: ApplyResult{
-			Success: true,
+			Success:        true,
+			FailedPackages: failedPackages,
 		},
 	}}
 }

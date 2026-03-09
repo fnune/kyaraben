@@ -74,18 +74,19 @@ func (f *FakeExtractor) Extract(archivePath, destDir, archiveType string) error 
 var _ Extractor = (*FakeExtractor)(nil)
 
 type FakeInstaller struct {
-	fs           vfs.FS
-	Binaries     map[string]*InstalledBinary
-	Cores        []InstalledCore
-	Icons        map[string]*InstalledIcon
-	Installed    map[string]bool
-	Versions     map[string]string
-	overrides    map[string]string
-	GCCalls      []map[string]string
-	InstallError error
-	CoresError   error
-	IconError    error
-	packagesDir  string
+	fs            vfs.FS
+	Binaries      map[string]*InstalledBinary
+	Cores         []InstalledCore
+	Icons         map[string]*InstalledIcon
+	Installed     map[string]bool
+	Versions      map[string]string
+	overrides     map[string]string
+	GCCalls       []map[string]string
+	InstallError  error
+	PackageErrors map[string]error
+	CoresError    error
+	IconError     error
+	packagesDir   string
 }
 
 func NewFakeInstaller(fs vfs.FS, dir string) *FakeInstaller {
@@ -100,6 +101,9 @@ func NewFakeInstaller(fs vfs.FS, dir string) *FakeInstaller {
 }
 
 func (f *FakeInstaller) InstallEmulator(ctx context.Context, name string, onProgress func(InstallProgress)) (*InstalledBinary, error) {
+	if err, ok := f.PackageErrors[name]; ok {
+		return nil, err
+	}
 	if f.InstallError != nil {
 		return nil, f.InstallError
 	}

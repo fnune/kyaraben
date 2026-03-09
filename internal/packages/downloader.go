@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,6 +18,32 @@ import (
 
 	"github.com/fnune/kyaraben/internal/version"
 )
+
+type DownloadError struct {
+	URL        string
+	StatusCode int
+	Err        error
+}
+
+func (e *DownloadError) Error() string {
+	if e.Err != nil {
+		return fmt.Sprintf("downloading %s: status %d: %v", e.URL, e.StatusCode, e.Err)
+	}
+	return fmt.Sprintf("downloading %s: status %d", e.URL, e.StatusCode)
+}
+
+func (e *DownloadError) Unwrap() error { return e.Err }
+
+func IsTransientError(err error) bool {
+	var dlErr *DownloadError
+	if errors.As(err, &dlErr) {
+		switch dlErr.StatusCode {
+		case 429, 500, 502, 503, 504, 520:
+			return true
+		}
+	}
+	return false
+}
 
 type DownloadProgress struct {
 	BytesDownloaded int64
@@ -86,7 +113,7 @@ func (d *HTTPDownloader) downloadFromURL(ctx context.Context, url string, req Do
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("downloading %s: status %d", url, resp.StatusCode)
+		return &DownloadError{URL: url, StatusCode: resp.StatusCode}
 	}
 
 	tmpPath, err := d.createTempFile(filepath.Dir(req.DestPath))

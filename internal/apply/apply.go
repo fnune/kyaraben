@@ -45,13 +45,19 @@ type Progress struct {
 }
 
 type Result struct {
-	Patches []model.ConfigPatch
-	Backups []BackupInfo
+	Patches        []model.ConfigPatch
+	Backups        []BackupInfo
+	FailedPackages []FailedPackage
 }
 
 type BackupInfo struct {
 	OriginalPath string
 	BackupPath   string
+}
+
+type FailedPackage struct {
+	Name   string
+	Reason string
 }
 
 type Options struct {
@@ -344,10 +350,13 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, collecti
 
 	opts.OnProgress(Progress{Step: "build", Message: "This may take a while on first run"})
 
-	installedBinaries, installedCores, installedIcons, err := a.installPackages(installCtx, emulatorsToInstall, frontendsToInstall, opts)
+	installResult, err := a.installPackages(installCtx, emulatorsToInstall, frontendsToInstall, opts)
 	if err != nil {
 		return nil, err
 	}
+	installedBinaries := installResult.binaries
+	installedCores := installResult.cores
+	installedIcons := installResult.icons
 
 	opts.OnProgress(Progress{Step: "cleanup", Message: "Removing unused package versions"})
 	if err := a.garbageCollect(emulatorsToInstall, frontendsToInstall); err != nil {
@@ -570,17 +579,26 @@ func (a *Applier) Apply(ctx context.Context, cfg *model.KyarabenConfig, collecti
 	}
 
 	return &Result{
-		Patches: allPatches,
-		Backups: backups,
+		Patches:        allPatches,
+		Backups:        backups,
+		FailedPackages: installResult.failedPackages,
 	}, nil
 }
 
-func (a *Applier) installPackages(ctx context.Context, emulatorIDs []model.EmulatorID, frontendIDs []model.FrontendID, opts Options) ([]packages.InstalledBinary, []packages.InstalledCore, []packages.InstalledIcon, error) {
+type installPackagesResult struct {
+	binaries       []packages.InstalledBinary
+	cores          []packages.InstalledCore
+	icons          []packages.InstalledIcon
+	failedPackages []FailedPackage
+}
+
+func (a *Applier) installPackages(ctx context.Context, emulatorIDs []model.EmulatorID, frontendIDs []model.FrontendID, opts Options) (*installPackagesResult, error) {
 	installPlan := a.buildInstallPlan(emulatorIDs, frontendIDs)
 	packageDownloadSizes, packageTotals, totalBytes, packageArchiveTypes := a.buildPackageSizes(installPlan)
 	aggregator := newProgressAggregator(packageTotals, packageDownloadSizes, packageArchiveTypes, totalBytes, opts.OnProgress)
 
 	seenPackages := make(map[string]bool)
+	failedPackages := make(map[string]string)
 	var binaries []packages.InstalledBinary
 	var coreNames []string
 	var cores []packages.InstalledCore
@@ -610,7 +628,11 @@ func (a *Applier) installPackages(ctx context.Context, emulatorIDs []model.Emula
 
 		binary, err := a.Installer.InstallEmulator(ctx, pkgName, progressFn)
 		if err != nil {
-			return nil, nil, nil, fmt.Errorf("installing %s: %w", pkgName, err)
+			if packages.IsTransientError(err) {
+				failedPackages[pkgName] = err.Error()
+				continue
+			}
+			return nil, fmt.Errorf("installing %s: %w", pkgName, err)
 		}
 		binaries = append(binaries, *binary)
 
@@ -636,7 +658,11 @@ func (a *Applier) installPackages(ctx context.Context, emulatorIDs []model.Emula
 
 		binary, err := a.Installer.InstallEmulator(ctx, pkgName, progressFn)
 		if err != nil {
-			return nil, nil, nil, fmt.Errorf("installing frontend %s: %w", pkgName, err)
+			if packages.IsTransientError(err) {
+				failedPackages[pkgName] = err.Error()
+				continue
+			}
+			return nil, fmt.Errorf("installing frontend %s: %w", pkgName, err)
 		}
 		binaries = append(binaries, *binary)
 
@@ -646,29 +672,60 @@ func (a *Applier) installPackages(ctx context.Context, emulatorIDs []model.Emula
 		}
 	}
 
+	retroarchFailed := failedPackages["retroarch"] != ""
+
 	if len(coreNames) > 0 {
 		if pkgName := "retroarch"; !seenPackages[pkgName] {
 			seenPackages[pkgName] = true
 			binary, err := a.Installer.InstallEmulator(ctx, pkgName, progressFn)
 			if err != nil {
-				return nil, nil, nil, fmt.Errorf("installing retroarch: %w", err)
-			}
-			binaries = append(binaries, *binary)
+				if packages.IsTransientError(err) {
+					failedPackages[pkgName] = err.Error()
+					retroarchFailed = true
+				} else {
+					return nil, fmt.Errorf("installing retroarch: %w", err)
+				}
+			} else {
+				binaries = append(binaries, *binary)
 
-			icon, err := a.installIconForPackage(ctx, "retroarch", "retroarch")
-			if err == nil && icon != nil {
-				icons = append(icons, *icon)
+				icon, err := a.installIconForPackage(ctx, "retroarch", "retroarch")
+				if err == nil && icon != nil {
+					icons = append(icons, *icon)
+				}
 			}
 		}
 
-		var coreErr error
-		cores, coreErr = a.Installer.InstallCores(ctx, coreNames, progressFn)
-		if coreErr != nil {
-			return nil, nil, nil, fmt.Errorf("installing cores: %w", coreErr)
+		if retroarchFailed {
+			for _, coreName := range coreNames {
+				failedPackages["retroarch:"+coreName] = "skipped: retroarch binary failed to install"
+			}
+		} else {
+			installedCores, coreErr := a.Installer.InstallCores(ctx, coreNames, progressFn)
+			if coreErr != nil {
+				if packages.IsTransientError(coreErr) {
+					for _, coreName := range coreNames {
+						failedPackages["retroarch:"+coreName] = coreErr.Error()
+					}
+				} else {
+					return nil, fmt.Errorf("installing cores: %w", coreErr)
+				}
+			} else {
+				cores = installedCores
+			}
 		}
 	}
 
-	return binaries, cores, icons, nil
+	var failed []FailedPackage
+	for name, reason := range failedPackages {
+		failed = append(failed, FailedPackage{Name: name, Reason: reason})
+	}
+
+	return &installPackagesResult{
+		binaries:       binaries,
+		cores:          cores,
+		icons:          icons,
+		failedPackages: failed,
+	}, nil
 }
 
 func (a *Applier) ensureProvisionDirs(collection *store.Collection, sys model.SystemID, emu model.Emulator) error {

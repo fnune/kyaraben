@@ -147,6 +147,11 @@ export interface ProgressEvent {
 }
 export interface ApplyResult {
   success: boolean;
+  failedPackages?: FailedPackage[];
+}
+export interface FailedPackage {
+  name: string;
+  reason: string;
 }
 export interface CancelledResponse {
   message: string;

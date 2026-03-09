@@ -790,3 +790,105 @@ func TestGarbageCollectKeepsRetroArchWhenCoresEnabled(t *testing.T) {
 		t.Errorf("bsnes core should be in GC keep map, got: %v", keepMap)
 	}
 }
+
+func TestApplyContinuesOnTransientDownloadError(t *testing.T) {
+	t.Parallel()
+
+	env := newTestEnv(t)
+
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{
+			Collection: filepath.Join(env.rootDir, "Emulation"),
+		},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDPSP:  {model.EmulatorIDPPSSPP},
+			model.SystemIDSNES: {model.EmulatorIDRetroArchBsnes},
+		},
+	}
+
+	env.installer.PackageErrors = map[string]error{
+		"ppsspp": &packages.DownloadError{URL: "http://example.com/ppsspp", StatusCode: 503},
+	}
+
+	result, err := env.applier.Apply(context.Background(), cfg, env.collection, Options{})
+	if err != nil {
+		t.Fatalf("Apply should not fail on transient error: %v", err)
+	}
+
+	if len(result.FailedPackages) != 1 {
+		t.Fatalf("expected 1 failed package, got %d", len(result.FailedPackages))
+	}
+	if result.FailedPackages[0].Name != "ppsspp" {
+		t.Errorf("expected failed package 'ppsspp', got %q", result.FailedPackages[0].Name)
+	}
+
+	if !env.installer.Installed["retroarch"] {
+		t.Error("retroarch should still be installed despite ppsspp failure")
+	}
+}
+
+func TestApplyFailsOnNonTransientDownloadError(t *testing.T) {
+	t.Parallel()
+
+	env := newTestEnv(t)
+
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{
+			Collection: filepath.Join(env.rootDir, "Emulation"),
+		},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDPSP: {model.EmulatorIDPPSSPP},
+		},
+	}
+
+	env.installer.PackageErrors = map[string]error{
+		"ppsspp": fmt.Errorf("disk full"),
+	}
+
+	_, err := env.applier.Apply(context.Background(), cfg, env.collection, Options{})
+	if err == nil {
+		t.Fatal("Apply should fail on non-transient error")
+	}
+}
+
+func TestApplySkipsCoresWhenRetroArchFails(t *testing.T) {
+	t.Parallel()
+
+	env := newTestEnv(t)
+
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{
+			Collection: filepath.Join(env.rootDir, "Emulation"),
+		},
+		Systems: map[model.SystemID][]model.EmulatorID{
+			model.SystemIDGBA: {model.EmulatorIDRetroArchMGBA},
+		},
+	}
+
+	env.installer.PackageErrors = map[string]error{
+		"retroarch": &packages.DownloadError{URL: "http://example.com/ra", StatusCode: 502},
+	}
+
+	result, err := env.applier.Apply(context.Background(), cfg, env.collection, Options{})
+	if err != nil {
+		t.Fatalf("Apply should not fail on transient error: %v", err)
+	}
+
+	hasRetroArch := false
+	hasCore := false
+	for _, fp := range result.FailedPackages {
+		if fp.Name == "retroarch" {
+			hasRetroArch = true
+		}
+		if fp.Name == "retroarch:mgba" {
+			hasCore = true
+		}
+	}
+
+	if !hasRetroArch {
+		t.Error("retroarch should be in failed packages")
+	}
+	if !hasCore {
+		t.Error("retroarch:mgba core should be in failed packages when retroarch fails")
+	}
+}
