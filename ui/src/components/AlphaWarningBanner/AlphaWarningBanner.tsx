@@ -19,7 +19,7 @@ export function AlphaWarningBanner() {
   }
 
   const handleLearnMore = () => {
-    openUrl('https://kyaraben-kyaraben-245b3f77.koyeb.app/using-the-app/')
+    openUrl('https://kyaraben.org/using-the-app/')
   }
 
   return (
