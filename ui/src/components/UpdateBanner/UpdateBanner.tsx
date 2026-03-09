@@ -1,6 +1,7 @@
 import { ActionBanner } from '@/lib/ActionBanner'
 import { Button } from '@/lib/Button'
 import type { UpdateInfo } from '@/lib/daemon'
+import { useOpenUrl } from '@/lib/hooks/useOpenUrl'
 
 export interface UpdateBannerProps {
   readonly updateInfo: UpdateInfo
@@ -17,15 +18,28 @@ export function UpdateBanner({
   isDownloading,
   downloadProgress,
 }: UpdateBannerProps) {
+  const openUrl = useOpenUrl()
+
   if (!updateInfo.available) return null
+
+  const releaseUrl = `https://github.com/fnune/kyaraben/releases/tag/v${updateInfo.latestVersion}`
 
   return (
     <ActionBanner
       variant="accent"
       title={
         <>
-          A new version of Kyaraben is available: {updateInfo.latestVersion}. You can also update
-          from the Installation tab.
+          Kyaraben {updateInfo.latestVersion} is available.{' '}
+          <a
+            href={releaseUrl}
+            onClick={(e) => {
+              e.preventDefault()
+              openUrl(releaseUrl)
+            }}
+            className="underline"
+          >
+            See what's new
+          </a>
         </>
       }
       description={

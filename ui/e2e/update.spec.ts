@@ -26,15 +26,16 @@ test.describe('Update checking', () => {
     await page.getByRole('button', { name: 'Check' }).click()
     await expect(page.getByText('New version available: 99.0.0')).toBeVisible({ timeout: 10000 })
     await page.getByRole('button', { name: 'Catalog', exact: true }).click()
-    await expect(page.getByText('A new version of Kyaraben is available: 99.0.0')).toBeVisible({
+    await expect(page.getByText('Kyaraben 99.0.0 is available.')).toBeVisible({
       timeout: 10000,
     })
+    await expect(page.getByRole('link', { name: "See what's new" })).toBeVisible()
   })
 
   test('can dismiss update banner', async () => {
     const laterButton = page.getByRole('button', { name: 'Dismiss' })
     await laterButton.click()
-    await expect(page.getByText('A new version of Kyaraben is available')).not.toBeVisible()
+    await expect(page.getByText('Kyaraben 99.0.0 is available')).not.toBeVisible()
   })
 
   test('Installation view shows check for updates button', async () => {
@@ -72,7 +73,7 @@ test.describe('No update available', () => {
     await expect(page.getByRole('button', { name: 'Check' })).toBeEnabled({ timeout: 10000 })
     await expect(page.getByText(/(You're on the latest version|Current version)/)).toBeVisible()
     await page.getByRole('button', { name: 'Catalog', exact: true }).click()
-    await expect(page.getByText('A new version of Kyaraben is available')).not.toBeVisible()
+    await expect(page.getByRole('link', { name: "See what's new" })).not.toBeVisible()
   })
 })
 
