@@ -30,10 +30,10 @@ func TestURLTemplateExpansion(t *testing.T) {
 		target   string
 		expected string
 	}{
-		{"x64", "https://git.eden-emu.dev/eden-emu/eden/releases/download/v0.1.0/Eden-Linux-v0.1.0-amd64-clang-pgo.AppImage"},
-		{"steamdeck", "https://git.eden-emu.dev/eden-emu/eden/releases/download/v0.1.0/Eden-Linux-v0.1.0-steamdeck-clang-pgo.AppImage"},
-		{"rog-ally", "https://git.eden-emu.dev/eden-emu/eden/releases/download/v0.1.0/Eden-Linux-v0.1.0-rog-ally-clang-pgo.AppImage"},
-		{"aarch64", "https://git.eden-emu.dev/eden-emu/eden/releases/download/v0.1.0/Eden-Linux-v0.1.0-aarch64-clang-pgo.AppImage"},
+		{"x64", "https://stable.eden-emu.dev/v0.1.0/Eden-Linux-v0.1.0-amd64-clang-pgo.AppImage"},
+		{"steamdeck", "https://stable.eden-emu.dev/v0.1.0/Eden-Linux-v0.1.0-steamdeck-clang-pgo.AppImage"},
+		{"rog-ally", "https://stable.eden-emu.dev/v0.1.0/Eden-Linux-v0.1.0-rog-ally-clang-pgo.AppImage"},
+		{"aarch64", "https://stable.eden-emu.dev/v0.1.0/Eden-Linux-v0.1.0-aarch64-clang-pgo.AppImage"},
 	}
 
 	for _, tt := range tests {
@@ -183,53 +183,82 @@ func TestMultipleVersions(t *testing.T) {
 		t.Fatal("eden package not found")
 	}
 
-	// Check that we have multiple versions
-	versions := spec.AvailableVersions()
-	if len(versions) < 2 {
-		t.Errorf("expected at least 2 eden versions, got %d: %v", len(versions), versions)
+	if len(spec.Versions) < 2 {
+		t.Errorf("expected at least 2 eden versions, got %d", len(spec.Versions))
 	}
 
-	// Check default is v0.2.0-rc1
-	if spec.Default != "v0.2.0-rc1" {
-		t.Errorf("expected default version v0.2.0-rc1, got %s", spec.Default)
+	if spec.Default == "" {
+		t.Fatal("default version is empty")
+	}
+	if _, ok := spec.Versions[spec.Default]; !ok {
+		t.Errorf("default version %q not present in Versions map", spec.Default)
 	}
 
-	// Check we can get specific versions
-	v010 := spec.GetVersion("v0.1.0")
-	if v010 == nil {
-		t.Error("v0.1.0 not found")
-	}
-	v011 := spec.GetVersion("v0.1.1")
-	if v011 == nil {
-		t.Error("v0.1.1 not found")
-	}
-
-	// Check GetDefault returns v0.2.0-rc1
 	defaultEntry := spec.GetDefault()
-	if defaultEntry == nil || defaultEntry.Version != "v0.2.0-rc1" {
-		t.Errorf("GetDefault() should return v0.2.0-rc1, got %v", defaultEntry)
+	if defaultEntry == nil {
+		t.Fatal("GetDefault() returned nil")
+	}
+	if defaultEntry.Version != spec.Default {
+		t.Errorf("GetDefault().Version = %q, want %q", defaultEntry.Version, spec.Default)
+	}
+
+	lookedUp := spec.GetVersion(spec.Default)
+	if lookedUp == nil || lookedUp.Version != defaultEntry.Version {
+		t.Errorf("GetVersion(default) returned different entry than GetDefault()")
+	}
+
+	if spec.GetVersion("this-version-does-not-exist") != nil {
+		t.Error("GetVersion(nonexistent) should return nil")
 	}
 }
 
 func TestAvailableVersionsPreservesDefinitionOrder(t *testing.T) {
-	v := MustGet()
+	const fixture = `
+[xenia-edge]
+releases_url = "github:has207/xenia-edge"
+url_template = "https://example.invalid/{release_tag}/xenia.AppImage"
+default = "zzz"
 
+[xenia-edge."zzz"]
+release_tag = "zzz"
+
+[xenia-edge."zzz".targets.x64]
+sha256 = "sha256-AAAA="
+size = 1
+
+[xenia-edge."aaa"]
+release_tag = "aaa"
+
+[xenia-edge."aaa".targets.x64]
+sha256 = "sha256-BBBB="
+size = 2
+
+[xenia-edge."mmm"]
+release_tag = "mmm"
+
+[xenia-edge."mmm".targets.x64]
+sha256 = "sha256-CCCC="
+size = 3
+`
+
+	v, err := parse(fixture)
+	if err != nil {
+		t.Fatalf("parse fixture: %v", err)
+	}
 	spec, ok := v.GetPackage("xenia-edge")
 	if !ok {
-		t.Fatal("xenia-edge package not found")
+		t.Fatal("xenia-edge package not found in fixture")
 	}
 
-	versions := spec.AvailableVersions()
-	if len(versions) < 2 {
-		t.Fatalf("expected at least 2 versions, got %d", len(versions))
+	got := spec.AvailableVersions()
+	want := []string{"zzz", "aaa", "mmm"}
+	if len(got) != len(want) {
+		t.Fatalf("got %d versions, want %d: %v", len(got), len(want), got)
 	}
-
-	// In versions.toml, 2beb0bf is defined before cf0d65e (newest first)
-	if versions[0] != "2beb0bf" {
-		t.Errorf("expected first version to be 2beb0bf (newest), got %s", versions[0])
-	}
-	if versions[1] != "cf0d65e" {
-		t.Errorf("expected second version to be cf0d65e (older), got %s", versions[1])
+	for i, w := range want {
+		if got[i] != w {
+			t.Errorf("AvailableVersions()[%d] = %q, want %q (full: %v)", i, got[i], w, got)
+		}
 	}
 }
 
