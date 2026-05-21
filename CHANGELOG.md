@@ -1,3 +1,17 @@
+## [0.1.4] - 2026-05-21
+
+### Features
+
+- *(versions)* Bump emulators and syncthing to latest versions
+- *(eden)* Suppress update check prompt
+
+### Bug fixes
+
+- *(sync)* Stop relay polling when pairing is cancelled
+
+### Refactor
+
+- *(versions)* Replace hardcoded version assertions with structural invariants
 ## [0.1.3] - 2026-03-09
 
 ### Features
