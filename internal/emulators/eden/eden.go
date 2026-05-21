@@ -108,6 +108,8 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		model.Entry(model.Store, model.Path("UI", "Paths\\gamedirs\\1\\deep_scan"), "false"),
 		model.Entry(model.Store, model.Path("UI", "Paths\\gamedirs\\1\\expanded"), "true"),
 		model.Entry(model.Store, model.Path("UI", "Paths\\gamedirs\\1\\path"), store.SystemRomsDir(model.SystemIDSwitch)),
+		model.Entry(model.None, model.Path("UI", "check_for_updates"), "false"),
+		model.Entry(model.None, model.Path("UI", "check_for_updates\\default"), "false"),
 	}
 
 	entries = append(entries, performanceEntries()...)
