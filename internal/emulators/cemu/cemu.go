@@ -204,7 +204,7 @@ func generateControllerXML(cc *model.ControllerConfig) string {
 
 	var mappingXML strings.Builder
 	for _, m := range mappings {
-		mappingXML.WriteString(fmt.Sprintf("\t\t\t<entry>\n\t\t\t\t<mapping>%d</mapping>\n\t\t\t\t<button>%d</button>\n\t\t\t</entry>\n", m.vpad, m.button))
+		fmt.Fprintf(&mappingXML, "\t\t\t<entry>\n\t\t\t\t<mapping>%d</mapping>\n\t\t\t\t<button>%d</button>\n\t\t\t</entry>\n", m.vpad, m.button)
 	}
 
 	return fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
