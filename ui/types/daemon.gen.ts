@@ -282,6 +282,8 @@ export interface SyncDevice {
   connectionType?: string;
   isLocal?: boolean;
   connectivityIssue?: string;
+  ignoreDeleteRomsEnabled?: boolean;
+  statusPublishedAt?: string;
 }
 export interface SyncFolder {
   id: string;

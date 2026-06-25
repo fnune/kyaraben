@@ -10,15 +10,21 @@ import (
 
 	"github.com/twpayne/go-vfs/v5"
 
+	"github.com/fnune/kyaraben/internal/folders"
 	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/store"
 	"github.com/fnune/kyaraben/internal/sync"
+	"github.com/fnune/kyaraben/internal/syncmeta"
+	"github.com/fnune/kyaraben/internal/syncthing"
+	"github.com/fnune/kyaraben/internal/version"
 )
 
 type SyncCmd struct {
-	Status       SyncStatusCmd       `cmd:"" help:"Show sync status."`
-	Pair         SyncPairCmd         `cmd:"" help:"Pair with another device."`
-	AddDevice    SyncAddDeviceCmd    `cmd:"" help:"Add a device by ID (for manual pairing)."`
-	RemoveDevice SyncRemoveDeviceCmd `cmd:"" help:"Remove a paired device."`
+	Status             SyncStatusCmd             `cmd:"" help:"Show sync status."`
+	Pair               SyncPairCmd               `cmd:"" help:"Pair with another device."`
+	AddDevice          SyncAddDeviceCmd          `cmd:"" help:"Add a device by ID (for manual pairing)."`
+	RemoveDevice       SyncRemoveDeviceCmd       `cmd:"" help:"Remove a paired device."`
+	IgnoreRomDeletions SyncIgnoreRomDeletionsCmd `cmd:"" help:"Keep ROMs deleted on other devices (on) or follow those deletions (off)."`
 }
 
 type SyncStatusCmd struct{}
@@ -65,7 +71,15 @@ func (cmd *SyncStatusCmd) Run(cliCtx *Context) error {
 	fmt.Printf("Status: %s\n", status.OverallState())
 	fmt.Printf("Device ID: %s\n", status.DeviceID)
 	fmt.Printf("UI: %s\n", status.GUIURL)
+	fmt.Printf("ROM deletion protection: %s\n", onOff(cfg.Sync.Syncthing.IgnoreDeleteROMsEnabled()))
 	fmt.Println()
+
+	var markers map[string]syncmeta.DeviceStatus
+	if collection, err := store.NewCollection(vfs.OSFS, cliCtx.GetPaths(), cfg.Global.Collection); err == nil {
+		metaStore := syncmeta.NewStore(vfs.OSFS, collection.Root())
+		_ = metaStore.Publish(status.DeviceID, version.Get(), cfg.Sync.Syncthing.IgnoreDeleteROMsEnabled(), time.Now())
+		markers, _ = metaStore.ReadAll()
+	}
 
 	if status.LocalConnectivityIssue != "" {
 		fmt.Println()
@@ -97,6 +111,7 @@ func (cmd *SyncStatusCmd) Run(cliCtx *Context) error {
 				}
 			}
 			fmt.Printf("  %-30s %s\n", dev.Name, state)
+			fmt.Printf("    %s\n", romDeletionStatus(markers, dev.ID))
 			if dev.ConnectivityIssue == "port_unreachable" {
 				fmt.Printf("    ! Port unreachable - check firewall on peer device\n")
 				fmt.Printf("      See: https://docs.syncthing.net/users/firewall.html\n")
@@ -121,6 +136,87 @@ func (cmd *SyncStatusCmd) Run(cliCtx *Context) error {
 		}
 	}
 
+	return nil
+}
+
+func onOff(enabled bool) string {
+	if enabled {
+		return "on"
+	}
+	return "off"
+}
+
+func romDeletionStatus(markers map[string]syncmeta.DeviceStatus, deviceID string) string {
+	marker, ok := markers[deviceID]
+	if !ok {
+		return "ROM deletion setting not yet reported"
+	}
+	if marker.IgnoreDeleteROMs {
+		return "Ignores ROM deletions from other devices"
+	}
+	return "Follows ROM deletions from other devices"
+}
+
+type SyncIgnoreRomDeletionsCmd struct {
+	State string `arg:"" enum:"on,off" help:"on to keep ROMs deleted on other devices, off to follow deletions."`
+}
+
+func (cmd *SyncIgnoreRomDeletionsCmd) Run(cliCtx *Context) error {
+	cfg, err := cliCtx.LoadConfig()
+	if err != nil {
+		return err
+	}
+	if !cfg.Sync.Enabled {
+		return fmt.Errorf("sync is not enabled")
+	}
+
+	enabled := cmd.State == "on"
+	cfg.Sync.Syncthing.IgnoreDeleteROMs = &enabled
+
+	configPath, err := cliCtx.GetConfigPath()
+	if err != nil {
+		return err
+	}
+	if err := cliCtx.SaveConfig(cfg, configPath); err != nil {
+		return fmt.Errorf("saving config: %w", err)
+	}
+
+	client := sync.NewClient(cfg.Sync)
+	if stateDir, err := cliCtx.GetPaths().StateDir(); err == nil {
+		if apiKey := loadSyncAPIKey(stateDir); apiKey != "" {
+			client.SetAPIKey(apiKey)
+		}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	if !client.IsRunning(ctx) {
+		fmt.Printf("ROM deletion protection set to %s. It will apply the next time sync runs.\n", cmd.State)
+		return nil
+	}
+
+	existing, err := client.GetFolderConfigs(ctx)
+	if err != nil {
+		return fmt.Errorf("reading folders: %w", err)
+	}
+	romPrefix := folders.ID(folders.CategoryROMs, "") + "-"
+	var requests []syncthing.FolderCreateRequest
+	for _, f := range existing {
+		if strings.HasPrefix(f.ID, romPrefix) {
+			requests = append(requests, syncthing.FolderCreateRequest{ID: f.ID, IgnoreDelete: &enabled})
+		}
+	}
+	if err := client.AddFolders(ctx, requests); err != nil {
+		return fmt.Errorf("applying to syncthing: %w", err)
+	}
+
+	if collection, err := store.NewCollection(vfs.OSFS, cliCtx.GetPaths(), cfg.Global.Collection); err == nil {
+		if deviceID, err := client.GetDeviceID(ctx); err == nil {
+			_ = syncmeta.NewStore(vfs.OSFS, collection.Root()).Publish(deviceID, version.Get(), enabled, time.Now())
+		}
+	}
+
+	fmt.Printf("ROM deletion protection set to %s for %d ROM folder(s).\n", cmd.State, len(requests))
 	return nil
 }
 

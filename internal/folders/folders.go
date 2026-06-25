@@ -23,7 +23,10 @@ const (
 	CategorySaves       Category = "saves"
 	CategoryStates      Category = "states"
 	CategoryScreenshots Category = "screenshots"
+	CategoryMeta        Category = "meta"
 )
+
+const MetaFolderID = "kyaraben-meta"
 
 type SubdirType int
 
@@ -87,7 +90,7 @@ type EmulatorInfo struct {
 }
 
 func GenerateSpecs(input HostInput) []Spec {
-	var specs []Spec
+	specs := []Spec{{ID: MetaFolderID, Category: CategoryMeta}}
 
 	for _, category := range []Category{CategoryROMs, CategoryBIOS, CategorySaves} {
 		for _, sys := range input.Systems {

@@ -31,6 +31,7 @@ import (
 	"github.com/fnune/kyaraben/internal/steam"
 	"github.com/fnune/kyaraben/internal/store"
 	syncpkg "github.com/fnune/kyaraben/internal/sync"
+	"github.com/fnune/kyaraben/internal/syncmeta"
 	"github.com/fnune/kyaraben/internal/version"
 	"github.com/fnune/kyaraben/internal/versions"
 )
@@ -1347,8 +1348,14 @@ func (d *Daemon) handleSyncStatus() []Event {
 		}
 	}
 
-	folders := make([]SyncFolder, len(syncStatus.Folders))
-	for i, f := range syncStatus.Folders {
+	d.attachDeviceMetadata(devices, syncStatus.DeviceID, collection.Root(), cfg.Sync.Syncthing.IgnoreDeleteROMsEnabled())
+
+	metaFolderID := folders.MetaFolderID
+	folders := make([]SyncFolder, 0, len(syncStatus.Folders))
+	for _, f := range syncStatus.Folders {
+		if f.ID == metaFolderID {
+			continue
+		}
 		path := f.Path
 		if !filepath.IsAbs(path) {
 			path = computeFolderPath(collection.Root(), f.ID)
@@ -1357,7 +1364,7 @@ func (d *Daemon) handleSyncStatus() []Event {
 		if conflicts, err := syncpkg.ScanForConflicts(d.deps.FS, path); err == nil {
 			conflictCount = len(conflicts)
 		}
-		folders[i] = SyncFolder{
+		folders = append(folders, SyncFolder{
 			ID:                 f.ID,
 			Path:               path,
 			Label:              syncpkg.FolderLabel(f.ID),
@@ -1369,7 +1376,7 @@ func (d *Daemon) handleSyncStatus() []Event {
 			NeedSize:           f.NeedSize,
 			ReceiveOnlyChanges: f.ReceiveOnlyChanges,
 			ConflictCount:      conflictCount,
-		}
+		})
 	}
 
 	var progress *SyncProgress
@@ -1401,6 +1408,37 @@ func (d *Daemon) handleSyncStatus() []Event {
 			LocalConnectivityIssue:  syncStatus.LocalConnectivityIssue,
 		},
 	}}
+}
+
+func (d *Daemon) attachDeviceMetadata(devices []SyncDevice, localDeviceID, collectionRoot string, localIgnoreDelete bool) {
+	metaStore := syncmeta.NewStore(d.deps.FS, collectionRoot)
+	if localDeviceID != "" {
+		if err := metaStore.Publish(localDeviceID, version.Get(), localIgnoreDelete, time.Now()); err != nil {
+			log.Debug("Failed to publish device metadata: %v", err)
+		}
+	}
+
+	markers, err := metaStore.ReadAll()
+	if err != nil {
+		log.Debug("Failed to read device metadata: %v", err)
+		return
+	}
+
+	for i := range devices {
+		if devices[i].ID == localDeviceID {
+			enabled := localIgnoreDelete
+			devices[i].IgnoreDeleteRomsEnabled = &enabled
+			continue
+		}
+		if marker, ok := markers[devices[i].ID]; ok {
+			enabled := marker.IgnoreDeleteROMs
+			devices[i].IgnoreDeleteRomsEnabled = &enabled
+			if marker.PublishedAt != "" {
+				publishedAt := marker.PublishedAt
+				devices[i].StatusPublishedAt = &publishedAt
+			}
+		}
+	}
 }
 
 func (d *Daemon) handleSyncRemoveDevice(data *SyncRemoveDeviceRequest) []Event {
@@ -1442,6 +1480,12 @@ func (d *Daemon) handleSyncRemoveDevice(data *SyncRemoveDeviceRequest) []Event {
 	d.removedDevices[deviceID] = time.Now()
 	d.removedDevicesMu.Unlock()
 	log.Info("Device removed: %s (%s) - tracking for zombie detection", removedName, deviceID[:7])
+
+	if collection, err := store.NewCollection(d.deps.FS, d.deps.Paths, cfg.Global.Collection); err == nil {
+		if err := syncmeta.NewStore(d.deps.FS, collection.Root()).Remove(deviceID); err != nil {
+			log.Debug("Failed to remove device metadata for %s: %v", deviceID, err)
+		}
+	}
 
 	return []Event{{
 		Type: EventTypeResult,

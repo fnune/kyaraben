@@ -193,6 +193,8 @@ func (g *ConfigGenerator) FolderCreateRequests() []syncthing.FolderCreateRequest
 
 func (g *ConfigGenerator) folderPath(spec folders.Spec) string {
 	switch spec.Category {
+	case folders.CategoryMeta:
+		return filepath.Join(g.collection, ".kyaraben")
 	case folders.CategoryROMs:
 		return filepath.Join(g.collection, "roms", string(spec.System))
 	case folders.CategoryBIOS:

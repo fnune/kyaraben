@@ -316,15 +316,17 @@ type SyncProgress struct {
 }
 
 type SyncDevice struct {
-	ID                string  `json:"id"`
-	Name              string  `json:"name"`
-	Connected         bool    `json:"connected"`
-	Paused            bool    `json:"paused,omitempty"`
-	Completion        *int    `json:"completion,omitempty"`
-	LastSeen          *string `json:"lastSeen,omitempty"`
-	ConnectionType    string  `json:"connectionType,omitempty"`
-	IsLocal           bool    `json:"isLocal,omitempty"`
-	ConnectivityIssue string  `json:"connectivityIssue,omitempty"`
+	ID                      string  `json:"id"`
+	Name                    string  `json:"name"`
+	Connected               bool    `json:"connected"`
+	Paused                  bool    `json:"paused,omitempty"`
+	Completion              *int    `json:"completion,omitempty"`
+	LastSeen                *string `json:"lastSeen,omitempty"`
+	ConnectionType          string  `json:"connectionType,omitempty"`
+	IsLocal                 bool    `json:"isLocal,omitempty"`
+	ConnectivityIssue       string  `json:"connectivityIssue,omitempty"`
+	IgnoreDeleteRomsEnabled *bool   `json:"ignoreDeleteRomsEnabled,omitempty"`
+	StatusPublishedAt       *string `json:"statusPublishedAt,omitempty"`
 }
 
 type SyncFolder struct {

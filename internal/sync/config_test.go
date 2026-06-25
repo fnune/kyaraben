@@ -148,6 +148,36 @@ func TestConfigGenerator_FolderCreateRequests_IgnoreDelete(t *testing.T) {
 	}
 }
 
+func TestConfigGenerator_FolderCreateRequests_MetaFolder(t *testing.T) {
+	fs := testutil.NewTestFS(t, nil)
+	cfg := model.SyncConfig{Enabled: true}
+	gen := NewConfigGenerator(fs, cfg, "/home/user/Emulation", []model.SystemID{"snes"}, nil, nil)
+
+	var meta *syncthing.FolderCreateRequest
+	for _, f := range gen.FolderCreateRequests() {
+		if f.ID == folders.MetaFolderID {
+			req := f
+			meta = &req
+		}
+	}
+
+	if meta == nil {
+		t.Fatal("meta folder not generated")
+	}
+	if meta.Path != "/home/user/Emulation/.kyaraben" {
+		t.Errorf("meta path = %q, want /home/user/Emulation/.kyaraben", meta.Path)
+	}
+	if meta.Type != "sendreceive" {
+		t.Errorf("meta type = %q, want sendreceive", meta.Type)
+	}
+	if meta.Versioning != nil {
+		t.Errorf("meta folder must not use versioning")
+	}
+	if meta.IgnoreDelete != nil {
+		t.Errorf("meta folder must not manage ignoreDelete, so marker deletions propagate")
+	}
+}
+
 func TestConfigGenerator_WriteIgnoreFiles(t *testing.T) {
 	cfg := model.SyncConfig{
 		Enabled: true,

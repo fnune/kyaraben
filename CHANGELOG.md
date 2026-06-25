@@ -3,6 +3,8 @@
 ### Features
 
 - *(sync)* Add per-device ROM deletion protection, on by default, so deleting ROMs on one device can free space without removing them from others
+- *(sync)* Show each paired device's ROM deletion protection state in the devices card and `kyaraben sync status`
+- *(cli)* Add `kyaraben sync ignore-rom-deletions on|off` to toggle ROM deletion protection from the command line
 
 ### Bug fixes
 
