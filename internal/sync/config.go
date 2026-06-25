@@ -169,12 +169,19 @@ func (g *ConfigGenerator) FolderCreateRequests() []syncthing.FolderCreateRequest
 
 	requests := make([]syncthing.FolderCreateRequest, len(specs))
 	for i, spec := range specs {
-		requests[i] = syncthing.FolderCreateRequest{
+		req := syncthing.FolderCreateRequest{
 			ID:    spec.ID,
 			Label: spec.ID,
 			Path:  g.folderPath(spec),
 			Type:  string(FolderTypeSendReceive),
 		}
+		if spec.Versioning {
+			req.Versioning = &syncthing.FolderVersioning{
+				Type:   "staggered",
+				Params: map[string]string{"maxAge": "2592000"},
+			}
+		}
+		requests[i] = req
 	}
 	return requests
 }

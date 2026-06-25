@@ -68,6 +68,47 @@ func TestConfigGenerator_FolderCreateRequests(t *testing.T) {
 	}
 }
 
+func TestConfigGenerator_FolderCreateRequests_Versioning(t *testing.T) {
+	cfg := model.SyncConfig{
+		Enabled:   true,
+		Syncthing: model.SyncthingConfig{ListenPort: 22001, DiscoveryPort: 21028, GUIPort: 8385},
+	}
+
+	fs := testutil.NewTestFS(t, nil)
+	systems := []model.SystemID{"snes"}
+	emulators := []folders.EmulatorInfo{
+		{ID: "retroarch:bsnes", UsesStatesDir: true, UsesScreenshotsDir: true},
+	}
+	gen := NewConfigGenerator(fs, cfg, "/home/user/Emulation", systems, emulators, nil)
+
+	foldersByID := make(map[string]syncthing.FolderCreateRequest)
+	for _, f := range gen.FolderCreateRequests() {
+		foldersByID[f.ID] = f
+	}
+
+	versioned := []string{"kyaraben-saves-snes", "kyaraben-states-retroarch:bsnes"}
+	for _, id := range versioned {
+		v := foldersByID[id].Versioning
+		if v == nil {
+			t.Errorf("folder %s should have versioning, got nil", id)
+			continue
+		}
+		if v.Type != "staggered" {
+			t.Errorf("folder %s versioning type = %q, want staggered", id, v.Type)
+		}
+		if v.Params["maxAge"] != "2592000" {
+			t.Errorf("folder %s maxAge = %q, want 2592000", id, v.Params["maxAge"])
+		}
+	}
+
+	unversioned := []string{"kyaraben-roms-snes", "kyaraben-bios-snes", "kyaraben-screenshots-retroarch"}
+	for _, id := range unversioned {
+		if v := foldersByID[id].Versioning; v != nil {
+			t.Errorf("folder %s should have no versioning, got %+v", id, v)
+		}
+	}
+}
+
 func TestConfigGenerator_WriteIgnoreFiles(t *testing.T) {
 	cfg := model.SyncConfig{
 		Enabled: true,

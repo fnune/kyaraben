@@ -815,6 +815,13 @@ func (c *Client) AddFolders(ctx context.Context, folders []FolderCreateRequest) 
 		existingIDs[f.ID] = true
 	}
 
+	desiredVersioning := make(map[string]*FolderVersioning)
+	for _, req := range folders {
+		if req.Versioning != nil {
+			desiredVersioning[req.ID] = req.Versioning
+		}
+	}
+
 	var newFolders []map[string]any
 	for _, req := range folders {
 		if existingIDs[req.ID] {
@@ -833,6 +840,9 @@ func (c *Client) AddFolders(ctx context.Context, folders []FolderCreateRequest) 
 		folder["devices"] = []map[string]any{
 			{"deviceID": deviceID},
 		}
+		if req.Versioning != nil {
+			folder["versioning"] = versioningConfig(req.Versioning)
+		}
 
 		newFolders = append(newFolders, folder)
 	}
@@ -850,6 +860,13 @@ func (c *Client) AddFolders(ctx context.Context, folders []FolderCreateRequest) 
 		}
 	}
 
+	for _, folder := range existingFolderConfigs {
+		id, _ := folder["id"].(string)
+		if v, ok := desiredVersioning[id]; ok {
+			folder["versioning"] = versioningConfig(v)
+		}
+	}
+
 	allFolders := append(existingFolderConfigs, newFolders...)
 
 	putResp, err := c.doRequest(ctx, http.MethodPut, "/rest/config/folders", allFolders)
@@ -864,6 +881,16 @@ func (c *Client) AddFolders(ctx context.Context, folders []FolderCreateRequest) 
 	}
 
 	return nil
+}
+
+func versioningConfig(v *FolderVersioning) map[string]any {
+	return map[string]any{
+		"type":             v.Type,
+		"params":           v.Params,
+		"cleanupIntervalS": 3600,
+		"fsPath":           "",
+		"fsType":           "basic",
+	}
 }
 
 func (c *Client) DisableUsageReporting(ctx context.Context) error {

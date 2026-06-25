@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -110,6 +111,13 @@ func TestKyarabenSync(t *testing.T) {
 		if err := waitForFileDeletion(ctx, syncedPath); err != nil {
 			t.Fatalf("ROM deletion did not sync: %v", err)
 		}
+
+		romVersions := filepath.Join(device2.collection, "roms", "snes", ".stversions")
+		if found, err := versionedFileExists(romVersions, "deleteme"); err != nil {
+			t.Fatalf("checking rom versions: %v", err)
+		} else if found {
+			t.Errorf("ROM deletion was versioned, but ROM folders must not use versioning")
+		}
 	})
 
 	t.Run("saves sync bidirectionally", func(t *testing.T) {
@@ -135,6 +143,32 @@ func TestKyarabenSync(t *testing.T) {
 
 		if err := waitForFile(ctx, savePath, updatedSave); err != nil {
 			t.Fatalf("save did not sync device2 → device1: %v", err)
+		}
+	})
+
+	t.Run("deleted saves are recoverable from peer versioning", func(t *testing.T) {
+		saveData := []byte("precious save")
+		savePath := filepath.Join(device1.collection, "saves", "psx", "recover.srm")
+
+		if err := os.WriteFile(savePath, saveData, 0644); err != nil {
+			t.Fatalf("WriteFile: %v", err)
+		}
+
+		syncedPath := filepath.Join(device2.collection, "saves", "psx", "recover.srm")
+		if err := waitForFile(ctx, syncedPath, saveData); err != nil {
+			t.Fatalf("save did not sync before deletion: %v", err)
+		}
+
+		if err := os.Remove(savePath); err != nil {
+			t.Fatalf("Remove: %v", err)
+		}
+		if err := waitForFileDeletion(ctx, syncedPath); err != nil {
+			t.Fatalf("save deletion did not sync: %v", err)
+		}
+
+		versionsDir := filepath.Join(device2.collection, "saves", "psx", ".stversions")
+		if err := waitForVersionedFile(ctx, versionsDir, "recover"); err != nil {
+			t.Fatalf("deleted save was not preserved by versioning on peer: %v", err)
 		}
 	})
 }
@@ -219,6 +253,41 @@ func newKyarabenInstance(t *testing.T, name string, guiPort, listenPort int) *ky
 	}
 }
 
+func versionedFileExists(dir, prefix string) (bool, error) {
+	entries, err := os.ReadDir(dir)
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasPrefix(entry.Name(), prefix) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func waitForVersionedFile(ctx context.Context, dir, prefix string) error {
+	deadline := time.Now().Add(30 * time.Second)
+	for time.Now().Before(deadline) {
+		found, err := versionedFileExists(dir, prefix)
+		if err != nil {
+			return err
+		}
+		if found {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(500 * time.Millisecond):
+		}
+	}
+	return fmt.Errorf("no versioned file with prefix %q in %s", prefix, dir)
+}
+
 func waitForFileDeletion(ctx context.Context, path string) error {
 	deadline := time.Now().Add(30 * time.Second)
 	for time.Now().Before(deadline) {
@@ -255,7 +324,7 @@ func (k *kyarabenInstance) writeKyarabenConfig(peer *kyarabenInstance) error {
 
 	xmlFolders := make([]XMLFolder, len(folderRequests))
 	for i, req := range folderRequests {
-		xmlFolders[i] = XMLFolder{
+		folder := XMLFolder{
 			ID:               req.ID,
 			Label:            req.Label,
 			Path:             req.Path,
@@ -264,6 +333,14 @@ func (k *kyarabenInstance) writeKyarabenConfig(peer *kyarabenInstance) error {
 			FSWatcherEnabled: true,
 			IgnorePerms:      true,
 		}
+		if req.Versioning != nil {
+			params := make([]XMLVersioningParam, 0, len(req.Versioning.Params))
+			for key, val := range req.Versioning.Params {
+				params = append(params, XMLVersioningParam{Key: key, Val: val})
+			}
+			folder.Versioning = XMLVersioning{Type: req.Versioning.Type, Params: params}
+		}
+		xmlFolders[i] = folder
 	}
 
 	xmlCfg := &SyncthingXMLConfig{

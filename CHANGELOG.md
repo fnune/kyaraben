@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Bug fixes
+
+- *(sync)* Apply staggered versioning to saves and states folders so deletions are recoverable, and reconcile it onto existing folders
+
 ## [0.1.4] - 2026-05-21
 
 This release contains a round of emulator upgrades and a Syncthing minor-version bump,

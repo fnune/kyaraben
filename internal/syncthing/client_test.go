@@ -5,6 +5,26 @@ import (
 	"testing"
 )
 
+func TestVersioningConfig(t *testing.T) {
+	got := versioningConfig(&FolderVersioning{
+		Type:   "staggered",
+		Params: map[string]string{"maxAge": "2592000"},
+	})
+
+	if got["type"] != "staggered" {
+		t.Errorf("type = %v, want staggered", got["type"])
+	}
+	params, ok := got["params"].(map[string]string)
+	if !ok || params["maxAge"] != "2592000" {
+		t.Errorf("params = %v, want maxAge=2592000", got["params"])
+	}
+	for _, key := range []string{"cleanupIntervalS", "fsPath", "fsType"} {
+		if _, ok := got[key]; !ok {
+			t.Errorf("versioning config missing %q field Syncthing expects", key)
+		}
+	}
+}
+
 func TestExtractHost(t *testing.T) {
 	tests := []struct {
 		name     string
