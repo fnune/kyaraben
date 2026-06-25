@@ -153,6 +153,24 @@ export function SyncSettingsSection({
           <div className="flex items-center justify-between">
             <div>
               <label
+                htmlFor="ignore-delete-roms-toggle"
+                className="text-sm font-medium text-on-surface"
+              >
+                Ignore ROM deletions
+              </label>
+              <p className="text-xs text-on-surface-muted mt-0.5">
+                Keep this device's ROMs even when they're deleted on another device.
+              </p>
+            </div>
+            <ToggleSwitch
+              enabled={ignoreDeleteRomsEnabled}
+              onChange={handleToggleIgnoreDeleteRoms}
+              disabled={isTogglingIgnoreDelete}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <label
                 htmlFor="global-discovery-toggle"
                 className="text-sm font-medium text-on-surface"
               >
@@ -166,26 +184,6 @@ export function SyncSettingsSection({
               enabled={globalDiscoveryEnabled}
               onChange={handleToggleGlobalDiscovery}
               disabled={isTogglingDiscovery}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <label
-                htmlFor="ignore-delete-roms-toggle"
-                className="text-sm font-medium text-on-surface"
-              >
-                Keep ROMs deleted on other devices
-              </label>
-              <p className="text-xs text-on-surface-muted mt-0.5">
-                When a ROM is deleted on another device, keep this device's copy. Lets other devices
-                free space without losing ROMs here. While on, ROM deletions from other devices are
-                not applied here, and a rename elsewhere can leave a duplicate copy.
-              </p>
-            </div>
-            <ToggleSwitch
-              enabled={ignoreDeleteRomsEnabled}
-              onChange={handleToggleIgnoreDeleteRoms}
-              disabled={isTogglingIgnoreDelete}
             />
           </div>
           <div>
