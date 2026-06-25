@@ -173,6 +173,110 @@ func TestKyarabenSync(t *testing.T) {
 	})
 }
 
+func TestKyarabenIgnoreDeleteAsymmetric(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping e2e test in short mode")
+	}
+	if _, err := exec.LookPath("syncthing"); err != nil {
+		t.Skip("syncthing not installed")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	deck := newKyarabenInstance(t, "deck", 18386, 22002)
+	bilbo := newKyarabenInstance(t, "bilbo", 18387, 22003)
+	deck.ignoreDeleteRoms = true
+	bilbo.ignoreDeleteRoms = false
+
+	t.Cleanup(func() {
+		deck.stop()
+		bilbo.stop()
+	})
+
+	for _, d := range []*kyarabenInstance{deck, bilbo} {
+		if err := d.generate(); err != nil {
+			t.Fatalf("%s.generate: %v", d.name, err)
+		}
+	}
+	if err := deck.writeKyarabenConfig(bilbo); err != nil {
+		t.Fatalf("deck.writeKyarabenConfig: %v", err)
+	}
+	if err := bilbo.writeKyarabenConfig(deck); err != nil {
+		t.Fatalf("bilbo.writeKyarabenConfig: %v", err)
+	}
+	for _, d := range []*kyarabenInstance{deck, bilbo} {
+		if err := d.start(ctx); err != nil {
+			t.Fatalf("%s.start: %v", d.name, err)
+		}
+	}
+	if err := waitConnected(ctx, deck.testInstance, bilbo.deviceID); err != nil {
+		t.Fatalf("waitConnected: %v", err)
+	}
+
+	const observeWindow = 25 * time.Second
+
+	t.Run("sanity: device with ignoreDelete keeps a ROM deleted elsewhere", func(t *testing.T) {
+		data := []byte("sanity rom")
+		bilboPath := filepath.Join(bilbo.collection, "roms", "snes", "sanity.sfc")
+		deckPath := filepath.Join(deck.collection, "roms", "snes", "sanity.sfc")
+
+		if err := os.WriteFile(bilboPath, data, 0644); err != nil {
+			t.Fatalf("WriteFile: %v", err)
+		}
+		if err := waitForFile(ctx, deckPath, data); err != nil {
+			t.Fatalf("ROM did not sync bilbo -> deck: %v", err)
+		}
+
+		if err := os.Remove(bilboPath); err != nil {
+			t.Fatalf("Remove: %v", err)
+		}
+
+		propagated := deletionPropagated(ctx, deckPath, observeWindow)
+		t.Logf("SANITY: bilbo(ignoreDelete=off) deleted, deck(ignoreDelete=on) propagated=%v (want false)", propagated)
+		if propagated {
+			t.Errorf("ignoreDelete not effective: deck deleted a ROM it should have kept; harness/wiring is wrong, experiment result below is invalid")
+		}
+	})
+
+	t.Run("question: delete on ignoreDelete device, observe the device without it", func(t *testing.T) {
+		data := []byte("question rom")
+		deckPath := filepath.Join(deck.collection, "roms", "snes", "question.sfc")
+		bilboPath := filepath.Join(bilbo.collection, "roms", "snes", "question.sfc")
+
+		if err := os.WriteFile(deckPath, data, 0644); err != nil {
+			t.Fatalf("WriteFile: %v", err)
+		}
+		if err := waitForFile(ctx, bilboPath, data); err != nil {
+			t.Fatalf("ROM did not sync deck -> bilbo: %v", err)
+		}
+
+		if err := os.Remove(deckPath); err != nil {
+			t.Fatalf("Remove: %v", err)
+		}
+
+		propagated := deletionPropagated(ctx, bilboPath, observeWindow)
+		if !propagated {
+			t.Errorf("expected bilbo (ignoreDelete=off) to lose a ROM deleted on the deck (ignoreDelete=on), but it was kept; syncthing deleter-side behavior may have changed")
+		}
+	})
+}
+
+func deletionPropagated(ctx context.Context, path string, window time.Duration) bool {
+	deadline := time.Now().Add(window)
+	for time.Now().Before(deadline) {
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			return true
+		}
+		select {
+		case <-ctx.Done():
+			return false
+		case <-time.After(500 * time.Millisecond):
+		}
+	}
+	return false
+}
+
 func waitConnected(ctx context.Context, inst *testInstance, peerID string) error {
 	deadline := time.Now().Add(30 * time.Second)
 	for time.Now().Before(deadline) {
@@ -209,9 +313,10 @@ func waitForFile(ctx context.Context, path string, expectedContent []byte) error
 
 type kyarabenInstance struct {
 	*testInstance
-	collection string
-	systems    []model.SystemID
-	emulators  []folders.EmulatorInfo
+	collection       string
+	systems          []model.SystemID
+	emulators        []folders.EmulatorInfo
+	ignoreDeleteRoms bool
 }
 
 func newKyarabenInstance(t *testing.T, name string, guiPort, listenPort int) *kyarabenInstance {
@@ -339,6 +444,9 @@ func (k *kyarabenInstance) writeKyarabenConfig(peer *kyarabenInstance) error {
 				params = append(params, XMLVersioningParam{Key: key, Val: val})
 			}
 			folder.Versioning = XMLVersioning{Type: req.Versioning.Type, Params: params}
+		}
+		if k.ignoreDeleteRoms && strings.HasPrefix(req.ID, "kyaraben-roms-") {
+			folder.IgnoreDelete = true
 		}
 		xmlFolders[i] = folder
 	}

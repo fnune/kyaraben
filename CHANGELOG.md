@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Features
+
+- *(sync)* Add per-device ROM deletion protection, on by default, so deleting ROMs on one device can free space without removing them from others
+
 ### Bug fixes
 
 - *(sync)* Apply staggered versioning to saves and states folders so deletions are recoverable, and reconcile it onto existing folders

@@ -109,6 +109,45 @@ func TestConfigGenerator_FolderCreateRequests_Versioning(t *testing.T) {
 	}
 }
 
+func TestConfigGenerator_FolderCreateRequests_IgnoreDelete(t *testing.T) {
+	fs := testutil.NewTestFS(t, nil)
+	systems := []model.SystemID{"snes"}
+	emulators := []folders.EmulatorInfo{{ID: "retroarch:bsnes", UsesStatesDir: true}}
+
+	disabled := false
+	cases := []struct {
+		name    string
+		setting *bool
+		want    bool
+	}{
+		{"default enabled", nil, true},
+		{"explicitly disabled", &disabled, false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := model.SyncConfig{Enabled: true, Syncthing: model.SyncthingConfig{IgnoreDeleteROMs: tc.setting}}
+			gen := NewConfigGenerator(fs, cfg, "/home/user/Emulation", systems, emulators, nil)
+
+			byID := make(map[string]syncthing.FolderCreateRequest)
+			for _, f := range gen.FolderCreateRequests() {
+				byID[f.ID] = f
+			}
+
+			rom := byID["kyaraben-roms-snes"].IgnoreDelete
+			if rom == nil || *rom != tc.want {
+				t.Errorf("roms IgnoreDelete = %v, want %v", rom, tc.want)
+			}
+
+			for _, id := range []string{"kyaraben-saves-snes", "kyaraben-bios-snes", "kyaraben-states-retroarch:bsnes"} {
+				if v := byID[id].IgnoreDelete; v != nil {
+					t.Errorf("%s should not manage IgnoreDelete, got %v", id, *v)
+				}
+			}
+		})
+	}
+}
+
 func TestConfigGenerator_WriteIgnoreFiles(t *testing.T) {
 	cfg := model.SyncConfig{
 		Enabled: true,

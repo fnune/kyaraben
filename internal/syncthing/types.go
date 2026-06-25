@@ -97,11 +97,12 @@ type FolderVersioning struct {
 }
 
 type FolderCreateRequest struct {
-	ID         string            `json:"id"`
-	Label      string            `json:"label"`
-	Path       string            `json:"path"`
-	Type       string            `json:"type"` // sendreceive, sendonly, receiveonly, receiveencrypted
-	Versioning *FolderVersioning `json:"-"`
+	ID           string            `json:"id"`
+	Label        string            `json:"label"`
+	Path         string            `json:"path"`
+	Type         string            `json:"type"` // sendreceive, sendonly, receiveonly, receiveencrypted
+	Versioning   *FolderVersioning `json:"-"`
+	IgnoreDelete *bool             `json:"-"`
 }
 
 type FolderSharingDrift struct {

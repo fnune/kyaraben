@@ -290,21 +290,22 @@ const (
 )
 
 type SyncStatusResponse struct {
-	Enabled                bool          `json:"enabled"`
-	Running                bool          `json:"running,omitempty"`
-	Installed              bool          `json:"installed,omitempty"`
-	ServiceInstalled       bool          `json:"serviceInstalled,omitempty"`
-	DeviceID               string        `json:"deviceId,omitempty"`
-	GUIURL                 string        `json:"guiURL,omitempty"`
-	State                  SyncState     `json:"state,omitempty"`
-	Devices                []SyncDevice  `json:"devices,omitempty"`
-	Folders                []SyncFolder  `json:"folders,omitempty"`
-	Pairing                bool          `json:"pairing,omitempty"`
-	Progress               *SyncProgress `json:"progress,omitempty"`
-	ServiceError           string        `json:"serviceError,omitempty"`
-	GlobalDiscoveryEnabled bool          `json:"globalDiscoveryEnabled,omitempty"`
-	AutostartEnabled       bool          `json:"autostartEnabled,omitempty"`
-	LocalConnectivityIssue string        `json:"localConnectivityIssue,omitempty"`
+	Enabled                 bool          `json:"enabled"`
+	Running                 bool          `json:"running,omitempty"`
+	Installed               bool          `json:"installed,omitempty"`
+	ServiceInstalled        bool          `json:"serviceInstalled,omitempty"`
+	DeviceID                string        `json:"deviceId,omitempty"`
+	GUIURL                  string        `json:"guiURL,omitempty"`
+	State                   SyncState     `json:"state,omitempty"`
+	Devices                 []SyncDevice  `json:"devices,omitempty"`
+	Folders                 []SyncFolder  `json:"folders,omitempty"`
+	Pairing                 bool          `json:"pairing,omitempty"`
+	Progress                *SyncProgress `json:"progress,omitempty"`
+	ServiceError            string        `json:"serviceError,omitempty"`
+	GlobalDiscoveryEnabled  bool          `json:"globalDiscoveryEnabled,omitempty"`
+	IgnoreDeleteROMsEnabled bool          `json:"ignoreDeleteRomsEnabled,omitempty"`
+	AutostartEnabled        bool          `json:"autostartEnabled,omitempty"`
+	LocalConnectivityIssue  string        `json:"localConnectivityIssue,omitempty"`
 }
 
 type SyncProgress struct {
@@ -425,9 +426,10 @@ type SyncResetResponse struct {
 }
 
 type SyncSetSettingsRequest struct {
-	GlobalDiscoveryEnabled *bool `json:"globalDiscoveryEnabled,omitempty"`
-	Running                *bool `json:"running,omitempty"`
-	AutostartEnabled       *bool `json:"autostartEnabled,omitempty"`
+	GlobalDiscoveryEnabled  *bool `json:"globalDiscoveryEnabled,omitempty"`
+	IgnoreDeleteROMsEnabled *bool `json:"ignoreDeleteRomsEnabled,omitempty"`
+	Running                 *bool `json:"running,omitempty"`
+	AutostartEnabled        *bool `json:"autostartEnabled,omitempty"`
 }
 
 type SyncSetSettingsResponse struct {

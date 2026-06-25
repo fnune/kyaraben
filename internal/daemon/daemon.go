@@ -1251,11 +1251,12 @@ func (d *Daemon) handleSyncStatus() []Event {
 		return []Event{{
 			Type: EventTypeResult,
 			Data: SyncStatusResponse{
-				Enabled:                false,
-				Installed:              installed,
-				ServiceInstalled:       serviceInstalled,
-				GlobalDiscoveryEnabled: cfg.Sync.Syncthing.GlobalDiscoveryEnabled,
-				AutostartEnabled:       cfg.Sync.Autostart,
+				Enabled:                 false,
+				Installed:               installed,
+				ServiceInstalled:        serviceInstalled,
+				GlobalDiscoveryEnabled:  cfg.Sync.Syncthing.GlobalDiscoveryEnabled,
+				IgnoreDeleteROMsEnabled: cfg.Sync.Syncthing.IgnoreDeleteROMsEnabled(),
+				AutostartEnabled:        cfg.Sync.Autostart,
 			},
 		}}
 	}
@@ -1289,14 +1290,15 @@ func (d *Daemon) handleSyncStatus() []Event {
 		return []Event{{
 			Type: EventTypeResult,
 			Data: SyncStatusResponse{
-				Enabled:                true,
-				Running:                false,
-				Installed:              installed,
-				ServiceInstalled:       serviceInstalled,
-				GUIURL:                 fmt.Sprintf("http://127.0.0.1:%d", cfg.Sync.Syncthing.GUIPort),
-				ServiceError:           serviceError,
-				GlobalDiscoveryEnabled: cfg.Sync.Syncthing.GlobalDiscoveryEnabled,
-				AutostartEnabled:       cfg.Sync.Autostart,
+				Enabled:                 true,
+				Running:                 false,
+				Installed:               installed,
+				ServiceInstalled:        serviceInstalled,
+				GUIURL:                  fmt.Sprintf("http://127.0.0.1:%d", cfg.Sync.Syncthing.GUIPort),
+				ServiceError:            serviceError,
+				GlobalDiscoveryEnabled:  cfg.Sync.Syncthing.GlobalDiscoveryEnabled,
+				IgnoreDeleteROMsEnabled: cfg.Sync.Syncthing.IgnoreDeleteROMsEnabled(),
+				AutostartEnabled:        cfg.Sync.Autostart,
 			},
 		}}
 	}
@@ -1383,19 +1385,20 @@ func (d *Daemon) handleSyncStatus() []Event {
 	return []Event{{
 		Type: EventTypeResult,
 		Data: SyncStatusResponse{
-			Enabled:                true,
-			Running:                true,
-			Installed:              installed,
-			ServiceInstalled:       serviceInstalled,
-			DeviceID:               syncStatus.DeviceID,
-			GUIURL:                 syncStatus.GUIURL,
-			State:                  SyncState(syncStatus.OverallState()),
-			Devices:                devices,
-			Folders:                folders,
-			Progress:               progress,
-			GlobalDiscoveryEnabled: cfg.Sync.Syncthing.GlobalDiscoveryEnabled,
-			AutostartEnabled:       cfg.Sync.Autostart,
-			LocalConnectivityIssue: syncStatus.LocalConnectivityIssue,
+			Enabled:                 true,
+			Running:                 true,
+			Installed:               installed,
+			ServiceInstalled:        serviceInstalled,
+			DeviceID:                syncStatus.DeviceID,
+			GUIURL:                  syncStatus.GUIURL,
+			State:                   SyncState(syncStatus.OverallState()),
+			Devices:                 devices,
+			Folders:                 folders,
+			Progress:                progress,
+			GlobalDiscoveryEnabled:  cfg.Sync.Syncthing.GlobalDiscoveryEnabled,
+			IgnoreDeleteROMsEnabled: cfg.Sync.Syncthing.IgnoreDeleteROMsEnabled(),
+			AutostartEnabled:        cfg.Sync.Autostart,
+			LocalConnectivityIssue:  syncStatus.LocalConnectivityIssue,
 		},
 	}}
 }
@@ -1980,6 +1983,11 @@ func (d *Daemon) handleSyncSetSettings(data *SyncSetSettingsRequest) []Event {
 		changed = true
 	}
 
+	if data.IgnoreDeleteROMsEnabled != nil {
+		cfg.Sync.Syncthing.IgnoreDeleteROMs = data.IgnoreDeleteROMsEnabled
+		changed = true
+	}
+
 	if data.AutostartEnabled != nil {
 		changed = true
 	}
@@ -1999,7 +2007,8 @@ func (d *Daemon) handleSyncSetSettings(data *SyncSetSettingsRequest) []Event {
 		return d.errorResponse(err.Error())
 	}
 
-	if cfg.Sync.Enabled && data.GlobalDiscoveryEnabled != nil {
+	needsReconcile := data.GlobalDiscoveryEnabled != nil || data.IgnoreDeleteROMsEnabled != nil
+	if cfg.Sync.Enabled && needsReconcile {
 		collection, err := store.NewCollection(d.deps.FS, d.deps.Paths, cfg.Global.Collection)
 		if err != nil {
 			return d.errorResponse(err.Error())
@@ -2013,7 +2022,7 @@ func (d *Daemon) handleSyncSetSettings(data *SyncSetSettingsRequest) []Event {
 			return d.errorResponse(fmt.Sprintf("updating syncthing config: %v", err))
 		}
 
-		if unit.IsEnabled() {
+		if data.GlobalDiscoveryEnabled != nil && unit.IsEnabled() {
 			if err := d.deps.Service.Restart(unit.UnitName()); err != nil {
 				log.Error("Failed to restart syncthing after settings change: %v", err)
 			}

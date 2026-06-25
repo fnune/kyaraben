@@ -816,9 +816,13 @@ func (c *Client) AddFolders(ctx context.Context, folders []FolderCreateRequest) 
 	}
 
 	desiredVersioning := make(map[string]*FolderVersioning)
+	desiredIgnoreDelete := make(map[string]bool)
 	for _, req := range folders {
 		if req.Versioning != nil {
 			desiredVersioning[req.ID] = req.Versioning
+		}
+		if req.IgnoreDelete != nil {
+			desiredIgnoreDelete[req.ID] = *req.IgnoreDelete
 		}
 	}
 
@@ -843,6 +847,9 @@ func (c *Client) AddFolders(ctx context.Context, folders []FolderCreateRequest) 
 		if req.Versioning != nil {
 			folder["versioning"] = versioningConfig(req.Versioning)
 		}
+		if req.IgnoreDelete != nil {
+			folder["ignoreDelete"] = *req.IgnoreDelete
+		}
 
 		newFolders = append(newFolders, folder)
 	}
@@ -864,6 +871,9 @@ func (c *Client) AddFolders(ctx context.Context, folders []FolderCreateRequest) 
 		id, _ := folder["id"].(string)
 		if v, ok := desiredVersioning[id]; ok {
 			folder["versioning"] = versioningConfig(v)
+		}
+		if v, ok := desiredIgnoreDelete[id]; ok {
+			folder["ignoreDelete"] = v
 		}
 	}
 

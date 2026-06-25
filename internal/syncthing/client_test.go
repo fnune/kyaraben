@@ -127,6 +127,76 @@ func TestAddFolders_Versioning(t *testing.T) {
 	})
 }
 
+func TestAddFolders_IgnoreDelete(t *testing.T) {
+	on := true
+
+	existing := []map[string]any{
+		{"id": "kyaraben-roms-snes", "path": "/c/roms/snes", "type": "sendreceive", "ignoreDelete": false},
+		{"id": "kyaraben-saves-snes", "path": "/c/saves/snes", "type": "sendreceive"},
+	}
+	defaults := map[string]any{"rescanIntervalS": float64(3600), "ignoreDelete": false}
+
+	var putBody []map[string]any
+	mux := http.NewServeMux()
+	mux.HandleFunc("/rest/system/status", func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{"myID": "THIS-DEVICE"})
+	})
+	mux.HandleFunc("/rest/config/defaults/folder", func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(defaults)
+	})
+	mux.HandleFunc("/rest/config/folders", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			_ = json.NewEncoder(w).Encode(existing)
+		case http.MethodPut:
+			body, _ := io.ReadAll(r.Body)
+			if err := json.Unmarshal(body, &putBody); err != nil {
+				t.Errorf("decoding PUT body: %v", err)
+			}
+			w.WriteHeader(http.StatusOK)
+		}
+	})
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	client := NewClient(Config{BaseURL: server.URL})
+	client.SetAPIKey("key")
+
+	requests := []FolderCreateRequest{
+		{ID: "kyaraben-roms-snes", Label: "roms", Path: "/c/roms/snes", Type: "sendreceive", IgnoreDelete: &on},
+		{ID: "kyaraben-roms-psx", Label: "roms", Path: "/c/roms/psx", Type: "sendreceive", IgnoreDelete: &on},
+		{ID: "kyaraben-saves-snes", Label: "saves", Path: "/c/saves/snes", Type: "sendreceive"},
+	}
+
+	if err := client.AddFolders(context.Background(), requests); err != nil {
+		t.Fatalf("AddFolders() error = %v", err)
+	}
+
+	byID := make(map[string]map[string]any)
+	for _, f := range putBody {
+		id, _ := f["id"].(string)
+		byID[id] = f
+	}
+
+	t.Run("existing rom folder is reconciled to ignoreDelete", func(t *testing.T) {
+		if got, _ := byID["kyaraben-roms-snes"]["ignoreDelete"].(bool); !got {
+			t.Errorf("existing rom ignoreDelete = %v, want true", byID["kyaraben-roms-snes"]["ignoreDelete"])
+		}
+	})
+
+	t.Run("new rom folder is created with ignoreDelete", func(t *testing.T) {
+		if got, _ := byID["kyaraben-roms-psx"]["ignoreDelete"].(bool); !got {
+			t.Errorf("new rom ignoreDelete = %v, want true", byID["kyaraben-roms-psx"]["ignoreDelete"])
+		}
+	})
+
+	t.Run("non-rom folder is left unmanaged", func(t *testing.T) {
+		if got, _ := byID["kyaraben-saves-snes"]["ignoreDelete"].(bool); got {
+			t.Errorf("saves ignoreDelete = %v, want false/unset", byID["kyaraben-saves-snes"]["ignoreDelete"])
+		}
+	})
+}
+
 func versioningType(folder map[string]any) string {
 	v, ok := folder["versioning"].(map[string]any)
 	if !ok {

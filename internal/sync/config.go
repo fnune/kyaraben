@@ -41,6 +41,7 @@ type XMLFolder struct {
 	Devices          []XMLFolderDevice `xml:"device"`
 	FSWatcherEnabled bool              `xml:"fsWatcherEnabled"`
 	IgnorePerms      bool              `xml:"ignorePerms"`
+	IgnoreDelete     bool              `xml:"ignoreDelete"`
 	Versioning       XMLVersioning     `xml:"versioning"`
 }
 
@@ -180,6 +181,10 @@ func (g *ConfigGenerator) FolderCreateRequests() []syncthing.FolderCreateRequest
 				Type:   "staggered",
 				Params: map[string]string{"maxAge": "2592000"},
 			}
+		}
+		if spec.Category == folders.CategoryROMs {
+			ignoreDelete := g.syncConfig.Syncthing.IgnoreDeleteROMsEnabled()
+			req.IgnoreDelete = &ignoreDelete
 		}
 		requests[i] = req
 	}
