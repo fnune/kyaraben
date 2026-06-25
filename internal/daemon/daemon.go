@@ -1948,10 +1948,13 @@ func (d *Daemon) handleSyncSetSettings(data *SyncSetSettingsRequest) []Event {
 	if data.Running != nil {
 		if *data.Running {
 			if err := unit.Start(); err != nil {
+				log.Error("Failed to start syncthing: %v", err)
 				return d.errorResponse(fmt.Sprintf("starting syncthing: %v", err))
 			}
 		} else {
-			if err := unit.Stop(); err != nil {
+			ports := []int{cfg.Sync.Syncthing.GUIPort, cfg.Sync.Syncthing.ListenPort}
+			if err := unit.StopAndWait(ports, 30*time.Second); err != nil {
+				log.Error("Failed to stop syncthing: %v", err)
 				return d.errorResponse(fmt.Sprintf("stopping syncthing: %v", err))
 			}
 		}

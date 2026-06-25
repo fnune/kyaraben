@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"fmt"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -26,36 +27,47 @@ func NewDefaultServiceManager() *SystemctlManager {
 	return &SystemctlManager{}
 }
 
+func runSystemctl(args ...string) error {
+	out, err := exec.Command("systemctl", args...).CombinedOutput()
+	if err != nil {
+		if detail := strings.TrimSpace(string(out)); detail != "" {
+			return fmt.Errorf("%w: %s", err, detail)
+		}
+		return err
+	}
+	return nil
+}
+
 func (m *SystemctlManager) DaemonReload() error {
-	return exec.Command("systemctl", "--user", "daemon-reload").Run()
+	return runSystemctl("--user", "daemon-reload")
 }
 
 func (m *SystemctlManager) Start(unit string) error {
-	return exec.Command("systemctl", "--user", "start", unit).Run()
+	return runSystemctl("--user", "start", unit)
 }
 
 func (m *SystemctlManager) Stop(unit string) error {
-	return exec.Command("systemctl", "--user", "stop", unit).Run()
+	return runSystemctl("--user", "stop", unit)
 }
 
 func (m *SystemctlManager) Restart(unit string) error {
-	return exec.Command("systemctl", "--user", "restart", unit).Run()
+	return runSystemctl("--user", "restart", unit)
 }
 
 func (m *SystemctlManager) Enable(unit string) error {
-	return exec.Command("systemctl", "--user", "enable", "--now", unit).Run()
+	return runSystemctl("--user", "enable", "--now", unit)
 }
 
 func (m *SystemctlManager) Disable(unit string) error {
-	return exec.Command("systemctl", "--user", "disable", "--now", unit).Run()
+	return runSystemctl("--user", "disable", "--now", unit)
 }
 
 func (m *SystemctlManager) EnableAutostart(unit string) error {
-	return exec.Command("systemctl", "--user", "enable", unit).Run()
+	return runSystemctl("--user", "enable", unit)
 }
 
 func (m *SystemctlManager) DisableAutostart(unit string) error {
-	return exec.Command("systemctl", "--user", "disable", unit).Run()
+	return runSystemctl("--user", "disable", unit)
 }
 
 func (m *SystemctlManager) IsEnabled(unit string) bool {
