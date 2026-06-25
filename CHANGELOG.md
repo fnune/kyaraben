@@ -3,6 +3,7 @@
 ### Bug fixes
 
 - *(sync)* Apply staggered versioning to saves and states folders so deletions are recoverable, and reconcile it onto existing folders
+- *(sync)* Make stopping sync from the UI resilient so a flaky systemctl stop no longer fails with an opaque error and forces the destructive reset
 
 ## [0.1.4] - 2026-05-21
 
