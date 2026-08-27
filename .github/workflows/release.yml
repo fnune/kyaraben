@@ -53,12 +53,7 @@ jobs:
           rm -rf git-cliff-2.7.0
 
       - name: Build CLI
-        run: |
-          CGO_ENABLED=1 CC=musl-gcc go build \
-            -ldflags="-s -w -linkmode external -extldflags '-static'" \
-            -o Kyaraben-CLI-linux-amd64 \
-            ./cmd/kyaraben
-          sha256sum Kyaraben-CLI-linux-amd64 > checksums.txt
+        run: ./scripts/build-release-cli.sh
 
       - name: Create release
         run: |
@@ -67,8 +62,8 @@ jobs:
             --draft \
             --title "${{ github.ref_name }}" \
             --notes-file release-notes.md \
-            Kyaraben-CLI-linux-amd64 \
-            checksums.txt
+            dist/Kyaraben-CLI-linux-amd64 \
+            dist/checksums.txt
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

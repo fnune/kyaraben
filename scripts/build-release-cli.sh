@@ -7,7 +7,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 DIST_DIR="$PROJECT_ROOT/dist"
 
-VERSION=$(node -p "require('$PROJECT_ROOT/ui/package.json').version" 2>/dev/null || echo "0.0.0")
+VERSION=$(node -p "require('$PROJECT_ROOT/ui/package.json').version" 2>/dev/null || true)
+if [[ -z "$VERSION" ]]; then
+    echo "Could not read the version from ui/package.json. A release binary must be stamped." >&2
+    exit 1
+fi
 
 mkdir -p "$DIST_DIR"
 cd "$PROJECT_ROOT"

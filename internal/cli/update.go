@@ -1,8 +1,6 @@
 package cli
 
 import (
-	"archive/tar"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -44,7 +42,7 @@ func (cmd *UpdateCmd) Run(ctx *Context) error {
 		return fmt.Errorf("checking for updates: %w", err)
 	}
 
-	currentVersion := version.Version
+	currentVersion := version.Get()
 	latestVersion := strings.TrimPrefix(release.TagName, "v")
 
 	fmt.Printf("Current version: %s\n", currentVersion)
@@ -138,12 +136,10 @@ func fetchRelease(url string) (*githubRelease, error) {
 	return &release, nil
 }
 
+// Must match the artifact scripts/build-release-cli.sh produces and the release
+// workflow uploads.
 func expectedAssetName() string {
-	arch := runtime.GOARCH
-	if arch == "amd64" {
-		arch = "amd64"
-	}
-	return fmt.Sprintf("kyaraben-cli-%s-%s.tar.gz", runtime.GOOS, arch)
+	return fmt.Sprintf("Kyaraben-CLI-%s-%s", runtime.GOOS, runtime.GOARCH)
 }
 
 func downloadAsset(url string) (string, error) {
@@ -173,56 +169,40 @@ func downloadAsset(url string) (string, error) {
 	return tempFile.Name(), nil
 }
 
-func installUpdate(tarPath, binaryPath string) error {
-	f, err := os.Open(tarPath)
+// Overwriting the running binary in place fails with ETXTBSY, so the download is
+// staged next to it and renamed over it.
+func installUpdate(downloadPath, binaryPath string) error {
+	downloaded, err := os.Open(downloadPath)
 	if err != nil {
 		return err
 	}
-	defer func() { _ = f.Close() }()
+	defer func() { _ = downloaded.Close() }()
 
-	gz, err := gzip.NewReader(f)
+	tempBinary, err := os.CreateTemp(filepath.Dir(binaryPath), "kyaraben-new-*")
 	if err != nil {
-		return err
+		return fmt.Errorf("creating temp binary: %w", err)
 	}
-	defer func() { _ = gz.Close() }()
+	tempPath := tempBinary.Name()
 
-	tr := tar.NewReader(gz)
-	for {
-		hdr, err := tr.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return err
-		}
-
-		if hdr.Name == "kyaraben" || strings.HasSuffix(hdr.Name, "/kyaraben") {
-			tempBinary, err := os.CreateTemp(filepath.Dir(binaryPath), "kyaraben-new-*")
-			if err != nil {
-				return fmt.Errorf("creating temp binary: %w", err)
-			}
-			tempPath := tempBinary.Name()
-
-			if _, err := io.Copy(tempBinary, tr); err != nil {
-				_ = tempBinary.Close()
-				_ = os.Remove(tempPath)
-				return fmt.Errorf("extracting binary: %w", err)
-			}
-			_ = tempBinary.Close()
-
-			if err := os.Chmod(tempPath, 0755); err != nil {
-				_ = os.Remove(tempPath)
-				return fmt.Errorf("setting permissions: %w", err)
-			}
-
-			if err := os.Rename(tempPath, binaryPath); err != nil {
-				_ = os.Remove(tempPath)
-				return fmt.Errorf("replacing binary: %w", err)
-			}
-
-			return nil
-		}
+	if _, err := io.Copy(tempBinary, downloaded); err != nil {
+		_ = tempBinary.Close()
+		_ = os.Remove(tempPath)
+		return fmt.Errorf("writing binary: %w", err)
+	}
+	if err := tempBinary.Close(); err != nil {
+		_ = os.Remove(tempPath)
+		return fmt.Errorf("writing binary: %w", err)
 	}
 
-	return fmt.Errorf("kyaraben binary not found in archive")
+	if err := os.Chmod(tempPath, 0755); err != nil {
+		_ = os.Remove(tempPath)
+		return fmt.Errorf("setting permissions: %w", err)
+	}
+
+	if err := os.Rename(tempPath, binaryPath); err != nil {
+		_ = os.Remove(tempPath)
+		return fmt.Errorf("replacing binary: %w", err)
+	}
+
+	return nil
 }
