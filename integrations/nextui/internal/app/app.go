@@ -147,12 +147,17 @@ func (a *App) showMainMenu(ctx context.Context) (string, error) {
 	if !a.cfg.Service.SyncStates {
 		syncStatesSelected = 1
 	}
+	ignoreDeleteROMsSelected := 0
+	if !a.cfg.Service.IgnoreDeleteROMs {
+		ignoreDeleteROMsSelected = 1
+	}
 
 	items := []guestapp.MenuItem{
 		{Label: "Status", Value: "status", Options: statusOpts, Selected: statusIdx, Unselectable: true, BackgroundColor: statusColor},
 		{Label: "Syncing", Value: "toggle_sync", Options: []string{"Enabled", "Disabled"}, Selected: syncSelected, ConfirmText: "Confirm"},
 		{Label: "Autostart", Value: "toggle_autostart", Options: []string{"Enabled", "Disabled"}, Selected: autostartSelected, ConfirmText: "Confirm"},
 		{Label: "Sync states", Value: "toggle_sync_states", Options: []string{"Enabled", "Disabled"}, Selected: syncStatesSelected, ConfirmText: "Confirm"},
+		{Label: "Keep deleted ROMs", Value: "toggle_ignore_delete_roms", Options: []string{"Enabled", "Disabled"}, Selected: ignoreDeleteROMsSelected, ConfirmText: "Confirm"},
 		{Label: "Pair new device", Value: "pair"},
 		{Label: "View paired devices", Value: "devices"},
 		{Label: fmt.Sprintf("Syncthing UI: http://%s:%d", guestapp.GetLocalIP(), guiPort), Value: "url", Unselectable: true},
@@ -180,6 +185,10 @@ func (a *App) showMainMenu(ctx context.Context) (string, error) {
 		}
 	case "toggle_sync_states":
 		if err := a.toggleSyncStates(ctx); err != nil {
+			a.showError(err)
+		}
+	case "toggle_ignore_delete_roms":
+		if err := a.toggleIgnoreDeleteROMs(ctx); err != nil {
 			a.showError(err)
 		}
 	case "pair":
@@ -240,6 +249,23 @@ func (a *App) toggleSyncStates(ctx context.Context) error {
 		}
 		if err := a.syncMgr.ShareFoldersWithAllDevices(ctx); err != nil {
 			return fmt.Errorf("share folders: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (a *App) toggleIgnoreDeleteROMs(ctx context.Context) error {
+	a.cfg.Service.IgnoreDeleteROMs = !a.cfg.Service.IgnoreDeleteROMs
+	if err := a.cfgStore.Save(a.cfg); err != nil {
+		return fmt.Errorf("save config: %w", err)
+	}
+
+	a.mapper = mapping.NewMapper(a.env.SDCardPath, *a.cfg)
+
+	if a.svcMgr.IsRunning(ctx) {
+		if err := a.syncMgr.ConfigureFolders(a.mapper.SyncguestFolderMappings()); err != nil {
+			return fmt.Errorf("configure folders: %w", err)
 		}
 	}
 

@@ -30,10 +30,12 @@ func (m *Mapper) SyncguestFolderMappings() []syncguest.FolderMapping {
 		})
 	}
 
+	ignoreDeleteROMs := m.cfg.Service.IgnoreDeleteROMs
 	for system, path := range m.cfg.ROMs {
 		mappings = append(mappings, syncguest.FolderMapping{
-			ID:   folders.ID(folders.CategoryROMs, system),
-			Path: filepath.Join(m.sdcardPath, path),
+			ID:           folders.ID(folders.CategoryROMs, system),
+			Path:         filepath.Join(m.sdcardPath, path),
+			IgnoreDelete: &ignoreDeleteROMs,
 		})
 	}
 

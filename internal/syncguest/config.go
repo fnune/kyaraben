@@ -11,8 +11,9 @@ import (
 )
 
 type FolderMapping struct {
-	ID   string
-	Path string
+	ID           string
+	Path         string
+	IgnoreDelete *bool
 }
 
 type XMLConfig struct {
@@ -68,10 +69,11 @@ func (m *Manager) ConfigureFoldersViaAPI(ctx context.Context, folders []FolderMa
 	var requests []syncthing.FolderCreateRequest
 	for _, f := range folders {
 		requests = append(requests, syncthing.FolderCreateRequest{
-			ID:    f.ID,
-			Label: f.ID,
-			Path:  f.Path,
-			Type:  "sendreceive",
+			ID:           f.ID,
+			Label:        f.ID,
+			Path:         f.Path,
+			Type:         "sendreceive",
+			IgnoreDelete: f.IgnoreDelete,
 		})
 	}
 	return m.client.AddFolders(ctx, requests)

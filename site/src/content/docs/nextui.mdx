@@ -37,6 +37,7 @@ Example configuration:
 ```toml
 [service]
 autostart = true
+ignore_delete_roms = false
 
 [saves]
 nes = "Saves/FC"
@@ -70,6 +71,7 @@ Launch Kyaraben from the Tools menu on your device. The main screen shows:
 - Syncing: toggle synchronization on/off
 - Autostart: whether to start syncing automatically when the device boots
 - Sync states: whether to synchronize save states (disabled by default)
+- Keep deleted ROMs: whether to keep this device's ROMs when they are deleted elsewhere (disabled by default)
 - Pair new device: generate or enter a pairing code
 - View paired devices: see connected devices
 
@@ -87,10 +89,16 @@ Or generate the code on the device and enter it on your desktop.
 
 Save states are disabled by default because they are often not compatible between different emulator versions or platforms. RetroArch on your desktop may use different cores than NextUI. Enable this only if you know your setups use compatible cores.
 
+### Ignore ROM deletions
+
+With `ignore_delete_roms = true`, deleting a ROM on another device no longer removes it from this one, the same protection Kyaraben devices get. It is off by default here because handheld cards fill up quickly and following deletions is usually how you reclaim that space.
+
+Turn it on when the handheld is the device you want to stay complete. The setting is per device, so it protects this device only, and a rename on another device arrives as a delete plus a create, which can leave the old file behind as a duplicate.
+
 ## What syncs
 
 See [collection reference](/collection/#what-syncs) for the full list. Differences for NextUI devices:
 
 - Save states are disabled by default since desktop and handheld cores may not be compatible
 - EmulationStation DE metadata and media do not sync since NextUI uses its own format
-- [ROM deletion protection](/collection/#protecting-roms-from-deletion) does not apply to this integration. It always follows ROM deletions, so deleting a ROM on another device removes it here too. Keep the device you treat as your library complete by leaving its protection on (the default).
+- [ROM deletion protection](/collection/#protecting-roms-from-deletion) is off by default here, the opposite of Kyaraben devices. A handheld is usually short on space, so it follows ROM deletions to free the card. Set `ignore_delete_roms = true` under `[service]` to keep this device's ROMs instead, and keep the device you treat as your library protected either way.

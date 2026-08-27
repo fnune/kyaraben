@@ -10,8 +10,9 @@ import (
 )
 
 type ServiceConfig struct {
-	Autostart  bool `toml:"autostart"`
-	SyncStates bool `toml:"sync_states"`
+	Autostart        bool `toml:"autostart"`
+	SyncStates       bool `toml:"sync_states"`
+	IgnoreDeleteROMs bool `toml:"ignore_delete_roms"`
 }
 
 type SyncConfig struct {

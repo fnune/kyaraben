@@ -120,3 +120,51 @@ func TestSyncguestFolderMappingsStatesDisabled(t *testing.T) {
 		}
 	}
 }
+
+func TestSyncguestFolderMappingsIgnoreDeleteROMs(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		enabled bool
+	}{
+		{name: "enabled", enabled: true},
+		{name: "disabled", enabled: false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := config.Config{
+				Service: config.ServiceConfig{
+					IgnoreDeleteROMs: tc.enabled,
+				},
+				PathMappings: config.PathMappings{
+					Saves: map[string]string{
+						"gb": "Saves/GB",
+					},
+					ROMs: map[string]string{
+						"gb": "Roms/Game Boy (GB)",
+					},
+					BIOS: map[string]string{
+						"gba": "Bios/GBA",
+					},
+				},
+			}
+
+			m := NewMapper("/mnt/SDCARD", cfg)
+			mappings := m.SyncguestFolderMappings()
+
+			for _, mapping := range mappings {
+				switch mapping.ID {
+				case "kyaraben-roms-gb":
+					if mapping.IgnoreDelete == nil {
+						t.Fatal("ROM folder should carry an explicit IgnoreDelete")
+					}
+					if *mapping.IgnoreDelete != tc.enabled {
+						t.Errorf("IgnoreDelete = %v, want %v", *mapping.IgnoreDelete, tc.enabled)
+					}
+				default:
+					if mapping.IgnoreDelete != nil {
+						t.Errorf("%s should leave IgnoreDelete unmanaged, got %v", mapping.ID, *mapping.IgnoreDelete)
+					}
+				}
+			}
+		})
+	}
+}
