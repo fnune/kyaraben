@@ -1,3 +1,23 @@
+## [0.1.5] - 2026-08-27
+
+### Features
+
+- *(sync)* Add per-device ROM deletion protection
+- *(sync)* Surface per-device ROM deletion protection and add CLI
+- *(savestate)* Split resume into autosave and autoload
+- *(nextui)* Add ROM deletion protection to the integration
+- *(versions)* Bump emulators and syncthing to latest versions
+
+### Bug fixes
+
+- *(justfile)* Insert blank line between releases in CHANGELOG
+- *(shaders)* Disable the CRT shadow mask
+- *(sync)* Apply versioning to saves and states folders
+- *(sync)* Make UI stop resilient and surface failures
+- *(ui)* Rename ROM deletion setting and shorten its help
+- *(ui)* Show sync toggles in their real off state
+- *(nextui)* Add versioning and the metadata folder to the device
+
 ## [0.1.4] - 2026-05-21
 
 This release contains a round of emulator upgrades and a Syncthing minor-version bump,
@@ -57,6 +77,7 @@ prompt on every launch.
 
 - *(ui)* Fix update download getting stuck on redirects
 - *(updater)* Fix self-update relaunch and text file busy error
+
 ## [0.1.1] - 2026-03-09
 
 ### Features
