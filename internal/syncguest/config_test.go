@@ -6,6 +6,7 @@ import (
 
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/sync"
+	"github.com/fnune/kyaraben/internal/syncthing"
 )
 
 func TestConfigureFoldersViaAPIPassesIgnoreDelete(t *testing.T) {
@@ -15,7 +16,7 @@ func TestConfigureFoldersViaAPIPassesIgnoreDelete(t *testing.T) {
 
 	err := m.ConfigureFoldersViaAPI(context.Background(), []FolderMapping{
 		{ID: "kyaraben-roms-gb", Path: "/mnt/SDCARD/Roms/GB", IgnoreDelete: &enabled},
-		{ID: "kyaraben-saves-gb", Path: "/mnt/SDCARD/Saves/GB"},
+		{ID: "kyaraben-saves-gb", Path: "/mnt/SDCARD/Saves/GB", Versioning: syncthing.StaggeredVersioning()},
 	})
 	if err != nil {
 		t.Fatalf("configuring folders: %v", err)
@@ -38,6 +39,12 @@ func TestConfigureFoldersViaAPIPassesIgnoreDelete(t *testing.T) {
 		case "kyaraben-saves-gb":
 			if req.IgnoreDelete != nil {
 				t.Errorf("saves folder should stay unmanaged, got %v", *req.IgnoreDelete)
+			}
+			if req.Versioning == nil {
+				t.Fatal("saves folder lost its Versioning on the way to the client")
+			}
+			if req.Versioning.Type != "staggered" {
+				t.Errorf("versioning type = %q, want staggered", req.Versioning.Type)
 			}
 		default:
 			t.Errorf("unexpected folder %s", req.ID)

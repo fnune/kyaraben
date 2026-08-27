@@ -11,6 +11,8 @@ import (
 	"github.com/fnune/kyaraben/integrations/nextui/internal/mapping"
 	"github.com/fnune/kyaraben/internal/guestapp"
 	"github.com/fnune/kyaraben/internal/syncguest"
+	"github.com/fnune/kyaraben/internal/syncmeta"
+	"github.com/fnune/kyaraben/internal/version"
 )
 
 type Env struct {
@@ -125,9 +127,28 @@ func (a *App) configureFoldersWithRetry(ctx context.Context) error {
 			time.Sleep(time.Second)
 			continue
 		}
+		a.publishSyncMetadata(ctx)
 		return nil
 	}
 	return lastErr
+}
+
+// Peers cannot read this device's Syncthing config, so its ROM deletion setting
+// is published as a marker file in the shared metadata folder instead.
+func (a *App) publishSyncMetadata(ctx context.Context) {
+	status, err := a.syncMgr.GetStatus(ctx)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "publishSyncMetadata: status unavailable: %v\n", err)
+		return
+	}
+	if status.DeviceID == "" {
+		return
+	}
+
+	store := syncmeta.NewDefaultStore(a.env.SDCardPath)
+	if err := store.Publish(status.DeviceID, version.Get(), a.cfg.Service.IgnoreDeleteROMs, time.Now()); err != nil {
+		fmt.Fprintf(os.Stderr, "publishSyncMetadata: %v\n", err)
+	}
 }
 
 func (a *App) showMainMenu(ctx context.Context) (string, error) {
@@ -267,6 +288,7 @@ func (a *App) toggleIgnoreDeleteROMs(ctx context.Context) error {
 		if err := a.syncMgr.ConfigureFolders(a.mapper.SyncguestFolderMappings()); err != nil {
 			return fmt.Errorf("configure folders: %w", err)
 		}
+		a.publishSyncMetadata(ctx)
 	}
 
 	return nil

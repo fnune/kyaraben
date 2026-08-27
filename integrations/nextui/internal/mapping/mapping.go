@@ -6,6 +6,8 @@ import (
 	"github.com/fnune/kyaraben/integrations/nextui/internal/config"
 	"github.com/fnune/kyaraben/internal/folders"
 	"github.com/fnune/kyaraben/internal/syncguest"
+	"github.com/fnune/kyaraben/internal/syncmeta"
+	"github.com/fnune/kyaraben/internal/syncthing"
 )
 
 type Mapper struct {
@@ -20,13 +22,24 @@ func NewMapper(sdcardPath string, cfg config.Config) *Mapper {
 	}
 }
 
+func versioningFor(category folders.Category) *syncthing.FolderVersioning {
+	if !category.Versioning() {
+		return nil
+	}
+	return syncthing.StaggeredVersioning()
+}
+
 func (m *Mapper) SyncguestFolderMappings() []syncguest.FolderMapping {
-	var mappings []syncguest.FolderMapping
+	mappings := []syncguest.FolderMapping{{
+		ID:   folders.MetaFolderID,
+		Path: filepath.Join(m.sdcardPath, syncmeta.FolderDirName),
+	}}
 
 	for system, path := range m.cfg.Saves {
 		mappings = append(mappings, syncguest.FolderMapping{
-			ID:   folders.ID(folders.CategorySaves, system),
-			Path: filepath.Join(m.sdcardPath, path),
+			ID:         folders.ID(folders.CategorySaves, system),
+			Path:       filepath.Join(m.sdcardPath, path),
+			Versioning: versioningFor(folders.CategorySaves),
 		})
 	}
 
@@ -56,8 +69,9 @@ func (m *Mapper) SyncguestFolderMappings() []syncguest.FolderMapping {
 	if m.cfg.Service.SyncStates {
 		for emulator, path := range m.cfg.States {
 			mappings = append(mappings, syncguest.FolderMapping{
-				ID:   folders.ID(folders.CategoryStates, emulator),
-				Path: filepath.Join(m.sdcardPath, path),
+				ID:         folders.ID(folders.CategoryStates, emulator),
+				Path:       filepath.Join(m.sdcardPath, path),
+				Versioning: versioningFor(folders.CategoryStates),
 			})
 		}
 	}

@@ -101,4 +101,5 @@ See [collection reference](/collection/#what-syncs) for the full list. Differenc
 
 - Save states are disabled by default since desktop and handheld cores may not be compatible
 - EmulationStation DE metadata and media do not sync since NextUI uses its own format
+- Saves and states keep 30 days of [file versions](/collection/#file-versioning) on the card, the same as Kyaraben devices, so a deletion can be undone
 - [ROM deletion protection](/collection/#protecting-roms-from-deletion) is off by default here, the opposite of Kyaraben devices. A handheld is usually short on space, so it follows ROM deletions to free the card. Set `ignore_delete_roms = true` under `[service]` to keep this device's ROMs instead, and keep the device you treat as your library protected either way.

@@ -14,6 +14,7 @@ type FolderMapping struct {
 	ID           string
 	Path         string
 	IgnoreDelete *bool
+	Versioning   *syncthing.FolderVersioning
 }
 
 type XMLConfig struct {
@@ -74,6 +75,7 @@ func (m *Manager) ConfigureFoldersViaAPI(ctx context.Context, folders []FolderMa
 			Path:         f.Path,
 			Type:         "sendreceive",
 			IgnoreDelete: f.IgnoreDelete,
+			Versioning:   f.Versioning,
 		})
 	}
 	return m.client.AddFolders(ctx, requests)

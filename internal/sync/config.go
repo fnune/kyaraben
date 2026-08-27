@@ -177,10 +177,7 @@ func (g *ConfigGenerator) FolderCreateRequests() []syncthing.FolderCreateRequest
 			Type:  string(FolderTypeSendReceive),
 		}
 		if spec.Versioning {
-			req.Versioning = &syncthing.FolderVersioning{
-				Type:   "staggered",
-				Params: map[string]string{"maxAge": "2592000"},
-			}
+			req.Versioning = syncthing.StaggeredVersioning()
 		}
 		if spec.Category == folders.CategoryROMs {
 			ignoreDelete := g.syncConfig.Syncthing.IgnoreDeleteROMsEnabled()

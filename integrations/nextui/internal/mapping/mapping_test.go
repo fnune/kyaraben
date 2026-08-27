@@ -24,11 +24,12 @@ func TestSyncguestFolderMappings(t *testing.T) {
 	m := NewMapper("/mnt/SDCARD", cfg)
 	mappings := m.SyncguestFolderMappings()
 
-	if len(mappings) != 3 {
-		t.Errorf("expected 3 mappings, got %d", len(mappings))
+	if len(mappings) != 4 {
+		t.Errorf("expected 4 mappings, got %d", len(mappings))
 	}
 
 	found := map[string]bool{
+		"kyaraben-meta":                  false,
 		"kyaraben-saves-gb":              false,
 		"kyaraben-roms-gb":               false,
 		"kyaraben-screenshots-retroarch": false,
@@ -37,6 +38,10 @@ func TestSyncguestFolderMappings(t *testing.T) {
 	for _, mapping := range mappings {
 		found[mapping.ID] = true
 		switch mapping.ID {
+		case "kyaraben-meta":
+			if mapping.Path != "/mnt/SDCARD/.kyaraben" {
+				t.Errorf("meta path = %q, want /mnt/SDCARD/.kyaraben", mapping.Path)
+			}
 		case "kyaraben-saves-gb":
 			if mapping.Path != "/mnt/SDCARD/Saves/GB" {
 				t.Errorf("saves path = %q, want /mnt/SDCARD/Saves/GB", mapping.Path)
@@ -73,8 +78,8 @@ func TestSyncguestFolderMappingsWithStates(t *testing.T) {
 	m := NewMapper("/mnt/SDCARD", cfg)
 	mappings := m.SyncguestFolderMappings()
 
-	if len(mappings) != 2 {
-		t.Errorf("expected 2 mappings, got %d", len(mappings))
+	if len(mappings) != 3 {
+		t.Errorf("expected 3 mappings, got %d", len(mappings))
 	}
 
 	foundStates := false
@@ -110,8 +115,8 @@ func TestSyncguestFolderMappingsStatesDisabled(t *testing.T) {
 	m := NewMapper("/mnt/SDCARD", cfg)
 	mappings := m.SyncguestFolderMappings()
 
-	if len(mappings) != 1 {
-		t.Errorf("expected 1 mapping (states disabled), got %d", len(mappings))
+	if len(mappings) != 2 {
+		t.Errorf("expected 2 mappings (states disabled), got %d", len(mappings))
 	}
 
 	for _, mapping := range mappings {
@@ -166,5 +171,57 @@ func TestSyncguestFolderMappingsIgnoreDeleteROMs(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestSyncguestFolderMappingsVersioning(t *testing.T) {
+	cfg := config.Config{
+		Service: config.ServiceConfig{
+			SyncStates: true,
+		},
+		PathMappings: config.PathMappings{
+			Saves: map[string]string{
+				"gb": "Saves/GB",
+			},
+			ROMs: map[string]string{
+				"gb": "Roms/Game Boy (GB)",
+			},
+			BIOS: map[string]string{
+				"gba": "Bios/GBA",
+			},
+			Screenshots: map[string]string{
+				"retroarch": "Screenshots",
+			},
+			States: map[string]string{
+				"retroarch:snes9x": ".userdata/shared/SFC-snes9x",
+			},
+		},
+	}
+
+	m := NewMapper("/mnt/SDCARD", cfg)
+
+	versioned := map[string]bool{
+		"kyaraben-saves-gb":                true,
+		"kyaraben-states-retroarch:snes9x": true,
+	}
+
+	for _, mapping := range m.SyncguestFolderMappings() {
+		want := versioned[mapping.ID]
+		if !want {
+			if mapping.Versioning != nil {
+				t.Errorf("%s should not be versioned", mapping.ID)
+			}
+			continue
+		}
+		if mapping.Versioning == nil {
+			t.Errorf("%s should be versioned so deletions stay recoverable", mapping.ID)
+			continue
+		}
+		if mapping.Versioning.Type != "staggered" {
+			t.Errorf("%s versioning type = %q, want staggered", mapping.ID, mapping.Versioning.Type)
+		}
+		if got := mapping.Versioning.Params["maxAge"]; got != "2592000" {
+			t.Errorf("%s maxAge = %q, want 2592000", mapping.ID, got)
+		}
 	}
 }

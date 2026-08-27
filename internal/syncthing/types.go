@@ -96,6 +96,15 @@ type FolderVersioning struct {
 	Params map[string]string
 }
 
+const versioningMaxAgeSeconds = "2592000"
+
+func StaggeredVersioning() *FolderVersioning {
+	return &FolderVersioning{
+		Type:   "staggered",
+		Params: map[string]string{"maxAge": versioningMaxAgeSeconds},
+	}
+}
+
 type FolderCreateRequest struct {
 	ID           string            `json:"id"`
 	Label        string            `json:"label"`
