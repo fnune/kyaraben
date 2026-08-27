@@ -1,3 +1,9 @@
+## [0.1.6] - 2026-08-27
+
+### Bug fixes
+
+- *(update)* Make `kyaraben update` find and install the release binary
+
 ## [0.1.5] - 2026-08-27
 
 ### Features
