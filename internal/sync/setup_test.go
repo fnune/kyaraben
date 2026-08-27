@@ -3,8 +3,11 @@ package sync
 import (
 	"context"
 	"encoding/xml"
+	"errors"
 	"net"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/packages"
@@ -439,5 +442,36 @@ func TestInstall_UpdatesOptionsOnMerge(t *testing.T) {
 	}
 	if !found {
 		t.Errorf("expected listen address %s in options, got %v", expectedListen, merged.Options.ListenAddresses)
+	}
+}
+
+func TestWaitForSyncthingWaitsForUsableAPI(t *testing.T) {
+	client := NewFakeClient(model.DefaultSyncConfig())
+	client.SetDeviceID("DEVICE-ID")
+	client.SetDeviceIDFailures(2)
+
+	setup := &Setup{}
+	if err := setup.waitForSyncthing(context.Background(), client); err != nil {
+		t.Fatalf("waiting for syncthing: %v", err)
+	}
+
+	if _, err := client.GetDeviceID(context.Background()); err != nil {
+		t.Errorf("returned before the API was usable: %v", err)
+	}
+}
+
+func TestWaitForSyncthingReportsWhyItGaveUp(t *testing.T) {
+	client := NewFakeClient(model.DefaultSyncConfig())
+	client.SetDeviceIDFailures(1000)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1200*time.Millisecond)
+	defer cancel()
+
+	err := (&Setup{}).waitForSyncthing(ctx, client)
+	if err == nil {
+		t.Fatal("expected an error when the API never becomes usable")
+	}
+	if !strings.Contains(err.Error(), "invalid character") && !errors.Is(err, context.DeadlineExceeded) {
+		t.Errorf("error should carry the underlying cause, got: %v", err)
 	}
 }

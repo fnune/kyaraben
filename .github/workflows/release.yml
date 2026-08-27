@@ -15,7 +15,14 @@ jobs:
           echo "Waiting for CI workflow to complete..."
           for i in {1..60}; do
             STATUS=$(gh api repos/${{ github.repository }}/commits/${{ github.sha }}/check-runs \
-              --jq '.check_runs | map(select(.name != "wait-for-ci")) | if length == 0 then "pending" elif all(.conclusion == "success") then "success" elif any(.conclusion == "failure") then "failure" else "pending" end')
+              --jq '.check_runs
+                    | map(select(.name != "wait-for-ci"))
+                    | group_by(.name)
+                    | map(max_by(.id))
+                    | if length == 0 then "pending"
+                      elif any(.status != "completed") then "pending"
+                      elif any(.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out") then "failure"
+                      else "success" end')
             echo "CI status: $STATUS"
             if [ "$STATUS" = "success" ]; then
               echo "CI passed!"

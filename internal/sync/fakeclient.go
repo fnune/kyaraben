@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"errors"
 	gosync "sync"
 
 	"github.com/twpayne/go-vfs/v5"
@@ -28,6 +29,7 @@ type FakeClient struct {
 	addFoldersCalls        [][]syncthing.FolderCreateRequest
 	connectivityIssues     map[string]string
 	localConnectivityIssue string
+	deviceIDFailures       int
 }
 
 func NewFakeClient(config model.SyncConfig) *FakeClient {
@@ -111,9 +113,19 @@ func (c *FakeClient) GetSystemStatus(_ context.Context) (*syncthing.SystemStatus
 	return &syncthing.SystemStatus{MyID: c.deviceID, Uptime: 60}, nil
 }
 
+func (c *FakeClient) SetDeviceIDFailures(n int) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.deviceIDFailures = n
+}
+
 func (c *FakeClient) GetDeviceID(_ context.Context) (string, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if c.deviceIDFailures > 0 {
+		c.deviceIDFailures--
+		return "", errors.New("decoding response: invalid character '*' looking for beginning of value")
+	}
 	return c.deviceID, nil
 }
 

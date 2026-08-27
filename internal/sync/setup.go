@@ -327,16 +327,27 @@ var CheckPorts PortChecker = checkPortsAvailable
 
 func (s *Setup) waitForSyncthing(ctx context.Context, client SyncClient) error {
 	deadline := time.Now().Add(30 * time.Second)
+	var lastErr error
 	for time.Now().Before(deadline) {
+		// Ping starts answering before the REST API can serve config, so folder
+		// setup would race it and decode a non-JSON body. Require a real API
+		// call to parse before handing off.
 		if client.IsRunning(ctx) {
-			log.Info("Syncthing is ready")
-			return nil
+			if _, err := client.GetDeviceID(ctx); err == nil {
+				log.Info("Syncthing is ready")
+				return nil
+			} else {
+				lastErr = err
+			}
 		}
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-time.After(500 * time.Millisecond):
 		}
+	}
+	if lastErr != nil {
+		return fmt.Errorf("timed out waiting for syncthing to become ready: %w", lastErr)
 	}
 	return fmt.Errorf("timed out waiting for syncthing to start")
 }
