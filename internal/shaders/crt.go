@@ -11,7 +11,8 @@ type CRTLottesParams struct {
 }
 
 var CRTLottes = CRTLottesParams{
-	ShadowMask:  1.0,
+	// Values above zero select a mask style; zero makes the shader skip masking altogether.
+	ShadowMask:  0.0,
 	WarpX:       0.01,
 	WarpY:       0.01,
 	BloomAmount: 0.05,
