@@ -112,11 +112,15 @@ func (s *SystemdUnit) Start() error {
 	return nil
 }
 
-func (s *SystemdUnit) Stop() error {
+func (s *SystemdUnit) StopAndWait(ports []int, timeout time.Duration) error {
 	unitName := s.UnitName()
-	if err := s.service.Stop(unitName); err != nil {
-		return fmt.Errorf("stop service: %w", err)
+
+	stopServiceWithWait(s.service, unitName, timeout, ports)
+
+	if state := s.service.State(unitName); state == "active" || state == "activating" {
+		return fmt.Errorf("syncthing is still %s after stop attempt", state)
 	}
+
 	log.Info("Stopped %s", unitName)
 	return nil
 }
@@ -206,6 +210,19 @@ func StopAndRemoveService(servicePath string) error {
 func StopAndRemoveServiceWithWait(service ServiceManager, servicePath string, timeout time.Duration, ports []int) error {
 	name := filepath.Base(servicePath)
 
+	stopServiceWithWait(service, name, timeout, ports)
+
+	_ = service.Disable(name)
+
+	if err := os.Remove(servicePath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("removing %s: %w", servicePath, err)
+	}
+
+	_ = service.DaemonReload()
+	return nil
+}
+
+func stopServiceWithWait(service ServiceManager, name string, timeout time.Duration, ports []int) {
 	if err := service.Stop(name); err != nil {
 		log.Debug("Error stopping %s: %v", name, err)
 	}
@@ -232,15 +249,6 @@ func StopAndRemoveServiceWithWait(service ServiceManager, servicePath string, ti
 			log.Debug("Port %d not released: %v", port, err)
 		}
 	}
-
-	_ = service.Disable(name)
-
-	if err := os.Remove(servicePath); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("removing %s: %w", servicePath, err)
-	}
-
-	_ = service.DaemonReload()
-	return nil
 }
 
 func waitForServiceStop(service ServiceManager, name string, timeout time.Duration) error {

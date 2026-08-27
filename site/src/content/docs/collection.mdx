@@ -63,7 +63,9 @@ When synchronization is enabled, these folders synchronize between devices:
 | `frontends/esde/gamelists/` | Bidirectional |
 | `frontends/esde/media/`     | Bidirectional |
 
-All folders use standard bidirectional sync. Deletions propagate to all devices.
+All folders use standard bidirectional sync. Deletions propagate to all devices,
+except ROM folders when ROM deletion protection is on (the default). See
+[protecting ROMs from deletion](#protecting-roms-from-deletion).
 
 ### EmulationStation DE gamelists and media
 
@@ -80,6 +82,39 @@ to exclude them from synchronization.
 
 Syncthing keeps old versions of save and state files for 30 days. ROM and BIOS
 folders do not use versioning.
+
+## Protecting ROMs from deletion
+
+ROM folders do not use versioning because ROMs are large and replaceable, so
+instead Kyaraben can keep a device's ROMs even when they are deleted elsewhere.
+This is controlled per device by the "ignore ROM deletions" sync setting, which
+is on by default. On desktop and Steam Deck you toggle it from the
+sync settings. On a headless server use `kyaraben sync ignore-rom-deletions on`
+or `off`, and `kyaraben sync status` shows the current state for this device and
+its peers.
+
+This lets you free space on one device by deleting ROMs locally without removing
+them from your other devices. Each device decides for itself: a device keeps its
+ROMs only if the setting is on for that device. The setting is local and is not
+shared between devices, so for a device to stay complete it must have the setting
+on. Deleting a ROM on a device whose peers have it off still removes the ROM from
+those peers.
+
+If you run a [headless server](/guides/headless-server/) as a sync hub, a good
+setup is to leave this setting on for the server and turn it off on your other
+devices. The server then keeps every ROM as a complete archive, while deletions
+still propagate normally between your other devices so you can free space across
+them. To put back a ROM you deleted, copy it from the server.
+
+Trade-offs while the setting is on:
+
+- ROM deletions from other devices are not applied, so removing a ROM everywhere
+  becomes a manual action on each device.
+- A rename or move is a delete plus a create, so renaming a ROM on another device
+  can leave the old-named copy behind as a duplicate.
+
+This setting applies to Kyaraben devices only. Handheld guest integrations such
+as [NextUI](/nextui/) always follow ROM deletions and cannot be set to keep them.
 
 ## Resolving conflicts
 

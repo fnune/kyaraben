@@ -1,3 +1,17 @@
+## [Unreleased]
+
+### Features
+
+- *(sync)* Add per-device ROM deletion protection, on by default, so deleting ROMs on one device can free space without removing them from others
+- *(sync)* Show each paired device's ROM deletion protection state in the devices card and `kyaraben sync status`
+- *(cli)* Add `kyaraben sync ignore-rom-deletions on|off` to toggle ROM deletion protection from the command line
+
+### Bug fixes
+
+- *(sync)* Apply staggered versioning to saves and states folders so deletions are recoverable, and reconcile it onto existing folders
+- *(sync)* Make stopping sync from the UI resilient so a flaky systemctl stop no longer fails with an opaque error and forces the destructive reset
+- *(ui)* Show the autostart toggle in its real state, instead of snapping back to on after being turned off
+
 ## [0.1.4] - 2026-05-21
 
 This release contains a round of emulator upgrades and a Syncthing minor-version bump,

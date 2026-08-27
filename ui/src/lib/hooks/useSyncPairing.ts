@@ -31,6 +31,7 @@ export interface UseSyncPairingResult {
   handleStartPairing: () => Promise<void>
   handleStopPairing: () => Promise<void>
   handleToggleGlobalDiscovery: (enabled: boolean) => Promise<void>
+  handleToggleIgnoreDeleteRoms: (enabled: boolean) => Promise<void>
   handleToggleRunning: (running: boolean) => Promise<void>
   handleToggleAutostart: (enabled: boolean) => Promise<void>
   handleAcceptDevice: (accept: boolean) => Promise<void>
@@ -295,7 +296,21 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
       if (result.ok) {
         await refreshSyncStatus()
       } else {
-        showToast('Failed to update global discovery setting.', 'error')
+        const errorMsg = result.error?.message ?? 'Failed to update global discovery setting'
+        showToast(errorMsg, 'error')
+      }
+    },
+    [refreshSyncStatus, showToast],
+  )
+
+  const handleToggleIgnoreDeleteRoms = useCallback(
+    async (enabled: boolean) => {
+      const result = await daemon.setSyncSettings({ ignoreDeleteRomsEnabled: enabled })
+      if (result.ok) {
+        await refreshSyncStatus()
+      } else {
+        const errorMsg = result.error?.message ?? 'Failed to update ROM deletion setting'
+        showToast(errorMsg, 'error')
       }
     },
     [refreshSyncStatus, showToast],
@@ -372,6 +387,7 @@ export function useSyncPairing(showToast: ShowToast, isViewingSync: boolean): Us
     handleStartPairing,
     handleStopPairing,
     handleToggleGlobalDiscovery,
+    handleToggleIgnoreDeleteRoms,
     handleToggleRunning,
     handleToggleAutostart,
     handleAcceptDevice,

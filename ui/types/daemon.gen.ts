@@ -262,7 +262,8 @@ export interface SyncStatusResponse {
   progress?: SyncProgress;
   serviceError?: string;
   globalDiscoveryEnabled?: boolean;
-  autostartEnabled?: boolean;
+  ignoreDeleteRomsEnabled: boolean;
+  autostartEnabled: boolean;
   localConnectivityIssue?: string;
 }
 export interface SyncProgress {
@@ -281,6 +282,8 @@ export interface SyncDevice {
   connectionType?: string;
   isLocal?: boolean;
   connectivityIssue?: string;
+  ignoreDeleteRomsEnabled?: boolean;
+  statusPublishedAt?: string;
 }
 export interface SyncFolder {
   id: string;
@@ -365,6 +368,7 @@ export interface SyncResetResponse {
 }
 export interface SyncSetSettingsRequest {
   globalDiscoveryEnabled?: boolean;
+  ignoreDeleteRomsEnabled?: boolean;
   running?: boolean;
   autostartEnabled?: boolean;
 }

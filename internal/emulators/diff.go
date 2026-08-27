@@ -340,44 +340,44 @@ func (d *ConfigDiff) FormatWithColor(useColor bool) string {
 	var sb strings.Builder
 
 	if d.IsNewFile {
-		sb.WriteString(fmt.Sprintf("  %s %s\n", green("CREATE"), bold(d.Path)))
+		fmt.Fprintf(&sb, "  %s %s\n", green("CREATE"), bold(d.Path))
 	} else if !d.HasChanges() {
-		sb.WriteString(fmt.Sprintf("  %s %s\n", dim("UNCHANGED"), d.Path))
+		fmt.Fprintf(&sb, "  %s %s\n", dim("UNCHANGED"), d.Path)
 		if d.UserModified && len(d.UserChanges) > 0 {
-			sb.WriteString(fmt.Sprintf("    %s\n", yellow("Your changes will be overwritten:")))
+			fmt.Fprintf(&sb, "    %s\n", yellow("Your changes will be overwritten:"))
 			for _, uc := range d.UserChanges {
 				currentDisplay := uc.CurrentValue
 				if currentDisplay == "" {
 					currentDisplay = "(deleted)"
 				}
-				sb.WriteString(fmt.Sprintf("      %s: yours: %s -> kyaraben: %s\n", uc.Key, yellow(currentDisplay), dim(uc.WrittenValue)))
+				fmt.Fprintf(&sb, "      %s: yours: %s -> kyaraben: %s\n", uc.Key, yellow(currentDisplay), dim(uc.WrittenValue))
 			}
 		}
 		return sb.String()
 	} else {
-		sb.WriteString(fmt.Sprintf("  %s %s\n", yellow("MODIFY"), bold(d.Path)))
+		fmt.Fprintf(&sb, "  %s %s\n", yellow("MODIFY"), bold(d.Path))
 	}
 
 	if d.UserModified && len(d.UserChanges) > 0 {
-		sb.WriteString(fmt.Sprintf("    %s\n", yellow("Your changes will be overwritten:")))
+		fmt.Fprintf(&sb, "    %s\n", yellow("Your changes will be overwritten:"))
 		for _, uc := range d.UserChanges {
 			currentDisplay := uc.CurrentValue
 			if currentDisplay == "" {
 				currentDisplay = "(deleted)"
 			}
-			sb.WriteString(fmt.Sprintf("      %s: yours: %s -> kyaraben: %s\n", uc.Key, yellow(currentDisplay), dim(uc.WrittenValue)))
+			fmt.Fprintf(&sb, "      %s: yours: %s -> kyaraben: %s\n", uc.Key, yellow(currentDisplay), dim(uc.WrittenValue))
 		}
 		sb.WriteString("\n")
 	}
 
 	if d.KyarabenChanged && len(d.VersionUpgrades) > 0 {
-		sb.WriteString(fmt.Sprintf("    %s\n", green("Kyaraben has new defaults:")))
+		fmt.Fprintf(&sb, "    %s\n", green("Kyaraben has new defaults:"))
 		for _, vu := range d.VersionUpgrades {
 			newDisplay := vu.NewValue
 			if newDisplay == "" {
 				newDisplay = "(removed)"
 			}
-			sb.WriteString(fmt.Sprintf("      %s: was: %s -> becomes: %s\n", vu.Key, dim(vu.OldValue), green(newDisplay)))
+			fmt.Fprintf(&sb, "      %s: was: %s -> becomes: %s\n", vu.Key, dim(vu.OldValue), green(newDisplay))
 		}
 		sb.WriteString("\n")
 	}
@@ -396,7 +396,7 @@ func (d *ConfigDiff) FormatWithColor(useColor bool) string {
 		changes := sectionChanges[section]
 
 		if section != "" {
-			sb.WriteString(fmt.Sprintf("    %s\n", cyan(fmt.Sprintf("[%s]", section))))
+			fmt.Fprintf(&sb, "    %s\n", cyan(fmt.Sprintf("[%s]", section)))
 		}
 
 		for _, change := range changes {
@@ -407,18 +407,18 @@ func (d *ConfigDiff) FormatWithColor(useColor bool) string {
 
 			switch change.Type {
 			case ChangeAdd:
-				sb.WriteString(fmt.Sprintf("%s%s %s = %s\n",
-					indent, green("+"), change.Key(), green(change.NewValue)))
+				fmt.Fprintf(&sb, "%s%s %s = %s\n",
+					indent, green("+"), change.Key(), green(change.NewValue))
 			case ChangeModify:
-				sb.WriteString(fmt.Sprintf("%s%s %s\n",
-					indent, yellow("~"), change.Key()))
-				sb.WriteString(fmt.Sprintf("%s    %s %s\n",
-					indent, red("-"), dim(change.OldValue)))
-				sb.WriteString(fmt.Sprintf("%s    %s %s\n",
-					indent, green("+"), change.NewValue))
+				fmt.Fprintf(&sb, "%s%s %s\n",
+					indent, yellow("~"), change.Key())
+				fmt.Fprintf(&sb, "%s    %s %s\n",
+					indent, red("-"), dim(change.OldValue))
+				fmt.Fprintf(&sb, "%s    %s %s\n",
+					indent, green("+"), change.NewValue)
 			case ChangeRemove:
-				sb.WriteString(fmt.Sprintf("%s%s %s = %s\n",
-					indent, red("-"), change.Key(), red(change.OldValue)))
+				fmt.Fprintf(&sb, "%s%s %s = %s\n",
+					indent, red("-"), change.Key(), red(change.OldValue))
 			}
 		}
 	}

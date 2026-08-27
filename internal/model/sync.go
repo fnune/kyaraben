@@ -14,7 +14,12 @@ type SyncthingConfig struct {
 	GUIPort                int    `toml:"gui_port"`
 	RelayEnabled           bool   `toml:"relay_enabled"`
 	GlobalDiscoveryEnabled bool   `toml:"global_discovery_enabled"`
+	IgnoreDeleteROMs       *bool  `toml:"ignore_delete_roms,omitempty"`
 	BaseURL                string `toml:"base_url,omitempty"`
+}
+
+func (c SyncthingConfig) IgnoreDeleteROMsEnabled() bool {
+	return c.IgnoreDeleteROMs == nil || *c.IgnoreDeleteROMs
 }
 
 type SyncIgnoreConfig struct {

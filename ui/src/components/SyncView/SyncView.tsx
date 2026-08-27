@@ -25,6 +25,7 @@ export interface SyncViewProps {
   readonly onClearConnectionError: () => void
   readonly onRefresh: () => void
   readonly onToggleGlobalDiscovery: (enabled: boolean) => Promise<void>
+  readonly onToggleIgnoreDeleteRoms: (enabled: boolean) => Promise<void>
   readonly onToggleRunning: (running: boolean) => Promise<void>
   readonly onToggleAutostart: (enabled: boolean) => Promise<void>
   readonly isEnabling: boolean
@@ -169,6 +170,7 @@ export function SyncView({
   onClearConnectionError,
   onRefresh,
   onToggleGlobalDiscovery,
+  onToggleIgnoreDeleteRoms,
   onToggleRunning,
   onToggleAutostart,
   isEnabling,
@@ -225,9 +227,11 @@ export function SyncView({
       <SyncSettingsSection
         guiURL={status.guiURL}
         globalDiscoveryEnabled={status.globalDiscoveryEnabled ?? false}
+        ignoreDeleteRomsEnabled={status.ignoreDeleteRomsEnabled}
         running={status.running ?? false}
-        autostartEnabled={status.autostartEnabled ?? true}
+        autostartEnabled={status.autostartEnabled}
         onToggleGlobalDiscovery={onToggleGlobalDiscovery}
+        onToggleIgnoreDeleteRoms={onToggleIgnoreDeleteRoms}
         onToggleRunning={onToggleRunning}
         onToggleAutostart={onToggleAutostart}
         onReset={onResetSync}

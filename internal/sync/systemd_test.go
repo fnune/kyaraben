@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -186,6 +187,39 @@ func TestSystemdUnit_IsEnabled(t *testing.T) {
 
 	if !unit.IsEnabled() {
 		t.Error("IsEnabled() should return true when service is enabled")
+	}
+}
+
+func TestSystemdUnit_StopAndWait_Stops(t *testing.T) {
+	fs := testutil.NewTestFS(t, map[string]any{})
+
+	p := paths.NewPaths("")
+	service := NewFakeServiceManager()
+	service.SetState("kyaraben-syncthing.service", "active")
+
+	unit := NewSystemdUnit(fs, p, service)
+
+	if err := unit.StopAndWait(nil, 100*time.Millisecond); err != nil {
+		t.Fatalf("StopAndWait() error = %v", err)
+	}
+
+	if service.State("kyaraben-syncthing.service") != "inactive" {
+		t.Error("StopAndWait() should leave the service inactive")
+	}
+}
+
+func TestSystemdUnit_StopAndWait_ErrorsWhenStillActive(t *testing.T) {
+	fs := testutil.NewTestFS(t, map[string]any{})
+
+	p := paths.NewPaths("")
+	service := NewFakeServiceManager()
+	service.SetState("kyaraben-syncthing.service", "active")
+	service.Errors["stop:kyaraben-syncthing.service"] = errors.New("connection to bus failed")
+
+	unit := NewSystemdUnit(fs, p, service)
+
+	if err := unit.StopAndWait(nil, 50*time.Millisecond); err == nil {
+		t.Fatal("StopAndWait() should error when the service stays active")
 	}
 }
 

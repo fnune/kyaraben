@@ -91,11 +91,18 @@ type FolderConfig struct {
 	Devices []string `json:"-"`
 }
 
+type FolderVersioning struct {
+	Type   string
+	Params map[string]string
+}
+
 type FolderCreateRequest struct {
-	ID    string `json:"id"`
-	Label string `json:"label"`
-	Path  string `json:"path"`
-	Type  string `json:"type"` // sendreceive, sendonly, receiveonly, receiveencrypted
+	ID           string            `json:"id"`
+	Label        string            `json:"label"`
+	Path         string            `json:"path"`
+	Type         string            `json:"type"` // sendreceive, sendonly, receiveonly, receiveencrypted
+	Versioning   *FolderVersioning `json:"-"`
+	IgnoreDelete *bool             `json:"-"`
 }
 
 type FolderSharingDrift struct {

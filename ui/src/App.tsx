@@ -97,6 +97,7 @@ function AppContent() {
     handleStartPairing,
     handleStopPairing,
     handleToggleGlobalDiscovery,
+    handleToggleIgnoreDeleteRoms,
     handleToggleRunning,
     handleToggleAutostart,
     handleAcceptDevice,
@@ -333,6 +334,7 @@ function AppContent() {
             onClearConnectionError={clearConnectionError}
             onRefresh={refreshSyncStatus}
             onToggleGlobalDiscovery={handleToggleGlobalDiscovery}
+            onToggleIgnoreDeleteRoms={handleToggleIgnoreDeleteRoms}
             onToggleRunning={handleToggleRunning}
             onToggleAutostart={handleToggleAutostart}
             enableError={enableError}

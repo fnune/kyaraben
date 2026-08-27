@@ -4,7 +4,7 @@ import syncthingLogo from '@/assets/syncthing.svg'
 import { Button } from '@/lib/Button'
 import { useOpenUrl } from '@/lib/hooks/useOpenUrl'
 import { Input } from '@/lib/Input'
-import { CopyIcon, TrashIcon } from '@/lib/icons'
+import { ArrowSyncIcon, CopyIcon, QuestionMarkIcon, ShieldCheckIcon, TrashIcon } from '@/lib/icons'
 import { Modal } from '@/lib/Modal'
 import { Spinner } from '@/lib/Spinner'
 
@@ -19,6 +19,32 @@ function StatusBadge({ label, ok }: { label: string; ok: boolean }) {
       <span className={`w-1.5 h-1.5 rounded-full ${ok ? 'bg-status-ok' : 'bg-outline'}`} />
       {capitalizedLabel}
     </span>
+  )
+}
+
+function RomProtectionRow({ enabled }: { readonly enabled: boolean | undefined }) {
+  const base = 'flex items-center gap-1.5 mt-1 ml-4 text-xs text-on-surface-muted'
+  if (enabled === undefined) {
+    return (
+      <div className={base}>
+        <QuestionMarkIcon className="w-3.5 h-3.5 shrink-0" />
+        <span>ROM deletion setting not yet reported</span>
+      </div>
+    )
+  }
+  if (enabled) {
+    return (
+      <div className={base}>
+        <ShieldCheckIcon className="w-3.5 h-3.5 shrink-0 text-status-ok" />
+        <span>Ignores ROM deletions on other devices</span>
+      </div>
+    )
+  }
+  return (
+    <div className={base}>
+      <ArrowSyncIcon className="w-3.5 h-3.5 shrink-0" />
+      <span>Follows ROM deletions from other devices</span>
+    </div>
   )
 }
 
@@ -65,6 +91,7 @@ function DeviceRow({
           <TrashIcon className="w-4 h-4" />
         </button>
       </div>
+      <RomProtectionRow enabled={device.ignoreDeleteRomsEnabled} />
       {hasConnectivityIssue && (
         <div className="flex items-start gap-2 mt-1 p-2 bg-status-warning/10 border border-status-warning/30 rounded text-xs">
           <span className="text-status-warning w-3 text-center shrink-0">!</span>

@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"encoding/json"
 	"path/filepath"
 	"testing"
 	"time"
@@ -757,6 +758,61 @@ func TestHandleSyncStatus_Disabled(t *testing.T) {
 	}
 	if resp.Installed {
 		t.Error("expected installed to be false when no manifest")
+	}
+}
+
+func TestHandleSyncStatus_SerializesDisabledFlagsAsFalse(t *testing.T) {
+	disabled := false
+	syncCfg := model.DefaultSyncConfig()
+	syncCfg.Autostart = disabled
+	syncCfg.Syncthing.IgnoreDeleteROMs = &disabled
+
+	cfg := &model.KyarabenConfig{
+		Global: model.GlobalConfig{
+			Collection: "~/Emulation",
+		},
+		Systems: make(map[model.SystemID][]model.EmulatorID),
+		Sync:    syncCfg,
+	}
+	env := newTestDaemonEnv(t, cfg)
+	defer env.cleanup()
+	d := env.newDaemon()
+
+	events := d.Handle(Command{Type: CommandTypeSyncStatus})
+	if len(events) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(events))
+	}
+
+	resp, ok := events[0].Data.(SyncStatusResponse)
+	if !ok {
+		t.Fatalf("expected SyncStatusResponse, got %T", events[0].Data)
+	}
+	if resp.IgnoreDeleteROMsEnabled {
+		t.Error("expected ROM deletion protection to be off")
+	}
+	if resp.AutostartEnabled {
+		t.Error("expected autostart to be off")
+	}
+
+	encoded, err := json.Marshal(resp)
+	if err != nil {
+		t.Fatalf("marshalling response: %v", err)
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(encoded, &payload); err != nil {
+		t.Fatalf("unmarshalling response: %v", err)
+	}
+
+	for _, key := range []string{"ignoreDeleteRomsEnabled", "autostartEnabled"} {
+		value, present := payload[key]
+		if !present {
+			t.Errorf("%s missing from payload: the UI cannot distinguish it from unset", key)
+			continue
+		}
+		if value != false {
+			t.Errorf("expected %s to be false, got %v", key, value)
+		}
 	}
 }
 

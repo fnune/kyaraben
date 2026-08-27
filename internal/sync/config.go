@@ -41,6 +41,7 @@ type XMLFolder struct {
 	Devices          []XMLFolderDevice `xml:"device"`
 	FSWatcherEnabled bool              `xml:"fsWatcherEnabled"`
 	IgnorePerms      bool              `xml:"ignorePerms"`
+	IgnoreDelete     bool              `xml:"ignoreDelete"`
 	Versioning       XMLVersioning     `xml:"versioning"`
 }
 
@@ -169,18 +170,31 @@ func (g *ConfigGenerator) FolderCreateRequests() []syncthing.FolderCreateRequest
 
 	requests := make([]syncthing.FolderCreateRequest, len(specs))
 	for i, spec := range specs {
-		requests[i] = syncthing.FolderCreateRequest{
+		req := syncthing.FolderCreateRequest{
 			ID:    spec.ID,
 			Label: spec.ID,
 			Path:  g.folderPath(spec),
 			Type:  string(FolderTypeSendReceive),
 		}
+		if spec.Versioning {
+			req.Versioning = &syncthing.FolderVersioning{
+				Type:   "staggered",
+				Params: map[string]string{"maxAge": "2592000"},
+			}
+		}
+		if spec.Category == folders.CategoryROMs {
+			ignoreDelete := g.syncConfig.Syncthing.IgnoreDeleteROMsEnabled()
+			req.IgnoreDelete = &ignoreDelete
+		}
+		requests[i] = req
 	}
 	return requests
 }
 
 func (g *ConfigGenerator) folderPath(spec folders.Spec) string {
 	switch spec.Category {
+	case folders.CategoryMeta:
+		return filepath.Join(g.collection, ".kyaraben")
 	case folders.CategoryROMs:
 		return filepath.Join(g.collection, "roms", string(spec.System))
 	case folders.CategoryBIOS:

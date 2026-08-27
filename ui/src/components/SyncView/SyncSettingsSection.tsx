@@ -6,9 +6,11 @@ import { ToggleSwitch } from '@/lib/ToggleSwitch'
 export interface SyncSettingsSectionProps {
   readonly guiURL: string | undefined
   readonly globalDiscoveryEnabled: boolean
+  readonly ignoreDeleteRomsEnabled: boolean
   readonly running: boolean
   readonly autostartEnabled: boolean
   readonly onToggleGlobalDiscovery: (enabled: boolean) => Promise<void>
+  readonly onToggleIgnoreDeleteRoms: (enabled: boolean) => Promise<void>
   readonly onToggleRunning: (running: boolean) => Promise<void>
   readonly onToggleAutostart: (enabled: boolean) => Promise<void>
   readonly onReset: () => Promise<void>
@@ -17,9 +19,11 @@ export interface SyncSettingsSectionProps {
 export function SyncSettingsSection({
   guiURL,
   globalDiscoveryEnabled,
+  ignoreDeleteRomsEnabled,
   running,
   autostartEnabled,
   onToggleGlobalDiscovery,
+  onToggleIgnoreDeleteRoms,
   onToggleRunning,
   onToggleAutostart,
   onReset,
@@ -28,6 +32,7 @@ export function SyncSettingsSection({
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
   const [isTogglingDiscovery, setIsTogglingDiscovery] = useState(false)
+  const [isTogglingIgnoreDelete, setIsTogglingIgnoreDelete] = useState(false)
   const [isTogglingRunning, setIsTogglingRunning] = useState(false)
   const [isTogglingAutostart, setIsTogglingAutostart] = useState(false)
   const openUrl = useOpenUrl()
@@ -52,6 +57,18 @@ export function SyncSettingsSection({
       }
     },
     [onToggleGlobalDiscovery],
+  )
+
+  const handleToggleIgnoreDeleteRoms = useCallback(
+    async (enabled: boolean) => {
+      setIsTogglingIgnoreDelete(true)
+      try {
+        await onToggleIgnoreDeleteRoms(enabled)
+      } finally {
+        setIsTogglingIgnoreDelete(false)
+      }
+    },
+    [onToggleIgnoreDeleteRoms],
   )
 
   const handleToggleRunning = useCallback(
@@ -131,6 +148,24 @@ export function SyncSettingsSection({
               enabled={autostartEnabled}
               onChange={handleToggleAutostart}
               disabled={isTogglingAutostart}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <label
+                htmlFor="ignore-delete-roms-toggle"
+                className="text-sm font-medium text-on-surface"
+              >
+                Ignore ROM deletions
+              </label>
+              <p className="text-xs text-on-surface-muted mt-0.5">
+                Keep this device's ROMs even when they're deleted on another device.
+              </p>
+            </div>
+            <ToggleSwitch
+              enabled={ignoreDeleteRomsEnabled}
+              onChange={handleToggleIgnoreDeleteRoms}
+              disabled={isTogglingIgnoreDelete}
             />
           </div>
           <div className="flex items-center justify-between">
