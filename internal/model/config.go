@@ -94,18 +94,29 @@ type SavestateConfig struct {
 }
 
 // Resume setting values for savestate.resume (global setting).
-// "recommended" enables resume only on emulators that recommend it.
+// Both "autosave" and "autoload" only apply to emulators that recommend resume.
 const (
+	ResumeAutosave = "autosave"
+	ResumeAutoload = "autoload"
+	ResumeOff      = "off"
+	ResumeManual   = "manual"
+
+	// ResumeRecommended predates the autosave/autoload split, where it meant both.
+	// It now resolves to autosave alone: reloading a savestate on every launch makes
+	// it too easy to lose progress by overwriting the state you meant to keep.
 	ResumeRecommended = "recommended"
-	ResumeOff         = "off"
-	ResumeManual      = "manual"
 )
 
 // Per-emulator resume override values.
 const (
-	EmulatorResumeOn     = "on"
-	EmulatorResumeOff    = "off"
-	EmulatorResumeManual = "manual"
+	EmulatorResumeAutosave = "autosave"
+	EmulatorResumeAutoload = "autoload"
+	EmulatorResumeOff      = "off"
+	EmulatorResumeManual   = "manual"
+
+	// EmulatorResumeOn is the pre-split spelling of "autosave and autoload", kept
+	// readable for existing configs. It resolves to autosave, like ResumeRecommended.
+	EmulatorResumeOn = "on"
 )
 
 // ConfigInput for SavestateConfig.Resume
@@ -300,24 +311,31 @@ func (c *KyarabenConfig) GraphicsTarget() string {
 
 // EmulatorResume returns the resolved resume setting for an emulator.
 // Resolution order:
-//  1. Per-emulator override (on/off/manual)
-//  2. If global = "recommended" and emulator recommends resume -> "on"
-//  3. If global = "off" -> "off"
+//  1. Per-emulator override (autosave/autoload/off/manual)
+//  2. If global = "off" -> "off"
+//  3. If global = "autosave", "autoload" or unset -> that mode, but only for
+//     emulators that recommend resume
 //  4. Otherwise -> "manual"
 func (c *KyarabenConfig) EmulatorResume(id EmulatorID, resumeRecommended bool) string {
 	if c.Emulators != nil {
 		if conf, ok := c.Emulators[id]; ok && conf.Resume != nil {
+			if *conf.Resume == EmulatorResumeOn {
+				return EmulatorResumeAutosave
+			}
 			return *conf.Resume
 		}
 	}
 	switch c.Savestate.Resume {
-	case ResumeRecommended:
-		if resumeRecommended {
-			return EmulatorResumeOn
-		}
-		return EmulatorResumeManual
 	case ResumeOff:
 		return EmulatorResumeOff
+	case "", ResumeAutosave, ResumeAutoload, ResumeRecommended:
+		if !resumeRecommended {
+			return EmulatorResumeManual
+		}
+		if c.Savestate.Resume == ResumeAutoload {
+			return EmulatorResumeAutoload
+		}
+		return EmulatorResumeAutosave
 	default:
 		return EmulatorResumeManual
 	}

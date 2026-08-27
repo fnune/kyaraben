@@ -89,10 +89,15 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	}
 
 	switch ctx.Resume {
-	case model.EmulatorResumeOn:
+	case model.EmulatorResumeAutoload:
 		entries = append(entries,
 			model.Entry(model.Resume, model.Path("config", "Dreamcast.AutoSaveState"), "yes"),
 			model.Entry(model.Resume, model.Path("config", "Dreamcast.AutoLoadState"), "yes"),
+		)
+	case model.EmulatorResumeAutosave:
+		entries = append(entries,
+			model.Entry(model.Resume, model.Path("config", "Dreamcast.AutoSaveState"), "yes"),
+			model.Entry(model.Resume, model.Path("config", "Dreamcast.AutoLoadState"), "no"),
 		)
 	case model.EmulatorResumeOff:
 		entries = append(entries,

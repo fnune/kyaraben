@@ -6,7 +6,7 @@ import { RadioCard } from '@/lib/RadioCard'
 import { PreferenceSection } from './PreferenceSection'
 
 type PresetOption = 'clean' | 'retro' | 'manual'
-type ResumeOption = 'recommended' | 'off' | 'manual'
+type ResumeOption = 'autosave' | 'autoload' | 'off' | 'manual'
 type ConfirmOption = 'east' | 'south'
 
 const ALL_HOTKEYS = [
@@ -164,7 +164,7 @@ export function PreferencesView() {
 
   const selectedPreset: PresetOption = preset === 'clean' || preset === 'retro' ? preset : 'manual'
   const selectedResume: ResumeOption =
-    resume === 'recommended' || resume === 'off' ? resume : 'manual'
+    resume === 'autoload' || resume === 'off' || resume === 'manual' ? resume : 'autosave'
   const selectedConfirm: ConfirmOption = nintendoConfirm === 'south' ? 'south' : 'east'
 
   return (
@@ -220,8 +220,9 @@ export function PreferencesView() {
           <>
             <p className="text-sm text-on-surface mb-4">
               Auto-resume uses savestates to pick up exactly where you left off. When you quit a
-              game, Kyaraben creates a savestate. When you launch it again, that savestate loads
-              automatically and you continue from the exact moment you stopped.
+              game, Kyaraben creates a savestate. Loading it again on launch is a separate step:
+              convenient, but it also means every launch drops you back into the last session
+              instead of the game's own start screen.
             </p>
             <p className="text-sm text-on-surface-muted mb-4">
               This is separate from in-game saves. Savestates capture the entire emulator state,
@@ -248,10 +249,18 @@ export function PreferencesView() {
         controls={
           <>
             <RadioCard
-              title="Recommended"
-              description="Autosave when you quit. Autoload when you launch. Never lose progress."
-              selected={selectedResume === 'recommended'}
-              onSelect={() => setSavestateResume('recommended')}
+              title="Autosave"
+              description="Savestate when you quit. Load it yourself from the emulator."
+              selected={selectedResume === 'autosave'}
+              onSelect={() => setSavestateResume('autosave')}
+              className="w-full p-3"
+              wrap
+            />
+            <RadioCard
+              title="Autosave and autoload"
+              description="Savestate when you quit, loaded back on launch. Never lose progress."
+              selected={selectedResume === 'autoload'}
+              onSelect={() => setSavestateResume('autoload')}
               className="w-full p-3"
               wrap
             />
@@ -277,7 +286,7 @@ export function PreferencesView() {
           resumeEmulatorNames.length > 0 ? (
             <>
               <p className="text-xs text-on-surface-muted mb-2">
-                Supported emulators when set to recommended:
+                Emulators Kyaraben configures for resume:
               </p>
               <p className="text-xs text-on-surface-muted">{resumeEmulatorNames.join(', ')}.</p>
             </>

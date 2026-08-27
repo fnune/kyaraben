@@ -5,20 +5,22 @@ export interface SavestateSettingsProps {
   readonly onResumeChange: (value: string) => void
 }
 
-type ResumeOption = 'recommended' | 'off' | 'manual'
+type ResumeOption = 'autosave' | 'autoload' | 'off' | 'manual'
 
 const RESUME_OPTIONS: { value: ResumeOption; title: string; description: string }[] = [
+  { value: 'autosave', title: 'Autosave', description: 'Savestate on exit, load it yourself.' },
   {
-    value: 'recommended',
-    title: 'Resume recommended',
-    description: 'Autosave on exit, autoload on launch.',
+    value: 'autoload',
+    title: 'Autosave and autoload',
+    description: 'Savestate on exit, loaded on launch.',
   },
   { value: 'off', title: 'Resume off', description: 'Disable auto-resume.' },
   { value: 'manual', title: 'Resume manual', description: 'Configure yourself.' },
 ]
 
 export function SavestateSettings({ resume, onResumeChange }: SavestateSettingsProps) {
-  const selectedValue = resume === 'recommended' || resume === 'off' ? resume : 'manual'
+  const selectedValue =
+    resume === 'autoload' || resume === 'off' || resume === 'manual' ? resume : 'autosave'
 
   return (
     <div>
@@ -26,7 +28,7 @@ export function SavestateSettings({ resume, onResumeChange }: SavestateSettingsP
         Savestates
       </span>
 
-      <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+      <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
         {RESUME_OPTIONS.map((option) => (
           <RadioCard
             key={option.value}

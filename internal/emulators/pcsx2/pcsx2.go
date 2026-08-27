@@ -102,8 +102,10 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		)
 	}
 
+	// PCSX2 has no autoload setting of its own, so autoload mode gets the autosave
+	// half and nothing more.
 	switch ctx.Resume {
-	case model.EmulatorResumeOn:
+	case model.EmulatorResumeAutosave, model.EmulatorResumeAutoload:
 		entries = append(entries, model.Entry(model.Resume, model.Path("EmuCore", "SaveStateOnShutdown"), "true"))
 	case model.EmulatorResumeOff:
 		entries = append(entries, model.Entry(model.Resume, model.Path("EmuCore", "SaveStateOnShutdown"), "false"))

@@ -92,10 +92,12 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		)
 	}
 
+	// PPSSPP exposes no autosave-on-exit setting, so autosave mode leaves it with
+	// nothing to do beyond turning autoload off.
 	switch ctx.Resume {
-	case model.EmulatorResumeOn:
+	case model.EmulatorResumeAutoload:
 		entries = append(entries, model.Entry(model.Resume, model.Path("General", "AutoLoadSaveState"), "1"))
-	case model.EmulatorResumeOff:
+	case model.EmulatorResumeAutosave, model.EmulatorResumeOff:
 		entries = append(entries, model.Entry(model.Resume, model.Path("General", "AutoLoadSaveState"), "0"))
 	}
 

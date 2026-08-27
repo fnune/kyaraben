@@ -132,4 +132,45 @@ describe('EmulatorSettingsModal', () => {
     render(<EmulatorSettingsModal {...defaultProps} preset={null} graphics={{ preset: 'clean' }} />)
     expect(screen.getByRole('button', { name: 'Default (clean)' })).toBeInTheDocument()
   })
+
+  describe('resume', () => {
+    const resumeProps = { ...defaultProps, supportsResume: true }
+
+    it('offers autosave and autoload separately', () => {
+      render(<EmulatorSettingsModal {...resumeProps} />)
+      expect(screen.getByRole('button', { name: 'Autosave' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Autoload' })).toBeInTheDocument()
+    })
+
+    it('reports that autosave alone does not load on launch', () => {
+      render(<EmulatorSettingsModal {...resumeProps} resume="autosave" />)
+      expect(
+        screen.getByText('Kyaraben will savestate on exit, but not load it back on launch.'),
+      ).toBeInTheDocument()
+    })
+
+    it('reports that autoload loads on launch', () => {
+      render(<EmulatorSettingsModal {...resumeProps} resume="autoload" />)
+      expect(
+        screen.getByText('Kyaraben will savestate on exit and load it back on launch.'),
+      ).toBeInTheDocument()
+    })
+
+    it('selects autosave for a legacy "on" override', () => {
+      render(<EmulatorSettingsModal {...resumeProps} resume="on" />)
+      expect(screen.getByRole('button', { name: 'Autosave' })).toHaveClass('bg-accent')
+    })
+
+    it('falls back to autosave when no global default is set', () => {
+      render(<EmulatorSettingsModal {...resumeProps} savestate={{ resume: '' }} />)
+      expect(screen.getByRole('button', { name: 'Default (autosave)' })).toBeInTheDocument()
+    })
+
+    it('passes the picked option up', async () => {
+      const onResumeChange = vi.fn()
+      render(<EmulatorSettingsModal {...resumeProps} onResumeChange={onResumeChange} />)
+      await userEvent.click(screen.getByRole('button', { name: 'Autoload' }))
+      expect(onResumeChange).toHaveBeenCalledWith('autoload')
+    })
+  })
 })

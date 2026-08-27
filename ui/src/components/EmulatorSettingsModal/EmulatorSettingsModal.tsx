@@ -18,7 +18,7 @@ export interface EmulatorSettingsModalProps {
 }
 
 type PresetOption = 'clean' | 'retro' | 'manual' | 'default'
-type ResumeOption = 'on' | 'off' | 'manual' | 'default'
+type ResumeOption = 'autosave' | 'autoload' | 'off' | 'manual' | 'default'
 
 function presetToOption(value: string | null): PresetOption {
   if (value === 'clean' || value === 'retro' || value === 'manual') return value
@@ -30,7 +30,10 @@ function presetOptionToValue(option: PresetOption): string | null {
 }
 
 function resumeToOption(value: string | null): ResumeOption {
-  if (value === 'on' || value === 'off' || value === 'manual') return value
+  if (value === 'autosave' || value === 'autoload' || value === 'off' || value === 'manual')
+    return value
+  // Overrides written before the autosave/autoload split use "on" for both.
+  if (value === 'on') return 'autosave'
   return 'default'
 }
 
@@ -45,9 +48,22 @@ function resolvePreset(override: string | null, global: string): string {
 }
 
 function resolveResume(override: string | null, global: string): string {
-  if (override !== null) return override
-  if (global) return global
-  return 'manual'
+  const value = override ?? global
+  if (value === 'autoload' || value === 'off' || value === 'manual') return value
+  return 'autosave'
+}
+
+function formatResumeLabel(resume: string): string {
+  switch (resume) {
+    case 'autoload':
+      return 'Autoload'
+    case 'off':
+      return 'Off'
+    case 'manual':
+      return 'Manual'
+    default:
+      return 'Autosave'
+  }
 }
 
 function formatPresetLabel(preset: string): string {
@@ -100,19 +116,21 @@ export function EmulatorSettingsModal({
   }
 
   const getResumeDefaultLabel = () => {
-    if (!savestate.resume || savestate.resume === 'manual') return 'Default'
-    if (savestate.resume === 'recommended') return 'Default (recommended)'
-    return `Default (${savestate.resume})`
+    if (savestate.resume === 'manual') return 'Default'
+    return `Default (${formatResumeLabel(savestate.resume).toLowerCase()})`
   }
 
   const getResumeDescription = () => {
-    if (resolvedResume === 'manual') {
-      return 'Kyaraben will not modify resume settings.'
+    switch (resolvedResume) {
+      case 'manual':
+        return 'Kyaraben will not modify resume settings.'
+      case 'off':
+        return 'Kyaraben will disable auto-resume.'
+      case 'autoload':
+        return 'Kyaraben will savestate on exit and load it back on launch.'
+      default:
+        return 'Kyaraben will savestate on exit, but not load it back on launch.'
     }
-    if (resolvedResume === 'on' || resolvedResume === 'recommended') {
-      return 'Kyaraben will enable auto-resume (save on exit, load on launch).'
-    }
-    return 'Kyaraben will disable auto-resume.'
   }
 
   return (
@@ -151,9 +169,14 @@ export function EmulatorSettingsModal({
             <p className="text-sm text-on-surface-muted mb-2">Resume</p>
             <div className="flex rounded-element overflow-hidden border border-outline">
               <SegmentedButton
-                label="On"
-                selected={currentResumeOption === 'on'}
-                onClick={() => handleResumeOptionChange('on')}
+                label="Autosave"
+                selected={currentResumeOption === 'autosave'}
+                onClick={() => handleResumeOptionChange('autosave')}
+              />
+              <SegmentedButton
+                label="Autoload"
+                selected={currentResumeOption === 'autoload'}
+                onClick={() => handleResumeOptionChange('autoload')}
               />
               <SegmentedButton
                 label="Off"

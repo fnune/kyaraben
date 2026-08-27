@@ -278,14 +278,56 @@ func TestEmulatorResume(t *testing.T) {
 			want:              EmulatorResumeOff,
 		},
 		{
-			name: "recommended global with recommended emulator enables resume",
+			name: "legacy recommended global drops autoload",
 			cfg: &KyarabenConfig{
 				Savestate: SavestateConfig{Resume: ResumeRecommended},
 				Emulators: map[EmulatorID]EmulatorConf{},
 			},
 			emulator:          EmulatorIDDuckStation,
 			resumeRecommended: true,
-			want:              EmulatorResumeOn,
+			want:              EmulatorResumeAutosave,
+		},
+		{
+			name: "autosave global with recommended emulator",
+			cfg: &KyarabenConfig{
+				Savestate: SavestateConfig{Resume: ResumeAutosave},
+				Emulators: map[EmulatorID]EmulatorConf{},
+			},
+			emulator:          EmulatorIDDuckStation,
+			resumeRecommended: true,
+			want:              EmulatorResumeAutosave,
+		},
+		{
+			name: "autoload global with recommended emulator",
+			cfg: &KyarabenConfig{
+				Savestate: SavestateConfig{Resume: ResumeAutoload},
+				Emulators: map[EmulatorID]EmulatorConf{},
+			},
+			emulator:          EmulatorIDDuckStation,
+			resumeRecommended: true,
+			want:              EmulatorResumeAutoload,
+		},
+		{
+			name: "autoload global with non-recommended emulator returns manual",
+			cfg: &KyarabenConfig{
+				Savestate: SavestateConfig{Resume: ResumeAutoload},
+				Emulators: map[EmulatorID]EmulatorConf{},
+			},
+			emulator:          EmulatorIDCemu,
+			resumeRecommended: false,
+			want:              EmulatorResumeManual,
+		},
+		{
+			name: "emulator override to autoload for non-recommended emulator",
+			cfg: &KyarabenConfig{
+				Savestate: SavestateConfig{Resume: ResumeManual},
+				Emulators: map[EmulatorID]EmulatorConf{
+					EmulatorIDCemu: {Resume: ptrString(EmulatorResumeAutoload)},
+				},
+			},
+			emulator:          EmulatorIDCemu,
+			resumeRecommended: false,
+			want:              EmulatorResumeAutoload,
 		},
 		{
 			name: "recommended global with non-recommended emulator returns manual",
@@ -308,13 +350,23 @@ func TestEmulatorResume(t *testing.T) {
 			want:              EmulatorResumeOff,
 		},
 		{
-			name: "manual fallback when nothing configured",
+			name: "autosave fallback when nothing configured",
 			cfg: &KyarabenConfig{
 				Savestate: SavestateConfig{},
 				Emulators: map[EmulatorID]EmulatorConf{},
 			},
 			emulator:          EmulatorIDDuckStation,
 			resumeRecommended: true,
+			want:              EmulatorResumeAutosave,
+		},
+		{
+			name: "manual fallback when nothing configured and emulator does not recommend",
+			cfg: &KyarabenConfig{
+				Savestate: SavestateConfig{},
+				Emulators: map[EmulatorID]EmulatorConf{},
+			},
+			emulator:          EmulatorIDCemu,
+			resumeRecommended: false,
 			want:              EmulatorResumeManual,
 		},
 		{
@@ -325,10 +377,10 @@ func TestEmulatorResume(t *testing.T) {
 			},
 			emulator:          EmulatorIDDuckStation,
 			resumeRecommended: true,
-			want:              EmulatorResumeOn,
+			want:              EmulatorResumeAutosave,
 		},
 		{
-			name: "emulator override to on for non-recommended emulator",
+			name: "legacy emulator override to on drops autoload",
 			cfg: &KyarabenConfig{
 				Savestate: SavestateConfig{Resume: ResumeManual},
 				Emulators: map[EmulatorID]EmulatorConf{
@@ -337,7 +389,7 @@ func TestEmulatorResume(t *testing.T) {
 			},
 			emulator:          EmulatorIDCemu,
 			resumeRecommended: false,
-			want:              EmulatorResumeOn,
+			want:              EmulatorResumeAutosave,
 		},
 	}
 

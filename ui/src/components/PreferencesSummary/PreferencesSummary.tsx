@@ -12,9 +12,10 @@ function formatPreset(value: string): string {
 }
 
 function formatResume(value: string): string {
-  if (value === 'recommended') return 'Recommended'
+  if (value === 'autoload') return 'Autosave and autoload'
   if (value === 'off') return 'Off'
-  return 'Manual'
+  if (value === 'manual') return 'Manual'
+  return 'Autosave'
 }
 
 function formatConfirm(value: string): string {

@@ -123,7 +123,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	}
 
 	switch ctx.Resume {
-	case model.EmulatorResumeOn:
+	case model.EmulatorResumeAutosave, model.EmulatorResumeAutoload:
 		entries = append(entries, model.Entry(model.Resume, model.Path("Main", "SaveStateOnExit"), "true"))
 	case model.EmulatorResumeOff:
 		entries = append(entries, model.Entry(model.Resume, model.Path("Main", "SaveStateOnExit"), "false"))
@@ -153,7 +153,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	}
 
 	var launchArgs []string
-	if ctx.Resume == model.EmulatorResumeOn {
+	if ctx.Resume == model.EmulatorResumeAutoload {
 		launchArgs = append(launchArgs, "-resume")
 	}
 

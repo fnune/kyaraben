@@ -101,16 +101,24 @@ func SharedConfig(store model.StoreReader, cc *model.ControllerConfig, pc *Prese
 		entries = append(entries, presetEntries(pc)...)
 	}
 
-	if pc != nil && pc.Resume == model.EmulatorResumeOn {
-		entries = append(entries,
-			model.Entry(model.Resume, model.Path("savestate_auto_save"), "true"),
-			model.Entry(model.Resume, model.Path("savestate_auto_load"), "true"),
-		)
-	} else if pc != nil && pc.Resume == model.EmulatorResumeOff {
-		entries = append(entries,
-			model.Entry(model.Resume, model.Path("savestate_auto_save"), "false"),
-			model.Entry(model.Resume, model.Path("savestate_auto_load"), "false"),
-		)
+	if pc != nil {
+		switch pc.Resume {
+		case model.EmulatorResumeAutoload:
+			entries = append(entries,
+				model.Entry(model.Resume, model.Path("savestate_auto_save"), "true"),
+				model.Entry(model.Resume, model.Path("savestate_auto_load"), "true"),
+			)
+		case model.EmulatorResumeAutosave:
+			entries = append(entries,
+				model.Entry(model.Resume, model.Path("savestate_auto_save"), "true"),
+				model.Entry(model.Resume, model.Path("savestate_auto_load"), "false"),
+			)
+		case model.EmulatorResumeOff:
+			entries = append(entries,
+				model.Entry(model.Resume, model.Path("savestate_auto_save"), "false"),
+				model.Entry(model.Resume, model.Path("savestate_auto_load"), "false"),
+			)
+		}
 	}
 
 	return model.ConfigPatch{Target: MainConfigTarget, Entries: entries}

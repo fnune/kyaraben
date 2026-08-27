@@ -56,13 +56,18 @@ work well. Per-emulator overrides in `[emulators.<id>]` take precedence.
 
 ### `[savestate]`
 
-| Key      | Type   | Default  | Description                                                    |
-| -------- | ------ | -------- | -------------------------------------------------------------- |
-| `resume` | string | `manual` | Global resume setting: `recommended`, `on`, `off`, or `manual` |
+| Key      | Type   | Default    | Description                                                       |
+| -------- | ------ | ---------- | ----------------------------------------------------------------- |
+| `resume` | string | `autosave` | Global resume setting: `autosave`, `autoload`, `off`, or `manual` |
 
-When set to `recommended`, auto-resume (autosave on exit, autoload on launch)
-is enabled only for emulators that support it reliably. Per-emulator overrides
-in `[emulators.<id>]` take precedence.
+`autosave` writes a savestate when you quit. `autoload` does that and loads the
+savestate back on the next launch. Both apply only to emulators that support
+resume reliably, and per-emulator overrides in `[emulators.<id>]` take
+precedence.
+
+The older value `recommended` is still accepted and now means `autosave`:
+autoload is opt-in, because reloading the last savestate on every launch makes
+it easy to overwrite progress you meant to keep.
 
 ### `[systems]`
 
@@ -83,14 +88,15 @@ Optional per-emulator configuration:
 [emulators.duckstation]
 version = "v0.1-10655"
 shaders = "on"
-resume = "on"
+resume = "autosave"
 ```
 
 - `version`: Pin to a specific version. When omitted, uses the latest supported.
 - `shaders`: Enable managed CRT/LCD shaders. Values: `on`, `off`, `manual`.
   When omitted, follows the global `[graphics]` setting.
-- `resume`: Enable auto-resume (autosave on exit, autoload on launch). Values:
-  `on`, `off`, `manual`. When omitted, follows the global `[savestate]` setting.
+- `resume`: Auto-resume behaviour. Values: `autosave`, `autoload`, `off`,
+  `manual`. When omitted, follows the global `[savestate]` setting. The older
+  value `on` is still accepted and means `autosave`.
 
 ### `[frontends.<id>]`
 
