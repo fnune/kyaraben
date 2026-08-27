@@ -262,8 +262,8 @@ export interface SyncStatusResponse {
   progress?: SyncProgress;
   serviceError?: string;
   globalDiscoveryEnabled?: boolean;
-  ignoreDeleteRomsEnabled?: boolean;
-  autostartEnabled?: boolean;
+  ignoreDeleteRomsEnabled: boolean;
+  autostartEnabled: boolean;
   localConnectivityIssue?: string;
 }
 export interface SyncProgress {

@@ -303,8 +303,8 @@ type SyncStatusResponse struct {
 	Progress                *SyncProgress `json:"progress,omitempty"`
 	ServiceError            string        `json:"serviceError,omitempty"`
 	GlobalDiscoveryEnabled  bool          `json:"globalDiscoveryEnabled,omitempty"`
-	IgnoreDeleteROMsEnabled bool          `json:"ignoreDeleteRomsEnabled,omitempty"`
-	AutostartEnabled        bool          `json:"autostartEnabled,omitempty"`
+	IgnoreDeleteROMsEnabled bool          `json:"ignoreDeleteRomsEnabled"`
+	AutostartEnabled        bool          `json:"autostartEnabled"`
 	LocalConnectivityIssue  string        `json:"localConnectivityIssue,omitempty"`
 }
 

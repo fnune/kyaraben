@@ -227,9 +227,9 @@ export function SyncView({
       <SyncSettingsSection
         guiURL={status.guiURL}
         globalDiscoveryEnabled={status.globalDiscoveryEnabled ?? false}
-        ignoreDeleteRomsEnabled={status.ignoreDeleteRomsEnabled ?? true}
+        ignoreDeleteRomsEnabled={status.ignoreDeleteRomsEnabled}
         running={status.running ?? false}
-        autostartEnabled={status.autostartEnabled ?? true}
+        autostartEnabled={status.autostartEnabled}
         onToggleGlobalDiscovery={onToggleGlobalDiscovery}
         onToggleIgnoreDeleteRoms={onToggleIgnoreDeleteRoms}
         onToggleRunning={onToggleRunning}
