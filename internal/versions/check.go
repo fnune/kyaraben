@@ -118,12 +118,14 @@ func checkReleasesURL(ctx context.Context, pkg, current, releasesURL string) Ver
 		check.LatestStable = check.LatestPre
 	}
 
-	check.HasUpdate = check.LatestStable != "" && isNewerVersion(check.LatestStable, current)
+	check.HasUpdate = check.LatestStable != "" && IsNewerVersion(check.LatestStable, current)
 
 	return check
 }
 
-func isNewerVersion(latest, current string) bool {
+// Versions that cannot be parsed, such as the "dev" a local build reports, fall
+// through to an inequality check so those builds can still be updated.
+func IsNewerVersion(latest, current string) bool {
 	latestV, errLatest := semver.NewVersion(latest)
 	currentV, errCurrent := semver.NewVersion(current)
 

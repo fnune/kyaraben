@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/fnune/kyaraben/internal/version"
+	"github.com/fnune/kyaraben/internal/versions"
 )
 
 type UpdateCmd struct {
@@ -48,7 +49,7 @@ func (cmd *UpdateCmd) Run(ctx *Context) error {
 	fmt.Printf("Current version: %s\n", currentVersion)
 	fmt.Printf("Latest version:  %s\n", latestVersion)
 
-	if currentVersion == latestVersion {
+	if !versions.IsNewerVersion(latestVersion, currentVersion) {
 		fmt.Println("\nYou're already on the latest version.")
 		return nil
 	}
