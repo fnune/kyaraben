@@ -1,3 +1,10 @@
+## [0.1.7] - 2026-09-17
+
+### Bug fixes
+
+- *(update)* Only offer genuinely newer versions
+- *(fbneo)* Point each system at its own BIOS directory
+
 ## [0.1.6] - 2026-08-27
 
 ### Bug fixes
