@@ -17,6 +17,7 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/retroarch"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbeetlesaturn"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchbsnes"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchfbneo"
 	"github.com/fnune/kyaraben/internal/emulators/rpcs3"
 	"github.com/fnune/kyaraben/internal/emulators/vita3k"
 	"github.com/fnune/kyaraben/internal/model"
@@ -347,6 +348,38 @@ func TestRetroArchCoreOverrideContainsSystemDirectory(t *testing.T) {
 	}
 	if !found {
 		t.Error("expected system_directory entry not found")
+	}
+}
+
+func TestFBNeoContentDirOverridesPointAtEachSystemBiosDir(t *testing.T) {
+	t.Parallel()
+
+	store := &fakeStoreReader{root: "/emulation"}
+	resolver := testutil.FakeResolver{ConfigDir: "/home/user/.config", HomeDir: "/home/user", DataDir: "/home/user/.local/share"}
+	gen := retroarchfbneo.Definition{}.ConfigGenerator()
+
+	result, err := gen.Generate(model.GenerateContext{Store: store, BaseDirResolver: resolver})
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	systemDirs := make(map[string]string)
+	for _, patch := range result.Patches {
+		for _, entry := range patch.Entries {
+			if entry.Key() == "system_directory" {
+				systemDirs[patch.Target.RelPath] = entry.Value
+			}
+		}
+	}
+
+	want := map[string]string{
+		"retroarch/config/FinalBurn Neo/arcade.cfg": "/emulation/bios/arcade",
+		"retroarch/config/FinalBurn Neo/neogeo.cfg": "/emulation/bios/neogeo",
+	}
+	for path, dir := range want {
+		if systemDirs[path] != dir {
+			t.Errorf("system_directory in %s = %q, want %q", path, systemDirs[path], dir)
+		}
 	}
 }
 

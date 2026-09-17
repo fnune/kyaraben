@@ -498,6 +498,26 @@ func ContentDirOptionsTarget(emuID model.EmulatorID, systemID model.SystemID) mo
 	}
 }
 
+// ContentDirBiosPatches sets system_directory per content directory. A core
+// override holds a single system_directory, but multi-system cores (like FBNeo
+// for arcade and Neo Geo) need each system's own BIOS directory.
+func ContentDirBiosPatches(emuID model.EmulatorID, systems []model.SystemID, store model.StoreReader) []model.ConfigPatch {
+	if !IsRetroArchCore(emuID) {
+		return nil
+	}
+
+	patches := make([]model.ConfigPatch, 0, len(systems))
+	for _, systemID := range systems {
+		patches = append(patches, model.ConfigPatch{
+			Target: ContentDirOverrideTarget(emuID, systemID),
+			Entries: []model.ConfigEntry{
+				model.Entry(model.Store, model.Path("system_directory"), store.SystemBiosDir(systemID)),
+			},
+		})
+	}
+	return patches
+}
+
 // ContentDirOptionsPatches creates per-content-directory core options.
 // This allows multi-system cores (like mGBA) to use different options for each system.
 // Color correction settings are applied regardless of preset for accurate colors.

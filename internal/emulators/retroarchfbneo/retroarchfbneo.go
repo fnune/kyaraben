@@ -161,6 +161,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		},
 	})
 	patches = append(patches, retroarch.OverlayPatches(model.EmulatorIDRetroArchFBNeo, systems, pc, ctx.BaseDirResolver)...)
+	patches = append(patches, retroarch.ContentDirBiosPatches(model.EmulatorIDRetroArchFBNeo, Definition{}.Emulator().Systems, ctx.Store)...)
 
 	return model.GenerateResult{
 		Patches:          patches,
