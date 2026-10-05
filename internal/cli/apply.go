@@ -347,11 +347,86 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		fmt.Println()
 	}
 
+	if cfg.Sync.Enabled {
+		syncEmulators := make([]folders.EmulatorInfo, 0)
+		for _, info := range cfg.EffectiveSyncEmulators(registry) {
+			syncEmulators = append(syncEmulators, folders.EmulatorInfo{
+				ID:                 info.ID,
+				UsesStatesDir:      info.UsesStatesDir,
+				UsesScreenshotsDir: info.UsesScreenshotsDir,
+			})
+		}
+		if err := setUpSync(ctx, cfg.Sync, collection.Root(), cfg.EffectiveSyncSystems(registry), syncEmulators, cfg.EffectiveSyncFrontends()); err != nil {
+			return err
+		}
+		fmt.Println()
+	}
+
 	fmt.Println("Done!")
 	fmt.Println()
 	fmt.Printf("Your collection is ready at: %s\n", collection.Root())
 	fmt.Println("Place your ROMs in the appropriate subdirectories.")
 
+	return nil
+}
+
+func setUpSync(ctx *Context, syncCfg model.SyncConfig, collectionRoot string, systems []model.SystemID, emulators []folders.EmulatorInfo, frontends []model.FrontendID) error {
+	fmt.Println("Setting up synchronization...")
+
+	installer, err := ctx.NewInstaller()
+	if err != nil {
+		return fmt.Errorf("creating installer: %w", err)
+	}
+
+	stateDir, err := ctx.GetPaths().StateDir()
+	if err != nil {
+		return fmt.Errorf("getting state directory: %w", err)
+	}
+
+	setup := syncpkg.NewDefaultSetup(installer, stateDir)
+	result, err := setup.Install(
+		context.Background(),
+		syncCfg,
+		collectionRoot,
+		systems,
+		emulators,
+		frontends,
+		func(p packages.InstallProgress) {
+			switch p.Phase {
+			case "downloading":
+				fmt.Printf("  Downloading %s...\n", p.PackageName)
+			case "extracting":
+				fmt.Printf("  Extracting %s...\n", p.PackageName)
+			}
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("setting up sync: %w", err)
+	}
+
+	manifestPath, err := ctx.GetPaths().ManifestPath()
+	if err != nil {
+		return fmt.Errorf("getting manifest path: %w", err)
+	}
+
+	manifest, err := model.LoadManifest(manifestPath)
+	if err != nil {
+		return fmt.Errorf("loading manifest: %w", err)
+	}
+
+	manifest.SyncthingInstall = &model.SyncthingInstall{
+		Version:             installer.ResolveVersion("syncthing"),
+		ConfigSchemaVersion: syncpkg.ConfigSchemaVersion,
+		BinaryPath:          result.SyncthingBinary,
+		ConfigDir:           result.ConfigDir,
+		DataDir:             result.DataDir,
+		SystemdUnitPath:     result.SystemdUnitPath,
+	}
+	if err := manifest.SaveWithBackup(manifestPath); err != nil {
+		return fmt.Errorf("saving manifest: %w", err)
+	}
+
+	fmt.Println("Synchronization ready")
 	return nil
 }
 
@@ -388,18 +463,6 @@ func (cmd *ApplyCmd) runHeadless(ctx *Context, cfg *model.KyarabenConfig, collec
 	fmt.Printf("Created directories for %d systems\n", systemCount)
 
 	if cfg.Sync.Enabled {
-		fmt.Println("Setting up synchronization...")
-
-		installer, err := ctx.NewInstaller()
-		if err != nil {
-			return fmt.Errorf("creating installer: %w", err)
-		}
-
-		stateDir, err := ctx.GetPaths().StateDir()
-		if err != nil {
-			return fmt.Errorf("getting state directory: %w", err)
-		}
-
 		allSystems := make([]model.SystemID, 0)
 		for _, sys := range registry.AllSystems() {
 			allSystems = append(allSystems, sys.ID)
@@ -414,53 +477,11 @@ func (cmd *ApplyCmd) runHeadless(ctx *Context, cfg *model.KyarabenConfig, collec
 			})
 		}
 
-		defaultCfg := model.NewDefaultConfig()
-		allFrontends := defaultCfg.EnabledFrontends()
+		allFrontends := model.NewDefaultConfig().EnabledFrontends()
 
-		setup := syncpkg.NewDefaultSetup(installer, stateDir)
-		result, err := setup.Install(
-			context.Background(),
-			cfg.Sync,
-			collection.Root(),
-			allSystems,
-			allEmulators,
-			allFrontends,
-			func(p packages.InstallProgress) {
-				switch p.Phase {
-				case "downloading":
-					fmt.Printf("  Downloading %s...\n", p.PackageName)
-				case "extracting":
-					fmt.Printf("  Extracting %s...\n", p.PackageName)
-				}
-			},
-		)
-		if err != nil {
-			return fmt.Errorf("setting up sync: %w", err)
+		if err := setUpSync(ctx, cfg.Sync, collection.Root(), allSystems, allEmulators, allFrontends); err != nil {
+			return err
 		}
-
-		manifestPath, err := ctx.GetPaths().ManifestPath()
-		if err != nil {
-			return fmt.Errorf("getting manifest path: %w", err)
-		}
-
-		manifest, err := model.LoadManifest(manifestPath)
-		if err != nil {
-			return fmt.Errorf("loading manifest: %w", err)
-		}
-
-		manifest.SyncthingInstall = &model.SyncthingInstall{
-			Version:             installer.ResolveVersion("syncthing"),
-			ConfigSchemaVersion: syncpkg.ConfigSchemaVersion,
-			BinaryPath:          result.SyncthingBinary,
-			ConfigDir:           result.ConfigDir,
-			DataDir:             result.DataDir,
-			SystemdUnitPath:     result.SystemdUnitPath,
-		}
-		if err := manifest.SaveWithBackup(manifestPath); err != nil {
-			return fmt.Errorf("saving manifest: %w", err)
-		}
-
-		fmt.Println("Synchronization ready")
 	}
 
 	fmt.Println()
