@@ -14,6 +14,8 @@ Your <Collection /> (default `~/Emulation`) is the central location for all your
 ├── roms/                 # ROM files, organized by system
 │   ├── snes/
 │   ├── psx/
+│   ├── switch/
+│   │   └── updates/      # Switch updates and DLC, loaded by Eden
 │   └── ...
 ├── bios/                 # BIOS and firmware files, organized by system
 │   ├── psx/
@@ -48,6 +50,10 @@ For example, Dolphin normally stores GameCube saves in `~/.local/share/dolphin-e
 Kyaraben creates a symlink from that location to `~/Emulation/saves/gamecube/`.
 The emulator runs with its default settings; the symlink transparently redirects
 data to your managed location.
+
+### Switch updates and DLC
+
+Place Switch update and DLC files (`.nsp` or `.xci`) in `roms/switch/updates/`, in any subfolder layout you like. Eden loads them from there without installing them into its NAND, and they sync with the rest of your ROMs. The folder contains a `noload.txt` so EmulationStation DE doesn't list them as games.
 
 ## What syncs
 
