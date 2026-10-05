@@ -187,13 +187,13 @@ size = 3555960
 [melondsds]
 releases_url = "github:JesseTG/melonds-ds"
 url_template = "https://github.com/JesseTG/melonds-ds/releases/download/{version}/melondsds_libretro-linux-x86_64-Release.zip"
-default = "v1.3.1"
+default = "v1.4.0"
 binary_path = "melondsds_libretro.so"
 install_type = "retroarch-core"
 
-[melondsds."v1.3.1".targets.x64]
-sha256 = "sha256-RQeEJNUkC298BuKV8Xv/qNdEHHzBwWXdHvJi5svn7nw="
-size = 2019424
+[melondsds."v1.4.0".targets.x64]
+sha256 = "sha256-ymsL6RSp0/giqIVUeHmyeeP6JTJuQdDcm4pnD8ed8NA="
+size = 2248961
 
 [melondsds."v1.2.0".targets.x64]
 sha256 = "9b7c1ef08a9ed3d1a61be3981cf40332c88ce3f59ca76336262701b27dabdb2b"
