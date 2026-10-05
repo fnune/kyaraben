@@ -1,3 +1,14 @@
+## [0.1.8] - 2026-10-05
+
+### Features
+
+- *(versions)* Bump emulators and syncthing to latest versions
+
+### Bug fixes
+
+- *(launcher)* Stop installs from deleting the running binary
+- *(versions)* Update melonDS DS to v1.4.0 and drop v1.3.1
+
 ## [0.1.7] - 2026-09-17
 
 ### Bug fixes
