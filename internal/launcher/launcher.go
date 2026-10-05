@@ -221,12 +221,6 @@ func (m *Manager) InstallCLI() (cliPath string, err error) {
 
 	cliPath = filepath.Join(binDir, m.paths.CLIBinaryName())
 
-	if _, err := m.fs.Lstat(cliPath); err == nil {
-		if err := m.fs.Remove(cliPath); err != nil {
-			return "", fmt.Errorf("removing old CLI: %w", err)
-		}
-	}
-
 	currentExe := m.executablePath
 	if currentExe == "" {
 		currentExe, err = os.Executable()
@@ -239,11 +233,8 @@ func (m *Manager) InstallCLI() (cliPath string, err error) {
 		}
 	}
 
-	if err := m.copyFile(currentExe, cliPath); err != nil {
-		return "", fmt.Errorf("copying CLI: %w", err)
-	}
-	if err := m.fs.Chmod(cliPath, 0755); err != nil {
-		return "", fmt.Errorf("making CLI executable: %w", err)
+	if err := m.installExecutable(currentExe, cliPath); err != nil {
+		return "", fmt.Errorf("installing CLI: %w", err)
 	}
 
 	log.Info("Installed CLI: %s", cliPath)
@@ -270,31 +261,13 @@ func (m *Manager) InstallApp(appImagePath, sidecarPath string) (*InstallResult, 
 		CLIPath: filepath.Join(binDir, m.paths.CLIBinaryName()),
 	}
 
-	if _, err := m.fs.Lstat(result.AppPath); err == nil {
-		if err := m.fs.Remove(result.AppPath); err != nil {
-			return nil, fmt.Errorf("removing old AppImage: %w", err)
-		}
-	}
-
-	if err := m.copyFile(appImagePath, result.AppPath); err != nil {
-		return nil, fmt.Errorf("copying AppImage: %w", err)
-	}
-	if err := m.fs.Chmod(result.AppPath, 0755); err != nil {
-		return nil, fmt.Errorf("making AppImage executable: %w", err)
+	if err := m.installExecutable(appImagePath, result.AppPath); err != nil {
+		return nil, fmt.Errorf("installing AppImage: %w", err)
 	}
 	log.Info("Installed UI: %s", result.AppPath)
 
-	if _, err := m.fs.Lstat(result.CLIPath); err == nil {
-		if err := m.fs.Remove(result.CLIPath); err != nil {
-			return nil, fmt.Errorf("removing old CLI: %w", err)
-		}
-	}
-
-	if err := m.copyFile(sidecarPath, result.CLIPath); err != nil {
-		return nil, fmt.Errorf("copying CLI: %w", err)
-	}
-	if err := m.fs.Chmod(result.CLIPath, 0755); err != nil {
-		return nil, fmt.Errorf("making CLI executable: %w", err)
+	if err := m.installExecutable(sidecarPath, result.CLIPath); err != nil {
+		return nil, fmt.Errorf("installing CLI: %w", err)
 	}
 	log.Info("Installed CLI: %s", result.CLIPath)
 
@@ -409,12 +382,25 @@ func (m *Manager) GetInstallStatus() *InstallResult {
 	return result
 }
 
-func (m *Manager) copyFile(src, dst string) error {
+func (m *Manager) installExecutable(src, dst string) error {
 	data, err := m.fs.ReadFile(src)
 	if err != nil {
 		return err
 	}
-	return m.fs.WriteFile(dst, data, 0644)
+
+	staged := dst + ".new"
+	if err := m.fs.WriteFile(staged, data, 0755); err != nil {
+		return err
+	}
+	if err := m.fs.Chmod(staged, 0755); err != nil {
+		_ = m.fs.Remove(staged)
+		return err
+	}
+	if err := m.fs.Rename(staged, dst); err != nil {
+		_ = m.fs.Remove(staged)
+		return err
+	}
+	return nil
 }
 
 func (m *Manager) CreateDesktopShortcut() (string, error) {

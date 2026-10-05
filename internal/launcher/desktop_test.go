@@ -372,3 +372,58 @@ func TestCreateDesktopShortcut_NoAppDesktopFile(t *testing.T) {
 		t.Errorf("error should mention app menu desktop file, got: %v", err)
 	}
 }
+
+func TestInstallCLIFromInstalledPath(t *testing.T) {
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/kyaraben":                 &vfst.Dir{Perm: 0755},
+		"/home/.local/bin/kyaraben": "installed executable",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	resolver := fakeBaseDirResolver{homeDir: "/home"}
+	m := &Manager{fs: fs, paths: paths.DefaultPaths(), profileDir: "/kyaraben", resolver: resolver, executablePath: "/home/.local/bin/kyaraben"}
+
+	cliPath, err := m.InstallCLI()
+	if err != nil {
+		t.Fatalf("InstallCLI() error = %v", err)
+	}
+
+	cliContent, err := fs.ReadFile(cliPath)
+	if err != nil {
+		t.Fatalf("CLI must survive being installed from its own path: %v", err)
+	}
+	if string(cliContent) != "installed executable" {
+		t.Errorf("CLI content = %q, want %q", cliContent, "installed executable")
+	}
+}
+
+func TestInstallAppFromInstalledPath(t *testing.T) {
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/kyaraben":                    &vfst.Dir{Perm: 0755},
+		"/home/.local/bin/kyaraben-ui": "installed appimage",
+		"/kyaraben-sidecar":            "fake sidecar binary",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	resolver := fakeBaseDirResolver{homeDir: "/home"}
+	m := &Manager{fs: fs, paths: paths.DefaultPaths(), profileDir: "/kyaraben", resolver: resolver}
+
+	result, err := m.InstallApp("/home/.local/bin/kyaraben-ui", "/kyaraben-sidecar")
+	if err != nil {
+		t.Fatalf("InstallApp() error = %v", err)
+	}
+
+	appContent, err := fs.ReadFile(result.AppPath)
+	if err != nil {
+		t.Fatalf("AppImage must survive being installed from its own path: %v", err)
+	}
+	if string(appContent) != "installed appimage" {
+		t.Errorf("AppImage content = %q, want %q", appContent, "installed appimage")
+	}
+}
