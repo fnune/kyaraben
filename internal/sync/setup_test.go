@@ -475,3 +475,37 @@ func TestWaitForSyncthingReportsWhyItGaveUp(t *testing.T) {
 		t.Errorf("error should carry the underlying cause, got: %v", err)
 	}
 }
+
+func TestInstall_StopsRunningManagedSyncthingBeforePortCheck(t *testing.T) {
+	fs := testutil.NewTestFS(t, map[string]any{})
+	installer := packages.NewFakeInstaller(fs, "/packages")
+	serviceMgr := NewFakeServiceManager()
+	fakeClient := NewFakeClient(model.SyncConfig{})
+	clientFactory := func(config model.SyncConfig) SyncClient { return fakeClient }
+
+	setup := NewSetup(fs, paths.DefaultPaths(), installer, "/state", serviceMgr, clientFactory)
+	unitName := NewSystemdUnit(fs, paths.DefaultPaths(), serviceMgr).UnitName()
+	serviceMgr.SetState(unitName, "active")
+
+	original := CheckPorts
+	CheckPorts = func(_ model.SyncthingConfig) error {
+		if serviceMgr.State(unitName) == "active" {
+			return errors.New("port held by the running managed syncthing")
+		}
+		return nil
+	}
+	defer func() { CheckPorts = original }()
+
+	cfg := model.SyncConfig{
+		Enabled:   true,
+		Syncthing: model.SyncthingConfig{GUIPort: 18484, ListenPort: 22900, DiscoveryPort: 21900},
+	}
+
+	if _, err := setup.Install(context.Background(), cfg, "/collection", nil, nil, nil, nil); err != nil {
+		t.Fatalf("Install() error = %v", err)
+	}
+
+	if state := serviceMgr.State(unitName); state != "active" {
+		t.Errorf("managed syncthing state after Install = %q, want active", state)
+	}
+}

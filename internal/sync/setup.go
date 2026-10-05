@@ -61,7 +61,7 @@ func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, collectionPat
 		return nil, nil
 	}
 
-	if err := s.killUnmanagedSyncthing(cfg.Syncthing); err != nil {
+	if err := s.releaseSyncthingPorts(cfg.Syncthing); err != nil {
 		return nil, err
 	}
 
@@ -199,14 +199,19 @@ func (s *Setup) IsEnabled() bool {
 	return unitGen.IsEnabled()
 }
 
-// killUnmanagedSyncthing kills any syncthing process using our ports that is
-// not managed by our systemd unit. This handles stale processes left over from
-// crashes or incomplete shutdowns.
-func (s *Setup) killUnmanagedSyncthing(cfg model.SyncthingConfig) error {
-	unit := NewSystemdUnit(s.fs, s.paths, s.service)
-	state := s.service.State(unit.UnitName())
+func (s *Setup) releaseSyncthingPorts(cfg model.SyncthingConfig) error {
+	unitName := NewSystemdUnit(s.fs, s.paths, s.service).UnitName()
+	state := s.service.State(unitName)
 	if state == "active" || state == "activating" {
-		log.Debug("Syncthing is managed by systemd (state=%s), nothing to clean up", state)
+		log.Info("Stopping %s so its ports are free during setup", unitName)
+		if err := s.service.Stop(unitName); err != nil {
+			return fmt.Errorf("stopping %s: %w", unitName, err)
+		}
+		for _, port := range []int{cfg.GUIPort, cfg.ListenPort} {
+			if err := WaitForPortRelease(port, 5*time.Second); err != nil {
+				return fmt.Errorf("waiting for port %d to be released: %w", port, err)
+			}
+		}
 		return nil
 	}
 
