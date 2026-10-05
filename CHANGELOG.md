@@ -1,3 +1,14 @@
+## [0.1.9] - 2026-10-05
+
+### Features
+
+- *(eden)* Load updates and DLC from roms/switch/updates
+
+### Bug fixes
+
+- *(sync)* Stop the running syncthing before setting it up again
+- *(sync)* Share new folders with already-paired devices on setup
+
 ## [0.1.8] - 2026-10-05
 
 ### Features
