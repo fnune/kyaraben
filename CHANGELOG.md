@@ -1,3 +1,9 @@
+## [0.1.10] - 2026-10-05
+
+### Bug fixes
+
+- *(cli)* Set up sync during apply so syncthing is never left deleted
+
 ## [0.1.9] - 2026-10-05
 
 ### Features
