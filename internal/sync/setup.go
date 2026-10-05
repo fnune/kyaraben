@@ -121,6 +121,10 @@ func (s *Setup) Install(ctx context.Context, cfg model.SyncConfig, collectionPat
 		return nil, fmt.Errorf("writing ignore files: %w", err)
 	}
 
+	if _, err := ShareFoldersWithConfiguredDevices(ctx, client); err != nil {
+		return nil, err
+	}
+
 	unitPath, _ := unitGen.unitPath()
 
 	return &SetupResult{

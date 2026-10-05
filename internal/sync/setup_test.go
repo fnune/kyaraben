@@ -509,3 +509,43 @@ func TestInstall_StopsRunningManagedSyncthingBeforePortCheck(t *testing.T) {
 		t.Errorf("managed syncthing state after Install = %q, want active", state)
 	}
 }
+
+func TestInstall_SharesFoldersWithAlreadyPairedDevices(t *testing.T) {
+	localDeviceID := "LOCAL-ID-12345-12345-12345-12345-12345-12345-12345"
+	pairedDeviceID := "PAIRED-ID-67890-67890-67890-67890-67890-67890-67890"
+
+	fs := testutil.NewTestFS(t, map[string]any{})
+	installer := packages.NewFakeInstaller(fs, "/packages")
+	fakeClient := NewFakeClient(model.SyncConfig{})
+	fakeClient.SetDeviceID(localDeviceID)
+	if err := fakeClient.AddDevice(context.Background(), pairedDeviceID, "paired"); err != nil {
+		t.Fatal(err)
+	}
+	clientFactory := func(config model.SyncConfig) SyncClient { return fakeClient }
+
+	setup := NewSetup(fs, paths.DefaultPaths(), installer, "/state", NewFakeServiceManager(), clientFactory)
+
+	original := CheckPorts
+	CheckPorts = func(_ model.SyncthingConfig) error { return nil }
+	defer func() { CheckPorts = original }()
+
+	cfg := model.SyncConfig{
+		Enabled:   true,
+		Syncthing: model.SyncthingConfig{GUIPort: 18485, ListenPort: 22901, DiscoveryPort: 21901},
+	}
+	if _, err := setup.Install(context.Background(), cfg, "/collection", nil, nil, nil, nil); err != nil {
+		t.Fatalf("Install() error = %v", err)
+	}
+
+	sharedFolders := make(map[string]bool)
+	for _, d := range fakeClient.ReconciledDrift() {
+		for _, id := range d.MissingDeviceIDs {
+			if id == pairedDeviceID {
+				sharedFolders[d.FolderID] = true
+			}
+		}
+	}
+	if !sharedFolders["kyaraben-meta"] {
+		t.Errorf("kyaraben-meta was not shared with the already-paired device; shared: %v", sharedFolders)
+	}
+}

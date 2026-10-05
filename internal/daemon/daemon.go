@@ -2383,52 +2383,17 @@ func (d *Daemon) reconcileFolderSharing(cfg *model.KyarabenConfig) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	localDeviceID, err := client.GetDeviceID(ctx)
+	fixed, err := syncpkg.ShareFoldersWithConfiguredDevices(ctx, client)
 	if err != nil {
-		log.Debug("Reconcile: failed to get local device ID: %v", err)
+		log.Debug("Reconcile: %v", err)
 		d.recordReconcileFailure()
 		return
 	}
-
-	devices, err := client.GetConfiguredDevices(ctx)
-	if err != nil {
-		log.Debug("Reconcile: failed to get configured devices: %v", err)
-		d.recordReconcileFailure()
-		return
-	}
-
-	if len(devices) == 0 {
-		d.resetReconcileBackoff()
-		return
-	}
-
-	deviceIDs := make([]string, len(devices))
-	for i, dev := range devices {
-		deviceIDs[i] = dev.ID
-	}
-
-	folders, err := client.GetFoldersWithDevices(ctx)
-	if err != nil {
-		log.Debug("Reconcile: failed to get folders with devices: %v", err)
-		d.recordReconcileFailure()
-		return
-	}
-
-	drift := syncpkg.ComputeFolderSharingDrift(folders, deviceIDs, localDeviceID)
-	if len(drift) == 0 {
-		d.resetReconcileBackoff()
-		return
-	}
-
-	log.Info("Reconcile: detected folder sharing drift, fixing %d folders", len(drift))
-	if err := client.ReconcileFolderSharing(ctx, drift); err != nil {
-		log.Error("Reconcile: failed to fix folder sharing: %v", err)
-		d.recordReconcileFailure()
-		return
+	if fixed > 0 {
+		log.Info("Reconcile: shared %d folders with configured devices", fixed)
 	}
 
 	d.resetReconcileBackoff()
-	log.Info("Reconcile: folder sharing drift fixed")
 }
 
 func (d *Daemon) logCompletionDiagnostics(ctx context.Context, client syncpkg.SyncClient, dev syncpkg.DeviceStatus, completion *syncpkg.CompletionResponse, folders []syncpkg.FolderStatusSummary) {

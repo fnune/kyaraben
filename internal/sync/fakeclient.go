@@ -424,6 +424,11 @@ func (c *FakeClient) AddFolders(ctx context.Context, folders []syncthing.FolderC
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.addFoldersCalls = append(c.addFoldersCalls, folders)
+	for _, f := range folders {
+		if _, exists := c.folders[f.ID]; !exists {
+			c.folders[f.ID] = FolderStatusSummary{ID: f.ID, Label: f.Label, Path: f.Path, Type: f.Type}
+		}
+	}
 	return nil
 }
 
