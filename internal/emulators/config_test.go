@@ -1432,11 +1432,13 @@ func TestEdenGenerateEntries(t *testing.T) {
 	}
 
 	wantEntries := map[string]string{
-		"UI.Screenshots\\screenshot_path":  "/emulation/screenshots/eden",
-		"UI.Paths\\gamedirs\\size":         "1",
-		"UI.Paths\\gamedirs\\1\\deep_scan": "false",
-		"UI.Paths\\gamedirs\\1\\expanded":  "true",
-		"UI.Paths\\gamedirs\\1\\path":      "/emulation/roms/switch",
+		"UI.Screenshots\\screenshot_path":          "/emulation/screenshots/eden",
+		"UI.Paths\\gamedirs\\size":                 "1",
+		"UI.Paths\\gamedirs\\1\\deep_scan":         "false",
+		"UI.Paths\\gamedirs\\1\\expanded":          "true",
+		"UI.Paths\\gamedirs\\1\\path":              "/emulation/roms/switch",
+		"UI.Paths\\external_content_dirs\\size":    "1",
+		"UI.Paths\\external_content_dirs\\1\\path": "/emulation/roms/switch/updates",
 	}
 
 	for fullPath, want := range wantEntries {
@@ -1448,6 +1450,17 @@ func TestEdenGenerateEntries(t *testing.T) {
 		if got != want {
 			t.Errorf("entry %q = %q, want %q", fullPath, got, want)
 		}
+	}
+
+	wantNoload := "/emulation/roms/switch/updates/noload.txt"
+	var gotNoload bool
+	for _, f := range result.EmbeddedFiles {
+		if f.DestPath == wantNoload {
+			gotNoload = true
+		}
+	}
+	if !gotNoload {
+		t.Errorf("missing embedded file %q so ES-DE skips the updates folder", wantNoload)
 	}
 }
 

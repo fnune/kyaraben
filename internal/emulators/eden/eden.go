@@ -101,6 +101,7 @@ var profileTarget = model.ConfigTarget{
 
 func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, error) {
 	store := ctx.Store
+	updatesDir := filepath.Join(store.SystemRomsDir(model.SystemIDSwitch), "updates")
 
 	entries := []model.ConfigEntry{
 		model.Entry(model.Store, model.Path("UI", "Screenshots\\screenshot_path"), store.EmulatorScreenshotsDir(model.EmulatorIDEden)),
@@ -108,6 +109,8 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		model.Entry(model.Store, model.Path("UI", "Paths\\gamedirs\\1\\deep_scan"), "false"),
 		model.Entry(model.Store, model.Path("UI", "Paths\\gamedirs\\1\\expanded"), "true"),
 		model.Entry(model.Store, model.Path("UI", "Paths\\gamedirs\\1\\path"), store.SystemRomsDir(model.SystemIDSwitch)),
+		model.Entry(model.Store, model.Path("UI", "Paths\\external_content_dirs\\size"), "1"),
+		model.Entry(model.Store, model.Path("UI", "Paths\\external_content_dirs\\1\\path"), updatesDir),
 		model.Entry(model.None, model.Path("UI", "check_for_updates"), "false"),
 		model.Entry(model.None, model.Path("UI", "check_for_updates\\default"), "false"),
 	}
@@ -144,9 +147,12 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 		{Source: filepath.Join(edenDir, "nand", "system", "save"), Target: filepath.Join(savesDir, "system")},
 	}
 
+	esdeSkipMarker := model.EmbeddedFile{DestPath: filepath.Join(updatesDir, "noload.txt")}
+
 	return model.GenerateResult{
-		Patches:  patches,
-		Symlinks: symlinks,
+		Patches:       patches,
+		Symlinks:      symlinks,
+		EmbeddedFiles: []model.EmbeddedFile{esdeSkipMarker},
 	}, nil
 }
 
