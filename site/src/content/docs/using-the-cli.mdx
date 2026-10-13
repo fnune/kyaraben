@@ -5,16 +5,13 @@ description: CLI commands and the config file
 
 import Collection from "../../components/Collection.astro";
 
-Kyaraben can be fully configured through its config file and controlled via command-line.
+You can configure all of Kyaraben with its config file and control it from the command line.
 
 ## The config file
 
-Kyaraben stores its configuration at `~/.config/kyaraben/config.toml`. The
-config file and the UI are kept synchronized: changes made in the UI are written to
-the file, and changes made to the file are reflected in the UI.
+Kyaraben stores its configuration in `~/.config/kyaraben/config.toml`. The UI writes its changes to this file, and shows the changes that you make in the file.
 
-Most users do not need to edit the config file directly. It is there for users
-who prefer text editors or want to version-control their setup.
+You do not need to edit the file. Edit it if you prefer a text editor or want to keep your setup in version control.
 
 ### Example
 
@@ -51,8 +48,7 @@ enabled = true
 | --------- | ------ | -------- | -------------------------------------------------------------- |
 | `shaders` | string | `manual` | Global shader setting: `recommended`, `on`, `off`, or `manual` |
 
-When set to `recommended`, shaders are enabled only for emulators where they
-work well. Per-emulator overrides in `[emulators.<id>]` take precedence.
+`recommended` enables shaders only for the emulators where they work well. Overrides in `[emulators.<id>]` take precedence.
 
 ### `[savestate]`
 
@@ -60,19 +56,13 @@ work well. Per-emulator overrides in `[emulators.<id>]` take precedence.
 | -------- | ------ | ---------- | ----------------------------------------------------------------- |
 | `resume` | string | `autosave` | Global resume setting: `autosave`, `autoload`, `off`, or `manual` |
 
-`autosave` writes a savestate when you quit. `autoload` does that and loads the
-savestate back on the next launch. Both apply only to emulators that support
-resume reliably, and per-emulator overrides in `[emulators.<id>]` take
-precedence.
+`autosave` writes a savestate when you quit. `autoload` also loads that savestate on the next launch. Both apply only to emulators with reliable resume support. Overrides in `[emulators.<id>]` take precedence.
 
-The older value `recommended` is still accepted and now means `autosave`:
-autoload is opt-in, because reloading the last savestate on every launch makes
-it easy to overwrite progress you meant to keep.
+The older value `recommended` now means `autosave`. Autoload is opt-in, because a load of the last savestate on each launch can overwrite progress that you want to keep.
 
 ### `[systems]`
 
-Maps system IDs to lists of emulator IDs. Each system can have one or more
-emulators enabled.
+Maps each system ID to a list of one or more emulator IDs.
 
 ```toml
 [systems]
@@ -91,12 +81,9 @@ shaders = "on"
 resume = "autosave"
 ```
 
-- `version`: Pin to a specific version. When omitted, uses the latest supported.
-- `shaders`: Enable managed CRT/LCD shaders. Values: `on`, `off`, `manual`.
-  When omitted, follows the global `[graphics]` setting.
-- `resume`: Auto-resume behaviour. Values: `autosave`, `autoload`, `off`,
-  `manual`. When omitted, follows the global `[savestate]` setting. The older
-  value `on` is still accepted and means `autosave`.
+- `version`: pins a specific version. The default is the latest supported version.
+- `shaders`: enables managed CRT/LCD shaders. Values: `on`, `off`, `manual`. The default is the global `[graphics]` setting.
+- `resume`: sets auto-resume. Values: `autosave`, `autoload`, `off`, `manual`. The default is the global `[savestate]` setting. The older value `on` means `autosave`.
 
 ### `[frontends.<id>]`
 
@@ -129,21 +116,15 @@ patterns = [
 ]
 ```
 
-When `autostart` is enabled, Syncthing starts automatically when you log in. On Steam Deck, this works in both Desktop Mode and Game Mode.
+With `autostart`, Syncthing starts when you log in. On Steam Deck, this works in Desktop Mode and in Game Mode.
 
 See [`kyaraben sync`](#kyaraben-sync) for available commands.
 
 ## Commands
 
-The CLI is intentionally minimal. The config file is the interface for
-advanced users. The UI is for users who prefer not to edit files. The CLI is
-the glue: initialize, apply, check status.
-
 ### `kyaraben apply`
 
-Reads the config, installs emulators, generates emulator configs, and creates
-the folder structure. If there are conflicts with your existing configuration,
-`kyaraben apply` asks for confirmation before overwriting.
+Reads the config, installs emulators, generates emulator configs, and creates the folder structure. If the changes conflict with your existing configuration, `kyaraben apply` asks for confirmation before it overwrites files.
 
 ```
 $ kyaraben apply
@@ -171,8 +152,7 @@ Use `--dry-run` to preview config changes without applying them.
 
 ### `kyaraben status`
 
-Shows the current state: which emulators are installed, their versions, and
-where files are stored.
+Shows the installed emulators, their versions, and the file locations.
 
 ```
 $ kyaraben status
@@ -292,7 +272,7 @@ Proceed? [y/N]
 
 ### `kyaraben update`
 
-Checks for and installs CLI updates. The desktop app updates separately through its own mechanism.
+Checks for CLI updates and installs them. The desktop app has its own update mechanism.
 
 ```
 $ kyaraben update
@@ -332,11 +312,7 @@ Then run `kyaraben apply` to install Syncthing.
 
 #### `kyaraben sync pair [CODE]`
 
-Pair two devices. Without a code, this device generates a pairing code. With a
-code, this device joins the device that generated it.
-
-Installs and starts the synchronization service automatically if it is not already
-running.
+Pairs two devices. Without a code, this device generates a pairing code. With a code, this device joins the device that generated it. If the synchronization service is not running, the command installs and starts it.
 
 ```
 $ kyaraben sync pair
@@ -357,8 +333,7 @@ Paired with desktop-kyaraben
 
 #### `kyaraben sync pair --device-id`
 
-Show the full 56-character device ID instead of a pairing code. Use this when
-the relay server is unavailable:
+Shows the full 56-character device ID instead of a pairing code. Use this if the relay server is unavailable:
 
 ```
 $ kyaraben sync pair --device-id
@@ -368,12 +343,11 @@ Device ID: LGFPDIT7-SKNNJVJZ-A4FC7QNC-...
 $ kyaraben sync pair LGFPDIT7-SKNNJVJZ-A4FC7QNC-...
 ```
 
-This works across any network via Syncthing's relay servers.
+This works across networks through the Syncthing relay servers.
 
 #### `kyaraben sync status`
 
-Shows synchronization state, connected devices, per-folder progress, and
-conflict counts.
+Shows the synchronization state, the connected devices, and the progress and conflict count of each folder.
 
 ```
 $ kyaraben sync status
@@ -394,22 +368,19 @@ Synced folders:
   Screenshots          idle
 ```
 
-When conflicts exist, the overall status shows `conflict` and each affected
-folder lists its conflict count. See [resolving conflicts](/collection/#resolving-conflicts) for how to handle them.
+If there are conflicts, the status is `conflict`, and each affected folder shows its conflict count. See [resolving conflicts](/collection/#resolving-conflicts).
 
 #### `kyaraben sync add-device <DEVICE-ID>`
 
-Add a device by its 56-character Syncthing device ID. Use this for manual
-pairing without the interactive flow.
+Adds a device by its 56-character Syncthing device ID. Use this to pair manually, without the interactive flow.
 
 #### `kyaraben sync remove-device <ID-or-NAME>`
 
-Remove a paired device by its device ID or friendly name.
+Removes a paired device by its device ID or name.
 
 ### Sync configuration
 
-Syncthing runs as a systemd user service with its own configuration, separate
-from any existing Syncthing installation.
+Syncthing runs as a systemd user service. Its configuration is separate from other Syncthing installations.
 
 | Setting          | Default                              |
 | ---------------- | ------------------------------------ |
@@ -455,18 +426,16 @@ patterns = [
 
 Patterns use Syncthing's ignore syntax. Prefix with `!` to un-ignore.
 
-Ignore patterns are local to each device:
+Ignore patterns apply only to the device that has them:
 
-- Ignored on primary: files won't be sent to any secondary
-- Ignored on secondary: files won't be received on that device, but other
-  devices still synchronize them
+- On the primary, ignored files do not go to any secondary.
+- On a secondary, that device does not receive the ignored files. Other devices still synchronize them.
 
-This lets you skip large files on a device with limited storage (like a Steam
-Deck) while keeping them on others.
+Use this to keep large files off a device with little storage, such as a Steam Deck.
 
 #### Example: exclude large ROM formats
 
-If you only want to synchronize smaller ROMs and skip disc-based games:
+To synchronize only small ROMs and skip disc-based games:
 
 ```toml
 [sync.ignore]
@@ -485,8 +454,7 @@ patterns = [
 
 #### Example: skip EmulationStation DE videos
 
-Scraped videos can be several gigabytes per system. To synchronize box art and
-screenshots but skip videos:
+Scraped videos can be several gigabytes per system. To synchronize box art and screenshots without videos:
 
 ```toml
 [sync.ignore]
@@ -495,7 +463,7 @@ patterns = [
 ]
 ```
 
-Or skip all media and only synchronize gamelists (metadata):
+To synchronize only gamelists (metadata) and no media:
 
 ```toml
 [sync.ignore]
@@ -508,18 +476,16 @@ patterns = [
 
 #### Pairing code rejected
 
-Codes expire after 5 minutes. Cancel pairing on the primary and start a new
-session.
+Codes expire after 5 minutes. Cancel pairing on the primary and start again.
 
 #### Devices paired but not synchronizing
 
-1. Check `kyaraben sync status` shows "connected"
-2. If a firewall is blocking connections, see
-   [Syncthing's firewall documentation](https://docs.syncthing.net/users/firewall.html)
+1. Make sure that `kyaraben sync status` shows "connected".
+2. If a firewall blocks connections, see the [Syncthing firewall documentation](https://docs.syncthing.net/users/firewall.html).
 
 ### `kyaraben import scan`
 
-Analyzes an existing ROM collection and shows what can be imported into Kyaraben's structure. This is a read-only operation that does not move or modify any files.
+Analyzes an existing ROM collection and shows what you can import into the Kyaraben structure. Use it to migrate from another setup, such as EmuDeck, or to merge files from many locations. The command only reads. It does not move or modify files.
 
 ```
 $ kyaraben import scan ~/Games/Emulation
@@ -548,14 +514,12 @@ ROMs                                               +0  +1.8 GB
     ... and 45 more
 ```
 
-Use this command when migrating from another emulation setup (like EmuDeck) or consolidating files from multiple locations.
-
 Options:
 
 - `--esde <PATH>`: specify the ES-DE data directory. Defaults to `~/ES-DE` if it exists.
 - `--format <text|json>`: output format. Defaults to `text`.
 
-The JSON format is useful for scripting:
+Use the JSON format in scripts:
 
 ```
 $ kyaraben import scan ~/Games --format json | jq '.summary.totalOnlyInSource'

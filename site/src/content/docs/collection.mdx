@@ -5,7 +5,7 @@ description: Structure and synchronization behavior of your Kyaraben collection
 
 import Collection from "../../components/Collection.astro";
 
-Your <Collection /> (default `~/Emulation`) is the central location for all your emulation data. This page documents its structure and how synchronization works.
+Your <Collection /> (default `~/Emulation`) keeps all your emulation data. This page describes its structure and its synchronization.
 
 ## Folder structure
 
@@ -38,26 +38,19 @@ Your <Collection /> (default `~/Emulation`) is the central location for all your
         └── media/        # Scraped artwork per system
 ```
 
-Saves are organized by system so that different emulators for the same system
-can share save files. States and screenshots are organized by emulator because
-their formats are emulator-specific. Kyaraben never reads, modifies, or deletes
-your ROMs, saves, or BIOS files.
+Saves are in system folders, so that all emulators for a system can share them. States and screenshots are in emulator folders, because their formats are specific to each emulator. Kyaraben never reads, modifies, or deletes your ROMs, saves, or BIOS files.
 
 ### Symlink strategy
 
-Kyaraben uses symlinks to redirect emulator data directories to your <Collection />.
-For example, Dolphin normally stores GameCube saves in `~/.local/share/dolphin-emu/GC/`.
-Kyaraben creates a symlink from that location to `~/Emulation/saves/gamecube/`.
-The emulator runs with its default settings; the symlink transparently redirects
-data to your managed location.
+Kyaraben uses symlinks to send emulator data to your <Collection />. For example, Dolphin stores GameCube saves in `~/.local/share/dolphin-emu/GC/`. Kyaraben replaces that directory with a symlink to `~/Emulation/saves/gamecube/`. The emulator keeps its default settings, and the data goes to the collection.
 
 ### Switch updates and DLC
 
-Place Switch update and DLC files (`.nsp` or `.xci`) in `roms/switch/updates/`, in any subfolder layout you like. Eden loads them from there without installing them into its NAND, and they sync with the rest of your ROMs. The folder contains a `noload.txt` so EmulationStation DE doesn't list them as games.
+Put Switch update and DLC files (`.nsp` or `.xci`) in `roms/switch/updates/`, in any subfolder layout. Eden loads them from there and does not install them into its NAND. They sync with the rest of your ROMs. The folder contains a `noload.txt`, so EmulationStation DE does not list these files as games.
 
 ## What syncs
 
-When synchronization is enabled, these folders synchronize between devices:
+When synchronization is on, these folders synchronize between devices:
 
 | Content                     | Sync behavior |
 | --------------------------- | ------------- |
@@ -69,20 +62,13 @@ When synchronization is enabled, these folders synchronize between devices:
 | `frontends/esde/gamelists/` | Bidirectional |
 | `frontends/esde/media/`     | Bidirectional |
 
-All folders use standard bidirectional sync. Deletions propagate to all devices,
-except ROM folders when ROM deletion protection is on (the default). See
-[protecting ROMs from deletion](#protecting-roms-from-deletion).
+A deletion on one device goes to all devices. The exception is ROM folders when ROM deletion protection is on, which is the default. See [protecting ROMs from deletion](#protecting-roms-from-deletion).
 
 ### EmulationStation DE gamelists and media
 
-When using EmulationStation DE, scraped metadata (game descriptions, ratings, etc.) and media
-(screenshots, videos, box art) synchronize between devices. Kyaraben strips play
-statistics (playcount, playtime, last played) before syncing to avoid conflicts,
-then merges local stats back when importing. This means each device tracks its
-own play history while sharing metadata and artwork.
+Scraped EmulationStation DE metadata (descriptions, ratings) and media (screenshots, videos, box art) synchronize between devices. Each device keeps its own play history. To prevent conflicts, Kyaraben removes play statistics (playcount, playtime, last played) before sync, and adds the local statistics back on import.
 
-Scraped videos can be large. See [CLI reference](/using-the-cli/#ignore-patterns)
-to exclude them from synchronization.
+Scraped videos can be large. To exclude them from synchronization, see [ignore patterns](/using-the-cli/#ignore-patterns).
 
 ## File versioning
 
@@ -91,53 +77,34 @@ folders do not use versioning.
 
 ## Protecting ROMs from deletion
 
-ROM folders do not use versioning because ROMs are large and replaceable, so
-instead Kyaraben can keep a device's ROMs even when they are deleted elsewhere.
-This is controlled per device by the "ignore ROM deletions" sync setting, which
-is on by default. On desktop and Steam Deck you toggle it from the
-sync settings. On a headless server use `kyaraben sync ignore-rom-deletions on`
-or `off`, and `kyaraben sync status` shows the current state for this device and
-its peers.
+When the "ignore ROM deletions" sync setting is on, a device keeps its ROMs when another device deletes them. The setting is on by default. ROMs have no file versioning because they are large and you can replace them, so this setting protects them instead.
 
-This lets you free space on one device by deleting ROMs locally without removing
-them from your other devices. Each device decides for itself: a device keeps its
-ROMs only if the setting is on for that device. The setting is local and is not
-shared between devices, so for a device to stay complete it must have the setting
-on. Deleting a ROM on a device whose peers have it off still removes the ROM from
-those peers.
+The setting applies only to the device that has it. Devices do not share it. A device keeps all its ROMs only if its own setting is on. When you delete a ROM, the deletion removes it from all peers that have the setting off. You can thus delete ROMs on one device to free space, and keep them on the protected devices.
 
-If you run a [headless server](/guides/headless-server/) as a sync hub, a good
-setup is to leave this setting on for the server and turn it off on your other
-devices. The server then keeps every ROM as a complete archive, while deletions
-still propagate normally between your other devices so you can free space across
-them. To put back a ROM you deleted, copy it from the server.
+To change the setting:
 
-Trade-offs while the setting is on:
+- On desktop and Steam Deck, use the sync settings.
+- On a headless server, run `kyaraben sync ignore-rom-deletions on` or `off`. `kyaraben sync status` shows the setting for this device and its peers.
 
-- ROM deletions from other devices are not applied, so removing a ROM everywhere
-  becomes a manual action on each device.
-- A rename or move is a delete plus a create, so renaming a ROM on another device
-  can leave the old-named copy behind as a duplicate.
+If you use a [headless server](/guides/headless-server/) as a sync hub, turn the setting on for the server and off on your other devices. The server then keeps a complete archive of all ROMs. Deletions still go between your other devices, so you can free space on them. To get back a deleted ROM, copy it from the server.
 
-Handheld guest integrations such as [NextUI](/nextui/) have the same setting, but
-default it off, since a handheld usually wants deletions to free card space.
+While the setting is on:
+
+- Kyaraben does not apply ROM deletions from other devices. To remove a ROM from all devices, delete it on each device.
+- A rename or move is a delete and a create. When you rename a ROM on another device, the copy with the old name can stay as a duplicate.
+
+Handheld integrations such as [NextUI](/nextui/) have the same setting, but it is off by default. On a handheld, deletions usually free card space.
 
 ## Resolving conflicts
 
-When the same file is modified on two devices before they sync, Syncthing
-creates a conflict file instead of overwriting either version. Conflict files
-have names like `game.sync-conflict-ABCD123-20260307-120000.srm`.
+If two devices modify the same file before they sync, Syncthing keeps both versions and writes one of them to a conflict file, with a name such as `game.sync-conflict-ABCD123-20260307-120000.srm`.
 
-To check for conflicts:
-
-- **UI**: conflict counts appear in the sync status for each folder
-- **CLI**: run `kyaraben sync status` to see per-folder conflict counts
+To see the number of conflicts in each folder, look at the sync status in the UI, or run `kyaraben sync status`.
 
 To resolve a conflict:
 
-1. Find the conflict file in the affected folder (look for `.sync-conflict-` in
-   the filename)
-2. Compare it with the original file and decide which version to keep
-3. Delete the version you do not want
+1. Find the file with `.sync-conflict-` in its name in the affected folder.
+2. Compare it with the original file and choose the version to keep.
+3. Delete the other version.
 
-Conflict files sync between devices, so you only need to resolve them once.
+Conflict files sync between devices, so resolve each conflict on one device only.

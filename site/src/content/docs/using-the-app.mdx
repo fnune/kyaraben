@@ -7,13 +7,12 @@ import Collection from "../../components/Collection.astro";
 import systemPickerScreenshot from "../../assets/screenshots/v0.1-app-system-picker.png";
 
 :::caution[Pre-alpha software]
-On first run, Kyaraben may overwrite existing emulator configurations and saves stored in emulator directories. If you have an existing setup, back everything up first. For the smoothest experience, start fresh without existing emulator installations. Report issues on [GitHub](https://github.com/fnune/kyaraben/issues).
+Back up your existing emulator setup before the first run. On the first run, Kyaraben can overwrite emulator configurations and the saves in emulator directories. For best results, start with no emulators installed. Report issues on [GitHub](https://github.com/fnune/kyaraben/issues).
 :::
 
 ## Selecting systems and emulators
 
-The main screen shows all available systems. Check a system to enable it,
-uncheck to disable. Each system shows its available emulators.
+The main screen shows all available systems and their emulators. Check a system to enable it. Uncheck it to disable it.
 
 <img
   src={systemPickerScreenshot.src}
@@ -22,17 +21,13 @@ uncheck to disable. Each system shows its available emulators.
 
 ## Checking BIOS and firmware status
 
-Some systems require BIOS or firmware files. The provisions panel shows which
-files are needed, whether they are found, and whether they pass hash
-verification. Kyaraben does not distribute these files.
+Some systems require BIOS or firmware files. Kyaraben does not distribute these files. For each file, the provisions panel shows if the system needs it, if Kyaraben found it, and if it passes hash verification.
 
 {/* Screenshot: v0.1-app-doctor-view.png - Provisions panel showing BIOS status */}
 
 ## Emulator support
 
-Kyaraben configures each emulator with paths, controller bindings, and hotkeys.
-Not all emulators support all features. This table shows what Kyaraben
-configures for each emulator.
+Kyaraben configures paths, controller bindings, and hotkeys for each emulator. Not all emulators support all features. This table shows what Kyaraben configures for each emulator.
 
 | Emulator        | System           | Syncs                      | Hotkeys | Resume | Controller | Players | Provisions                    |
 | --------------- | ---------------- | -------------------------- | ------- | ------ | ---------- | ------- | ----------------------------- |
@@ -64,92 +59,63 @@ configures for each emulator.
 | Vita3K          | PS Vita          | saves, screenshots         | none    | none   | auto       | -       | PS Vita firmware              |
 | RPCS3           | PS3              | saves, states, screenshots | none    | none   | auto       | -       | PS3 firmware                  |
 
-Definitions:
+Columns:
 
-- **Synchronizes**: data types stored in the collection and available for
-  synchronization. `saves` = in-game saves, `states` = savestates, `screenshots` =
-  captured screenshots.
-- **Hotkeys**: `full` = save/load state, fast forward, pause, screenshot, quit.
-  `partial` = subset of these. `none` = no Kyaraben hotkey configuration.
-- **Resume**: auto-resume support. `full` = autosave on exit and autoload on
-  launch. `save` = autosave only. `load` = autoload only. `none` = not supported.
-- **Controller**: `configured` = Kyaraben generates controller bindings.
-  `auto` = emulator handles controller detection.
-- **Players**: number of controller slots Kyaraben configures. `-` = handled
-  by emulator.
-- **Provisions**: BIOS, firmware, or encryption keys needed. Items marked
-  "(optional)" enable extra features but aren't required for games to run.
+- Syncs: the data in the collection that can synchronize. `saves` are in-game saves, `states` are savestates, and `screenshots` are captured screenshots.
+- Hotkeys: `full` is save state, load state, fast forward, pause, screenshot, and quit. `partial` is some of these. `none` means that Kyaraben configures no hotkeys.
+- Resume: `full` is autosave on exit and autoload on launch. `save` is autosave only. `load` is autoload only. `none` means no resume support.
+- Controller: `configured` means that Kyaraben generates the controller bindings. `auto` means that the emulator detects the controller.
+- Players: the number of controller slots that Kyaraben configures. `-` means that the emulator sets the slots.
+- Provisions: the BIOS, firmware, or encryption keys that the emulator needs. Items marked "(optional)" add features, but games run without them.
 
-RetroArch cores (bsnes through VICE x64sc) share configuration. They use
-RetroArch's hotkey system where Back (Select) enables hotkeys and a second
-button triggers the action.
+The RetroArch cores (bsnes through VICE x64sc) share one configuration. They use the RetroArch hotkey system: hold Back (Select) and push a second button.
 
 ## Applying changes
 
-Click apply. If there are conflicts with your existing configuration, Kyaraben
-shows a preflight check with the exact changes it will make: which config files
-are created, modified, or left unchanged, with line-by-line diffs.
+Click apply. If the changes conflict with your existing configuration, Kyaraben shows a preflight check first. The check lists each config file that Kyaraben creates, modifies, or leaves unchanged, with line-by-line diffs.
 
 {/* Screenshot: v0.1-app-preflight.png - Preflight diff view */}
 
 When you confirm, Kyaraben:
 
-1. Fetches emulator packages (from a binary cache, so downloads are fast)
+1. Downloads emulator packages from a binary cache
 2. Installs emulator binaries to Kyaraben-managed directories
 3. Generates or updates emulator configuration files
 4. Creates the folder structure in your <Collection />
 5. Creates `.desktop` entries for each emulator
-6. Updates the manifest tracking what was installed
+6. Updates the manifest, which records what Kyaraben installed
 
-If apply fails partway through, the previous state remains intact. The
-manifest is only updated after all steps succeed.
+Kyaraben updates the manifest only after all steps succeed. If apply fails, the previous state stays intact.
 
 ## Browsing and launching games
 
-Kyaraben can install [EmulationStation DE](https://es-de.org/) as a frontend
-for browsing and launching your games. Enable it in the settings.
-EmulationStation DE scans your ROM directories and provides a unified game
-launcher with metadata scraping, media art, and controller-friendly navigation.
+To browse and launch your games, enable [EmulationStation DE](https://es-de.org/) in the settings. EmulationStation DE scans your ROM directories. It gives one game launcher with metadata scraping, media art, and controller navigation.
 
 {/* Screenshot: v0.1-app-esde-option.png - EmulationStation DE option in settings */}
 
 :::note[EmulationStation DE shows all systems with ROMs]
-EmulationStation DE has built-in definitions for hundreds of systems. It will
-show any system where it finds ROMs in your collection, regardless of
-which systems you have enabled in Kyaraben. Enabling a system in Kyaraben
-configures an emulator to run that system's games. If you have ROMs for a
-system you haven't enabled, EmulationStation DE will show them but they won't
-launch correctly.
+EmulationStation DE shows every system that has ROMs in your collection, also systems that you did not enable in Kyaraben. Kyaraben configures emulators only for the systems that you enable. Games for other systems show in the list, but they do not launch correctly.
 :::
 
 ## What Kyaraben installs and where
 
-Kyaraben installs emulators and tools into Kyaraben-managed directories:
+Kyaraben installs emulators and tools into its own directories:
 
 - Emulator binaries: `~/.local/state/kyaraben/`
 - Desktop entries: `~/.local/share/applications/kyaraben/`
 - CLI tools: `~/.local/bin/kyaraben`, `~/.local/bin/kyaraben-ui`
 
-This means Kyaraben does not overwrite emulators you installed from other
-sources. You can install the same emulators from other sources, but they share
-config files at default paths (e.g. `~/.config/retroarch/retroarch.cfg`).
+Kyaraben does not overwrite emulators that you install from other sources. But these emulators share the config files at the default paths, for example `~/.config/retroarch/retroarch.cfg`.
 
-Emulators themselves may create additional files (shader caches, input
-profiles, logs). Kyaraben does not manage these.
+Kyaraben does not manage the files that emulators create, such as shader caches, input profiles, and logs.
 
 ## Configuration management
 
-Kyaraben manages specific keys in emulator config files: paths that point to
-your <Collection /> (ROM directories, BIOS paths, save directories, etc.).
-Some settings like shaders and auto-resume can be opted into; most others
-(resolution, audio) are yours to configure.
+Kyaraben manages specific keys in emulator config files: the paths into your <Collection />, such as ROM, BIOS, and save directories. You can also let Kyaraben manage some settings, such as shaders and auto-resume. You configure all other settings, such as resolution and audio.
 
-When you apply, Kyaraben compares what it last wrote with what's currently on
-disk. If you changed something Kyaraben doesn't manage, your change is
-preserved. If you changed a managed key, Kyaraben warns you before overwriting.
+On apply, Kyaraben compares the file on disk with the version that it wrote last. Kyaraben keeps your changes to keys that it does not manage. If you changed a managed key, Kyaraben warns you before it overwrites the key.
 
-Kyaraben expects to be the sole manager of these config files. Using another
-tool that writes to the same files will cause conflicts.
+Do not use another tool that writes to the same config files. The two tools will conflict.
 
 ## The collection
 
@@ -157,38 +123,22 @@ See [collection reference](/collection/) for the folder structure, what syncs, a
 
 ## Guarantees
 
-Kyaraben makes the following guarantees about installation and uninstallation behavior.
-
-### Installation
-
-- Installations are reproducible. Same config, same result, on any Linux
-  machine.
-- No root access needed, no system packages modified. Kyaraben's binaries and
-  state live under `~/.local/state/kyaraben/` and `~/.config/kyaraben/`.
-  Emulator configs are written to their default paths (e.g.
-  `~/.config/retroarch/`).
-- `kyaraben` and `kyaraben-ui` are added to your `PATH` via `~/.local/bin/`.
-  `.desktop` entries are created for kyaraben and each installed emulator.
-  These entries are configured to use kyaraben's managed paths.
-- Apply is atomic. If it fails, the manifest is not updated. The previous
-  state remains intact.
-- Apply is idempotent. Running it twice with the same config produces the same
-  result.
-- Uninstall is clean. `kyaraben uninstall` removes only Kyaraben-managed
-  files. Your collection (ROMs, saves, BIOS) is never touched.
+- Installations are reproducible. The same config gives the same result on any Linux machine.
+- Kyaraben needs no root access and does not modify system packages. Its binaries and state are in `~/.local/state/kyaraben/` and `~/.config/kyaraben/`. Emulator configs go to their default paths, for example `~/.config/retroarch/`.
+- `~/.local/bin/` puts `kyaraben` and `kyaraben-ui` on your `PATH`. Kyaraben creates `.desktop` entries for itself and for each installed emulator. These entries use the paths that Kyaraben manages.
+- Apply is atomic. If it fails, Kyaraben does not update the manifest, and the previous state stays intact.
+- Apply is idempotent. Two runs with the same config give the same result.
+- Uninstall is clean. `kyaraben uninstall` removes only the files that Kyaraben manages. It never touches your collection (ROMs, saves, BIOS).
 
 ## Updating
 
-Kyaraben checks for updates automatically shortly after startup. When a new
-version is available, a banner appears offering to download and install it.
-You can also check for updates manually via the settings icon in the sidebar.
+Kyaraben checks for updates shortly after startup. If a new version is available, a banner lets you download and install it. To check manually, click the settings icon in the sidebar.
 
-After updating, Kyaraben prompts you to run Apply to get any new emulator
-configurations included in the update. This is optional but recommended.
+After an update, run Apply to get the new emulator configurations in the update. Kyaraben asks you to do this, but it is optional.
 
 ## Hotkeys
 
-Kyaraben configures controller hotkeys for emulators that support them. The default bindings use a modifier button (Back/Select on most controllers) plus an action button.
+Kyaraben configures controller hotkeys for the emulators that support them. Hold the modifier button (Back/Select on most controllers) and push an action button.
 
 | Action        | RetroArch cores      | DuckStation          | PCSX2                |
 | ------------- | -------------------- | -------------------- | -------------------- |
@@ -202,25 +152,25 @@ Kyaraben configures controller hotkeys for emulators that support them. The defa
 | Quit          | Select + Start       | Select + Start       | Select + Start       |
 | Open menu     | Select + Y/Square    | Select + Y/Square    | -                    |
 
-Emulators marked as `none` for hotkeys in the [emulator support table](#emulator-support) do not have Kyaraben-configured hotkeys. Use their native keyboard shortcuts or configure hotkeys manually.
+Kyaraben configures no hotkeys for the emulators with `none` in the [emulator support table](#emulator-support). Use their keyboard shortcuts, or configure hotkeys manually.
 
 ## Troubleshooting
 
 ### Game won't launch
 
-If a game fails to launch or shows a black screen:
+If a game does not launch or shows a black screen:
 
-1. Check BIOS files. Run `kyaraben doctor` or check the provisions panel in the UI. Many systems require specific BIOS versions.
-2. Verify the ROM format. Some emulators only support certain formats. For example, PCSX2 works best with `.iso` or `.chd` files, not `.bin/.cue`.
-3. Check the emulator logs. Emulators write logs to their config directories (e.g. `~/.config/duckstation/`).
+1. Check the BIOS files. Run `kyaraben doctor`, or look at the provisions panel in the UI. Many systems require specific BIOS versions.
+2. Check the ROM format. Some emulators support only some formats. For example, PCSX2 works best with `.iso` or `.chd` files, not `.bin/.cue`.
+3. Read the emulator logs. Emulators write logs to their config directories, for example `~/.config/duckstation/`.
 
 ### Controller not detected
 
 Kyaraben uses SDL2 for controller input. If your controller is not detected:
 
-1. Check that the controller works in other applications
-2. For Bluetooth controllers, ensure the controller is paired and connected before launching the emulator
-3. On Steam Deck, if running from Desktop Mode, Steam's controller handling may interfere. Try disabling Steam Input for the emulator.
+1. Make sure that the controller works in other applications.
+2. For a Bluetooth controller, pair and connect it before you start the emulator.
+3. On Steam Deck in Desktop Mode, Steam Input can block the controller. Disable Steam Input for the emulator.
 
 ## Non-goals
 
@@ -230,37 +180,29 @@ Kyaraben uses SDL2 for controller input. If your controller is not detected:
 
 ## Privacy and network activity
 
-Kyaraben makes network requests in these situations:
+Kyaraben collects no telemetry or analytics. It makes network requests only in these cases:
 
-- **Update checks**: on startup, Kyaraben fetches
-  `https://api.github.com/repos/fnune/kyaraben/releases/latest` to check for new
-  versions. This discloses your IP address and a `kyaraben-updater` user agent
-  to GitHub.
-- **Emulator downloads**: when you apply, Kyaraben downloads emulator packages
-  from their official sources (GitHub releases, GitLab, libretro buildbot).
-- **Synchronization**: if you enable sync, Kyaraben connects to a relay server
-  during device pairing and uses Syncthing for peer-to-peer file transfer.
+- Update checks: on startup, Kyaraben fetches `https://api.github.com/repos/fnune/kyaraben/releases/latest`. GitHub sees your IP address and the `kyaraben-updater` user agent.
+- Emulator downloads: on apply, Kyaraben downloads emulator packages from their official sources (GitHub releases, GitLab, libretro buildbot).
+- Synchronization: if you enable sync, Kyaraben connects to a relay server to pair devices. Syncthing then transfers files peer-to-peer.
 
-Kyaraben does not collect telemetry or analytics. The relay server stores
-pairing codes temporarily (until redeemed or expired) but does not log device
-identifiers or IP addresses beyond what is necessary for the pairing handshake.
+The relay server keeps a pairing code until a device uses it or it expires. It logs device identifiers and IP addresses only as necessary for the pairing handshake.
 
 ## Synchronization
 
-Kyaraben synchronizes your saves, states, screenshots, and scraped metadata across all your devices. Start a game on your desktop, pick up where you left off on your Steam Deck.
+Kyaraben synchronizes your saves, states, screenshots, and scraped metadata across all your devices. For example, start a game on your desktop and continue it on your Steam Deck.
 
-Synchronization is peer-to-peer with no cloud accounts. Kyaraben uses Syncthing under the hood, which is installed automatically when you enable synchronization. Data transfers directly between your devices when they are online, and changes queue up when devices are offline.
+Synchronization is peer-to-peer and needs no cloud account. Kyaraben installs Syncthing when you enable synchronization. Data goes directly between devices that are online. Changes wait in a queue while a device is offline.
 
-Synchronization requires systemd. Service management uses `systemctl --user`.
+Synchronization requires systemd. Kyaraben manages the service with `systemctl --user`.
 
 ### Enabling synchronization
 
-1. Go to Settings > Synchronization
-2. Click "Enable synchronization"
+Go to Settings > Synchronization and click "Enable synchronization".
 
 ### Pairing devices
 
-Pairing connects two devices so they can synchronize.
+Pair two devices to synchronize them. The devices do not need to be on the same network.
 
 import pairingScreenshot from "../../assets/screenshots/v0.1-sync-pairing.png";
 
@@ -281,15 +223,12 @@ On the second device:
 2. Enter the code from the first device
 3. Click "Connect"
 
-The code works from any network. Devices do not need to be on the same local
-network.
-
 See [collection reference](/collection/#what-syncs) for what syncs and file versioning behavior.
 
 ### Managing synchronization
 
 To add a new device, see [Pairing devices](#pairing-devices).
 
-To remove a device, click the trash icon next to the device in the synchronization settings.
+To remove a device, click the trash icon next to it in the synchronization settings.
 
-See [CLI reference](/using-the-cli/#kyaraben-sync) for command-line management including status checks, device removal, and configuration options.
+To manage synchronization from the command line, see the [CLI reference](/using-the-cli/#kyaraben-sync).
