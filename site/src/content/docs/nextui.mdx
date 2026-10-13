@@ -3,11 +3,11 @@ title: NextUI integration
 description: Synchronize with TrimUI Brick and other MinUI/NextUI handhelds
 ---
 
-Kyaraben can synchronize saves and ROMs with handheld devices running MinUI or NextUI. This lets you play on your PC and continue on a portable device, or vice versa.
+Kyaraben can synchronize saves and ROMs with handheld devices that run MinUI or NextUI. For example, start a game on your PC and continue it on the handheld.
 
 ## Supported devices
 
-The NextUI integration works with devices running MinUI or NextUI firmware:
+The NextUI integration works with devices that run MinUI or NextUI firmware. Only the TrimUI Brick is tested. The other devices can work, but nobody has tested them.
 
 - TrimUI Brick (tested)
 - TrimUI Smart Pro
@@ -15,24 +15,20 @@ The NextUI integration works with devices running MinUI or NextUI firmware:
 - Miyoo Mini, Mini+
 - RGB30
 
-Only the TrimUI Brick has been tested. Other devices should work but are untested.
-
 ## Installation
 
-1. Download `Kyaraben.pak` from the [GitHub releases page](https://github.com/fnune/kyaraben/releases)
-2. Connect your device's SD card to your computer
-3. Extract `Kyaraben.pak` to the `Tools/` directory on the SD card (e.g. `Tools/tg5040/Kyaraben.pak/` for TrimUI Brick)
-4. Eject the SD card and insert it back into your device
+1. Download `Kyaraben.pak` from the [GitHub releases page](https://github.com/fnune/kyaraben/releases).
+2. Connect the SD card of your device to your computer.
+3. Extract `Kyaraben.pak` to the `Tools/` directory on the SD card. For the TrimUI Brick, this is `Tools/tg5040/Kyaraben.pak/`.
+4. Eject the SD card and put it back into your device.
 
 The Kyaraben app appears in the Tools menu on your device.
 
 ## Configuration
 
-The default configuration maps Kyaraben system IDs to standard NextUI paths. If you use non-standard paths or different cores, create a config file.
+The default configuration maps Kyaraben system IDs to the standard NextUI paths. If you use other paths or other cores, create a config file at `/.userdata/<platform>/kyaraben/config.toml` on the SD card. For the TrimUI Brick, this is `/.userdata/tg5040/kyaraben/config.toml`.
 
-Configuration is stored at `/.userdata/<platform>/kyaraben/config.toml` on the SD card. For TrimUI Brick, this is `/.userdata/tg5040/kyaraben/config.toml`.
-
-Example configuration:
+Example:
 
 ```toml
 [service]
@@ -61,45 +57,45 @@ psx = "Bios/PS"
 retroarch = "Screenshots"
 ```
 
-All paths are relative to the SD card root. The left side of each mapping is a Kyaraben system ID (matching the folder names in your desktop collection). The right side is the path on the device.
+The left side of each mapping is a Kyaraben system ID, the same as the folder names in your desktop collection. The right side is the path on the device, relative to the SD card root.
 
 ## Using the app
 
 Launch Kyaraben from the Tools menu on your device. The main screen shows:
 
-- Status: whether syncing is running and connected
-- Syncing: toggle synchronization on/off
-- Autostart: whether to start syncing automatically when the device boots
-- Sync states: whether to synchronize save states (disabled by default)
-- Keep deleted ROMs: whether to keep this device's ROMs when they are deleted elsewhere (disabled by default)
-- Pair new device: generate or enter a pairing code
-- View paired devices: see connected devices
+- Status: shows if sync runs and is connected
+- Syncing: turns synchronization on or off
+- Autostart: starts sync when the device boots
+- Sync states: synchronizes save states (off by default)
+- Keep deleted ROMs: keeps the ROMs on this device when another device deletes them (off by default)
+- Pair new device: generates or accepts a pairing code
+- View paired devices: shows the connected devices
 
 ### Pairing
 
 To pair with your desktop:
 
-1. On your desktop, run `kyaraben sync pair` or use the UI to generate a pairing code
-2. On your device, select "Pair new device" > "Enter pairing code"
-3. Enter the 6-character code
+1. On your desktop, run `kyaraben sync pair`, or use the UI to generate a pairing code.
+2. On your device, select "Pair new device" > "Enter pairing code".
+3. Enter the 6-character code.
 
-Or generate the code on the device and enter it on your desktop.
+You can also generate the code on the device and enter it on your desktop.
 
 ### Sync states
 
-Save states are disabled by default because they are often not compatible between different emulator versions or platforms. RetroArch on your desktop may use different cores than NextUI. Enable this only if you know your setups use compatible cores.
+Save states do not sync by default. States are often not compatible between emulator versions or platforms, and RetroArch on your desktop can use different cores than NextUI. Enable this setting only if your devices use compatible cores.
 
 ### Ignore ROM deletions
 
-With `ignore_delete_roms = true`, deleting a ROM on another device no longer removes it from this one, the same protection Kyaraben devices get. It is off by default here because handheld cards fill up quickly and following deletions is usually how you reclaim that space.
+With `ignore_delete_roms = true`, a ROM deletion on another device does not remove the ROM from this device. Kyaraben devices have the same protection. On the handheld it is off by default, because handheld cards fill quickly and deletions free space.
 
-Turn it on when the handheld is the device you want to stay complete. The setting is per device, so it protects this device only, and a rename on another device arrives as a delete plus a create, which can leave the old file behind as a duplicate.
+Turn it on if the handheld must keep all its ROMs. The setting protects only this device. A rename on another device arrives as a delete and a create, so the file with the old name can stay as a duplicate.
 
 ## What syncs
 
-See [collection reference](/collection/#what-syncs) for the full list. Differences for NextUI devices:
+See the [collection reference](/collection/#what-syncs) for the full list. Differences for NextUI devices:
 
-- Save states are disabled by default since desktop and handheld cores may not be compatible
-- EmulationStation DE metadata and media do not sync since NextUI uses its own format
-- Saves and states keep 30 days of [file versions](/collection/#file-versioning) on the card, the same as Kyaraben devices, so a deletion can be undone
-- [ROM deletion protection](/collection/#protecting-roms-from-deletion) is off by default here, the opposite of Kyaraben devices. A handheld is usually short on space, so it follows ROM deletions to free the card. Set `ignore_delete_roms = true` under `[service]` to keep this device's ROMs instead, and keep the device you treat as your library protected either way.
+- Save states do not sync by default, because desktop and handheld cores can be incompatible.
+- EmulationStation DE metadata and media do not sync, because NextUI uses its own format.
+- Saves and states keep 30 days of [file versions](/collection/#file-versioning) on the card, the same as Kyaraben devices. You can undo a deletion.
+- [ROM deletion protection](/collection/#protecting-roms-from-deletion) is off by default, the opposite of Kyaraben devices. To keep the ROMs on this device, set `ignore_delete_roms = true` under `[service]`. Always keep protection on for the device that holds your full library.

@@ -3,9 +3,7 @@ title: Headless server
 description: Set up a sync-only hub on a headless Linux server
 ---
 
-Run Kyaraben on a headless Linux server as a central sync hub. The server stores your collection and syncs with devices that run emulators locally.
-
-Use cases:
+Run Kyaraben on a headless Linux server as a central sync hub. The server stores your collection and syncs it with the devices that run emulators. For example:
 
 - Home server as the primary storage for ROMs and saves
 - NAS device syncing to multiple gaming machines
@@ -23,7 +21,7 @@ Kyaraben uses different ports than default Syncthing:
 - TCP 22100 (sync traffic, default is 22000)
 - UDP 21127 (local discovery, default is 21027)
 
-If you have existing Syncthing firewall rules, update them accordingly.
+If you have firewall rules for Syncthing, update them to these ports.
 :::
 
 ## Installation
@@ -61,17 +59,15 @@ Apply the configuration:
 kyaraben apply
 ```
 
-This creates the full directory structure for all systems and installs Syncthing, but does not install any emulators.
+This creates the directory structure for all systems and installs Syncthing. It installs no emulators.
 
 ## Persistence
 
-Enable user services to run without an active login session:
+To keep Syncthing running after you disconnect from SSH, let user services run without a login session:
 
 ```bash
 loginctl enable-linger $USER
 ```
-
-This allows Syncthing to keep running after you disconnect from SSH.
 
 ## Pairing devices
 
@@ -83,7 +79,7 @@ kyaraben sync pair
 
 On your desktop or Steam Deck, enable synchronization and enter the code.
 
-If the pairing code doesn't work (requires Syncthing relay access), use the device ID directly:
+The pairing code needs access to the Syncthing relay. If the code does not work, use the device ID:
 
 ```bash
 kyaraben sync pair --device-id
@@ -108,7 +104,7 @@ Check sync status:
 kyaraben sync status
 ```
 
-This shows whether sync is running, connection status, paired devices, synced folders, and any connectivity warnings.
+This shows if sync runs, the connection status, the paired devices, the synced folders, and connectivity warnings.
 
 If sync shows "not running", check the Syncthing service:
 
@@ -116,7 +112,7 @@ If sync shows "not running", check the Syncthing service:
 systemctl --user status kyaraben-syncthing
 ```
 
-Access the Syncthing web UI at `http://server-ip:8484` for detailed monitoring.
+For more detail, open the Syncthing web UI at `http://server-ip:8484`.
 
 ## Updating
 
@@ -128,11 +124,9 @@ kyaraben update
 
 ## Remote syncing
 
-By default, Kyaraben syncs devices on the same local network. For syncing across different networks (e.g., a cloud VPS or a home server accessed remotely), you need to enable global discovery.
+By default, Kyaraben syncs only devices on the same local network. To sync across networks, for example with a cloud VPS or a remote home server, enable global discovery. Global discovery announces your device to the Syncthing discovery servers, so that devices can find each other on the internet.
 
-Global discovery announces your device to Syncthing's discovery servers, allowing devices to find each other's IP addresses across the internet. Without it, devices can only locate each other on the same LAN.
-
-Add to your config:
+Add this to your config:
 
 ```toml
 [sync.syncthing]
@@ -140,13 +134,10 @@ global_discovery_enabled = true
 relay_enabled = true
 ```
 
-With both settings enabled:
-
-- Global discovery lets devices find each other
-- Relays transfer data when direct connections aren't possible
+Global discovery lets devices find each other. Relays transfer data when a direct connection is not possible.
 
 :::caution[Untested]
-Remote syncing with global discovery should work but hasn't been tested end-to-end. If you encounter issues, please [report them](https://github.com/fnune/kyaraben/issues).
+Nobody has tested remote syncing with global discovery end-to-end. If you find problems, [report them](https://github.com/fnune/kyaraben/issues).
 :::
 
 ## Troubleshooting
