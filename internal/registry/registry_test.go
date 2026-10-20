@@ -18,6 +18,7 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/retroarchcitra"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchfbneo"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchgenesisplusgx"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchmame"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmelonds"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmesen"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmgba"
@@ -102,6 +103,7 @@ func TestAllDefinitions(t *testing.T) {
 		retroarchmgba.Definition{},
 		retroarchmelonds.Definition{},
 		retroarchfbneo.Definition{},
+		retroarchmame.Definition{},
 		retroarchstella.Definition{},
 		retroarchvice.Definition{},
 		duckstation.Definition{},
@@ -215,6 +217,7 @@ func TestRegistryGetEmulator(t *testing.T) {
 		{model.EmulatorIDRetroArchMupen64Plus, false},
 		{model.EmulatorIDRetroArchBeetleSaturn, false},
 		{model.EmulatorIDRetroArchFBNeo, false},
+		{model.EmulatorIDRetroArchMAME, false},
 		{model.EmulatorIDRetroArchStella, false},
 		{model.EmulatorIDRetroArchVICE, false},
 		{model.EmulatorIDDuckStation, false},
@@ -275,8 +278,8 @@ func TestRegistryGetEmulatorsForSystem(t *testing.T) {
 		{model.SystemIDGenesis, 1, []model.EmulatorID{model.EmulatorIDRetroArchGenesisPlusGX}},
 		{model.SystemIDSaturn, 1, []model.EmulatorID{model.EmulatorIDRetroArchBeetleSaturn}},
 		{model.SystemIDDreamcast, 1, []model.EmulatorID{model.EmulatorIDFlycast}},
-		{model.SystemIDArcade, 1, []model.EmulatorID{model.EmulatorIDRetroArchFBNeo}},
-		{model.SystemIDNeoGeo, 1, []model.EmulatorID{model.EmulatorIDRetroArchFBNeo}},
+		{model.SystemIDArcade, 2, []model.EmulatorID{model.EmulatorIDRetroArchFBNeo, model.EmulatorIDRetroArchMAME}},
+		{model.SystemIDNeoGeo, 2, []model.EmulatorID{model.EmulatorIDRetroArchFBNeo, model.EmulatorIDRetroArchMAME}},
 		{model.SystemIDAtari2600, 1, []model.EmulatorID{model.EmulatorIDRetroArchStella}},
 		{model.SystemIDC64, 1, []model.EmulatorID{model.EmulatorIDRetroArchVICE}},
 	}
@@ -454,6 +457,7 @@ func TestGetConfigGenerator(t *testing.T) {
 		{model.EmulatorIDDolphin, true},
 		{model.EmulatorIDEden, true},
 		{model.EmulatorIDRetroArchFBNeo, true},
+		{model.EmulatorIDRetroArchMAME, true},
 		{model.EmulatorIDRetroArchStella, true},
 		{model.EmulatorIDRetroArchVICE, true},
 		{model.EmulatorID("unknown"), false},

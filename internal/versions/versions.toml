@@ -158,6 +158,19 @@ variant = "x86_64"
 sha256 = "sha256-S37Y3JfUvwNfzhgsZLVljHZi4unl1CEpU4r71LYJYwc="
 size = 72255952
 
+[mame]
+releases_url = "github:libretro/RetroArch"
+url_template = "https://buildbot.libretro.com/stable/{version}/linux/{variant}/RetroArch_cores.7z"
+default = "1.22.2"
+binary_path = "mame_libretro.so"
+install_type = "retroarch-core"
+bundle_size = 274237400
+
+[mame."1.22.2".targets.x64]
+variant = "x86_64"
+sha256 = "sha256-S37Y3JfUvwNfzhgsZLVljHZi4unl1CEpU4r71LYJYwc="
+size = 411265248
+
 [stella]
 releases_url = "github:libretro/RetroArch"
 url_template = "https://buildbot.libretro.com/stable/{version}/linux/{variant}/RetroArch_cores.7z"
