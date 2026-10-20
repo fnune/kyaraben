@@ -53,8 +53,6 @@ func (c *Context) newCollectionsService(cfg *model.KyarabenConfig) (*collections
 	return collections.NewDefaultService(c.FS, c.Paths, c.Resolver, cfg, store, c.NewRegistry().GetEmulator)
 }
 
-// setUpCollections runs after apply. Collections are optional, so failures
-// are reported without failing the apply.
 func setUpCollections(ctx *Context, cfg *model.KyarabenConfig) {
 	units, err := collections.NewDefaultUnits(ctx.FS, ctx.Paths)
 	if err != nil {
@@ -173,9 +171,9 @@ func printFileResults(id string, results []collections.FileResult) {
 	for _, r := range results {
 		counts[r.Outcome]++
 		switch r.Outcome {
-		case collections.FileForeign:
+		case collections.FileUserOwned:
 			fmt.Printf("  kept %s: it was not created by kyaraben\n", r.Path)
-		case collections.FileModified:
+		case collections.FileUserEdited:
 			fmt.Printf("  kept %s: it was edited (use --force to replace)\n", r.Path)
 		}
 	}
@@ -205,7 +203,7 @@ func (cmd *LaunchCmd) Run(ctx *Context) error {
 		return err
 	}
 	for _, f := range plan.Files {
-		if f.Outcome == collections.FileForeign || f.Outcome == collections.FileModified {
+		if f.Outcome == collections.FileUserOwned || f.Outcome == collections.FileUserEdited {
 			fmt.Fprintf(os.Stderr, "Note: kept %s (%s); the collection's settings for this game are not applied\n", f.Path, f.Outcome)
 		}
 	}
@@ -281,11 +279,9 @@ func (cmd *CollectionsServeCmd) Run(ctx *Context) error {
 	return nil
 }
 
-// collectionsListener prefers a socket passed in by systemd socket activation
-// (sd_listen_fds protocol, first fd is 3) so the service starts on first use.
 func collectionsListener(port int) (net.Listener, error) {
 	if os.Getenv("LISTEN_PID") == strconv.Itoa(os.Getpid()) && os.Getenv("LISTEN_FDS") != "" && os.Getenv("LISTEN_FDS") != "0" {
-		f := os.NewFile(3, "systemd-socket")
+		f := os.NewFile(3, "systemd-socket") // sd_listen_fds: inherited sockets start at fd 3
 		defer func() { _ = f.Close() }()
 		return net.FileListener(f)
 	}

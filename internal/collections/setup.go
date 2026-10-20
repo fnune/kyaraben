@@ -40,15 +40,15 @@ func NewDefaultService(fs vfs.FS, p *paths.Paths, resolver model.BaseDirResolver
 		return nil, err
 	}
 	return NewService(ServiceDeps{
-		FS:          fs,
-		Config:      cfg,
-		Store:       store,
-		GetEmulator: getEmulator,
-		Source:      NewSource(fs, NewHTTPFetcher(), filepath.Join(dir, "cache")),
-		Overrides:   NewOverrideStore(fs, filepath.Join(dir, "owned.json")),
-		ConfigDir:   configDir,
-		BinDir:      lm.BinDir(),
-		CoresDir:    lm.CoresDir(),
+		FS:            fs,
+		Config:        cfg,
+		Store:         store,
+		GetEmulator:   getEmulator,
+		Source:        NewSource(fs, NewHTTPFetcher(), filepath.Join(dir, "cache")),
+		Overrides:     NewOverrideStore(fs, filepath.Join(dir, "owned.json")),
+		UserConfigDir: configDir,
+		BinDir:        lm.BinDir(),
+		CoresDir:      lm.CoresDir(),
 	}), nil
 }
 
@@ -60,15 +60,13 @@ func NewDefaultUnits(fs vfs.FS, p *paths.Paths) (*Units, error) {
 	return NewUnits(fs, sync.NewDefaultServiceManager(), filepath.Join(configDir, "systemd", "user"), p.DirName()+"-collections", p.Instance), nil
 }
 
-// launcherBinary prefers the CLI installed on PATH, because the running
-// executable may be a temporary AppImage mount that disappears.
 func launcherBinary(p *paths.Paths) (string, error) {
 	if installed, err := p.CLIInstallPath(); err == nil {
 		if _, err := os.Stat(installed); err == nil {
 			return installed, nil
 		}
 	}
-	exe, err := os.Executable()
+	exe, err := os.Executable() // may be a temporary AppImage mount, hence the installed CLI first
 	if err != nil {
 		return "", err
 	}
@@ -80,9 +78,6 @@ type SetupReport struct {
 	Warnings []string
 }
 
-// SetUp runs after apply: it installs or removes the launcher service and
-// refreshes per-game settings. Collections are optional extras, so problems
-// become warnings instead of failing the apply.
 func SetUp(ctx context.Context, svc *Service, units *Units, p *paths.Paths, configured bool) SetupReport {
 	report := SetupReport{Results: map[string][]FileResult{}}
 	if !configured {
@@ -113,8 +108,6 @@ func SetUp(ctx context.Context, svc *Service, units *Units, p *paths.Paths, conf
 	return report
 }
 
-// Uninstall removes the launcher units and the per-game files collections
-// wrote, keeping any the user edited.
 func Uninstall(fs vfs.FS, units *Units, p *paths.Paths) (removed []string, errs []error) {
 	if units.Installed() {
 		if err := units.Remove(); err != nil {

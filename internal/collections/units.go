@@ -21,8 +21,7 @@ ListenStream=127.0.0.1:{{.Port}}
 WantedBy=sockets.target
 `
 
-// KillMode=process keeps running games alive when the service restarts,
-// since they share its control group.
+// KillMode=process: games share the service's cgroup and must survive its restarts.
 const serviceTemplate = `[Unit]
 Description=Kyaraben collections launcher
 Requires={{.Name}}.socket
@@ -49,8 +48,6 @@ type Units struct {
 	instance string
 }
 
-// NewUnits manages <name>.socket and <name>.service in unitDir. The socket
-// starts the launcher on the first request, so it costs nothing while unused.
 func NewUnits(fs vfs.FS, service sync.ServiceManager, unitDir, name, instance string) *Units {
 	return &Units{fs: fs, service: service, unitDir: unitDir, name: name, instance: instance}
 }
@@ -58,9 +55,6 @@ func NewUnits(fs vfs.FS, service sync.ServiceManager, unitDir, name, instance st
 func (u *Units) socketPath() string  { return filepath.Join(u.unitDir, u.name+".socket") }
 func (u *Units) servicePath() string { return filepath.Join(u.unitDir, u.name+".service") }
 
-// Ensure writes the units and enables the socket. The service is restarted
-// when its definition changed or when config changes need picking up, since
-// the server reads config once at start.
 func (u *Units) Ensure(binary string, port int) error {
 	params := unitParams{Name: u.name, Binary: binary, Instance: u.instance, Port: port}
 	socketChanged, err := u.write(u.socketPath(), socketTemplate, params)
@@ -82,7 +76,7 @@ func (u *Units) Ensure(binary string, port int) error {
 	} else if err := u.service.Enable(socket); err != nil {
 		return fmt.Errorf("enabling %s: %w", socket, err)
 	}
-	if state := u.service.State(u.name + ".service"); state == "active" {
+	if state := u.service.State(u.name + ".service"); state == "active" { // it reads config only at start
 		if err := u.service.Restart(u.name + ".service"); err != nil {
 			return fmt.Errorf("restarting %s.service: %w", u.name, err)
 		}

@@ -1,14 +1,10 @@
-// Package collections launches curated sets of games with per-game emulator
-// settings. A collection manifest is published by a third party (such as a
-// personal games site) and describes which ROM sets and settings each game
-// needs; kyaraben resolves them against the local collection and writes
-// RetroArch per-game overrides it owns.
 package collections
 
 import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -36,28 +32,22 @@ type Game struct {
 	Title       string         `json:"title"`
 	System      model.SystemID `json:"system"`
 	Orientation Orientation    `json:"orientation,omitempty"`
-	// Sets are tried in order; the first one whose emulator is enabled and
-	// whose files are present wins.
-	Sets     []Set    `json:"sets"`
-	Settings Settings `json:"settings,omitempty"`
+	Sets        []Set          `json:"sets"`
+	Settings    Settings       `json:"settings,omitempty"`
 }
 
 type Set struct {
-	Emulator model.EmulatorID `json:"emulator"`
-	Name     string           `json:"name"`
-	// Requires lists parent and BIOS set names that must sit next to the ROM
-	// or wherever the emulator looks for them.
+	Emulator    model.EmulatorID  `json:"emulator"`
+	Name        string            `json:"name"`
 	Requires    []string          `json:"requires,omitempty"`
 	CoreOptions map[string]string `json:"core_options,omitempty"`
 }
 
 type Settings struct {
-	RunAheadFrames int    `json:"run_ahead_frames,omitempty"`
-	FrameDelay     string `json:"frame_delay,omitempty"`
-	IntegerScale   *bool  `json:"integer_scale,omitempty"`
-	// RetroArch holds raw retroarch.cfg keys for anything the typed settings
-	// do not cover. Only display, latency and audio keys are accepted.
-	RetroArch map[string]string `json:"retroarch,omitempty"`
+	RunAheadFrames int               `json:"run_ahead_frames,omitempty"`
+	FrameDelay     string            `json:"frame_delay,omitempty"`
+	IntegerScale   *bool             `json:"integer_scale,omitempty"`
+	RetroArch      map[string]string `json:"retroarch,omitempty"`
 }
 
 func (m *Manifest) Game(id string) (Game, bool) {
@@ -86,8 +76,6 @@ var (
 	optionPattern  = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 )
 
-// Manifests come from the network, so every value that ends up in a file name
-// or a RetroArch config is constrained here rather than trusted downstream.
 func (m *Manifest) Validate() error {
 	if m.Schema != SchemaVersion {
 		return fmt.Errorf("unsupported collection schema %d (want %d)", m.Schema, SchemaVersion)
@@ -164,24 +152,21 @@ var allowedRetroArchPrefixes = []string{
 	"aspect_ratio_index", "custom_viewport_", "input_poll_type_behavior",
 }
 
-// Paths, cores and save locations are what keep sync working, so a manifest
-// may never redirect them.
-var deniedRetroArchKeys = []string{
+var codeLoadingRetroArchKeys = []string{
 	"video_shader", "video_filter", "video_font_path", "video_layout_path",
 	"video_shader_dir", "video_filter_dir", "video_layout_directory",
+}
+
+func isPathKey(key string) bool {
+	return strings.HasSuffix(key, "_directory") || strings.HasSuffix(key, "_path") || strings.HasSuffix(key, "_dir")
 }
 
 func allowedRetroArchKey(key string) bool {
 	if !optionPattern.MatchString(key) {
 		return false
 	}
-	if strings.HasSuffix(key, "_directory") || strings.HasSuffix(key, "_path") || strings.HasSuffix(key, "_dir") {
+	if isPathKey(key) || slices.Contains(codeLoadingRetroArchKeys, key) {
 		return false
-	}
-	for _, denied := range deniedRetroArchKeys {
-		if key == denied {
-			return false
-		}
 	}
 	for _, prefix := range allowedRetroArchPrefixes {
 		if strings.HasPrefix(key, prefix) {

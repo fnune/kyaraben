@@ -5,18 +5,11 @@ import (
 	"net/url"
 )
 
-// CollectionConfig points at a curated collection manifest and holds the
-// settings that depend on this device rather than on the game.
 type CollectionConfig struct {
-	URL string `toml:"url"`
-	// Vertical decides how vertical games are shown: "rotate" turns them
-	// upright on a landscape screen, "native" leaves them unrotated for a
-	// physically rotated monitor.
-	Vertical string `toml:"vertical,omitempty"`
-	// VRR syncs RetroArch to the game's exact refresh rate. It only helps on
-	// displays and compositors with adaptive sync enabled.
-	VRR   bool                            `toml:"vrr,omitempty"`
-	Games map[string]CollectionGameConfig `toml:"games,omitempty"`
+	URL      string                          `toml:"url"`
+	Vertical string                          `toml:"vertical,omitempty"`
+	VRR      bool                            `toml:"vrr,omitempty"`
+	Games    map[string]CollectionGameConfig `toml:"games,omitempty"`
 }
 
 type CollectionGameConfig struct {

@@ -219,14 +219,14 @@ func TestOverrideStore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertOutcomes(t, results, map[string]FileOutcome{"/cfg/a.cfg": FileWritten, "/cfg/b.cfg": FileWritten, "/cfg/user.cfg": FileForeign})
+	assertOutcomes(t, results, map[string]FileOutcome{"/cfg/a.cfg": FileWritten, "/cfg/b.cfg": FileWritten, "/cfg/user.cfg": FileUserOwned})
 
 	if err := env.fs.WriteFile("/cfg/a.cfg", []byte("edited"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	a2 := OverrideFile{Path: a.Path, Content: []byte("a = \"2\"\n")}
 	results, _ = s.Write("shmups", []OverrideFile{a2, b}, true, false)
-	assertOutcomes(t, results, map[string]FileOutcome{"/cfg/a.cfg": FileModified, "/cfg/b.cfg": FileUnchanged})
+	assertOutcomes(t, results, map[string]FileOutcome{"/cfg/a.cfg": FileUserEdited, "/cfg/b.cfg": FileUnchanged})
 
 	results, _ = s.Write("shmups", []OverrideFile{a2}, true, true)
 	assertOutcomes(t, results, map[string]FileOutcome{"/cfg/a.cfg": FileWritten, "/cfg/b.cfg": FileRemoved})
@@ -235,7 +235,7 @@ func TestOverrideStore(t *testing.T) {
 	}
 
 	results, _ = s.Write("other", []OverrideFile{a2}, false, false)
-	assertOutcomes(t, results, map[string]FileOutcome{"/cfg/a.cfg": FileForeign})
+	assertOutcomes(t, results, map[string]FileOutcome{"/cfg/a.cfg": FileUserOwned})
 
 	results, _ = s.RemoveAll()
 	assertOutcomes(t, results, map[string]FileOutcome{"/cfg/a.cfg": FileRemoved})

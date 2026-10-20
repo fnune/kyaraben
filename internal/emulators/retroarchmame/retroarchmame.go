@@ -63,8 +63,7 @@ func (c *Config) Generate(ctx model.GenerateContext) (model.GenerateResult, erro
 	patches = append(patches, model.ConfigPatch{
 		Target: coreOptionsTarget,
 		Entries: []model.ConfigEntry{
-			// Leaving rotation to RetroArch lets video_allow_rotate decide, the same
-			// switch FBNeo honours, so one setting controls vertical games on both cores.
+			// Lets video_allow_rotate control vertical games on MAME as it does on FBNeo.
 			model.Default(model.None, model.Path("mame_rotation_mode"), "libretro"),
 		},
 	})

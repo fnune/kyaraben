@@ -17,10 +17,6 @@ const DefaultPort = 47410
 
 const statusMaxAge = time.Minute
 
-// Server exposes collections to the web pages that publish them. It listens
-// on loopback only, and accepts browser requests only from the origins of
-// configured manifest URLs, because any page the user visits can reach
-// 127.0.0.1.
 type Server struct {
 	service  *Service
 	sessions *Sessions
@@ -63,8 +59,8 @@ func (s *Server) Handler() http.Handler {
 
 func (s *Server) guard(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !s.allowedHost(r.Host) {
-			writeError(w, http.StatusForbidden, "unexpected host")
+		if !s.isLoopbackHost(r.Host) {
+			writeError(w, http.StatusForbidden, "unexpected host, possibly DNS rebinding")
 			return
 		}
 		origin := r.Header.Get("Origin")
@@ -90,9 +86,7 @@ func (s *Server) guard(next http.Handler) http.Handler {
 	})
 }
 
-// Checking Host defeats DNS rebinding, where a hostile domain resolves to
-// 127.0.0.1 and so would count as same-origin.
-func (s *Server) allowedHost(host string) bool {
+func (s *Server) isLoopbackHost(host string) bool {
 	h, p, err := net.SplitHostPort(host)
 	if err != nil || p != strconv.Itoa(s.port) {
 		return false

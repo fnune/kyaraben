@@ -23,8 +23,6 @@ type Starter interface {
 
 type ExecStarter struct{}
 
-// Games run in their own session so that restarting the launcher service
-// (or closing the terminal that ran `kyaraben launch`) does not kill them.
 func (ExecStarter) Start(command []string, logPath string) (Process, error) {
 	if err := os.MkdirAll(filepath.Dir(logPath), 0o755); err != nil {
 		return nil, err
@@ -36,7 +34,7 @@ func (ExecStarter) Start(command []string, logPath string) (Process, error) {
 	cmd := exec.Command(command[0], command[1:]...)
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true} // outlive a closed terminal
 	if err := cmd.Start(); err != nil {
 		_ = logFile.Close()
 		return nil, err
@@ -69,8 +67,6 @@ type Session struct {
 
 var ErrGameRunning = errors.New("a game is already running")
 
-// Sessions tracks launched games so a client can tell when a play session
-// ends, for example to offer logging a run.
 type Sessions struct {
 	mu       sync.Mutex
 	starter  Starter
@@ -86,8 +82,6 @@ func NewSessions(starter Starter, logDir string) *Sessions {
 	return &Sessions{starter: starter, logDir: logDir, now: time.Now, sessions: map[string]*Session{}}
 }
 
-// CheckIdle reports ErrGameRunning while a game is running, so callers can
-// refuse a launch before doing any work for it.
 func (s *Sessions) CheckIdle() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

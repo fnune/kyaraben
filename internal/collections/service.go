@@ -27,16 +27,15 @@ type Service struct {
 }
 
 type ServiceDeps struct {
-	FS          vfs.FS
-	Config      *model.KyarabenConfig
-	Store       model.StoreReader
-	GetEmulator EmulatorLookup
-	Source      *Source
-	Overrides   *OverrideStore
-	// ConfigDir is the XDG config directory holding retroarch/.
-	ConfigDir string
-	BinDir    string
-	CoresDir  string
+	FS            vfs.FS
+	Config        *model.KyarabenConfig
+	Store         model.StoreReader
+	GetEmulator   EmulatorLookup
+	Source        *Source
+	Overrides     *OverrideStore
+	UserConfigDir string
+	BinDir        string
+	CoresDir      string
 }
 
 func NewService(d ServiceDeps) *Service {
@@ -47,7 +46,7 @@ func NewService(d ServiceDeps) *Service {
 		getEmulator: d.GetEmulator,
 		source:      d.Source,
 		overrides:   d.Overrides,
-		configDir:   d.ConfigDir,
+		configDir:   d.UserConfigDir,
 		binDir:      d.BinDir,
 		coresDir:    d.CoresDir,
 	}
@@ -114,9 +113,6 @@ func (s *Service) Status(ctx context.Context, id string, maxAge time.Duration) (
 	return st, nil
 }
 
-// Sync writes per-game overrides for every playable game and removes the
-// ones the collection no longer needs, so launches from other frontends get
-// the same settings.
 func (s *Service) Sync(ctx context.Context, id string, force bool) ([]FileResult, error) {
 	loaded, err := s.Load(ctx, id, 0)
 	if err != nil {
@@ -146,8 +142,6 @@ type LaunchPlan struct {
 	Files        []FileResult `json:"files"`
 }
 
-// Plan resolves a game and computes its launch command and per-game files
-// without writing anything.
 func (s *Service) Plan(ctx context.Context, id, gameID string) (*LaunchPlan, []OverrideFile, error) {
 	loaded, err := s.Load(ctx, id, time.Minute)
 	if err != nil {
@@ -181,8 +175,6 @@ func (s *Service) Plan(ctx context.Context, id, gameID string) (*LaunchPlan, []O
 	}, files, nil
 }
 
-// Prepare writes a game's overrides right before launching, so a launch
-// always reflects the current manifest and device settings.
 func (s *Service) Prepare(ctx context.Context, id, gameID string) (*LaunchPlan, error) {
 	plan, files, err := s.Plan(ctx, id, gameID)
 	if err != nil {

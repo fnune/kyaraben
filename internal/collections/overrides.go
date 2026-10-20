@@ -18,10 +18,6 @@ import (
 	"github.com/fnune/kyaraben/internal/model"
 )
 
-// RetroArch loads <config>/<core library name>/<content name>.cfg and .opt
-// on top of everything kyaraben writes globally, and never saves them back
-// into retroarch.cfg. Kyaraben does not manage these per-game files
-// otherwise, so collections own them outright.
 type OverrideFile struct {
 	Path    string
 	Content []byte
@@ -37,7 +33,7 @@ func GameOverrides(configDir string, game Game, res Resolution, device DeviceSet
 		return nil, nil
 	}
 	info := retroarch.MustGetCoreInfo(res.Emulator)
-	coreDir := filepath.Join(configDir, "retroarch", "config", info.LibraryName)
+	coreDir := filepath.Join(configDir, "retroarch", "config", info.LibraryName) // RetroArch never saves per-game files back into retroarch.cfg
 	base := strings.TrimSuffix(filepath.Base(res.RomPath), filepath.Ext(res.RomPath))
 
 	files := []OverrideFile{{
@@ -91,8 +87,7 @@ func retroArchSettings(game Game, device DeviceSettings) map[string]string {
 	return settings
 }
 
-// A per-game .opt replaces the core's options wholesale rather than layering
-// on them, so it starts from the options the game would otherwise get.
+// RetroArch reads a per-game .opt instead of the core's, not on top of it.
 func inheritedCoreOptions(fs vfs.FS, coreDir, libraryName string, sys model.SystemID) (map[string]string, error) {
 	for _, candidate := range []string{string(sys) + ".opt", libraryName + ".opt"} {
 		data, err := fs.ReadFile(filepath.Join(coreDir, candidate))
@@ -151,13 +146,11 @@ type ownedState struct {
 type FileOutcome string
 
 const (
-	FileWritten   FileOutcome = "written"
-	FileUnchanged FileOutcome = "unchanged"
-	FileRemoved   FileOutcome = "removed"
-	// FileForeign means the file existed before kyaraben and is left alone.
-	FileForeign FileOutcome = "foreign"
-	// FileModified means someone edited a file kyaraben wrote, so it is kept.
-	FileModified FileOutcome = "modified"
+	FileWritten    FileOutcome = "written"
+	FileUnchanged  FileOutcome = "unchanged"
+	FileRemoved    FileOutcome = "removed"
+	FileUserOwned  FileOutcome = "user-owned"
+	FileUserEdited FileOutcome = "user-edited"
 )
 
 type FileResult struct {
@@ -165,8 +158,6 @@ type FileResult struct {
 	Outcome FileOutcome `json:"outcome"`
 }
 
-// OverrideStore writes per-game files and remembers which ones it wrote, so
-// it never overwrites a user's own overrides and can clean up after itself.
 type OverrideStore struct {
 	fs        vfs.FS
 	statePath string
@@ -176,9 +167,6 @@ func NewOverrideStore(fs vfs.FS, statePath string) *OverrideStore {
 	return &OverrideStore{fs: fs, statePath: statePath}
 }
 
-// Write writes files for one collection. With prune set, files the
-// collection wrote earlier but no longer wants are removed. Force overwrites
-// files the user edited, never files kyaraben did not create.
 func (s *OverrideStore) Write(collectionID string, files []OverrideFile, prune, force bool) ([]FileResult, error) {
 	state, err := s.load()
 	if err != nil {
@@ -213,7 +201,6 @@ func (s *OverrideStore) Write(collectionID string, files []OverrideFile, prune, 
 	return results, s.save(state)
 }
 
-// RemoveAll deletes every unmodified file kyaraben wrote, for uninstall.
 func (s *OverrideStore) RemoveAll() ([]FileResult, error) {
 	state, err := s.load()
 	if err != nil {
@@ -239,10 +226,10 @@ func (s *OverrideStore) writeOne(state *ownedState, collectionID string, f Overr
 
 	owned, isOwned := state.Files[f.Path]
 	if exists && (!isOwned || owned.Collection != collectionID) {
-		return FileForeign, nil
+		return FileUserOwned, nil
 	}
 	if exists && hash(current) != owned.SHA256 && !force {
-		return FileModified, nil
+		return FileUserEdited, nil
 	}
 	if exists && bytes.Equal(current, f.Content) {
 		return FileUnchanged, nil
@@ -269,7 +256,7 @@ func (s *OverrideStore) removeOne(state *ownedState, path string, force bool) (F
 	}
 	if hash(current) != state.Files[path].SHA256 && !force {
 		delete(state.Files, path)
-		return FileModified, nil
+		return FileUserEdited, nil
 	}
 	if err := s.fs.Remove(path); err != nil {
 		return "", err

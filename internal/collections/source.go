@@ -50,8 +50,6 @@ func (f *HTTPFetcher) Fetch(ctx context.Context, url string) ([]byte, error) {
 	return data, nil
 }
 
-// Source fetches manifests and keeps the last valid copy so games stay
-// launchable while the publishing server is unreachable.
 type Source struct {
 	fs       vfs.FS
 	fetcher  Fetcher
@@ -65,12 +63,9 @@ func NewSource(fs vfs.FS, fetcher Fetcher, cacheDir string) *Source {
 type Loaded struct {
 	Manifest  *Manifest
 	FromCache bool
-	// FetchErr is set when the cached copy is served because fetching failed.
-	FetchErr error
+	FetchErr  error
 }
 
-// Load returns the cached manifest when it is younger than maxAge, and
-// otherwise fetches it, falling back to the cache if fetching fails.
 func (s *Source) Load(ctx context.Context, collectionID, url string, maxAge time.Duration) (*Loaded, error) {
 	if maxAge > 0 {
 		if info, err := s.fs.Stat(s.cachePath(collectionID)); err == nil && time.Since(info.ModTime()) < maxAge {

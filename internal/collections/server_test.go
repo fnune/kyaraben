@@ -57,11 +57,11 @@ func newTestServer(t *testing.T) (http.Handler, *fakeStarter) {
 		GetEmulator: func(id model.EmulatorID) (model.Emulator, error) {
 			return model.Emulator{ID: id, Launcher: model.LauncherInfo{Binary: "retroarch", CoreName: "fbneo_libretro"}}, nil
 		},
-		Source:    NewSource(env.fs, &fakeFetcher{data: []byte(testManifest)}, "/state/collections/cache"),
-		Overrides: NewOverrideStore(env.fs, "/state/collections/owned.json"),
-		ConfigDir: "/cfg",
-		BinDir:    "/state/bin",
-		CoresDir:  "/state/cores",
+		Source:        NewSource(env.fs, &fakeFetcher{data: []byte(testManifest)}, "/state/collections/cache"),
+		Overrides:     NewOverrideStore(env.fs, "/state/collections/owned.json"),
+		UserConfigDir: "/cfg",
+		BinDir:        "/state/bin",
+		CoresDir:      "/state/cores",
 	})
 	starter := &fakeStarter{}
 	sessions := NewSessions(starter, "/state/collections/logs")

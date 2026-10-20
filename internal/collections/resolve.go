@@ -36,9 +36,6 @@ func NewResolver(fs vfs.FS, store model.StoreReader, enabled map[model.SystemID]
 	return &Resolver{fs: fs, store: store, enabled: enabled}
 }
 
-// Resolve picks the first set whose emulator is enabled for the game's system
-// and whose ROM and required sets are all present. When none qualifies, it
-// reports the closest candidate so the user knows what to add.
 func (r *Resolver) Resolve(game Game, local model.CollectionGameConfig) Resolution {
 	res := Resolution{GameID: game.ID}
 
@@ -117,15 +114,11 @@ func (r *Resolver) check(game Game, s Set) Resolution {
 	return res
 }
 
-// requirementDirs mirrors where each core looks for parent and BIOS sets:
-// FBNeo checks the ROM's folder and the system directory, while MAME's
-// libretro frontend builds its rompath from the ROM's folder plus
-// <system>/mame/bios and <system>/mame/roms.
 func (r *Resolver) requirementDirs(sys model.SystemID, emu model.EmulatorID) []string {
 	romsDir := r.store.SystemRomsDir(sys)
 	biosDir := r.store.SystemBiosDir(sys)
 	switch emu {
-	case model.EmulatorIDRetroArchMAME:
+	case model.EmulatorIDRetroArchMAME: // its libretro rompath ignores the plain system directory
 		return []string{romsDir, filepath.Join(biosDir, "mame", "bios"), filepath.Join(biosDir, "mame", "roms")}
 	case model.EmulatorIDRetroArchFBNeo:
 		return []string{romsDir, biosDir, filepath.Join(biosDir, "fbneo")}
