@@ -1,13 +1,18 @@
 package cli
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/fnune/kyaraben/internal/frontends/esde"
 	"github.com/fnune/kyaraben/internal/logging"
+	"github.com/fnune/kyaraben/internal/sdlmappings"
 )
 
 type SystemCmd struct {
-	ESDEImport SystemESDEImportCmd `cmd:"" name:"esde-import" help:"Import ES-DE gamelists from sync directory."`
-	ESDEExport SystemESDEExportCmd `cmd:"" name:"esde-export" help:"Export ES-DE gamelists to sync directory."`
+	ESDEImport  SystemESDEImportCmd  `cmd:"" name:"esde-import" help:"Import ES-DE gamelists from sync directory."`
+	ESDEExport  SystemESDEExportCmd  `cmd:"" name:"esde-export" help:"Export ES-DE gamelists to sync directory."`
+	SDLMappings SystemSDLMappingsCmd `cmd:"" name:"sdl-mappings" help:"Print SDL controller mappings for RetroArch's wrapper."`
 }
 
 type SystemESDEImportCmd struct{}
@@ -67,5 +72,21 @@ func (cmd *SystemESDEExportCmd) Run(ctx *Context) error {
 	log.Info("exporting gamelists for %d systems", len(systems))
 	sync.ExportAll(systems)
 
+	return nil
+}
+
+type SystemSDLMappingsCmd struct{}
+
+func (cmd *SystemSDLMappingsCmd) Run(_ *Context) error {
+	devices, err := os.Open("/proc/bus/input/devices")
+	if err != nil {
+		return nil
+	}
+	defer func() { _ = devices.Close() }()
+	mappings, err := sdlmappings.ForDevices(devices, sdlmappings.Budget)
+	if err != nil {
+		return nil
+	}
+	fmt.Print(mappings)
 	return nil
 }

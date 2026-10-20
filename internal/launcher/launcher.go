@@ -89,6 +89,19 @@ _exit_code=$?
 exit $_exit_code
 `
 
+// RetroArch's bundled SDL2 has an outdated controller table, so its wrapper
+// asks kyaraben for current mappings of the pads that are plugged in. Mappings
+// the user sets come last so they win.
+const retroarchWrapperTemplate = `#!/bin/sh
+{{range $key, $value := .Env}}export {{$key}}="{{$value}}"
+{{end}}{{if .KyarabenPath}}_kyaraben_sdl="$("{{.KyarabenPath}}" system sdl-mappings 2>/dev/null)"
+if [ -n "$_kyaraben_sdl" ]; then
+	export SDL_GAMECONTROLLERCONFIG="$_kyaraben_sdl${SDL_GAMECONTROLLERCONFIG:+
+$SDL_GAMECONTROLLERCONFIG}"
+fi
+{{end}}exec "{{.RealBinaryPath}}" "$@"
+`
+
 type wrapperData struct {
 	RealBinaryPath string
 	KyarabenPath   string
@@ -120,6 +133,11 @@ func (m *Manager) GenerateWrappers(binaries []InstalledBinary) error {
 		return fmt.Errorf("parsing esde wrapper template: %w", err)
 	}
 
+	retroarchTmpl, err := template.New("retroarch-wrapper").Parse(retroarchWrapperTemplate)
+	if err != nil {
+		return fmt.Errorf("parsing retroarch wrapper template: %w", err)
+	}
+
 	var kyarabenPath string
 	if m.paths != nil {
 		kyarabenPath, _ = m.paths.CLIInstallPath()
@@ -139,8 +157,11 @@ func (m *Manager) GenerateWrappers(binaries []InstalledBinary) error {
 		data := wrapperData{RealBinaryPath: binary.Path, KyarabenPath: kyarabenPath, Env: binary.Env}
 
 		useTmpl := tmpl
-		if binary.Name == "esde" {
+		switch binary.Name {
+		case "esde":
 			useTmpl = esdeTmpl
+		case "retroarch":
+			useTmpl = retroarchTmpl
 		}
 
 		if err := useTmpl.Execute(f, data); err != nil {

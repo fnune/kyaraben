@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/twpayne/go-vfs/v5/vfst"
+
+	"github.com/fnune/kyaraben/internal/paths"
 )
 
 func TestGenerateWrappers(t *testing.T) {
@@ -147,5 +149,31 @@ func TestGenerateCoreSymlinks(t *testing.T) {
 	}
 	if info.Mode()&os.ModeSymlink == 0 {
 		t.Error("core_b.so should be a symlink")
+	}
+}
+
+func TestGenerateWrappersRetroArchAddsSDLMappings(t *testing.T) {
+	fs, cleanup, err := vfst.NewTestFS(map[string]any{
+		"/kyaraben":                         &vfst.Dir{Perm: 0755},
+		"/packages/retroarch/bin/retroarch": "",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+
+	m := &Manager{fs: fs, profileDir: "/kyaraben", paths: paths.NewPaths("")}
+	if err := m.GenerateWrappers([]InstalledBinary{{Name: "retroarch", Path: "/packages/retroarch/bin/retroarch"}}); err != nil {
+		t.Fatal(err)
+	}
+	content, err := fs.ReadFile(m.BinDir() + "/retroarch")
+	if err != nil {
+		t.Fatal(err)
+	}
+	wrapper := string(content)
+	for _, want := range []string{"system sdl-mappings", "export SDL_GAMECONTROLLERCONFIG=", `exec "/packages/retroarch/bin/retroarch" "$@"`} {
+		if !strings.Contains(wrapper, want) {
+			t.Errorf("wrapper missing %q:\n%s", want, wrapper)
+		}
 	}
 }
