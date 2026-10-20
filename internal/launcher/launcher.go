@@ -89,9 +89,7 @@ _exit_code=$?
 exit $_exit_code
 `
 
-// RetroArch's bundled SDL2 has an outdated controller table, so its wrapper
-// asks kyaraben for current mappings of the pads that are plugged in. Mappings
-// the user sets come last so they win.
+// SDL keeps the last mapping it reads for a pad, so the user's own go after kyaraben's.
 const retroarchWrapperTemplate = `#!/bin/sh
 {{range $key, $value := .Env}}export {{$key}}="{{$value}}"
 {{end}}{{if .KyarabenPath}}_kyaraben_sdl="$("{{.KyarabenPath}}" system sdl-mappings 2>/dev/null)"

@@ -1,6 +1,3 @@
-// Package sdlmappings supplies SDL game controller mappings so RetroArch's
-// bundled SDL2 numbers pad buttons in the order kyaraben's bindings assume.
-// See scripts/update-sdl-mappings.sh for which mappings are included and why.
 package sdlmappings
 
 import (
@@ -19,8 +16,7 @@ var database string
 // Linux caps a single environment variable at 128 KiB (MAX_ARG_STRLEN).
 const Budget = 120 * 1024
 
-// Vendors whose pads people most often use, as their IDs appear in SDL GUIDs
-// (byte-swapped).
+// Vendor IDs are byte-swapped, as they appear in SDL GUIDs.
 var popularVendors = []string{
 	"4c05", // Sony
 	"5e04", // Microsoft
@@ -35,10 +31,6 @@ var popularVendors = []string{
 	"3807", // Mad Catz
 }
 
-// ForDevices returns mappings for SDL_GAMECONTROLLERCONFIG, one per line:
-// first the joysticks listed in a /proc/bus/input/devices file, then pads
-// from popular vendors so ones plugged in later are covered too, up to
-// budget bytes.
 func ForDevices(devices io.Reader, budget int) (string, error) {
 	guids, err := joystickGUIDs(devices)
 	if err != nil {
@@ -106,8 +98,7 @@ func lookup(guids []string) []string {
 		if connected[guid] {
 			exact[guid] = line
 		}
-		// SDL2 matches a mapping only on the exact GUID, so an entry written
-		// for any version is rewritten onto each connected version.
+		// SDL2 only matches exact GUIDs, so versionless entries are copied onto each connected version.
 		if guid[24:28] == "0000" {
 			for _, g := range versionless[guid] {
 				fallback[g] = g + rest
@@ -126,9 +117,6 @@ func lookup(guids []string) []string {
 	return out
 }
 
-// joystickGUIDs builds SDL2's Linux GUIDs (bus, vendor, product and version
-// as little-endian 16-bit words, each padded with zeros) for every device
-// with a joystick handler.
 func joystickGUIDs(devices io.Reader) ([]string, error) {
 	var guids []string
 	var id string
@@ -151,6 +139,7 @@ func joystickGUIDs(devices io.Reader) ([]string, error) {
 	return guids, scanner.Err()
 }
 
+// SDL2's Linux GUID: bus, vendor, product and version as little-endian 16-bit words, each zero-padded.
 func guidFromIDLine(line string) string {
 	fields := map[string]string{}
 	for _, f := range strings.Fields(strings.TrimPrefix(line, "I: ")) {
