@@ -18,9 +18,6 @@ type Commander interface {
 	Send(port int, command string, timeout time.Duration) error
 }
 
-// RetroArchCommander talks to RetroArch's network command interface. A
-// datagram sent before RetroArch binds the port is lost, so it waits for
-// the bind first.
 type RetroArchCommander struct {
 	ProcNetUDP string
 }
@@ -31,7 +28,7 @@ func NewRetroArchCommander() *RetroArchCommander {
 
 func (c *RetroArchCommander) Send(port int, command string, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
-	for !c.bound(port) {
+	for !c.bound(port) { // a datagram sent before RetroArch binds the port is lost
 		if time.Now().After(deadline) {
 			return fmt.Errorf("RetroArch did not open command port %d", port)
 		}

@@ -148,8 +148,7 @@ type LaunchPlan struct {
 }
 
 type LaunchOptions struct {
-	// Menu opens RetroArch's quick menu over the game, to change its settings.
-	Menu bool
+	OpenMenu bool
 }
 
 func (s *Service) Plan(ctx context.Context, id, gameID string, opts LaunchOptions) (*LaunchPlan, []OverrideFile, error) {
@@ -169,7 +168,7 @@ func (s *Service) Plan(ctx context.Context, id, gameID string, opts LaunchOption
 	}
 
 	device := s.deviceSettings(cfg, gameID)
-	if opts.Menu {
+	if opts.OpenMenu {
 		device.CommandPort = s.commandPort
 	}
 	files, err := GameOverrides(s.configDir, game, res, device, s.fs)
@@ -186,7 +185,7 @@ func (s *Service) Plan(ctx context.Context, id, gameID string, opts LaunchOption
 		Title:        game.Title,
 		Resolution:   res,
 		Command:      command,
-		Menu:         opts.Menu,
+		Menu:         opts.OpenMenu,
 		CommandPort:  device.CommandPort,
 	}, files, nil
 }

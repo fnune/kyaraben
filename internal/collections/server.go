@@ -121,7 +121,7 @@ func (s *Server) launch(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
-	opts := LaunchOptions{Menu: r.URL.Query().Get("menu") == "true"}
+	opts := LaunchOptions{OpenMenu: r.URL.Query().Get("menu") == "true"}
 	plan, err := s.service.Prepare(ctx, r.PathValue("collection"), r.PathValue("game"), opts)
 	if err != nil {
 		writeError(w, http.StatusUnprocessableEntity, err.Error())

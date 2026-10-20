@@ -191,7 +191,7 @@ func (cmd *LaunchCmd) Run(ctx *Context) error {
 		return err
 	}
 	if cmd.DryRun {
-		plan, files, err := svc.Plan(context.Background(), cmd.Collection, cmd.Game, collections.LaunchOptions{Menu: cmd.Menu})
+		plan, files, err := svc.Plan(context.Background(), cmd.Collection, cmd.Game, collections.LaunchOptions{OpenMenu: cmd.Menu})
 		if err != nil {
 			return err
 		}
@@ -202,7 +202,7 @@ func (cmd *LaunchCmd) Run(ctx *Context) error {
 		return nil
 	}
 
-	plan, err := svc.Prepare(context.Background(), cmd.Collection, cmd.Game, collections.LaunchOptions{Menu: cmd.Menu})
+	plan, err := svc.Prepare(context.Background(), cmd.Collection, cmd.Game, collections.LaunchOptions{OpenMenu: cmd.Menu})
 	if err != nil {
 		return err
 	}

@@ -22,8 +22,7 @@ type Resolution struct {
 	RomPath  string           `json:"romPath,omitempty"`
 	Missing  []string         `json:"missing,omitempty"`
 	Reason   string           `json:"reason,omitempty"`
-	// MayNeed lists parent and BIOS zips that were not found. Non-merged
-	// sets carry those files inside the game's zip, so they do not block.
+	// Non-merged sets carry these inside the game's zip, so they don't block.
 	MayNeed []string `json:"mayNeed,omitempty"`
 	Note    string   `json:"note,omitempty"`
 
