@@ -122,6 +122,7 @@ var emulatorAliases = map[string]model.EmulatorID{
 	"melonds":           model.EmulatorIDRetroArchMelonDS,
 	"citra":             model.EmulatorIDRetroArchCitra,
 	"fbneo":             model.EmulatorIDRetroArchFBNeo,
+	"mame":              model.EmulatorIDRetroArchMAME,
 	"stella":            model.EmulatorIDRetroArchStella,
 	"vice":              model.EmulatorIDRetroArchVICE,
 	"vice_x64sc":        model.EmulatorIDRetroArchVICE,

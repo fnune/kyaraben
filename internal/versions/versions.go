@@ -193,6 +193,7 @@ var packageNames = []string{
 	"mgba",
 	"citra",
 	"fbneo",
+	"mame",
 	"stella",
 	"vice_x64sc",
 	"melondsds",

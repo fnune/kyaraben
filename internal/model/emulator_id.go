@@ -40,6 +40,7 @@ const (
 	EmulatorIDRetroArchCitra         EmulatorID = "retroarch:citra"
 	EmulatorIDRetroArchAzahar        EmulatorID = "retroarch:azahar"
 	EmulatorIDRetroArchFBNeo         EmulatorID = "retroarch:fbneo"
+	EmulatorIDRetroArchMAME          EmulatorID = "retroarch:mame"
 	EmulatorIDRetroArchStella        EmulatorID = "retroarch:stella"
 	EmulatorIDRetroArchVICE          EmulatorID = "retroarch:vice_x64sc"
 	EmulatorIDDuckStation            EmulatorID = "duckstation"

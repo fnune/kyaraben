@@ -286,6 +286,11 @@ var coreRegistry = map[model.EmulatorID]CoreInfo{
 		LibraryName: "FinalBurn Neo",
 		SystemID:    model.SystemIDArcade,
 	},
+	model.EmulatorIDRetroArchMAME: {
+		ShortName:   "mame",
+		LibraryName: "MAME",
+		SystemID:    model.SystemIDArcade,
+	},
 	model.EmulatorIDRetroArchStella: {
 		ShortName:   "stella",
 		LibraryName: "Stella",
