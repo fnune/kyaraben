@@ -13,7 +13,10 @@ import (
 	"github.com/fnune/kyaraben/internal/model"
 )
 
-const DefaultPort = 47410
+const (
+	DefaultPort        = 47410
+	DefaultCommandPort = 47420
+)
 
 const statusMaxAge = time.Minute
 
@@ -118,7 +121,8 @@ func (s *Server) launch(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
-	plan, err := s.service.Prepare(ctx, r.PathValue("collection"), r.PathValue("game"))
+	opts := LaunchOptions{Menu: r.URL.Query().Get("menu") == "true"}
+	plan, err := s.service.Prepare(ctx, r.PathValue("collection"), r.PathValue("game"), opts)
 	if err != nil {
 		writeError(w, http.StatusUnprocessableEntity, err.Error())
 		return

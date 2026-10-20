@@ -30,6 +30,7 @@ type CollectionsCmd struct {
 type LaunchCmd struct {
 	Collection string `arg:"" help:"Collection ID."`
 	Game       string `arg:"" help:"Game ID within the collection."`
+	Menu       bool   `help:"Open RetroArch's quick menu over the game, to change its settings."`
 	DryRun     bool   `help:"Print the command and per-game settings without writing or running anything."`
 }
 
@@ -187,7 +188,7 @@ func (cmd *LaunchCmd) Run(ctx *Context) error {
 		return err
 	}
 	if cmd.DryRun {
-		plan, files, err := svc.Plan(context.Background(), cmd.Collection, cmd.Game)
+		plan, files, err := svc.Plan(context.Background(), cmd.Collection, cmd.Game, collections.LaunchOptions{Menu: cmd.Menu})
 		if err != nil {
 			return err
 		}
@@ -198,7 +199,7 @@ func (cmd *LaunchCmd) Run(ctx *Context) error {
 		return nil
 	}
 
-	plan, err := svc.Prepare(context.Background(), cmd.Collection, cmd.Game)
+	plan, err := svc.Prepare(context.Background(), cmd.Collection, cmd.Game, collections.LaunchOptions{Menu: cmd.Menu})
 	if err != nil {
 		return err
 	}
@@ -211,7 +212,7 @@ func (cmd *LaunchCmd) Run(ctx *Context) error {
 	if err != nil {
 		return err
 	}
-	sessions := collections.NewSessions(collections.ExecStarter{}, filepath.Join(dir, "logs"))
+	sessions := collections.NewSessions(collections.ExecStarter{}, collections.NewRetroArchCommander(), filepath.Join(dir, "logs"))
 	session, err := sessions.Launch(plan)
 	if err != nil {
 		return err
@@ -257,7 +258,7 @@ func (cmd *CollectionsServeCmd) Run(ctx *Context) error {
 		return err
 	}
 
-	sessions := collections.NewSessions(collections.ExecStarter{}, filepath.Join(dir, "logs"))
+	sessions := collections.NewSessions(collections.ExecStarter{}, collections.NewRetroArchCommander(), filepath.Join(dir, "logs"))
 	server := &http.Server{
 		Handler:           collections.NewServer(svc, sessions, cfg.Collections, port, version.Get()).Handler(),
 		ReadHeaderTimeout: 10 * time.Second,

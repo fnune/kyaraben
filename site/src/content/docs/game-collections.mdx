@@ -50,6 +50,7 @@ The collection ID (`shmups` above) must match the `id` in the manifest. A game c
 ```bash
 kyaraben collections status shmups         # Which games are playable here, and what is missing
 kyaraben launch shmups dodonpachi          # Play, and print how long you played
+kyaraben launch shmups dodonpachi --menu   # Open RetroArch's quick menu over the game to change its settings
 kyaraben launch shmups dodonpachi --dry-run
 kyaraben collections sync                  # Refresh manifests and per-game settings
 ```
@@ -60,7 +61,20 @@ kyaraben collections sync                  # Refresh manifests and per-game sett
 
 Kyaraben writes RetroArch's per-game override files, for example `~/.config/retroarch/config/FinalBurn Neo/ddonpach.cfg`, and a matching `.opt` when the game sets core options. RetroArch applies them on top of Kyaraben's own settings and never saves them back into `retroarch.cfg`, so they also apply when you launch the same game from ES-DE.
 
+To change a game's settings, launch it with `--menu` (or `?menu=true` in the web API) and use the quick menu: core options and "Save Game Overrides" apply to that game only. For these launches Kyaraben turns on RetroArch's network commands on port 47420, so it can open the menu. RetroArch listens for them on every network interface, which is why normal launches leave them off.
+
 Kyaraben never overwrites a per-game file it did not create. If you edit one it created, Kyaraben keeps your version; run `kyaraben collections sync --force` to replace it. Saves and states go to the same synced folders as any other launch.
+
+## Game larger than the screen
+
+With display scaling on Wayland (for example 200% on a 4K screen), RetroArch can apply the scale twice and render past the edges of the screen. Set the fullscreen size to your screen's size divided by the scale, in `~/.config/retroarch/retroarch.cfg` or RetroArch's video settings:
+
+```
+video_fullscreen_x = "1920"
+video_fullscreen_y = "1080"
+```
+
+This is a RetroArch setting for the device, so Kyaraben leaves it to you.
 
 ## Where parent and BIOS sets go
 
@@ -117,9 +131,9 @@ Keys that point to files or folders are rejected, so a manifest cannot move your
 
 All responses are JSON. Browser requests must come from the origin of a configured manifest URL.
 
-| Request                                         | Description                                                   |
-| ----------------------------------------------- | ------------------------------------------------------------- |
-| `GET /v1/health`                                | Kyaraben version                                              |
-| `GET /v1/collections/<id>`                      | Each game's playability, chosen set, and missing files        |
-| `POST /v1/collections/<id>/games/<game>/launch` | Launch a game; returns a session, or 409 if a game is running |
-| `GET /v1/sessions/<session>`                    | Whether the game is still running, with start and end times   |
+| Request                                         | Description                                                                                           |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `GET /v1/health`                                | Kyaraben version                                                                                      |
+| `GET /v1/collections/<id>`                      | Each game's playability, chosen set, and missing files                                                |
+| `POST /v1/collections/<id>/games/<game>/launch` | Launch a game, with `?menu=true` to open its settings; returns a session, or 409 if a game is running |
+| `GET /v1/sessions/<session>`                    | Whether the game is still running, with start and end times                                           |

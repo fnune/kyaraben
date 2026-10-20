@@ -26,6 +26,8 @@ type OverrideFile struct {
 type DeviceSettings struct {
 	Vertical string
 	VRR      bool
+	// CommandPort enables RetroArch's network commands, which listen on every interface.
+	CommandPort int
 }
 
 func GameOverrides(configDir string, game Game, res Resolution, device DeviceSettings, fs vfs.FS) ([]OverrideFile, error) {
@@ -80,6 +82,10 @@ func retroArchSettings(game Game, device DeviceSettings) map[string]string {
 	}
 	if device.VRR {
 		settings["vrr_runloop_enable"] = "true"
+	}
+	if device.CommandPort > 0 {
+		settings["network_cmd_enable"] = "true"
+		settings["network_cmd_port"] = strconv.Itoa(device.CommandPort)
 	}
 	for k, v := range s.RetroArch {
 		settings[k] = v

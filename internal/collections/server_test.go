@@ -3,6 +3,7 @@ package collections
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -35,7 +36,37 @@ func (s *fakeStarter) Start(command []string, _ string) (Process, error) {
 	return s.proc, nil
 }
 
+type fakeCommander struct {
+	mu   sync.Mutex
+	sent []string
+}
+
+func (c *fakeCommander) Send(port int, command string, _ time.Duration) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.sent = append(c.sent, fmt.Sprintf("%d %s", port, command))
+	return nil
+}
+
+func (c *fakeCommander) Sent() []string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return append([]string(nil), c.sent...)
+}
+
+type testServer struct {
+	handler   http.Handler
+	starter   *fakeStarter
+	commander *fakeCommander
+	env       *testEnv
+}
+
 func newTestServer(t *testing.T) (http.Handler, *fakeStarter) {
+	ts := newFullTestServer(t)
+	return ts.handler, ts.starter
+}
+
+func newFullTestServer(t *testing.T) *testServer {
 	t.Helper()
 	env := newTestEnv(t, map[string]any{
 		"/emu/roms/arcade/ddonpach.zip":  "",
@@ -62,10 +93,13 @@ func newTestServer(t *testing.T) (http.Handler, *fakeStarter) {
 		UserConfigDir: "/cfg",
 		BinDir:        "/state/bin",
 		CoresDir:      "/state/cores",
+		CommandPort:   47420,
 	})
 	starter := &fakeStarter{}
-	sessions := NewSessions(starter, "/state/collections/logs")
-	return NewServer(svc, sessions, cfg.Collections, testPort, "test").Handler(), starter
+	commander := &fakeCommander{}
+	sessions := NewSessions(starter, commander, "/state/collections/logs")
+	handler := NewServer(svc, sessions, cfg.Collections, testPort, "test").Handler()
+	return &testServer{handler: handler, starter: starter, commander: commander, env: env}
 }
 
 func request(h http.Handler, method, path, origin string, header map[string]string) *httptest.ResponseRecorder {
@@ -167,5 +201,39 @@ func TestServerStatusAndLaunch(t *testing.T) {
 	}
 	if session.Running || session.EndedAt == nil {
 		t.Errorf("session should have ended: %+v", session)
+	}
+}
+
+func TestServerMenuLaunchEnablesCommandsForThatLaunchOnly(t *testing.T) {
+	ts := newFullTestServer(t)
+	origin := "https://games.example.com"
+	cfgPath := "/cfg/retroarch/config/FinalBurn Neo/ddonpach.cfg"
+
+	rec := request(ts.handler, http.MethodPost, "/v1/collections/shmups/games/dodonpachi/launch?menu=true", origin, nil)
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("menu launch: %d %s", rec.Code, rec.Body)
+	}
+	cfg, _ := ts.env.fs.ReadFile(cfgPath)
+	if values := parseCFG(cfg); values["network_cmd_enable"] != "true" || values["network_cmd_port"] != "47420" {
+		t.Errorf("menu launch should enable commands: %s", cfg)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for len(ts.commander.Sent()) == 0 && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if sent := ts.commander.Sent(); len(sent) != 1 || sent[0] != "47420 MENU_TOGGLE" {
+		t.Errorf("sent %v", sent)
+	}
+
+	close(ts.starter.proc.done)
+	for time.Now().Before(deadline.Add(2 * time.Second)) {
+		if rec := request(ts.handler, http.MethodPost, "/v1/collections/shmups/games/dodonpachi/launch", origin, nil); rec.Code == http.StatusAccepted {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	cfg, _ = ts.env.fs.ReadFile(cfgPath)
+	if _, ok := parseCFG(cfg)["network_cmd_enable"]; ok {
+		t.Errorf("a normal launch should not enable commands: %s", cfg)
 	}
 }

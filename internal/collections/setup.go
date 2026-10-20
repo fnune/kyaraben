@@ -26,6 +26,10 @@ func Port(p *paths.Paths) int {
 	return DefaultPort + p.InstancePortOffset()
 }
 
+func CommandPort(p *paths.Paths) int {
+	return DefaultCommandPort + p.InstancePortOffset()
+}
+
 func NewDefaultService(fs vfs.FS, p *paths.Paths, resolver model.BaseDirResolver, cfg *model.KyarabenConfig, store model.StoreReader, getEmulator EmulatorLookup) (*Service, error) {
 	dir, err := Dir(p)
 	if err != nil {
@@ -47,6 +51,7 @@ func NewDefaultService(fs vfs.FS, p *paths.Paths, resolver model.BaseDirResolver
 		Source:        NewSource(fs, NewHTTPFetcher(), filepath.Join(dir, "cache")),
 		Overrides:     NewOverrideStore(fs, filepath.Join(dir, "owned.json")),
 		UserConfigDir: configDir,
+		CommandPort:   CommandPort(p),
 		BinDir:        lm.BinDir(),
 		CoresDir:      lm.CoresDir(),
 	}), nil

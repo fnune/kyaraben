@@ -22,6 +22,7 @@ type Service struct {
 	source      *Source
 	overrides   *OverrideStore
 	configDir   string
+	commandPort int
 	binDir      string
 	coresDir    string
 }
@@ -34,6 +35,7 @@ type ServiceDeps struct {
 	Source        *Source
 	Overrides     *OverrideStore
 	UserConfigDir string
+	CommandPort   int
 	BinDir        string
 	CoresDir      string
 }
@@ -47,6 +49,7 @@ func NewService(d ServiceDeps) *Service {
 		source:      d.Source,
 		overrides:   d.Overrides,
 		configDir:   d.UserConfigDir,
+		commandPort: d.CommandPort,
 		binDir:      d.BinDir,
 		coresDir:    d.CoresDir,
 	}
@@ -139,10 +142,17 @@ type LaunchPlan struct {
 	Title        string       `json:"title"`
 	Resolution   Resolution   `json:"resolution"`
 	Command      []string     `json:"command"`
+	Menu         bool         `json:"menu"`
+	CommandPort  int          `json:"-"`
 	Files        []FileResult `json:"files"`
 }
 
-func (s *Service) Plan(ctx context.Context, id, gameID string) (*LaunchPlan, []OverrideFile, error) {
+type LaunchOptions struct {
+	// Menu opens RetroArch's quick menu over the game, to change its settings.
+	Menu bool
+}
+
+func (s *Service) Plan(ctx context.Context, id, gameID string, opts LaunchOptions) (*LaunchPlan, []OverrideFile, error) {
 	loaded, err := s.Load(ctx, id, time.Minute)
 	if err != nil {
 		return nil, nil, err
@@ -158,7 +168,11 @@ func (s *Service) Plan(ctx context.Context, id, gameID string) (*LaunchPlan, []O
 		return nil, nil, fmt.Errorf("%s is not playable: %s", game.Title, res.Reason)
 	}
 
-	files, err := GameOverrides(s.configDir, game, res, s.deviceSettings(cfg, gameID), s.fs)
+	device := s.deviceSettings(cfg, gameID)
+	if opts.Menu {
+		device.CommandPort = s.commandPort
+	}
+	files, err := GameOverrides(s.configDir, game, res, device, s.fs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -172,11 +186,13 @@ func (s *Service) Plan(ctx context.Context, id, gameID string) (*LaunchPlan, []O
 		Title:        game.Title,
 		Resolution:   res,
 		Command:      command,
+		Menu:         opts.Menu,
+		CommandPort:  device.CommandPort,
 	}, files, nil
 }
 
-func (s *Service) Prepare(ctx context.Context, id, gameID string) (*LaunchPlan, error) {
-	plan, files, err := s.Plan(ctx, id, gameID)
+func (s *Service) Prepare(ctx context.Context, id, gameID string, opts LaunchOptions) (*LaunchPlan, error) {
+	plan, files, err := s.Plan(ctx, id, gameID, opts)
 	if err != nil {
 		return nil, err
 	}

@@ -59,6 +59,7 @@ type Session struct {
 	Title      string     `json:"title"`
 	Emulator   string     `json:"emulator"`
 	Set        string     `json:"set"`
+	Menu       bool       `json:"menu"`
 	Running    bool       `json:"running"`
 	StartedAt  time.Time  `json:"startedAt"`
 	EndedAt    *time.Time `json:"endedAt,omitempty"`
@@ -68,18 +69,19 @@ type Session struct {
 var ErrGameRunning = errors.New("a game is already running")
 
 type Sessions struct {
-	mu       sync.Mutex
-	starter  Starter
-	logDir   string
-	now      func() time.Time
-	sessions map[string]*Session
-	order    []string
+	mu        sync.Mutex
+	starter   Starter
+	commander Commander
+	logDir    string
+	now       func() time.Time
+	sessions  map[string]*Session
+	order     []string
 }
 
 const maxRememberedSessions = 50
 
-func NewSessions(starter Starter, logDir string) *Sessions {
-	return &Sessions{starter: starter, logDir: logDir, now: time.Now, sessions: map[string]*Session{}}
+func NewSessions(starter Starter, commander Commander, logDir string) *Sessions {
+	return &Sessions{starter: starter, commander: commander, logDir: logDir, now: time.Now, sessions: map[string]*Session{}}
 }
 
 func (s *Sessions) CheckIdle() error {
@@ -118,10 +120,19 @@ func (s *Sessions) Launch(plan *LaunchPlan) (Session, error) {
 		Title:      plan.Title,
 		Emulator:   string(plan.Resolution.Emulator),
 		Set:        plan.Resolution.Set,
+		Menu:       plan.Menu,
 		Running:    true,
 		StartedAt:  s.now(),
 	}
 	s.remember(session)
+
+	if plan.CommandPort > 0 {
+		go func() {
+			if err := s.commander.Send(plan.CommandPort, "MENU_TOGGLE", 30*time.Second); err != nil {
+				log.Info("Opening the menu for %s: %v", plan.Title, err)
+			}
+		}()
+	}
 
 	go func() {
 		waitErr := proc.Wait()
