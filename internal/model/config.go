@@ -53,6 +53,8 @@ type KyarabenConfig struct {
 	Systems    map[SystemID][]EmulatorID     `toml:"systems"`
 	Emulators  map[EmulatorID]EmulatorConf   `toml:"emulators,omitempty"`
 	Frontends  map[FrontendID]FrontendConfig `toml:"frontends,omitempty"`
+
+	Collections map[string]CollectionConfig `toml:"collections,omitempty"`
 }
 
 // GraphicsConfig holds graphics-related default settings.
@@ -459,6 +461,27 @@ func (c *KyarabenConfig) validateAndFilter(v *ConfigValidators) ConfigWarnings {
 		newFrontends[feID] = feConf
 	}
 	c.Frontends = newFrontends
+
+	for colID, col := range c.Collections {
+		col, colWarnings := col.normalize()
+		for _, w := range colWarnings {
+			w.Field = fmt.Sprintf("collections.%s.%s", colID, w.Field)
+			warnings = append(warnings, w)
+		}
+		for gameID, game := range col.Games {
+			if game.Emulator != "" {
+				if _, err := v.GetEmulator(game.Emulator); err != nil {
+					warnings = append(warnings, ConfigWarning{
+						Field:   fmt.Sprintf("collections.%s.games.%s.emulator", colID, gameID),
+						Message: fmt.Sprintf("unknown emulator %q, ignoring", game.Emulator),
+					})
+					game.Emulator = ""
+					col.Games[gameID] = game
+				}
+			}
+		}
+		c.Collections[colID] = col
+	}
 
 	return warnings
 }

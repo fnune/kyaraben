@@ -1,0 +1,125 @@
+---
+title: Game collections
+description: Launch curated games with per-game emulator settings from a web page or the CLI
+---
+
+A game collection is a hand-picked list of games, published as a JSON manifest by a site or tool you use, that says how each game should run: which ROM set and emulator, how to show vertical games, and latency settings. Kyaraben resolves each game against your collection, writes per-game RetroArch settings, and launches the game directly, without ES-DE or Steam in between.
+
+Collections only support RetroArch cores for now: FBNeo and MAME for arcade and Neo Geo.
+
+## Adding a collection
+
+Add the manifest URL to `~/.config/kyaraben/config.toml` and run `kyaraben apply`:
+
+```toml
+[systems]
+arcade = ["retroarch:fbneo", "retroarch:mame"]
+neogeo = ["retroarch:fbneo"]
+
+[collections.shmups]
+url = "https://example.com/shmups/collection.json"
+vertical = "rotate"
+vrr = true
+
+[collections.shmups.games.dodonpachi]
+emulator = "retroarch:mame"
+vertical = "native"
+```
+
+The collection ID (`shmups` above) must match the `id` in the manifest. A game can only use emulators you have enabled for its system.
+
+### `[collections.<id>]`
+
+| Key        | Type   | Default  | Description                                                                                         |
+| ---------- | ------ | -------- | --------------------------------------------------------------------------------------------------- |
+| `url`      | string |          | Manifest URL                                                                                        |
+| `vertical` | string | `rotate` | `rotate` turns vertical games upright on a landscape screen; `native` leaves them for a rotated one |
+| `vrr`      | bool   | `false`  | Sync RetroArch to each game's exact refresh rate                                                    |
+
+`vrr` only helps when your display and compositor have adaptive sync enabled. On KDE Plasma, set adaptive sync to "Automatic" in the display settings.
+
+### `[collections.<id>.games.<game>]`
+
+| Key        | Type   | Description                                                 |
+| ---------- | ------ | ----------------------------------------------------------- |
+| `emulator` | string | Use this emulator's set instead of the first one that works |
+| `vertical` | string | Override `vertical` for this game                           |
+
+## Launching games
+
+```bash
+kyaraben collections status shmups         # Which games are playable here, and what is missing
+kyaraben launch shmups dodonpachi          # Play, and print how long you played
+kyaraben launch shmups dodonpachi --dry-run
+kyaraben collections sync                  # Refresh manifests and per-game settings
+```
+
+`kyaraben apply` also installs a small service that listens on `127.0.0.1:47410`. Web pages whose manifest you configured can ask it which games are playable and launch them, so a site can show a play button next to each game. It only accepts requests from the origins of your manifest URLs, and starts on the first request.
+
+## Per-game settings
+
+Kyaraben writes RetroArch's per-game override files, for example `~/.config/retroarch/config/FinalBurn Neo/ddonpach.cfg`, and a matching `.opt` when the game sets core options. RetroArch applies them on top of Kyaraben's own settings and never saves them back into `retroarch.cfg`, so they also apply when you launch the same game from ES-DE.
+
+Kyaraben never overwrites a per-game file it did not create. If you edit one it created, Kyaraben keeps your version; run `kyaraben collections sync --force` to replace it. Saves and states go to the same synced folders as any other launch.
+
+## Where parent and BIOS sets go
+
+Some games need parent or BIOS sets, such as `neogeo.zip`. The two cores look for them in different places:
+
+| Core  | Looks in                                                                    |
+| ----- | --------------------------------------------------------------------------- |
+| FBNeo | the game's ROM folder, `bios/<system>`, `bios/<system>/fbneo`               |
+| MAME  | the game's ROM folder, `bios/<system>/mame/bios`, `bios/<system>/mame/roms` |
+
+`kyaraben collections status` lists any missing files and where each core looks for them.
+
+## Manifest format
+
+```json
+{
+  "schema": 1,
+  "id": "shmups",
+  "name": "Shmups 1CC",
+  "games": [
+    {
+      "id": "dodonpachi",
+      "title": "DoDonPachi",
+      "system": "arcade",
+      "orientation": "vertical",
+      "sets": [
+        { "emulator": "retroarch:fbneo", "name": "ddonpach" },
+        { "emulator": "retroarch:mame", "name": "ddonpach" }
+      ],
+      "settings": {
+        "run_ahead_frames": 1,
+        "frame_delay": "auto",
+        "integer_scale": true
+      }
+    }
+  ]
+}
+```
+
+| Field                       | Description                                                                         |
+| --------------------------- | ----------------------------------------------------------------------------------- |
+| `sets`                      | Tried in order; the first with an enabled emulator and all files present wins       |
+| `sets[].requires`           | Parent and BIOS set names the game needs                                            |
+| `sets[].core_options`       | Core options for this set, such as FBNeo's `fbneo-*` keys                           |
+| `orientation`               | `horizontal` or `vertical`                                                          |
+| `settings.run_ahead_frames` | RetroArch run-ahead frames, 0 to 6                                                  |
+| `settings.frame_delay`      | `auto` or a fixed delay from 0 to 15 ms                                             |
+| `settings.integer_scale`    | Integer scaling on or off                                                           |
+| `settings.retroarch`        | Extra `retroarch.cfg` keys; only video, latency and audio latency keys are accepted |
+
+Keys that point to files or folders are rejected, so a manifest cannot move your saves or load other code.
+
+## Web API
+
+All responses are JSON. Browser requests must come from the origin of a configured manifest URL.
+
+| Request                                         | Description                                                   |
+| ----------------------------------------------- | ------------------------------------------------------------- |
+| `GET /v1/health`                                | Kyaraben version                                              |
+| `GET /v1/collections/<id>`                      | Each game's playability, chosen set, and missing files        |
+| `POST /v1/collections/<id>/games/<game>/launch` | Launch a game; returns a session, or 409 if a game is running |
+| `GET /v1/sessions/<session>`                    | Whether the game is still running, with start and end times   |

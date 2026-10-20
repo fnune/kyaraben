@@ -23,6 +23,8 @@ var CLI struct {
 	Update         cli.UpdateCmd       `cmd:"" help:"Check for and install CLI updates (does not update the desktop app)."`
 	Daemon         cli.DaemonCmd       `cmd:"" help:"Run in daemon mode for UI communication."`
 	Sync           cli.SyncCmd         `cmd:"" help:"Manage sync settings and status."`
+	Collections    cli.CollectionsCmd  `cmd:"" help:"Manage curated game collections."`
+	Launch         cli.LaunchCmd       `cmd:"" help:"Launch a game from a collection with its per-game settings."`
 	CheckDownloads cli.ValidateURLsCmd `cmd:"" help:"Validate download URLs and show sizes (CI check)."`
 	System         cli.SystemCmd       `cmd:"" hidden:"" help:"Internal system utilities."`
 

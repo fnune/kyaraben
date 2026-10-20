@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/fnune/kyaraben/internal/cleanup"
+	"github.com/fnune/kyaraben/internal/collections"
 	"github.com/fnune/kyaraben/internal/launcher"
 	"github.com/fnune/kyaraben/internal/model"
 	"github.com/fnune/kyaraben/internal/paths"
@@ -222,6 +223,16 @@ func (cmd *UninstallCmd) Run(ctx *Context) error {
 			} else {
 				fmt.Printf("  Removed: %s\n", s.Source)
 			}
+		}
+	}
+
+	if units, err := collections.NewDefaultUnits(ctx.FS, ctx.Paths); err == nil {
+		removed, errs := collections.Uninstall(ctx.FS, units, ctx.Paths)
+		for _, path := range removed {
+			fmt.Printf("  Removed: %s\n", path)
+		}
+		for _, err := range errs {
+			fmt.Printf("  Warning: %v\n", err)
 		}
 	}
 

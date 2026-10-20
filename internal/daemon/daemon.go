@@ -15,6 +15,7 @@ import (
 	"github.com/twpayne/go-vfs/v5"
 
 	"github.com/fnune/kyaraben/internal/apply"
+	"github.com/fnune/kyaraben/internal/collections"
 	"github.com/fnune/kyaraben/internal/doctor"
 	"github.com/fnune/kyaraben/internal/emulators"
 	"github.com/fnune/kyaraben/internal/emulators/symlink"
@@ -608,6 +609,7 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 	}
 
 	d.maybeCreateDesktopShortcut()
+	d.setUpCollections(ctx, cfg, collection)
 
 	if cfg.Sync.Enabled {
 		if syncWasStopped && emit != nil {
@@ -636,6 +638,27 @@ func (d *Daemon) handleApply(emit func(Event)) []Event {
 			FailedPackages: failedPackages,
 		},
 	}}
+}
+
+func (d *Daemon) setUpCollections(ctx context.Context, cfg *model.KyarabenConfig, collection *store.Collection) {
+	configDir, err := paths.ConfigDir()
+	if err != nil {
+		log.Info("Collections: %v", err)
+		return
+	}
+	units := collections.NewUnits(d.deps.FS, d.deps.Service, filepath.Join(configDir, "systemd", "user"), d.deps.Paths.DirName()+"-collections", d.deps.Paths.Instance)
+	if len(cfg.Collections) == 0 && !units.Installed() {
+		return
+	}
+	svc, err := collections.NewDefaultService(d.deps.FS, d.deps.Paths, d.deps.Resolver, cfg, collection, d.deps.Registry.GetEmulator)
+	if err != nil {
+		log.Info("Collections: %v", err)
+		return
+	}
+	report := collections.SetUp(ctx, svc, units, d.deps.Paths, len(cfg.Collections) > 0)
+	for _, w := range report.Warnings {
+		log.Info("Collections: %s", w)
+	}
 }
 
 func (d *Daemon) handleApplyHeadless(cfg *model.KyarabenConfig, collection *store.Collection, emit func(Event)) []Event {
@@ -2873,6 +2896,15 @@ func (d *Daemon) handleUninstall() []Event {
 	var syncPorts []int
 	if cfgErr == nil {
 		syncPorts = []int{cfg.Sync.Syncthing.GUIPort, cfg.Sync.Syncthing.ListenPort}
+	}
+
+	if configDir, err := paths.ConfigDir(); err == nil {
+		units := collections.NewUnits(d.deps.FS, d.deps.Service, filepath.Join(configDir, "systemd", "user"), d.deps.Paths.DirName()+"-collections", d.deps.Paths.Instance)
+		removed, errs := collections.Uninstall(d.deps.FS, units, d.deps.Paths)
+		removedFiles = append(removedFiles, removed...)
+		for _, err := range errs {
+			errors = append(errors, err.Error())
+		}
 	}
 
 	syncServices, _ := syncpkg.FindKyarabenSyncthingServices()
