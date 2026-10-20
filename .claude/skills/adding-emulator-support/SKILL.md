@@ -309,6 +309,8 @@ size = 1234567  # Get from: 7z l RetroArch_cores.7z | grep newcore
 
 For standalone emulators, add a new section following existing patterns (duckstation, dolphin, etc.).
 
+Also add the package name to `packageNames` in `internal/versions/versions.go`; sections missing from that list are silently ignored when parsing.
+
 ## Step 6: Update registry
 
 File: `internal/registry/all.go`
