@@ -362,6 +362,8 @@ func (cmd *ApplyCmd) Run(ctx *Context) error {
 		fmt.Println()
 	}
 
+	setUpCollections(ctx, cfg)
+
 	fmt.Println("Done!")
 	fmt.Println()
 	fmt.Printf("Your collection is ready at: %s\n", collection.Root())
@@ -485,6 +487,8 @@ func (cmd *ApplyCmd) runHeadless(ctx *Context, cfg *model.KyarabenConfig, collec
 	}
 
 	fmt.Println()
+	setUpCollections(ctx, cfg)
+
 	fmt.Println("Done!")
 	fmt.Println()
 	fmt.Printf("Your collection is ready at: %s\n", collection.Root())

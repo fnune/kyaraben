@@ -73,6 +73,7 @@ export default defineConfig({
             { label: "App", slug: "using-the-app" },
             { label: "CLI", slug: "using-the-cli" },
             { label: "Collection", slug: "collection" },
+            { label: "Game collections", slug: "game-collections" },
           ],
         },
         {

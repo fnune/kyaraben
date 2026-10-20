@@ -16,6 +16,7 @@ import (
 	"github.com/fnune/kyaraben/internal/emulators/retroarchcitra"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchfbneo"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchgenesisplusgx"
+	"github.com/fnune/kyaraben/internal/emulators/retroarchmame"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmelonds"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmesen"
 	"github.com/fnune/kyaraben/internal/emulators/retroarchmgba"
@@ -116,6 +117,7 @@ func NewDefault() *Registry {
 			retroarchmgba.Definition{},
 			retroarchmelonds.Definition{},
 			retroarchfbneo.Definition{},
+			retroarchmame.Definition{},
 			retroarchstella.Definition{},
 			retroarchvice.Definition{},
 			duckstation.Definition{},
