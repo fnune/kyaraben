@@ -60,7 +60,11 @@ func GameOverrides(configDir string, game Game, res Resolution, device DeviceSet
 }
 
 func retroArchSettings(game Game, device DeviceSettings) map[string]string {
-	settings := map[string]string{}
+	settings := map[string]string{
+		// Launches from a background service often start without focus, and a
+		// paused game ignores both the pad and network commands.
+		"pause_nonactive": "false",
+	}
 	if game.Orientation == OrientationVertical {
 		settings["video_allow_rotate"] = strconv.FormatBool(device.Vertical != model.VerticalNative)
 	}

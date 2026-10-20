@@ -37,6 +37,7 @@ func (c *RetroArchCommander) Send(port int, command string, timeout time.Duratio
 		}
 		time.Sleep(200 * time.Millisecond)
 	}
+	time.Sleep(time.Second) // the port opens before the content finishes loading
 	conn, err := net.Dial("udp", net.JoinHostPort("127.0.0.1", strconv.Itoa(port)))
 	if err != nil {
 		return err
