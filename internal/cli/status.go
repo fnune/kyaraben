@@ -2,13 +2,28 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
 	"strings"
+	"time"
+
+	"github.com/fnune/kyaraben/internal/launcher"
+	"github.com/fnune/kyaraben/internal/model"
+	"github.com/fnune/kyaraben/internal/version"
 )
 
-type StatusCmd struct{}
+type StatusCmd struct {
+	JSON bool `help:"Print machine-readable JSON."`
+}
 
 func (cmd *StatusCmd) Run(ctx *Context) error {
+	if cmd.JSON {
+		return printStatusJSON(ctx)
+	}
+
 	configPath, err := ctx.GetConfigPath()
 	if err != nil {
 		return err
@@ -118,4 +133,124 @@ func (cmd *StatusCmd) Run(ctx *Context) error {
 	}
 
 	return nil
+}
+
+type statusJSON struct {
+	Version     string               `json:"version"`
+	ConfigPath  string               `json:"configPath"`
+	Collection  string               `json:"collection"`
+	BinDir      string               `json:"binDir"`
+	CoresDir    string               `json:"coresDir"`
+	LastApplied *time.Time           `json:"lastApplied,omitempty"`
+	Systems     []systemStatusJSON   `json:"systems"`
+	Emulators   []emulatorStatusJSON `json:"emulators"`
+}
+
+type systemStatusJSON struct {
+	ID         model.SystemID     `json:"id"`
+	Name       string             `json:"name"`
+	Extensions []string           `json:"extensions"`
+	Emulators  []model.EmulatorID `json:"emulators"`
+	Roms       string             `json:"roms"`
+	Bios       string             `json:"bios"`
+	Saves      string             `json:"saves"`
+}
+
+type emulatorStatusJSON struct {
+	ID      model.EmulatorID `json:"id"`
+	Name    string           `json:"name"`
+	Version string           `json:"version"`
+	Binary  string           `json:"binary"`
+	Core    string           `json:"core,omitempty"`
+	States  string           `json:"states"`
+	// RomCommand is a shell command line with a %ROM% placeholder, as ES-DE uses.
+	RomCommand string `json:"romCommand,omitempty"`
+}
+
+func printStatusJSON(ctx *Context) error {
+	configPath, err := ctx.GetConfigPath()
+	if err != nil {
+		return err
+	}
+	cfg, err := ctx.LoadConfig()
+	if err != nil {
+		return err
+	}
+	registry := ctx.NewRegistry()
+	collection, err := ctx.NewCollection(cfg)
+	if err != nil {
+		return err
+	}
+	manifestPath, err := ctx.GetPaths().ManifestPath()
+	if err != nil {
+		return err
+	}
+	result, err := ctx.NewStatusGetter().Get(context.Background(), cfg, configPath, registry, collection, manifestPath)
+	if err != nil {
+		return err
+	}
+	lm, err := launcher.NewManager(ctx.FS, ctx.Paths, ctx.Resolver)
+	if err != nil {
+		return err
+	}
+
+	out := statusJSON{
+		Version:    version.Get(),
+		ConfigPath: configPath,
+		Collection: collection.Root(),
+		BinDir:     lm.BinDir(),
+		CoresDir:   lm.CoresDir(),
+		Systems:    []systemStatusJSON{},
+		Emulators:  []emulatorStatusJSON{},
+	}
+	if !result.LastApplied.IsZero() {
+		out.LastApplied = &result.LastApplied
+	}
+
+	systemIDs := make([]model.SystemID, 0, len(cfg.Systems))
+	for id := range cfg.Systems {
+		systemIDs = append(systemIDs, id)
+	}
+	sort.Slice(systemIDs, func(i, j int) bool { return systemIDs[i] < systemIDs[j] })
+	for _, id := range systemIDs {
+		sys, err := registry.GetSystem(id)
+		if err != nil {
+			continue
+		}
+		out.Systems = append(out.Systems, systemStatusJSON{
+			ID:         id,
+			Name:       sys.Name,
+			Extensions: sys.Extensions,
+			Emulators:  cfg.Systems[id],
+			Roms:       collection.SystemRomsDir(id),
+			Bios:       collection.SystemBiosDir(id),
+			Saves:      collection.SystemSavesDir(id),
+		})
+	}
+
+	for _, installed := range result.InstalledEmulators {
+		emu, err := registry.GetEmulator(installed.ID)
+		if err != nil {
+			continue
+		}
+		binary := filepath.Join(lm.BinDir(), emu.Launcher.Binary)
+		e := emulatorStatusJSON{
+			ID:      emu.ID,
+			Name:    emu.Name,
+			Version: installed.Version,
+			Binary:  binary,
+			States:  collection.EmulatorStatesDir(emu.ID),
+		}
+		if emu.Launcher.CoreName != "" {
+			e.Core = filepath.Join(lm.CoresDir(), emu.Launcher.CoreName+".so")
+		}
+		if emu.Launcher.RomCommand != nil {
+			e.RomCommand = emu.Launcher.RomCommand(model.RomLaunchOptions{BinaryPath: binary, Fullscreen: true})
+		}
+		out.Emulators = append(out.Emulators, e)
+	}
+
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	return enc.Encode(out)
 }
