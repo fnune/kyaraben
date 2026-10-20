@@ -146,11 +146,20 @@ func TestResolve(t *testing.T) {
 		}
 	})
 
-	t.Run("missing files are reported", func(t *testing.T) {
+	t.Run("missing parent or BIOS zips do not block, since non-merged zips carry them", func(t *testing.T) {
 		env := newTestEnv(t, map[string]any{"/emu/roms/neogeo/blazstar.zip": ""})
 		g, _ := m.Game("blazing-star")
 		res := NewResolver(env.fs, env.store, both).Resolve(g, model.CollectionGameConfig{})
-		if res.Playable || len(res.Missing) != 1 || res.Missing[0] != "neogeo.zip" {
+		if !res.Playable || len(res.MayNeed) != 1 || res.MayNeed[0] != "neogeo.zip" || res.Note == "" {
+			t.Errorf("unexpected resolution %+v", res)
+		}
+	})
+
+	t.Run("a missing ROM blocks and names the game's own set", func(t *testing.T) {
+		env := newTestEnv(t, map[string]any{})
+		g, _ := m.Game("blazing-star")
+		res := NewResolver(env.fs, env.store, both).Resolve(g, model.CollectionGameConfig{})
+		if res.Playable || res.Set != "blazstar" || len(res.Missing) != 1 || res.Missing[0] != "blazstar.zip" {
 			t.Errorf("unexpected resolution %+v", res)
 		}
 	})

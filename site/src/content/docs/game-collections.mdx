@@ -85,7 +85,7 @@ Some games need parent or BIOS sets, such as `neogeo.zip`. The two cores look fo
 | FBNeo | the game's ROM folder, `bios/<system>`, `bios/<system>/fbneo`               |
 | MAME  | the game's ROM folder, `bios/<system>/mame/bios`, `bios/<system>/mame/roms` |
 
-`kyaraben collections status` lists any missing files and where each core looks for them.
+A game counts as playable as soon as its own ROM zip is present, because non-merged sets carry their parent and BIOS files inside that zip. When a parent or BIOS zip is not found, `kyaraben collections status` shows it as a note with the places each core looks; if the game then fails to start, that is the file to add.
 
 ## Manifest format
 

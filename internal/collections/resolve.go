@@ -22,6 +22,10 @@ type Resolution struct {
 	RomPath  string           `json:"romPath,omitempty"`
 	Missing  []string         `json:"missing,omitempty"`
 	Reason   string           `json:"reason,omitempty"`
+	// MayNeed lists parent and BIOS zips that were not found. Non-merged
+	// sets carry those files inside the game's zip, so they do not block.
+	MayNeed []string `json:"mayNeed,omitempty"`
+	Note    string   `json:"note,omitempty"`
 
 	set *Set
 }
@@ -58,22 +62,27 @@ func (r *Resolver) Resolve(game Game, local model.CollectionGameConfig) Resoluti
 		return res
 	}
 
-	var closest *Resolution
+	var firstPlayable, firstMissing *Resolution
 	for i := range candidates {
 		s := candidates[i]
 		if !slices.Contains(r.enabled[game.System], s.Emulator) {
 			continue
 		}
 		attempt := r.check(game, s)
-		if attempt.Playable {
+		switch {
+		case attempt.Playable && len(attempt.MayNeed) == 0:
 			return attempt
-		}
-		if closest == nil || len(attempt.Missing) < len(closest.Missing) {
-			closest = &attempt
+		case attempt.Playable && firstPlayable == nil:
+			firstPlayable = &attempt
+		case !attempt.Playable && firstMissing == nil:
+			firstMissing = &attempt
 		}
 	}
-	if closest != nil {
-		return *closest
+	if firstPlayable != nil {
+		return *firstPlayable
+	}
+	if firstMissing != nil {
+		return *firstMissing
 	}
 
 	var emulators []string
@@ -87,30 +96,25 @@ func (r *Resolver) Resolve(game Game, local model.CollectionGameConfig) Resoluti
 func (r *Resolver) check(game Game, s Set) Resolution {
 	res := Resolution{GameID: game.ID, Emulator: s.Emulator, Set: s.Name, set: &s}
 
-	var problems []string
 	romsDir := r.store.SystemRomsDir(game.System)
 	if rom, ok := r.find([]string{romsDir}, s.Name); ok {
 		res.RomPath = rom
+		res.Playable = true
 	} else {
-		res.Missing = append(res.Missing, s.Name+".zip")
-		problems = append(problems, fmt.Sprintf("%s.zip is not in %s", s.Name, romsDir))
+		res.Missing = []string{s.Name + ".zip"}
+		res.Reason = fmt.Sprintf("%s.zip is not in %s", s.Name, romsDir)
 	}
 
 	searchDirs := r.requirementDirs(game.System, s.Emulator)
-	var missingRequired []string
 	for _, req := range s.Requires {
 		if _, ok := r.find(searchDirs, req); !ok {
-			missingRequired = append(missingRequired, req+".zip")
+			res.MayNeed = append(res.MayNeed, req+".zip")
 		}
 	}
-	if len(missingRequired) > 0 {
-		res.Missing = append(res.Missing, missingRequired...)
-		problems = append(problems, fmt.Sprintf("%s needs %s in one of %s",
-			s.Emulator, strings.Join(missingRequired, ", "), strings.Join(searchDirs, ", ")))
+	if len(res.MayNeed) > 0 {
+		res.Note = fmt.Sprintf("unless %s.zip is non-merged, %s needs %s in one of %s",
+			s.Name, s.Emulator, strings.Join(res.MayNeed, ", "), strings.Join(searchDirs, ", "))
 	}
-
-	res.Playable = len(res.Missing) == 0
-	res.Reason = strings.Join(problems, "; ")
 	return res
 }
 

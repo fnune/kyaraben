@@ -135,6 +135,9 @@ func (cmd *CollectionsStatusCmd) Run(ctx *Context) error {
 		if g.Playable {
 			playable++
 			fmt.Printf("  ✓ %-28s %s (%s)\n", g.ID, g.Set, g.Emulator)
+			if g.Note != "" {
+				fmt.Printf("    %-28s %s\n", "", g.Note)
+			}
 		} else {
 			fmt.Printf("  ✗ %-28s %s\n", g.ID, g.Reason)
 		}
