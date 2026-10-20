@@ -151,6 +151,9 @@ func TestServerStatusAndLaunch(t *testing.T) {
 	if rec := request(h, http.MethodPost, "/v1/collections/shmups/games/dodonpachi/launch", origin, nil); rec.Code != http.StatusConflict {
 		t.Errorf("second launch while running: got %d", rec.Code)
 	}
+	if len(starter.commands) != 1 {
+		t.Errorf("a refused launch must not start anything, got %d starts", len(starter.commands))
+	}
 
 	close(starter.proc.done)
 	deadline := time.Now().Add(2 * time.Second)

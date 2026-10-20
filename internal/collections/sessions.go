@@ -86,14 +86,29 @@ func NewSessions(starter Starter, logDir string) *Sessions {
 	return &Sessions{starter: starter, logDir: logDir, now: time.Now, sessions: map[string]*Session{}}
 }
 
+// CheckIdle reports ErrGameRunning while a game is running, so callers can
+// refuse a launch before doing any work for it.
+func (s *Sessions) CheckIdle() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.checkIdleLocked()
+}
+
+func (s *Sessions) checkIdleLocked() error {
+	for _, existing := range s.sessions {
+		if existing.Running {
+			return fmt.Errorf("%w: %s", ErrGameRunning, existing.Title)
+		}
+	}
+	return nil
+}
+
 func (s *Sessions) Launch(plan *LaunchPlan) (Session, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	for _, existing := range s.sessions {
-		if existing.Running {
-			return Session{}, fmt.Errorf("%w: %s", ErrGameRunning, existing.Title)
-		}
+	if err := s.checkIdleLocked(); err != nil {
+		return Session{}, err
 	}
 
 	logPath := filepath.Join(s.logDir, plan.CollectionID+"-"+plan.GameID+".log")

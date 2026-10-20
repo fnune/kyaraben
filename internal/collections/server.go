@@ -118,6 +118,10 @@ func (s *Server) collectionStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) launch(w http.ResponseWriter, r *http.Request) {
+	if err := s.sessions.CheckIdle(); err != nil {
+		writeError(w, http.StatusConflict, err.Error())
+		return
+	}
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
 	plan, err := s.service.Prepare(ctx, r.PathValue("collection"), r.PathValue("game"))
