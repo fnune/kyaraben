@@ -4,9 +4,12 @@ on:
   push:
     tags: ["v*"]
 
+permissions:
+  contents: read
+
 jobs:
   wait-for-ci:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       checks: read
     steps:
@@ -40,31 +43,26 @@ jobs:
 
   release-cli:
     needs: wait-for-ci
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0
 
-      - uses: actions/setup-go@v5
+      - name: Build the CLI, statically against musl, and write the release notes
+        uses: fnune/ci@395771a1db7789d50e1070d49e746465de179042
         with:
-          go-version: "1.24"
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update && sudo apt-get install -y musl-tools
-          curl -sSfL https://github.com/orhun/git-cliff/releases/download/v2.7.0/git-cliff-2.7.0-x86_64-unknown-linux-gnu.tar.gz | tar xz
-          sudo mv git-cliff-2.7.0/git-cliff /usr/local/bin/
-          rm -rf git-cliff-2.7.0
-
-      - name: Build CLI
-        run: ./scripts/build-release-cli.sh
+          cache-paths: go/pkg/mod
+          cache-key-files: "**/go.sum"
+          command: |
+            ./scripts/build-release-cli.sh
+            git-cliff --latest --strip header > release-notes.md
 
       - name: Create release
         run: |
-          git-cliff --latest --strip header > release-notes.md
           gh release create "${{ github.ref_name }}" \
             --draft \
             --title "${{ github.ref_name }}" \
@@ -75,32 +73,32 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release-electron:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: release-cli
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          go-version: "1.24"
+          persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - name: Build the Go sidecar, statically against musl
+        uses: fnune/ci@395771a1db7789d50e1070d49e746465de179042
         with:
-          node-version: "22"
+          cache-paths: go/pkg/mod
+          cache-key-files: "**/go.sum"
+          command: ./scripts/build-sidecar.sh
 
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y rpm musl-tools
-
-      - name: Build Go sidecar
-        run: ./scripts/build-sidecar.sh
-
-      - name: Install UI dependencies
-        run: cd ui && npm ci
-
-      - name: Build AppImage
-        run: cd ui && npm run electron:build -- --publish never
+      - name: Build the AppImage
+        uses: fnune/ci@395771a1db7789d50e1070d49e746465de179042
+        with:
+          dev-shell: ci
+          cache-paths: .npm
+          cache-key-files: ui/package-lock.json
+          command: |
+            cd ui
+            npm ci
+            npm run electron:build -- --publish never
 
       - name: Upload to release
         run: gh release upload "${{ github.ref_name }}" ui/release/*.AppImage
@@ -108,37 +106,29 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release-nextui:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: release-cli
     permissions:
       contents: write
-    defaults:
-      run:
-        working-directory: integrations/nextui
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          go-version: "1.24"
+          persist-credentials: false
 
-      - name: Install just
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
-
-      - name: Get version from tag
-        id: version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
-      - name: Build NextUI paks
-        run: just build-all
-
-      - name: Create release zip
-        run: |
-          cd dist
-          zip -r Kyaraben-NextUI.zip Tools/
+      - name: Build the NextUI paks
+        uses: fnune/ci@395771a1db7789d50e1070d49e746465de179042
+        with:
+          dev-shell: ci
+          apt-packages: zip
+          cache-paths: go/pkg/mod
+          cache-key-files: "**/go.sum"
+          working-directory: integrations/nextui
+          command: |
+            just build-all
+            cd dist
+            zip -r Kyaraben-NextUI.zip Tools/
 
       - name: Upload to release
-        run: gh release upload "v${{ steps.version.outputs.version }}" dist/Kyaraben-NextUI.zip
+        run: gh release upload "${GITHUB_REF_NAME}" integrations/nextui/dist/Kyaraben-NextUI.zip
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
