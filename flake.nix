@@ -28,6 +28,23 @@
               maintainers = [ ];
             };
           };
+
+          site = pkgs.buildNpmPackage {
+            pname = "kyaraben-site";
+            version = "0.1.0";
+            src = ./site;
+            npmDepsHash = "sha256-aKmDWQk3mV4CCBo4MlqO95onAEvGwPHAw5ew6brcRzE=";
+            installPhase = "cp -r dist $out";
+          };
+
+          relay = pkgs.buildGoModule {
+            pname = "kyaraben-relay";
+            version = "0.1.0";
+            src = ./relay;
+            vendorHash = null;
+            subPackages = [ "cmd/relay" ];
+            meta.mainProgram = "relay";
+          };
         };
 
         devShells.default = pkgs.mkShell {
