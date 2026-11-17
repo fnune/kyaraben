@@ -10,6 +10,26 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+        devTools = with pkgs; [
+          go_1_24
+          gopls
+          gotools
+          go-tools
+          golangci-lint
+          delve
+          nodejs_22
+          nodePackages.npm
+          nil
+          nixpkgs-fmt
+          git
+          git-cliff
+          jq
+          just
+          podman
+          pre-commit
+          prek
+          xvfb-run
+        ];
       in
       {
         packages = {
@@ -47,37 +67,12 @@
           };
         };
 
+        devShells.ci = pkgs.mkShell {
+          buildInputs = devTools;
+        };
+
         devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            # Go development
-            go_1_24
-            gopls
-            gotools
-            go-tools
-            golangci-lint
-            delve
-
-            # Node.js development
-            nodejs_22
-            nodePackages.npm
-
-            # Nix tools
-            nil
-            nixpkgs-fmt
-
-            # Static linking for portable CGO binaries
-            musl
-
-            # General tools
-            git
-            git-cliff
-            jq
-            just
-            podman
-            pre-commit
-            prek
-            xvfb-run
-          ];
+          buildInputs = devTools ++ [ pkgs.musl ];
 
           shellHook = ''
             echo "Kyaraben development environment"
