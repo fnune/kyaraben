@@ -7,160 +7,130 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   go-build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          go-version: "1.24"
-
-      - name: Build
-        run: go build ./...
-
-      - name: Build CLI binary for E2E tests
-        run: go build -o ./kyaraben ./cmd/kyaraben
-
-      - name: Build relay binary for E2E tests
-        run: cd relay && go build -o ../relay-bin ./cmd/relay
-
-      - name: Test
-        run: KYARABEN_RELAY_BINARY=${{ github.workspace }}/relay-bin go test -short -race ./...
+          persist-credentials: false
+      - uses: fnune/ci@3003630183e85212ae466a55b971e8fcdaf0dbab
+        with:
+          dev-shell: ci
+          cache-paths: |
+            .cache/go-build
+            go/pkg/mod
+          cache-key-files: "**/go.sum"
+          command: |
+            go build ./...
+            go build -o ./kyaraben ./cmd/kyaraben
+            (cd relay && go build -o ../relay-bin ./cmd/relay)
+            KYARABEN_RELAY_BINARY="$PWD/relay-bin" go test -short -race ./...
 
   relay-build:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: relay
+    runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          go-version: "1.24"
-
-      - name: Build
-        run: go build ./...
-
-      - name: Test
-        run: go test -race ./...
-
-      - uses: golangci/golangci-lint-action@v7
+          persist-credentials: false
+      - uses: fnune/ci@3003630183e85212ae466a55b971e8fcdaf0dbab
         with:
-          version: v2.0.2
-          working-directory: relay
+          dev-shell: ci
+          cache-paths: |
+            .cache/go-build
+            .cache/golangci-lint
+            go/pkg/mod
+          cache-key-files: "**/go.sum"
+          command: |
+            cd relay
+            go build ./...
+            go test -race ./...
+            golangci-lint run
 
   go-lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          go-version: "1.24"
-
-      - uses: golangci/golangci-lint-action@v7
+          persist-credentials: false
+      - uses: fnune/ci@3003630183e85212ae466a55b971e8fcdaf0dbab
         with:
-          version: v2.0.2
+          dev-shell: ci
+          cache-paths: |
+            .cache/go-build
+            .cache/golangci-lint
+            go/pkg/mod
+          cache-key-files: "**/go.sum"
+          command: golangci-lint run
 
   ui-lint:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ui
+    runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: "22"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Lint
-        run: npm run lint
+          persist-credentials: false
+      - uses: fnune/ci@3003630183e85212ae466a55b971e8fcdaf0dbab
+        with:
+          dev-shell: ci
+          cache-paths: .npm
+          cache-key-files: ui/package-lock.json
+          command: |
+            cd ui
+            npm ci
+            npm run lint
 
   site-build:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: site
+    runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: "22"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Check formatting
-        run: npm run fmt:check
-
-      - name: Build site
-        run: npm run build
+          persist-credentials: false
+      - uses: fnune/ci@3003630183e85212ae466a55b971e8fcdaf0dbab
+        with:
+          dev-shell: ci
+          cache-paths: .npm
+          cache-key-files: site/package-lock.json
+          command: |
+            cd site
+            npm ci
+            npm run fmt:check
+            npm run build
 
   electron-e2e:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          go-version: "1.24"
-
-      - uses: actions/setup-node@v4
+          persist-credentials: false
+      - name: Build the Go sidecar, statically against musl
+        uses: fnune/ci@3003630183e85212ae466a55b971e8fcdaf0dbab
         with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: ui/package-lock.json
-
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y rpm musl-tools
-
-      - name: Build Go sidecar
-        run: ./scripts/build-sidecar.sh
-
-      - name: Build relay binary
-        run: |
-          mkdir -p .test/relay
-          cd relay && go build -o ../.test/relay/relay ./cmd/relay
-
-      - name: Install UI dependencies
-        run: cd ui && npm ci
-
-      - name: Build AppImage
-        run: cd ui && npm run electron:build -- --linux AppImage --publish never
-
-      - name: Extract AppImage
-        run: |
-          cd ui/release
-          ./*.AppImage --appimage-extract
-          mv squashfs-root app
-
-      - name: Cache Playwright browsers
-        id: playwright-cache
-        uses: actions/cache@v4
+          cache-paths: go/pkg/mod
+          cache-key-files: "**/go.sum"
+          command: ./scripts/build-sidecar.sh
+      - name: Build the AppImage and run the Playwright tests
+        uses: fnune/ci@3003630183e85212ae466a55b971e8fcdaf0dbab
         with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('ui/package-lock.json') }}
-
-      - name: Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: cd ui && npx playwright install chromium
-
-      - name: Install Playwright system dependencies
-        run: cd ui && npx playwright install-deps chromium
-
-      - name: Run Playwright E2E tests
-        run: |
-          cd ui
-          KYARABEN_APPIMAGE="$(pwd)/release/app/kyaraben-ui" \
-          APPDIR="$(pwd)/release/app" \
-          KYARABEN_RELAY_BINARY="$(pwd)/../.test/relay/relay" \
-          xvfb-run --auto-servernum ../scripts/run-ui-e2e.sh npx playwright test
+          dev-shell: ci
+          cache-paths: |
+            .cache/go-build
+            .cache/ms-playwright
+            .npm
+            go/pkg/mod
+          cache-key-files: "**/package-lock.json"
+          command: |
+            mkdir -p .test/relay
+            (cd relay && go build -o ../.test/relay/relay ./cmd/relay)
+            cd ui
+            npm ci
+            npm run electron:build -- --linux AppImage --publish never
+            (cd release && ./*.AppImage --appimage-extract >/dev/null && mv squashfs-root app)
+            npx playwright install --with-deps chromium
+            KYARABEN_APPIMAGE="$PWD/release/app/kyaraben-ui" \
+              APPDIR="$PWD/release/app" \
+              KYARABEN_RELAY_BINARY="$PWD/../.test/relay/relay" \
+              xvfb-run --auto-servernum ../scripts/run-ui-e2e.sh npx playwright test
