@@ -51,34 +51,5 @@ Sessions expire after 5 minutes. Rate limits apply per IP.
 
 ## Deployment
 
-The relay is deployed to Koyeb using Pulumi. Deployment runs automatically on merge to main when relay code changes.
+Bilbo serves the relay at `https://kyaraben.org/api`, next to the site. The flake's `relay` and `site` packages are what it builds.
 
-### Manual deployment
-
-```sh
-cd pulumi
-pulumi up
-```
-
-Requires `KOYEB_TOKEN` environment variable.
-
-### CI/CD setup
-
-The GitHub Actions workflow uses Pulumi ESC for secrets:
-
-1. Configure OIDC trust in Pulumi Cloud:
-   - Settings → Access Management → OIDC Issuers
-   - Add issuer: `https://token.actions.githubusercontent.com`
-   - Subject filter: `repo:fnune/kyaraben:*`
-
-2. Create ESC environment `kyaraben/relay-deploy`:
-   ```yaml
-   values:
-     koyeb:
-       token:
-         fn::secret: "your-koyeb-api-token"
-     environmentVariables:
-       KOYEB_TOKEN: ${koyeb.token}
-   ```
-
-3. Create Pulumi stack: `pulumi stack init prod`

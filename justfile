@@ -142,14 +142,6 @@ relay-dev:
 relay-test:
     cd relay && go test ./...
 
-# Build combined container (relay + site)
-deploy-build:
-    podman build -t kyaraben -f deploy/Containerfile .
-
-# Deploy to Koyeb (requires KOYEB_TOKEN)
-deploy:
-    ./deploy/scripts/deploy.sh
-
 # Clean build artifacts
 clean:
     rm -f kyaraben
