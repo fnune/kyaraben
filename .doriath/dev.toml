@@ -1,0 +1,2 @@
+description = "kyaraben: Go and Node, Playwright for the UI, pre-commit, and containers in podman"
+modules = ["vcs-readwrite", "docs", "nix", "go", "node", "playwright", "pre-commit", "podman"]
