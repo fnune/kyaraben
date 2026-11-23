@@ -14,9 +14,9 @@ type PresenterUI struct {
 	cmd     *exec.Cmd
 }
 
-func NewPresenterUI(pakPath string) *PresenterUI {
+func NewPresenterUI(binDir string) *PresenterUI {
 	return &PresenterUI{
-		binPath: filepath.Join(pakPath, "minui-presenter"),
+		binPath: filepath.Join(binDir, "minui-presenter"),
 	}
 }
 

@@ -8,11 +8,11 @@ type UI struct {
 	presenter *PresenterUI
 }
 
-func New(pakPath string) *UI {
+func New(binDir string) *UI {
 	return &UI{
-		menu:      NewMenuUI(pakPath),
-		keyboard:  NewKeyboardUI(pakPath),
-		presenter: NewPresenterUI(pakPath),
+		menu:      NewMenuUI(binDir),
+		keyboard:  NewKeyboardUI(binDir),
+		presenter: NewPresenterUI(binDir),
 	}
 }
 

@@ -64,7 +64,7 @@ func run() error {
 		client,
 	)
 
-	appUI := minui.New(env.PakPath)
+	appUI := minui.New(filepath.Join(env.PakPath, "bin", env.Platform))
 
 	application := app.New(env, cfg, cfgStore, syncMgr, svcMgr, appUI)
 

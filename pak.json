@@ -1,0 +1,15 @@
+{
+  "name": "Kyaraben",
+  "version": "v0.1.10",
+  "type": "TOOL",
+  "description": "Sync saves and ROMs with Kyaraben on your computer through Syncthing",
+  "author": "fnune",
+  "repo_url": "https://github.com/fnune/kyaraben",
+  "release_filename": "Kyaraben.pak.zip",
+  "platforms": [
+    "tg5040",
+    "tg5050",
+    "h700"
+  ],
+  "experimental": true
+}

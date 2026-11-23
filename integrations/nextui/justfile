@@ -1,139 +1,88 @@
 # NextUI PAK build system
 
-# Versions
 syncthing_version := "2.0.14"
-minui_list_version := "0.12.0"
-minui_keyboard_version := "0.7.0"
-minui_presenter_version := "0.10.0"
+syncthing_sha256 := "1825e1e0dd7813c83d2b8eeb6d17683394511056afd655752a0c2fb21f6ec29c"
+minui_list_version := "0.16.0"
+minui_keyboard_version := "0.11.0"
+minui_presenter_version := "0.14.0"
+platforms := "tg5040 tg5050 h700"
 
-# Directories
 build_dir := "dist"
 cache_dir := ".cache"
+pak_dir := build_dir / "Kyaraben.pak"
+pak_zip := build_dir / "Kyaraben.pak.zip"
 
 default:
     @just --list
 
-# Build PAK for a specific platform (tg5040, trimuismart, rg35xxplus, rg35xx, miyoomini, rgb30)
-build platform:
+# Build Kyaraben.pak for every platform in pak.json, and zip it for the Pak Store
+build: _kyaraben-nextui _syncthing
     #!/usr/bin/env bash
     set -euo pipefail
+    rm -rf "{{ pak_dir }}" "{{ pak_zip }}"
+    mkdir -p "{{ pak_dir }}"
+    cp "{{ cache_dir }}/kyaraben-nextui" "{{ pak_dir }}/kyaraben-nextui"
+    cp "{{ cache_dir }}/syncthing-{{ syncthing_version }}" "{{ pak_dir }}/syncthing"
+    for platform in {{ platforms }}; do
+        mkdir -p "{{ pak_dir }}/bin/$platform"
+        just _helper minui-list {{ minui_list_version }} "$platform"
+        just _helper minui-keyboard {{ minui_keyboard_version }} "$platform"
+        just _helper minui-presenter {{ minui_presenter_version }} "$platform"
+    done
+    cp build/launch.sh ../../pak.json "{{ pak_dir }}/"
+    chmod +x "{{ pak_dir }}/launch.sh" "{{ pak_dir }}/kyaraben-nextui" "{{ pak_dir }}/syncthing" "{{ pak_dir }}"/bin/*/*
+    (cd "{{ pak_dir }}" && zip -qr ../Kyaraben.pak.zip .)
+    echo "Built {{ pak_dir }} and {{ pak_zip }}"
 
-    pak_dir="{{ build_dir }}/Tools/{{ platform }}/Kyaraben.pak"
-    mkdir -p "$pak_dir"
-
-    just _fetch-kyaraben-nextui "$pak_dir"
-    just _fetch-syncthing "$pak_dir"
-    just _fetch-minui-list "{{ platform }}" "$pak_dir"
-    just _fetch-minui-keyboard "{{ platform }}" "$pak_dir"
-    just _fetch-minui-presenter "{{ platform }}" "$pak_dir"
-
-    # Copy static files
-    cp build/launch.sh "$pak_dir/"
-    chmod +x "$pak_dir/launch.sh"
-
-    echo "PAK built: $pak_dir"
-
-# Build PAKs for all supported platforms
-build-all:
-    just build tg5040
-    just build trimuismart
-    just build rg35xxplus
-    just build rg35xx
-    just build miyoomini
-    just build rgb30
-
-# Clean build artifacts
 clean:
     rm -rf {{ build_dir }}
 
-# Clean everything including cache
 clean-all:
     rm -rf {{ build_dir }} {{ cache_dir }}
 
-# Run tests
 test:
     CGO_ENABLED=0 go test ./...
 
-# Run E2E tests with fake UI
 e2e:
     CGO_ENABLED=0 go test ./test/e2e/... -v
 
-# --- Internal targets ---
+_kyaraben-nextui:
+    mkdir -p "{{ cache_dir }}"
+    CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o "{{ cache_dir }}/kyaraben-nextui" ./cmd/kyaraben-nextui
 
-_fetch-kyaraben-nextui dest:
+_syncthing:
     #!/usr/bin/env bash
     set -euo pipefail
-
-    cache="{{ cache_dir }}/kyaraben-nextui"
-    if [ ! -f "$cache" ]; then
-        echo "Building kyaraben-nextui for linux/arm64..."
-        mkdir -p "{{ cache_dir }}"
-        CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build \
-            -ldflags="-s -w" \
-            -o "$cache" \
-            ./cmd/kyaraben-nextui
-    fi
-
-    cp "$cache" "{{ dest }}/kyaraben-nextui"
-    chmod +x "{{ dest }}/kyaraben-nextui"
-
-_fetch-syncthing dest:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
     cache="{{ cache_dir }}/syncthing-{{ syncthing_version }}"
-    if [ ! -f "$cache" ]; then
-        echo "Downloading Syncthing {{ syncthing_version }}..."
-        mkdir -p "{{ cache_dir }}"
-        url="https://github.com/syncthing/syncthing/releases/download/v{{ syncthing_version }}/syncthing-linux-arm64-v{{ syncthing_version }}.tar.gz"
-        curl -fsSL "$url" | tar -xzf - --strip-components=1 -C "{{ cache_dir }}" "syncthing-linux-arm64-v{{ syncthing_version }}/syncthing"
-        mv "{{ cache_dir }}/syncthing" "$cache"
+    archive="$cache.tar.gz"
+    mkdir -p "{{ cache_dir }}"
+    if [ ! -f "$archive" ]; then
+        curl --fail --silent --show-error --location --output "$archive.partial" \
+            "https://github.com/syncthing/syncthing/releases/download/v{{ syncthing_version }}/syncthing-linux-arm64-v{{ syncthing_version }}.tar.gz"
+        mv "$archive.partial" "$archive"
     fi
+    echo "{{ syncthing_sha256 }}  $archive" | sha256sum --check --quiet
+    tar --extract --gzip --file "$archive" --to-stdout "syncthing-linux-arm64-v{{ syncthing_version }}/syncthing" > "$cache"
 
-    cp "$cache" "{{ dest }}/syncthing"
-    chmod +x "{{ dest }}/syncthing"
-
-_fetch-minui-list platform dest:
+_helper name version platform:
     #!/usr/bin/env bash
     set -euo pipefail
-
-    cache="{{ cache_dir }}/minui-list-{{ minui_list_version }}-{{ platform }}"
+    declare -A checksums=(
+        [minui-list-tg5040]=0888e85d727c24aa96b99c71e29566fce7e818d7c85152082b460be31f7bfab1
+        [minui-list-tg5050]=0e77554b59158df6f7618074b16f9346865653614db76e0d469bf4e20f63afa2
+        [minui-list-h700]=c579322919f069d9e8d50751e9c22a23238a84ecef4d6c5be48661b9312baa2d
+        [minui-keyboard-tg5040]=bba03606949a7d2ed9688ba42c07dfaab0bd1ef39022e71f5a7f862921347198
+        [minui-keyboard-tg5050]=9d06ec642a319a2a589b5f3f0384431c2f6c229c4e4122aed2c33b6352a3b02d
+        [minui-keyboard-h700]=f17d77d8ecd236827b8807fc5033ac720b742a8f7cc5cac134a146c2f33c82b1
+        [minui-presenter-tg5040]=264785d9aa3e5f9ac2074c539e480ea1fd6dbe220ee3a52734511aa9ec759830
+        [minui-presenter-tg5050]=7e585c6bd6a96b2715e48029a860e0fe72cd29cb581372cf962f50595275fce8
+        [minui-presenter-h700]=bd52303c41ef6a865c9742fe8dc5068b3230725d85ca98e3034beddf2e493fe1
+    )
+    cache="{{ cache_dir }}/{{ name }}-{{ version }}-{{ platform }}"
     if [ ! -f "$cache" ]; then
-        echo "Downloading minui-list {{ minui_list_version }} for {{ platform }}..."
-        mkdir -p "{{ cache_dir }}"
-        url="https://github.com/josegonzalez/minui-list/releases/download/{{ minui_list_version }}/minui-list-{{ platform }}"
-        curl -fsSL -o "$cache" "$url"
+        curl --fail --silent --show-error --location --output "$cache.partial" \
+            "https://github.com/josegonzalez/{{ name }}/releases/download/{{ version }}/{{ name }}-{{ platform }}-nextui"
+        mv "$cache.partial" "$cache"
     fi
-
-    cp "$cache" "{{ dest }}/minui-list"
-    chmod +x "{{ dest }}/minui-list"
-
-_fetch-minui-keyboard platform dest:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    cache="{{ cache_dir }}/minui-keyboard-{{ minui_keyboard_version }}-{{ platform }}"
-    if [ ! -f "$cache" ]; then
-        echo "Downloading minui-keyboard {{ minui_keyboard_version }} for {{ platform }}..."
-        mkdir -p "{{ cache_dir }}"
-        url="https://github.com/josegonzalez/minui-keyboard/releases/download/{{ minui_keyboard_version }}/minui-keyboard-{{ platform }}"
-        curl -fsSL -o "$cache" "$url"
-    fi
-
-    cp "$cache" "{{ dest }}/minui-keyboard"
-    chmod +x "{{ dest }}/minui-keyboard"
-
-_fetch-minui-presenter platform dest:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    cache="{{ cache_dir }}/minui-presenter-{{ minui_presenter_version }}-{{ platform }}"
-    if [ ! -f "$cache" ]; then
-        echo "Downloading minui-presenter {{ minui_presenter_version }} for {{ platform }}..."
-        mkdir -p "{{ cache_dir }}"
-        url="https://github.com/josegonzalez/minui-presenter/releases/download/{{ minui_presenter_version }}/minui-presenter-{{ platform }}"
-        curl -fsSL -o "$cache" "$url"
-    fi
-
-    cp "$cache" "{{ dest }}/minui-presenter"
-    chmod +x "{{ dest }}/minui-presenter"
+    echo "${checksums[{{ name }}-{{ platform }}]}  $cache" | sha256sum --check --quiet
+    cp "$cache" "{{ pak_dir }}/bin/{{ platform }}/{{ name }}"

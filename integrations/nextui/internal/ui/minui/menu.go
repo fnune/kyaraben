@@ -16,9 +16,9 @@ type MenuUI struct {
 	binPath string
 }
 
-func NewMenuUI(pakPath string) *MenuUI {
+func NewMenuUI(binDir string) *MenuUI {
 	return &MenuUI{
-		binPath: filepath.Join(pakPath, "minui-list"),
+		binPath: filepath.Join(binDir, "minui-list"),
 	}
 }
 

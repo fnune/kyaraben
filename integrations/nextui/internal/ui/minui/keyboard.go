@@ -14,9 +14,9 @@ type KeyboardUI struct {
 	binPath string
 }
 
-func NewKeyboardUI(pakPath string) *KeyboardUI {
+func NewKeyboardUI(binDir string) *KeyboardUI {
 	return &KeyboardUI{
-		binPath: filepath.Join(pakPath, "minui-keyboard"),
+		binPath: filepath.Join(binDir, "minui-keyboard"),
 	}
 }
 

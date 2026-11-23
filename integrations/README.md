@@ -115,7 +115,7 @@ Some CFWs share path conventions and can be covered by one integration:
 
 | Integration | Covers | Base path | Notes |
 |-------------|--------|-----------|-------|
-| `nextui` | MinUI, NextUI | SD card root | Uses minui-* UI tools, bundles Syncthing |
+| `nextui` | NextUI | SD card root | Uses minui-* UI tools, bundles Syncthing |
 | `batocera` | Batocera, KNULLI, Koriki | `/userdata` | EmulationStation-based, has built-in Syncthing |
 | `rocknix` | ROCKNIX, UnofficialOS, JELOS | `/storage` | Has built-in Syncthing and rclone |
 | `muos` | muOS | SD card root | Unique union filesystem, bundles Syncthing |

@@ -115,7 +115,15 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Build the NextUI paks
+      - name: Check that pak.json matches the tag
+        run: |
+          pak_version="$(jq --raw-output .version pak.json)"
+          if [ "$pak_version" != "${GITHUB_REF_NAME}" ]; then
+            echo "pak.json has version $pak_version, but the tag is ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+
+      - name: Build the NextUI pak
         uses: fnune/ci@395771a1db7789d50e1070d49e746465de179042
         with:
           dev-shell: ci
@@ -123,12 +131,9 @@ jobs:
           cache-paths: go/pkg/mod
           cache-key-files: "**/go.sum"
           working-directory: integrations/nextui
-          command: |
-            just build-all
-            cd dist
-            zip -r Kyaraben-NextUI.zip Tools/
+          command: just build
 
       - name: Upload to release
-        run: gh release upload "${GITHUB_REF_NAME}" integrations/nextui/dist/Kyaraben-NextUI.zip
+        run: gh release upload "${GITHUB_REF_NAME}" integrations/nextui/dist/Kyaraben.pak.zip
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

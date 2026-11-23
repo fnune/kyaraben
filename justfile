@@ -84,12 +84,16 @@ release-create version:
     jq '.version = "{{ version }}"' ui/package.json > ui/package.json.tmp
     mv ui/package.json.tmp ui/package.json
 
+    echo "Updating pak.json version to v{{ version }}..."
+    jq --indent 2 '.version = "v{{ version }}"' pak.json > pak.json.tmp
+    mv pak.json.tmp pak.json
+
     echo "Generating changelog for v{{ version }}..."
     git-cliff --tag "v{{ version }}" --unreleased --prepend CHANGELOG.md
     awk 'prev != "" && /^## \[/ {print ""} {print; prev = $0}' CHANGELOG.md > CHANGELOG.md.tmp
     mv CHANGELOG.md.tmp CHANGELOG.md
 
-    git add ui/package.json CHANGELOG.md
+    git add ui/package.json pak.json CHANGELOG.md
     git commit -m "chore(release): update changelog for v{{ version }}"
     git push origin main
 

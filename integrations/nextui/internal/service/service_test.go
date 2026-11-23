@@ -13,11 +13,8 @@ func TestFriendlyDeviceName(t *testing.T) {
 		want     string
 	}{
 		{"tg5040", "trimui-brick"},
-		{"trimuismart", "trimui-smart-pro"},
-		{"rg35xxplus", "rg35xx-plus"},
-		{"rg35xx", "rg35xx"},
-		{"miyoomini", "miyoo-mini"},
-		{"rgb30", "rgb30"},
+		{"tg5050", "trimui-smart-pro-s"},
+		{"h700", "anbernic-h700"},
 		{"unknown-platform", "unknown-platform"},
 		{"", ""},
 	}

@@ -154,12 +154,9 @@ func (m *Manager) setDeviceName(ctx context.Context, name string) error {
 }
 
 var platformNames = map[string]string{
-	"tg5040":      "trimui-brick",
-	"trimuismart": "trimui-smart-pro",
-	"rg35xxplus":  "rg35xx-plus",
-	"rg35xx":      "rg35xx",
-	"miyoomini":   "miyoo-mini",
-	"rgb30":       "rgb30",
+	"tg5040": "trimui-brick",
+	"tg5050": "trimui-smart-pro-s",
+	"h700":   "anbernic-h700",
 }
 
 func friendlyDeviceName(platform string) string {
