@@ -288,3 +288,60 @@ func TestCheckPortReachable_InvalidAddress(t *testing.T) {
 		}
 	}
 }
+
+func TestApplyNetworkOptionsMovesSyncthingOffItsStockPortsAndKeepsOtherOptions(t *testing.T) {
+	stock := map[string]any{
+		"listenAddresses":       []any{"default"},
+		"localAnnouncePort":     float64(21027),
+		"localAnnounceEnabled":  true,
+		"globalAnnounceEnabled": false,
+		"relaysEnabled":         false,
+		"urAccepted":            float64(-1),
+	}
+
+	var putBody map[string]any
+	mux := http.NewServeMux()
+	mux.HandleFunc("/rest/config/options", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			_ = json.NewEncoder(w).Encode(stock)
+		case http.MethodPut:
+			body, _ := io.ReadAll(r.Body)
+			if err := json.Unmarshal(body, &putBody); err != nil {
+				t.Errorf("decoding PUT body: %v", err)
+			}
+		}
+	})
+	mux.HandleFunc("/rest/config/restart-required", func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{"requiresRestart": true})
+	})
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	cfg := DefaultConfig()
+	cfg.BaseURL = server.URL
+	client := NewClient(cfg)
+	client.SetAPIKey("key")
+
+	restartRequired, err := client.ApplyNetworkOptions(context.Background())
+	if err != nil {
+		t.Fatalf("ApplyNetworkOptions() error = %v", err)
+	}
+	if !restartRequired {
+		t.Error("restartRequired = false, want the value Syncthing reported")
+	}
+
+	addresses, _ := putBody["listenAddresses"].([]any)
+	if len(addresses) != 2 || addresses[0] != "tcp://0.0.0.0:22100" || addresses[1] != "quic://0.0.0.0:22100" {
+		t.Errorf("listenAddresses = %v, want tcp and quic on 22100", addresses)
+	}
+	if putBody["localAnnouncePort"] != float64(21127) {
+		t.Errorf("localAnnouncePort = %v, want 21127", putBody["localAnnouncePort"])
+	}
+	if putBody["globalAnnounceEnabled"] != true || putBody["relaysEnabled"] != true {
+		t.Errorf("global discovery and relays = %v, %v, want both on", putBody["globalAnnounceEnabled"], putBody["relaysEnabled"])
+	}
+	if putBody["urAccepted"] != float64(-1) {
+		t.Errorf("urAccepted = %v, want the existing value kept", putBody["urAccepted"])
+	}
+}

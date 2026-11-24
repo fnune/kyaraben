@@ -157,6 +157,9 @@ type fakeClient struct {
 	disabledReporting bool
 	allowedInsecure   bool
 	runningCallCount  int
+	restartRequired   bool
+	appliedNetwork    bool
+	restarted         bool
 }
 
 type addedDevice struct {
@@ -191,6 +194,44 @@ func (f *fakeClient) DisableUsageReporting(ctx context.Context) error {
 func (f *fakeClient) AllowInsecureAdmin(ctx context.Context) error {
 	f.allowedInsecure = true
 	return nil
+}
+
+func (f *fakeClient) ApplyNetworkOptions(ctx context.Context) (bool, error) {
+	f.appliedNetwork = true
+	return f.restartRequired, nil
+}
+
+func (f *fakeClient) Restart(ctx context.Context) error {
+	f.restarted = true
+	return nil
+}
+
+func TestApplyNetworkOptionsRestartsSyncthingWhenTheChangeRequiresIt(t *testing.T) {
+	client := &fakeClient{running: true, restartRequired: true}
+	mgr := &Manager{client: client}
+
+	mgr.applyNetworkOptions(context.Background())
+
+	if !client.appliedNetwork {
+		t.Error("network options were not applied")
+	}
+	if !client.restarted {
+		t.Error("syncthing was not restarted after a change that requires it")
+	}
+}
+
+func TestApplyNetworkOptionsLeavesSyncthingRunningWhenNoRestartIsRequired(t *testing.T) {
+	client := &fakeClient{running: true}
+	mgr := &Manager{client: client}
+
+	mgr.applyNetworkOptions(context.Background())
+
+	if !client.appliedNetwork {
+		t.Error("network options were not applied")
+	}
+	if client.restarted {
+		t.Error("syncthing was restarted although no restart was required")
+	}
 }
 
 func TestSetDeviceName(t *testing.T) {

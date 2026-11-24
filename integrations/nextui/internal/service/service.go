@@ -19,6 +19,8 @@ type SyncClient interface {
 	AddDeviceWithAddresses(ctx context.Context, deviceID, name string, addresses []string) error
 	DisableUsageReporting(ctx context.Context) error
 	AllowInsecureAdmin(ctx context.Context) error
+	ApplyNetworkOptions(ctx context.Context) (restartRequired bool, err error)
+	Restart(ctx context.Context) error
 }
 
 type Manager struct {
@@ -69,6 +71,7 @@ func (m *Manager) Start(ctx context.Context) error {
 			fmt.Fprintf(os.Stderr, "service.Start: checking if responsive\n")
 			if m.client.IsRunning(ctx) {
 				fmt.Fprintf(os.Stderr, "service.Start: already running\n")
+				m.applyNetworkOptions(ctx)
 				return nil
 			}
 		}
@@ -142,7 +145,26 @@ func (m *Manager) Start(ctx context.Context) error {
 		fmt.Fprintf(os.Stderr, "service.Start: failed to allow insecure admin: %v\n", err)
 	}
 
+	m.applyNetworkOptions(ctx)
 	return nil
+}
+
+func (m *Manager) applyNetworkOptions(ctx context.Context) {
+	restartRequired, err := m.client.ApplyNetworkOptions(ctx)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "service.Start: failed to apply network options: %v\n", err)
+		return
+	}
+	if !restartRequired {
+		return
+	}
+	if err := m.client.Restart(ctx); err != nil {
+		fmt.Fprintf(os.Stderr, "service.Start: failed to restart for network options: %v\n", err)
+		return
+	}
+	if err := m.waitForReady(ctx); err != nil {
+		fmt.Fprintf(os.Stderr, "service.Start: syncthing not ready after restart: %v\n", err)
+	}
 }
 
 func (m *Manager) setDeviceName(ctx context.Context, name string) error {

@@ -935,6 +935,57 @@ func (c *Client) DisableUsageReporting(ctx context.Context) error {
 	return nil
 }
 
+func (c *Client) ApplyNetworkOptions(ctx context.Context) (restartRequired bool, err error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/config/options", nil)
+	if err != nil {
+		return false, fmt.Errorf("getting options: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return false, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+
+	var options map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&options); err != nil {
+		return false, fmt.Errorf("decoding options: %w", err)
+	}
+
+	options["listenAddresses"] = []string{
+		fmt.Sprintf("tcp://0.0.0.0:%d", c.config.ListenPort),
+		fmt.Sprintf("quic://0.0.0.0:%d", c.config.ListenPort),
+	}
+	options["localAnnounceEnabled"] = true
+	options["localAnnouncePort"] = c.config.DiscoveryPort
+	options["globalAnnounceEnabled"] = c.config.GlobalDiscoveryEnabled
+	options["relaysEnabled"] = c.config.RelayEnabled
+
+	putResp, err := c.doRequest(ctx, http.MethodPut, "/rest/config/options", options)
+	if err != nil {
+		return false, fmt.Errorf("putting options: %w", err)
+	}
+	defer func() { _ = putResp.Body.Close() }()
+
+	if putResp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(putResp.Body)
+		return false, fmt.Errorf("unexpected status %d: %s", putResp.StatusCode, string(body))
+	}
+
+	restartResp, err := c.doRequest(ctx, http.MethodGet, "/rest/config/restart-required", nil)
+	if err != nil {
+		return false, fmt.Errorf("checking restart: %w", err)
+	}
+	defer func() { _ = restartResp.Body.Close() }()
+
+	var restart struct {
+		RequiresRestart bool `json:"requiresRestart"`
+	}
+	if err := json.NewDecoder(restartResp.Body).Decode(&restart); err != nil {
+		return false, fmt.Errorf("decoding restart status: %w", err)
+	}
+	return restart.RequiresRestart, nil
+}
+
 func (c *Client) AllowInsecureAdmin(ctx context.Context) error {
 	resp, err := c.doRequest(ctx, http.MethodGet, "/rest/config/gui", nil)
 	if err != nil {
