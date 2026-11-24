@@ -1,3 +1,19 @@
+## [0.1.11] - 2026-11-24
+
+### Features
+
+- *(nextui)* Build one Kyaraben.pak for the NextUI Pak Store
+
+### Bug fixes
+
+- *(retroarch)* Give RetroArch's SDL current controller mappings
+- *(nextui)* Sync ROMs into the folders NextUI creates
+- *(nextui)* Run Syncthing on Kyaraben's ports
+
+### Refactor
+
+- *(retroarch)* Trim comments in the SDL mappings code
+
 ## [0.1.10] - 2026-10-05
 
 ### Bug fixes

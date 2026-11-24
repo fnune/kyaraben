@@ -1,6 +1,6 @@
 {
   "name": "Kyaraben",
-  "version": "v0.1.10",
+  "version": "v0.1.11",
   "type": "TOOL",
   "description": "Sync saves and ROMs with Kyaraben on your computer through Syncthing",
   "author": "fnune",
