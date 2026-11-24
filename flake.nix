@@ -29,6 +29,7 @@
           pre-commit
           prek
           xvfb-run
+          zip
         ];
       in
       {
