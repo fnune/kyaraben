@@ -24,7 +24,7 @@ The Kyaraben app appears in the Tools menu on your device.
 
 ## Configuration
 
-The default configuration maps Kyaraben system IDs to the standard NextUI paths. If you use other paths or other cores, create a config file at `/.userdata/<platform>/kyaraben/config.toml` on the SD card. For the TrimUI Brick, this is `/.userdata/tg5040/kyaraben/config.toml`.
+The default configuration maps Kyaraben system IDs to the standard NextUI paths. On first launch, if the card already has a ROM folder with the same tag under another name, such as `Roms/Super Famicom (SFC)`, Kyaraben syncs into that folder instead of creating a second one. The app writes the mapping to its config file, and later launches keep it. If you use other paths or other cores, create a config file at `/.userdata/<platform>/kyaraben/config.toml` on the SD card. For the TrimUI Brick, this is `/.userdata/tg5040/kyaraben/config.toml`.
 
 Example:
 
@@ -42,10 +42,10 @@ gba = "Saves/GBA"
 psx = "Saves/PS"
 
 [roms]
-nes = "Roms/Nintendo (FC)"
-snes = "Roms/Super Nintendo (SFC)"
+nes = "Roms/Nintendo Entertainment System (FC)"
+snes = "Roms/Super Nintendo Entertainment System (SFC)"
 gba = "Roms/Game Boy Advance (GBA)"
-psx = "Roms/PlayStation (PS)"
+psx = "Roms/Sony PlayStation (PS)"
 
 [bios]
 gba = "Bios/GBA"

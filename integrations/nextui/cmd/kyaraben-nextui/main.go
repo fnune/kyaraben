@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"github.com/twpayne/go-vfs/v5"
+
 	"github.com/fnune/kyaraben/integrations/nextui/internal/app"
 	"github.com/fnune/kyaraben/integrations/nextui/internal/config"
 	"github.com/fnune/kyaraben/integrations/nextui/internal/service"
@@ -30,11 +32,11 @@ func run() error {
 	dataDir := filepath.Join(env.UserdataPath, "kyaraben")
 
 	cfgStore := config.NewDefaultConfigStore(dataDir)
-	cfg, err := cfgStore.Load(config.DefaultConfig())
+	defaults := config.DefaultConfigForCard(vfs.OSFS, env.SDCardPath)
+	cfg, err := cfgStore.Load(defaults)
 	if err != nil {
 		log.Printf("load config: %v (using defaults)", err)
-		defaultCfg := config.DefaultConfig()
-		cfg = &defaultCfg
+		cfg = &defaults
 	}
 
 	stConfig := syncthing.DefaultConfig()

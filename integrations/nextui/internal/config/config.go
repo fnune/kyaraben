@@ -1,6 +1,10 @@
 package config
 
 import (
+	"path/filepath"
+	"slices"
+	"strings"
+
 	"github.com/twpayne/go-vfs/v5"
 
 	"github.com/fnune/kyaraben/internal/guestapp"
@@ -44,16 +48,16 @@ func DefaultConfig() Config {
 				string(model.SystemIDArcade):       "Saves/FBN",
 			},
 			ROMs: map[string]string{
-				string(model.SystemIDNES):          "Roms/Nintendo (FC)",
-				string(model.SystemIDSNES):         "Roms/Super Nintendo (SFC)",
+				string(model.SystemIDNES):          "Roms/Nintendo Entertainment System (FC)",
+				string(model.SystemIDSNES):         "Roms/Super Nintendo Entertainment System (SFC)",
 				string(model.SystemIDGB):           "Roms/Game Boy (GB)",
 				string(model.SystemIDGBC):          "Roms/Game Boy Color (GBC)",
 				string(model.SystemIDGBA):          "Roms/Game Boy Advance (GBA)",
-				string(model.SystemIDPSX):          "Roms/PlayStation (PS)",
-				string(model.SystemIDGenesis):      "Roms/Mega Drive (MD)",
-				string(model.SystemIDGameGear):     "Roms/Game Gear (GG)",
-				string(model.SystemIDMasterSystem): "Roms/Master System (SMS)",
-				string(model.SystemIDPCEngine):     "Roms/PC Engine (PCE)",
+				string(model.SystemIDPSX):          "Roms/Sony PlayStation (PS)",
+				string(model.SystemIDGenesis):      "Roms/Sega Genesis (MD)",
+				string(model.SystemIDGameGear):     "Roms/Sega Game Gear (GG)",
+				string(model.SystemIDMasterSystem): "Roms/Sega Master System (SMS)",
+				string(model.SystemIDPCEngine):     "Roms/TurboGrafx-16 (PCE)",
 				string(model.SystemIDNGP):          "Roms/Neo Geo Pocket (NGP)",
 				string(model.SystemIDAtari2600):    "Roms/Atari 2600 (A2600)",
 				string(model.SystemIDC64):          "Roms/Commodore 64 (C64)",
@@ -81,6 +85,44 @@ func DefaultConfig() Config {
 			},
 		},
 	}
+}
+
+func DefaultConfigForCard(fs vfs.FS, sdcardPath string) Config {
+	cfg := DefaultConfig()
+	entries, err := fs.ReadDir(filepath.Join(sdcardPath, romsDir))
+	if err != nil {
+		return cfg
+	}
+
+	foldersByTag := map[string][]string{}
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		if tag := folderTag(entry.Name()); tag != "" {
+			foldersByTag[tag] = append(foldersByTag[tag], entry.Name())
+		}
+	}
+
+	for system, path := range cfg.ROMs {
+		existing := foldersByTag[folderTag(filepath.Base(path))]
+		if len(existing) == 0 || slices.Contains(existing, filepath.Base(path)) {
+			continue
+		}
+		slices.Sort(existing)
+		cfg.ROMs[system] = filepath.Join(romsDir, existing[0])
+	}
+	return cfg
+}
+
+const romsDir = "Roms"
+
+func folderTag(name string) string {
+	open := strings.LastIndex(name, " (")
+	if open == -1 || !strings.HasSuffix(name, ")") {
+		return ""
+	}
+	return name[open+2 : len(name)-1]
 }
 
 func Load(dataDir string) (*Config, error) {
