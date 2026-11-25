@@ -53,7 +53,7 @@ jobs:
           fetch-depth: 0
 
       - name: Build the CLI, statically against musl, and write the release notes
-        uses: fnune/ci@395771a1db7789d50e1070d49e746465de179042
+        uses: fnune/ci@efd9d3202653a8ff8e41995ad8225c9f77a19a98
         with:
           cache-paths: go/pkg/mod
           cache-key-files: "**/go.sum"
@@ -83,14 +83,14 @@ jobs:
           persist-credentials: false
 
       - name: Build the Go sidecar, statically against musl
-        uses: fnune/ci@395771a1db7789d50e1070d49e746465de179042
+        uses: fnune/ci@efd9d3202653a8ff8e41995ad8225c9f77a19a98
         with:
           cache-paths: go/pkg/mod
           cache-key-files: "**/go.sum"
           command: ./scripts/build-sidecar.sh
 
       - name: Build the AppImage
-        uses: fnune/ci@395771a1db7789d50e1070d49e746465de179042
+        uses: fnune/ci@efd9d3202653a8ff8e41995ad8225c9f77a19a98
         with:
           dev-shell: ci
           cache-paths: .npm
@@ -124,7 +124,7 @@ jobs:
           fi
 
       - name: Build the NextUI pak
-        uses: fnune/ci@395771a1db7789d50e1070d49e746465de179042
+        uses: fnune/ci@efd9d3202653a8ff8e41995ad8225c9f77a19a98
         with:
           dev-shell: ci
           apt-packages: zip

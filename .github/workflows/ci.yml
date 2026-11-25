@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: fnune/ci@395771a1db7789d50e1070d49e746465de179042
+      - uses: fnune/ci@efd9d3202653a8ff8e41995ad8225c9f77a19a98
         with:
           dev-shell: ci
           cache-paths: |
@@ -36,7 +36,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: fnune/ci@395771a1db7789d50e1070d49e746465de179042
+      - uses: fnune/ci@efd9d3202653a8ff8e41995ad8225c9f77a19a98
         with:
           dev-shell: ci
           cache-paths: |
@@ -56,7 +56,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: fnune/ci@395771a1db7789d50e1070d49e746465de179042
+      - uses: fnune/ci@efd9d3202653a8ff8e41995ad8225c9f77a19a98
         with:
           dev-shell: ci
           cache-paths: |
@@ -72,7 +72,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: fnune/ci@395771a1db7789d50e1070d49e746465de179042
+      - uses: fnune/ci@efd9d3202653a8ff8e41995ad8225c9f77a19a98
         with:
           dev-shell: ci
           cache-paths: .npm
@@ -88,7 +88,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: fnune/ci@395771a1db7789d50e1070d49e746465de179042
+      - uses: fnune/ci@efd9d3202653a8ff8e41995ad8225c9f77a19a98
         with:
           dev-shell: ci
           cache-paths: .npm
@@ -107,13 +107,13 @@ jobs:
         with:
           persist-credentials: false
       - name: Build the Go sidecar, statically against musl
-        uses: fnune/ci@395771a1db7789d50e1070d49e746465de179042
+        uses: fnune/ci@efd9d3202653a8ff8e41995ad8225c9f77a19a98
         with:
           cache-paths: go/pkg/mod
           cache-key-files: "**/go.sum"
           command: ./scripts/build-sidecar.sh
       - name: Build the AppImage and run the Playwright tests
-        uses: fnune/ci@395771a1db7789d50e1070d49e746465de179042
+        uses: fnune/ci@efd9d3202653a8ff8e41995ad8225c9f77a19a98
         with:
           dev-shell: ci
           apt-packages: >-
