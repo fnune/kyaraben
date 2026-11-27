@@ -7,6 +7,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   wait-for-ci:
     runs-on: ubuntu-26.04
@@ -63,12 +67,18 @@ jobs:
 
       - name: Create release
         run: |
-          gh release create "${{ github.ref_name }}" \
-            --draft \
-            --title "${{ github.ref_name }}" \
-            --notes-file release-notes.md \
-            dist/Kyaraben-CLI-linux-amd64 \
-            dist/checksums.txt
+          if gh release view "${{ github.ref_name }}" >/dev/null 2>&1; then
+            gh release upload "${{ github.ref_name }}" --clobber \
+              dist/Kyaraben-CLI-linux-amd64 \
+              dist/checksums.txt
+          else
+            gh release create "${{ github.ref_name }}" \
+              --draft \
+              --title "${{ github.ref_name }}" \
+              --notes-file release-notes.md \
+              dist/Kyaraben-CLI-linux-amd64 \
+              dist/checksums.txt
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -101,7 +111,7 @@ jobs:
             npm run electron:build -- --publish never
 
       - name: Upload to release
-        run: gh release upload "${{ github.ref_name }}" ui/release/*.AppImage
+        run: gh release upload "${{ github.ref_name }}" --clobber ui/release/*.AppImage
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -134,6 +144,6 @@ jobs:
           command: just build
 
       - name: Upload to release
-        run: gh release upload "${GITHUB_REF_NAME}" integrations/nextui/dist/Kyaraben.pak.zip
+        run: gh release upload "${GITHUB_REF_NAME}" --clobber integrations/nextui/dist/Kyaraben.pak.zip
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
